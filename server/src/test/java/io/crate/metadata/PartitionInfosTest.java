@@ -21,6 +21,7 @@
 
 package io.crate.metadata;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -67,7 +68,7 @@ public class PartitionInfosTest extends CrateDummyClusterServiceUnitTest {
         addIndexMetadataToClusterState(
             IndexMetadata.builder("test1").settings(defaultSettings()).numberOfShards(10).numberOfReplicas(4));
         Iterable<PartitionInfo> partitioninfos = new PartitionInfos(clusterService);
-        assertThat(partitioninfos.iterator().hasNext(), is(false));
+        assertThat(partitioninfos.iterator().hasNext()).isFalse();
     }
 
     @Test
@@ -77,7 +78,7 @@ public class PartitionInfosTest extends CrateDummyClusterServiceUnitTest {
         addIndexMetadataToClusterState(IndexMetadata.builder(partitionName.asIndexName())
             .settings(defaultSettings()).numberOfShards(10).numberOfReplicas(4));
         Iterable<PartitionInfo> partitioninfos = new PartitionInfos(clusterService);
-        assertThat(partitioninfos.iterator().hasNext(), is(false));
+        assertThat(partitioninfos.iterator().hasNext()).isFalse();
     }
 
     @Test
@@ -98,7 +99,7 @@ public class PartitionInfosTest extends CrateDummyClusterServiceUnitTest {
         assertThat(partitioninfo.numberOfShards(), is(10));
         assertThat(partitioninfo.numberOfReplicas(), is("4"));
         assertThat(partitioninfo.values(), hasEntry("col", "foo"));
-        assertThat(iter.hasNext(), is(false));
+        assertThat(iter.hasNext()).isFalse();
     }
 
     @Test
@@ -120,6 +121,6 @@ public class PartitionInfosTest extends CrateDummyClusterServiceUnitTest {
         assertThat(partitioninfo.numberOfReplicas(), is("4"));
         assertThat(partitioninfo.values(), hasEntry("col", "foo"));
         assertThat(partitioninfo.values(), hasEntry("col2", 1));
-        assertThat(iter.hasNext(), is(false));
+        assertThat(iter.hasNext()).isFalse();
     }
 }

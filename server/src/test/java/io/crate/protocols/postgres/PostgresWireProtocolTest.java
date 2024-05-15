@@ -190,7 +190,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         channel.writeInbound(buffer);
         channel.releaseInbound();
 
-        assertThat(flushed.get(), is(true));
+        assertThat(flushed.get()).isTrue();
     }
 
     @Test

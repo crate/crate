@@ -21,11 +21,11 @@
 
 package io.crate.execution.jobs;
 
-import static io.crate.execution.jobs.JobSetup.NodeOperationCtx;
 import static io.crate.planner.distribution.DistributionInfo.DEFAULT_BROADCAST;
 import static io.crate.testing.StubPhases.newPhase;
 import static java.util.Collections.singletonList;
 import static java.util.stream.StreamSupport.stream;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -38,6 +38,7 @@ import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.execution.dsl.phases.ExecutionPhase;
 import io.crate.execution.dsl.phases.NodeOperation;
+import io.crate.execution.jobs.JobSetup.NodeOperationCtx;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.testing.StubPhases;
 
@@ -75,7 +76,7 @@ public class NodeOperationCtxTest extends ESTestCase {
         NodeOperationCtx opCtx = new NodeOperationCtx("n1", singletonList(NodeOperation.withDownstream(p1, p2, (byte) 0)));
 
         // withDownstream set DistributionInfo to SAME_NODE because both phases are on n1
-        assertThat(opCtx.upstreamsAreOnSameNode(1), is(true));
+        assertThat(opCtx.upstreamsAreOnSameNode(1)).isTrue();
     }
 
     @Test
@@ -84,7 +85,7 @@ public class NodeOperationCtxTest extends ESTestCase {
         ExecutionPhase p2 = newPhase(1, "n1");
         NodeOperationCtx opCtx = new NodeOperationCtx("n1", singletonList(NodeOperation.withDownstream(p1, p2, (byte) 0)));
 
-        assertThat(opCtx.upstreamsAreOnSameNode(1), is(false));
+        assertThat(opCtx.upstreamsAreOnSameNode(1)).isFalse();
     }
 
     @Test
@@ -96,6 +97,6 @@ public class NodeOperationCtxTest extends ESTestCase {
         NodeOperationCtx opCtx = new NodeOperationCtx("n1",
             List.of(NodeOperation.withDownstream(p1, p3, (byte) 0), NodeOperation.withDownstream(p2, p3, (byte) 0)));
 
-        assertThat(opCtx.upstreamsAreOnSameNode(3), is(true));
+        assertThat(opCtx.upstreamsAreOnSameNode(3)).isTrue();
     }
 }

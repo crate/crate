@@ -25,6 +25,7 @@ import static io.crate.auth.AuthenticationWithSSLIntegrationTest.getAbsoluteFile
 import static io.crate.auth.HostBasedAuthentication.Matchers.isValidAddress;
 import static io.crate.auth.HostBasedAuthentication.Matchers.isValidProtocol;
 import static io.crate.auth.HostBasedAuthentication.Matchers.isValidUser;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
@@ -237,17 +238,17 @@ public class HostBasedAuthenticationTest extends ESTestCase {
             SystemDefaultDnsResolver.INSTANCE,
             () -> "dummy"
         );
-        Optional entry;
+        Optional<Map.Entry<String, Map<String, String>>> entry;
 
         entry = authService.getEntry("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, null));
-        assertThat(entry.isPresent(), is(true));
+        assertThat(entry.isPresent()).isTrue();
 
         entry = authService.getEntry("cr8", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, null));
-        assertThat(entry.isPresent(), is(false));
+        assertThat(entry.isPresent()).isFalse();
 
         entry = authService.getEntry("crate",
             new ConnectionProperties(InetAddresses.forString("10.0.0.1"), Protocol.POSTGRES, null));
-        assertThat(entry.isPresent(), is(false));
+        assertThat(entry.isPresent()).isFalse();
     }
 
     @Test
@@ -274,7 +275,7 @@ public class HostBasedAuthenticationTest extends ESTestCase {
 
         entry = authService.getEntry("cr8",
             new ConnectionProperties(InetAddresses.forString("123.45.67.89"), Protocol.POSTGRES, null));
-        assertThat(entry.isPresent(), is(false));
+        assertThat(entry.isPresent()).isFalse();
     }
 
     @Test

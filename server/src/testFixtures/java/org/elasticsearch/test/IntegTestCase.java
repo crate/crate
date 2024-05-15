@@ -32,7 +32,6 @@ import static org.elasticsearch.test.XContentTestUtils.differenceBetweenMapsIgno
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertNoFailures;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertNoTimeout;
-import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertEquals;
@@ -959,7 +958,7 @@ public abstract class IntegTestCase extends ESTestCase {
             fail("failed to reach a stable cluster of [" + nodeCount + "] nodes. Tried via [" + viaNode + "]. last cluster state:\n"
                  + stateResponse.getState());
         }
-        assertThat(clusterHealthResponse.isTimedOut(), is(false));
+        assertThat(clusterHealthResponse.isTimedOut()).isFalse();
         ensureFullyConnectedCluster(cluster);
     }
 
@@ -1306,7 +1305,9 @@ public abstract class IntegTestCase extends ESTestCase {
                     if (shardRouting.currentNodeId() != null && index.equals(shardRouting.getIndexName())) {
                         String name = clusterState.nodes().get(shardRouting.currentNodeId()).getName();
                         nodes.add(name);
-                        assertThat("Allocated on new node: " + name, Regex.simpleMatch(pattern, name), is(true));
+                        assertThat(Regex.simpleMatch(pattern, name))
+                            .as("Allocated on new node: " + name)
+                            .isTrue();
                     }
                 }
             }

@@ -23,6 +23,7 @@ package io.crate.integrationtests.disruption.replication.logical;
 
 import static io.crate.integrationtests.disruption.discovery.AbstractDisruptionTestCase.isolateNode;
 import static io.crate.testing.TestingHelpers.printedTable;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.test.IntegTestCase.ensureStableCluster;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -109,7 +110,7 @@ public class SubscriptionDisruptionIT extends LogicalReplicationITestCase {
 
         // Ensure tracker started and initial recovery is done
         assertBusy(() -> {
-            assertThat(isMetadataTrackerActive(), is(true));
+            assertThat(isMetadataTrackerActive()).isTrue();
             var res = executeOnSubscriber(
                 "SELECT s.subname, s.subpublications, sr.srrelid::text, sr.srsubstate, sr.srsubstate_reason" +
                     " FROM pg_subscription s" +
@@ -156,7 +157,7 @@ public class SubscriptionDisruptionIT extends LogicalReplicationITestCase {
 
         // Ensure tracker started and initial recovery is done
         assertBusy(() -> {
-            assertThat(isMetadataTrackerActive(), is(true));
+            assertThat(isMetadataTrackerActive()).isTrue();
             var res = executeOnSubscriber(
                 "SELECT s.subname, s.subpublications, sr.srrelid::text, sr.srsubstate, sr.srsubstate_reason" +
                 " FROM pg_subscription s" +
@@ -208,7 +209,7 @@ public class SubscriptionDisruptionIT extends LogicalReplicationITestCase {
 
         // Ensure tracker started and initial recovery is done
         assertBusy(() -> {
-            assertThat(isMetadataTrackerActive(), is(true));
+            assertThat(isMetadataTrackerActive()).isTrue();
             var res = executeOnSubscriber(
                 "SELECT s.subname, s.subpublications, sr.srrelid::text, sr.srsubstate, sr.srsubstate_reason" +
                     " FROM pg_subscription s" +

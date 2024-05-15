@@ -21,6 +21,9 @@
 
 package io.crate.protocols.ssl;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.not;
@@ -99,7 +102,7 @@ public class SslContextProviderTest extends ESTestCase {
         var sslContextProvider = new SslContextProvider(settings);
         SslContext sslContext = sslContextProvider.getServerContext(Protocol.TRANSPORT);
         assertThat(sslContext, instanceOf(SslContext.class));
-        assertThat(sslContext.isServer(), is(true));
+        assertThat(sslContext.isServer()).isTrue();
         assertThat(sslContext.cipherSuites(), not(empty()));
     }
 
@@ -120,7 +123,7 @@ public class SslContextProviderTest extends ESTestCase {
             .put(SslSettings.SSL_KEYSTORE_KEY_PASSWORD_SETTING_NAME, KEYSTORE_KEY_PASSWORD)
             .build();
         SslContext sslContext = new SslContextProvider(settings).getServerContext(Protocol.TRANSPORT);
-        assertThat(sslContext.isServer(), is(true));
+        assertThat(sslContext.isServer()).isTrue();
         assertThat(sslContext.cipherSuites(), not(empty()));
         // check that we don't offer NULL ciphers which do not encrypt
         assertThat(sslContext.cipherSuites(), not(hasItem(containsString("NULL"))));

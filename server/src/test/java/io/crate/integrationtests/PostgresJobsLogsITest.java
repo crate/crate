@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -90,7 +91,7 @@ public class PostgresJobsLogsITest extends IntegTestCase {
                 // this is expected
             }
             ResultSet result = conn.createStatement().executeQuery("select count(*) from sys.jobs");
-            assertThat(result.next(), is(true));
+            assertThat(result.next()).isTrue();
             assertThat(result.getLong(1), is(1L));
         }
     }
@@ -189,8 +190,9 @@ public class PostgresJobsLogsITest extends IntegTestCase {
                 for (String stmtStr : statements) {
                     pStmt.setString(1, stmtStr);
                     ResultSet resultSet = pStmt.executeQuery();
-                    assertThat(
-                        "sys.jobs_log must have an entry WHERE stmt=" + stmtStr, resultSet.next(), is(true));
+                    assertThat(resultSet.next())
+                        .as("sys.jobs_log must have an entry WHERE stmt=" + stmtStr)
+                        .isTrue();
                     assertThat(resultSet.getString(1), is(stmtStr));
                     if (checkForError) {
                         assertThat(resultSet.getString(2), is("\"a\" must not be null"));

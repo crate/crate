@@ -21,6 +21,7 @@
 
 package io.crate.planner;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static io.crate.testing.Asserts.isReference;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.equalTo;
@@ -172,7 +173,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertNotNull(projection.clusteredByIdent());
         assertThat(projection.clusteredByIdent().fqn(), is("id"));
         assertThat(projection.tableIdent().fqn(), is("doc.users"));
-        assertThat(projection.partitionedBySymbols().isEmpty(), is(true));
+        assertThat(projection.partitionedBySymbols().isEmpty()).isTrue();
 
         MergePhase localMergeNode = planNode.mergePhase();
         assertThat(localMergeNode.projections().size(), is(1));
@@ -232,7 +233,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertNotNull(projection.clusteredByIdent());
         assertThat(projection.clusteredByIdent().fqn(), is("id"));
         assertThat(projection.tableIdent().fqn(), is("doc.users"));
-        assertThat(projection.partitionedBySymbols().isEmpty(), is(true));
+        assertThat(projection.partitionedBySymbols().isEmpty()).isTrue();
     }
 
     @Test
@@ -252,7 +253,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(projection.allTargetColumns().get(2).column().fqn(), is("name"));
         assertThat(((InputColumn) projection.ids().get(0)).index(), is(1));
         assertThat(((InputColumn) projection.clusteredBy()).index(), is(1));
-        assertThat(projection.partitionedBySymbols().isEmpty(), is(true));
+        assertThat(projection.partitionedBySymbols().isEmpty()).isTrue();
     }
 
     @Test
@@ -271,7 +272,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(projection.allTargetColumns().get(1).column().fqn(), is("name"));
         assertThat(((InputColumn) projection.ids().get(0)).index(), is(0));
         assertThat(((InputColumn) projection.clusteredBy()).index(), is(0));
-        assertThat(projection.partitionedBySymbols().isEmpty(), is(true));
+        assertThat(projection.partitionedBySymbols().isEmpty()).isTrue();
     }
 
     @Test

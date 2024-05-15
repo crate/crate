@@ -21,6 +21,9 @@
 
 package io.crate.planner.node.dql;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -130,7 +133,7 @@ public class JoinPhaseTest extends ESTestCase {
         assertThat(node.joinCondition(), is(node2.joinCondition()));
         assertThat(node.estimatedRowsSizeLeft, is(32L));
         assertThat(node.estimatedNumberOfRowsLeft, is(100_000L));
-        assertThat(node.blockNestedLoop, is(true));
+        assertThat(node.blockNestedLoop).isTrue();
     }
 
     @Test

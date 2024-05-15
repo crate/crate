@@ -21,6 +21,7 @@ package org.elasticsearch.cluster.block;
 
 import static java.util.EnumSet.copyOf;
 import static org.elasticsearch.test.VersionUtils.randomVersion;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.endsWith;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.not;
@@ -99,19 +100,19 @@ public class ClusterBlockTests extends ESTestCase {
         clusterBlocks = builder.build();
 
         assertThat(clusterBlocks.indices().get("index-1").size(), equalTo(2));
-        assertThat(clusterBlocks.hasIndexBlockWithId("index-1", 1), is(true));
-        assertThat(clusterBlocks.hasIndexBlockWithId("index-1", 2), is(true));
+        assertThat(clusterBlocks.hasIndexBlockWithId("index-1", 1)).isTrue();
+        assertThat(clusterBlocks.hasIndexBlockWithId("index-1", 2)).isTrue();
         assertThat(clusterBlocks.indices().get("index-2").size(), equalTo(1));
-        assertThat(clusterBlocks.hasIndexBlockWithId("index-2", 3), is(true));
+        assertThat(clusterBlocks.hasIndexBlockWithId("index-2", 3)).isTrue();
 
         builder.removeIndexBlockWithId("index-2", 3);
         clusterBlocks = builder.build();
 
         assertThat(clusterBlocks.indices().get("index-1").size(), equalTo(2));
-        assertThat(clusterBlocks.hasIndexBlockWithId("index-1", 1), is(true));
-        assertThat(clusterBlocks.hasIndexBlockWithId("index-1", 2), is(true));
+        assertThat(clusterBlocks.hasIndexBlockWithId("index-1", 1)).isTrue();
+        assertThat(clusterBlocks.hasIndexBlockWithId("index-1", 2)).isTrue();
         assertThat(clusterBlocks.indices().get("index-2"), nullValue());
-        assertThat(clusterBlocks.hasIndexBlockWithId("index-2", 3), is(false));
+        assertThat(clusterBlocks.hasIndexBlockWithId("index-2", 3)).isFalse();
     }
 
     public void testGetIndexBlockWithId() {

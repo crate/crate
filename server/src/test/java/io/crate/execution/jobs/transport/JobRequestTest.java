@@ -21,6 +21,7 @@
 
 package io.crate.execution.jobs.transport;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -53,7 +54,7 @@ public class JobRequestTest {
         assertThat(r1.coordinatorNodeId(), is(r2.coordinatorNodeId()));
         assertThat(r1.jobId(), is(r2.jobId()));
         assertThat(r1.sessionSettings(), is(r2.sessionSettings()));
-        assertThat(r1.nodeOperations().isEmpty(), is(true));
+        assertThat(r1.nodeOperations().isEmpty()).isTrue();
         assertThat(r1.enableProfiling(), is(r2.enableProfiling()));
     }
 }

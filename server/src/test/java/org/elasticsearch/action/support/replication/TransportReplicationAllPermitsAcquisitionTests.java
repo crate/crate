@@ -21,6 +21,8 @@ package org.elasticsearch.action.support.replication;
 import static java.util.Collections.emptyMap;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_CREATION_DATE;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
@@ -389,8 +391,12 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
 
     private void assertSuccessfulOperation(final TestAction action, final Response response) {
         final String name = action.getActionName();
-        assertThat(name + " operation should have been executed on primary", action.executedOnPrimary.get(), is(true));
-        assertThat(name + " operation should have been executed on replica", action.executedOnReplica.get(), is(true));
+        assertThat(action.executedOnPrimary.get())
+          .as(name + " operation should have been executed on primary")
+          .isTrue();
+        assertThat(action.executedOnReplica.get())
+          .as(name + " operation should have been executed on replica")
+          .isTrue();
         assertThat(name + " operation must have a non null result", response, notNullValue());
         assertThat(name + " operation should have been successful on 2 shards", response.getShardInfo().getSuccessful(), equalTo(2));
     }

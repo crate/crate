@@ -21,6 +21,7 @@
 
 package io.crate.metadata.doc.mappers.array;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
@@ -120,7 +121,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
             .endObject());
         SourceToParse sourceToParse = new SourceToParse(INDEX, "abc", bytesReference, XContentType.JSON);
         ParsedDocument doc = mapper.parse(sourceToParse);
-        assertThat(doc.dynamicMappingsUpdate() == null, is(true));
+        assertThat(doc.dynamicMappingsUpdate() == null).isTrue();
 
         Document fields = doc.doc();
         Set<String> values = uniqueValuesFromFields(fields, "array_field");

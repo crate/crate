@@ -21,6 +21,7 @@
 
 package io.crate.execution.jobs;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -226,9 +227,9 @@ public class DistResultRXTaskTest extends ESTestCase {
         Bucket b3 = new CollectionBucket(Collections.singletonList(new Object[] { "universe" }));
         CheckPageResultListener checkPageResultListener = new CheckPageResultListener();
         bucketReceiver.setBucket(42, b3, false, checkPageResultListener);
-        assertThat(checkPageResultListener.needMoreResult, is(true));
+        assertThat(checkPageResultListener.needMoreResult).isTrue();
         bucketReceiver.setBucket(42, b3, true, checkPageResultListener);
-        assertThat(checkPageResultListener.needMoreResult, is(false));
+        assertThat(checkPageResultListener.needMoreResult).isFalse();
 
         List<Object[]> result = batchConsumer.getResult();
         assertThat(result.toArray(), arrayContainingInAnyOrder(

@@ -21,6 +21,7 @@
 
 package io.crate.protocols.ssl;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertThat;
@@ -90,13 +91,17 @@ public class SslContextProviderServiceTest extends CrateDummyClusterServiceUnitT
             long checksum = fingerPrint.checksum;
 
             Files.write(dataTarget06.resolve("keystore.jks"), List.of("version2"));
-            assertThat("dataLink file must exist", Files.deleteIfExists(dataLink), is(true));
+            assertThat(Files.deleteIfExists(dataLink))
+                .as("dataLink file must exist")
+                .isTrue();
             Files.createSymbolicLink(dataLink, dataTarget06);
 
             sslContextProviderService.pollForChanges(filesToWatch);
             assertThat("checksum must change after file changed", fingerPrint.checksum, is(not(checksum)));
 
-            assertThat("reload must be called on SslContextProvider", reloadCalled.get(), is(true));
+            assertThat(reloadCalled.get())
+                .as("reload must be called on SslContextProvider")
+                .isTrue();
 
         }
     }

@@ -22,6 +22,7 @@
 package io.crate.execution.engine.sort;
 
 import static io.crate.testing.TestingHelpers.isRow;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
@@ -165,8 +166,8 @@ public class SortingLimitAndOffsetProjectorTest extends ESTestCase {
     public void test_zero_limit() throws Exception {
         Projector projector = getProjector(2, 0, 0);
         BatchIterator<Row> it = projector.apply(TestingBatchIterators.range(1, 6));
-        assertThat(it.moveNext(), is(false));
-        assertThat(it.allLoaded(), is(true));
+        assertThat(it.moveNext()).isFalse();
+        assertThat(it.allLoaded()).isTrue();
     }
 
     @Test

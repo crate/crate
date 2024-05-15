@@ -22,6 +22,7 @@
 package io.crate.integrationtests.disruption.discovery;
 
 import static io.crate.metadata.IndexParts.toIndexName;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
@@ -209,7 +210,9 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
                     semaphore.release(docsPerIndexer);
                 }
                 logger.info("waiting for indexing requests to complete");
-                assertThat("indexing requests must complete", countDownLatchRef.get().await(20, TimeUnit.SECONDS), is(true));
+                assertThat(countDownLatchRef.get().await(20, TimeUnit.SECONDS))
+                    .as("indexing requests must complete")
+                    .isTrue();
 
                 logger.info("stopping disruption");
                 disruptionScheme.stopDisrupting();

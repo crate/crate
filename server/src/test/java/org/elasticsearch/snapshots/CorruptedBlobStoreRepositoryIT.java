@@ -18,8 +18,8 @@
  */
 package org.elasticsearch.snapshots;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertFileExists;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
@@ -385,7 +385,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         final IndexId indexId = getRepositoryData(repoName).resolveIndexId(indexName);
         final Path shardPath = repoPath.resolve("indices").resolve(indexId.getId()).resolve("0");
         final Path initialShardMetaPath = shardPath.resolve(BlobStoreRepository.INDEX_FILE_PREFIX + "0");
-        assertFileExists(initialShardMetaPath);
+        assertThat(initialShardMetaPath).exists();
         Files.move(initialShardMetaPath, shardPath.resolve(BlobStoreRepository.INDEX_FILE_PREFIX + "1"));
 
         logger.info("--> delete old version snapshot");
@@ -440,7 +440,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         final IndexId indexId = getRepositoryData(repoName).resolveIndexId(indexName);
         final Path shardPath = repoPath.resolve("indices").resolve(indexId.getId()).resolve("0");
         final Path initialShardMetaPath = shardPath.resolve(BlobStoreRepository.INDEX_FILE_PREFIX + "0");
-        assertFileExists(initialShardMetaPath);
+        assertThat(initialShardMetaPath).exists();
         Files.move(initialShardMetaPath, shardPath.resolve(BlobStoreRepository.INDEX_FILE_PREFIX + randomIntBetween(1, 1000)));
 
         final RepositoryData repositoryData1 = getRepositoryData(repoName);

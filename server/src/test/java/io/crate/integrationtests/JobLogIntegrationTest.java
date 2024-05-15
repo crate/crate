@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.TestingHelpers.printedTable;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -79,7 +80,7 @@ public class JobLogIntegrationTest extends IntegTestCase {
                 }
             }
             // at least one node must have the set statement logged
-            assertThat(setStmtFound, is(true));
+            assertThat(setStmtFound).isTrue();
         });
 
         // Each node can hold only 1 query (the latest one) so in total we should always see 2 queries in

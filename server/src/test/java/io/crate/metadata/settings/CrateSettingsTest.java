@@ -21,6 +21,7 @@
 
 package io.crate.metadata.settings;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
@@ -40,17 +41,17 @@ public class CrateSettingsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testValidSetting() {
-        assertThat(CrateSettings.isValidSetting(JobsLogService.STATS_ENABLED_SETTING.getKey()), is(true));
+        assertThat(CrateSettings.isValidSetting(JobsLogService.STATS_ENABLED_SETTING.getKey())).isTrue();
     }
 
     @Test
     public void testValidLoggingSetting() {
-        assertThat(CrateSettings.isValidSetting("logger.info"), is(true));
+        assertThat(CrateSettings.isValidSetting("logger.info")).isTrue();
     }
 
     @Test
     public void testValidPrefixSetting() {
-        assertThat(CrateSettings.isValidSetting("stats"), is(true));
+        assertThat(CrateSettings.isValidSetting("stats")).isTrue();
     }
 
     @Test

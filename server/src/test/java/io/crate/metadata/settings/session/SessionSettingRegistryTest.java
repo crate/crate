@@ -172,22 +172,22 @@ public class SessionSettingRegistryTest extends ESTestCase {
                                               boolean defaultValue) {
         assertThat(contextBooleanSupplier.get(), is(defaultValue));
         sessionSetting.apply(SESSION_SETTINGS, generateInput("true"), EVAL);
-        assertThat(contextBooleanSupplier.get(), is(true));
+        assertThat(contextBooleanSupplier.get()).isTrue();
         sessionSetting.apply(SESSION_SETTINGS, generateInput("false"), EVAL);
-        assertThat(contextBooleanSupplier.get(), is(false));
+        assertThat(contextBooleanSupplier.get()).isFalse();
         sessionSetting.apply(SESSION_SETTINGS, generateInput("TrUe"), EVAL);
-        assertThat(contextBooleanSupplier.get(), is(true));
+        assertThat(contextBooleanSupplier.get()).isTrue();
         try {
             sessionSetting.apply(SESSION_SETTINGS, generateInput(""), EVAL);
             fail("Should have failed to apply setting.");
         } catch (IllegalArgumentException e) {
-            assertThat(contextBooleanSupplier.get(), is(true));
+            assertThat(contextBooleanSupplier.get()).isTrue();
         }
         try {
             sessionSetting.apply(SESSION_SETTINGS, generateInput("invalid", "input"), EVAL);
             fail("Should have failed to apply setting.");
         } catch (IllegalArgumentException e) {
-            assertThat(contextBooleanSupplier.get(), is(true));
+            assertThat(contextBooleanSupplier.get()).isTrue();
         }
     }
 

@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
@@ -44,8 +45,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.http.Header;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.message.BasicHeader;
@@ -53,6 +52,7 @@ import org.apache.http.util.EntityUtils;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.test.IntegTestCase;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import io.crate.blob.v2.BlobIndicesService;
@@ -91,7 +91,7 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
     public void testCorsHeadersAreSet() throws Exception {
         String digest = uploadTinyBlob();
         CloseableHttpResponse response = get(blobUri(digest));
-        assertThat(response.containsHeader("Access-Control-Allow-Origin"), is(true));
+        assertThat(response.containsHeader("Access-Control-Allow-Origin")).isTrue();
     }
 
     @Test
@@ -229,7 +229,7 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
             uris[i] = blobUri(digest);
             expected[i] = expectedContent;
         }
-        assertThat(mget(uris, headers, expected), is(true));
+        assertThat(mget(uris, headers, expected)).isTrue();
     }
 
     @Test
@@ -264,7 +264,7 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
         for (int i = 0; i < 10; i++) {
             uris[i] = blobUri(digest);
         }
-        assertThat(mget(uris, headers, expected), is(true));
+        assertThat(mget(uris, headers, expected)).isTrue();
     }
 
     @Test
@@ -319,10 +319,10 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
     }
 
     private void assertSocketIsConnected(Socket socket) {
-        assertThat(socket.isConnected(), is(true));
-        assertThat(socket.isClosed(), is(false));
-        assertThat(socket.isInputShutdown(), is(false));
-        assertThat(socket.isOutputShutdown(), is(false));
+        assertThat(socket.isConnected()).isTrue();
+        assertThat(socket.isClosed()).isFalse();
+        assertThat(socket.isInputShutdown()).isFalse();
+        assertThat(socket.isOutputShutdown()).isFalse();
     }
 
     @Test

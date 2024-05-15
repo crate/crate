@@ -21,6 +21,9 @@
 
 package org.elasticsearch.action.admin.cluster.state;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.action.admin.cluster.state.TransportClusterStateAction.buildResponse;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -77,7 +80,7 @@ public class TransportClusterStateActionTests extends ESTestCase {
 
         var response = buildResponse(request, clusterState, logger);
         assertThat(response.getState().metadata().templates().get("template1"), notNullValue());
-        assertThat(response.getState().metadata().hasIndex("index1"), is(true));
+        assertThat(response.getState().metadata().hasIndex("index1")).isTrue();
         assertThat(response.getState().metadata().persistentSettings().get("setting1"), is("bar"));
     }
 
@@ -89,7 +92,7 @@ public class TransportClusterStateActionTests extends ESTestCase {
 
         var response = buildResponse(request, clusterState, logger);
         assertThat(response.getState().metadata().templates().get("template1"), notNullValue());
-        assertThat(response.getState().metadata().hasIndex("index1"), is(false));
+        assertThat(response.getState().metadata().hasIndex("index1")).isFalse();
         assertThat(response.getState().metadata().persistentSettings().get("setting1"), nullValue());
     }
 
@@ -101,7 +104,7 @@ public class TransportClusterStateActionTests extends ESTestCase {
 
         var response = buildResponse(request, clusterState, logger);
         assertThat(response.getState().metadata().templates().get("template1"), nullValue());
-        assertThat(response.getState().metadata().hasIndex("index1"), is(true));
+        assertThat(response.getState().metadata().hasIndex("index1")).isTrue();
         assertThat(response.getState().metadata().persistentSettings().get("setting1"), nullValue());
     }
 
@@ -114,7 +117,7 @@ public class TransportClusterStateActionTests extends ESTestCase {
 
         var response = buildResponse(request, clusterState, logger);
         assertThat(response.getState().metadata().templates().get("template1"), notNullValue());
-        assertThat(response.getState().metadata().hasIndex("index1"), is(true));
+        assertThat(response.getState().metadata().hasIndex("index1")).isTrue();
         assertThat(response.getState().metadata().persistentSettings().get("setting1"), nullValue());
     }
 }

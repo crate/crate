@@ -21,6 +21,9 @@
 
 package io.crate.planner;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -102,13 +105,13 @@ public class RoutingBuilderTest extends CrateDummyClusterServiceUnitTest {
 
         IntSet n1 = readerAllocations.nodeReaders().get("n1");
         assertThat(n1.size(), is(2));
-        assertThat(n1.contains(0), is(true));
-        assertThat(n1.contains(2), is(true));
+        assertThat(n1.contains(0)).isTrue();
+        assertThat(n1.contains(2)).isTrue();
 
         IntSet n2 = readerAllocations.nodeReaders().get("n2");
         assertThat(n2.size(), is(2));
-        assertThat(n2.contains(1), is(true));
-        assertThat(n2.contains(3), is(true));
+        assertThat(n2.contains(1)).isTrue();
+        assertThat(n2.contains(3)).isTrue();
 
         assertThat(readerAllocations.bases().get(relationName.indexNameOrAlias()), is(0));
 

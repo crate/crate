@@ -23,6 +23,7 @@ package io.crate.expression.udf;
 
 import static io.crate.expression.udf.UserDefinedFunctionMetadata.argumentTypesFrom;
 import static io.crate.expression.udf.UserDefinedFunctionMetadata.specificName;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -134,10 +135,10 @@ public class UserDefinedFunctionsMetadataTest extends ESTestCase {
 
     @Test
     public void testSameSignature() throws Exception {
-        assertThat(FUNCTION_METADATA.sameSignature("my_schema", "my_add", argumentTypesFrom(args)), is(true));
-        assertThat(FUNCTION_METADATA.sameSignature("different_schema", "my_add", argumentTypesFrom(args)), is(false));
-        assertThat(FUNCTION_METADATA.sameSignature("my_schema", "different_name", argumentTypesFrom(args)), is(false));
-        assertThat(FUNCTION_METADATA.sameSignature("my_schema", "my_add", List.of()), is(false));
+        assertThat(FUNCTION_METADATA.sameSignature("my_schema", "my_add", argumentTypesFrom(args))).isTrue();
+        assertThat(FUNCTION_METADATA.sameSignature("different_schema", "my_add", argumentTypesFrom(args))).isFalse();
+        assertThat(FUNCTION_METADATA.sameSignature("my_schema", "different_name", argumentTypesFrom(args))).isFalse();
+        assertThat(FUNCTION_METADATA.sameSignature("my_schema", "my_add", List.of())).isFalse();
     }
 
     @Test

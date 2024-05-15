@@ -21,6 +21,7 @@
 
 package io.crate.execution.jobs;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -40,8 +41,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.execution.engine.collect.stats.JobsLogs;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.role.Role;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
 
@@ -77,7 +78,7 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         RootTask ctx = tasksService.createTask(builder);
         Iterable<UUID> contexts = tasksService.getJobIdsByCoordinatorNode("wrongNodeId").collect(Collectors.toList());
 
-        assertThat(contexts.iterator().hasNext(), is(false));
+        assertThat(contexts.iterator().hasNext()).isFalse();
 
         contexts = tasksService.getJobIdsByCoordinatorNode("n1").collect(Collectors.toList());
         assertThat(contexts, contains(ctx.jobId()));
@@ -134,7 +135,7 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         assertThat(activeTasks.size(), is(1));
         assertThat(tasksService.killAll(Role.CRATE_USER.name()).get(5L, TimeUnit.SECONDS), is(1));
 
-        assertThat(killCalled.get(), is(true));
+        assertThat(killCalled.get()).isTrue();
         assertThat(activeTasks.size(), is(0));
     }
 
@@ -171,8 +172,8 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         assertThat(activeTasks.size(), is(2));
         assertThat(tasksService.killJobs(List.of(jobId), Role.CRATE_USER.name(), null).get(5L, TimeUnit.SECONDS), is(1));
 
-        assertThat(killCalled.get(), is(true));
-        assertThat(kill2Called.get(), is(false));
+        assertThat(killCalled.get()).isTrue();
+        assertThat(kill2Called.get()).isFalse();
         assertThat(activeTasks.size(), is(1)); //only one job is killed
 
     }

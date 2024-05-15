@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.core.Is.is;
@@ -94,7 +95,7 @@ public class BlobPathITest extends BlobIntegrationTestBase {
         client.put("test", "abcdefg");
         String digest = "2fb5e13419fc89246865e7a324f476ec624e8740";
         try (Stream<Path> files = Files.walk(globalBlobPath)) {
-            assertThat(files.anyMatch(i -> digest.equals(i.getFileName().toString())), is(true));
+            assertThat(files.anyMatch(i -> digest.equals(i.getFileName().toString()))).isTrue();
         }
     }
 
@@ -111,7 +112,7 @@ public class BlobPathITest extends BlobIntegrationTestBase {
         client.put("test", "abcdefg");
         String digest = "2fb5e13419fc89246865e7a324f476ec624e8740";
         try (Stream<Path> files = Files.walk(tableBlobPath)) {
-            assertThat(files.anyMatch(i -> digest.equals(i.getFileName().toString())), is(true));
+            assertThat(files.anyMatch(i -> digest.equals(i.getFileName().toString()))).isTrue();
         }
     }
 

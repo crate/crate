@@ -1901,10 +1901,11 @@ public class TranslogTests extends ESTestCase {
         assertThat(expectedException, is(not(nullValue())));
         assertThat(failableTLog.getTragicException(), equalTo(expectedException));
         assertThat(fileChannels, is(not(empty())));
-        assertThat("all file channels have to be closed",
-            fileChannels.stream().filter(f -> f.isOpen()).findFirst().isPresent(), is(false));
+        assertThat(fileChannels.stream().filter(f -> f.isOpen()).findFirst())
+          .as("all file channels have to be closed")
+          .isNotPresent();
 
-        assertThat(failableTLog.isOpen(), is(false));
+        assertThat(failableTLog.isOpen()).isFalse();
         assertThatThrownBy(() -> failableTLog.newSnapshot())
             .isExactlyInstanceOf(AlreadyClosedException.class)
             .hasMessage("translog is already closed");

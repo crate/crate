@@ -18,8 +18,8 @@
  */
 package org.elasticsearch.index.shard;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -112,12 +112,13 @@ public class PrimaryReplicaSyncerTests extends IndexShardTestCase {
             ResyncReplicationRequest resyncRequest = resyncRequests.remove(0);
             assertThat(resyncRequest.getTrimAboveSeqNo(), equalTo(numDocs - 1L));
 
-            assertThat("trimAboveSeqNo has to be specified in request #0 only", resyncRequests.stream()
+            assertThat(resyncRequests.stream()
                     .mapToLong(ResyncReplicationRequest::getTrimAboveSeqNo)
                     .filter(seqNo -> seqNo != SequenceNumbers.UNASSIGNED_SEQ_NO)
                     .findFirst()
-                    .isPresent(),
-                is(false));
+                    .isPresent())
+              .as("trimAboveSeqNo has to be specified in request #0 only")
+              .isFalse();
 
             assertThat(resyncRequest.getMaxSeenAutoIdTimestampOnPrimary(), equalTo(shard.getMaxSeenAutoIdTimestamp()));
         }

@@ -21,6 +21,8 @@
 package org.elasticsearch.common.settings;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
@@ -340,11 +342,11 @@ public class SettingTests extends ESTestCase {
     @Test
     public void testType() {
         Setting<Integer> integerSetting = Setting.intSetting("foo.int.bar", 1, Property.Dynamic, Property.NodeScope);
-        assertThat(integerSetting.hasNodeScope(), is(true));
-        assertThat(integerSetting.hasIndexScope(), is(false));
+        assertThat(integerSetting.hasNodeScope()).isTrue();
+        assertThat(integerSetting.hasIndexScope()).isFalse();
         integerSetting = Setting.intSetting("foo.int.bar", 1, Property.Dynamic, Property.IndexScope);
-        assertThat(integerSetting.hasIndexScope(), is(true));
-        assertThat(integerSetting.hasNodeScope(), is(false));
+        assertThat(integerSetting.hasIndexScope()).isTrue();
+        assertThat(integerSetting.hasNodeScope()).isFalse();
     }
 
     @Test
@@ -773,21 +775,21 @@ public class SettingTests extends ESTestCase {
     public void testMutuallyExclusiveScopes() {
         // Those should pass
         Setting<String> setting = Setting.simpleString("foo.bar", Property.NodeScope);
-        assertThat(setting.hasNodeScope(), is(true));
-        assertThat(setting.hasIndexScope(), is(false));
+        assertThat(setting.hasNodeScope()).isTrue();
+        assertThat(setting.hasIndexScope()).isFalse();
         setting = Setting.simpleString("foo.bar", Property.IndexScope);
-        assertThat(setting.hasIndexScope(), is(true));
-        assertThat(setting.hasNodeScope(), is(false));
+        assertThat(setting.hasIndexScope()).isTrue();
+        assertThat(setting.hasNodeScope()).isFalse();
 
         // We accept settings with no scope but they will be rejected when we register with SettingsModule.registerSetting
         setting = Setting.simpleString("foo.bar");
-        assertThat(setting.hasIndexScope(), is(false));
-        assertThat(setting.hasNodeScope(), is(false));
+        assertThat(setting.hasIndexScope()).isFalse();
+        assertThat(setting.hasNodeScope()).isFalse();
 
         // We accept settings with multiple scopes but they will be rejected when we register with SettingsModule.registerSetting
         setting = Setting.simpleString("foo.bar", Property.IndexScope, Property.NodeScope);
-        assertThat(setting.hasIndexScope(), is(true));
-        assertThat(setting.hasNodeScope(), is(true));
+        assertThat(setting.hasIndexScope()).isTrue();
+        assertThat(setting.hasNodeScope()).isTrue();
     }
 
     /**

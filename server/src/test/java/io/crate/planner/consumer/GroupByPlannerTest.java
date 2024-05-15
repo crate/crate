@@ -21,6 +21,9 @@
 
 package io.crate.planner.consumer;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static io.crate.testing.Asserts.isReference;
 import static java.util.Collections.singletonList;
 import static org.hamcrest.Matchers.contains;
@@ -250,8 +253,8 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(positionalOrderBy, notNullValue());
         assertThat(positionalOrderBy.indices().length, is(1));
         assertThat(positionalOrderBy.indices()[0], is(0));
-        assertThat(positionalOrderBy.reverseFlags()[0], is(true));
-        assertThat(positionalOrderBy.nullsFirst()[0], is(false));
+        assertThat(positionalOrderBy.reverseFlags()[0]).isTrue();
+        assertThat(positionalOrderBy.nullsFirst()[0]).isFalse();
     }
 
     @Test
@@ -281,8 +284,8 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(positionalOrderBy, notNullValue());
         assertThat(positionalOrderBy.indices().length, is(1));
         assertThat(positionalOrderBy.indices()[0], is(0));
-        assertThat(positionalOrderBy.reverseFlags()[0], is(false));
-        assertThat(positionalOrderBy.nullsFirst()[0], is(false));
+        assertThat(positionalOrderBy.reverseFlags()[0]).isFalse();
+        assertThat(positionalOrderBy.nullsFirst()[0]).isFalse();
     }
 
     @Test

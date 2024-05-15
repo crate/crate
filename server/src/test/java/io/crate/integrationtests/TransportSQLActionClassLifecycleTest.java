@@ -26,6 +26,7 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.endsWith;
@@ -449,7 +450,7 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
             "select settings['stats']['operations_log_size'], settings['stats']['enabled'] from sys.cluster");
         assertThat(response.rowCount(), is(1L));
         assertThat((Integer) response.rows()[0][0], is(1024));
-        assertThat((Boolean) response.rows()[0][1], is(false));
+        assertThat((Boolean) response.rows()[0][1]).isFalse();
 
         response = execute("reset global stats.operations_log_size, stats.enabled");
         assertThat(response.rowCount(), is(1L));

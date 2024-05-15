@@ -24,6 +24,7 @@ package io.crate.execution.engine.fetch;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -100,7 +101,7 @@ public class FetchRowsTest extends CrateDummyClusterServiceUnitTest {
         results.put(2, new ArrayBucket($$($("Trillian"))));
 
         var it = readerBuckets.getOutputRows(List.of(results));
-        assertThat(it.hasNext(), is(true));
+        assertThat(it.hasNext()).isTrue();
         var outputRow = it.next();
 
         assertThat(outputRow.get(0), is("Arthur"));

@@ -21,6 +21,9 @@
 
 package org.elasticsearch.transport;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -69,11 +72,11 @@ public class RemoteClustersTest extends CrateDummyClusterServiceUnitTest {
         );
 
         var future = remoteClusters.connect("foo", ConnectionInfo.fromURL("crate://localhost?mode=pg_tunnel"));
-        assertThat(future.isCompletedExceptionally(), is(true));
+        assertThat(future.isCompletedExceptionally()).isTrue();
 
         // second call must also result in a `pgFactory.createClient()` call and such throw an exception
         future = remoteClusters.connect("foo", ConnectionInfo.fromURL("crate://localhost?mode=pg_tunnel"));
-        assertThat(future.isCompletedExceptionally(), is(true));
+        assertThat(future.isCompletedExceptionally()).isTrue();
 
         remoteClusters.close();
     }
@@ -92,7 +95,7 @@ public class RemoteClustersTest extends CrateDummyClusterServiceUnitTest {
 
         String subName = "sub1";
         var future = remoteClusters.connect(subName, ConnectionInfo.fromURL("crate://localhost?mode=pg_tunnel"));
-        assertThat(future.isCompletedExceptionally(), is(true));
+        assertThat(future.isCompletedExceptionally()).isTrue();
 
         // Check that failed client is not cached so that later can re-create a subscription with the same name but with valid credentials.
         // https://github.com/crate/crate/issues/12462

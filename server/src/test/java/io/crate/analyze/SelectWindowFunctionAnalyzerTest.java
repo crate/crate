@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import static io.crate.testing.Asserts.isReference;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
@@ -65,7 +66,7 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
         WindowFunction windowFunction = (WindowFunction) outputSymbols.get(0);
         assertThat(windowFunction.arguments().size(), is(1));
         WindowDefinition windowDefinition = windowFunction.windowDefinition();
-        assertThat(windowDefinition.partitions().isEmpty(), is(true));
+        assertThat(windowDefinition.partitions()).isEmpty();
         assertThat(windowDefinition.orderBy(), is(nullValue()));
         assertThat(windowDefinition.windowFrameDefinition(), is(WindowDefinition.RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW));
     }

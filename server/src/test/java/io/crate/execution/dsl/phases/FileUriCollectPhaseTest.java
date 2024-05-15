@@ -21,6 +21,9 @@
 
 package io.crate.execution.dsl.phases;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static io.crate.testing.TestingHelpers.createReference;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
@@ -77,8 +80,8 @@ public class FileUriCollectPhaseTest {
         assertThat(expected.toCollect(), is(actual.toCollect()));
 
         // parser properties option serialization implemented in crate >= 4.4.0
-        assertThat(expected.parserProperties().emptyStringAsNull(), is(true));
-        assertThat(actual.parserProperties().emptyStringAsNull(), is(false));
+        assertThat(expected.parserProperties().emptyStringAsNull()).isTrue();
+        assertThat(actual.parserProperties().emptyStringAsNull()).isFalse();
 
         assertThat(actual.parserProperties().columnSeparator(), is(CsvSchema.DEFAULT_COLUMN_SEPARATOR));
 
@@ -113,7 +116,7 @@ public class FileUriCollectPhaseTest {
         input.setVersion(Version.V_4_4_0);
         var actual = new FileUriCollectPhase(input);
 
-        assertThat(expected.parserProperties().emptyStringAsNull(), is(true));
+        assertThat(expected.parserProperties().emptyStringAsNull()).isTrue();
         assertThat(actual.parserProperties().columnSeparator(), is('|'));
         assertThat(expected, is(actual));
     }

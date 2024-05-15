@@ -21,6 +21,7 @@
 
 package io.crate.expression.reference.sys.check.cluster;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -69,7 +70,7 @@ public class SysChecksTest extends ESTestCase {
 
         assertThat(numberOfPartitionsSysCheck.id(), is(2));
         assertThat(numberOfPartitionsSysCheck.severity(), is(Severity.MEDIUM));
-        assertThat(numberOfPartitionsSysCheck.isValid(), is(true));
+        assertThat(numberOfPartitionsSysCheck.isValid()).isTrue();
     }
 
     @Test
@@ -87,7 +88,7 @@ public class SysChecksTest extends ESTestCase {
 
         assertThat(numberOfPartitionsSysCheck.id(), is(2));
         assertThat(numberOfPartitionsSysCheck.severity(), is(Severity.MEDIUM));
-        assertThat(numberOfPartitionsSysCheck.isValid(), is(false));
+        assertThat(numberOfPartitionsSysCheck.isValid()).isFalse();
     }
 
     private List<PartitionName> buildPartitions(int size) {
