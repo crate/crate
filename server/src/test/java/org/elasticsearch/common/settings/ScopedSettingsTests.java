@@ -22,12 +22,10 @@ package org.elasticsearch.common.settings;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -960,7 +958,7 @@ public class ScopedSettingsTests extends ESTestCase {
 
         final Settings settings = Settings.builder().put("foo.remaining", randomAlphaOfLength(8)).build();
         final Settings upgradedSettings = service.upgradeSettings(settings);
-        assertThat(upgradedSettings, sameInstance(settings));
+        assertThat(upgradedSettings).isSameAs(settings);
     }
 
     @Test

@@ -21,13 +21,11 @@
 
 package org.elasticsearch.common.settings;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 import java.util.Arrays;
@@ -44,7 +42,7 @@ public class SecureStringTests extends ESTestCase {
         assertSecureStringEqualToChars(password, secureString);
         try (SecureString copy = secureString.clone()) {
             assertArrayEquals(password, copy.getChars());
-            assertThat(copy.getChars(), not(sameInstance(password)));
+            assertThat(copy.getChars()).isNotSameAs(password);
         }
         assertSecureStringEqualToChars(password, secureString);
     }
@@ -56,7 +54,7 @@ public class SecureStringTests extends ESTestCase {
         assertSecureStringEqualToChars(password, secureString);
         SecureString copy = secureString.clone();
         assertArrayEquals(password, copy.getChars());
-        assertThat(copy.getChars(), not(sameInstance(password)));
+        assertThat(copy.getChars()).isNotSameAs(password);
         final char[] passwordCopy = Arrays.copyOf(password, password.length);
         assertArrayEquals(password, passwordCopy);
         secureString.close();
@@ -71,7 +69,7 @@ public class SecureStringTests extends ESTestCase {
         assertSecureStringEqualToChars(password, secureString);
         SecureString copy = secureString.clone();
         assertArrayEquals(password, copy.getChars());
-        assertThat(copy.getChars(), not(sameInstance(password)));
+        assertThat(copy.getChars()).isNotSameAs(password);
         copy.close();
         if (randomBoolean()) {
             // close another time and no exception is thrown

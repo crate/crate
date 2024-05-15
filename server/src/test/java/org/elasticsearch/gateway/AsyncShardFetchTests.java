@@ -20,8 +20,6 @@ package org.elasticsearch.gateway;
 
 import static java.util.Collections.emptySet;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.sameInstance;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -110,7 +108,7 @@ public class AsyncShardFetchTests extends ESTestCase {
         fetchData = test.fetchData(nodes, emptySet());
         assertThat(fetchData.hasData()).isEqualTo(true);
         assertThat(fetchData.getData().size()).isEqualTo(1);
-        assertThat(fetchData.getData().get(node1), sameInstance(response1));
+        assertThat(fetchData.getData().get(node1)).isSameAs(response1);
     }
 
     public void testFullCircleSingleNodeFailure() throws Exception {
@@ -142,7 +140,7 @@ public class AsyncShardFetchTests extends ESTestCase {
         fetchData = test.fetchData(nodes, emptySet());
         assertThat(fetchData.hasData()).isEqualTo(true);
         assertThat(fetchData.getData().size()).isEqualTo(1);
-        assertThat(fetchData.getData().get(node1), sameInstance(response1));
+        assertThat(fetchData.getData().get(node1)).isSameAs(response1);
     }
 
     public void testIgnoreResponseFromDifferentRound() throws Exception {
@@ -166,7 +164,7 @@ public class AsyncShardFetchTests extends ESTestCase {
         fetchData = test.fetchData(nodes, emptySet());
         assertThat(fetchData.hasData()).isEqualTo(true);
         assertThat(fetchData.getData().size()).isEqualTo(1);
-        assertThat(fetchData.getData().get(node1), sameInstance(response1));
+        assertThat(fetchData.getData().get(node1)).isSameAs(response1);
     }
 
     public void testIgnoreFailureFromDifferentRound() throws Exception {
@@ -218,8 +216,8 @@ public class AsyncShardFetchTests extends ESTestCase {
         fetchData = test.fetchData(nodes, emptySet());
         assertThat(fetchData.hasData()).isEqualTo(true);
         assertThat(fetchData.getData().size()).isEqualTo(2);
-        assertThat(fetchData.getData().get(node1), sameInstance(response1));
-        assertThat(fetchData.getData().get(node2), sameInstance(response2));
+        assertThat(fetchData.getData().get(node1)).isSameAs(response1);
+        assertThat(fetchData.getData().get(node2)).isSameAs(response2);
     }
 
     public void testTwoNodesOnSetupAndFailure() throws Exception {
@@ -245,7 +243,7 @@ public class AsyncShardFetchTests extends ESTestCase {
         fetchData = test.fetchData(nodes, emptySet());
         assertThat(fetchData.hasData()).isEqualTo(true);
         assertThat(fetchData.getData().size()).isEqualTo(1);
-        assertThat(fetchData.getData().get(node1), sameInstance(response1));
+        assertThat(fetchData.getData().get(node1)).isSameAs(response1);
     }
 
     public void testTwoNodesAddedInBetween() throws Exception {
@@ -274,8 +272,8 @@ public class AsyncShardFetchTests extends ESTestCase {
         fetchData = test.fetchData(nodes, emptySet());
         assertThat(fetchData.hasData()).isEqualTo(true);
         assertThat(fetchData.getData().size()).isEqualTo(2);
-        assertThat(fetchData.getData().get(node1), sameInstance(response1));
-        assertThat(fetchData.getData().get(node2), sameInstance(response2));
+        assertThat(fetchData.getData().get(node1)).isSameAs(response1);
+        assertThat(fetchData.getData().get(node2)).isSameAs(response2);
     }
 
     public void testClearCache() throws Exception {
@@ -297,13 +295,13 @@ public class AsyncShardFetchTests extends ESTestCase {
         fetchData = test.fetchData(nodes, emptySet());
         assertThat(fetchData.hasData()).isEqualTo(true);
         assertThat(fetchData.getData().size()).isEqualTo(1);
-        assertThat(fetchData.getData().get(node1), sameInstance(response1));
+        assertThat(fetchData.getData().get(node1)).isSameAs(response1);
 
         // second fetch gets same data
         fetchData = test.fetchData(nodes, emptySet());
         assertThat(fetchData.hasData()).isEqualTo(true);
         assertThat(fetchData.getData().size()).isEqualTo(1);
-        assertThat(fetchData.getData().get(node1), sameInstance(response1));
+        assertThat(fetchData.getData().get(node1)).isSameAs(response1);
 
         test.clearCacheForNode(node1.getId());
 
@@ -321,7 +319,7 @@ public class AsyncShardFetchTests extends ESTestCase {
         fetchData = test.fetchData(nodes, emptySet());
         assertThat(fetchData.hasData()).isEqualTo(true);
         assertThat(fetchData.getData().size()).isEqualTo(1);
-        assertThat(fetchData.getData().get(node1), sameInstance(response1_2));
+        assertThat(fetchData.getData().get(node1)).isSameAs(response1_2);
     }
 
     public void testConcurrentRequestAndClearCache() throws Exception {
@@ -353,7 +351,7 @@ public class AsyncShardFetchTests extends ESTestCase {
         fetchData = test.fetchData(nodes, emptySet());
         assertThat(fetchData.hasData()).isEqualTo(true);
         assertThat(fetchData.getData().size()).isEqualTo(1);
-        assertThat(fetchData.getData().get(node1), sameInstance(response1_2));
+        assertThat(fetchData.getData().get(node1)).isSameAs(response1_2);
 
     }
 

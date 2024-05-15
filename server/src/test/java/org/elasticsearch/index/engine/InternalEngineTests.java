@@ -40,12 +40,10 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasKey;
-import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.isIn;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -5213,7 +5211,7 @@ public class InternalEngineTests extends EngineTestCase {
         assertThat(uncommittedTranslogOperationsSinceLastCommit.getAsInt()).isEqualTo(numDocs);
         assertThat(engine.shouldPeriodicallyFlush()).isEqualTo(true);
         engine.flush(false, false);
-        assertThat(engine.getLastCommittedSegmentInfos(), not(sameInstance(lastCommitInfo)));
+        assertThat(engine.getLastCommittedSegmentInfos()).isNotSameAs(lastCommitInfo);
         assertThat(uncommittedTranslogOperationsSinceLastCommit.getAsInt()).isEqualTo(0);
         // If the new index commit still points to the same translog generation as the current index commit,
         // we should not enable the periodically flush condition; otherwise we can get into an infinite loop of flushes.
@@ -5227,7 +5225,7 @@ public class InternalEngineTests extends EngineTestCase {
             engine.index(replicaIndexForDoc(doc, 2L, generateNewSeqNo(engine), false));
             if (engine.shouldPeriodicallyFlush()) {
                 engine.flush();
-                assertThat(engine.getLastCommittedSegmentInfos(), not(sameInstance(lastCommitInfo)));
+                assertThat(engine.getLastCommittedSegmentInfos()).isNotSameAs(lastCommitInfo);
                 assertThat(engine.shouldPeriodicallyFlush()).isEqualTo(false);
             }
         }
