@@ -23,9 +23,7 @@ package io.crate.planner.node.ddl;
 
 import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME;
 import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 
@@ -62,9 +60,9 @@ public class AlterTablePlanTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_alter_allowed_settings_on_a_replicated_table() throws IOException {
 
-        assertThat(analyze("Alter table doc.test set(number_of_replicas = 1)"), is(notNullValue()));
+        assertThat(analyze("Alter table doc.test set(number_of_replicas = 1)")).isNotNull();
 
-        assertThat(analyze("Alter table doc.test set(refresh_interval = 523)"), is(notNullValue()));
+        assertThat(analyze("Alter table doc.test set(refresh_interval = 523)")).isNotNull();
 
     }
 

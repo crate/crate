@@ -19,9 +19,8 @@
 
 package org.elasticsearch.transport;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -97,7 +96,7 @@ public class InboundAggregatorTests extends ESTestCase {
         // Signal EOS
         InboundMessage aggregated = aggregator.finishAggregation();
 
-        assertThat(aggregated, notNullValue());
+        assertThat(aggregated).isNotNull();
         assertFalse(aggregated.isPing());
         assertTrue(aggregated.getHeader().isRequest());
         assertThat(aggregated.getHeader().getRequestId(), equalTo(requestId));
@@ -128,9 +127,9 @@ public class InboundAggregatorTests extends ESTestCase {
         // Signal EOS
         InboundMessage aggregated = aggregator.finishAggregation();
 
-        assertThat(aggregated, notNullValue());
+        assertThat(aggregated).isNotNull();
         assertTrue(aggregated.isShortCircuit());
-        assertThat(aggregated.getException(), instanceOf(ActionNotFoundTransportException.class));
+        assertThat(aggregated.getException()).isExactlyInstanceOf(ActionNotFoundTransportException.class);
         assertNotNull(aggregated.takeBreakerReleaseControl());
     }
 
@@ -152,9 +151,9 @@ public class InboundAggregatorTests extends ESTestCase {
         InboundMessage aggregated1 = aggregator.finishAggregation();
 
         assertEquals(0, content1.refCount());
-        assertThat(aggregated1, notNullValue());
+        assertThat(aggregated1).isNotNull();
         assertTrue(aggregated1.isShortCircuit());
-        assertThat(aggregated1.getException(), instanceOf(CircuitBreakingException.class));
+        assertThat(aggregated1.getException()).isExactlyInstanceOf(CircuitBreakingException.class);
 
         // Actions marked as unbreakable are not broken
         Header unbreakableHeader = new Header(randomInt(), randomNonNegativeLong(), TransportStatus.setRequest((byte) 0), Version.CURRENT);
@@ -171,7 +170,7 @@ public class InboundAggregatorTests extends ESTestCase {
         InboundMessage aggregated2 = aggregator.finishAggregation();
 
         assertEquals(1, content2.refCount());
-        assertThat(aggregated2, notNullValue());
+        assertThat(aggregated2).isNotNull();
         assertFalse(aggregated2.isShortCircuit());
 
         // Handshakes are not broken
@@ -190,7 +189,7 @@ public class InboundAggregatorTests extends ESTestCase {
         InboundMessage aggregated3 = aggregator.finishAggregation();
 
         assertEquals(1, content3.refCount());
-        assertThat(aggregated3, notNullValue());
+        assertThat(aggregated3).isNotNull();
         assertFalse(aggregated3.isShortCircuit());
     }
 
@@ -252,7 +251,7 @@ public class InboundAggregatorTests extends ESTestCase {
             // Signal EOS
             InboundMessage aggregated = aggregator.finishAggregation();
 
-            assertThat(aggregated, notNullValue());
+            assertThat(aggregated).isNotNull();
             assertFalse(header.needsToReadVariableHeader());
             assertEquals(actionName, header.getActionName());
             if (unknownAction) {

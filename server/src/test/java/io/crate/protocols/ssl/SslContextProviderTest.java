@@ -22,15 +22,11 @@
 package io.crate.protocols.ssl;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -101,7 +97,6 @@ public class SslContextProviderTest extends ESTestCase {
             .build();
         var sslContextProvider = new SslContextProvider(settings);
         SslContext sslContext = sslContextProvider.getServerContext(Protocol.TRANSPORT);
-        assertThat(sslContext, instanceOf(SslContext.class));
         assertThat(sslContext.isServer()).isTrue();
         assertThat(sslContext.cipherSuites(), not(empty()));
     }
@@ -135,7 +130,7 @@ public class SslContextProviderTest extends ESTestCase {
     public void testKeyStoreLoading() throws Exception {
         KeyStore keyStore = SslContextProvider.loadKeyStore(keyStoreFile.getAbsolutePath(), KEYSTORE_PASSWORD.toCharArray());
         assertThat(keyStore.getType(), is("pkcs12"));
-        assertThat(keyStore.getCertificate(ROOT_CA_ALIAS), notNullValue());
+        assertThat(keyStore.getCertificate(ROOT_CA_ALIAS)).isNotNull();
 
         KeyManager[] keyManagers = SslContextProvider.createKeyManagers(keyStore, KEYSTORE_KEY_PASSWORD.toCharArray());
         assertThat(keyManagers.length, is(1));

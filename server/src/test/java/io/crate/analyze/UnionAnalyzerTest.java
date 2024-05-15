@@ -26,8 +26,6 @@ import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -74,8 +72,8 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(relation.isDistinct()).isFalse();
 
         UnionSelect tableUnion = ((UnionSelect) relation.from().get(0));
-        assertThat(tableUnion.left(), instanceOf(QueriedSelectRelation.class));
-        assertThat(tableUnion.right(), instanceOf(QueriedSelectRelation.class));
+        assertThat(tableUnion.left()).isExactlyInstanceOf(QueriedSelectRelation.class);
+        assertThat(tableUnion.right()).isExactlyInstanceOf(QueriedSelectRelation.class);
         Asserts.assertThat(tableUnion.outputs()).satisfiesExactly(isField("id"), isField("text"));
         Asserts.assertThat(tableUnion.left().outputs()).satisfiesExactly(isReference("id"), isReference("text"));
         Asserts.assertThat(tableUnion.right().outputs()).satisfiesExactly(isReference("id"), isReference("name"));
@@ -99,18 +97,18 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(relation.isDistinct()).isFalse();
 
         UnionSelect tableUnion1 = ((UnionSelect) relation.from().get(0));
-        assertThat(tableUnion1.left(), instanceOf(UnionSelect.class));
-        assertThat(tableUnion1.right(), instanceOf(QueriedSelectRelation.class));
+        assertThat(tableUnion1.left()).isExactlyInstanceOf(UnionSelect.class);
+        assertThat(tableUnion1.right()).isExactlyInstanceOf(QueriedSelectRelation.class);
         Asserts.assertThat(tableUnion1.outputs()).satisfiesExactly(isField("id"), isField("text"));
         Asserts.assertThat(tableUnion1.right().outputs()).satisfiesExactly(isReference("id"), isReference("name"));
 
         UnionSelect tableUnion2 = (UnionSelect) tableUnion1.left();
         Asserts.assertThat(tableUnion2.outputs()).satisfiesExactly(isField("id"), isField("text"));
 
-        assertThat(tableUnion2.left(), instanceOf(QueriedSelectRelation.class));
+        assertThat(tableUnion2.left()).isExactlyInstanceOf(QueriedSelectRelation.class);
         Asserts.assertThat(tableUnion2.left().outputs()).satisfiesExactly(isField("id"), isField("text"));
 
-        assertThat(tableUnion2.right(), instanceOf(QueriedSelectRelation.class));
+        assertThat(tableUnion2.right()).isExactlyInstanceOf(QueriedSelectRelation.class);
         Asserts.assertThat(tableUnion2.right().outputs()).satisfiesExactly(isReference("id"), isReference("name"));
     }
 

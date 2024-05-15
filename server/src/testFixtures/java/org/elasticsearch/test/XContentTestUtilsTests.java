@@ -19,10 +19,10 @@
 
 package org.elasticsearch.test;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.test.XContentTestUtils.insertRandomFields;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
@@ -106,11 +106,11 @@ public class XContentTestUtilsTests extends ESTestCase {
             Map<String, Object> map = parser.map();
             assertEquals(2, map.size());
             assertEquals("value1", map.get("field1"));
-            assertThat(map.get("inn.er1"), instanceOf(Map.class));
+            assertThat(map.get("inn.er1")).isInstanceOf(Map.class);
             Map<String, Object> innerMap = (Map<String, Object>) map.get("inn.er1");
             assertEquals(2, innerMap.size());
             assertEquals("value2", innerMap.get("field2"));
-            assertThat(innerMap.get("inner2"), instanceOf(Map.class));
+            assertThat(innerMap.get("inner2")).isInstanceOf(Map.class);
             assertEquals(0, ((Map<String, Object>) innerMap.get("inner2")).size());
         }
     }

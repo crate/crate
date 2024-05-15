@@ -20,7 +20,7 @@
 package org.elasticsearch.gateway;
 
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -101,7 +101,7 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
         final MockGatewayMetaState gateway = new MockGatewayMetaState(localNode, bigArrays);
         gateway.start(settings, nodeEnvironment, xContentRegistry());
         final CoordinationState.PersistedState persistedState = gateway.getPersistedState();
-        assertThat(persistedState, instanceOf(GatewayMetaState.LucenePersistedState.class));
+        assertThat(persistedState).isExactlyInstanceOf(GatewayMetaState.LucenePersistedState.class);
         return persistedState;
     }
 
@@ -357,7 +357,7 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
         gateway.start(settings, transportService, clusterService,
                       new MetaStateService(nodeEnvironment, xContentRegistry()), null, null, persistedClusterStateService);
         final CoordinationState.PersistedState persistedState = gateway.getPersistedState();
-        assertThat(persistedState, instanceOf(GatewayMetaState.AsyncLucenePersistedState.class));
+        assertThat(persistedState).isExactlyInstanceOf(GatewayMetaState.AsyncLucenePersistedState.class);
 
         //generate random coordinationMetadata with different lastAcceptedConfiguration and lastCommittedConfiguration
         CoordinationMetadata coordinationMetadata;

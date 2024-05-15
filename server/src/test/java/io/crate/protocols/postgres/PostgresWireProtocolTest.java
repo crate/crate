@@ -23,7 +23,6 @@ package io.crate.protocols.postgres;
 
 import static io.crate.protocols.postgres.PostgresWireProtocol.PG_SERVER_VERSION;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isOneOf;
 import static org.junit.Assert.assertEquals;
@@ -484,7 +483,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             responseBuffer.release();
         }
 
-        assertThat(channel.pipeline().first(), instanceOf(SslHandler.class));
+        assertThat(channel.pipeline().first()).isExactlyInstanceOf(SslHandler.class);
     }
 
     @Test

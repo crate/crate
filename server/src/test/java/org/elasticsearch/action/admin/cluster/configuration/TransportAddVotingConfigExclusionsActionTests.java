@@ -21,6 +21,7 @@ package org.elasticsearch.action.admin.cluster.configuration;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singleton;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.action.admin.cluster.configuration.TransportAddVotingConfigExclusionsAction.MAXIMUM_VOTING_CONFIG_EXCLUSIONS_SETTING;
 import static org.elasticsearch.cluster.ClusterState.builder;
 import static org.elasticsearch.test.ClusterServiceUtils.createClusterService;
@@ -268,7 +269,7 @@ public class TransportAddVotingConfigExclusionsActionTests extends ESTestCase {
 
         assertTrue(countDownLatch.await(30, TimeUnit.SECONDS));
         final Throwable rootCause = exceptionHolder.get().getRootCause();
-        assertThat(rootCause, instanceOf(IllegalArgumentException.class));
+        assertThat(rootCause).isExactlyInstanceOf(IllegalArgumentException.class);
         assertThat(rootCause.getMessage(),
             equalTo("add voting config exclusions request for [not-a-node] matched no master-eligible nodes"));
         assertWarnings(AddVotingConfigExclusionsRequest.DEPRECATION_MESSAGE);
@@ -288,7 +289,7 @@ public class TransportAddVotingConfigExclusionsActionTests extends ESTestCase {
 
         assertTrue(countDownLatch.await(30, TimeUnit.SECONDS));
         final Throwable rootCause = exceptionHolder.get().getRootCause();
-        assertThat(rootCause, instanceOf(IllegalArgumentException.class));
+        assertThat(rootCause).isExactlyInstanceOf(IllegalArgumentException.class);
         assertThat(rootCause.getMessage(),
             equalTo("add voting config exclusions request for [_all, master:false] matched no master-eligible nodes"));
         assertWarnings(AddVotingConfigExclusionsRequest.DEPRECATION_MESSAGE);
@@ -470,7 +471,7 @@ public class TransportAddVotingConfigExclusionsActionTests extends ESTestCase {
 
         assertTrue(countDownLatch.await(30, TimeUnit.SECONDS));
         final Throwable rootCause = exceptionHolder.get().getRootCause();
-        assertThat(rootCause, instanceOf(IllegalArgumentException.class));
+        assertThat(rootCause).isExactlyInstanceOf(IllegalArgumentException.class);
         assertThat(rootCause.getMessage(), equalTo("add voting config exclusions request for [other*] would add [" + newCount +
             "] exclusions to the existing [" + existingCount +
             "] which would exceed the maximum of [2] set by [cluster.max_voting_config_exclusions]"));

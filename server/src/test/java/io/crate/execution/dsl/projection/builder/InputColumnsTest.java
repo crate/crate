@@ -21,8 +21,8 @@
 
 package io.crate.execution.dsl.projection.builder;
 
+import static io.crate.testing.Asserts.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -73,11 +73,11 @@ public class InputColumnsTest extends CrateDummyClusterServiceUnitTest {
         InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(inputSymbols);
 
         Symbol replaced1 = InputColumns.create(fn1, sourceSymbols);
-        assertThat(replaced1, is(instanceOf(InputColumn.class)));
+        assertThat(replaced1).isExactlyInstanceOf(InputColumn.class);
         assertThat(((InputColumn) replaced1).index(), is(2));
 
         Symbol replaced2 = InputColumns.create(fn2, sourceSymbols);
-        assertThat(replaced2, is(instanceOf(InputColumn.class)));
+        assertThat(replaced2).isExactlyInstanceOf(InputColumn.class);
         assertThat(((InputColumn) replaced2).index(), is(3));
 
         Symbol replaced3 = InputColumns.create(newSameFn, sourceSymbols);

@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.action.support.replication;
 
 import static java.util.Collections.emptyMap;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_CREATION_DATE;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
@@ -35,9 +35,6 @@ import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
@@ -397,7 +394,9 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
         assertThat(action.executedOnReplica.get())
           .as(name + " operation should have been executed on replica")
           .isTrue();
-        assertThat(name + " operation must have a non null result", response, notNullValue());
+        assertThat(response)
+            .as(name + " operation must have a non null result")
+            .isNotNull();
         assertThat(name + " operation should have been successful on 2 shards", response.getShardInfo().getSuccessful(), equalTo(2));
     }
 
@@ -405,7 +404,7 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
         final String name = action.getActionName();
         assertThat(name + " operation should not have been executed on primary", action.executedOnPrimary.get(), nullValue());
         assertThat(name + " operation should not have been executed on replica", action.executedOnReplica.get(), nullValue());
-        assertThat(exception.getCause(), instanceOf(ClusterBlockException.class));
+        assertThat(exception.getCause()).isExactlyInstanceOf(ClusterBlockException.class);
         ClusterBlockException clusterBlockException = (ClusterBlockException) exception.getCause();
         assertThat(clusterBlockException.blocks(), hasItem(equalTo(block)));
     }

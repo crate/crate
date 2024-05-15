@@ -21,10 +21,10 @@
 
 package io.crate.execution.engine.distribution;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static io.crate.testing.TestingHelpers.isNullRow;
 import static io.crate.testing.TestingHelpers.isRow;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -85,7 +85,7 @@ public class DistributedResultRequestTest extends ESTestCase {
         StreamInput in = StreamInput.wrap(BytesReference.toBytes(out.bytes()));
         DistributedResultRequest r2 = new DistributedResultRequest(in);
 
-        assertThat(r2.throwable(), instanceOf(throwable.getClass()));
+        assertThat(r2.throwable()).isExactlyInstanceOf(throwable.getClass());
         assertThat(r2.isKilled(), is(r1.isKilled()));
     }
 }

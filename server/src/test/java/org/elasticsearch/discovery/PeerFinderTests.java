@@ -21,6 +21,7 @@ package org.elasticsearch.discovery;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
+import static org.assertj.core.api.Assertions.assertThat;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singletonList;
 import static org.elasticsearch.discovery.PeerFinder.REQUEST_PEERS_ACTION_NAME;
@@ -29,7 +30,6 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.emptyArray;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertFalse;
@@ -781,7 +781,7 @@ public class PeerFinderTests extends ESTestCase {
         final CapturedRequest[] capturedRequests = capturingTransport.getCapturedRequestsAndClear();
         for (final CapturedRequest capturedRequest : capturedRequests) {
             assertThat(capturedRequest.action, is(REQUEST_PEERS_ACTION_NAME));
-            assertThat(capturedRequest.request, instanceOf(PeersRequest.class));
+            assertThat(capturedRequest.request).isExactlyInstanceOf(PeersRequest.class);
             final PeersRequest peersRequest = (PeersRequest) capturedRequest.request;
             assertThat(peersRequest.getSourceNode(), is(localNode));
             capturingTransport.handleResponse(capturedRequests[0].requestId, responseFactory.apply(capturedRequest.node));

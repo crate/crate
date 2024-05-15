@@ -21,10 +21,10 @@ package org.elasticsearch.index.shard;
 
 import static org.elasticsearch.index.seqno.SequenceNumbers.NO_OPS_PERFORMED;
 import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasToString;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
@@ -240,7 +240,7 @@ public class GlobalCheckpointListenersTests extends ESTestCase {
         globalCheckpointListeners.close();
         for (int i = 0; i < numberOfListeners; i++) {
             assertNotNull(exceptions[i]);
-            assertThat(exceptions[i], instanceOf(IndexShardClosedException.class));
+            assertThat(exceptions[i]).isExactlyInstanceOf(IndexShardClosedException.class);
             assertThat(((IndexShardClosedException)exceptions[i]).getShardId(), equalTo(shardId));
         }
 
@@ -358,7 +358,7 @@ public class GlobalCheckpointListenersTests extends ESTestCase {
                 assertNull(exceptions[i]);
             } else {
                 assertNotNull(exceptions[i]);
-                assertThat(exceptions[i], instanceOf(IndexShardClosedException.class));
+                assertThat(exceptions[i]).isExactlyInstanceOf(IndexShardClosedException.class);
                 assertThat(((IndexShardClosedException)exceptions[i]).getShardId(), equalTo(shardId));
             }
         }
@@ -443,7 +443,7 @@ public class GlobalCheckpointListenersTests extends ESTestCase {
                             notified.incrementAndGet();
                             assertThat(g, equalTo(UNASSIGNED_SEQ_NO));
                             assertNotNull(e);
-                            assertThat(e, instanceOf(IndexShardClosedException.class));
+                            assertThat(e).isExactlyInstanceOf(IndexShardClosedException.class);
                             assertThat(((IndexShardClosedException) e).getShardId(), equalTo(shardId));
                         }
 
@@ -587,7 +587,7 @@ public class GlobalCheckpointListenersTests extends ESTestCase {
                     try {
                         notified.set(true);
                         assertThat(g, equalTo(UNASSIGNED_SEQ_NO));
-                        assertThat(e, instanceOf(TimeoutException.class));
+                        assertThat(e).isExactlyInstanceOf(TimeoutException.class);
                         assertThat(e, hasToString(containsString(timeout.getStringRep())));
                         final ArgumentCaptor<String> message = ArgumentCaptor.forClass(String.class);
                         final ArgumentCaptor<TimeoutException> t = ArgumentCaptor.forClass(TimeoutException.class);
@@ -632,7 +632,7 @@ public class GlobalCheckpointListenersTests extends ESTestCase {
                         try {
                             notified.set(true);
                             assertThat(g, equalTo(UNASSIGNED_SEQ_NO));
-                            assertThat(e, instanceOf(TimeoutException.class));
+                            assertThat(e).isExactlyInstanceOf(TimeoutException.class);
                         } finally {
                             latch.countDown();
                         }
@@ -672,7 +672,7 @@ public class GlobalCheckpointListenersTests extends ESTestCase {
         verify(mockLogger).warn(message.capture(), t.capture());
         assertThat(message.getValue(), equalTo("error notifying global checkpoint listener of timeout"));
         assertNotNull(t.getValue());
-        assertThat(t.getValue(), instanceOf(RuntimeException.class));
+        assertThat(t.getValue()).isExactlyInstanceOf(RuntimeException.class);
         assertThat(t.getValue().getMessage(), equalTo("failure"));
     }
 

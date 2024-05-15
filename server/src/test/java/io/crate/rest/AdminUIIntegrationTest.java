@@ -22,10 +22,7 @@
 package io.crate.rest;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
@@ -77,7 +74,7 @@ public class AdminUIIntegrationTest extends AdminUIHttpIntegrationTest {
         List<URI> allRedirectLocations = getAllRedirectLocations("/admin", headers);
 
         // all redirect locations should not be null
-        assertThat(allRedirectLocations, notNullValue());
+        assertThat(allRedirectLocations).isNotNull();
         // all redirect locations should contain the crateAdminUI URI
         assertThat(allRedirectLocations.contains(adminURI())).isTrue();
     }
@@ -134,7 +131,7 @@ public class AdminUIIntegrationTest extends AdminUIHttpIntegrationTest {
 
         //response body should not be null
         String bodyAsString = EntityUtils.toString(response.getEntity());
-        assertThat(bodyAsString, notNullValue());
+        assertThat(bodyAsString).isNotNull();
 
         //check content-type of response is json
         String contentMimeType = ContentType.getOrDefault(response.getEntity()).getMimeType();

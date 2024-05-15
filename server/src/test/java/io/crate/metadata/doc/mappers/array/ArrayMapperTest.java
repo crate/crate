@@ -24,9 +24,7 @@ package io.crate.metadata.doc.mappers.array;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
@@ -113,7 +111,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
         // @formatter:on
         DocumentMapper mapper = mapper(INDEX, mapping);
 
-        assertThat(mapper.mappers().getMapper("array_field"), is(instanceOf(ArrayMapper.class)));
+        assertThat(mapper.mappers().getMapper("array_field")).isExactlyInstanceOf(ArrayMapper.class);
 
         BytesReference bytesReference = BytesReference.bytes(JsonXContent.builder()
             .startObject()
@@ -213,7 +211,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
             .endObject());
         DocumentMapper mapper = mapper(INDEX, mapping);
         // child object mapper
-        assertThat(mapper.objectMappers().get("array_field"), is(instanceOf(ObjectArrayMapper.class)));
+        assertThat(mapper.objectMappers().get("array_field")).isExactlyInstanceOf(ObjectArrayMapper.class);
         BytesReference bytesReference = BytesReference.bytes(JsonXContent.builder()
             .startObject()
             .startArray("array_field")
@@ -235,7 +233,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
             uniqueValuesFromFields(doc.doc(), "array_field.s"),
             containsInAnyOrder("a", "b", "c"));
-        assertThat(mapper.mappers().getMapper("array_field.s"), instanceOf(KeywordFieldMapper.class));
+        assertThat(mapper.mappers().getMapper("array_field.s")).isExactlyInstanceOf(KeywordFieldMapper.class);
         assertThat(
             mapper.mappingSource().string(),
             is("{\"default\":{" +
@@ -282,7 +280,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
             .endObject());
         DocumentMapper mapper = mapper(INDEX, mapping);
         // child object mapper
-        assertThat(mapper.objectMappers().get("array_field"), is(instanceOf(ObjectArrayMapper.class)));
+        assertThat(mapper.objectMappers().get("array_field")).isExactlyInstanceOf(ObjectArrayMapper.class);
         BytesReference bytesReference = BytesReference.bytes(JsonXContent.builder()
             .startObject()
             .startArray("array_field")
@@ -296,7 +294,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
         ParsedDocument doc = mapper.parse(sourceToParse);
 
         Mapping mappingUpdate = doc.dynamicMappingsUpdate();
-        assertThat(mappingUpdate, notNullValue());
+        assertThat(mappingUpdate).isNotNull();
         mapper = mapper.merge(mappingUpdate);
         List<String> values = doc.doc().getFields().stream()
             .filter(f -> f.name().equals("array_field.new"))
@@ -344,15 +342,15 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
         DocumentMapper mapper = mapper(INDEX, mapping);
         Mapper m = mapper.mappers().getMapper("array_field");
         assertThat(m.name(), equalTo("array_field"));
-        assertThat(m, instanceOf(ArrayMapper.class));
+        assertThat(m).isExactlyInstanceOf(ArrayMapper.class);
         ArrayMapper am = (ArrayMapper) m;
         m = am.getInnerMapper();
         assertThat(m.name(), equalTo("array_field"));
-        assertThat(m, instanceOf(ArrayMapper.class));
+        assertThat(m).isExactlyInstanceOf(ArrayMapper.class);
         am = (ArrayMapper) m;
         m = am.getInnerMapper();
         assertThat(m.name(), equalTo("array_field"));
-        assertThat(m, instanceOf(NumberFieldMapper.class));
+        assertThat(m).isExactlyInstanceOf(NumberFieldMapper.class);
     }
 
     @Test

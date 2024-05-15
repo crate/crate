@@ -23,7 +23,6 @@ package io.crate.analyze;
 
 import static io.crate.testing.Asserts.isReference;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNot.not;
@@ -62,7 +61,7 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
 
         List<Symbol> outputSymbols = analysis.outputs();
         assertThat(outputSymbols.size(), is(1));
-        assertThat(outputSymbols.get(0), instanceOf(WindowFunction.class));
+        assertThat(outputSymbols.get(0)).isExactlyInstanceOf(WindowFunction.class);
         WindowFunction windowFunction = (WindowFunction) outputSymbols.get(0);
         assertThat(windowFunction.arguments().size(), is(1));
         WindowDefinition windowDefinition = windowFunction.windowDefinition();
@@ -77,7 +76,7 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
 
         List<Symbol> outputSymbols = analysis.outputs();
         assertThat(outputSymbols.size(), is(1));
-        assertThat(outputSymbols.get(0), instanceOf(WindowFunction.class));
+        assertThat(outputSymbols.get(0)).isExactlyInstanceOf(WindowFunction.class);
         WindowFunction windowFunction = (WindowFunction) outputSymbols.get(0);
         assertThat(windowFunction.arguments().size(), is(1));
         WindowDefinition windowDefinition = windowFunction.windowDefinition();
@@ -130,7 +129,7 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
 
         List<Symbol> outputSymbols = analysis.outputs();
         assertThat(outputSymbols.size(), is(1));
-        assertThat(outputSymbols.get(0), instanceOf(WindowFunction.class));
+        assertThat(outputSymbols.get(0)).isExactlyInstanceOf(WindowFunction.class);
         WindowFunction windowFunction = (WindowFunction) outputSymbols.get(0);
         assertThat(windowFunction.arguments().size(), is(1));
         WindowDefinition windowDefinition = windowFunction.windowDefinition();
@@ -143,7 +142,7 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
 
         List<Symbol> outputSymbols = analysis.outputs();
         assertThat(outputSymbols.size(), is(1));
-        assertThat(outputSymbols.get(0), instanceOf(WindowFunction.class));
+        assertThat(outputSymbols.get(0)).isExactlyInstanceOf(WindowFunction.class);
         WindowFunction windowFunction = (WindowFunction) outputSymbols.get(0);
         assertThat(windowFunction.arguments().size(), is(1));
         WindowDefinition windowDefinition = windowFunction.windowDefinition();
@@ -158,7 +157,7 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
 
         List<Symbol> outputSymbols = analysis.outputs();
         assertThat(outputSymbols.size(), is(1));
-        assertThat(outputSymbols.get(0), instanceOf(WindowFunction.class));
+        assertThat(outputSymbols.get(0)).isExactlyInstanceOf(WindowFunction.class);
         WindowFunction windowFunction = (WindowFunction) outputSymbols.get(0);
         assertThat(windowFunction.arguments().size(), is(1));
         WindowFrameDefinition frameDefinition = windowFunction.windowDefinition().windowFrameDefinition();

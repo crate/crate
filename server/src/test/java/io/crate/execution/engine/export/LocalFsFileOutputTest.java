@@ -21,8 +21,7 @@
 
 package io.crate.execution.engine.export;
 
-import static org.hamcrest.Matchers.instanceOf;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.io.BufferedOutputStream;
@@ -40,7 +39,7 @@ public class LocalFsFileOutputTest extends ESTestCase {
         Path file = createTempFile("out", "json");
         LocalFsFileOutput localFsFileOutput = new LocalFsFileOutput();
         try (OutputStream os = localFsFileOutput.acquireOutputStream(mock(Executor.class), file.toUri(), null)) {
-            assertThat(os, instanceOf(BufferedOutputStream.class));
+            assertThat(os).isExactlyInstanceOf(BufferedOutputStream.class);
         }
     }
 }

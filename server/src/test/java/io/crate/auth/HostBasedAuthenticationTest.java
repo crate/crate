@@ -27,7 +27,6 @@ import static io.crate.auth.HostBasedAuthentication.Matchers.isValidProtocol;
 import static io.crate.auth.HostBasedAuthentication.Matchers.isValidUser;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertFalse;
@@ -180,7 +179,7 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         );
         AuthenticationMethod method =
             authService.resolveAuthenticationType("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, null));
-        assertThat(method, instanceOf(TrustAuthenticationMethod.class));
+        assertThat(method).isExactlyInstanceOf(TrustAuthenticationMethod.class);
     }
 
     @Test
@@ -193,7 +192,7 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         );
         AuthenticationMethod method =
             authService.resolveAuthenticationType("jwt_user", new ConnectionProperties(LOCALHOST, Protocol.HTTP, null));
-        assertThat(method, instanceOf(JWTAuthenticationMethod.class));
+        assertThat(method).isExactlyInstanceOf(JWTAuthenticationMethod.class);
     }
 
     @Test
@@ -517,11 +516,11 @@ public class HostBasedAuthenticationTest extends ESTestCase {
 
         AuthenticationMethod authMethod = hba.resolveAuthenticationType("crate",
             new ConnectionProperties(InetAddresses.forString("1.2.3.4"), Protocol.POSTGRES, null));
-        assertThat(authMethod, instanceOf(TrustAuthenticationMethod.class));
+        assertThat(authMethod).isExactlyInstanceOf(TrustAuthenticationMethod.class);
 
         AuthenticationMethod authMethod2 = hba.resolveAuthenticationType("crate",
             new ConnectionProperties(InetAddresses.forString("1.2.3.4"), Protocol.HTTP, null));
-        assertThat(authMethod2, instanceOf(ClientCertAuth.class));
+        assertThat(authMethod2).isExactlyInstanceOf(ClientCertAuth.class);
     }
 
 
@@ -553,10 +552,10 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         );
         AuthenticationMethod authMethod = hba.resolveAuthenticationType("crate",
             new ConnectionProperties(InetAddresses.forString("1.2.3.4"), Protocol.TRANSPORT, mock(SSLSession.class)));
-        assertThat(authMethod, instanceOf(ClientCertAuth.class));
+        assertThat(authMethod).isExactlyInstanceOf(ClientCertAuth.class);
 
         AuthenticationMethod authMethod2 = hba.resolveAuthenticationType("crate",
             new ConnectionProperties(InetAddresses.forString("1.2.3.4"), Protocol.TRANSPORT, mock(SSLSession.class)));
-        assertThat(authMethod2, instanceOf(ClientCertAuth.class));
+        assertThat(authMethod2).isExactlyInstanceOf(ClientCertAuth.class);
     }
 }

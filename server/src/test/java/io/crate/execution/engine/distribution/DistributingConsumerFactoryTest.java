@@ -21,8 +21,7 @@
 
 package io.crate.execution.engine.distribution;
 
-import static org.hamcrest.Matchers.instanceOf;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.util.List;
@@ -97,13 +96,13 @@ public class DistributingConsumerFactoryTest extends CrateDummyClusterServiceUni
     @Test
     public void testCreateDownstreamOneNode() throws Exception {
         RowConsumer downstream = createDownstream(Set.of("downstream_node"));
-        assertThat(downstream, instanceOf(DistributingConsumer.class));
-        assertThat(((DistributingConsumer) downstream).multiBucketBuilder, instanceOf(BroadcastingBucketBuilder.class));
+        assertThat(downstream).isExactlyInstanceOf(DistributingConsumer.class);
+        assertThat(((DistributingConsumer) downstream).multiBucketBuilder).isExactlyInstanceOf(BroadcastingBucketBuilder.class);
     }
 
     @Test
     public void testCreateDownstreamMultipleNode() throws Exception {
         RowConsumer downstream = createDownstream(Set.of("downstream_node1", "downstream_node2"));
-        assertThat(((DistributingConsumer) downstream).multiBucketBuilder, instanceOf(ModuloBucketBuilder.class));
+        assertThat(((DistributingConsumer) downstream).multiBucketBuilder).isExactlyInstanceOf(ModuloBucketBuilder.class);
     }
 }

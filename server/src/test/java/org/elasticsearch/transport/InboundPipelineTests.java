@@ -20,11 +20,10 @@
 package org.elasticsearch.transport;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.instanceOf;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
@@ -168,7 +167,7 @@ public class InboundPipelineTests extends ESTestCase {
                     assertEquals(expectedMessageData.value, actualMessageData.value);
                     if (expectedTuple.v2() != null) {
                         assertNotNull(actualTuple.v2());
-                        assertThat(actualTuple.v2(), instanceOf(expectedTuple.v2().getClass()));
+                        assertThat(actualTuple.v2()).isExactlyInstanceOf(expectedTuple.v2().getClass());
                     }
                 }
 

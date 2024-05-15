@@ -19,8 +19,8 @@
 package org.elasticsearch.test;
 
 import static io.crate.lucene.CrateLuceneTestCase.assumeTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -105,7 +105,9 @@ public final class CorruptionUtils {
             assumeTrue("Checksum collision - " + msg.toString(),
                     checksumAfterCorruption != checksumBeforeCorruption // collision
                             || actualChecksumAfterCorruption != checksumBeforeCorruption); // checksum corrupted
-            assertThat("no file corrupted", fileToCorrupt, notNullValue());
+            assertThat(fileToCorrupt)
+                .as("no file corrupted")
+                .isNotNull();
         }
     }
 

@@ -18,11 +18,11 @@
  */
 package org.elasticsearch.index.engine;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.common.lucene.index.ElasticsearchDirectoryReader.getElasticsearchDirectoryReader;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -98,7 +98,7 @@ public class ReadOnlyEngineTests extends EngineTestCase {
                 Engine.Searcher external = readOnlyEngine.acquireSearcher("test", Engine.SearcherScope.EXTERNAL);
                 Engine.Searcher internal = readOnlyEngine.acquireSearcher("test", Engine.SearcherScope.INTERNAL);
                 assertSame(external.getIndexReader(), internal.getIndexReader());
-                assertThat(external.getIndexReader(), instanceOf(DirectoryReader.class));
+                assertThat(external.getIndexReader()).isInstanceOf(DirectoryReader.class);
                 DirectoryReader dirReader = external.getDirectoryReader();
                 ElasticsearchDirectoryReader esReader = getElasticsearchDirectoryReader(dirReader);
                 IndexReader.CacheHelper helper = esReader.getReaderCacheHelper();

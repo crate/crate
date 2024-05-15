@@ -21,13 +21,13 @@
 
 package org.elasticsearch.common.settings;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -255,8 +255,8 @@ public class SettingsTests extends ESTestCase {
             .put(Settings.builder().putList("value.deep.key", "4", "5").putList("d", "e", "f").build())
             .build();
         assertThat(settings.getAsList("value.deep.key"), contains("4", "5"));
-        assertThat(settings.getAsList("a"), notNullValue());
-        assertThat(settings.getAsList("d"), notNullValue());
+        assertThat(settings.getAsList("a")).isNotNull();
+        assertThat(settings.getAsList("d")).isNotNull();
 
         // overriding a deeper structure with an array
         settings = Settings.builder()

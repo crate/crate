@@ -19,7 +19,8 @@
 
 package org.elasticsearch.common.io.stream;
 
-import org.elasticsearch.common.bytes.BytesArray;
+import java.io.IOException;
+
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefIterator;
 import org.elasticsearch.common.bytes.BytesArray;
@@ -27,9 +28,7 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.ByteArray;
 import org.elasticsearch.common.util.PageCacheRecycler;
-
 import org.jetbrains.annotations.Nullable;
-import java.io.IOException;
 
 /**
  * A @link {@link StreamOutput} that uses {@link BigArrays} to acquire pages of

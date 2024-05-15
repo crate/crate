@@ -21,13 +21,13 @@ package org.elasticsearch.cluster.routing.allocation;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.shuffle;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.routing.ShardRoutingState.INITIALIZING;
 import static org.elasticsearch.cluster.routing.ShardRoutingState.STARTED;
 import static org.elasticsearch.cluster.routing.ShardRoutingState.UNASSIGNED;
 import static org.elasticsearch.cluster.routing.UnassignedInfo.INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING;
 import static org.elasticsearch.test.VersionUtils.randomVersion;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
@@ -306,9 +306,9 @@ public class NodeVersionAllocationDeciderTests extends ESAllocationTestCase {
             assertThat(clusterState.routingTable().index("test").shard(i).shards().get(0).state(), equalTo(STARTED));
             assertThat(clusterState.routingTable().index("test").shard(i).shards().get(1).state(), equalTo(STARTED));
             assertThat(clusterState.routingTable().index("test").shard(i).shards().get(2).state(), equalTo(STARTED));
-            assertThat(clusterState.routingTable().index("test").shard(i).shards().get(0).currentNodeId(), notNullValue());
-            assertThat(clusterState.routingTable().index("test").shard(i).shards().get(1).currentNodeId(), notNullValue());
-            assertThat(clusterState.routingTable().index("test").shard(i).shards().get(2).currentNodeId(), notNullValue());
+            assertThat(clusterState.routingTable().index("test").shard(i).shards().get(0).currentNodeId()).isNotNull();
+            assertThat(clusterState.routingTable().index("test").shard(i).shards().get(1).currentNodeId()).isNotNull();
+            assertThat(clusterState.routingTable().index("test").shard(i).shards().get(2).currentNodeId()).isNotNull();
         }
     }
 
@@ -446,14 +446,14 @@ public class NodeVersionAllocationDeciderTests extends ESAllocationTestCase {
             if (r.primary()) {
                 String toId = r.relocatingNodeId();
                 String fromId = r.currentNodeId();
-                assertThat(fromId, notNullValue());
-                assertThat(toId, notNullValue());
+                assertThat(fromId).isNotNull();
+                assertThat(toId).isNotNull();
                 logger.trace("From: {} with Version: {} to: {} with Version: {}", fromId,
                              routingNodes.node(fromId).node().getVersion(), toId, routingNodes.node(toId).node().getVersion());
                 assertTrue(routingNodes.node(toId).node().getVersion().onOrAfterMajorMinor(routingNodes.node(fromId).node().getVersion()));
             } else {
                 ShardRouting primary = routingNodes.activePrimary(r.shardId());
-                assertThat(primary, notNullValue());
+                assertThat(primary).isNotNull();
                 String fromId = primary.currentNodeId();
                 String toId = r.relocatingNodeId();
                 logger.trace("From: {} with Version: {} to: {} with Version: {}", fromId,
@@ -466,7 +466,7 @@ public class NodeVersionAllocationDeciderTests extends ESAllocationTestCase {
         for (ShardRouting r : mutableShardRoutings) {
             if (!r.primary()) {
                 ShardRouting primary = routingNodes.activePrimary(r.shardId());
-                assertThat(primary, notNullValue());
+                assertThat(primary).isNotNull();
                 String fromId = primary.currentNodeId();
                 String toId = r.currentNodeId();
                 logger.trace("From: {} with Version: {} to: {} with Version: {}", fromId,

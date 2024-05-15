@@ -21,10 +21,9 @@
 
 package io.crate.protocols.http;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static io.crate.protocols.ssl.SslContextProviderTest.getAbsoluteFilePathFromClassPath;
 import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.io.File;
@@ -106,7 +105,7 @@ public class CrateHttpsTransportTest extends ESTestCase {
 
             httpChannelHandler.initChannel(channel);
 
-            assertThat(channel.pipeline().first(), instanceOf(SslHandler.class));
+            assertThat(channel.pipeline().first()).isExactlyInstanceOf(SslHandler.class);
 
         } finally {
             transport.stop();

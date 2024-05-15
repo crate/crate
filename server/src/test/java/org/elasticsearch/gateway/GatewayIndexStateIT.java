@@ -22,11 +22,11 @@ package org.elasticsearch.gateway;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.SQLTransportExecutor.REQUEST_TIMEOUT;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.indices.ShardLimitValidator.SETTING_CLUSTER_MAX_SHARDS_PER_NODE;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -125,7 +125,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
 
         stateResponse = client().admin().cluster().state(new ClusterStateRequest()).get();
         assertThat(stateResponse.getState().metadata().index(tableName).getState(), equalTo(IndexMetadata.State.CLOSE));
-        assertThat(stateResponse.getState().routingTable().index(tableName), notNullValue());
+        assertThat(stateResponse.getState().routingTable().index(tableName)).isNotNull();
 
         logger.info("--> verifying that the state is green");
         ensureGreen();
@@ -167,7 +167,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
 
         stateResponse = client().admin().cluster().state(new ClusterStateRequest()).get(REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS);
         assertThat(stateResponse.getState().metadata().index(tableName).getState(), equalTo(IndexMetadata.State.CLOSE));
-        assertThat(stateResponse.getState().routingTable().index(tableName), notNullValue());
+        assertThat(stateResponse.getState().routingTable().index(tableName)).isNotNull();
 
         logger.info("--> restarting nodes...");
         cluster().fullRestart();
@@ -176,7 +176,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
 
         stateResponse = client().admin().cluster().state(new ClusterStateRequest()).get(REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS);
         assertThat(stateResponse.getState().metadata().index(tableName).getState(), equalTo(IndexMetadata.State.CLOSE));
-        assertThat(stateResponse.getState().routingTable().index(tableName), notNullValue());
+        assertThat(stateResponse.getState().routingTable().index(tableName)).isNotNull();
 
         logger.info("--> trying to index into a closed index ...");
         try {
@@ -303,7 +303,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
             .state(new ClusterStateRequest())
             .get(REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS);
         assertThat(stateResponse.getState().metadata().index(tableName).getState(), equalTo(IndexMetadata.State.CLOSE));
-        assertThat(stateResponse.getState().routingTable().index(tableName), notNullValue());
+        assertThat(stateResponse.getState().routingTable().index(tableName)).isNotNull();
 
         logger.info("--> opening the index...");
         execute("alter table test open");

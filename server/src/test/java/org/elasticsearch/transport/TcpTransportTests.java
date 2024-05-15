@@ -22,7 +22,6 @@ package org.elasticsearch.transport;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -234,7 +233,7 @@ public class TcpTransportTests extends ESTestCase {
             TcpTransport.readMessageLength(streamOutput.bytes());
             fail("Expected exception");
         } catch (Exception ex) {
-            assertThat(ex, instanceOf(StreamCorruptedException.class));
+            assertThat(ex).isExactlyInstanceOf(StreamCorruptedException.class);
             assertEquals("invalid data length: -2", ex.getMessage());
         }
     }
@@ -255,7 +254,7 @@ public class TcpTransportTests extends ESTestCase {
             TcpTransport.readMessageLength(streamOutput.bytes());
             fail("Expected exception");
         } catch (Exception ex) {
-            assertThat(ex, instanceOf(StreamCorruptedException.class));
+            assertThat(ex).isExactlyInstanceOf(StreamCorruptedException.class);
             String expected = "invalid internal transport message format, got (45,43,"
                 + Integer.toHexString(byte1 & 0xFF) + ","
                 + Integer.toHexString(byte2 & 0xFF) + ")";
@@ -278,7 +277,7 @@ public class TcpTransportTests extends ESTestCase {
                 TcpTransport.readMessageLength(streamOutput.bytes());
                 fail("Expected exception");
             } catch (Exception ex) {
-                assertThat(ex, instanceOf(TcpTransport.HttpRequestOnTransportException.class));
+                assertThat(ex).isExactlyInstanceOf(TcpTransport.HttpRequestOnTransportException.class);
                 assertEquals("This is not a HTTP port", ex.getMessage());
             }
         }
@@ -301,7 +300,7 @@ public class TcpTransportTests extends ESTestCase {
             TcpTransport.readMessageLength(streamOutput.bytes());
             fail("Expected exception");
         } catch (Exception ex) {
-            assertThat(ex, instanceOf(StreamCorruptedException.class));
+            assertThat(ex).isExactlyInstanceOf(StreamCorruptedException.class);
             String expected = "SSL/TLS request received but SSL/TLS is not enabled on this node, got (16,3,"
                     + Integer.toHexString(byte1 & 0xFF) + ","
                     + Integer.toHexString(byte2 & 0xFF) + ")";
@@ -322,7 +321,7 @@ public class TcpTransportTests extends ESTestCase {
             TcpTransport.readMessageLength(streamOutput.bytes());
             fail("Expected exception");
         } catch (Exception ex) {
-            assertThat(ex, instanceOf(StreamCorruptedException.class));
+            assertThat(ex).isExactlyInstanceOf(StreamCorruptedException.class);
             assertEquals("received HTTP response on transport port, ensure that transport port " +
                     "(not HTTP port) of a remote node is specified in the configuration", ex.getMessage());
         }

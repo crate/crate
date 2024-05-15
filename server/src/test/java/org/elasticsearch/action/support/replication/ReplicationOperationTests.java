@@ -16,14 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.action.support.replication;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.action.support.replication.ClusterStateCreationUtils.state;
 import static org.elasticsearch.action.support.replication.ClusterStateCreationUtils.stateWithActivePrimary;
 import static org.hamcrest.Matchers.arrayWithSize;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -484,7 +484,7 @@ public class ReplicationOperationTests extends ESTestCase {
             assertTrue("operations should have been performed, active shard count is met",
                        request.processedOnPrimary.get());
         } else {
-            assertThat(op.checkActiveShardCount(), notNullValue());
+            assertThat(op.checkActiveShardCount()).isNotNull();
             op.execute();
             assertFalse("operations should not have been perform, active shard count is *NOT* met",
                         request.processedOnPrimary.get());
@@ -849,7 +849,7 @@ public class ReplicationOperationTests extends ESTestCase {
             listener.get();
             fail(msg);
         } catch (ExecutionException ex) {
-            assertThat(ex.getCause(), instanceOf(klass));
+            assertThat(ex.getCause()).isExactlyInstanceOf(klass);
         }
     }
 
