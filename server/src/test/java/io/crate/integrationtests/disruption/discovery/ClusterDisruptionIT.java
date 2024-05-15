@@ -24,12 +24,10 @@ package io.crate.integrationtests.disruption.discovery;
 import static io.crate.metadata.IndexParts.toIndexName;
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.in;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -377,7 +375,7 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
         List<ShardRouting> shards = clusterService().state().routingTable()
             .allShards(toIndexName(sqlExecutor.getCurrentSchema(), "t", null));
         for (ShardRouting shard : shards) {
-            assertThat(shard.allocationId(), not(equalTo(failedShard.allocationId())));
+            assertThat(shard.allocationId()).isNotEqualTo(failedShard.allocationId());
         }
     }
 

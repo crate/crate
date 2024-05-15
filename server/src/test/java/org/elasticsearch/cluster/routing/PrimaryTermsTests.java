@@ -95,7 +95,7 @@ public class PrimaryTermsTests extends ESAllocationTestCase {
         }
         this.clusterState = ClusterState.builder(clusterState).nodes(discoBuilder).build();
         ClusterState rerouteResult = allocationService.reroute(clusterState, "reroute");
-        assertThat(rerouteResult, not(equalTo(this.clusterState)));
+        assertThat(rerouteResult).isNotEqualTo(this.clusterState);
         applyRerouteResult(rerouteResult);
         primaryTermsPerIndex.keySet().forEach(this::incrementPrimaryTerm);
     }

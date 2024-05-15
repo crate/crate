@@ -21,10 +21,7 @@ package org.elasticsearch.test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.test.XContentTestUtils.insertRandomFields;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasItem;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -79,12 +76,13 @@ public class XContentTestUtilsTests extends ESTestCase {
             DeprecationHandler.THROW_UNSUPPORTED_OPERATION, BytesReference.bytes(builder), builder.contentType())) {
             parser.nextToken();
             List<String> insertPaths = XContentTestUtils.getInsertPaths(parser, new Stack<>());
-            assertEquals(5, insertPaths.size());
-            assertThat(insertPaths, hasItem(equalTo("")));
-            assertThat(insertPaths, hasItem(equalTo("list1.2")));
-            assertThat(insertPaths, hasItem(equalTo("list1.4")));
-            assertThat(insertPaths, hasItem(equalTo("inner1")));
-            assertThat(insertPaths, hasItem(equalTo("inner1.inn\\.er2")));
+            assertThat(insertPaths).containsExactly(
+                "",
+                "list1.2",
+                "list1.4",
+                "inner1",
+                "inner1.inn\\.er2"
+            );
         }
     }
 

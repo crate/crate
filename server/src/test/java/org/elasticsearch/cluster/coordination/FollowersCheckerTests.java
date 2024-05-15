@@ -102,7 +102,7 @@ public class FollowersCheckerTests extends ESTestCase {
                 assertThat(action).isEqualTo(FOLLOWER_CHECK_ACTION_NAME);
                 assertThat(request).isExactlyInstanceOf(FollowerCheckRequest.class);
                 assertTrue(discoveryNodesHolder[0].nodeExists(node));
-                assertThat(node, not(equalTo(localNode)));
+                assertThat(node).isNotEqualTo(localNode);
                 checkedNodes.add(node);
                 checkCount.incrementAndGet();
                 handleResponse(requestId, Empty.INSTANCE);

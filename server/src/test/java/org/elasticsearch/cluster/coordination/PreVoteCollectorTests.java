@@ -81,7 +81,7 @@ public class PreVoteCollectorTests extends ESTestCase {
                 super.onSendRequest(requestId, action, request, node);
                 assertThat(action).isEqualTo(REQUEST_PRE_VOTE_ACTION_NAME);
                 assertThat(request).isExactlyInstanceOf(PreVoteRequest.class);
-                assertThat(node, not(equalTo(localNode)));
+                assertThat(node).isNotEqualTo(localNode);
                 PreVoteRequest preVoteRequest = (PreVoteRequest) request;
                 assertThat(preVoteRequest.getSourceNode()).isEqualTo(localNode);
                 deterministicTaskQueue.scheduleNow(new Runnable() {
