@@ -236,7 +236,7 @@ public class ChainableActionsTest {
             result.get();
         } catch (Throwable t) {
             t = SQLExceptions.unwrap(t);
-            assertThat(t, instanceOf(MultiException.class));
+            assertThat(t).isExactlyInstanceOf(MultiException.class);
 
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             t.printStackTrace(new PrintStream(out));

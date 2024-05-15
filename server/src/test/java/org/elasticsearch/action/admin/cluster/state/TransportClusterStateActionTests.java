@@ -22,11 +22,8 @@
 package org.elasticsearch.action.admin.cluster.state;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.action.admin.cluster.state.TransportClusterStateAction.buildResponse;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
@@ -79,7 +76,7 @@ public class TransportClusterStateActionTests extends ESTestCase {
         request.metadata(true);
 
         var response = buildResponse(request, clusterState, logger);
-        assertThat(response.getState().metadata().templates().get("template1"), notNullValue());
+        assertThat(response.getState().metadata().templates().get("template1")).isNotNull();
         assertThat(response.getState().metadata().hasIndex("index1")).isTrue();
         assertThat(response.getState().metadata().persistentSettings().get("setting1"), is("bar"));
     }
@@ -91,7 +88,7 @@ public class TransportClusterStateActionTests extends ESTestCase {
         request.templates("template1");
 
         var response = buildResponse(request, clusterState, logger);
-        assertThat(response.getState().metadata().templates().get("template1"), notNullValue());
+        assertThat(response.getState().metadata().templates().get("template1")).isNotNull();
         assertThat(response.getState().metadata().hasIndex("index1")).isFalse();
         assertThat(response.getState().metadata().persistentSettings().get("setting1"), nullValue());
     }
@@ -116,7 +113,7 @@ public class TransportClusterStateActionTests extends ESTestCase {
         request.indices("index1");
 
         var response = buildResponse(request, clusterState, logger);
-        assertThat(response.getState().metadata().templates().get("template1"), notNullValue());
+        assertThat(response.getState().metadata().templates().get("template1")).isNotNull();
         assertThat(response.getState().metadata().hasIndex("index1")).isTrue();
         assertThat(response.getState().metadata().persistentSettings().get("setting1"), nullValue());
     }

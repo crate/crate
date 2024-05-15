@@ -32,7 +32,6 @@ import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasKey;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.startsWith;
 import static org.hamcrest.core.Is.is;
@@ -597,7 +596,7 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
                                        "from sys.nodes");
         assertThat(response.rowCount(), is(2L));
         for (int i = 0; i <= 1; i++) {
-            assertThat(response.rows()[i][0], instanceOf(Map.class));
+            assertThat(response.rows()[i][0]).isInstanceOf(Map.class);
             assertThat((Map<String, Object>) response.rows()[i][0], allOf(hasKey("number"), hasKey("build_hash"), hasKey("build_snapshot")));
             assertThat((String) response.rows()[i][1], Matchers.is(Version.CURRENT.externalNumber()));
             assertThat((String) response.rows()[i][2], is(Build.CURRENT.hash()));

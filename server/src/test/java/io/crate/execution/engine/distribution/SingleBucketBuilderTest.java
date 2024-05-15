@@ -21,7 +21,7 @@
 
 package io.crate.execution.engine.distribution;
 
-import static org.hamcrest.Matchers.instanceOf;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -96,7 +96,7 @@ public class SingleBucketBuilderTest extends ESTestCase {
             bucketBuilder.completionFuture().get(10, TimeUnit.SECONDS);
             fail("completionFuture must fail");
         } catch (ExecutionException e) {
-            assertThat(e.getCause(), instanceOf(UnsupportedOperationException.class));
+            assertThat(e.getCause()).isExactlyInstanceOf(UnsupportedOperationException.class);
         }
 
         try {

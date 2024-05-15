@@ -21,7 +21,6 @@ package org.elasticsearch.test.hamcrest;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -139,7 +138,7 @@ public class ElasticsearchAssertions {
     @SuppressWarnings("unchecked")
     private static void assertObjectEquals(Object expected, Object actual) {
         if (expected instanceof Map) {
-            assertThat(actual, instanceOf(Map.class));
+            assertThat(actual).isInstanceOf(Map.class);
             assertMapEquals((Map<String, Object>) expected, (Map<String, Object>) actual);
         } else if (expected instanceof List) {
             assertListEquals((List<Object>) expected, (List<Object>) actual);

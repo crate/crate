@@ -21,7 +21,7 @@ package org.elasticsearch.transport;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.core.IsInstanceOf.instanceOf;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -139,7 +139,7 @@ public class TcpTransportTest extends ESTestCase {
             TcpTransport.readMessageLength(streamOutput.bytes());
             fail("Expected exception");
         } catch (Exception ex) {
-            assertThat(ex, instanceOf(StreamCorruptedException.class));
+            assertThat(ex).isExactlyInstanceOf(StreamCorruptedException.class);
             String expected = "SSL/TLS request received but SSL/TLS is not enabled on this node, got (16,3,"
                 + Integer.toHexString(byte1 & 0xFF) + ","
                 + Integer.toHexString(byte2 & 0xFF) + ")";

@@ -21,12 +21,12 @@ package org.elasticsearch.cluster.coordination;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.coordination.PreVoteCollector.REQUEST_PRE_VOTE_ACTION_NAME;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.monitor.StatusInfo.Status.HEALTHY;
 import static org.elasticsearch.monitor.StatusInfo.Status.UNHEALTHY;
 import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
 import static org.elasticsearch.threadpool.ThreadPool.Names.SAME;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
@@ -81,7 +81,7 @@ public class PreVoteCollectorTests extends ESTestCase {
                                          final DiscoveryNode node) {
                 super.onSendRequest(requestId, action, request, node);
                 assertThat(action, is(REQUEST_PRE_VOTE_ACTION_NAME));
-                assertThat(request, instanceOf(PreVoteRequest.class));
+                assertThat(request).isExactlyInstanceOf(PreVoteRequest.class);
                 assertThat(node, not(equalTo(localNode)));
                 PreVoteRequest preVoteRequest = (PreVoteRequest) request;
                 assertThat(preVoteRequest.getSourceNode(), equalTo(localNode));

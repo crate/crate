@@ -21,7 +21,7 @@
 
 package io.crate.execution.dml.delete;
 
-import static org.hamcrest.Matchers.instanceOf;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -105,7 +105,7 @@ public class TransportShardDeleteActionTest extends CrateDummyClusterServiceUnit
         TransportWriteAction.WritePrimaryResult<ShardDeleteRequest, ShardResponse> result =
             transportShardDeleteAction.processRequestItems(indexShard, request, new AtomicBoolean(true));
 
-        assertThat(result.finalResponseIfSuccessful.failure(), instanceOf(InterruptedException.class));
+        assertThat(result.finalResponseIfSuccessful.failure()).isExactlyInstanceOf(InterruptedException.class);
         assertThat(request.skipFromLocation(), is(1));
     }
 

@@ -20,14 +20,12 @@
  */
 package org.elasticsearch.common.settings;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.hasToString;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -187,7 +185,7 @@ public class SettingTests extends ESTestCase {
         } catch (IllegalArgumentException ex) {
             assertThat(ex, hasToString(containsString("illegal value can't update [foo.bar] from [false] to [I am not a boolean]")));
             assertNotNull(ex.getCause());
-            assertThat(ex.getCause(), instanceOf(IllegalArgumentException.class));
+            assertThat(ex.getCause()).isExactlyInstanceOf(IllegalArgumentException.class);
             final IllegalArgumentException cause = (IllegalArgumentException) ex.getCause();
             assertThat(
                     cause,

@@ -29,7 +29,6 @@ import static io.crate.testing.Asserts.toCondition;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
@@ -107,13 +106,13 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
         Asserts.assertThat(collectPhase.where()).isSQL("true");
         assertThat(collectPhase.projections().size(), is(1));
-        assertThat(collectPhase.projections().get(0), instanceOf(UpdateProjection.class));
+        assertThat(collectPhase.projections().get(0)).isExactlyInstanceOf(UpdateProjection.class);
         assertThat(collectPhase.toCollect().size(), is(1));
-        assertThat(collectPhase.toCollect().get(0), instanceOf(Reference.class));
+        assertThat(collectPhase.toCollect().get(0)).isInstanceOf(Reference.class);
         assertThat(((Reference) collectPhase.toCollect().get(0)).column().fqn(), is("_id"));
 
         UpdateProjection updateProjection = (UpdateProjection) collectPhase.projections().get(0);
-        assertThat(updateProjection.uidSymbol(), instanceOf(InputColumn.class));
+        assertThat(updateProjection.uidSymbol()).isExactlyInstanceOf(InputColumn.class);
 
         assertThat(updateProjection.assignmentsColumns()[0], is("name"));
         Symbol symbol = updateProjection.assignments()[0];
@@ -121,7 +120,7 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
 
         MergePhase mergePhase = merge.mergePhase();
         assertThat(mergePhase.projections().size(), is(1));
-        assertThat(mergePhase.projections().get(0), instanceOf(MergeCountProjection.class));
+        assertThat(mergePhase.projections().get(0)).isExactlyInstanceOf(MergeCountProjection.class);
 
         assertThat(mergePhase.outputTypes().size(), is(1));
     }
@@ -167,7 +166,7 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
         Plan update = e.plan("update parted_pks set name='Vogon lyric fan' where " +
                                      "(id=2 and date = 0) OR" +
                                      "(id=3 and date=123)");
-        assertThat(update, instanceOf(UpdateById.class));
+        assertThat(update).isExactlyInstanceOf(UpdateById.class);
         assertThat(((UpdateById) update).docKeys().size(), is(2));
     }
 
@@ -201,7 +200,7 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
         MultiPhasePlan plan = e.plan(
             "update users set ints = (" +
                 "   select count(id) from users where id in (select unnest([1, 2, 3, 4])))");
-        assertThat(plan.rootPlan, instanceOf(UpdatePlanner.Update.class));
+        assertThat(plan.rootPlan).isExactlyInstanceOf(UpdatePlanner.Update.class);
 
         Map<LogicalPlan, SelectSymbol> rootPlanDependencies = plan.dependencies;
         LogicalPlan outerSubSelectPlan = rootPlanDependencies.keySet().iterator().next();

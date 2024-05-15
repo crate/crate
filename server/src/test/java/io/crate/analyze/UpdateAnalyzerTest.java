@@ -133,7 +133,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testUpdateAnalysis() throws Exception {
         AnalyzedStatement analyzedStatement = analyze("update users set name='Ford Prefect'");
-        assertThat(analyzedStatement, instanceOf(AnalyzedUpdateStatement.class));
+        assertThat(analyzedStatement).isExactlyInstanceOf(AnalyzedUpdateStatement.class);
     }
 
     @Test(expected = RelationUnknown.class)
@@ -210,7 +210,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(update.assignmentByTargetCol().size(), is(1));
 
         Reference ref = update.assignmentByTargetCol().keySet().iterator().next();
-        assertThat(ref, instanceOf(DynamicReference.class));
+        assertThat(ref).isExactlyInstanceOf(DynamicReference.class);
         Assert.assertEquals(DataTypes.INTEGER, ref.valueType());
         assertThat(ref.column().isRoot()).isFalse();
         assertThat(ref.column().fqn(), is("details.arms"));
@@ -277,9 +277,9 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         Reference name = tableInfo.getReference(new ColumnIdent("name"));
         Reference friendsRef = tableInfo.getReference(new ColumnIdent("friends"));
         Reference otherId = tableInfo.getReference(new ColumnIdent("other_id"));
-        assertThat(update.assignmentByTargetCol().get(name), instanceOf(ParameterSymbol.class));
-        assertThat(update.assignmentByTargetCol().get(friendsRef), instanceOf(ParameterSymbol.class));
-        assertThat(update.assignmentByTargetCol().get(otherId), instanceOf(ParameterSymbol.class));
+        assertThat(update.assignmentByTargetCol().get(name)).isExactlyInstanceOf(ParameterSymbol.class);
+        assertThat(update.assignmentByTargetCol().get(friendsRef)).isExactlyInstanceOf(ParameterSymbol.class);
+        assertThat(update.assignmentByTargetCol().get(otherId)).isExactlyInstanceOf(ParameterSymbol.class);
 
         assertThat(update.query())
             .isFunction(EqOperator.NAME, isReference("id"), exactlyInstanceOf(ParameterSymbol.class));

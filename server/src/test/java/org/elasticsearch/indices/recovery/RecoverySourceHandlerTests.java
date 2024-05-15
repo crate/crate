@@ -20,13 +20,13 @@ package org.elasticsearch.indices.recovery;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.index.engine.Engine.Operation.Origin.PRIMARY;
 import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -484,7 +484,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         handler.sendFiles(store, metas.toArray(new StoreFileMetadata[0]), () -> 0,
             new LatchedActionListener<>(ActionListener.wrap(r -> sendFilesError.set(null), e -> sendFilesError.set(e)), latch));
         latch.await();
-        assertThat(sendFilesError.get(), instanceOf(IOException.class));
+        assertThat(sendFilesError.get()).isInstanceOf(IOException.class);
         assertNotNull(SQLExceptions.unwrapCorruption(sendFilesError.get()));
         assertTrue(failedEngine.get());
         // ensure all chunk requests have been completed; otherwise some files on the target are left open.
@@ -733,7 +733,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
             }
         });
         sendFilesLatch.await();
-        assertThat(sendFilesError.get(), instanceOf(IllegalStateException.class));
+        assertThat(sendFilesError.get()).isExactlyInstanceOf(IllegalStateException.class);
         assertThat(sendFilesError.get().getMessage(), containsString("test chunk exception"));
         assertThat("no more chunks should be sent", sentChunks.get(), equalTo(Math.min(totalChunks, maxConcurrentChunks)));
         store.close();

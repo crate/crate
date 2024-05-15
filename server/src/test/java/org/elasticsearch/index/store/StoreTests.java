@@ -19,19 +19,15 @@
 package org.elasticsearch.index.store;
 
 import static java.util.Collections.unmodifiableMap;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.test.VersionUtils.randomVersion;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasKey;
-import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
@@ -551,7 +547,7 @@ public class StoreTests extends ESTestCase {
         Store.RecoveryDiff diff = first.recoveryDiff(second);
         assertThat(first.size(), equalTo(second.size()));
         for (StoreFileMetadata md : first) {
-            assertThat(second.get(md.name()), notNullValue());
+            assertThat(second.get(md.name())).isNotNull();
             // si files are different - containing timestamps etc
             assertThat(second.get(md.name()).isSame(md), equalTo(false));
         }

@@ -24,9 +24,8 @@ package io.crate.execution.engine.window;
 import static io.crate.sql.tree.FrameBound.Type.CURRENT_ROW;
 import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_FOLLOWING;
 import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_PRECEDING;
-import static org.hamcrest.CoreMatchers.notNullValue;
+import static io.crate.testing.Asserts.assertThat;
 import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
@@ -103,7 +102,7 @@ public class WindowDefinitionTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedRelation analyze = e.analyze(
             "select sum(unnest) over(RANGE UNBOUNDED PRECEDING) FROM " +
             "unnest([1, 2, 1, 1, 1, 4])");
-        assertThat(analyze, is(instanceOf(QueriedSelectRelation.class)));
+        assertThat(analyze).isExactlyInstanceOf(QueriedSelectRelation.class);
         List<Symbol> outputs = analyze.outputs();
         assertThat(outputs.size(), is(1));
         WindowFunction windowFunction = (WindowFunction) outputs.get(0);
@@ -124,7 +123,7 @@ public class WindowDefinitionTest extends CrateDummyClusterServiceUnitTest {
                 break;
             }
         }
-        assertThat(windowProjection, is(notNullValue()));
+        assertThat(windowProjection).isNotNull();
         List<? extends Symbol> outputs = windowProjection.outputs();
         assertThat(outputs.size(), is(2)); // IC and window function
         WindowFunction windowFunction = null;
@@ -133,7 +132,7 @@ public class WindowDefinitionTest extends CrateDummyClusterServiceUnitTest {
                 windowFunction = (WindowFunction) output;
             }
         }
-        assertThat(windowFunction, is(notNullValue()));
+        assertThat(windowFunction).isNotNull();
         assertThat(windowFunction.windowDefinition().windowFrameDefinition().start().type(), is(UNBOUNDED_PRECEDING));
         assertThat(windowFunction.windowDefinition().windowFrameDefinition().end().type(), is(UNBOUNDED_FOLLOWING));
     }

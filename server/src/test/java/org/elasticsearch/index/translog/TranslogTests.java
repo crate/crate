@@ -30,12 +30,9 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isIn;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -805,7 +802,7 @@ public class TranslogTests extends ESTestCase {
                 try {
                     assertNotNull(snap.next());
                 } catch (TranslogCorruptedException e) {
-                    assertThat(e.getCause(), instanceOf(EOFException.class));
+                    assertThat(e.getCause()).isExactlyInstanceOf(EOFException.class);
                     truncations.incrementAndGet();
                 }
             }
@@ -1898,7 +1895,7 @@ public class TranslogTests extends ESTestCase {
             }
         }
 
-        assertThat(expectedException).isNotEqualTo(nullValue());
+        assertThat(expectedException).isNotNull();
         assertThat(failableTLog.getTragicException(), equalTo(expectedException));
         assertThat(fileChannels).isNotEqualTo(empty());
         assertThat(fileChannels.stream().filter(f -> f.isOpen()).findFirst())

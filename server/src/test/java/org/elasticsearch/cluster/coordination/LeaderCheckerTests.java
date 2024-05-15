@@ -21,6 +21,7 @@ package org.elasticsearch.cluster.coordination;
 
 import static org.elasticsearch.cluster.coordination.LeaderChecker.LEADER_CHECK_ACTION_NAME;
 import static org.elasticsearch.cluster.coordination.LeaderChecker.LEADER_CHECK_INTERVAL_SETTING;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.coordination.LeaderChecker.LEADER_CHECK_RETRY_COUNT_SETTING;
 import static org.elasticsearch.cluster.coordination.LeaderChecker.LEADER_CHECK_TIMEOUT_SETTING;
 import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
@@ -28,7 +29,6 @@ import static org.elasticsearch.transport.TransportService.HANDSHAKE_ACTION_NAME
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.matchesRegex;
 import static org.hamcrest.Matchers.nullValue;
@@ -435,7 +435,7 @@ public class LeaderCheckerTests extends ESTestCase {
             deterministicTaskQueue.runAllTasks();
 
             assertFalse(handler.successfulResponseReceived);
-            assertThat(handler.transportException.getRootCause(), instanceOf(NodeHealthCheckFailureException.class));
+            assertThat(handler.transportException.getRootCause()).isExactlyInstanceOf(NodeHealthCheckFailureException.class);
             NodeHealthCheckFailureException cause = (NodeHealthCheckFailureException) handler.transportException.getRootCause();
             assertThat(cause.getMessage(), equalTo("rejecting leader check from [" + otherNode
                 + "] since node is unhealthy [unhealthy-info]"));
@@ -450,7 +450,7 @@ public class LeaderCheckerTests extends ESTestCase {
             deterministicTaskQueue.runAllTasks();
 
             assertFalse(handler.successfulResponseReceived);
-            assertThat(handler.transportException.getRootCause(), instanceOf(CoordinationStateRejectedException.class));
+            assertThat(handler.transportException.getRootCause()).isExactlyInstanceOf(CoordinationStateRejectedException.class);
             CoordinationStateRejectedException cause = (CoordinationStateRejectedException) handler.transportException.getRootCause();
             assertThat(cause.getMessage(), equalTo("leader check from unknown node"));
         }
@@ -474,7 +474,7 @@ public class LeaderCheckerTests extends ESTestCase {
             deterministicTaskQueue.runAllTasks();
 
             assertFalse(handler.successfulResponseReceived);
-            assertThat(handler.transportException.getRootCause(), instanceOf(CoordinationStateRejectedException.class));
+            assertThat(handler.transportException.getRootCause()).isExactlyInstanceOf(CoordinationStateRejectedException.class);
             CoordinationStateRejectedException cause = (CoordinationStateRejectedException) handler.transportException.getRootCause();
             assertThat(cause.getMessage(),
                        equalTo("rejecting leader check from [" + otherNode + "] sent to a node that is no longer the master"));

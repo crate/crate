@@ -36,7 +36,6 @@ import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
@@ -350,7 +349,7 @@ public class SysShardsTest extends IntegTestCase {
         // regression test... query failed with ArrayOutOfBoundsException due to inputColumn mangling in planner
         SQLResponse response = execute("select id from sys.shards order by table_name limit 1");
         assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows()[0][0], instanceOf(Integer.class));
+        assertThat(response.rows()[0][0]).isExactlyInstanceOf(Integer.class);
     }
 
     @Test

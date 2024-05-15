@@ -21,13 +21,13 @@
 
 package io.crate.expression.udf;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThat;
 
 import java.util.List;
@@ -100,7 +100,7 @@ public class UserDefinedFunctionServiceTest extends UdfUnitTest {
     @Test
     public void testRemoveIfExistsEmptyMetadata() throws Exception {
         UserDefinedFunctionsMetadata newMetadata = udfService.removeFunction(null, same1.schema(), same1.name(), same1.argumentTypes(), true);
-        assertThat(newMetadata, is(notNullValue()));
+        assertThat(newMetadata).isNotNull();
     }
 
     @Test

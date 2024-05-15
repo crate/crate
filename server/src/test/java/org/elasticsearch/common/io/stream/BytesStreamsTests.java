@@ -21,9 +21,9 @@ package org.elasticsearch.common.io.stream;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.closeTo;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertArrayEquals;
@@ -933,7 +933,7 @@ public class BytesStreamsTests extends ESTestCase {
         prodOut.writeException(rootEx);
         StreamInput in = prodOut.bytes().streamInput();
         Exception newEx = in.readException();
-        assertThat(newEx, instanceOf(IOException.class));
+        assertThat(newEx).isExactlyInstanceOf(IOException.class);
         assertThat(newEx.getMessage(), equalTo("disk broken"));
         ESTestCase.assertStacktraceArrayEquals(newEx.getStackTrace(), rootEx.getStackTrace());
     }

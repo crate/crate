@@ -22,9 +22,9 @@
 package io.crate.planner.node;
 
 import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThat;
 
@@ -106,7 +106,7 @@ public class RoutedCollectPhaseTest extends ESTestCase {
         RoutedCollectPhase normalizedCollect = collect.normalize(
             normalizer, new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults()));
 
-        assertThat(normalizedCollect.orderBy(), notNullValue());
+        assertThat(normalizedCollect.orderBy()).isNotNull();
     }
 
     @Test

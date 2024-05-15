@@ -22,7 +22,6 @@ import static java.util.Collections.emptySet;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThat;
 
 import java.util.List;
@@ -75,7 +74,7 @@ public class CloseIndexIT extends IntegTestCase {
             final Settings indexSettings = indexMetadata.getSettings();
             assertThat(indexSettings.hasValue(IndexMetadata.VERIFIED_BEFORE_CLOSE_SETTING.getKey())).isTrue();
             assertThat(indexSettings.getAsBoolean(IndexMetadata.VERIFIED_BEFORE_CLOSE_SETTING.getKey(), false)).isTrue();
-            assertThat(clusterState.routingTable().index(index), notNullValue());
+            assertThat(clusterState.routingTable().index(index)).isNotNull();
             assertThat(clusterState.blocks().hasIndexBlock(index, IndexMetadata.INDEX_CLOSED_BLOCK)).isTrue();
             assertThat("Index " + index + " must have only 1 block with [id=" + TransportCloseTable.INDEX_CLOSED_BLOCK_ID + "]",
                        clusterState.blocks().indices().getOrDefault(index, emptySet()).stream()

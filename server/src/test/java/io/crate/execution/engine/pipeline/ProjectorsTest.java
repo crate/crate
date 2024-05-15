@@ -23,7 +23,6 @@ package io.crate.execution.engine.pipeline;
 
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
@@ -109,7 +108,7 @@ public class ProjectorsTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(projectors.providesIndependentScroll()).isTrue();
         assertThat(projectors.projectors.size(), is(1));
-        assertThat(projectors.projectors.get(0), instanceOf(GroupingProjector.class));
+        assertThat(projectors.projectors.get(0)).isExactlyInstanceOf(GroupingProjector.class);
     }
 
 }
