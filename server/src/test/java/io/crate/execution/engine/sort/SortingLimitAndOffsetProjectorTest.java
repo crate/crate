@@ -21,9 +21,7 @@
 
 package io.crate.execution.engine.sort;
 
-import static io.crate.testing.TestingHelpers.isRow;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertThat;
 
 import java.util.Comparator;
 import java.util.List;
@@ -43,6 +41,8 @@ import io.crate.data.Bucket;
 import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
+import io.crate.data.Row1;
+import io.crate.data.RowN;
 import io.crate.data.breaker.RowAccounting;
 import io.crate.data.testing.TestingBatchIterators;
 import io.crate.data.testing.TestingRowConsumer;
@@ -96,7 +96,7 @@ public class SortingLimitAndOffsetProjectorTest extends ESTestCase {
 
         int iterateLength = 0;
         for (Row row : rows) {
-            assertThat(row, isRow(iterateLength + 6));
+            assertThat(row).isEqualTo(new Row1(iterateLength + 6));
             iterateLength++;
         }
         assertThat(iterateLength).isEqualTo(3);
@@ -120,7 +120,7 @@ public class SortingLimitAndOffsetProjectorTest extends ESTestCase {
         assertThat(rows).hasSize(10);
         int iterateLength = 0;
         for (Row row : consumer.getBucket()) {
-            assertThat(row, isRow(iterateLength + 1, true));
+            assertThat(row).isEqualTo(new RowN(iterateLength + 1, true));
             iterateLength++;
         }
         assertThat(iterateLength).isEqualTo(10);

@@ -22,8 +22,6 @@
 package io.crate.execution.engine.sort;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static io.crate.testing.TestingHelpers.isRow;
-import static org.junit.Assert.assertThat;
 
 import java.util.List;
 
@@ -41,6 +39,7 @@ import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
 import io.crate.data.Projector;
 import io.crate.data.Row;
+import io.crate.data.RowN;
 import io.crate.data.breaker.RowAccounting;
 import io.crate.data.testing.TestingBatchIterators;
 import io.crate.data.testing.TestingRowConsumer;
@@ -73,13 +72,13 @@ public class SortingProjectorTest extends ESTestCase {
     public void testOrderBy() throws Exception {
         SortingProjector projector = createProjector(2, 0);
 
-        BatchIterator batchIterator = projector.apply(TestingBatchIterators.range(1, 11));
+        BatchIterator<Row> batchIterator = projector.apply(TestingBatchIterators.range(1, 11));
         consumer.accept(batchIterator, null);
         Bucket rows = consumer.getBucket();
         assertThat(rows).hasSize(10);
         int iterateLength = 1;
         for (Row row : rows) {
-            assertThat(row, isRow(iterateLength++, true));
+            assertThat(row).isEqualTo(new RowN(iterateLength++, true));
         }
     }
 
@@ -87,14 +86,14 @@ public class SortingProjectorTest extends ESTestCase {
     public void testOrderByWithOffset() throws Exception {
         SortingProjector projector = createProjector(2, 5);
 
-        BatchIterator batchIterator = projector.apply(TestingBatchIterators.range(1, 11));
+        BatchIterator<Row> batchIterator = projector.apply(TestingBatchIterators.range(1, 11));
         consumer.accept(batchIterator, null);
         Bucket rows = consumer.getBucket();
 
         assertThat(rows).hasSize(5);
         int iterateLength = 6;
         for (Row row : rows) {
-            assertThat(row, isRow(iterateLength++, true));
+            assertThat(row).isEqualTo(new RowN(iterateLength++, true));
         }
     }
 
