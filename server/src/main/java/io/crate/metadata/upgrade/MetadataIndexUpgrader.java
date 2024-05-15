@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 
+import org.elasticsearch.common.compress.CompressedXContent;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.collections.Maps;
@@ -43,7 +44,6 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
-import org.elasticsearch.cluster.metadata.MetadataMappingService;
 
 import io.crate.Constants;
 import org.jetbrains.annotations.VisibleForTesting;
@@ -208,9 +208,52 @@ public class MetadataIndexUpgrader implements BiFunction<IndexMetadata, IndexTem
      */
     private void upgradeColumnPositions(Map<String, Object> defaultMap, @Nullable IndexTemplateMetadata indexTemplateMetadata) {
         if (indexTemplateMetadata != null) {
-            MetadataMappingService.populateColumnPositions(defaultMap, indexTemplateMetadata.mapping());
+            populateColumnPositionsFromMapping(defaultMap, indexTemplateMetadata.mapping());
         } else {
             IndexTemplateUpgrader.populateColumnPositions(defaultMap);
+        }
+    }
+
+    public static void populateColumnPositionsFromMapping(Map<String, Object> mapping, CompressedXContent mappingToReference) {
+        Map<String, Object> parsedTemplateMapping = XContentHelper.convertToMap(mappingToReference.compressedReference(), true, XContentType.JSON).map();
+        populateColumnPositionsImpl(
+            Maps.getOrDefault(mapping, "default", mapping),
+            Maps.getOrDefault(parsedTemplateMapping, "default", parsedTemplateMapping)
+        );
+    }
+
+    // template mappings must contain up-to-date and correct column positions that all relevant index mappings can reference.
+    @VisibleForTesting
+    static void populateColumnPositionsImpl(Map<String, Object> indexMapping, Map<String, Object> templateMapping) {
+        Map<String, Object> indexProperties = Maps.get(indexMapping, "properties");
+        if (indexProperties == null) {
+            return;
+        }
+        Map<String, Object> templateProperties = Maps.get(templateMapping, "properties");
+        if (templateProperties == null) {
+            templateProperties = Map.of();
+        }
+        for (var e : indexProperties.entrySet()) {
+            String key = e.getKey();
+            Map<String, Object> indexColumnProperties = (Map<String, Object>) e.getValue();
+            Map<String, Object> templateColumnProperties = (Map<String, Object>) templateProperties.get(key);
+
+            if (templateColumnProperties == null) {
+                templateColumnProperties = Map.of();
+            }
+            templateColumnProperties = Maps.getOrDefault(templateColumnProperties, "inner", templateColumnProperties);
+            indexColumnProperties = Maps.getOrDefault(indexColumnProperties, "inner", indexColumnProperties);
+
+            Integer templateChildPosition = (Integer) templateColumnProperties.get("position");
+            assert templateColumnProperties.containsKey("position") && templateChildPosition != null : "the template mapping is missing column positions";
+
+            // BWC compatibility with nodes < 5.1, position could be NULL if column is created on that nodes
+            if (templateChildPosition != null) {
+                // since template mapping and index mapping should be consistent, simply override (this will resolve any duplicates in index mappings)
+                indexColumnProperties.put("position", templateChildPosition);
+            }
+
+            populateColumnPositionsImpl(indexColumnProperties, templateColumnProperties);
         }
     }
 }
