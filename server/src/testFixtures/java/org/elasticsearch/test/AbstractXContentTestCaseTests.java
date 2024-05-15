@@ -54,7 +54,7 @@ public class AbstractXContentTestCaseTests extends ESTestCase {
         try (XContentParser parser = createParser(XContentType.JSON.xContent(), insertRandomFieldsAndShuffle)) {
             Map<String, Object> mapOrdered = parser.mapOrdered();
             assertThat(mapOrdered.size()).isEqualTo(2);
-            assertThat(mapOrdered.keySet().iterator().next(), not(equalTo("field")));
+            assertThat(mapOrdered.keySet().iterator().next()).isNotEqualTo("field");
         }
     }
 }

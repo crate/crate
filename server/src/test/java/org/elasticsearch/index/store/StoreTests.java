@@ -1014,7 +1014,7 @@ public class StoreTests extends ESTestCase {
 
             segmentInfos = Lucene.readSegmentInfos(store.directory());
             assertThat(segmentInfos.getUserData(), hasKey(Engine.HISTORY_UUID_KEY));
-            assertThat(segmentInfos.getUserData().get(Engine.HISTORY_UUID_KEY), not(equalTo(oldHistoryUUID)));
+            assertThat(segmentInfos.getUserData().get(Engine.HISTORY_UUID_KEY)).isNotEqualTo(oldHistoryUUID);
         }
     }
 

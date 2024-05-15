@@ -366,7 +366,7 @@ public class TranslogTests extends ESTestCase {
 
         long firstId = translog.currentFileGeneration();
         translog.rollGeneration();
-        assertThat(translog.currentFileGeneration(), Matchers.not(equalTo(firstId)));
+        assertThat(translog.currentFileGeneration()).isNotEqualTo(firstId);
 
         try (Translog.Snapshot snapshot = translog.newSnapshot()) {
             assertThat(snapshot, SnapshotMatchers.equalsTo(ops));

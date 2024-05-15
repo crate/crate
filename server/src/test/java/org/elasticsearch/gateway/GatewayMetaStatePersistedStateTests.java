@@ -283,8 +283,7 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
             gateway.setLastAcceptedState(state);
 
             gateway = maybeNew(gateway);
-            assertThat(gateway.getLastAcceptedState().getLastAcceptedConfiguration(),
-                       not(equalTo(gateway.getLastAcceptedState().getLastCommittedConfiguration())));
+            assertThat(gateway.getLastAcceptedState().getLastAcceptedConfiguration()).isNotEqualTo(gateway.getLastAcceptedState().getLastCommittedConfiguration());
             gateway.markLastAcceptedStateAsCommitted();
 
             CoordinationMetadata expectedCoordinationMetadata = CoordinationMetadata.builder(coordinationMetadata)
@@ -371,8 +370,7 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
         persistedState.setLastAcceptedState(state);
         assertBusy(() -> assertTrue(gateway.allPendingAsyncStatesWritten()));
 
-        assertThat(persistedState.getLastAcceptedState().getLastAcceptedConfiguration(),
-                   not(equalTo(persistedState.getLastAcceptedState().getLastCommittedConfiguration())));
+        assertThat(persistedState.getLastAcceptedState().getLastAcceptedConfiguration()).isNotEqualTo(persistedState.getLastAcceptedState().getLastCommittedConfiguration());
         CoordinationMetadata persistedCoordinationMetadata =
             persistedClusterStateService.loadBestOnDiskState().metadata.coordinationMetadata();
         assertThat(persistedCoordinationMetadata.getLastAcceptedConfiguration()).isEqualTo(GatewayMetaState.AsyncLucenePersistedState.STALE_STATE_CONFIG);

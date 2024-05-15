@@ -73,7 +73,7 @@ public class DeterministicTaskQueueTests extends ESTestCase {
     public void testRunRandomTaskVariesOrder() {
         final List<String> strings1 = getResultsOfRunningRandomly(new Random(4520795446362137264L));
         final List<String> strings2 = getResultsOfRunningRandomly(new Random(266504691902226821L));
-        assertThat(strings1, not(equalTo(strings2)));
+        assertThat(strings1).isNotEqualTo(strings2);
     }
 
     private List<String> getResultsOfRunningRandomly(Random random) {

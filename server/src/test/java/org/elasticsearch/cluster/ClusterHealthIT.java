@@ -201,7 +201,7 @@ public class ClusterHealthIT extends IntegTestCase {
                 while (finished.get() == false) {
                     ClusterHealthResponse health = FutureUtils.get(
                         client().admin().cluster().health(new ClusterHealthRequest()));
-                    assertThat(health.getStatus(), not(equalTo(ClusterHealthStatus.RED)));
+                    assertThat(health.getStatus()).isNotEqualTo(ClusterHealthStatus.RED);
                 }
             }
         };

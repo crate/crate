@@ -36,7 +36,6 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
@@ -668,7 +667,7 @@ public class InternalEngineTests extends EngineTestCase {
             assertThat(stats2.getRawCommitId()).isEqualTo(commitId);
             assertThat(stats2.getGeneration(), greaterThan(stats1.getGeneration()));
             assertThat(stats2.getId()).isNotNull();
-            assertThat(stats2.getId(), not(equalTo(stats1.getId())));
+            assertThat(stats2.getId()).isNotEqualTo(stats1.getId());
             assertThat(stats2.getUserData(), hasKey(Translog.TRANSLOG_UUID_KEY));
             assertThat(stats2.getUserData().get(Translog.TRANSLOG_UUID_KEY)).isEqualTo(stats1.getUserData().get(Translog.TRANSLOG_UUID_KEY));
             assertThat(Long.parseLong(stats2.getUserData().get(SequenceNumbers.LOCAL_CHECKPOINT_KEY))).isEqualTo(localCheckpoint.get());
@@ -2359,7 +2358,7 @@ public class InternalEngineTests extends EngineTestCase {
         for (int i = 0; i < sortedHistory.size(); i++) {
             OpAndVersion op = sortedHistory.get(i);
             if (i > 0) {
-                assertThat("duplicate version", op.version, not(equalTo(sortedHistory.get(i - 1).version)));
+                assertThat(op.version).as("duplicate version").isNotEqualTo(sortedHistory.get(i - 1).version);
             }
             boolean exists = op.removed == null ? true : currentValues.remove(op.removed);
             assertTrue(op.removed + " should exist", exists);

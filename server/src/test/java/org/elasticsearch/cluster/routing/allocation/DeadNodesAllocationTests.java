@@ -146,7 +146,7 @@ public class DeadNodesAllocationTests extends ESAllocationTestCase {
         AllocationService.CommandsResult commandsResult = allocation.reroute(clusterState, new AllocationCommands(
             new MoveAllocationCommand("test", 0, clusterState.routingTable().index("test")
                 .shard(0).primaryShard().currentNodeId(), "node3")), false, false);
-        assertThat(commandsResult.getClusterState(), not(equalTo(clusterState)));
+        assertThat(commandsResult.getClusterState()).isNotEqualTo(clusterState);
         clusterState = commandsResult.getClusterState();
         assertThat(clusterState.getRoutingNodes().node(origPrimaryNodeId).iterator().next().state()).isEqualTo(RELOCATING);
         assertThat(clusterState.getRoutingNodes().node("node3").iterator().next().state()).isEqualTo(INITIALIZING);
@@ -216,7 +216,7 @@ public class DeadNodesAllocationTests extends ESAllocationTestCase {
         AllocationService.CommandsResult commandsResult = allocation.reroute(clusterState, new AllocationCommands(
             new MoveAllocationCommand("test",0 , clusterState.routingTable().index("test")
                 .shard(0).primaryShard().currentNodeId(), "node3")), false, false);
-        assertThat(commandsResult.getClusterState(), not(equalTo(clusterState)));
+        assertThat(commandsResult.getClusterState()).isNotEqualTo(clusterState);
         clusterState = commandsResult.getClusterState();
         assertThat(clusterState.getRoutingNodes().node(origPrimaryNodeId).iterator().next().state()).isEqualTo(RELOCATING);
         assertThat(clusterState.getRoutingNodes().node("node3").iterator().next().state()).isEqualTo(INITIALIZING);
