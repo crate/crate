@@ -19,13 +19,10 @@
 
 package org.elasticsearch.test.test;
 
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.not;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -63,7 +60,7 @@ public class ESTestCaseTests extends ESTestCase {
             }
             //out of 10 shuffling runs we expect to have at least more than 1 distinct output.
             //This is to make sure that we actually do the shuffling
-            assertThat(distinctKeys.size(), greaterThan(1));
+            assertThat(distinctKeys).hasSizeGreaterThan(1);
         }
     }
 
@@ -125,22 +122,22 @@ public class ESTestCaseTests extends ESTestCase {
             }
 
             //out of 10 shuffling runs we expect to have at least more than 1 distinct output for both top level keys and inner object2
-            assertThat(distinctTopLevelKeys.size(), greaterThan(1));
-            assertThat(distinctInnerKeys2.size(), greaterThan(1));
+            assertThat(distinctTopLevelKeys).hasSizeGreaterThan(1);
+            assertThat(distinctInnerKeys2).hasSizeGreaterThan(1);
         }
     }
 
     public void testRandomUniqueNotUnique() {
-        assertThat(randomUnique(() -> 1, 10), hasSize(1));
+        assertThat(randomUnique(() -> 1, 10)).hasSize(1);
     }
 
     public void testRandomUniqueTotallyUnique() {
         AtomicInteger i = new AtomicInteger();
-        assertThat(randomUnique(i::incrementAndGet, 100), hasSize(100));
+        assertThat(randomUnique(i::incrementAndGet, 100)).hasSize(100);
     }
 
     public void testRandomUniqueNormalUsageAlwayMoreThanOne() {
-        assertThat(randomUnique(() -> randomAlphaOfLengthBetween(1, 20), 10), hasSize(greaterThan(0)));
+        assertThat(randomUnique(() -> randomAlphaOfLengthBetween(1, 20), 10)).hasSizeGreaterThan(0);
     }
 
     public void testRandomValueOtherThan() {
@@ -162,7 +159,7 @@ public class ESTestCaseTests extends ESTestCase {
             "requires running tests with Maven",
             System.getProperty(ESTestCase.TEST_WORKER_SYS_PROPERTY) != null);
 
-        assertThat(ESTestCase.TEST_WORKER_VM_ID, not(equals(ESTestCase.DEFAULT_TEST_WORKER_ID)));
+        assertThat(ESTestCase.TEST_WORKER_VM_ID).isNotEqualTo(ESTestCase.DEFAULT_TEST_WORKER_ID);
     }
 
     public void testBasePortMaven() {

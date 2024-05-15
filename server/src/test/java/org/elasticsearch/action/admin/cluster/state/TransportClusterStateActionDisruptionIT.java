@@ -161,7 +161,7 @@ public class TransportClusterStateActionDisruptionIT extends IntegTestCase {
                 .stream()
                 .filter(n -> ClusterBootstrapService.isBootstrapPlaceholder(n) == false)
                 .collect(Collectors.toSet());
-            assertThat(nodes, hasSize(3));
+            assertThat(nodes).hasSize(3);
         });
 
         final String masterName = cluster().getMasterName();

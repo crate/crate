@@ -460,7 +460,7 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
             final RetentionLeases retentionLeases = replicationTracker.getRetentionLeases();
             final long expectedVersion = primaryMode ? 2L : 1L;
             assertThat(retentionLeases.version()).isEqualTo(expectedVersion);
-            assertThat(retentionLeases.leases(), hasSize(primaryMode ? 2 : 1));
+            assertThat(retentionLeases.leases()).hasSize(primaryMode ? 2 : 1);
             final RetentionLease retentionLease = retentionLeases.get("0");
             assertThat(retentionLease.timestamp()).isEqualTo(currentTimeMillis.get());
             assertRetentionLeases(replicationTracker, 1, retainingSequenceNumbers, primaryTerm, expectedVersion, primaryMode, false);
@@ -483,7 +483,7 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
             final RetentionLeases retentionLeases = replicationTracker.getRetentionLeases();
             final long expectedVersion = primaryMode ? 3L : 2L;
             assertThat(retentionLeases.version()).isEqualTo(expectedVersion);
-            assertThat(retentionLeases.leases(), hasSize(primaryMode ? 2 : 1));
+            assertThat(retentionLeases.leases()).hasSize(primaryMode ? 2 : 1);
             final RetentionLease retentionLease = retentionLeases.get("0");
             assertThat(retentionLease.timestamp()).isEqualTo(currentTimeMillis.get());
             assertRetentionLeases(replicationTracker, 1, retainingSequenceNumbers, primaryTerm, expectedVersion, primaryMode, false);
@@ -774,7 +774,7 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
             .filter(retentionLease -> ReplicationTracker.PEER_RECOVERY_RETENTION_LEASE_SOURCE.equals(retentionLease.source()) == false)
             .collect(Collectors.toMap(RetentionLease::id, Function.identity()));
 
-        assertThat(idToRetentionLease.entrySet(), hasSize(size));
+        assertThat(idToRetentionLease.entrySet()).hasSize(size);
         for (int i = 0; i < size; i++) {
             assertThat(idToRetentionLease.keySet(), hasItem(Integer.toString(i)));
             final RetentionLease retentionLease = idToRetentionLease.get(Integer.toString(i));

@@ -89,7 +89,7 @@ public class VotingConfigurationIT extends IntegTestCase {
                 .metadata(true)
             ).get().getState();
         final Set<String> votingConfiguration = clusterState.getLastCommittedConfiguration().getNodeIds();
-        assertThat(votingConfiguration, hasSize(3));
+        assertThat(votingConfiguration).hasSize(3);
         assertThat(clusterState.nodes().getSize()).isEqualTo(4);
         assertThat(votingConfiguration, hasItem(clusterState.nodes().getMasterNodeId()));
         for (DiscoveryNode discoveryNode : clusterState.nodes()) {

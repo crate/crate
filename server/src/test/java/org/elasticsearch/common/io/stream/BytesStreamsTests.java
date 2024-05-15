@@ -473,7 +473,7 @@ public class BytesStreamsTests extends ESTestCase {
 
         final List<TestWriteable> loaded = in.readList(TestWriteable::new);
 
-        assertThat(loaded, hasSize(expected.size()));
+        assertThat(loaded).hasSize(expected.size());
 
         for (int i = 0; i < expected.size(); ++i) {
             assertEquals(expected.get(i).value, loaded.get(i).value);
@@ -562,7 +562,7 @@ public class BytesStreamsTests extends ESTestCase {
 
             List<String> loadedList = loaded.get(entry.getKey());
 
-            assertThat(loadedList, hasSize(entry.getValue().size()));
+            assertThat(loadedList).hasSize(entry.getValue().size());
 
             for (int i = 0; i < loadedList.size(); ++i) {
                 assertEquals(entry.getValue().get(i), loadedList.get(i));
