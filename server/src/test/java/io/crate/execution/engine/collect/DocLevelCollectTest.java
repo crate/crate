@@ -22,7 +22,7 @@
 package io.crate.execution.engine.collect;
 
 import static io.crate.testing.TestingHelpers.isRow;
-import static org.hamcrest.Matchers.contains;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
@@ -51,6 +51,7 @@ import com.carrotsearch.hppc.IntIndexedContainer;
 
 import io.crate.analyze.WhereClause;
 import io.crate.data.Bucket;
+import io.crate.data.Row1;
 import io.crate.execution.dsl.phases.ExecutionPhase;
 import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
@@ -174,7 +175,7 @@ public class DocLevelCollectTest extends IntegTestCase {
         RoutedCollectPhase collectNode = getCollectNode(toCollect, whereClause);
 
         Bucket result = collect(collectNode);
-        assertThat(result, contains(isRow(2)));
+        assertThat(result).containsExactly(new Row1(2));
     }
 
     private RoutedCollectPhase getCollectNode(List<Symbol> toCollect, Routing routing, WhereClause whereClause) {

@@ -23,7 +23,6 @@ package io.crate.integrationtests;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -63,7 +62,7 @@ public class ExplainAnalyzeIntegrationTest extends IntegTestCase {
 
         Map<String, Map<String, Object>> phasesAnalysis = (Map<String, Map<String, Object>>) executeAnalysis.get("Phases");
         assertThat(phasesAnalysis).isNotNull();
-        assertThat(phasesAnalysis.keySet(), contains("0-collect", "1-mergeOnHandler", "2-fetchPhase"));
+        assertThat(phasesAnalysis.keySet()).containsExactly("0-collect", "1-mergeOnHandler", "2-fetchPhase");
 
         DiscoveryNodes nodes = clusterService().state().nodes();
         for (DiscoveryNode discoveryNode : nodes) {

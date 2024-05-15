@@ -32,7 +32,6 @@ import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_PRIMARY_T
 import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
 import static org.elasticsearch.index.translog.TranslogDeletionPolicies.createTranslogDeletionPolicy;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
@@ -5132,7 +5131,7 @@ public class InternalEngineTests extends EngineTestCase {
             // Global checkpoint advanced enough - only the last commit is kept.
             globalCheckpoint.set(randomLongBetween(engine.getPersistedLocalCheckpoint(), Long.MAX_VALUE));
             engine.syncTranslog();
-            assertThat(DirectoryReader.listCommits(store.directory()), contains(commits.get(commits.size() - 1)));
+            assertThat(DirectoryReader.listCommits(store.directory())).containsExactly(commits.get(commits.size() - 1));
             assertThat(engine.getTranslog().totalOperations()).isEqualTo(0);
         }
     }

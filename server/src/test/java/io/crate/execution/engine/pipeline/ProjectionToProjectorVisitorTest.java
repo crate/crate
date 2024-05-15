@@ -26,11 +26,8 @@ import static io.crate.data.SentinelRow.SENTINEL;
 import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_LIMIT;
 import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_OFFSET;
 import static io.crate.testing.TestingHelpers.createNodeContext;
-import static io.crate.testing.TestingHelpers.isRow;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.contains;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.util.ArrayList;
@@ -38,6 +35,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.StreamSupport;
 
 import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.common.settings.ClusterSettings;
@@ -53,6 +51,7 @@ import io.crate.data.CollectionBucket;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Projector;
 import io.crate.data.Row;
+import io.crate.data.RowN;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.data.testing.TestingBatchIterators;
 import io.crate.data.testing.TestingRowConsumer;
@@ -213,7 +212,7 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
         consumer.accept(batchIterator, null);
         Bucket rows = consumer.getBucket();
         assertThat(rows).hasSize(1);
-        assertThat(rows, contains(isRow(15.0, 2L)));
+        assertThat(rows).containsExactly(new RowN(15.0, 2L));
     }
 
     @Test
@@ -269,11 +268,14 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
         consumer.accept(batchIterator, null);
 
         Bucket bucket = consumer.getBucket();
-        assertThat(bucket, contains(
-            isRow(human, female, 22.0, 1L),
-            isRow(human, male, 34.0, 2L),
-            isRow(vogon, male, 44.0, 2L)
-        ));
+        List<Object[]> resultRows = StreamSupport.stream(bucket.spliterator(), false)
+            .map(Row::materialize)
+            .toList();
+        assertThat(resultRows).containsExactly(
+            new Object[] { human, female, 22.0, 1L },
+            new Object[] { human, male, 34.0, 2L },
+            new Object[] { vogon, male, 44.0, 2L }
+        );
     }
 
     @Test

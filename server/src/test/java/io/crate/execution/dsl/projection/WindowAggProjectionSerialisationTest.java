@@ -23,8 +23,7 @@ package io.crate.execution.dsl.projection;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonList;
-import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -51,6 +50,7 @@ public class WindowAggProjectionSerialisationTest {
     private Functions functions = Functions.load(Settings.EMPTY, new SessionSettingRegistry(Set.of()));
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testWindowAggProjectionSerialisation() throws IOException {
         FunctionImplementation sumFunctionImpl = getSumFunction();
 
@@ -89,12 +89,12 @@ public class WindowAggProjectionSerialisationTest {
         var actualWindowAggProjection = new WindowAggProjection(in);
 
         assertThat(
-            actualWindowAggProjection.outputs(),
-            contains(standaloneInput, firstWindowFunction, secondWindowFunction));
+            (List<Symbol>) actualWindowAggProjection.outputs()).containsExactly(standaloneInput, firstWindowFunction, secondWindowFunction);
         assertThat(actualWindowAggProjection).isEqualTo(expectedWindowAggProjection);
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void test_window_agg_projection_serialization_with_filter_before_4_1_0()
         throws IOException {
         FunctionImplementation sumFunctionImpl = getSumFunction();
@@ -125,8 +125,7 @@ public class WindowAggProjectionSerialisationTest {
         var actualWindowAggProjection = new WindowAggProjection(input);
 
         assertThat(
-            actualWindowAggProjection.outputs(),
-            contains(standaloneInput, windowFunction));
+            (List<Symbol>) actualWindowAggProjection.outputs()).containsExactly(standaloneInput, windowFunction);
         assertThat(actualWindowAggProjection.windowFunctions().get(0).filter()).isNull();
     }
 

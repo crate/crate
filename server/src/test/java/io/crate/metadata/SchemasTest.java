@@ -26,7 +26,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_CREATED;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
@@ -133,7 +132,7 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
                     .put(SETTING_VERSION_CREATED, Version.CURRENT))
                 .build(), true)
             .build();
-        assertThat(Schemas.getNewCurrentSchemas(metadata), contains("foo", "doc"));
+        assertThat(Schemas.getNewCurrentSchemas(metadata)).containsExactly("foo", "doc");
     }
 
     private Schemas getReferenceInfos(SchemaInfo schemaInfo) {

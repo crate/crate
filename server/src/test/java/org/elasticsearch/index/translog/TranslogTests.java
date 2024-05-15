@@ -25,7 +25,6 @@ import static org.elasticsearch.common.util.BigArrays.NON_RECYCLING_INSTANCE;
 import static org.elasticsearch.index.translog.SnapshotMatchers.containsOperationsInAnyOrder;
 import static org.elasticsearch.index.translog.TranslogDeletionPolicies.createTranslogDeletionPolicy;
 import static org.hamcrest.CoreMatchers.hasItem;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
@@ -1341,7 +1340,7 @@ public class TranslogTests extends ESTestCase {
             writer.sync();
 
             // Sequence numbers are marked as persisted after sync
-            assertThat(persistedSeqNos, contains(1L, 2L, 3L, 4L, 5L));
+            assertThat(persistedSeqNos).containsExactly(1L, 2L, 3L, 4L, 5L);
         }
     }
 
@@ -1441,7 +1440,7 @@ public class TranslogTests extends ESTestCase {
             // Sync against so that both operations are written
             writer.sync();
 
-            assertThat(persistedSeqNos, contains(1L, 2L));
+            assertThat(persistedSeqNos).containsExactly(1L, 2L);
             thread.join();
         }
     }
