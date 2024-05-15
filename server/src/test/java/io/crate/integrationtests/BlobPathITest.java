@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.lessThan;
-import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 
@@ -81,9 +80,9 @@ public class BlobPathITest extends BlobIntegrationTestBase {
         execute("create blob table b1 clustered into 1 shards with (number_of_replicas = 0)");
 
         client.put("b1", "abcdefg");
-        assertThat(gatherDigests(data1).size(), is(1));
+        assertThat(gatherDigests(data1)).hasSize(1);
         cluster().stopRandomDataNode();
-        assertThat(gatherDigests(data1).size(), is(1));
+        assertThat(gatherDigests(data1)).hasSize(1);
     }
 
     @Test
@@ -151,7 +150,7 @@ public class BlobPathITest extends BlobIntegrationTestBase {
 
         assertThat(data1Files.size(), Matchers.allOf(lessThan(10), greaterThan(0)));
         assertThat(data2Files.size(), Matchers.allOf(lessThan(10), greaterThan(0)));
-        assertThat(data1Files.size() + data2Files.size(), is(10));
+        assertThat(data1Files.size() + data2Files.size()).isEqualTo(10);
     }
 
     private List<String> gatherDigests(Path data1) throws IOException {

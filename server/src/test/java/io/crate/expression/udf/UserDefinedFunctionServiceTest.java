@@ -94,7 +94,7 @@ public class UserDefinedFunctionServiceTest extends UdfUnitTest {
         UserDefinedFunctionsMetadata metadata = UserDefinedFunctionsMetadata.of(same1);
         UserDefinedFunctionsMetadata newMetadata = udfService.removeFunction(metadata, same1.schema(), same1.name(), same1.argumentTypes(), false);
         assertThat(metadata, not(is(newMetadata))); // A new instance of metadata must be returned on a change
-        assertThat(newMetadata.functionsMetadata().size(), is(0));
+        assertThat(newMetadata.functionsMetadata()).hasSize(0);
     }
 
     @Test

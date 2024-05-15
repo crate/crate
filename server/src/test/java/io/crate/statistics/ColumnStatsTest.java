@@ -21,6 +21,7 @@
 
 package io.crate.statistics;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
@@ -56,7 +57,7 @@ public class ColumnStatsTest {
         assertThat(columnStats.nullFraction(), Matchers.closeTo(0.111, 0.01));
         assertThat(columnStats.approxDistinct(), is(3.0));
         MostCommonValues mostCommonValues = columnStats.mostCommonValues();
-        assertThat(mostCommonValues.values().size(), is(3));
+        assertThat(mostCommonValues.values()).hasSize(3);
     }
 
     @Property
@@ -102,7 +103,7 @@ public class ColumnStatsTest {
         List<Integer> histogramSample = columnStats.histogram().subList(0, 8);
         assertThat(histogramSample, contains(1, 3, 5, 7, 9, 31, 33, 35));
         MostCommonValues mostCommonValues = columnStats.mostCommonValues();
-        assertThat(mostCommonValues.values().size(), is(2));
+        assertThat(mostCommonValues.values()).hasSize(2);
         assertThat(mostCommonValues.values().get(0), is(10));
         assertThat(mostCommonValues.frequencies()[0], Matchers.closeTo(0.376, 0.01));
         assertThat(mostCommonValues.values().get(1), is(20));

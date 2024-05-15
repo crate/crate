@@ -135,7 +135,7 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
         consumer.accept(projector.apply(TestingBatchIterators.range(0, 20)), null);
 
         List<Object[]> result = consumer.getResult();
-        assertThat(result.size(), is(10));
+        assertThat(result).hasSize(10);
         assertThat(result.get(0), is(new Object[]{2}));
     }
 
@@ -213,7 +213,7 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(batchIterator, null);
         Bucket rows = consumer.getBucket();
-        assertThat(rows.size(), is(1));
+        assertThat(rows).hasSize(1);
         assertThat(rows, contains(isRow(15.0, 2L)));
     }
 
@@ -299,6 +299,6 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(filteredBI, null);
         Bucket bucket = consumer.getBucket();
-        assertThat(bucket.size(), is(1));
+        assertThat(bucket).hasSize(1);
     }
 }

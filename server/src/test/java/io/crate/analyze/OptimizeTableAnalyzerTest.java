@@ -25,6 +25,7 @@ import static io.crate.analyze.OptimizeTableSettings.FLUSH;
 import static io.crate.analyze.OptimizeTableSettings.MAX_NUM_SEGMENTS;
 import static io.crate.analyze.OptimizeTableSettings.ONLY_EXPUNGE_DELETES;
 import static io.crate.analyze.OptimizeTableSettings.UPGRADE_SEGMENTS;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
@@ -151,7 +152,7 @@ public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     @Test
     public void testOptimizeMultipleTables() throws Exception {
         OptimizeTablePlan.BoundOptimizeTable analysis = analyze("OPTIMIZE TABLE parted, users");
-        assertThat(analysis.indexNames().size(), is(4));
+        assertThat(analysis.indexNames()).hasSize(4);
         assertThat(
             analysis.indexNames(),
             hasItems(".partitioned.parted.04732cpp6ks3ed1o60o30c1g", "users")

@@ -21,6 +21,7 @@
 
 package io.crate.execution.engine.distribution;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
@@ -50,11 +51,11 @@ public class ModuloBucketBuilderTest extends ESTestCase {
         builder.build(buckets);
 
         final Bucket rowsD1 = buckets[0];
-        assertThat(rowsD1.size(), is(2));
+        assertThat(rowsD1).hasSize(2);
         assertThat(TestingHelpers.printedTable(rowsD1), is("2\n4\n"));
 
         final Bucket rowsD2 = buckets[1];
-        assertThat(rowsD2.size(), is(2));
+        assertThat(rowsD2).hasSize(2);
         assertThat(TestingHelpers.printedTable(rowsD2), is("1\n3\n"));
     }
 }

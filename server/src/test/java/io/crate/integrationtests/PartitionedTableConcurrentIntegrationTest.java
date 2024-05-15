@@ -197,7 +197,7 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
     @Test
     public void testExecuteDeleteAllPartitions_PartitionsAreDeletedMeanwhile() throws Exception {
         Bucket bucket = deletePartitionsAndExecutePlan("delete from t");
-        assertThat(bucket.size(), is(1));
+        assertThat(bucket).hasSize(1);
         Row row = bucket.iterator().next();
         assertThat(row.numColumns(), is(1));
         assertThat(row.get(0), is(-1L));
@@ -206,7 +206,7 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
     @Test
     public void testExecuteDeleteSomePartitions_PartitionsAreDeletedMeanwhile() throws Exception {
         Bucket bucket = deletePartitionsAndExecutePlan("delete from t where name = 'Trillian'");
-        assertThat(bucket.size(), is(1));
+        assertThat(bucket).hasSize(1);
         Row row = bucket.iterator().next();
         assertThat(row.numColumns(), is(1));
         assertThat(row.get(0), is(0L));
@@ -215,7 +215,7 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
     @Test
     public void testExecuteDeleteByQuery_PartitionsAreDeletedMeanwhile() throws Exception {
         Bucket bucket = deletePartitionsAndExecutePlan("delete from t where p = 'a'");
-        assertThat(bucket.size(), is(1));
+        assertThat(bucket).hasSize(1);
         Row row = bucket.iterator().next();
         assertThat(row.numColumns(), is(1));
         assertThat(row.get(0), is(-1L));
@@ -224,7 +224,7 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
     @Test
     public void testExecuteUpdate_PartitionsAreDeletedMeanwhile() throws Exception {
         Bucket bucket = deletePartitionsAndExecutePlan("update t set name = 'BoyceCodd'");
-        assertThat(bucket.size(), is(1));
+        assertThat(bucket).hasSize(1);
         Row row = bucket.iterator().next();
         assertThat(row.numColumns(), is(1));
         assertThat(row.get(0), is(0L));
@@ -233,7 +233,7 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
     @Test
     public void testTableUnknownExceptionIsNotRaisedIfPartitionsAreDeletedAfterPlan() throws Exception {
         Bucket bucket = deletePartitionsAndExecutePlan("select * from t");
-        assertThat(bucket.size(), is(0));
+        assertThat(bucket).hasSize(0);
     }
 
     @Test
@@ -241,7 +241,7 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
         // with a sinlge node, this test leads to empty shard collectors
         cluster().ensureAtMostNumDataNodes(1);
         Bucket bucket = deletePartitionsAndExecutePlan("select * from t");
-        assertThat(bucket.size(), is(0));
+        assertThat(bucket).hasSize(0);
     }
 
     @Test

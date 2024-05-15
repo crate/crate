@@ -79,7 +79,7 @@ public class RoutingBuilderTest extends CrateDummyClusterServiceUnitTest {
 
         // 2 routing allocations with different where clause must result in 2 allocated routings
         List<Routing> tableRoutings = routingBuilder.routingListByTableStack.pop().get(relationName);
-        assertThat(tableRoutings.size(), is(2));
+        assertThat(tableRoutings).hasSize(2);
 
         // The routings are the same because the RoutingProvider enforces this - this test doesn't reflect that fact
         // currently because the used routing are stubbed via the TestingTableInfo
@@ -97,17 +97,17 @@ public class RoutingBuilderTest extends CrateDummyClusterServiceUnitTest {
         ReaderAllocations readerAllocations = routingBuilder.buildReaderAllocations();
         routingBuilder.newAllocations();
 
-        assertThat(readerAllocations.indices().size(), is(1));
+        assertThat(readerAllocations.indices()).hasSize(1);
         assertThat(readerAllocations.indices().get(0), is(relationName.indexNameOrAlias()));
-        assertThat(readerAllocations.nodeReaders().size(), is(2));
+        assertThat(readerAllocations.nodeReaders()).hasSize(2);
 
         IntSet n1 = readerAllocations.nodeReaders().get("n1");
-        assertThat(n1.size(), is(2));
+        assertThat(n1).hasSize(2);
         assertThat(n1.contains(0)).isTrue();
         assertThat(n1.contains(2)).isTrue();
 
         IntSet n2 = readerAllocations.nodeReaders().get("n2");
-        assertThat(n2.size(), is(2));
+        assertThat(n2).hasSize(2);
         assertThat(n2.contains(1)).isTrue();
         assertThat(n2.contains(3)).isTrue();
 

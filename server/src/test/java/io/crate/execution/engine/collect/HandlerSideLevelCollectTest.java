@@ -21,6 +21,7 @@
 
 package io.crate.execution.engine.collect;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
@@ -127,7 +128,7 @@ public class HandlerSideLevelCollectTest extends IntegTestCase {
         );
         RoutedCollectPhase collectNode = collectNode(routing, List.of(clusterNameRef), RowGranularity.CLUSTER);
         Bucket result = collect(collectNode);
-        assertThat(result.size(), is(1));
+        assertThat(result).hasSize(1);
         assertThat(((String) result.iterator().next().get(0)), Matchers.startsWith("SUITE-"));
     }
 

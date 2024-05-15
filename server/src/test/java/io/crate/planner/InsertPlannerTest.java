@@ -21,9 +21,9 @@
 
 package io.crate.planner;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static io.crate.testing.Asserts.isReference;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
@@ -106,7 +106,9 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testInsertFromSubQueryNonDistributedGroupBy() {
         Collect nonDistributedGroupBy = e.plan(
             "insert into users (id, name) (select count(*), name from sys.nodes group by name)");
-        assertThat("nodeIds size must 1 one if there is no mergePhase", nonDistributedGroupBy.nodeIds().size(), is(1));
+        assertThat(nonDistributedGroupBy.nodeIds())
+            .as("nodeIds size must 1 one if there is no mergePhase")
+            .hasSize(1);
         assertThat(nonDistributedGroupBy.collectPhase().projections(), contains(
             instanceOf(GroupProjection.class),
             instanceOf(EvalProjection.class),
@@ -117,7 +119,9 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testInsertFromSubQueryNonDistributedGroupByWithCast() {
         Collect nonDistributedGroupBy = e.plan(
             "insert into users (id, name) (select name, count(*) from sys.nodes group by name)");
-        assertThat("nodeIds size must 1 one if there is no mergePhase", nonDistributedGroupBy.nodeIds().size(), is(1));
+        assertThat(nonDistributedGroupBy.nodeIds())
+            .as("nodeIds size must 1 one if there is no mergePhase")
+            .hasSize(1);
         assertThat(nonDistributedGroupBy.collectPhase().projections(), contains(
             instanceOf(GroupProjection.class),
             instanceOf(EvalProjection.class),
@@ -164,9 +168,9 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
             instanceOf(ColumnIndexWriterProjection.class)));
 
         ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection) mergePhase.projections().get(2);
-        assertThat(projection.primaryKeys().size(), is(1));
+        assertThat(projection.primaryKeys()).hasSize(1);
         assertThat(projection.primaryKeys().get(0).fqn(), is("id"));
-        assertThat(projection.allTargetColumns().size(), is(2));
+        assertThat(projection.allTargetColumns()).hasSize(2);
         assertThat(projection.allTargetColumns().get(0).column().fqn(), is("id"));
         assertThat(projection.allTargetColumns().get(1).column().fqn(), is("name"));
 
@@ -176,9 +180,9 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(projection.partitionedBySymbols().isEmpty()).isTrue();
 
         MergePhase localMergeNode = planNode.mergePhase();
-        assertThat(localMergeNode.projections().size(), is(1));
+        assertThat(localMergeNode.projections()).hasSize(1);
         assertThat(localMergeNode.projections().get(0)).isExactlyInstanceOf(MergeCountProjection.class);
-        assertThat(localMergeNode.finalProjection().get().outputs().size(), is(1));
+        assertThat(localMergeNode.finalProjection().get().outputs()).hasSize(1);
     }
 
     @Test
@@ -192,14 +196,14 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
             instanceOf(EvalProjection.class),
             instanceOf(ColumnIndexWriterProjection.class)));
         ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection) mergePhase.projections().get(2);
-        assertThat(projection.primaryKeys().size(), is(2));
+        assertThat(projection.primaryKeys()).hasSize(2);
         assertThat(projection.primaryKeys().get(0).fqn(), is("id"));
         assertThat(projection.primaryKeys().get(1).fqn(), is("date"));
 
-        assertThat(projection.allTargetColumns().size(), is(2));
+        assertThat(projection.allTargetColumns()).hasSize(2);
         assertThat(projection.allTargetColumns().get(0).column().fqn(), is("id"));
 
-        assertThat(projection.partitionedBySymbols().size(), is(1));
+        assertThat(projection.partitionedBySymbols()).hasSize(1);
         assertThat(((InputColumn) projection.partitionedBySymbols().get(0)).index(), is(1));
 
         assertNotNull(projection.clusteredByIdent());
@@ -208,9 +212,9 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         MergePhase localMergeNode = planNode.mergePhase();
 
-        assertThat(localMergeNode.projections().size(), is(1));
+        assertThat(localMergeNode.projections()).hasSize(1);
         assertThat(localMergeNode.projections().get(0)).isExactlyInstanceOf(MergeCountProjection.class);
-        assertThat(localMergeNode.finalProjection().get().outputs().size(), is(1));
+        assertThat(localMergeNode.finalProjection().get().outputs()).hasSize(1);
 
     }
 
@@ -226,7 +230,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(mergePhase.projections().get(1)).isExactlyInstanceOf(ColumnIndexWriterProjection.class);
         ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection) mergePhase.projections().get(1);
 
-        assertThat(projection.allTargetColumns().size(), is(2));
+        assertThat(projection.allTargetColumns()).hasSize(2);
         assertThat(projection.allTargetColumns().get(0).column().fqn(), is("name"));
         assertThat(projection.allTargetColumns().get(1).column().fqn(), is("id"));
 
@@ -243,11 +247,11 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         Collect queryAndFetch = (Collect) merge.subPlan();
         PKLookupPhase collectPhase = ((PKLookupPhase) queryAndFetch.collectPhase());
 
-        assertThat(collectPhase.projections().size(), is(1));
+        assertThat(collectPhase.projections()).hasSize(1);
         assertThat(collectPhase.projections().get(0)).isExactlyInstanceOf(ColumnIndexWriterProjection.class);
         ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection) collectPhase.projections().get(0);
 
-        assertThat(projection.allTargetColumns().size(), is(3));
+        assertThat(projection.allTargetColumns()).hasSize(3);
         assertThat(projection.allTargetColumns().get(0).column().fqn(), is("date"));
         assertThat(projection.allTargetColumns().get(1).column().fqn(), is("id"));
         assertThat(projection.allTargetColumns().get(2).column().fqn(), is("name"));
@@ -267,7 +271,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         ColumnIndexWriterProjection projection = (ColumnIndexWriterProjection) join.joinPhase().projections().get(1);
 
-        assertThat(projection.allTargetColumns().size(), is(2));
+        assertThat(projection.allTargetColumns()).hasSize(2);
         assertThat(projection.allTargetColumns().get(0).column().fqn(), is("id"));
         assertThat(projection.allTargetColumns().get(1).column().fqn(), is("name"));
         assertThat(((InputColumn) projection.ids().get(0)).index(), is(0));
@@ -318,12 +322,12 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
             "insert into users (id, name) (select id, name from users)");
         Collect collect = (Collect) planNode.subPlan();
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
-        assertThat(collectPhase.projections().size(), is(1));
+        assertThat(collectPhase.projections()).hasSize(1);
         assertThat(collectPhase.projections().get(0)).isExactlyInstanceOf(ColumnIndexWriterProjection.class);
 
         MergePhase localMergeNode = planNode.mergePhase();
 
-        assertThat(localMergeNode.projections().size(), is(1));
+        assertThat(localMergeNode.projections()).hasSize(1);
         assertThat(localMergeNode.projections().get(0)).isExactlyInstanceOf(MergeCountProjection.class);
     }
 
@@ -381,7 +385,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         Collect queryAndFetch = (Collect) planNode.subPlan();
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) queryAndFetch.collectPhase());
         List<Symbol> toCollect = collectPhase.toCollect();
-        assertThat(toCollect.size(), is(2));
+        assertThat(toCollect).hasSize(2);
         Asserts.assertThat(toCollect.get(0)).isReference().hasName("_doc['id']");
         assertThat(toCollect.get(1), equalTo(new SimpleReference(
             new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, "parted_pks"), "date"),
@@ -410,7 +414,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
             instanceOf(ColumnIndexWriterProjection.class)));
 
         FilterProjection filterProjection = (FilterProjection) mergePhase.projections().get(1);
-        assertThat(filterProjection.outputs().size(), is(2));
+        assertThat(filterProjection.outputs()).hasSize(2);
         assertThat(filterProjection.outputs().get(0)).isExactlyInstanceOf(InputColumn.class);
         assertThat(filterProjection.outputs().get(1)).isExactlyInstanceOf(InputColumn.class);
 
@@ -420,9 +424,9 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(inputColumn.index(), is(1));
         MergePhase localMergeNode = planNode.mergePhase();
 
-        assertThat(localMergeNode.projections().size(), is(1));
+        assertThat(localMergeNode.projections()).hasSize(1);
         assertThat(localMergeNode.projections().get(0)).isExactlyInstanceOf(MergeCountProjection.class);
-        assertThat(localMergeNode.finalProjection().get().outputs().size(), is(1));
+        assertThat(localMergeNode.finalProjection().get().outputs()).hasSize(1);
     }
 
     @Test

@@ -21,8 +21,8 @@
 
 package io.crate.execution.engine.fetch;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static io.crate.testing.TestingHelpers.isRow;
-import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
 import org.apache.logging.log4j.LogManager;
@@ -79,7 +79,7 @@ public class NodeFetchResponseTest extends ESTestCase {
         // receiving side is required to set the streamers
         NodeFetchResponse streamed = new NodeFetchResponse(in, streamers, RamAccounting.NO_ACCOUNTING);
 
-        assertThat(streamed.fetched().get(1).size(), is(1));
+        assertThat(streamed.fetched().get(1)).hasSize(1);
         assertThat(streamed.fetched().get(1).iterator().next(), isRow(true));
     }
 

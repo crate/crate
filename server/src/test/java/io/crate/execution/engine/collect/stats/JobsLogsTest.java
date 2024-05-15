@@ -377,7 +377,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
         List<JobContext> jobsEntries = StreamSupport.stream(jobsLogs.activeJobs().spliterator(), false)
             .collect(Collectors.toList());
 
-        assertThat(jobsEntries.size(), is(1));
+        assertThat(jobsEntries).hasSize(1);
         assertThat(jobsEntries.get(0).username(), is(user.name()));
         assertThat(jobsEntries.get(0).stmt(), is("select 1"));
         assertThat(jobsEntries.get(0).classification(), is(classification));
@@ -394,7 +394,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
 
         List<JobContextLog> jobsLogEntries = StreamSupport.stream(jobsLogs.jobsLog().spliterator(), false)
             .collect(Collectors.toList());
-        assertThat(jobsLogEntries.size(), is(1));
+        assertThat(jobsLogEntries).hasSize(1);
         assertThat(jobsLogEntries.get(0).username(), is(user.name()));
         assertThat(jobsLogEntries.get(0).statement(), is("select foo"));
         assertThat(jobsLogEntries.get(0).errorMessage(), is("stmt error"));
@@ -412,7 +412,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
 
         List<MetricsView> metrics = StreamSupport.stream(jobsLogs.metrics().spliterator(), false)
             .collect(Collectors.toList());
-        assertThat(metrics.size(), is(1));
+        assertThat(metrics).hasSize(1);
         assertThat(metrics.get(0).failedCount(), is(1L));
         assertThat(metrics.get(0).totalCount(), is(1L));
         assertThat(metrics.get(0).classification(), is(new Classification(UNDEFINED)));

@@ -144,7 +144,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testUpdateSetColumnToColumnValue() throws Exception {
         AnalyzedUpdateStatement update = analyze("update users set name=name");
-        assertThat(update.assignmentByTargetCol().size(), is(1));
+        assertThat(update.assignmentByTargetCol()).hasSize(1);
         Symbol value = update.assignmentByTargetCol().entrySet().iterator().next().getValue();
         assertThat(value).isReference().hasName("name");
     }
@@ -152,7 +152,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testUpdateSetExpression() throws Exception {
         AnalyzedUpdateStatement update = analyze("update users set other_id=other_id+1");
-        assertThat(update.assignmentByTargetCol().size(), is(1));
+        assertThat(update.assignmentByTargetCol()).hasSize(1);
         Symbol value = update.assignmentByTargetCol().entrySet().iterator().next().getValue();
         assertThat(value).isFunction("add");
     }
@@ -192,7 +192,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testUpdateAssignments() throws Exception {
         AnalyzedUpdateStatement update = analyze("update users set name='Trillian'");
-        assertThat(update.assignmentByTargetCol().size(), is(1));
+        assertThat(update.assignmentByTargetCol()).hasSize(1);
         assertThat(((DocTableRelation) update.table()).tableInfo().ident(), is(new RelationName(Schemas.DOC_SCHEMA_NAME, "users")));
 
         Reference ref = update.assignmentByTargetCol().keySet().iterator().next();
@@ -207,7 +207,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testUpdateAssignmentNestedDynamicColumn() throws Exception {
         AnalyzedUpdateStatement update = analyze("update users set details['arms']=3");
-        assertThat(update.assignmentByTargetCol().size(), is(1));
+        assertThat(update.assignmentByTargetCol()).hasSize(1);
 
         Reference ref = update.assignmentByTargetCol().keySet().iterator().next();
         assertThat(ref).isExactlyInstanceOf(DynamicReference.class);
@@ -239,7 +239,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testUpdateMuchAssignments() throws Exception {
         AnalyzedUpdateStatement update = analyze(
             "update users set other_id=9.9, name='Trillian', details={}, stuff=true, foo='bar'");
-        assertThat(update.assignmentByTargetCol().size(), is(5));
+        assertThat(update.assignmentByTargetCol()).hasSize(5);
     }
 
     @Test
@@ -272,7 +272,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedUpdateStatement update = analyze("update users set name=?, other_id=?, friends=? where id=?");
 
         RelationName usersRelation = new RelationName("doc", "users");
-        assertThat(update.assignmentByTargetCol().size(), is(3));
+        assertThat(update.assignmentByTargetCol()).hasSize(3);
         DocTableInfo tableInfo = e.schemas().getTableInfo(usersRelation);
         Reference name = tableInfo.getReference(new ColumnIdent("name"));
         Reference friendsRef = tableInfo.getReference(new ColumnIdent("friends"));
@@ -310,7 +310,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(sources[0].valueType().id(), is(ArrayType.ID));
         assertThat(((ArrayType) sources[0].valueType()).innerType().id(), is(ObjectType.ID));
-        assertThat(((List) ((Literal) sources[0]).value()).size(), is(0));
+        assertThat(((List) ((Literal) sources[0]).value())).hasSize(0);
     }
 
     @Test

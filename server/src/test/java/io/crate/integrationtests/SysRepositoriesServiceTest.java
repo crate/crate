@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -73,7 +74,7 @@ public class SysRepositoriesServiceTest extends IntegTestCase {
         assertThat((String) response.rows()[0][0], is("test-repo"));
 
         Map<String, Object> settings = (Map<String, Object>) response.rows()[0][1];
-        assertThat(settings.size(), is(3));
+        assertThat(settings).hasSize(3);
         assertThat((String) settings.get("location"), is(new File(TEMP_FOLDER.getRoot(), "backup").getAbsolutePath()));
         assertThat((String) settings.get("chunk_size"), is("5k"));
         assertThat((String) settings.get("compress"), is("false"));

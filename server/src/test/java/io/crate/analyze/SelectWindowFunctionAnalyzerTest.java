@@ -60,10 +60,10 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
         QueriedSelectRelation analysis = e.analyze("select avg(x) OVER () from t");
 
         List<Symbol> outputSymbols = analysis.outputs();
-        assertThat(outputSymbols.size(), is(1));
+        assertThat(outputSymbols).hasSize(1);
         assertThat(outputSymbols.get(0)).isExactlyInstanceOf(WindowFunction.class);
         WindowFunction windowFunction = (WindowFunction) outputSymbols.get(0);
-        assertThat(windowFunction.arguments().size(), is(1));
+        assertThat(windowFunction.arguments()).hasSize(1);
         WindowDefinition windowDefinition = windowFunction.windowDefinition();
         assertThat(windowDefinition.partitions()).isEmpty();
         assertThat(windowDefinition.orderBy()).isNull();
@@ -75,12 +75,12 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
         QueriedSelectRelation analysis = e.analyze("select avg(x) OVER (PARTITION BY x) from t");
 
         List<Symbol> outputSymbols = analysis.outputs();
-        assertThat(outputSymbols.size(), is(1));
+        assertThat(outputSymbols).hasSize(1);
         assertThat(outputSymbols.get(0)).isExactlyInstanceOf(WindowFunction.class);
         WindowFunction windowFunction = (WindowFunction) outputSymbols.get(0);
-        assertThat(windowFunction.arguments().size(), is(1));
+        assertThat(windowFunction.arguments()).hasSize(1);
         WindowDefinition windowDefinition = windowFunction.windowDefinition();
-        assertThat(windowDefinition.partitions().size(), is(1));
+        assertThat(windowDefinition.partitions()).hasSize(1);
     }
 
     @Test
@@ -128,12 +128,12 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
         QueriedSelectRelation analysis = e.analyze("select avg(x) OVER (ORDER BY x) from t");
 
         List<Symbol> outputSymbols = analysis.outputs();
-        assertThat(outputSymbols.size(), is(1));
+        assertThat(outputSymbols).hasSize(1);
         assertThat(outputSymbols.get(0)).isExactlyInstanceOf(WindowFunction.class);
         WindowFunction windowFunction = (WindowFunction) outputSymbols.get(0);
-        assertThat(windowFunction.arguments().size(), is(1));
+        assertThat(windowFunction.arguments()).hasSize(1);
         WindowDefinition windowDefinition = windowFunction.windowDefinition();
-        assertThat(windowDefinition.orderBy().orderBySymbols().size(), is(1));
+        assertThat(windowDefinition.orderBy().orderBySymbols()).hasSize(1);
     }
 
     @Test
@@ -141,13 +141,13 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
         QueriedSelectRelation analysis = e.analyze("select avg(x) OVER (PARTITION BY x ORDER BY x) from t");
 
         List<Symbol> outputSymbols = analysis.outputs();
-        assertThat(outputSymbols.size(), is(1));
+        assertThat(outputSymbols).hasSize(1);
         assertThat(outputSymbols.get(0)).isExactlyInstanceOf(WindowFunction.class);
         WindowFunction windowFunction = (WindowFunction) outputSymbols.get(0);
-        assertThat(windowFunction.arguments().size(), is(1));
+        assertThat(windowFunction.arguments()).hasSize(1);
         WindowDefinition windowDefinition = windowFunction.windowDefinition();
-        assertThat(windowDefinition.partitions().size(), is(1));
-        assertThat(windowDefinition.orderBy().orderBySymbols().size(), is(1));
+        assertThat(windowDefinition.partitions()).hasSize(1);
+        assertThat(windowDefinition.orderBy().orderBySymbols()).hasSize(1);
     }
 
     @Test
@@ -156,10 +156,10 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
                                                    "RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) from t");
 
         List<Symbol> outputSymbols = analysis.outputs();
-        assertThat(outputSymbols.size(), is(1));
+        assertThat(outputSymbols).hasSize(1);
         assertThat(outputSymbols.get(0)).isExactlyInstanceOf(WindowFunction.class);
         WindowFunction windowFunction = (WindowFunction) outputSymbols.get(0);
-        assertThat(windowFunction.arguments().size(), is(1));
+        assertThat(windowFunction.arguments()).hasSize(1);
         WindowFrameDefinition frameDefinition = windowFunction.windowDefinition().windowFrameDefinition();
         assertThat(frameDefinition.mode(), is(WindowFrame.Mode.RANGE));
         assertThat(frameDefinition.start().type(), is(FrameBound.Type.UNBOUNDED_PRECEDING));
@@ -179,7 +179,7 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
 
         OrderBy orderBy = windowDefinition.orderBy();
         assertThat(orderBy, not(nullValue()));
-        assertThat(orderBy.orderBySymbols().size(), is(1));
+        assertThat(orderBy.orderBySymbols()).hasSize(1);
     }
 
     @Test
@@ -195,7 +195,7 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
 
         OrderBy orderBy = windowDefinition.orderBy();
         assertThat(orderBy, not(nullValue()));
-        assertThat(orderBy.orderBySymbols().size(), is(1));
+        assertThat(orderBy.orderBySymbols()).hasSize(1);
     }
 
     @Test

@@ -621,14 +621,14 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         // the completableFuture is not completed but the channel is flushed
         readErrorResponse(channel);
         readReadyForQueryMessage(channel);
-        assertThat(channel.outboundMessages().size(), is(0));
+        assertThat(channel.outboundMessages()).hasSize(0);
     }
 
     @Test
     public void testHandleMultipleSimpleQueries() {
         submitQueriesThroughSimpleQueryMode("select 'first'; select 'second';");
         readReadyForQueryMessage(channel);
-        assertThat(channel.outboundMessages().size(), is(0));
+        assertThat(channel.outboundMessages()).hasSize(0);
     }
 
     @Test

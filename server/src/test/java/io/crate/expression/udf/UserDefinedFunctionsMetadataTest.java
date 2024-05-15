@@ -76,11 +76,11 @@ public class UserDefinedFunctionsMetadataTest extends ESTestCase {
 
         assertThat(udfMeta2.schema(), is("my_schema"));
         assertThat(udfMeta2.name(), is("my_add"));
-        assertThat(udfMeta2.arguments().size(), is(2));
+        assertThat(udfMeta2.arguments()).hasSize(2);
         assertThat(udfMeta2.arguments().get(1), is(
             FunctionArgumentDefinition.of("my_named_arg", DataTypes.DOUBLE)
         ));
-        assertThat(udfMeta2.argumentTypes().size(), is(2));
+        assertThat(udfMeta2.argumentTypes()).hasSize(2);
         assertThat(udfMeta2.argumentTypes().get(1), is(DataTypes.DOUBLE));
         assertThat(udfMeta2.returnType(), is(DataTypes.FLOAT));
         assertThat(udfMeta2.language(), is("dummy_lang"));

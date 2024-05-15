@@ -384,7 +384,7 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
         for (Path entry : stream) {
             lines.addAll(Files.readAllLines(entry, StandardCharsets.UTF_8));
         }
-        assertThat(lines.size(), is(2));
+        assertThat(lines).hasSize(2);
         for (String line : lines) {
             assertTrue(line.contains("2") || line.contains("1"));
             assertFalse(line.contains("1388534400000"));  // date column not included in export
@@ -405,7 +405,7 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
         for (Path entry : stream) {
             lines.addAll(Files.readAllLines(entry, StandardCharsets.UTF_8));
         }
-        assertThat(lines.size(), is(4));
+        assertThat(lines).hasSize(4);
         for (String line : lines) {
             // date column included in output
             if (!line.contains("1388534400000")) {

@@ -93,7 +93,7 @@ public class SortingLimitAndOffsetProjectorTest extends ESTestCase {
         consumer.accept(projector.apply(TestingBatchIterators.range(1, 11)), null);
 
         Bucket rows = consumer.getBucket();
-        assertThat(rows.size(), is(3));
+        assertThat(rows).hasSize(3);
 
         int iterateLength = 0;
         for (Row row : rows) {
@@ -109,7 +109,7 @@ public class SortingLimitAndOffsetProjectorTest extends ESTestCase {
         consumer.accept(projector.apply(TestingBatchIterators.range(1, 11)), null);
 
         Bucket rows = consumer.getBucket();
-        assertThat(rows.size(), is(10));
+        assertThat(rows).hasSize(10);
     }
 
     @Test
@@ -118,7 +118,7 @@ public class SortingLimitAndOffsetProjectorTest extends ESTestCase {
         consumer.accept(projector.apply(TestingBatchIterators.range(1, 11)), null);
 
         Bucket rows = consumer.getBucket();
-        assertThat(rows.size(), is(10));
+        assertThat(rows).hasSize(10);
         int iterateLength = 0;
         for (Row row : consumer.getBucket()) {
             assertThat(row, isRow(iterateLength + 1, true));
@@ -151,7 +151,7 @@ public class SortingLimitAndOffsetProjectorTest extends ESTestCase {
     public void testWithHighOffset() throws Exception {
         Projector projector = getProjector(2, 2, 30);
         consumer.accept(projector.apply(TestingBatchIterators.range(1, 10)), null);
-        assertThat(consumer.getBucket().size(), is(0));
+        assertThat(consumer.getBucket()).hasSize(0);
     }
 
     @Test
