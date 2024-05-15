@@ -26,7 +26,6 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -165,8 +164,9 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
         int numberOfRedirects2 = getNumberOfRedirects(blobUri(digest), dataNode2);
         assertThat(numberOfRedirects2, greaterThanOrEqualTo(0));
 
-        assertThat("The node where the blob resides should not issue a redirect",
-            numberOfRedirects1, is(not(numberOfRedirects2)));
+        assertThat(numberOfRedirects1)
+            .as("The node where the blob resides should not issue a redirect")
+            .isNotEqualTo(numberOfRedirects2);
     }
 
     @Test

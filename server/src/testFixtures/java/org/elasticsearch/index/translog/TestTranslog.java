@@ -19,14 +19,12 @@
 
 package org.elasticsearch.index.translog;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.index.translog.Translog.CHECKPOINT_FILE_NAME;
 import static org.elasticsearch.index.translog.Translog.TRANSLOG_FILE_SUFFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsNot.not;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -133,7 +131,9 @@ public class TestTranslog {
                 }
             }
         }
-        assertThat("no corruption candidates found in " + translogDir, candidates, is(not(empty())));
+        assertThat(candidates)
+            .as("no corruption candidates found in " + translogDir)
+            .isNotEmpty();
 
         final Path fileToCorrupt = RandomPicks.randomFrom(random, candidates);
 
