@@ -22,9 +22,8 @@
 package io.crate.integrationtests.disruption.discovery;
 
 import static io.crate.metadata.IndexParts.toIndexName;
-import static org.hamcrest.Matchers.equalTo;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 import java.util.List;
@@ -246,8 +245,7 @@ public class MasterDisruptionIT extends AbstractDisruptionTestCase {
         assertBusy(() -> {
             IndicesStatsResponse stats = FutureUtils.get(client().admin().indices().stats(new IndicesStatsRequest().indices(indexName).clear()));
             for (ShardStats shardStats : stats.getShards()) {
-                assertThat(shardStats.getShardRouting().toString(),
-                           shardStats.getSeqNoStats().getGlobalCheckpoint(), equalTo(shardStats.getSeqNoStats().getLocalCheckpoint()));
+                assertThat(shardStats.getSeqNoStats().getGlobalCheckpoint()).as(shardStats.getShardRouting().toString()).isEqualTo(shardStats.getSeqNoStats().getLocalCheckpoint());
             }
         }, 1, TimeUnit.MINUTES);
     }

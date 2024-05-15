@@ -26,8 +26,6 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
 
 import java.util.List;
@@ -64,7 +62,7 @@ public class UserDefinedFunctionServiceTest extends UdfUnitTest {
     @Test
     public void testRegisterLanguage() throws Exception {
         udfService.registerLanguage(DUMMY_LANG);
-        assertThat(udfService.getLanguage(DUMMY_LANG.name()), is(DUMMY_LANG));
+        assertThat(udfService.getLanguage(DUMMY_LANG.name())).isEqualTo(DUMMY_LANG);
     }
 
     @Test
@@ -93,7 +91,7 @@ public class UserDefinedFunctionServiceTest extends UdfUnitTest {
     public void testRemoveFunction() throws Exception {
         UserDefinedFunctionsMetadata metadata = UserDefinedFunctionsMetadata.of(same1);
         UserDefinedFunctionsMetadata newMetadata = udfService.removeFunction(metadata, same1.schema(), same1.name(), same1.argumentTypes(), false);
-        assertThat(metadata, not(is(newMetadata))); // A new instance of metadata must be returned on a change
+        assertThat(metadata).isNotEqualTo(newMetadata); // A new instance of metadata must be returned on a change
         assertThat(newMetadata.functionsMetadata()).hasSize(0);
     }
 

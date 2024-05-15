@@ -34,7 +34,6 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.startsWith;
-import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -127,10 +126,10 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
         Map<String, Object> rawMap = JsonXContent.JSON_XCONTENT.createParser(
             NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, (String) raw).map();
 
-        assertThat(rawMap.get(mapName.apply("race")), is("Human"));
-        assertThat(rawMap.get(mapName.apply("gender")), is("female"));
-        assertThat(rawMap.get(mapName.apply("age")), is(32));
-        assertThat(rawMap.get(mapName.apply("name")), is("Trillian"));
+        assertThat(rawMap.get(mapName.apply("race"))).isEqualTo("Human");
+        assertThat(rawMap.get(mapName.apply("gender"))).isEqualTo("female");
+        assertThat(rawMap.get(mapName.apply("age"))).isEqualTo(32);
+        assertThat(rawMap.get(mapName.apply("name"))).isEqualTo("Trillian");
     }
 
     @Test
@@ -150,10 +149,10 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
         Map<String, Object> rawMap = JsonXContent.JSON_XCONTENT.createParser(
             NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, (String) raw).map();
 
-        assertThat(rawMap.get(mapName.apply("race")), is("Human"));
-        assertThat(rawMap.get(mapName.apply("gender")), is("female"));
-        assertThat(rawMap.get(mapName.apply("age")), is(32));
-        assertThat(rawMap.get(mapName.apply("name")), is("Trillian"));
+        assertThat(rawMap.get(mapName.apply("race"))).isEqualTo("Human");
+        assertThat(rawMap.get(mapName.apply("gender"))).isEqualTo("female");
+        assertThat(rawMap.get(mapName.apply("age"))).isEqualTo(32);
+        assertThat(rawMap.get(mapName.apply("name"))).isEqualTo("Trillian");
     }
 
     @Test
@@ -377,7 +376,7 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
         new Setup(sqlExecutor).partitionTableSetup();
         String uriTemplate = Paths.get(folder.getRoot().toURI()).toUri().toString();
         SQLResponse response = execute("copy parted partition (date='2014-01-01') to DIRECTORY ?", $(uriTemplate));
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response.rowCount()).isEqualTo(2L);
 
         List<String> lines = new ArrayList<>(2);
         DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(folder.getRoot().toURI()), "*.json");
@@ -398,7 +397,7 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
         new Setup(sqlExecutor).partitionTableSetup();
         String uriTemplate = Paths.get(folder.getRoot().toURI()).toUri().toString();
         SQLResponse response = execute("copy parted to DIRECTORY ?", $(uriTemplate));
-        assertThat(response.rowCount(), is(4L));
+        assertThat(response.rowCount()).isEqualTo(4L);
 
         List<String> lines = new ArrayList<>(4);
         DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(folder.getRoot().toURI()), "*.json");
@@ -419,14 +418,14 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
     @Test
     public void testArithmeticFunctions() throws Exception {
         execute("select ((2 * 4 - 2 + 1) / 2) % 3 from sys.cluster");
-        assertThat(response.cols()[0], is("0"));
-        assertThat(response.rows()[0][0], is(0));
+        assertThat(response.cols()[0]).isEqualTo("0");
+        assertThat(response.rows()[0][0]).isEqualTo(0);
 
         execute("select ((2 * 4.0 - 2 + 1) / 2) % 3 from sys.cluster");
-        assertThat(response.rows()[0][0], is(0.5));
+        assertThat(response.rows()[0][0]).isEqualTo(0.5);
 
         execute("select ? + 2 from sys.cluster", $(1));
-        assertThat(response.rows()[0][0], is(3));
+        assertThat(response.rows()[0][0]).isEqualTo(3);
 
         if (!Constants.WINDOWS) {
             response = execute("select load['1'] + load['5'], load['1'], load['5'] from sys.nodes limit 1");
@@ -438,28 +437,28 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
     public void testSetMultipleStatement() throws Exception {
         SQLResponse response = execute(
             "select settings['stats']['operations_log_size'], settings['stats']['enabled'] from sys.cluster");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((Integer) response.rows()[0][0], is(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault(Settings.EMPTY)));
-        assertThat((Boolean) response.rows()[0][1], is(JobsLogService.STATS_ENABLED_SETTING.getDefault(Settings.EMPTY)));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat((Integer) response.rows()[0][0]).isEqualTo(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault(Settings.EMPTY));
+        assertThat((Boolean) response.rows()[0][1]).isEqualTo(JobsLogService.STATS_ENABLED_SETTING.getDefault(Settings.EMPTY));
 
         response = execute("set global persistent stats.operations_log_size=1024, stats.enabled=false");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
 
         response = execute(
             "select settings['stats']['operations_log_size'], settings['stats']['enabled'] from sys.cluster");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((Integer) response.rows()[0][0], is(1024));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat((Integer) response.rows()[0][0]).isEqualTo(1024);
         assertThat((Boolean) response.rows()[0][1]).isFalse();
 
         response = execute("reset global stats.operations_log_size, stats.enabled");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
         waitNoPendingTasksOnAll();
 
         response = execute(
             "select settings['stats']['operations_log_size'], settings['stats']['enabled'] from sys.cluster");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((Integer) response.rows()[0][0], is(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault(Settings.EMPTY)));
-        assertThat((Boolean) response.rows()[0][1], is(JobsLogService.STATS_ENABLED_SETTING.getDefault(Settings.EMPTY)));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat((Integer) response.rows()[0][0]).isEqualTo(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault(Settings.EMPTY));
+        assertThat((Boolean) response.rows()[0][1]).isEqualTo(JobsLogService.STATS_ENABLED_SETTING.getDefault(Settings.EMPTY));
     }
 
     @Test
@@ -470,8 +469,8 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
             .hasMessageContaining("Failed to parse value [-1024] for setting [stats.operations_log_size] must be >= 0");
 
         SQLResponse response = execute("select settings['stats']['operations_log_size'] from sys.cluster");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((Integer) response.rows()[0][0], is(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault(Settings.EMPTY)));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat((Integer) response.rows()[0][0]).isEqualTo(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault(Settings.EMPTY));
     }
 
     @Test
@@ -482,7 +481,7 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
         execute(
             "select count(*), race from characters group by race order by count(*) desc limit 2");
         SQLResponse resp = execute("select count(*) from sys.operations_log");
-        assertThat((Long) resp.rows()[0][0], is(0L));
+        assertThat((Long) resp.rows()[0][0]).isEqualTo(0L);
 
         execute("set global transient stats.enabled = true, stats.operations_log_size=10");
         waitNoPendingTasksOnAll();
@@ -509,7 +508,7 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
         execute("set global transient stats.enabled = false");
         waitNoPendingTasksOnAll();
         resp = execute("select count(*) from sys.operations_log");
-        assertThat((Long) resp.rows()[0][0], is(0L));
+        assertThat((Long) resp.rows()[0][0]).isEqualTo(0L);
     }
 
     @Test
@@ -563,7 +562,7 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
     public void testIsNullOnObjects() throws Exception {
         new Setup(sqlExecutor).groupBySetup();
         SQLResponse resp = execute("select name from characters where details is null order by name");
-        assertThat(resp.rowCount(), is(5L));
+        assertThat(resp.rowCount()).isEqualTo(5L);
         List<String> names = new ArrayList<>(5);
         for (Object[] objects : resp.rows()) {
             names.add((String) objects[0]);
@@ -571,14 +570,14 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
         assertThat(names, Matchers.contains("Anjie", "Ford Perfect", "Jeltz", "Kwaltz", "Marving"));
 
         resp = execute("select count(*) from characters where details is not null");
-        assertThat((Long) resp.rows()[0][0], is(2L));
+        assertThat((Long) resp.rows()[0][0]).isEqualTo(2L);
     }
 
     @Test
     public void testDistanceQueryOnSysTable() throws Exception {
         SQLResponse response = execute(
             "select Distance('POINT (10 20)', 'POINT (11 21)') from sys.cluster");
-        assertThat(response.rows()[0][0], is(152354.3209044634));
+        assertThat(response.rows()[0][0]).isEqualTo(152354.3209044634);
     }
 
     @Test
@@ -594,13 +593,13 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
         SQLResponse response = execute("select version, version['number'], " +
                                        "version['build_hash'], version['build_snapshot'] " +
                                        "from sys.nodes");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response.rowCount()).isEqualTo(2L);
         for (int i = 0; i <= 1; i++) {
             assertThat(response.rows()[i][0]).isInstanceOf(Map.class);
             assertThat((Map<String, Object>) response.rows()[i][0], allOf(hasKey("number"), hasKey("build_hash"), hasKey("build_snapshot")));
             assertThat((String) response.rows()[i][1], Matchers.is(Version.CURRENT.externalNumber()));
-            assertThat((String) response.rows()[i][2], is(Build.CURRENT.hash()));
-            assertThat((Boolean) response.rows()[i][3], is(Version.CURRENT.isSnapshot()));
+            assertThat((String) response.rows()[i][2]).isEqualTo(Build.CURRENT.hash());
+            assertThat((Boolean) response.rows()[i][3]).isEqualTo(Version.CURRENT.isSnapshot());
         }
     }
 
@@ -616,9 +615,9 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
     @Test
     public void selectWhereEqualCurrentTimestamp() throws Exception {
         SQLResponse response = execute("select * from sys.cluster where current_timestamp = current_timestamp");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
 
         SQLResponse newResponse = execute("select * from sys.cluster where current_timestamp > current_timestamp");
-        assertThat(newResponse.rowCount(), is(0L));
+        assertThat(newResponse.rowCount()).isEqualTo(0L);
     }
 }

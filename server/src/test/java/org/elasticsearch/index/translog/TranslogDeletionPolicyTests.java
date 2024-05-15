@@ -20,8 +20,7 @@
 package org.elasticsearch.index.translog;
 
 import static java.lang.Math.min;
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.nio.channels.FileChannel;
@@ -72,10 +71,8 @@ public class TranslogDeletionPolicyTests extends ESTestCase {
             final int selectedReader = randomIntBetween(0, allGens.size() - 1);
             final long selectedGeneration = allGens.get(selectedReader).generation;
             long size = allGens.stream().skip(selectedReader).map(BaseTranslogReader::sizeInBytes).reduce(Long::sum).get();
-            assertThat(TranslogDeletionPolicy.getMinTranslogGenBySize(readersAndWriter.v1(), readersAndWriter.v2(), size),
-                equalTo(selectedGeneration));
-            assertThat(TranslogDeletionPolicy.getMinTranslogGenBySize(readersAndWriter.v1(), readersAndWriter.v2(), -1),
-                equalTo(Long.MIN_VALUE));
+            assertThat(TranslogDeletionPolicy.getMinTranslogGenBySize(readersAndWriter.v1(), readersAndWriter.v2(), size)).isEqualTo(selectedGeneration);
+            assertThat(TranslogDeletionPolicy.getMinTranslogGenBySize(readersAndWriter.v1(), readersAndWriter.v2(), -1)).isEqualTo(Long.MIN_VALUE);
         } finally {
             IOUtils.close(readersAndWriter.v1());
             IOUtils.close(readersAndWriter.v2());
@@ -92,10 +89,8 @@ public class TranslogDeletionPolicyTests extends ESTestCase {
             final int selectedReader = randomIntBetween(0, allGens.size() - 1);
             final long selectedGeneration = allGens.get(selectedReader).generation;
             long maxAge = now - allGens.get(selectedReader).getLastModifiedTime();
-            assertThat(TranslogDeletionPolicy.getMinTranslogGenByAge(readersAndWriter.v1(), readersAndWriter.v2(), maxAge, now),
-                equalTo(selectedGeneration));
-            assertThat(TranslogDeletionPolicy.getMinTranslogGenByAge(readersAndWriter.v1(), readersAndWriter.v2(), -1, now),
-                equalTo(Long.MIN_VALUE));
+            assertThat(TranslogDeletionPolicy.getMinTranslogGenByAge(readersAndWriter.v1(), readersAndWriter.v2(), maxAge, now)).isEqualTo(selectedGeneration);
+            assertThat(TranslogDeletionPolicy.getMinTranslogGenByAge(readersAndWriter.v1(), readersAndWriter.v2(), -1, now)).isEqualTo(Long.MIN_VALUE);
         } finally {
             IOUtils.close(readersAndWriter.v1());
             IOUtils.close(readersAndWriter.v2());
@@ -109,13 +104,12 @@ public class TranslogDeletionPolicyTests extends ESTestCase {
         allGens.add(readersAndWriter.v2());
         try {
             assertThat(TranslogDeletionPolicy.getMinTranslogGenByTotalFiles(readersAndWriter.v1(), readersAndWriter.v2(),
-                randomIntBetween(Integer.MIN_VALUE, 1)), equalTo(readersAndWriter.v2().generation));
+                randomIntBetween(Integer.MIN_VALUE, 1))).isEqualTo(readersAndWriter.v2().generation);
             assertThat(TranslogDeletionPolicy.getMinTranslogGenByTotalFiles(readersAndWriter.v1(), readersAndWriter.v2(),
-                randomIntBetween(allGens.size(), Integer.MAX_VALUE)), equalTo(allGens.get(0).generation));
+                randomIntBetween(allGens.size(), Integer.MAX_VALUE))).isEqualTo(allGens.get(0).generation);
             int numFiles = randomIntBetween(1, allGens.size());
             long selectedGeneration = allGens.get(allGens.size() - numFiles).generation;
-            assertThat(TranslogDeletionPolicy.getMinTranslogGenByTotalFiles(readersAndWriter.v1(), readersAndWriter.v2(), numFiles),
-                equalTo(selectedGeneration));
+            assertThat(TranslogDeletionPolicy.getMinTranslogGenByTotalFiles(readersAndWriter.v1(), readersAndWriter.v2(), numFiles)).isEqualTo(selectedGeneration);
         } finally {
             IOUtils.close(readersAndWriter.v1());
             IOUtils.close(readersAndWriter.v2());
@@ -181,7 +175,7 @@ public class TranslogDeletionPolicyTests extends ESTestCase {
 
     private void assertMinGenRequired(TranslogDeletionPolicy deletionPolicy, Tuple<List<TranslogReader>, TranslogWriter> readersAndWriter,
                                       long expectedGen) throws IOException {
-        assertThat(deletionPolicy.minTranslogGenRequired(readersAndWriter.v1(), readersAndWriter.v2()), equalTo(expectedGen));
+        assertThat(deletionPolicy.minTranslogGenRequired(readersAndWriter.v1(), readersAndWriter.v2())).isEqualTo(expectedGen);
     }
 
     private Tuple<List<TranslogReader>, TranslogWriter> createReadersAndWriter(final long now) throws IOException {

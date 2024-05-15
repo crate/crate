@@ -22,6 +22,7 @@
 package io.crate.integrationtests.disruption.discovery;
 
 import static io.crate.metadata.IndexParts.toIndexName;
+import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.everyItem;
@@ -206,7 +207,7 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
                 countDownLatchRef.set(new CountDownLatch(docsPerIndexer * indexers.size()));
                 Collections.shuffle(semaphores, random());
                 for (Semaphore semaphore : semaphores) {
-                    assertThat(semaphore.availablePermits(), equalTo(0));
+                    assertThat(semaphore.availablePermits()).isEqualTo(0);
                     semaphore.release(docsPerIndexer);
                 }
                 logger.info("waiting for indexing requests to complete");
@@ -236,8 +237,9 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
                             logger.debug("validating through node [{}] ([{}] acked docs)", node, ackedDocs.size());
                             for (String id : ackedDocs.keySet()) {
                                 execute("select * from t where id = ?", new Object[]{id}, node);
-                                assertThat("doc [" + id + "] indexed via node [" + ackedDocs.get(id) + "] not found",
-                                    response.rowCount(), is(1L));
+                                assertThat(response)
+                                    .as("doc [" + id + "] indexed via node [" + ackedDocs.get(id) + "] not found")
+                                    .hasRowCount(1);
                             }
                         } catch (AssertionError | NoShardAvailableActionException e) {
                             throw new AssertionError(e.getMessage() + " (checked via node [" + node + "]", e);
@@ -296,7 +298,7 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
         logger.info("Verifying if document exists via node[{}]", notIsolatedNode);
 
         execute("select * from t where id = '1'", null, notIsolatedNode);
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
 
         scheme.stopDisrupting();
 
@@ -306,7 +308,7 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
         for (String node : nodes) {
             logger.info("Verifying if document exists after isolating node[{}] via node[{}]", isolatedNode, node);
             execute("select * from t where id = '1'", null, node);
-            assertThat(response.rowCount(), is(1L));
+            assertThat(response.rowCount()).isEqualTo(1L);
         }
     }
 

@@ -23,8 +23,7 @@ package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
@@ -56,7 +55,7 @@ public class CircuitBreakerIntegrationTest extends IntegTestCase {
         execute("select text from t1 group by text");
 
         assertBusy(() -> {
-            assertThat(queryBreaker.getUsed(), is(breakerBytesUsedBeforeQuery));
+            assertThat(queryBreaker.getUsed()).isEqualTo(breakerBytesUsedBeforeQuery);
         });
     }
 

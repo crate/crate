@@ -28,7 +28,6 @@ import static io.crate.auth.HostBasedAuthentication.Matchers.isValidUser;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.not;
-import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
@@ -265,12 +264,12 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         entry = authService.getEntry("crate",
             new ConnectionProperties(InetAddresses.forString("123.45.67.89"), Protocol.POSTGRES, null));
         assertTrue(entry.isPresent());
-        assertThat(entry.get().getValue().get("method"), is("fake"));
+        assertThat(entry.get().getValue().get("method")).isEqualTo("fake");
 
         entry = authService.getEntry("cr8",
             new ConnectionProperties(InetAddresses.forString("127.0.0.1"), Protocol.POSTGRES, null));
         assertTrue(entry.isPresent());
-        assertThat(entry.get().getValue().get("method"), is("md5"));
+        assertThat(entry.get().getValue().get("method")).isEqualTo("md5");
 
         entry = authService.getEntry("cr8",
             new ConnectionProperties(InetAddresses.forString("123.45.67.89"), Protocol.POSTGRES, null));
@@ -385,7 +384,7 @@ public class HostBasedAuthenticationTest extends ESTestCase {
             () -> "dummy"
         );
         Settings confirmSettings = Settings.builder().put(HBA_1).put(HBA_2).build();
-        assertThat(authService.hbaConf(), is(authService.convertHbaSettingsToHbaConf(confirmSettings)));
+        assertThat(authService.hbaConf()).isEqualTo(authService.convertHbaSettingsToHbaConf(confirmSettings));
     }
 
     @Test
@@ -419,8 +418,7 @@ public class HostBasedAuthenticationTest extends ESTestCase {
             () -> "dummy"
         );
         assertThat(
-            authService.getEntry("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, null)),
-            is(Optional.empty()));
+            authService.getEntry("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, null))).isEqualTo(Optional.empty());
         assertThat(
             authService.getEntry("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, sslSession)),
                 not(Optional.empty()));
@@ -438,8 +436,7 @@ public class HostBasedAuthenticationTest extends ESTestCase {
             authService.getEntry("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, null)),
             not(Optional.empty()));
         assertThat(
-            authService.getEntry("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, sslSession)),
-            is(Optional.empty()));
+            authService.getEntry("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, sslSession))).isEqualTo(Optional.empty());
     }
 
     @Test
@@ -479,7 +476,7 @@ public class HostBasedAuthenticationTest extends ESTestCase {
             SystemDefaultDnsResolver.INSTANCE,
             () -> "dummy"
         );
-        assertThat(authService.getEntry("crate", noSslConnProperties), is(Optional.empty()));
+        assertThat(authService.getEntry("crate", noSslConnProperties)).isEqualTo(Optional.empty());
         assertThat(authService.getEntry("crate", sslConnProperties), not(Optional.empty()));
 
         sslConfig = Settings.builder().put(baseConfig)
@@ -492,7 +489,7 @@ public class HostBasedAuthenticationTest extends ESTestCase {
             () -> "dummy"
         );
         assertThat(authService.getEntry("crate", noSslConnProperties), not(Optional.empty()));
-        assertThat(authService.getEntry("crate", sslConnProperties), is(Optional.empty()));
+        assertThat(authService.getEntry("crate", sslConnProperties)).isEqualTo(Optional.empty());
     }
 
     public void testKeyOrderIsRespectedInHbaConfig() {
@@ -542,7 +539,7 @@ public class HostBasedAuthenticationTest extends ESTestCase {
             .prepareEnvironment(Settings.EMPTY, settings, config, () -> "node1").settings();
 
         // 'on' becomes 'true' -
-        assertThat(finalSettings.get("auth.host_based.config.0.ssl"), is("true"));
+        assertThat(finalSettings.get("auth.host_based.config.0.ssl")).isEqualTo("true");
 
         HostBasedAuthentication hba = new HostBasedAuthentication(
             finalSettings,

@@ -21,6 +21,7 @@
 package org.elasticsearch.common.util;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -170,7 +171,7 @@ public class CancellableThreadsTests extends ESTestCase {
                     assertThat(exceptions[i].getSuppressed(), Matchers.emptyArray());
                 }
             }
-            assertThat(interrupted[plan.id], equalTo(plan.presetInterrupt));
+            assertThat(interrupted[plan.id]).isEqualTo(plan.presetInterrupt);
         }
         assertThat(
             invokeTimes.longValue(),

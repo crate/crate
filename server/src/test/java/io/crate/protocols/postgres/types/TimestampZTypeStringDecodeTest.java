@@ -22,8 +22,7 @@
 package io.crate.protocols.postgres.types;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -85,14 +84,12 @@ public class TimestampZTypeStringDecodeTest extends BasePGTypeTest<Long> {
         expectedMsecs += msecs;
         expectedMsecs -= tzMsecs;
 
-        assertThat(TimestampZType.INSTANCE.decodeUTF8Text(fullTimestamp.toString().getBytes(StandardCharsets.UTF_8)),
-            is(expectedMsecs));
+        assertThat(TimestampZType.INSTANCE.decodeUTF8Text(fullTimestamp.toString().getBytes(StandardCharsets.UTF_8))).isEqualTo(expectedMsecs);
 
         // Check that the "round-trip" also works.
         // We cannot assert against the fullTimestamp since the decoding truncates <= 1msec fraction digits
         // and also the timezone originally passed is calculated and the encodeAsUTF8Text always sends as UTC.
-        assertThat(TimestampZType.INSTANCE.decodeUTF8Text(TimestampZType.INSTANCE.encodeAsUTF8Text(expectedMsecs)),
-            is(expectedMsecs));
+        assertThat(TimestampZType.INSTANCE.decodeUTF8Text(TimestampZType.INSTANCE.encodeAsUTF8Text(expectedMsecs))).isEqualTo(expectedMsecs);
     }
 
     private void appendFractionOfSecDigits(StringBuilder fullTimestamp) {

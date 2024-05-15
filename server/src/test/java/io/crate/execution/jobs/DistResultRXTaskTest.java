@@ -23,7 +23,6 @@ package io.crate.execution.jobs;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -152,12 +151,11 @@ public class DistResultRXTaskTest extends ESTestCase {
 
 
         List<Object[]> result = batchConsumer.getResult();
-        assertThat(TestingHelpers.printedTable(new CollectionBucket(result)),
-            is("1\n" +
+        assertThat(TestingHelpers.printedTable(new CollectionBucket(result))).isEqualTo("1\n" +
                "1\n" +
                "2\n" +
                "2\n" +
-               "4\n"));
+               "4\n");
     }
 
     @Test

@@ -21,8 +21,7 @@
 
 package io.crate.expression.symbol;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.joda.time.Period;
 import org.junit.Test;
@@ -33,13 +32,13 @@ public class LiteralValueFormatterTest {
     public void testFormatOnArrayWithNullEntriesDoesNotCauseNPE() throws Exception {
         StringBuilder sb = new StringBuilder();
         LiteralValueFormatter.format(new Object[] { null, null}, sb);
-        assertThat(sb.toString(), is("[NULL, NULL]"));
+        assertThat(sb.toString()).isEqualTo("[NULL, NULL]");
     }
 
     @Test
     public void test_format_intervals() throws Exception {
         StringBuilder sb = new StringBuilder();
         LiteralValueFormatter.format(Period.seconds(1), sb);
-        assertThat(sb.toString(), is("'PT1S'::interval"));
+        assertThat(sb.toString()).isEqualTo("'PT1S'::interval");
     }
 }

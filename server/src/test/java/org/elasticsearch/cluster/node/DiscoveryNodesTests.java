@@ -19,8 +19,8 @@
 
 package org.elasticsearch.cluster.node;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.nullValue;
@@ -29,11 +29,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import com.carrotsearch.randomizedtesting.generators.RandomPicks;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.test.ESTestCase;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -49,6 +44,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import org.elasticsearch.Version;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.test.ESTestCase;
+
+import com.carrotsearch.randomizedtesting.generators.RandomPicks;
+
 public class DiscoveryNodesTests extends ESTestCase {
 
     public void testResolveNodeByIdOrName() {
@@ -56,7 +58,7 @@ public class DiscoveryNodesTests extends ESTestCase {
         DiscoveryNode[] nodes = discoveryNodes.getNodes().values().toArray(DiscoveryNode.class);
         DiscoveryNode node = randomFrom(nodes);
         DiscoveryNode resolvedNode = discoveryNodes.resolveNode(randomBoolean() ? node.getId() : node.getName());
-        assertThat(resolvedNode.getId(), equalTo(node.getId()));
+        assertThat(resolvedNode.getId()).isEqualTo(node.getId());
     }
 
     public void testResolveNodeByAttribute() {
@@ -65,11 +67,11 @@ public class DiscoveryNodesTests extends ESTestCase {
         Set<String> matchingNodeIds = nodeSelector.matchingNodeIds(discoveryNodes);
         try {
             DiscoveryNode resolvedNode = discoveryNodes.resolveNode(nodeSelector.selector);
-            assertThat(matchingNodeIds.size(), equalTo(1));
-            assertThat(resolvedNode.getId(), equalTo(matchingNodeIds.iterator().next()));
+            assertThat(matchingNodeIds.size()).isEqualTo(1);
+            assertThat(resolvedNode.getId()).isEqualTo(matchingNodeIds.iterator().next());
         } catch (IllegalArgumentException e) {
             if (matchingNodeIds.size() == 0) {
-                assertThat(e.getMessage(), equalTo("failed to resolve [" + nodeSelector.selector + "], no matching nodes"));
+                assertThat(e.getMessage()).isEqualTo("failed to resolve [" + nodeSelector.selector + "], no matching nodes");
             } else if (matchingNodeIds.size() > 1) {
                 assertThat(e.getMessage(), containsString("where expected to be resolved to a single node"));
             } else {
@@ -152,7 +154,7 @@ public class DiscoveryNodesTests extends ESTestCase {
         Arrays.sort(resolvedNodesIds);
         String[] expectedNodesIds = expectedNodeIdsSet.toArray(new String[expectedNodeIdsSet.size()]);
         Arrays.sort(expectedNodesIds);
-        assertThat(resolvedNodesIds, equalTo(expectedNodesIds));
+        assertThat(resolvedNodesIds).isEqualTo(expectedNodesIds);
     }
 
     public void testMastersFirst() {
@@ -209,12 +211,12 @@ public class DiscoveryNodesTests extends ESTestCase {
         if (masterA == null) {
             assertThat(delta.previousMasterNode(), nullValue());
         } else {
-            assertThat(delta.previousMasterNode().getId(), equalTo(masterAId));
+            assertThat(delta.previousMasterNode().getId()).isEqualTo(masterAId);
         }
         if (masterB == null) {
             assertThat(delta.newMasterNode(), nullValue());
         } else {
-            assertThat(delta.newMasterNode().getId(), equalTo(masterBId));
+            assertThat(delta.newMasterNode().getId()).isEqualTo(masterBId);
         }
 
         if (Objects.equals(masterAId, masterBId)) {
@@ -225,15 +227,15 @@ public class DiscoveryNodesTests extends ESTestCase {
 
         Set<DiscoveryNode> newNodes = new HashSet<>(nodesB);
         newNodes.removeAll(nodesA);
-        assertThat(delta.added(), equalTo(newNodes.isEmpty() == false));
+        assertThat(delta.added()).isEqualTo(newNodes.isEmpty() == false);
         assertThat(delta.addedNodes(), containsInAnyOrder(newNodes.stream().collect(Collectors.toList()).toArray()));
-        assertThat(delta.addedNodes().size(), equalTo(newNodes.size()));
+        assertThat(delta.addedNodes().size()).isEqualTo(newNodes.size());
 
         Set<DiscoveryNode> removedNodes = new HashSet<>(nodesA);
         removedNodes.removeAll(nodesB);
-        assertThat(delta.removed(), equalTo(removedNodes.isEmpty() == false));
+        assertThat(delta.removed()).isEqualTo(removedNodes.isEmpty() == false);
         assertThat(delta.removedNodes(), containsInAnyOrder(removedNodes.stream().collect(Collectors.toList()).toArray()));
-        assertThat(delta.removedNodes().size(), equalTo(removedNodes.size()));
+        assertThat(delta.removedNodes().size()).isEqualTo(removedNodes.size());
     }
 
     private static AtomicInteger idGenerator = new AtomicInteger();

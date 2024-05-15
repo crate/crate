@@ -21,8 +21,7 @@
 
 package io.crate.planner.consumer;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 
@@ -87,6 +86,6 @@ public class InsertFromSubQueryPlannerTest extends CrateDummyClusterServiceUnitT
                                   "select id, name from users order by id, name");
         Collect collect = (Collect) localMerge.subPlan();
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) collect.collectPhase();
-        assertThat(collectPhase.orderBy().orderBySymbols(), is(collectPhase.toCollect()));
+        assertThat(collectPhase.orderBy().orderBySymbols()).isEqualTo(collectPhase.toCollect());
     }
 }

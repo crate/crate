@@ -99,7 +99,6 @@ import org.elasticsearch.indices.store.TransportNodesListShardStoreMetadata;
 import org.elasticsearch.test.DummyShardLock;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.IndexSettingsModule;
-import org.hamcrest.Matchers;
 
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.io.IOUtils;
@@ -148,7 +147,7 @@ public class StoreTests extends ESTestCase {
         }
 
         store.decRef();
-        assertThat(store.refCount(), Matchers.equalTo(0));
+        assertThat(store.refCount()).isEqualTo(0);
         assertFalse(store.tryIncRef());
         assertThatThrownBy(store::incRef).isInstanceOf(IllegalStateException.class);
         assertThatThrownBy(store::ensureOpen).isInstanceOf(IllegalStateException.class);
@@ -346,8 +345,8 @@ public class StoreTests extends ESTestCase {
         for (StoreFileMetadata meta : metadata) {
             try (IndexInput input = store.directory().openInput(meta.name(), IOContext.DEFAULT)) {
                 String checksum = Store.digestToString(CodecUtil.retrieveChecksum(input));
-                assertThat("File: " + meta.name() + " has a different checksum", meta.checksum(), equalTo(checksum));
-                assertThat(meta.writtenBy(), equalTo(Version.LATEST));
+                assertThat(meta.checksum()).as("File: " + meta.name() + " has a different checksum").isEqualTo(checksum);
+                assertThat(meta.writtenBy()).isEqualTo(Version.LATEST);
                 if (meta.name().endsWith(".si") || meta.name().startsWith("segments_")) {
                     assertThat(meta.hash().length, greaterThan(0));
                 }
@@ -402,7 +401,7 @@ public class StoreTests extends ESTestCase {
         IndexInput verifyingIndexInput = new Store.VerifyingIndexInput(dir.openInput("foo.bar", IOContext.DEFAULT));
         readIndexInputFullyWithRandomSeeks(verifyingIndexInput);
         Store.verify(verifyingIndexInput);
-        assertThat(checksum, equalTo(((ChecksumIndexInput) verifyingIndexInput).getChecksum()));
+        assertThat(checksum).isEqualTo(((ChecksumIndexInput) verifyingIndexInput).getChecksum());
         IOUtils.close(indexInput, verifyingIndexInput);
 
         // Corrupt file and check again
@@ -464,9 +463,9 @@ public class StoreTests extends ESTestCase {
 
     public void assertDeleteContent(Store store, Directory dir) throws IOException {
         deleteContent(store.directory());
-        assertThat(Arrays.toString(store.directory().listAll()), store.directory().listAll().length, equalTo(0));
-        assertThat(store.stats(0L).sizeInBytes(), equalTo(0L));
-        assertThat(dir.listAll().length, equalTo(0));
+        assertThat(store.directory().listAll().length).as(Arrays.toString(store.directory().listAll())).isEqualTo(0);
+        assertThat(store.stats(0L).sizeInBytes()).isEqualTo(0L);
+        assertThat(dir.listAll().length).isEqualTo(0);
     }
 
     public static void assertConsistent(Store store, Store.MetadataSnapshot metadata) throws IOException {
@@ -545,19 +544,19 @@ public class StoreTests extends ESTestCase {
             second = store.getMetadata(null);
         }
         Store.RecoveryDiff diff = first.recoveryDiff(second);
-        assertThat(first.size(), equalTo(second.size()));
+        assertThat(first.size()).isEqualTo(second.size());
         for (StoreFileMetadata md : first) {
             assertThat(second.get(md.name())).isNotNull();
             // si files are different - containing timestamps etc
-            assertThat(second.get(md.name()).isSame(md), equalTo(false));
+            assertThat(second.get(md.name()).isSame(md)).isEqualTo(false);
         }
-        assertThat(diff.different.size(), equalTo(first.size()));
-        assertThat(diff.identical.size(), equalTo(0)); // in lucene 5 nothing is identical - we use random ids in file headers
+        assertThat(diff.different.size()).isEqualTo(first.size());
+        assertThat(diff.identical.size()).isEqualTo(0); // in lucene 5 nothing is identical - we use random ids in file headers
         assertThat(diff.missing, empty());
 
         // check the self diff
         Store.RecoveryDiff selfDiff = first.recoveryDiff(first);
-        assertThat(selfDiff.identical.size(), equalTo(first.size()));
+        assertThat(selfDiff.identical.size()).isEqualTo(first.size());
         assertThat(selfDiff.different, empty());
         assertThat(selfDiff.missing, empty());
 
@@ -582,19 +581,19 @@ public class StoreTests extends ESTestCase {
         }
         Store.RecoveryDiff afterDeleteDiff = metadata.recoveryDiff(second);
         if (delFile != null) {
-            assertThat(afterDeleteDiff.identical.size(), equalTo(metadata.size() - 2)); // segments_N + del file
-            assertThat(afterDeleteDiff.different.size(), equalTo(0));
-            assertThat(afterDeleteDiff.missing.size(), equalTo(2));
+            assertThat(afterDeleteDiff.identical.size()).isEqualTo(metadata.size() - 2); // segments_N + del file
+            assertThat(afterDeleteDiff.different.size()).isEqualTo(0);
+            assertThat(afterDeleteDiff.missing.size()).isEqualTo(2);
         } else {
             // an entire segment must be missing (single doc segment got dropped)
             assertThat(afterDeleteDiff.identical.size(), greaterThan(0));
-            assertThat(afterDeleteDiff.different.size(), equalTo(0));
-            assertThat(afterDeleteDiff.missing.size(), equalTo(1)); // the commit file is different
+            assertThat(afterDeleteDiff.different.size()).isEqualTo(0);
+            assertThat(afterDeleteDiff.missing.size()).isEqualTo(1); // the commit file is different
         }
 
         // check the self diff
         selfDiff = metadata.recoveryDiff(metadata);
-        assertThat(selfDiff.identical.size(), equalTo(metadata.size()));
+        assertThat(selfDiff.identical.size()).isEqualTo(metadata.size());
         assertThat(selfDiff.different, empty());
         assertThat(selfDiff.missing, empty());
 
@@ -610,17 +609,14 @@ public class StoreTests extends ESTestCase {
         Store.MetadataSnapshot newCommitMetadata = store.getMetadata(null);
         Store.RecoveryDiff newCommitDiff = newCommitMetadata.recoveryDiff(metadata);
         if (delFile != null) {
-            assertThat(newCommitDiff.identical.size(),
-                equalTo(newCommitMetadata.size() - 5)); // segments_N, del file, cfs, cfe, si for the new segment
-            assertThat(newCommitDiff.different.size(), equalTo(1)); // the del file must be different
+            assertThat(newCommitDiff.identical.size()).isEqualTo(newCommitMetadata.size() - 5); // segments_N, del file, cfs, cfe, si for the new segment
+            assertThat(newCommitDiff.different.size()).isEqualTo(1); // the del file must be different
             assertThat(newCommitDiff.different.get(0).name(), endsWith(".liv"));
-            assertThat(newCommitDiff.missing.size(), equalTo(4)); // segments_N,cfs, cfe, si for the new segment
+            assertThat(newCommitDiff.missing.size()).isEqualTo(4); // segments_N,cfs, cfe, si for the new segment
         } else {
-            assertThat(newCommitDiff.identical.size(),
-                equalTo(newCommitMetadata.size() - 4)); // segments_N, cfs, cfe, si for the new segment
-            assertThat(newCommitDiff.different.size(), equalTo(0));
-            assertThat(newCommitDiff.missing.size(),
-                equalTo(4)); // an entire segment must be missing (single doc segment got dropped)  plus the commit is different
+            assertThat(newCommitDiff.identical.size()).isEqualTo(newCommitMetadata.size() - 4); // segments_N, cfs, cfe, si for the new segment
+            assertThat(newCommitDiff.different.size()).isEqualTo(0);
+            assertThat(newCommitDiff.missing.size()).isEqualTo(4); // an entire segment must be missing (single doc segment got dropped)  plus the commit is different
         }
 
         deleteContent(store.directory());
@@ -825,10 +821,10 @@ public class StoreTests extends ESTestCase {
         Map<String, StoreFileMetadata> origEntries = new HashMap<>();
         origEntries.putAll(outMetadataSnapshot.asMap());
         for (Map.Entry<String, StoreFileMetadata> entry : inMetadataSnapshot.asMap().entrySet()) {
-            assertThat(entry.getValue().name(), equalTo(origEntries.remove(entry.getKey()).name()));
+            assertThat(entry.getValue().name()).isEqualTo(origEntries.remove(entry.getKey()).name());
         }
-        assertThat(origEntries.size(), equalTo(0));
-        assertThat(inMetadataSnapshot.getCommitUserData(), equalTo(outMetadataSnapshot.getCommitUserData()));
+        assertThat(origEntries.size()).isEqualTo(0);
+        assertThat(inMetadataSnapshot.getCommitUserData()).isEqualTo(outMetadataSnapshot.getCommitUserData());
     }
 
     protected Store.MetadataSnapshot createMetadataSnapshot() {
@@ -862,7 +858,7 @@ public class StoreTests extends ESTestCase {
         metadata = store.getMetadata(randomBoolean() ? null : deletionPolicy.snapshot());
         assertFalse(metadata.asMap().isEmpty());
         // do not check for correct files, we have enough tests for that above
-        assertThat(metadata.getCommitUserData().get(Engine.SYNC_COMMIT_ID), equalTo(syncId));
+        assertThat(metadata.getCommitUserData().get(Engine.SYNC_COMMIT_ID)).isEqualTo(syncId);
         TestUtil.checkIndex(store.directory());
         assertDeleteContent(store, store.directory());
         IOUtils.close(store);
@@ -891,10 +887,10 @@ public class StoreTests extends ESTestCase {
             new TransportNodesListShardStoreMetadata.StoreFilesMetadata(in);
         Iterator<StoreFileMetadata> outFiles = outStoreFileMetadata.iterator();
         for (StoreFileMetadata inFile : inStoreFileMetadata) {
-            assertThat(inFile.name(), equalTo(outFiles.next().name()));
+            assertThat(inFile.name()).isEqualTo(outFiles.next().name());
         }
-        assertThat(outStoreFileMetadata.syncId(), equalTo(inStoreFileMetadata.syncId()));
-        assertThat(outStoreFileMetadata.peerRecoveryRetentionLeases(), equalTo(peerRecoveryRetentionLeases));
+        assertThat(outStoreFileMetadata.syncId()).isEqualTo(inStoreFileMetadata.syncId());
+        assertThat(outStoreFileMetadata.peerRecoveryRetentionLeases()).isEqualTo(peerRecoveryRetentionLeases);
     }
 
     public void testMarkCorruptedOnTruncatedSegmentsFile() throws IOException {

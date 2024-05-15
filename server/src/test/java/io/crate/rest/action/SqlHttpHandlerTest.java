@@ -25,7 +25,6 @@ import static io.crate.role.metadata.RolesHelper.JWT_TOKEN;
 import static io.crate.role.metadata.RolesHelper.JWT_USER;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.atLeast;
@@ -64,7 +63,7 @@ public class SqlHttpHandlerTest {
         );
 
         Role user = handler.userFromAuthHeader(null);
-        assertThat(user, is(Role.CRATE_USER));
+        assertThat(user).isEqualTo(Role.CRATE_USER);
     }
 
     @Test
@@ -82,7 +81,7 @@ public class SqlHttpHandlerTest {
         );
 
         Role user = handler.userFromAuthHeader(null);
-        assertThat(user.name(), is("trillian"));
+        assertThat(user.name()).isEqualTo("trillian");
     }
 
     @Test
@@ -97,7 +96,7 @@ public class SqlHttpHandlerTest {
         );
 
         Role user = handler.userFromAuthHeader("Basic QWxhZGRpbjpPcGVuU2VzYW1l");
-        assertThat(user.name(), is("Aladdin"));
+        assertThat(user.name()).isEqualTo("Aladdin");
     }
 
     @Test
@@ -126,7 +125,7 @@ public class SqlHttpHandlerTest {
         // 1st call to ensureSession creates a session instance bound to 'dummyUser'
         var session = handler.ensureSession(mockedRequest);
         verify(mockedRequest, atLeast(1)).headers();
-        assertThat(session.sessionSettings().authenticatedUser(), is(dummyUser));
+        assertThat(session.sessionSettings().authenticatedUser()).isEqualTo(dummyUser);
         assertThat(session.sessionSettings().searchPath().currentSchema(), containsString("doc"));
         assertThat(session.sessionSettings().hashJoinsEnabled()).isTrue();
 
@@ -152,7 +151,7 @@ public class SqlHttpHandlerTest {
         );
 
         Role resolvedUser = handler.userFromAuthHeader("bearer " + JWT_TOKEN);
-        assertThat(resolvedUser.name(), is(JWT_USER.name()));
+        assertThat(resolvedUser.name()).isEqualTo(JWT_USER.name());
     }
 }
 

@@ -213,7 +213,7 @@ public class UnionIntegrationTest extends IntegTestCase {
                 "union all " +
                 "select * from (select text from t2 limit 1) b " +
                 "order by text ");
-        assertThat(response.rows().length, is(2));
+        assertThat(response.rows().length).isEqualTo(2);
     }
 
     @Test
@@ -222,7 +222,7 @@ public class UnionIntegrationTest extends IntegTestCase {
                 "union all " +
                 "select text from t2");
         int numResults = clusterService().state().nodes().getSize() + 3;
-        assertThat(response.rows().length, is(numResults));
+        assertThat(response.rows().length).isEqualTo(numResults);
     }
 
     @Test
@@ -244,12 +244,12 @@ public class UnionIntegrationTest extends IntegTestCase {
                 "union all " +
                 "select id, text, [1::bigint, 2::bigint], {custom = true} from t3 where arr is not null " +
                 "order by id");
-        assertThat(printedTable(response.rows()), is(
+        assertThat(printedTable(response.rows())).isEqualTo(
             "1| text| [1, 2, 3]| {temperature=42}\n" +
             "42| magic number| [1, 2, 3]| {temperature=42}\n" +
             "1000| text1| [1, 2, 3]| {temperature=42}\n" +
             "NULL| NULL| [1, 2]| {custom=true}\n"
-        ));
+        );
     }
 
     @Test
@@ -328,12 +328,12 @@ public class UnionIntegrationTest extends IntegTestCase {
         execute("refresh table x, y");
 
         execute("select a from x union distinct select a from y order by a");
-        assertThat(printedTable(response.rows()), is("1\n2\n3\n5\n"));
+        assertThat(printedTable(response.rows())).isEqualTo("1\n2\n3\n5\n");
     }
 
     @Test
     public void test_null_literal_union_null_literal() {
         execute("select null from unnest([1, 2]) union select null from unnest([1])");
-        assertThat(printedTable(response.rows()), is("NULL\n"));
+        assertThat(printedTable(response.rows())).isEqualTo("NULL\n");
     }
 }

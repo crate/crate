@@ -22,7 +22,6 @@
 package io.crate.execution.engine.collect;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -162,8 +161,7 @@ public class HandlerSideLevelCollectTest extends IntegTestCase {
 
         RoutedCollectPhase collectNode = collectNode(routing, toCollect, RowGranularity.DOC, new WhereClause(whereClause));
         Bucket result = collect(collectNode);
-        assertThat(TestingHelpers.printedTable(result),
-            is("NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| shards| sys| BASE TABLE| NULL\n"));
+        assertThat(TestingHelpers.printedTable(result)).isEqualTo("NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| shards| sys| BASE TABLE| NULL\n");
     }
 
     @Test

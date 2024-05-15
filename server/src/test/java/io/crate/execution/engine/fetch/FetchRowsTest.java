@@ -25,8 +25,6 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 import java.util.List;
 import java.util.Map;
@@ -104,8 +102,8 @@ public class FetchRowsTest extends CrateDummyClusterServiceUnitTest {
         assertThat(it.hasNext()).isTrue();
         var outputRow = it.next();
 
-        assertThat(outputRow.get(0), is("Arthur"));
-        assertThat(outputRow.get(1), is("Trillian"));
-        assertThat(outputRow.get(2), is(42));
+        assertThat(outputRow.get(0)).isEqualTo("Arthur");
+        assertThat(outputRow.get(1)).isEqualTo("Trillian");
+        assertThat(outputRow.get(2)).isEqualTo(42);
     }
 }

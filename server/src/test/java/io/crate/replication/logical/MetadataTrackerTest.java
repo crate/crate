@@ -29,7 +29,6 @@ import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUI
 import static org.elasticsearch.cluster.routing.TestShardRouting.newShardRouting;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
@@ -272,7 +271,7 @@ public class MetadataTrackerTest extends ESTestCase {
             publicationsStateResponse,
             IndexScopedSettings.DEFAULT_SCOPED_SETTINGS);
         // Nothing in the indexMetadata changed, so the cluster state must be equal
-        assertThat(SUBSCRIBER_CLUSTER_STATE, is(syncedSubscriberClusterState));
+        assertThat(SUBSCRIBER_CLUSTER_STATE).isEqualTo(syncedSubscriberClusterState);
 
         // Let's change the mapping on the publisher publisherClusterState
         Map<String, Object> updatedMapping = Map.of("1", "one", "2", "two");
@@ -299,7 +298,7 @@ public class MetadataTrackerTest extends ESTestCase {
         assertThat(SUBSCRIBER_CLUSTER_STATE).isNotEqualTo(syncedSubscriberClusterState);
         var syncedIndexMetadata = syncedSubscriberClusterState.metadata().index("test");
         var updatedPublisherMetadata = updatedPublisherClusterState.metadata().index("test");
-        assertThat(syncedIndexMetadata.mapping(), is(updatedPublisherMetadata.mapping()));
+        assertThat(syncedIndexMetadata.mapping()).isEqualTo(updatedPublisherMetadata.mapping());
     }
 
     @Test
@@ -324,8 +323,7 @@ public class MetadataTrackerTest extends ESTestCase {
             IndexScopedSettings.DEFAULT_SCOPED_SETTINGS
         );
         var syncedIndexMetadata = syncedSubscriberClusterState.metadata().index("test");
-        assertThat(syncedIndexMetadata.getSettings().getAsInt(IndexSettings.MAX_NGRAM_DIFF_SETTING.getKey(), null),
-                   is(5));
+        assertThat(syncedIndexMetadata.getSettings().getAsInt(IndexSettings.MAX_NGRAM_DIFF_SETTING.getKey(), null)).isEqualTo(5);
     }
 
     @Test
@@ -377,7 +375,7 @@ public class MetadataTrackerTest extends ESTestCase {
             IndexScopedSettings.DEFAULT_SCOPED_SETTINGS
         );
         var syncedIndexMetadata = syncedSubscriberClusterState.metadata().index("test");
-        assertThat(INDEX_NUMBER_OF_REPLICAS_SETTING.get(syncedIndexMetadata.getSettings()), is(0));
+        assertThat(INDEX_NUMBER_OF_REPLICAS_SETTING.get(syncedIndexMetadata.getSettings())).isEqualTo(0);
     }
 
     @Test
@@ -535,7 +533,7 @@ public class MetadataTrackerTest extends ESTestCase {
         );
 
         assertThat(restoreDiff.relationsForStateUpdate(), contains(newRelationName));
-        assertThat(restoreDiff.indexNamesToRestore(), is(List.of(newPartitionName.asIndexName())));
+        assertThat(restoreDiff.indexNamesToRestore()).isEqualTo(List.of(newPartitionName.asIndexName()));
         assertThat(restoreDiff.templatesToRestore(), contains(newTemplateName));
     }
 

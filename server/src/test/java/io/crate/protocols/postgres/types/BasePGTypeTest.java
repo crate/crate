@@ -21,8 +21,7 @@
 
 package io.crate.protocols.postgres.types;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.test.ESTestCase;
 
@@ -46,11 +45,11 @@ public abstract class BasePGTypeTest<T> extends ESTestCase {
         ByteBuf buffer = Unpooled.buffer();
         try {
             int bytesWritten = pgType.writeAsBinary(buffer, value);
-            assertThat(bytesWritten, is(expectedLength));
+            assertThat(bytesWritten).isEqualTo(expectedLength);
 
             byte[] bytes = new byte[expectedLength];
             buffer.getBytes(0, bytes);
-            assertThat(bytes, is(expectedBytes));
+            assertThat(bytes).isEqualTo(expectedBytes);
         } finally {
             buffer.release();
         }
@@ -82,6 +81,6 @@ public abstract class BasePGTypeTest<T> extends ESTestCase {
             readValue = (T) pgType.readTextValue(buffer, pos);
         }
         buffer.release();
-        assertThat(readValue, is(expectedValue));
+        assertThat(readValue).isEqualTo(expectedValue);
     }
 }

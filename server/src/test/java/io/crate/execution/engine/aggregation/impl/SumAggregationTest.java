@@ -21,9 +21,8 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import static org.hamcrest.Matchers.is;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -69,16 +68,16 @@ public class SumAggregationTest extends AggregationTestCase {
     @Test
     public void testReturnType() throws Exception {
         DataType<?> type = DataTypes.DOUBLE;
-        assertThat(getSum(type).boundSignature().returnType().getTypeSignature(), is(type.getTypeSignature()));
+        assertThat(getSum(type).boundSignature().returnType().getTypeSignature()).isEqualTo(type.getTypeSignature());
 
         type = DataTypes.FLOAT;
-        assertThat(getSum(type).boundSignature().returnType().getTypeSignature(), is(type.getTypeSignature()));
+        assertThat(getSum(type).boundSignature().returnType().getTypeSignature()).isEqualTo(type.getTypeSignature());
 
         type = DataTypes.LONG;
-        assertThat(getSum(type).boundSignature().returnType().getTypeSignature(), is(type.getTypeSignature()));
-        assertThat(getSum(DataTypes.INTEGER).boundSignature().returnType().getTypeSignature(), is(type.getTypeSignature()));
-        assertThat(getSum(DataTypes.SHORT).boundSignature().returnType().getTypeSignature(), is(type.getTypeSignature()));
-        assertThat(getSum(DataTypes.BYTE).boundSignature().returnType().getTypeSignature(), is(type.getTypeSignature()));
+        assertThat(getSum(type).boundSignature().returnType().getTypeSignature()).isEqualTo(type.getTypeSignature());
+        assertThat(getSum(DataTypes.INTEGER).boundSignature().returnType().getTypeSignature()).isEqualTo(type.getTypeSignature());
+        assertThat(getSum(DataTypes.SHORT).boundSignature().returnType().getTypeSignature()).isEqualTo(type.getTypeSignature());
+        assertThat(getSum(DataTypes.BYTE).boundSignature().returnType().getTypeSignature()).isEqualTo(type.getTypeSignature());
     }
 
     private FunctionImplementation getSum(DataType<?> type) {
@@ -127,7 +126,7 @@ public class SumAggregationTest extends AggregationTestCase {
             false,
             List.of()
         );
-        assertThat(result, is(1.4f));
+        assertThat(result).isEqualTo(1.4f);
     }
 
     @Test
@@ -216,7 +215,7 @@ public class SumAggregationTest extends AggregationTestCase {
             minNodeVersion
 
         );
-        assertThat(result, is(BigDecimal.valueOf(6)));
+        assertThat(result).isEqualTo(BigDecimal.valueOf(6));
     }
 
     @Test
@@ -234,7 +233,7 @@ public class SumAggregationTest extends AggregationTestCase {
             true,
             minNodeVersion
         );
-        assertThat(result, is(BigDecimal.valueOf(Long.MAX_VALUE).add(BigDecimal.TEN)));
+        assertThat(result).isEqualTo(BigDecimal.valueOf(Long.MAX_VALUE).add(BigDecimal.TEN));
     }
 
     @Test
@@ -252,14 +251,14 @@ public class SumAggregationTest extends AggregationTestCase {
             true,
             minNodeVersion
         );
-        assertThat(result, is(BigDecimal.valueOf(2.0)));
+        assertThat(result).isEqualTo(BigDecimal.valueOf(2.0));
     }
 
     @Test
     public void test_sum_numeric_with_precision_and_scale_on_double_non_doc_values_field() {
         var type = NumericType.of(16, 2);
         var expected = type.implicitCast(12.4357);
-        assertThat(expected.toString(), is("12.44"));
+        assertThat(expected.toString()).isEqualTo("12.44");
 
         //noinspection rawtypes
         Version minNodeVersion = randomBoolean()
@@ -275,6 +274,6 @@ public class SumAggregationTest extends AggregationTestCase {
             true,
             minNodeVersion
         );
-        assertThat(result.toString(), is(expected.toString()));
+        assertThat(result.toString()).isEqualTo(expected.toString());
     }
 }

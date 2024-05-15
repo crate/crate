@@ -19,10 +19,10 @@
 
 package org.elasticsearch.index.seqno;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
 import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertFalse;
@@ -191,8 +191,7 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
                 assertThat(
                     leases.leases()
                         .stream()
-                        .collect(Collectors.toMap(RetentionLease::id, RetentionLease::retainingSequenceNumber)),
-                    equalTo(retainingSequenceNumbers));
+                        .collect(Collectors.toMap(RetentionLease::id, RetentionLease::retainingSequenceNumber))).isEqualTo(retainingSequenceNumbers);
             },
             OPS_BASED_RECOVERY_ALWAYS_REASONABLE
         );
@@ -265,12 +264,12 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
         assertTrue(synced.get());
         synced.set(false);
 
-        assertThat(clonedLease.id(), equalTo("target"));
-        assertThat(clonedLease.retainingSequenceNumber(), equalTo(minimumRetainingSequenceNumber));
-        assertThat(clonedLease.timestamp(), equalTo(cloneTime));
-        assertThat(clonedLease.source(), equalTo("test-source"));
+        assertThat(clonedLease.id()).isEqualTo("target");
+        assertThat(clonedLease.retainingSequenceNumber()).isEqualTo(minimumRetainingSequenceNumber);
+        assertThat(clonedLease.timestamp()).isEqualTo(cloneTime);
+        assertThat(clonedLease.source()).isEqualTo("test-source");
 
-        assertThat(replicationTracker.getRetentionLeases().get("target"), equalTo(clonedLease));
+        assertThat(replicationTracker.getRetentionLeases().get("target")).isEqualTo(clonedLease);
     }
 
     @Test
@@ -376,8 +375,7 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
                     assertThat(
                             leases.leases()
                                     .stream()
-                                    .collect(Collectors.toMap(RetentionLease::id, RetentionLease::retainingSequenceNumber)),
-                            equalTo(retainingSequenceNumbers));
+                                    .collect(Collectors.toMap(RetentionLease::id, RetentionLease::retainingSequenceNumber))).isEqualTo(retainingSequenceNumbers);
                 },
                 OPS_BASED_RECOVERY_ALWAYS_REASONABLE);
         reference.set(replicationTracker);
@@ -461,10 +459,10 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
         {
             final RetentionLeases retentionLeases = replicationTracker.getRetentionLeases();
             final long expectedVersion = primaryMode ? 2L : 1L;
-            assertThat(retentionLeases.version(), equalTo(expectedVersion));
+            assertThat(retentionLeases.version()).isEqualTo(expectedVersion);
             assertThat(retentionLeases.leases(), hasSize(primaryMode ? 2 : 1));
             final RetentionLease retentionLease = retentionLeases.get("0");
-            assertThat(retentionLease.timestamp(), equalTo(currentTimeMillis.get()));
+            assertThat(retentionLease.timestamp()).isEqualTo(currentTimeMillis.get());
             assertRetentionLeases(replicationTracker, 1, retainingSequenceNumbers, primaryTerm, expectedVersion, primaryMode, false);
         }
 
@@ -484,10 +482,10 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
         {
             final RetentionLeases retentionLeases = replicationTracker.getRetentionLeases();
             final long expectedVersion = primaryMode ? 3L : 2L;
-            assertThat(retentionLeases.version(), equalTo(expectedVersion));
+            assertThat(retentionLeases.version()).isEqualTo(expectedVersion);
             assertThat(retentionLeases.leases(), hasSize(primaryMode ? 2 : 1));
             final RetentionLease retentionLease = retentionLeases.get("0");
-            assertThat(retentionLease.timestamp(), equalTo(currentTimeMillis.get()));
+            assertThat(retentionLease.timestamp()).isEqualTo(currentTimeMillis.get());
             assertRetentionLeases(replicationTracker, 1, retainingSequenceNumbers, primaryTerm, expectedVersion, primaryMode, false);
         }
 
@@ -552,7 +550,7 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
         for (final RetentionLeases retentionLeases : retentionLeasesCollection) {
             replicationTracker.updateRetentionLeasesOnReplica(retentionLeases);
         }
-        assertThat(replicationTracker.getRetentionLeases().version(), equalTo(version));
+        assertThat(replicationTracker.getRetentionLeases().version()).isEqualTo(version);
         if (expectedLeases.isEmpty()) {
             assertThat(replicationTracker.getRetentionLeases().leases(), empty());
         } else {
@@ -596,7 +594,7 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
 
         final Path path = createTempDir();
         replicationTracker.persistRetentionLeases(path);
-        assertThat(replicationTracker.loadRetentionLeases(path), equalTo(replicationTracker.getRetentionLeases()));
+        assertThat(replicationTracker.loadRetentionLeases(path)).isEqualTo(replicationTracker.getRetentionLeases());
     }
 
     @Test
@@ -639,8 +637,8 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
         final Tuple<RetentionLeases, Long> retentionLeasesWithGenerationAfterUnnecessaryPersistence =
                 RetentionLeases.FORMAT.loadLatestStateWithGeneration(logger, NamedXContentRegistry.EMPTY, path);
 
-        assertThat(retentionLeasesWithGenerationAfterUnnecessaryPersistence.v1(), equalTo(retentionLeasesWithGeneration.v1()));
-        assertThat(retentionLeasesWithGenerationAfterUnnecessaryPersistence.v2(), equalTo(retentionLeasesWithGeneration.v2()));
+        assertThat(retentionLeasesWithGenerationAfterUnnecessaryPersistence.v1()).isEqualTo(retentionLeasesWithGeneration.v1());
+        assertThat(retentionLeasesWithGenerationAfterUnnecessaryPersistence.v2()).isEqualTo(retentionLeasesWithGeneration.v2());
     }
 
     /**
@@ -712,7 +710,7 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
         } catch (final BrokenBarrierException | InterruptedException e) {
             throw new AssertionError(e);
         }
-        assertThat(replicationTracker.loadRetentionLeases(path), equalTo(replicationTracker.getRetentionLeases()));
+        assertThat(replicationTracker.loadRetentionLeases(path)).isEqualTo(replicationTracker.getRetentionLeases());
     }
 
     @Test
@@ -770,8 +768,8 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
             assertTrue(tuple.v1());
             retentionLeases = tuple.v2();
         }
-        assertThat(retentionLeases.primaryTerm(), equalTo(primaryTerm));
-        assertThat(retentionLeases.version(), equalTo(version));
+        assertThat(retentionLeases.primaryTerm()).isEqualTo(primaryTerm);
+        assertThat(retentionLeases.version()).isEqualTo(version);
         final Map<String, RetentionLease> idToRetentionLease = retentionLeases.leases().stream()
             .filter(retentionLease -> ReplicationTracker.PEER_RECOVERY_RETENTION_LEASE_SOURCE.equals(retentionLease.source()) == false)
             .collect(Collectors.toMap(RetentionLease::id, Function.identity()));
@@ -780,8 +778,8 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
         for (int i = 0; i < size; i++) {
             assertThat(idToRetentionLease.keySet(), hasItem(Integer.toString(i)));
             final RetentionLease retentionLease = idToRetentionLease.get(Integer.toString(i));
-            assertThat(retentionLease.retainingSequenceNumber(), equalTo(minimumRetainingSequenceNumbers[i]));
-            assertThat(retentionLease.source(), equalTo("test-" + i));
+            assertThat(retentionLease.retainingSequenceNumber()).isEqualTo(minimumRetainingSequenceNumbers[i]);
+            assertThat(retentionLease.source()).isEqualTo("test-" + i);
         }
     }
 

@@ -19,8 +19,8 @@
 
 package org.elasticsearch.index.engine;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
@@ -171,12 +171,12 @@ public class LuceneChangesSnapshotTests extends EngineTestCase {
         engine.refresh("test");
         Engine.Searcher searcher = engine.acquireSearcher("test", Engine.SearcherScope.INTERNAL);
         try (Translog.Snapshot snapshot = new LuceneChangesSnapshot(searcher, between(1, 100), 0, maxSeqNo, false)) {
-            assertThat(snapshot.totalOperations(), equalTo(seqNoToTerm.size()));
+            assertThat(snapshot.totalOperations()).isEqualTo(seqNoToTerm.size());
             Translog.Operation op;
             while ((op = snapshot.next()) != null) {
-                assertThat(op.toString(), op.primaryTerm(), equalTo(seqNoToTerm.get(op.seqNo())));
+                assertThat(op.primaryTerm()).as(op.toString()).isEqualTo(seqNoToTerm.get(op.seqNo()));
             }
-            assertThat(snapshot.skippedOperations(), equalTo(0));
+            assertThat(snapshot.skippedOperations()).isEqualTo(0);
         }
     }
 
@@ -213,7 +213,7 @@ public class LuceneChangesSnapshotTests extends EngineTestCase {
         readyLatch.countDown();
         readyLatch.await();
         concurrentlyApplyOps(operations, engine);
-        assertThat(engine.getLocalCheckpointTracker().getProcessedCheckpoint(), equalTo(operations.size() - 1L));
+        assertThat(engine.getLocalCheckpointTracker().getProcessedCheckpoint()).isEqualTo(operations.size() - 1L);
         isDone.set(true);
         for (Follower follower : followers) {
             follower.join();
@@ -268,7 +268,7 @@ public class LuceneChangesSnapshotTests extends EngineTestCase {
                 List<DocIdSeqNoAndSource> docsWithoutSourceOnLeader = getDocIds(leader, true).stream()
                     .map(d -> new DocIdSeqNoAndSource(d.getId(), null, d.getSeqNo(), d.getPrimaryTerm(), d.getVersion()))
                     .collect(Collectors.toList());
-                assertThat(docsWithoutSourceOnFollower, equalTo(docsWithoutSourceOnLeader));
+                assertThat(docsWithoutSourceOnFollower).isEqualTo(docsWithoutSourceOnLeader);
             } catch (Exception ex) {
                 throw new AssertionError(ex);
             }

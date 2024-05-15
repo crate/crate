@@ -23,8 +23,6 @@ package io.crate.metadata;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
 
 import org.junit.Test;
 
@@ -38,15 +36,15 @@ public class IndexPartsTest {
         String partitionedTable = ".partitioned.table." + ident;
         String schemaPartitionedTable = "schema..partitioned.table." + ident;
 
-        assertThat(new IndexParts(table).getSchema(), is(Schemas.DOC_SCHEMA_NAME));
-        assertThat(new IndexParts(schemaTable).getSchema(), is("schema"));
-        assertThat(new IndexParts(partitionedTable).getSchema(), is(Schemas.DOC_SCHEMA_NAME));
-        assertThat(new IndexParts(schemaPartitionedTable).getSchema(), is("schema"));
+        assertThat(new IndexParts(table).getSchema()).isEqualTo(Schemas.DOC_SCHEMA_NAME);
+        assertThat(new IndexParts(schemaTable).getSchema()).isEqualTo("schema");
+        assertThat(new IndexParts(partitionedTable).getSchema()).isEqualTo(Schemas.DOC_SCHEMA_NAME);
+        assertThat(new IndexParts(schemaPartitionedTable).getSchema()).isEqualTo("schema");
 
-        assertThat(new IndexParts(table).getTable(), is(table));
-        assertThat(new IndexParts(schemaTable).getTable(), is(table));
-        assertThat(new IndexParts(partitionedTable).getTable(), is(table));
-        assertThat(new IndexParts(schemaPartitionedTable).getTable(), is(table));
+        assertThat(new IndexParts(table).getTable()).isEqualTo(table);
+        assertThat(new IndexParts(schemaTable).getTable()).isEqualTo(table);
+        assertThat(new IndexParts(partitionedTable).getTable()).isEqualTo(table);
+        assertThat(new IndexParts(schemaPartitionedTable).getTable()).isEqualTo(table);
 
         assertThat(new IndexParts(table).isPartitioned()).isFalse();
         assertThat(new IndexParts(schemaTable).isPartitioned()).isFalse();
@@ -65,10 +63,10 @@ public class IndexPartsTest {
         assertThat(IndexParts.isPartitioned("schema.partitioned.")).isFalse();
         assertThat(IndexParts.isPartitioned("schema..partitioned.t")).isTrue();
 
-        assertThat(new IndexParts(table).getPartitionIdent(), is(""));
-        assertThat(new IndexParts(schemaTable).getPartitionIdent(), is(""));
-        assertThat(new IndexParts(partitionedTable).getPartitionIdent(), is(ident));
-        assertThat(new IndexParts(schemaPartitionedTable).getPartitionIdent(), is(ident));
+        assertThat(new IndexParts(table).getPartitionIdent()).isEqualTo("");
+        assertThat(new IndexParts(schemaTable).getPartitionIdent()).isEqualTo("");
+        assertThat(new IndexParts(partitionedTable).getPartitionIdent()).isEqualTo(ident);
+        assertThat(new IndexParts(schemaPartitionedTable).getPartitionIdent()).isEqualTo(ident);
 
         assertThat(IndexParts.isDangling(table)).isFalse();
         assertThat(IndexParts.isDangling(schemaTable)).isFalse();

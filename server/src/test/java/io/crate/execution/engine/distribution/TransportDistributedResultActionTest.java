@@ -21,7 +21,7 @@
 
 package io.crate.execution.engine.distribution;
 
-import static org.hamcrest.Matchers.is;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
@@ -90,6 +90,6 @@ public class TransportDistributedResultActionTest extends CrateDummyClusterServi
             assertThat(e.getCause(), Matchers.instanceOf(TaskMissing.class));
         }
 
-        assertThat(numBroadcasts.get(), is(1));
+        assertThat(numBroadcasts.get()).isEqualTo(1);
     }
 }

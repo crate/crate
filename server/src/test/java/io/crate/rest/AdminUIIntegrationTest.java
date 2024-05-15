@@ -22,8 +22,6 @@
 package io.crate.rest;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
@@ -102,7 +100,7 @@ public class AdminUIIntegrationTest extends AdminUIHttpIntegrationTest {
     public void testPostForbidden() throws IOException {
         CloseableHttpResponse response = post("/static/");
         //status should be 403 FORBIDDEN
-        assertThat(response.getStatusLine().getStatusCode(), is(403));
+        assertThat(response.getStatusLine().getStatusCode()).isEqualTo(403);
     }
 
     @Test
@@ -115,19 +113,19 @@ public class AdminUIIntegrationTest extends AdminUIHttpIntegrationTest {
     @Test
     public void testNotFound() throws Exception {
         CloseableHttpResponse response = browserGet("/static/does/not/exist.html");
-        assertThat(response.getStatusLine().getStatusCode(), is(404));
+        assertThat(response.getStatusLine().getStatusCode()).isEqualTo(404);
     }
 
     private static void assertIsIndexResponse(CloseableHttpResponse response) throws IOException {
         //response body should not be null
         String bodyAsString = EntityUtils.toString(response.getEntity());
         assertThat(bodyAsString, Matchers.startsWith("<h1>Crate Admin</h1>"));
-        assertThat(response.getHeaders("Content-Type")[0].getValue(), is("text/html"));
+        assertThat(response.getHeaders("Content-Type")[0].getValue()).isEqualTo("text/html");
     }
 
     private static void assertIsJsonInfoResponse(CloseableHttpResponse response) throws IOException {
         //status should be 200 OK
-        assertThat(response.getStatusLine().getStatusCode(), is(200));
+        assertThat(response.getStatusLine().getStatusCode()).isEqualTo(200);
 
         //response body should not be null
         String bodyAsString = EntityUtils.toString(response.getEntity());
@@ -135,6 +133,6 @@ public class AdminUIIntegrationTest extends AdminUIHttpIntegrationTest {
 
         //check content-type of response is json
         String contentMimeType = ContentType.getOrDefault(response.getEntity()).getMimeType();
-        assertThat(contentMimeType, equalTo(ContentType.APPLICATION_JSON.getMimeType()));
+        assertThat(contentMimeType).isEqualTo(ContentType.APPLICATION_JSON.getMimeType());
     }
 }

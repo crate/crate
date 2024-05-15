@@ -21,11 +21,10 @@
 
 package io.crate.execution.engine.distribution;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static io.crate.testing.TestingHelpers.isNullRow;
 import static io.crate.testing.TestingHelpers.isRow;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
@@ -64,8 +63,8 @@ public class DistributedResultRequestTest extends ESTestCase {
         DistributedResultRequest r2 = new DistributedResultRequest(in);
 
         assertEquals(r1.readRows(streamers).size(), r2.readRows(streamers).size());
-        assertThat(r1.isLast(), is(r2.isLast()));
-        assertThat(r1.executionPhaseInputId(), is(r2.executionPhaseInputId()));
+        assertThat(r1.isLast()).isEqualTo(r2.isLast());
+        assertThat(r1.executionPhaseInputId()).isEqualTo(r2.executionPhaseInputId());
 
         assertThat(r2.readRows(streamers), contains(isRow("ab"), isNullRow(), isRow("cd")));
     }
@@ -86,6 +85,6 @@ public class DistributedResultRequestTest extends ESTestCase {
         DistributedResultRequest r2 = new DistributedResultRequest(in);
 
         assertThat(r2.throwable()).isExactlyInstanceOf(throwable.getClass());
-        assertThat(r2.isKilled(), is(r1.isKilled()));
+        assertThat(r2.isKilled()).isEqualTo(r1.isKilled());
     }
 }

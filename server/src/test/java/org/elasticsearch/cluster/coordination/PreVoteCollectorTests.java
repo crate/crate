@@ -19,15 +19,14 @@
 
 package org.elasticsearch.cluster.coordination;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.coordination.PreVoteCollector.REQUEST_PRE_VOTE_ACTION_NAME;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.monitor.StatusInfo.Status.HEALTHY;
 import static org.elasticsearch.monitor.StatusInfo.Status.UNHEALTHY;
 import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
 import static org.elasticsearch.threadpool.ThreadPool.Names.SAME;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertFalse;
@@ -80,11 +79,11 @@ public class PreVoteCollectorTests extends ESTestCase {
             protected void onSendRequest(final long requestId, final String action, final TransportRequest request,
                                          final DiscoveryNode node) {
                 super.onSendRequest(requestId, action, request, node);
-                assertThat(action, is(REQUEST_PRE_VOTE_ACTION_NAME));
+                assertThat(action).isEqualTo(REQUEST_PRE_VOTE_ACTION_NAME);
                 assertThat(request).isExactlyInstanceOf(PreVoteRequest.class);
                 assertThat(node, not(equalTo(localNode)));
                 PreVoteRequest preVoteRequest = (PreVoteRequest) request;
-                assertThat(preVoteRequest.getSourceNode(), equalTo(localNode));
+                assertThat(preVoteRequest.getSourceNode()).isEqualTo(localNode);
                 deterministicTaskQueue.scheduleNow(new Runnable() {
                     @Override
                     public void run() {
@@ -277,7 +276,7 @@ public class PreVoteCollectorTests extends ESTestCase {
             }
         });
 
-        assertThat(coordinationState.electionWon(), equalTo(electionOccurred));
+        assertThat(coordinationState.electionWon()).isEqualTo(electionOccurred);
     }
 
     private PreVoteResponse handlePreVoteRequestViaTransportService(PreVoteRequest preVoteRequest) {
@@ -329,7 +328,7 @@ public class PreVoteCollectorTests extends ESTestCase {
         PreVoteResponse newPreVoteResponse = new PreVoteResponse(currentTerm, lastAcceptedTerm, lastAcceptedVersion);
         preVoteCollector.update(newPreVoteResponse, null);
 
-        assertThat(handlePreVoteRequestViaTransportService(new PreVoteRequest(otherNode, term)), equalTo(newPreVoteResponse));
+        assertThat(handlePreVoteRequestViaTransportService(new PreVoteRequest(otherNode, term))).isEqualTo(newPreVoteResponse);
     }
 
     public void testResponseToNonLeaderIfNotCandidate() {
@@ -358,6 +357,6 @@ public class PreVoteCollectorTests extends ESTestCase {
         PreVoteResponse newPreVoteResponse = new PreVoteResponse(currentTerm, lastAcceptedTerm, lastAcceptedVersion);
         preVoteCollector.update(newPreVoteResponse, leaderNode);
 
-        assertThat(handlePreVoteRequestViaTransportService(new PreVoteRequest(leaderNode, term)), equalTo(newPreVoteResponse));
+        assertThat(handlePreVoteRequestViaTransportService(new PreVoteRequest(leaderNode, term))).isEqualTo(newPreVoteResponse);
     }
 }

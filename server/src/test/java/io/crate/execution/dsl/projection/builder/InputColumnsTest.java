@@ -22,9 +22,7 @@
 package io.crate.execution.dsl.projection.builder;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 import java.util.List;
@@ -74,16 +72,16 @@ public class InputColumnsTest extends CrateDummyClusterServiceUnitTest {
 
         Symbol replaced1 = InputColumns.create(fn1, sourceSymbols);
         assertThat(replaced1).isExactlyInstanceOf(InputColumn.class);
-        assertThat(((InputColumn) replaced1).index(), is(2));
+        assertThat(((InputColumn) replaced1).index()).isEqualTo(2);
 
         Symbol replaced2 = InputColumns.create(fn2, sourceSymbols);
         assertThat(replaced2).isExactlyInstanceOf(InputColumn.class);
-        assertThat(((InputColumn) replaced2).index(), is(3));
+        assertThat(((InputColumn) replaced2).index()).isEqualTo(3);
 
         Symbol replaced3 = InputColumns.create(newSameFn, sourceSymbols);
-        assertThat(replaced3, is(equalTo(newSameFn))); // not replaced
+        assertThat(replaced3).isEqualTo(newSameFn); // not replaced
 
         Symbol replaced4 = InputColumns.create(newDifferentFn, sourceSymbols);
-        assertThat(replaced4, is(equalTo(newDifferentFn))); // not replaced
+        assertThat(replaced4).isEqualTo(newDifferentFn); // not replaced
     }
 }

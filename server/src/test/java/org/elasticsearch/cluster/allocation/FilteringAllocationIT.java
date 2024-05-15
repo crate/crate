@@ -19,10 +19,8 @@
 
 package org.elasticsearch.cluster.allocation;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
@@ -68,7 +66,7 @@ public class FilteringAllocationIT extends IntegTestCase {
         List<String> nodesIds = cluster().startNodes(2);
         final String node_0 = nodesIds.get(0);
         final String node_1 = nodesIds.get(1);
-        assertThat(cluster().size(), equalTo(2));
+        assertThat(cluster().size()).isEqualTo(2);
 
         logger.info("--> creating an index with no replicas");
         execute("create table test(x int, value text) clustered into ? shards with (number_of_replicas='0')",
@@ -82,7 +80,7 @@ public class FilteringAllocationIT extends IntegTestCase {
 
         execute("refresh table test");
         execute("select count(*) from test");
-        assertThat(100L, is(response.rows()[0][0]));
+        assertThat(100L).isEqualTo(response.rows()[0][0]);
 
         final boolean closed = randomBoolean();
         if (closed) {
@@ -100,7 +98,7 @@ public class FilteringAllocationIT extends IntegTestCase {
         for (IndexRoutingTable indexRoutingTable : clusterState.routingTable()) {
             for (IndexShardRoutingTable indexShardRoutingTable : indexRoutingTable) {
                 for (ShardRouting shardRouting : indexShardRoutingTable) {
-                    assertThat(clusterState.nodes().get(shardRouting.currentNodeId()).getName(), equalTo(node_0));
+                    assertThat(clusterState.nodes().get(shardRouting.currentNodeId()).getName()).isEqualTo(node_0);
                 }
             }
         }
@@ -111,7 +109,7 @@ public class FilteringAllocationIT extends IntegTestCase {
         }
 
         execute("select count(*) from test");
-        assertThat(100L, is(response.rows()[0][0]));
+        assertThat(100L).isEqualTo(response.rows()[0][0]);
     }
 
     @Test
@@ -120,7 +118,7 @@ public class FilteringAllocationIT extends IntegTestCase {
         List<String> nodesIds = cluster().startNodes(2);
         final String node_0 = nodesIds.get(0);
         final String node_1 = nodesIds.get(1);
-        assertThat(cluster().size(), equalTo(2));
+        assertThat(cluster().size()).isEqualTo(2);
 
         logger.info("--> creating an index with auto-expand replicas");
         execute("create table test(x int, value text) clustered into ? shards with (number_of_replicas='0-all')",
@@ -129,7 +127,7 @@ public class FilteringAllocationIT extends IntegTestCase {
         String tableName = getFqn("test");
 
         ClusterState clusterState = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
-        assertThat(clusterState.metadata().index(tableName).getNumberOfReplicas(), equalTo(1));
+        assertThat(clusterState.metadata().index(tableName).getNumberOfReplicas()).isEqualTo(1);
         ensureGreen(tableName);
 
         logger.info("--> filter out the second node");
@@ -142,11 +140,11 @@ public class FilteringAllocationIT extends IntegTestCase {
 
         logger.info("--> verify all are allocated on node1 now");
         final var cs = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
-        assertThat(cs.metadata().index(tableName).getNumberOfReplicas(), equalTo(0));
+        assertThat(cs.metadata().index(tableName).getNumberOfReplicas()).isEqualTo(0);
         for (IndexRoutingTable indexRoutingTable : cs.routingTable()) {
             for (IndexShardRoutingTable indexShardRoutingTable : indexRoutingTable) {
                 for (ShardRouting shardRouting : indexShardRoutingTable) {
-                    assertThat(cs.nodes().get(shardRouting.currentNodeId()).getName(), equalTo(node_0));
+                    assertThat(cs.nodes().get(shardRouting.currentNodeId()).getName()).isEqualTo(node_0);
                 }
             }
         }
@@ -158,7 +156,7 @@ public class FilteringAllocationIT extends IntegTestCase {
         List<String> nodesIds = cluster().startNodes(2);
         final String node_0 = nodesIds.get(0);
         final String node_1 = nodesIds.get(1);
-        assertThat(cluster().size(), equalTo(2));
+        assertThat(cluster().size()).isEqualTo(2);
 
         logger.info("--> creating an index with no replicas");
 
@@ -174,7 +172,7 @@ public class FilteringAllocationIT extends IntegTestCase {
 
         execute("refresh table test");
         execute("select count(*) from test");
-        assertThat(100L, is(response.rows()[0][0]));
+        assertThat(100L).isEqualTo(response.rows()[0][0]);
 
         final boolean closed = randomBoolean();
         if (closed) {
@@ -210,7 +208,7 @@ public class FilteringAllocationIT extends IntegTestCase {
         var state = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
         for (IndexShardRoutingTable indexShardRoutingTable : state.routingTable().index(tableName)) {
             for (ShardRouting shardRouting : indexShardRoutingTable) {
-                assertThat(state.nodes().get(shardRouting.currentNodeId()).getName(), equalTo(node_1));
+                assertThat(state.nodes().get(shardRouting.currentNodeId()).getName()).isEqualTo(node_1);
             }
         }
 
@@ -221,7 +219,7 @@ public class FilteringAllocationIT extends IntegTestCase {
 
         logger.info("--> verify that there are shards allocated on both nodes now");
         state = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
-        assertThat(state.routingTable().index(tableName).numberOfNodesShardsAreAllocatedOn(), equalTo(2));
+        assertThat(state.routingTable().index(tableName).numberOfNodesShardsAreAllocatedOn()).isEqualTo(2);
     }
 
     @Test
@@ -286,9 +284,8 @@ public class FilteringAllocationIT extends IntegTestCase {
         state = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
 
         // The transient settings still exist in the state
-        assertThat(state.metadata().transientSettings(),
-                   equalTo(Settings.builder().put("cluster.routing.allocation.exclude._name",
-                                                  excludeNodeIdsAsString).build()));
+        assertThat(state.metadata().transientSettings()).isEqualTo(Settings.builder().put("cluster.routing.allocation.exclude._name",
+                                                  excludeNodeIdsAsString).build());
 
         for (ShardRouting shard : state.routingTable().shardsWithState(ShardRoutingState.STARTED)) {
             String node = state.getRoutingNodes().node(shard.currentNodeId()).node().getName();

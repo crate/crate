@@ -21,9 +21,7 @@
 
 package io.crate.integrationtests.disruption.seqno;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -109,7 +107,7 @@ public class SequenceConsistencyIT extends AbstractDisruptionTestCase {
             ShardRouting primaryShard = client(masterNodeName).admin().cluster().state(new ClusterStateRequest()).get().getState().routingTable()
                 .index(index).shard(0).primaryShard();
             // the node that's part of the same partition as master is now the primary for the table shard
-            assertThat(primaryShard.currentNodeId(), equalTo(nonIsolatedDataNodeId));
+            assertThat(primaryShard.currentNodeId()).isEqualTo(nonIsolatedDataNodeId);
             assertTrue(primaryShard.active());
         }, 30, TimeUnit.SECONDS);
 
@@ -129,8 +127,10 @@ public class SequenceConsistencyIT extends AbstractDisruptionTestCase {
         long finalSequenceNumber = (long) response.rows()[0][1];
         long finalPrimaryTerm = (long) response.rows()[0][2];
 
-        assertThat("We executed 2 updates on the new primary", finalSequenceNumber, is(2L));
-        assertThat("Primary promotion should've triggered a bump in primary term", finalPrimaryTerm, equalTo(2L));
-        assertThat(finalValue, equalTo("value set on master the second time"));
+        assertThat(finalSequenceNumber)
+            .as("We executed 2 updates on the new primary")
+            .isEqualTo(2L);
+        assertThat(finalPrimaryTerm).as("Primary promotion should've triggered a bump in primary term").isEqualTo(2L);
+        assertThat(finalValue).isEqualTo("value set on master the second time");
     }
 }

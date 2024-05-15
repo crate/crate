@@ -21,8 +21,7 @@
 
 package io.crate.execution.engine.fetch;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.stream.LongStream;
 
@@ -41,6 +40,6 @@ public class FetchIdTest extends ESTestCase {
         int docId = FetchId.decodeDocId(val);
         int readerId = FetchId.decodeReaderId(val);
 
-        assertThat(FetchId.encode(readerId, docId), is(val));
+        assertThat(FetchId.encode(readerId, docId)).isEqualTo(val);
     }
 }

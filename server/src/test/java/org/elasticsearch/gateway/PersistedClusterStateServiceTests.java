@@ -20,7 +20,6 @@ package org.elasticsearch.gateway;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertFalse;
@@ -90,13 +89,13 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
             final PersistedClusterStateService persistedClusterStateService = newPersistedClusterStateService(nodeEnvironment);
             final long newTerm = randomNonNegativeLong();
 
-            assertThat(persistedClusterStateService.loadBestOnDiskState().currentTerm, equalTo(0L));
+            assertThat(persistedClusterStateService.loadBestOnDiskState().currentTerm).isEqualTo(0L);
             try (Writer writer = persistedClusterStateService.createWriter()) {
                 writer.writeFullStateAndCommit(newTerm, ClusterState.EMPTY_STATE);
-                assertThat(persistedClusterStateService.loadBestOnDiskState().currentTerm, equalTo(newTerm));
+                assertThat(persistedClusterStateService.loadBestOnDiskState().currentTerm).isEqualTo(newTerm);
             }
 
-            assertThat(persistedClusterStateService.loadBestOnDiskState().currentTerm, equalTo(newTerm));
+            assertThat(persistedClusterStateService.loadBestOnDiskState().currentTerm).isEqualTo(newTerm);
         }
     }
 
@@ -115,9 +114,9 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
                                   .version(version))
                     .incrementVersion().build());
                 clusterState = loadPersistedClusterState(persistedClusterStateService);
-                assertThat(clusterState.metadata().clusterUUID(), equalTo(clusterUUID));
+                assertThat(clusterState.metadata().clusterUUID()).isEqualTo(clusterUUID);
                 assertTrue(clusterState.metadata().clusterUUIDCommitted());
-                assertThat(clusterState.metadata().version(), equalTo(version));
+                assertThat(clusterState.metadata().version()).isEqualTo(version);
             }
 
             try (Writer writer = persistedClusterStateService.createWriter()) {
@@ -130,9 +129,9 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
             }
 
             clusterState = loadPersistedClusterState(persistedClusterStateService);
-            assertThat(clusterState.metadata().clusterUUID(), equalTo(clusterUUID));
+            assertThat(clusterState.metadata().clusterUUID()).isEqualTo(clusterUUID);
             assertTrue(clusterState.metadata().clusterUUIDCommitted());
-            assertThat(clusterState.metadata().version(), equalTo(version + 1));
+            assertThat(clusterState.metadata().version()).isEqualTo(version + 1);
         }
     }
 
@@ -181,8 +180,8 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
         try (NodeEnvironment nodeEnvironment = newNodeEnvironment(dataPaths)) {
             final PersistedClusterStateService.OnDiskState onDiskState = newPersistedClusterStateService(nodeEnvironment).loadBestOnDiskState();
             final ClusterState clusterState = clusterStateFromMetadata(onDiskState.lastAcceptedVersion, onDiskState.metadata);
-            assertThat(clusterState.term(), equalTo(freshTerm));
-            assertThat(clusterState.version(), equalTo(freshVersion));
+            assertThat(clusterState.term()).isEqualTo(freshTerm);
+            assertThat(clusterState.version()).isEqualTo(freshVersion);
         }
     }
 
@@ -622,9 +621,9 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
 
                 clusterState = loadPersistedClusterState(persistedClusterStateService);
                 IndexMetadata indexMetadata = clusterState.metadata().index("test");
-                assertThat(indexMetadata.getIndexUUID(), equalTo(indexUUID));
-                assertThat(indexMetadata.getVersion(), equalTo(indexMetadataVersion));
-                assertThat(IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(indexMetadata.getSettings()), equalTo(0));
+                assertThat(indexMetadata.getIndexUUID()).isEqualTo(indexUUID);
+                assertThat(indexMetadata.getVersion()).isEqualTo(indexMetadataVersion);
+                assertThat(IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(indexMetadata.getSettings())).isEqualTo(0);
                 // ensure we do not wastefully persist the same index metadata version by making a bad update with the same version
                 writer.writeIncrementalStateAndCommit(0L, clusterState, ClusterState.builder(clusterState)
                     .metadata(Metadata.builder(clusterState.metadata())
@@ -635,9 +634,9 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
 
                 clusterState = loadPersistedClusterState(persistedClusterStateService);
                 indexMetadata = clusterState.metadata().index("test");
-                assertThat(indexMetadata.getIndexUUID(), equalTo(indexUUID));
-                assertThat(indexMetadata.getVersion(), equalTo(indexMetadataVersion));
-                assertThat(IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(indexMetadata.getSettings()), equalTo(0));
+                assertThat(indexMetadata.getIndexUUID()).isEqualTo(indexUUID);
+                assertThat(indexMetadata.getVersion()).isEqualTo(indexMetadataVersion);
+                assertThat(IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(indexMetadata.getSettings())).isEqualTo(0);
                 // ensure that we do persist the same index metadata version by making an update with a higher version
                 writeState(writer, 0L, ClusterState.builder(clusterState)
                                .metadata(Metadata.builder(clusterState.metadata())
@@ -649,8 +648,8 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
 
                 clusterState = loadPersistedClusterState(persistedClusterStateService);
                 indexMetadata = clusterState.metadata().index("test");
-                assertThat(indexMetadata.getVersion(), equalTo(indexMetadataVersion + 1));
-                assertThat(IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(indexMetadata.getSettings()), equalTo(2));
+                assertThat(indexMetadata.getVersion()).isEqualTo(indexMetadataVersion + 1);
+                assertThat(IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(indexMetadata.getSettings())).isEqualTo(2);
                 // ensure that we also persist the index metadata when the term changes
                 writeState(writer, 0L, ClusterState.builder(clusterState)
                                .metadata(Metadata.builder(clusterState.metadata())
@@ -664,9 +663,9 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
 
             final ClusterState clusterState = loadPersistedClusterState(persistedClusterStateService);
             final IndexMetadata indexMetadata = clusterState.metadata().index("test");
-            assertThat(indexMetadata.getIndexUUID(), equalTo(indexUUID));
-            assertThat(indexMetadata.getVersion(), equalTo(indexMetadataVersion + 1));
-            assertThat(IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(indexMetadata.getSettings()), equalTo(3));
+            assertThat(indexMetadata.getIndexUUID()).isEqualTo(indexUUID);
+            assertThat(indexMetadata.getVersion()).isEqualTo(indexMetadataVersion + 1);
+            assertThat(IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(indexMetadata.getSettings())).isEqualTo(3);
         }
     }
 
@@ -725,11 +724,10 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
             try (Writer writer = persistedClusterStateService.createWriter()) {
                 final ClusterState clusterState = loadPersistedClusterState(persistedClusterStateService);
 
-                assertThat(clusterState.metadata().indices().size(), equalTo(2));
-                assertThat(clusterState.metadata().index("updated").getIndexUUID(), equalTo(updatedIndexUuid));
-                assertThat(IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(clusterState.metadata().index("updated").getSettings()),
-                           equalTo(1));
-                assertThat(clusterState.metadata().index("deleted").getIndexUUID(), equalTo(deletedIndexUuid));
+                assertThat(clusterState.metadata().indices().size()).isEqualTo(2);
+                assertThat(clusterState.metadata().index("updated").getIndexUUID()).isEqualTo(updatedIndexUuid);
+                assertThat(IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(clusterState.metadata().index("updated").getSettings())).isEqualTo(1);
+                assertThat(clusterState.metadata().index("deleted").getIndexUUID()).isEqualTo(deletedIndexUuid);
 
                 writeState(writer, 0L, ClusterState.builder(clusterState)
                                .metadata(Metadata.builder(clusterState.metadata())
@@ -752,11 +750,10 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
 
             final ClusterState clusterState = loadPersistedClusterState(persistedClusterStateService);
 
-            assertThat(clusterState.metadata().indices().size(), equalTo(2));
-            assertThat(clusterState.metadata().index("updated").getIndexUUID(), equalTo(updatedIndexUuid));
-            assertThat(IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(clusterState.metadata().index("updated").getSettings()),
-                       equalTo(2));
-            assertThat(clusterState.metadata().index("added").getIndexUUID(), equalTo(addedIndexUuid));
+            assertThat(clusterState.metadata().indices().size()).isEqualTo(2);
+            assertThat(clusterState.metadata().index("updated").getIndexUUID()).isEqualTo(updatedIndexUuid);
+            assertThat(IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(clusterState.metadata().index("updated").getSettings())).isEqualTo(2);
+            assertThat(clusterState.metadata().index("added").getIndexUUID()).isEqualTo(addedIndexUuid);
             assertThat(clusterState.metadata().index("deleted"), nullValue());
         }
     }
@@ -790,7 +787,7 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
             final ClusterState clusterState = loadPersistedClusterState(persistedClusterStateService);
             for (Index index : indices) {
                 final IndexMetadata indexMetadata = clusterState.metadata().index(index.getName());
-                assertThat(indexMetadata.getIndexUUID(), equalTo(index.getUUID()));
+                assertThat(indexMetadata.getIndexUUID()).isEqualTo(index.getUUID());
             }
         }
     }

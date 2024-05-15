@@ -20,7 +20,6 @@ package org.elasticsearch.snapshots;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -122,7 +121,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
 
         logger.info("--> make sure snapshot doesn't exist");
         execute("select * from sys.snapshots where repository = 'test' and name = 'snapshot1'");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response.rowCount()).isEqualTo(0L);
     }
 
     @Test
@@ -186,17 +185,17 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         Repository repositoryAfterRestart = cluster().getCurrentMasterNodeInstance(RepositoriesService.class).repository(repoName);
 
         logger.info("--> verify index-N blob is found at the new location");
-        assertThat(getRepositoryData(repositoryAfterRestart).getGenId(), is(beforeMoveGen + 1));
+        assertThat(getRepositoryData(repositoryAfterRestart).getGenId()).isEqualTo(beforeMoveGen + 1);
 
         logger.info("--> delete snapshot");
         execute("drop snapshot test.snapshot1");
 
         logger.info("--> verify index-N blob is found at the expected location");
-        assertThat(getRepositoryData(repositoryAfterRestart).getGenId(), is(beforeMoveGen + 2));
+        assertThat(getRepositoryData(repositoryAfterRestart).getGenId()).isEqualTo(beforeMoveGen + 2);
 
         logger.info("--> make sure snapshot doesn't exist");
         execute("select * from sys.snapshots where repository = 'test' and name = 'snapshot1'");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response.rowCount()).isEqualTo(0L);
     }
 
     @Test
@@ -216,9 +215,8 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
             // generations (the existence of which would short-circuit checks for the repo containing old version snapshots)
             var createSnapshot = new CreateSnapshotRequest(repoName, snapshotPrefix + i).waitForCompletion(true);
             var createSnapshotResponse = client().admin().cluster().execute(CreateSnapshotAction.INSTANCE, createSnapshot).get();
-            assertThat(createSnapshotResponse.getSnapshotInfo().successfulShards(), is(0));
-            assertThat(createSnapshotResponse.getSnapshotInfo().successfulShards(),
-                equalTo(createSnapshotResponse.getSnapshotInfo().totalShards()));
+            assertThat(createSnapshotResponse.getSnapshotInfo().successfulShards()).isEqualTo(0);
+            assertThat(createSnapshotResponse.getSnapshotInfo().successfulShards()).isEqualTo(createSnapshotResponse.getSnapshotInfo().totalShards());
         }
         final Repository repository = cluster().getCurrentMasterNodeInstance(RepositoriesService.class).repository(repoName);
         final RepositoryData repositoryData = getRepositoryData(repository);
@@ -261,7 +259,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         );
         final RepositoryData finalRepositoryData = getRepositoryData(repository);
         for (SnapshotId snapshotId : finalRepositoryData.getSnapshotIds()) {
-            assertThat(finalRepositoryData.getVersion(snapshotId), is(Version.CURRENT));
+            assertThat(finalRepositoryData.getVersion(snapshotId)).isEqualTo(Version.CURRENT);
         }
     }
 
@@ -279,9 +277,8 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         for (int i = 0; i < snapshots; ++i) {
             var createSnapshot = new CreateSnapshotRequest("repo1", snapshotPrefix + i).waitForCompletion(true);
             var createSnapshotResponse = client().admin().cluster().execute(CreateSnapshotAction.INSTANCE, createSnapshot).get();
-            assertThat(createSnapshotResponse.getSnapshotInfo().successfulShards(), is(0));
-            assertThat(createSnapshotResponse.getSnapshotInfo().successfulShards(),
-                       equalTo(createSnapshotResponse.getSnapshotInfo().totalShards()));
+            assertThat(createSnapshotResponse.getSnapshotInfo().successfulShards()).isEqualTo(0);
+            assertThat(createSnapshotResponse.getSnapshotInfo().successfulShards()).isEqualTo(createSnapshotResponse.getSnapshotInfo().totalShards());
         }
         final Repository repository = cluster().getCurrentMasterNodeInstance(RepositoriesService.class).repository("repo1");
         final RepositoryData repositoryData = getRepositoryData(repository);
@@ -292,10 +289,10 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
 
         logger.info("--> ensure snapshots can be retrieved without any error");
         execute("select state from sys.snapshots where repository = 'repo1' order by 1");
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
             "FAILED\n" +
             "SUCCESS\n"
-        ));
+        );
 
         execute("drop snapshot repo1.\"" + snapshotToCorrupt.getName() + "\"");
     }
@@ -317,8 +314,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
             .waitForCompletion(true)
             .indices("test-idx-*");
         var createSnapshotResponse = client.admin().cluster().execute(CreateSnapshotAction.INSTANCE, createSnapshot).get();
-        assertThat(createSnapshotResponse.getSnapshotInfo().successfulShards(),
-            equalTo(createSnapshotResponse.getSnapshotInfo().totalShards()));
+        assertThat(createSnapshotResponse.getSnapshotInfo().successfulShards()).isEqualTo(createSnapshotResponse.getSnapshotInfo().totalShards());
 
         logger.info("--> corrupt index-N blob");
         final Repository repository = cluster().getCurrentMasterNodeInstance(RepositoriesService.class).repository(repoName);
@@ -353,7 +349,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         var createSnapshot = new CreateSnapshotRequest(repoName, oldVersionSnapshot)
             .waitForCompletion(true);
         var createSnapshotResponse = client.admin().cluster().execute(CreateSnapshotAction.INSTANCE, createSnapshot).get();
-        assertThat(createSnapshotResponse.getSnapshotInfo().totalShards(), is(0));
+        assertThat(createSnapshotResponse.getSnapshotInfo().totalShards()).isEqualTo(0);
 
         logger.info("--> writing downgraded RepositoryData");
         final RepositoryData repositoryData = getRepositoryData(repoName);
@@ -407,7 +403,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         var createSnapshot = new CreateSnapshotRequest(repoName, oldVersionSnapshot)
             .waitForCompletion(true);
         final var createSnapshotResponse = client().admin().cluster().execute(CreateSnapshotAction.INSTANCE, createSnapshot).get();
-        assertThat(createSnapshotResponse.getSnapshotInfo().totalShards(), is(0));
+        assertThat(createSnapshotResponse.getSnapshotInfo().totalShards()).isEqualTo(0);
 
         logger.info("--> writing downgraded RepositoryData");
         final RepositoryData repositoryData = getRepositoryData(repoName);
@@ -475,10 +471,10 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
             .waitForCompletion(true);
         final SnapshotInfo snapshotInfo = client().admin().cluster().execute(CreateSnapshotAction.INSTANCE, createSnapshot)
                 .get().getSnapshotInfo();
-        assertThat(snapshotInfo.state(), is(SnapshotState.SUCCESS));
+        assertThat(snapshotInfo.state()).isEqualTo(SnapshotState.SUCCESS);
         final int successfulShards = snapshotInfo.successfulShards();
         assertThat(successfulShards, greaterThan(0));
-        assertThat(successfulShards, equalTo(snapshotInfo.totalShards()));
+        assertThat(successfulShards).isEqualTo(snapshotInfo.totalShards());
     }
 
     private void assertRepositoryBlocked(Client client, String repo, String existingSnapshot) {

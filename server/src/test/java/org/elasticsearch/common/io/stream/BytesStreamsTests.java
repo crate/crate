@@ -19,12 +19,10 @@
 
 package org.elasticsearch.common.io.stream;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.closeTo;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -321,35 +319,35 @@ public class BytesStreamsTests extends ESTestCase {
         final byte[] bytes = BytesReference.toBytes(out.bytes());
         StreamInput in = StreamInput.wrap(BytesReference.toBytes(out.bytes()));
         assertEquals(in.available(), bytes.length);
-        assertThat(in.readBoolean(), equalTo(false));
-        assertThat(in.readByte(), equalTo((byte)1));
-        assertThat(in.readShort(), equalTo((short)-1));
-        assertThat(in.readInt(), equalTo(-1));
-        assertThat(in.readVInt(), equalTo(2));
-        assertThat(in.readLong(), equalTo(-3L));
-        assertThat(in.readVLong(), equalTo(4L));
-        assertThat(in.readOptionalLong(), equalTo(11234234L));
+        assertThat(in.readBoolean()).isEqualTo(false);
+        assertThat(in.readByte()).isEqualTo((byte)1);
+        assertThat(in.readShort()).isEqualTo((short)-1);
+        assertThat(in.readInt()).isEqualTo(-1);
+        assertThat(in.readVInt()).isEqualTo(2);
+        assertThat(in.readLong()).isEqualTo(-3L);
+        assertThat(in.readVLong()).isEqualTo(4L);
+        assertThat(in.readOptionalLong()).isEqualTo(11234234L);
         assertThat((double)in.readFloat(), closeTo(1.1, 0.0001));
         assertThat(in.readDouble(), closeTo(2.2, 0.0001));
-        assertThat(in.readGenericValue(), equalTo((Object) intArray));
-        assertThat(in.readVIntArray(), equalTo(vIntArray));
-        assertThat(in.readGenericValue(), equalTo((Object)longArray));
-        assertThat(in.readVLongArray(), equalTo(vLongArray));
-        assertThat(in.readGenericValue(), equalTo((Object)floatArray));
-        assertThat(in.readGenericValue(), equalTo((Object)doubleArray));
-        assertThat(in.readString(), equalTo("hello"));
-        assertThat(in.readString(), equalTo("goodbye"));
-        assertThat(in.readGenericValue(), equalTo((Object)BytesRefs.toBytesRef("bytesref")));
-        assertThat(in.readStringArray(), equalTo(new String[] {"a", "b", "cat"}));
-        assertThat(in.readBytesReference(), equalTo(new BytesArray("test")));
-        assertThat(in.readOptionalBytesReference(), equalTo(new BytesArray("test")));
+        assertThat(in.readGenericValue()).isEqualTo((Object) intArray);
+        assertThat(in.readVIntArray()).isEqualTo(vIntArray);
+        assertThat(in.readGenericValue()).isEqualTo((Object)longArray);
+        assertThat(in.readVLongArray()).isEqualTo(vLongArray);
+        assertThat(in.readGenericValue()).isEqualTo((Object)floatArray);
+        assertThat(in.readGenericValue()).isEqualTo((Object)doubleArray);
+        assertThat(in.readString()).isEqualTo("hello");
+        assertThat(in.readString()).isEqualTo("goodbye");
+        assertThat(in.readGenericValue()).isEqualTo((Object)BytesRefs.toBytesRef("bytesref"));
+        assertThat(in.readStringArray()).isEqualTo(new String[] {"a", "b", "cat"});
+        assertThat(in.readBytesReference()).isEqualTo(new BytesArray("test"));
+        assertThat(in.readOptionalBytesReference()).isEqualTo(new BytesArray("test"));
         assertNull(in.readOptionalDouble());
         assertThat(in.readOptionalDouble(), closeTo(1.2, 0.0001));
         assertEquals(DateTimeZone.forID("CET"), in.readTimeZone());
         assertEquals(DateTimeZone.getDefault(), in.readOptionalTimeZone());
         assertNull(in.readOptionalTimeZone());
         Object dt = in.readGenericValue();
-        assertThat(dt, is(dtOut));
+        assertThat(dt).isEqualTo(dtOut);
         assertEquals(0, in.available());
         assertThatThrownBy(() -> out.writeGenericValue(new Object() {
             @Override
@@ -499,8 +497,8 @@ public class BytesStreamsTests extends ESTestCase {
         final StreamInput in = StreamInput.wrap(BytesReference.toBytes(out.bytes()));
         final Map<String, String> loaded = in.readMap(StreamInput::readString, StreamInput::readString);
 
-        assertThat(loaded.size(), equalTo(expected.size()));
-        assertThat(expected, equalTo(loaded));
+        assertThat(loaded.size()).isEqualTo(expected.size());
+        assertThat(expected).isEqualTo(loaded);
     }
 
     public void testWriteImmutableMap() throws IOException {
@@ -516,7 +514,7 @@ public class BytesStreamsTests extends ESTestCase {
         final StreamInput in = StreamInput.wrap(BytesReference.toBytes(out.bytes()));
         final ImmutableOpenMap<String, String> loaded = in.readImmutableMap(StreamInput::readString, StreamInput::readString);
 
-        assertThat(expected, equalTo(loaded));
+        assertThat(expected).isEqualTo(loaded);
     }
 
     public void testWriteImmutableMapOfWritable() throws IOException {
@@ -532,7 +530,7 @@ public class BytesStreamsTests extends ESTestCase {
         final StreamInput in = StreamInput.wrap(BytesReference.toBytes(out.bytes()));
         final ImmutableOpenMap<TestWriteable, TestWriteable> loaded = in.readImmutableMap(TestWriteable::new, TestWriteable::new);
 
-        assertThat(expected, equalTo(loaded));
+        assertThat(expected).isEqualTo(loaded);
     }
 
     public void testWriteMapOfLists() throws IOException {
@@ -557,10 +555,10 @@ public class BytesStreamsTests extends ESTestCase {
 
         final Map<String, List<String>> loaded = in.readMapOfLists(StreamInput::readString, StreamInput::readString);
 
-        assertThat(loaded.size(), equalTo(expected.size()));
+        assertThat(loaded.size()).isEqualTo(expected.size());
 
         for (Map.Entry<String, List<String>> entry : expected.entrySet()) {
-            assertThat(loaded.containsKey(entry.getKey()), equalTo(true));
+            assertThat(loaded.containsKey(entry.getKey())).isEqualTo(true);
 
             List<String> loadedList = loaded.get(entry.getKey());
 
@@ -895,9 +893,9 @@ public class BytesStreamsTests extends ESTestCase {
         StreamInput in = out.bytes().streamInput();
         TimeValue inValue = in.readTimeValue();
 
-        assertThat(inValue, equalTo(value));
-        assertThat(inValue.duration(), equalTo(value.duration()));
-        assertThat(inValue.timeUnit(), equalTo(value.timeUnit()));
+        assertThat(inValue).isEqualTo(value);
+        assertThat(inValue.duration()).isEqualTo(value.duration());
+        assertThat(inValue.timeUnit()).isEqualTo(value.timeUnit());
     }
 
     public void testTimeValueSerialize() throws Exception {
@@ -934,7 +932,7 @@ public class BytesStreamsTests extends ESTestCase {
         StreamInput in = prodOut.bytes().streamInput();
         Exception newEx = in.readException();
         assertThat(newEx).isExactlyInstanceOf(IOException.class);
-        assertThat(newEx.getMessage(), equalTo("disk broken"));
+        assertThat(newEx.getMessage()).isEqualTo("disk broken");
         ESTestCase.assertStacktraceArrayEquals(newEx.getStackTrace(), rootEx.getStackTrace());
     }
 }

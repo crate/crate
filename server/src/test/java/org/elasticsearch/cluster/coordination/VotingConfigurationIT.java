@@ -18,7 +18,7 @@
  */
 package org.elasticsearch.cluster.coordination;
 
-import static org.hamcrest.Matchers.equalTo;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.nullValue;
@@ -90,7 +90,7 @@ public class VotingConfigurationIT extends IntegTestCase {
             ).get().getState();
         final Set<String> votingConfiguration = clusterState.getLastCommittedConfiguration().getNodeIds();
         assertThat(votingConfiguration, hasSize(3));
-        assertThat(clusterState.nodes().getSize(), equalTo(4));
+        assertThat(clusterState.nodes().getSize()).isEqualTo(4);
         assertThat(votingConfiguration, hasItem(clusterState.nodes().getMasterNodeId()));
         for (DiscoveryNode discoveryNode : clusterState.nodes()) {
             if (votingConfiguration.contains(discoveryNode.getId()) == false) {
@@ -130,7 +130,7 @@ public class VotingConfigurationIT extends IntegTestCase {
                 .nodes(true)
                 .metadata(true)
             ).get().getState();
-        assertThat(newClusterState.nodes().getMasterNode().getName(), equalTo(excludedNodeName));
+        assertThat(newClusterState.nodes().getMasterNode().getName()).isEqualTo(excludedNodeName);
         assertThat(newClusterState.getLastCommittedConfiguration().getNodeIds(), hasItem(newClusterState.nodes().getMasterNodeId()));
     }
 }

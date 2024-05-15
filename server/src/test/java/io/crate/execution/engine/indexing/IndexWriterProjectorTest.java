@@ -23,7 +23,7 @@ package io.crate.execution.engine.indexing;
 
 import static io.crate.data.SentinelRow.SENTINEL;
 import static io.crate.testing.TestingHelpers.isRow;
-import static org.hamcrest.Matchers.is;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
 import static org.junit.Assert.assertThat;
 
@@ -130,7 +130,7 @@ public class IndexWriterProjectorTest extends IntegTestCase {
 
         execute("refresh table bulk_import");
         execute("select count(*) from bulk_import");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows()[0][0], is(100L));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows()[0][0]).isEqualTo(100L);
     }
 }

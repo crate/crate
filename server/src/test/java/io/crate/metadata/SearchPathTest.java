@@ -23,9 +23,7 @@ package io.crate.metadata;
 
 import static io.crate.metadata.SearchPath.pathWithPGCatalogAndDoc;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.Iterator;
@@ -43,19 +41,19 @@ public class SearchPathTest {
         Iterator<String> pathIterator = searchPath.iterator();
         pathIterator.next();
         String secondInPath = pathIterator.next();
-        assertThat(secondInPath, is(Schemas.DOC_SCHEMA_NAME));
+        assertThat(secondInPath).isEqualTo(Schemas.DOC_SCHEMA_NAME);
     }
 
     @Test
     public void testCurrentSchemaIsFirstSchemaInSearchPath() {
         SearchPath searchPath = SearchPath.createSearchPathFrom("firstSchema", "secondSchema");
-        assertThat(searchPath.currentSchema(), is("firstSchema"));
+        assertThat(searchPath.currentSchema()).isEqualTo("firstSchema");
     }
 
     @Test
     public void testPgCatalogIsFirstInTheSearchPathIfNotExplicitlySet() {
         SearchPath searchPath = SearchPath.createSearchPathFrom("firstSchema", "secondSchema");
-        assertThat(searchPath.iterator().next(), is(PgCatalogSchemaInfo.NAME));
+        assertThat(searchPath.iterator().next()).isEqualTo(PgCatalogSchemaInfo.NAME);
     }
 
     @Test
@@ -65,13 +63,13 @@ public class SearchPathTest {
         pathIterator.next();
         pathIterator.next();
         String thirdInPath = pathIterator.next();
-        assertThat(thirdInPath, is(PgCatalogSchemaInfo.NAME));
+        assertThat(thirdInPath).isEqualTo(PgCatalogSchemaInfo.NAME);
     }
 
     @Test
     public void testPgCatalogISCurrentSchemaIfSetFirstInPath() {
         SearchPath searchPath = SearchPath.createSearchPathFrom(PgCatalogSchemaInfo.NAME, "secondSchema");
-        assertThat(searchPath.currentSchema(), is(PgCatalogSchemaInfo.NAME));
+        assertThat(searchPath.currentSchema()).isEqualTo(PgCatalogSchemaInfo.NAME);
     }
 
     @Test

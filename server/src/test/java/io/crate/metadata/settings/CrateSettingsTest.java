@@ -24,7 +24,6 @@ package io.crate.metadata.settings;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 import java.util.Map;
@@ -102,6 +101,6 @@ public class CrateSettingsTest extends CrateDummyClusterServiceUnitTest {
             .put("stats.breaker.log.jobs.overhead", 1.05d)
             .build();
         CrateSettings.flattenSettings(builder, "stats", value);
-        assertThat(builder.build(), is(expected));
+        assertThat(builder.build()).isEqualTo(expected);
     }
 }

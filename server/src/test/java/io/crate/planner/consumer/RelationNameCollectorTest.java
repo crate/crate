@@ -21,8 +21,8 @@
 
 package io.crate.planner.consumer;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 import java.util.Map;
@@ -52,7 +52,7 @@ public class RelationNameCollectorTest extends CrateDummyClusterServiceUnitTest 
     @Test
     public void test_finding_relations() {
         Symbol constantCondition = sqlExpressions.asSymbol("true");
-        assertThat(RelationNameCollector.collect(constantCondition), is(Set.of()));
+        assertThat(RelationNameCollector.collect(constantCondition)).isEqualTo(Set.of());
 
         constantCondition = sqlExpressions.asSymbol("t1.x = 4");
         assertThat(RelationNameCollector.collect(constantCondition), contains(new RelationName("doc", "t1")));

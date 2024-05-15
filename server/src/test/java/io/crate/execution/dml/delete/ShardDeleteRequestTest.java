@@ -21,8 +21,7 @@
 
 package io.crate.execution.dml.delete;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.UUID;
 
@@ -50,6 +49,6 @@ public class ShardDeleteRequestTest extends ESTestCase {
         StreamInput in = out.bytes().streamInput();
         ShardDeleteRequest request2 = new ShardDeleteRequest(in);
 
-        assertThat(request, equalTo(request2));
+        assertThat(request).isEqualTo(request2);
     }
 }

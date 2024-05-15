@@ -19,7 +19,7 @@
 
 package org.elasticsearch.common.bytes;
 
-import static org.hamcrest.Matchers.equalTo;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertThat;
@@ -62,18 +62,18 @@ public class RecyclingBytesStreamOutputTests extends ESTestCase {
 
             if (randomBoolean()) {
                 bytesRef = output.toBytesRef();
-                assertThat(bytesRef.offset, equalTo(0));
+                assertThat(bytesRef.offset).isEqualTo(0);
 
                 if (source.length <= buffer.length) {
                     assertThat("should have re-used the same buffer", bytesRef.bytes, sameInstance(buffer));
                 } else {
-                    assertThat("new buffer should be the right size", bytesRef.bytes.length, equalTo(source.length));
+                    assertThat(bytesRef.bytes.length).as("new buffer should be the right size").isEqualTo(source.length);
                 }
             } else {
                 bytesRef = output.bytes().toBytesRef();
             }
 
-            assertThat(bytesRef.length, equalTo(source.length));
+            assertThat(bytesRef.length).isEqualTo(source.length);
             final byte[] trimmed = new byte[source.length];
             System.arraycopy(bytesRef.bytes, bytesRef.offset, trimmed, 0, bytesRef.length);
             assertArrayEquals(source, trimmed);

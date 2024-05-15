@@ -20,10 +20,10 @@
  */
 package org.elasticsearch.index.shard;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.routing.TestShardRouting.newShardRouting;
 import static org.elasticsearch.index.translog.Translog.UNSET_AUTO_GENERATED_TIMESTAMP;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -670,7 +670,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
         IndexShard shard = shardFunction.apply(primary);
         if (primary) {
             recoverShardFromStore(shard);
-            assertThat(shard.getMaxSeqNoOfUpdatesOrDeletes(), equalTo(shard.seqNoStats().getMaxSeqNo()));
+            assertThat(shard.getMaxSeqNoOfUpdatesOrDeletes()).isEqualTo(shard.seqNoStats().getMaxSeqNo());
         } else {
             recoveryEmptyReplica(shard, true);
         }

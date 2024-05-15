@@ -21,14 +21,13 @@
 
 package io.crate.integrationtests;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.elasticsearch.test.IntegTestCase;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.testing.SQLResponse;
@@ -66,7 +65,7 @@ public class InformationSchemaQueryTest extends IntegTestCase {
                     SQLResponse resp = execute("select * from information_schema.columns " +
                                                "order by table_schema, table_name, column_name");
                     try {
-                        assertThat(resp.rows(), Matchers.equalTo(response.rows()));
+                        assertThat(resp.rows()).isEqualTo(response.rows());
                     } catch (AssertionError e) {
                         lastAssertionError.set(e);
                     }
@@ -101,7 +100,7 @@ public class InformationSchemaQueryTest extends IntegTestCase {
                 public void run() {
                     SQLResponse resp = execute("select * from sys.shards where table_name in ('t1', 't2') and state='UNASSIGNED' order by schema_name, table_name, id");
                     try {
-                        assertThat(resp.rows(), Matchers.equalTo(response.rows()));
+                        assertThat(resp.rows()).isEqualTo(response.rows());
                     } catch (AssertionError e) {
                         lastAssertionError.set(e);
                     }

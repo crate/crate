@@ -19,9 +19,8 @@
 
 package org.elasticsearch.cluster.coordination;
 
-import static org.hamcrest.CoreMatchers.equalTo;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -67,7 +66,7 @@ public class NodeRemovalClusterStateTaskExecutorTests extends ESTestCase {
 
         final ClusterStateTaskExecutor.ClusterTasksResult<NodeRemovalClusterStateTaskExecutor.Task> result
                 = executor.execute(clusterState, tasks);
-        assertThat(result.resultingState, equalTo(clusterState));
+        assertThat(result.resultingState).isEqualTo(clusterState);
     }
 
     public void testRerouteAfterRemovingNodes() throws Exception {

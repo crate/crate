@@ -18,8 +18,8 @@
  */
 package org.elasticsearch.index.seqno;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
@@ -131,8 +131,8 @@ public class PeerRecoveryRetentionLeaseExpiryTests extends ReplicationTrackerTes
 
         final Set<String> leaseIds = retentionLeases.v2().leases().stream().map(RetentionLease::id).collect(Collectors.toSet());
         assertThat(leaseIds, hasSize(2));
-        assertThat(leaseIds, equalTo(replicationTracker.routingTable.shards().stream()
-            .map(ReplicationTracker::getPeerRecoveryRetentionLeaseId).collect(Collectors.toSet())));
+        assertThat(leaseIds).isEqualTo(replicationTracker.routingTable.shards().stream()
+            .map(ReplicationTracker::getPeerRecoveryRetentionLeaseId).collect(Collectors.toSet()));
     }
 
     @Test
@@ -151,9 +151,9 @@ public class PeerRecoveryRetentionLeaseExpiryTests extends ReplicationTrackerTes
 
         final Set<String> leaseIds = retentionLeases.v2().leases().stream().map(RetentionLease::id).collect(Collectors.toSet());
         assertThat(leaseIds, hasSize(3));
-        assertThat(leaseIds, equalTo(Stream.concat(Stream.of(ReplicationTracker.getPeerRecoveryRetentionLeaseId(unknownNodeId)),
+        assertThat(leaseIds).isEqualTo(Stream.concat(Stream.of(ReplicationTracker.getPeerRecoveryRetentionLeaseId(unknownNodeId)),
             replicationTracker.routingTable.shards().stream()
-                .map(ReplicationTracker::getPeerRecoveryRetentionLeaseId)).collect(Collectors.toSet())));
+                .map(ReplicationTracker::getPeerRecoveryRetentionLeaseId)).collect(Collectors.toSet()));
     }
 
     @Test
@@ -177,8 +177,8 @@ public class PeerRecoveryRetentionLeaseExpiryTests extends ReplicationTrackerTes
 
         final Set<String> leaseIds = retentionLeases.v2().leases().stream().map(RetentionLease::id).collect(Collectors.toSet());
         assertThat(leaseIds, hasSize(2));
-        assertThat(leaseIds, equalTo(replicationTracker.routingTable.shards().stream()
-            .map(ReplicationTracker::getPeerRecoveryRetentionLeaseId).collect(Collectors.toSet())));
+        assertThat(leaseIds).isEqualTo(replicationTracker.routingTable.shards().stream()
+            .map(ReplicationTracker::getPeerRecoveryRetentionLeaseId).collect(Collectors.toSet()));
     }
 
     @Test
@@ -199,8 +199,8 @@ public class PeerRecoveryRetentionLeaseExpiryTests extends ReplicationTrackerTes
 
         final Set<String> leaseIds = retentionLeases.v2().leases().stream().map(RetentionLease::id).collect(Collectors.toSet());
         assertThat(leaseIds, hasSize(2));
-        assertThat(leaseIds, equalTo(replicationTracker.routingTable.shards().stream()
-            .map(ReplicationTracker::getPeerRecoveryRetentionLeaseId).collect(Collectors.toSet())));
+        assertThat(leaseIds).isEqualTo(replicationTracker.routingTable.shards().stream()
+            .map(ReplicationTracker::getPeerRecoveryRetentionLeaseId).collect(Collectors.toSet()));
     }
 
     public void testPeerRecoveryRetentionLeasesForUnassignedCopiesExpireIfRetainingTooMuchHistory() {
@@ -219,8 +219,8 @@ public class PeerRecoveryRetentionLeaseExpiryTests extends ReplicationTrackerTes
 
         final Set<String> leaseIds = retentionLeases.v2().leases().stream().map(RetentionLease::id).collect(Collectors.toSet());
         assertThat(leaseIds, hasSize(2));
-        assertThat(leaseIds, equalTo(replicationTracker.routingTable.shards().stream()
-            .map(ReplicationTracker::getPeerRecoveryRetentionLeaseId).collect(Collectors.toSet())));
+        assertThat(leaseIds).isEqualTo(replicationTracker.routingTable.shards().stream()
+            .map(ReplicationTracker::getPeerRecoveryRetentionLeaseId).collect(Collectors.toSet()));
     }
 
     private SafeCommitInfo randomSafeCommitInfo() {

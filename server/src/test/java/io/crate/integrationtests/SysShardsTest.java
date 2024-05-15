@@ -33,10 +33,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -87,7 +85,7 @@ public class SysShardsTest extends IntegTestCase {
                 "order by table_name asc");
         // b1
         // path + /blobs == blob_path without custom blob path
-        assertThat(response.rows()[0][0] + resolveCanonicalString("/blobs"), is(response.rows()[0][1]));
+        assertThat(response.rows()[0][0] + resolveCanonicalString("/blobs")).isEqualTo(response.rows()[0][1]);
 
         ClusterService clusterService = cluster().getInstance(ClusterService.class);
         Metadata metadata = clusterService.state().metadata();
@@ -132,12 +130,11 @@ public class SysShardsTest extends IntegTestCase {
             ensureYellow();
 
             SQLResponse response = execute("select sum(num_docs), table_name, sum(num_docs) from sys.shards group by table_name order by table_name desc limit 1000");
-            assertThat(response.rowCount(), is(4L));
-            assertThat(TestingHelpers.printedTable(response.rows()),
-                is("0| t| 0\n" +
+            assertThat(response.rowCount()).isEqualTo(4L);
+            assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("0| t| 0\n" +
                    "0| quotes| 0\n" +
                    "14| characters| 14\n" +
-                   "0| blobs| 0\n"));
+                   "0| blobs| 0\n");
         } finally {
             execute("drop table t");
         }
@@ -227,7 +224,7 @@ public class SysShardsTest extends IntegTestCase {
                 "WHERE id = 0 AND \"primary\" = true AND table_name = 'characters'");
         Object[] resultRow = response.rows()[0];
         Map<String, Object> translogStats = (Map<String, Object>) resultRow[0];
-        assertThat(((Number) translogStats.get("size")).longValue(), is(resultRow[1]));
+        assertThat(((Number) translogStats.get("size")).longValue()).isEqualTo(resultRow[1]);
         assertThat(((Number) translogStats.get("uncommitted_size")).longValue(), greaterThanOrEqualTo(0L));
         assertThat(((Number) translogStats.get("number_of_operations")).longValue(), greaterThanOrEqualTo(0L));
         assertThat(((Number) translogStats.get("uncommitted_operations")).longValue(), greaterThanOrEqualTo(0L));
@@ -249,7 +246,7 @@ public class SysShardsTest extends IntegTestCase {
         List<String> tableNames = Arrays.asList("blobs", "characters", "quotes");
         for (Object[] row : response.rows()) {
             assertThat(tableNames.contains(row[0])).isTrue();
-            assertThat(row[1], is(Version.LATEST.toString()));
+            assertThat(row[1]).isEqualTo(Version.LATEST.toString());
         }
     }
 
@@ -348,7 +345,7 @@ public class SysShardsTest extends IntegTestCase {
     public void testSelectWithOrderByColumnNotInOutputs() throws Exception {
         // regression test... query failed with ArrayOutOfBoundsException due to inputColumn mangling in planner
         SQLResponse response = execute("select id from sys.shards order by table_name limit 1");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
         assertThat(response.rows()[0][0]).isExactlyInstanceOf(Integer.class);
     }
 
@@ -358,7 +355,7 @@ public class SysShardsTest extends IntegTestCase {
                                        "from sys.shards " +
                                        "group by table_name " +
                                        "having table_name = 'quotes'");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("8\n"));
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("8\n");
     }
 
     @Test
@@ -398,9 +395,9 @@ public class SysShardsTest extends IntegTestCase {
         for (Object[] row : response.rows()) {
             Map recovery = (Map) row[0];
             Map<String, Integer> files = (Map<String, Integer>) row[1];
-            assertThat(((Map<String, Integer>) recovery.get("files")).entrySet(), equalTo(files.entrySet()));
+            assertThat(((Map<String, Integer>) recovery.get("files")).entrySet()).isEqualTo(files.entrySet());
             Map<String, Long> size = (Map<String, Long>) row[5];
-            assertThat(((Map<String, Long>) recovery.get("size")).entrySet(), equalTo(size.entrySet()));
+            assertThat(((Map<String, Long>) recovery.get("size")).entrySet()).isEqualTo(size.entrySet());
         }
     }
 
@@ -424,9 +421,9 @@ public class SysShardsTest extends IntegTestCase {
         logger.info("---> Closing table doc.tbl");
         execute("alter table doc.tbl close");
         execute("select id, closed from sys.shards where table_name = 'tbl' order by id asc");
-        assertThat(response.rows()[0][0], is(0));
+        assertThat(response.rows()[0][0]).isEqualTo(0);
         assertThat(response.rows()[0][1]).isEqualTo(true);
-        assertThat(response.rows()[1][0], is(1));
+        assertThat(response.rows()[1][0]).isEqualTo(1);
         assertThat(response.rows()[1][1]).isEqualTo(true);
     }
 

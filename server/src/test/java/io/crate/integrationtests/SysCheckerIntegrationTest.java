@@ -21,9 +21,7 @@
 
 package io.crate.integrationtests;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -47,9 +45,9 @@ public class SysCheckerIntegrationTest extends IntegTestCase {
         cluster().ensureAtLeastNumDataNodes(1);
 
         SQLResponse response = execute("select severity, passed from sys.checks order by id asc");
-        assertThat(response.rowCount(), equalTo(2L));
-        assertThat(response.rows()[0][0], is(Severity.MEDIUM.value()));
-        assertThat(response.rows()[1][0], is(Severity.LOW.value()));
+        assertThat(response.rowCount()).isEqualTo(2L);
+        assertThat(response.rows()[0][0]).isEqualTo(Severity.MEDIUM.value());
+        assertThat(response.rows()[1][0]).isEqualTo(Severity.LOW.value());
     }
 
     @Test
@@ -61,7 +59,7 @@ public class SysCheckerIntegrationTest extends IntegTestCase {
         execute("insert into foo.bar (id) values (?)", new Object[]{1});
         execute("insert into bar (id) values (?)", new Object[]{1});
         SQLResponse response = execute("select severity, passed from sys.checks where id=?", new Object[]{2});
-        assertThat(TestingHelpers.printedTable(response.rows()), is("2| true\n"));
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("2| true\n");
     }
 
     @Test

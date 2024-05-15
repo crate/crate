@@ -25,7 +25,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -64,7 +63,7 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
     private String uploadSmallBlob() throws IOException {
         String digest = "c520e6109835c876fd98636efec43dd61634b7d3";
         CloseableHttpResponse response = put(blobUri(digest), "a".repeat(1500));
-        assertThat(response.getStatusLine().getStatusCode(), is(201));
+        assertThat(response.getStatusLine().getStatusCode()).isEqualTo(201);
         return digest;
     }
 
@@ -83,7 +82,7 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
     @Test
     public void testUploadInvalidSha1() throws IOException {
         CloseableHttpResponse response = put("test/d937ea65641c23fadc83616309e5b0e11acc5806", "asdf");
-        assertThat(response.getStatusLine().getStatusCode(), is(400));
+        assertThat(response.getStatusLine().getStatusCode()).isEqualTo(400);
     }
 
     @Test
@@ -96,7 +95,7 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
     @Test
     public void testNonExistingFile() throws IOException {
         CloseableHttpResponse response = get("test/d937ea65641c23fadc83616309e5b0e11acc5806");
-        assertThat(response.getStatusLine().getStatusCode(), is(404));
+        assertThat(response.getStatusLine().getStatusCode()).isEqualTo(404);
     }
 
     @Test
@@ -105,52 +104,52 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
         CloseableHttpResponse response;
 
         response = get(blobUri("0000000000000000000000000000000000000000"));
-        assertThat(response.getStatusLine().getStatusCode(), is(404));
+        assertThat(response.getStatusLine().getStatusCode()).isEqualTo(404);
 
         response = get(blobUri(digest));
-        assertThat(response.getStatusLine().getStatusCode(), is(200));
+        assertThat(response.getStatusLine().getStatusCode()).isEqualTo(200);
     }
 
     @Test
     public void testUploadValidFile() throws IOException {
         String digest = "c520e6109835c876fd98636efec43dd61634b7d3";
         CloseableHttpResponse response = put(blobUri(digest), "a".repeat(1500));
-        assertThat(response.getStatusLine().getStatusCode(), is(201));
+        assertThat(response.getStatusLine().getStatusCode()).isEqualTo(201);
         /* Note that the content length is specified in the response in order to
         let keep alive clients know that they don't have to wait for data
         after the put and may close the connection if appropriate */
-        assertThat(response.getFirstHeader("Content-Length").getValue(), is("0"));
+        assertThat(response.getFirstHeader("Content-Length").getValue()).isEqualTo("0");
     }
 
     @Test
     public void testUploadChunkedWithConflict() throws IOException {
         String digest = uploadBigBlob();
         CloseableHttpResponse conflictRes = put(blobUri(digest), "abcdefghijklmnopqrstuvwxyz".repeat(1024 * 600));
-        assertThat(conflictRes.getStatusLine().getStatusCode(), is(409));
+        assertThat(conflictRes.getStatusLine().getStatusCode()).isEqualTo(409);
     }
 
     @Test
     public void testUploadToUnknownBlobTable() throws IOException {
         String digest = "c520e6109835c876fd98636efec43dd61634b7d3";
         CloseableHttpResponse response = put(blobUri("test_no_blobs", digest), "a".repeat(1500));
-        assertThat(response.getStatusLine().getStatusCode(), is(404));
+        assertThat(response.getStatusLine().getStatusCode()).isEqualTo(404);
     }
 
     @Test
     public void testGetFiles() throws IOException {
         String digest = uploadBigBlob();
         CloseableHttpResponse res = get(blobUri(digest));
-        assertThat(res.getEntity().getContentLength(), is(15974400L));
+        assertThat(res.getEntity().getContentLength()).isEqualTo(15974400L);
     }
 
     @Test
     public void testHeadRequest() throws IOException {
         String digest = uploadSmallBlob();
         CloseableHttpResponse res = head(blobUri(digest));
-        assertThat(res.getFirstHeader("Content-Length").getValue(), is("1500"));
-        assertThat(res.getFirstHeader("Accept-Ranges").getValue(), is("bytes"));
-        assertThat(res.getFirstHeader("Expires").getValue(), is("Thu, 31 Dec 2037 23:59:59 GMT"));
-        assertThat(res.getFirstHeader("Cache-Control").getValue(), is("max-age=315360000"));
+        assertThat(res.getFirstHeader("Content-Length").getValue()).isEqualTo("1500");
+        assertThat(res.getFirstHeader("Accept-Ranges").getValue()).isEqualTo("bytes");
+        assertThat(res.getFirstHeader("Expires").getValue()).isEqualTo("Thu, 31 Dec 2037 23:59:59 GMT");
+        assertThat(res.getFirstHeader("Cache-Control").getValue()).isEqualTo("max-age=315360000");
     }
 
     @Test
@@ -174,10 +173,10 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
         String digest = uploadSmallBlob();
         String uri = blobUri(digest);
         CloseableHttpResponse res = delete(uri);
-        assertThat(res.getStatusLine().getStatusCode(), is(204));
+        assertThat(res.getStatusLine().getStatusCode()).isEqualTo(204);
 
         res = get(uri);
-        assertThat(res.getStatusLine().getStatusCode(), is(404));
+        assertThat(res.getStatusLine().getStatusCode()).isEqualTo(404);
     }
 
     @Test
@@ -187,22 +186,22 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
             new BasicHeader("Range", "bytes=8-")
         };
         CloseableHttpResponse res = get(blobUri(digest), headers);
-        assertThat(res.getFirstHeader("Content-Length").getValue(), is("18"));
-        assertThat(res.getFirstHeader("Content-Range").getValue(), is("bytes 8-25/26"));
-        assertThat(res.getFirstHeader("Accept-Ranges").getValue(), is("bytes"));
-        assertThat(res.getFirstHeader("Expires").getValue(), is("Thu, 31 Dec 2037 23:59:59 GMT"));
-        assertThat(res.getFirstHeader("Cache-Control").getValue(), is("max-age=315360000"));
-        assertThat(EntityUtils.toString(res.getEntity()), is("ijklmnopqrstuvwxyz"));
+        assertThat(res.getFirstHeader("Content-Length").getValue()).isEqualTo("18");
+        assertThat(res.getFirstHeader("Content-Range").getValue()).isEqualTo("bytes 8-25/26");
+        assertThat(res.getFirstHeader("Accept-Ranges").getValue()).isEqualTo("bytes");
+        assertThat(res.getFirstHeader("Expires").getValue()).isEqualTo("Thu, 31 Dec 2037 23:59:59 GMT");
+        assertThat(res.getFirstHeader("Cache-Control").getValue()).isEqualTo("max-age=315360000");
+        assertThat(EntityUtils.toString(res.getEntity())).isEqualTo("ijklmnopqrstuvwxyz");
 
         res = get(blobUri(digest), new Header[]{
             new BasicHeader("Range", "bytes=0-1")
         });
-        assertThat(EntityUtils.toString(res.getEntity()), is("ab"));
+        assertThat(EntityUtils.toString(res.getEntity())).isEqualTo("ab");
 
         res = get(blobUri(digest), new Header[]{
             new BasicHeader("Range", "bytes=25-")
         });
-        assertThat(EntityUtils.toString(res.getEntity()), is("z"));
+        assertThat(EntityUtils.toString(res.getEntity())).isEqualTo("z");
     }
 
     @Test
@@ -212,9 +211,9 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
             new BasicHeader("Range", "bytes=40-58")
         };
         CloseableHttpResponse res = get(blobUri(digest), headers);
-        assertThat(res.getStatusLine().getStatusCode(), is(416));
-        assertThat(res.getStatusLine().getReasonPhrase(), is("Requested Range Not Satisfiable"));
-        assertThat(res.getFirstHeader("Content-Length").getValue(), is("0"));
+        assertThat(res.getStatusLine().getStatusCode()).isEqualTo(416);
+        assertThat(res.getStatusLine().getReasonPhrase()).isEqualTo("Requested Range Not Satisfiable");
+        assertThat(res.getFirstHeader("Content-Length").getValue()).isEqualTo("0");
     }
 
     @Test
@@ -328,18 +327,18 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
     @Test
     public void testEmptyFile() throws IOException {
         CloseableHttpResponse res = put(blobUri("da39a3ee5e6b4b0d3255bfef95601890afd80709"), "");
-        assertThat(res.getStatusLine().getStatusCode(), is(201));
-        assertThat(res.getStatusLine().getReasonPhrase(), is("Created"));
+        assertThat(res.getStatusLine().getStatusCode()).isEqualTo(201);
+        assertThat(res.getStatusLine().getReasonPhrase()).isEqualTo("Created");
 
         res = put(blobUri("da39a3ee5e6b4b0d3255bfef95601890afd80709"), "");
-        assertThat(res.getStatusLine().getStatusCode(), is(409));
-        assertThat(res.getStatusLine().getReasonPhrase(), is("Conflict"));
+        assertThat(res.getStatusLine().getStatusCode()).isEqualTo(409);
+        assertThat(res.getStatusLine().getReasonPhrase()).isEqualTo("Conflict");
     }
 
     @Test
     public void testGetInvalidDigest() throws Exception {
         CloseableHttpResponse resp = get(blobUri("invlaid"));
-        assertThat(resp.getStatusLine().getStatusCode(), is(404));
+        assertThat(resp.getStatusLine().getStatusCode()).isEqualTo(404);
     }
 
     @Test
@@ -351,18 +350,18 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
             fail("Unable to find blob shard");
         }
 
-        assertThat(blobShard.getBlobsCount(), is(1L));
+        assertThat(blobShard.getBlobsCount()).isEqualTo(1L);
         assertThat(blobShard.getTotalSize(), greaterThan(0L));
 
         String uri = blobUri(digest);
         delete(uri);
-        assertThat(blobShard.getBlobsCount(), is(0L));
-        assertThat(blobShard.getTotalSize(), is(0L));
+        assertThat(blobShard.getBlobsCount()).isEqualTo(0L);
+        assertThat(blobShard.getTotalSize()).isEqualTo(0L);
 
         // attempting to delete the same digest multiple times doesn't modify the stats
         delete(uri);
-        assertThat(blobShard.getBlobsCount(), is(0L));
-        assertThat(blobShard.getTotalSize(), is(0L));
+        assertThat(blobShard.getBlobsCount()).isEqualTo(0L);
+        assertThat(blobShard.getTotalSize()).isEqualTo(0L);
     }
 
     @Test
@@ -395,7 +394,7 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
                 fail("Unable to find blob shard");
             }
 
-            assertThat(blobShard.getBlobsCount(), is(1L));
+            assertThat(blobShard.getBlobsCount()).isEqualTo(1L);
         } finally {
             executorService.shutdown();
             executorService.awaitTermination(10, TimeUnit.SECONDS);

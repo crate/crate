@@ -22,7 +22,6 @@
 package io.crate.metadata.sys;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -56,10 +55,9 @@ public class SysAllocationsTest extends IntegTestCase {
                 "WHERE table_name = 't1' " +
                 "ORDER BY primary, shard_id");
 
-        assertThat(response.rowCount(), is(2L));
-        assertThat(TestingHelpers.printedTable(response.rows()),
-            is("t1| 0| false| UNASSIGNED| cannot allocate because allocation is not permitted to any of the nodes\n" +
-               "t1| 0| true| STARTED| rebalancing is not allowed\n"));
+        assertThat(response.rowCount()).isEqualTo(2L);
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("t1| 0| false| UNASSIGNED| cannot allocate because allocation is not permitted to any of the nodes\n" +
+               "t1| 0| true| STARTED| rebalancing is not allowed\n");
     }
 
     @Test
@@ -69,8 +67,8 @@ public class SysAllocationsTest extends IntegTestCase {
                 "WHERE table_name = 't1' " +
                 "ORDER BY primary, shard_id");
 
-        assertThat(response.columnTypes()[0].id(), is(ArrayType.ID));
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response.columnTypes()[0].id()).isEqualTo(ArrayType.ID);
+        assertThat(response.rowCount()).isEqualTo(2L);
 
         Object[] row;
 
@@ -96,7 +94,7 @@ public class SysAllocationsTest extends IntegTestCase {
                 "FROM sys.allocations " +
                 "WHERE table_name = 't1' " +
                 "ORDER BY primary, shard_id");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response.rowCount()).isEqualTo(2L);
 
         Object[] row;
 

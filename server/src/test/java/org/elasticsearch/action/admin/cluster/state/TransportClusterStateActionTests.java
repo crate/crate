@@ -23,7 +23,6 @@ package org.elasticsearch.action.admin.cluster.state;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.action.admin.cluster.state.TransportClusterStateAction.buildResponse;
-import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
@@ -78,7 +77,7 @@ public class TransportClusterStateActionTests extends ESTestCase {
         var response = buildResponse(request, clusterState, logger);
         assertThat(response.getState().metadata().templates().get("template1")).isNotNull();
         assertThat(response.getState().metadata().hasIndex("index1")).isTrue();
-        assertThat(response.getState().metadata().persistentSettings().get("setting1"), is("bar"));
+        assertThat(response.getState().metadata().persistentSettings().get("setting1")).isEqualTo("bar");
     }
 
     @Test

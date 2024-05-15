@@ -21,8 +21,7 @@
 
 package io.crate.integrationtests;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.assertj.core.api.Assertions;
 import org.elasticsearch.test.IntegTestCase;
@@ -39,10 +38,10 @@ public class ScalarIntegrationTest extends IntegTestCase {
     @Test
     public void testExtractFunctionReturnTypes() {
         execute("SELECT EXTRACT(DAY FROM CURRENT_TIMESTAMP)");
-        assertThat(response.columnTypes()[0], is(DataTypes.INTEGER));
+        assertThat(response.columnTypes()[0]).isEqualTo(DataTypes.INTEGER);
 
         execute("SELECT EXTRACT(EPOCH FROM CURRENT_TIMESTAMP)");
-        assertThat(response.columnTypes()[0], is(DataTypes.DOUBLE));
+        assertThat(response.columnTypes()[0]).isEqualTo(DataTypes.DOUBLE);
     }
 
     @Test
@@ -57,17 +56,17 @@ public class ScalarIntegrationTest extends IntegTestCase {
             // This is documenting a bug. If this fails, it is a breaking change.
             var response = sqlExecutor.exec("SELECT [unnest]['x'] FROM UNNEST(['{\"x\":1,\"y\":2}','{\"y\":2,\"z\":3}']::ARRAY(OBJECT))",
                             session);
-            assertThat(TestingHelpers.printedTable(response.rows()), is("[1]\n[null]\n"));
+            assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("[1]\n[null]\n");
         }
 
         try (var session2 = sqlExecutor.newSession()) {
             session2.sessionSettings().setErrorOnUnknownObjectKey(false);
             response = sqlExecutor.exec("SELECT unnest['x'] FROM UNNEST(['{\"x\":1,\"y\":2}','{\"y\":2,\"z\":3}']::ARRAY(OBJECT))",
                                     session2);
-            assertThat(TestingHelpers.printedTable(response.rows()), is("1\nNULL\n"));
+            assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("1\nNULL\n");
             response = sqlExecutor.exec("SELECT [unnest]['x'] FROM UNNEST(['{\"x\":1,\"y\":2}','{\"y\":2,\"z\":3}']::ARRAY(OBJECT))",
                                             session2);
-            assertThat(TestingHelpers.printedTable(response.rows()), is("[1]\n[null]\n"));
+            assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("[1]\n[null]\n");
         }
     }
 }

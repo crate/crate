@@ -22,8 +22,7 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
@@ -50,7 +49,7 @@ public class SubSelectGroupByIntegrationTest extends IntegTestCase {
             "select count(x) from (select x from t1 limit 1) as tt " +
             "group by x"
         );
-        assertThat(printedTable(response.rows()), is("1\n"));
+        assertThat(printedTable(response.rows())).isEqualTo("1\n");
     }
 
     @Test
@@ -60,7 +59,7 @@ public class SubSelectGroupByIntegrationTest extends IntegTestCase {
             "where x = 2 " +
             "group by x"
         );
-        assertThat(printedTable(response.rows()), is("1\n"));
+        assertThat(printedTable(response.rows())).isEqualTo("1\n");
     }
 
     @Test
@@ -70,7 +69,7 @@ public class SubSelectGroupByIntegrationTest extends IntegTestCase {
             "group by x " +
             "limit 1"
         );
-        assertThat(printedTable(response.rows()), is("1\n"));
+        assertThat(printedTable(response.rows())).isEqualTo("1\n");
     }
 
     @Test
@@ -80,7 +79,7 @@ public class SubSelectGroupByIntegrationTest extends IntegTestCase {
             "group by country " +
             "order by 2"
         );
-        assertThat(printedTable(response.rows()), is("1| 3\n"));
+        assertThat(printedTable(response.rows())).isEqualTo("1| 3\n");
     }
 
     @Test
@@ -91,7 +90,7 @@ public class SubSelectGroupByIntegrationTest extends IntegTestCase {
             "order by 1 " +
             "limit 100 "
         );
-        assertThat(printedTable(response.rows()), is("5| 1\n"));
+        assertThat(printedTable(response.rows())).isEqualTo("5| 1\n");
     }
 
     @Test
@@ -101,8 +100,7 @@ public class SubSelectGroupByIntegrationTest extends IntegTestCase {
             "(select z from t2 limit 1) as tt2 " +
             "group by x order by x"
         );
-        assertThat(printedTable(response.rows()),
-            is("1\n" +
-               "2\n"));
+        assertThat(printedTable(response.rows())).isEqualTo("1\n" +
+               "2\n");
     }
 }

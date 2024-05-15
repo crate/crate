@@ -21,6 +21,7 @@ package org.elasticsearch.test;
 
 import java.io.IOException;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertFalse;
@@ -75,8 +76,7 @@ public class EqualsHashCodeTestUtils {
             // TODO not sure how useful the following test is
             assertFalse(objectName + " is equal to incompatible type", original.equals(ESTestCase.randomFrom(someObjects)));
             assertTrue(objectName + " is not equal to self", original.equals(original));
-            assertThat(objectName + " hashcode returns different values if called multiple times", original.hashCode(),
-                    equalTo(original.hashCode()));
+            assertThat(original.hashCode()).as(objectName + " hashcode returns different values if called multiple times").isEqualTo(original.hashCode());
             if (mutationFunction != null) {
                 T mutation = mutationFunction.mutate(original);
                 assertThat(objectName + " mutation should not be equal to original", mutation,
@@ -87,12 +87,12 @@ public class EqualsHashCodeTestUtils {
             assertTrue(objectName + " copy is not equal to self", copy.equals(copy));
             assertTrue(objectName + " is not equal to its copy", original.equals(copy));
             assertTrue("equals is not symmetric", copy.equals(original));
-            assertThat(objectName + " hashcode is different from copies hashcode", copy.hashCode(), equalTo(original.hashCode()));
+            assertThat(copy.hashCode()).as(objectName + " hashcode is different from copies hashcode").isEqualTo(original.hashCode());
 
             T secondCopy = copyFunction.copy(copy);
             assertTrue("second copy is not equal to self", secondCopy.equals(secondCopy));
             assertTrue("copy is not equal to its second copy", copy.equals(secondCopy));
-            assertThat("second copy's hashcode is different from original hashcode", copy.hashCode(), equalTo(secondCopy.hashCode()));
+            assertThat(copy.hashCode()).as("second copy's hashcode is different from original hashcode").isEqualTo(secondCopy.hashCode());
             assertTrue("equals is not transitive", original.equals(secondCopy));
             assertTrue("equals is not symmetric", secondCopy.equals(copy));
             assertTrue("equals is not symmetric", secondCopy.equals(original));

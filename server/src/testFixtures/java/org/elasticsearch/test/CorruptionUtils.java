@@ -20,8 +20,6 @@ package org.elasticsearch.test;
 
 import static io.crate.lucene.CrateLuceneTestCase.assumeTrue;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
@@ -88,7 +86,7 @@ public final class CorruptionUtils {
             long checksumAfterCorruption;
             long actualChecksumAfterCorruption;
             try (ChecksumIndexInput input = dir.openChecksumInput(fileToCorrupt.getFileName().toString(), IOContext.DEFAULT)) {
-                assertThat(input.getFilePointer(), is(0L));
+                assertThat(input.getFilePointer()).isEqualTo(0L);
                 input.seek(input.length() - 8); // one long is the checksum... 8 bytes
                 checksumAfterCorruption = input.getChecksum();
                 actualChecksumAfterCorruption = input.readLong();

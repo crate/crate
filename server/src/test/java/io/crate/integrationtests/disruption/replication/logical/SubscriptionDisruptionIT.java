@@ -90,8 +90,7 @@ public class SubscriptionDisruptionIT extends LogicalReplicationITestCase {
                         " FROM pg_subscription s" +
                         " JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
                         " ORDER BY s.subname");
-                    assertThat(printedTable(res.rows()),
-                               is("sub1| [pub1]| doc.t1| e| Tracking of metadata failed for subscription 'sub1' with unrecoverable error, stop tracking.\nReason: fail on logical replication repository restore\n"));
+                    assertThat(printedTable(res.rows())).isEqualTo("sub1| [pub1]| doc.t1| e| Tracking of metadata failed for subscription 'sub1' with unrecoverable error, stop tracking.\nReason: fail on logical replication repository restore\n");
                 }
             );
         } finally {
@@ -116,9 +115,9 @@ public class SubscriptionDisruptionIT extends LogicalReplicationITestCase {
                     " FROM pg_subscription s" +
                     " JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
                     " ORDER BY s.subname");
-            assertThat(printedTable(res.rows()), is(
+            assertThat(printedTable(res.rows())).isEqualTo(
                 "sub1| [pub1]| doc.t1| r| NULL\n"
-            ));
+            );
         });
 
         var expectedLogMessage = "Retrieving remote metadata failed for subscription 'sub1', will retry";
@@ -141,8 +140,8 @@ public class SubscriptionDisruptionIT extends LogicalReplicationITestCase {
             var r = executeOnSubscriber("SELECT column_name FROM information_schema.columns" +
                                         " WHERE table_name = 't1'" +
                                         " ORDER BY ordinal_position");
-            assertThat(printedTable(r.rows()), is("id\n" +
-                                                  "value\n"));
+            assertThat(printedTable(r.rows())).isEqualTo("id\n" +
+                                                  "value\n");
         });
     }
 
@@ -163,9 +162,9 @@ public class SubscriptionDisruptionIT extends LogicalReplicationITestCase {
                 " FROM pg_subscription s" +
                 " JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
                 " ORDER BY s.subname");
-            assertThat(printedTable(res.rows()), is(
+            assertThat(printedTable(res.rows())).isEqualTo(
                 "sub1| [pub1]| doc.t1| r| NULL\n"
-            ));
+            );
         });
 
         var expectedLogMessage = "Tracking of metadata failed for subscription 'sub1' with unrecoverable error, stop tracking";
@@ -195,8 +194,7 @@ public class SubscriptionDisruptionIT extends LogicalReplicationITestCase {
             " FROM pg_subscription s" +
             " JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
             " ORDER BY s.subname");
-        assertThat(printedTable(res.rows()),
-                   is("sub1| [pub1]| doc.t1| e| Tracking of metadata failed for subscription 'sub1' with unrecoverable error, stop tracking.\nReason: rejected\n"));
+        assertThat(printedTable(res.rows())).isEqualTo("sub1| [pub1]| doc.t1| e| Tracking of metadata failed for subscription 'sub1' with unrecoverable error, stop tracking.\nReason: rejected\n");
     }
 
     @Test
@@ -215,9 +213,9 @@ public class SubscriptionDisruptionIT extends LogicalReplicationITestCase {
                     " FROM pg_subscription s" +
                     " JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
                     " ORDER BY s.subname");
-            assertThat(printedTable(res.rows()), is(
+            assertThat(printedTable(res.rows())).isEqualTo(
                 "sub1| [pub1]| doc.t1| r| NULL\n"
-            ));
+            );
         });
 
         String isolatedNode = subscriberCluster.getMasterName();
@@ -243,8 +241,8 @@ public class SubscriptionDisruptionIT extends LogicalReplicationITestCase {
             var r = executeOnSubscriber("SELECT column_name FROM information_schema.columns" +
                 " WHERE table_name = 't1'" +
                 " ORDER BY ordinal_position");
-            assertThat(printedTable(r.rows()), is("id\n" +
-                "value\n"));
+            assertThat(printedTable(r.rows())).isEqualTo("id\n" +
+                "value\n");
         });
 
     }

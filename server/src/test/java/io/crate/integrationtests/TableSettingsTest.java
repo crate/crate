@@ -26,10 +26,9 @@ import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_COLUMN;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.hamcrest.Matchers.is;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Locale;
@@ -177,7 +176,7 @@ public class TableSettingsTest extends IntegTestCase {
     public void testSelectDynamicSettingGroup() {
         execute("select settings['routing']['allocation']['exclude'] from information_schema.tables " +
                 "where table_name = 'settings_table'");
-        assertThat(printedTable(response.rows()), is("{foo=bar}\n"));
+        assertThat(printedTable(response.rows())).isEqualTo("{foo=bar}\n");
     }
 
     @Test
@@ -195,7 +194,7 @@ public class TableSettingsTest extends IntegTestCase {
         execute("alter table settings_table set (\"routing.allocation.exclude.foo\" = 'bar2')");
         execute("select settings['routing']['allocation']['exclude'] from information_schema.tables " +
                 "where table_name = 'settings_table'");
-        assertThat(printedTable(response.rows()), is("{foo=bar2}\n"));
+        assertThat(printedTable(response.rows())).isEqualTo("{foo=bar2}\n");
     }
 
     @Test
@@ -211,14 +210,14 @@ public class TableSettingsTest extends IntegTestCase {
         execute("alter table settings_table reset (\"routing.allocation.exclude.foo\")");
         execute("select settings['routing']['allocation']['exclude'] from information_schema.tables " +
                 "where table_name = 'settings_table'");
-        assertThat(printedTable(response.rows()), is("{}\n"));
+        assertThat(printedTable(response.rows())).isEqualTo("{}\n");
 
         execute("alter table settings_table set (" +
                 "\"routing.allocation.exclude.foo\" = 'bar', \"routing.allocation.exclude.foo2\" = 'bar2')");
         execute("alter table settings_table reset (\"routing.allocation.exclude.foo\")");
         execute("select settings['routing']['allocation']['exclude'] from information_schema.tables " +
                 "where table_name = 'settings_table'");
-        assertThat(printedTable(response.rows()), is("{foo2=bar2}\n"));
+        assertThat(printedTable(response.rows())).isEqualTo("{foo2=bar2}\n");
     }
 
     @Test

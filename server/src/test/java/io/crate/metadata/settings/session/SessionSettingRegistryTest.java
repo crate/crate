@@ -124,9 +124,9 @@ public class SessionSettingRegistryTest extends ESTestCase {
         SessionSetting<?> setting = new SessionSettingRegistry(Set.of(LoadedRules.INSTANCE)).settings().get("search_path");
         assertThat(setting.defaultValue(),is("doc"));
         setting.apply(SESSION_SETTINGS, generateInput("a_schema"), EVAL);
-        assertThat(setting.getValue(SESSION_SETTINGS), is("a_schema"));
+        assertThat(setting.getValue(SESSION_SETTINGS)).isEqualTo("a_schema");
         setting.apply(SESSION_SETTINGS, generateInput("a_schema,  pg_catalog ,b_schema", " c_schema "), EVAL);
-        assertThat(setting.getValue(SESSION_SETTINGS), is("a_schema, pg_catalog, b_schema, c_schema"));
+        assertThat(setting.getValue(SESSION_SETTINGS)).isEqualTo("a_schema, pg_catalog, b_schema, c_schema");
     }
 
     @Test
@@ -134,11 +134,11 @@ public class SessionSettingRegistryTest extends ESTestCase {
         SessionSetting<?> setting = new SessionSettingRegistry(Set.of(LoadedRules.INSTANCE)).settings().get(SessionSettingRegistry.DATE_STYLE.name());
         assertThat(setting.defaultValue(),is("ISO"));
         setting.apply(SESSION_SETTINGS, generateInput("iso"), EVAL);
-        assertThat(SESSION_SETTINGS.dateStyle(), is("ISO"));
+        assertThat(SESSION_SETTINGS.dateStyle()).isEqualTo("ISO");
         setting.apply(SESSION_SETTINGS, generateInput("MDY"), EVAL);
-        assertThat(SESSION_SETTINGS.dateStyle(), is("ISO"));
+        assertThat(SESSION_SETTINGS.dateStyle()).isEqualTo("ISO");
         setting.apply(SESSION_SETTINGS, generateInput("ISO, MDY"), EVAL);
-        assertThat(SESSION_SETTINGS.dateStyle(), is("ISO"));
+        assertThat(SESSION_SETTINGS.dateStyle()).isEqualTo("ISO");
         assertThrows(IllegalArgumentException.class,
                      () -> setting.apply(SESSION_SETTINGS, generateInput("ISO, YDM"), EVAL),
                      "Invalid value for parameter \"datestyle\": \"YDM\". Valid values include: [\"ISO\"].");
@@ -170,7 +170,7 @@ public class SessionSettingRegistryTest extends ESTestCase {
     private void assertBooleanNonEmptySetting(Supplier<Boolean> contextBooleanSupplier,
                                               SessionSetting<?> sessionSetting,
                                               boolean defaultValue) {
-        assertThat(contextBooleanSupplier.get(), is(defaultValue));
+        assertThat(contextBooleanSupplier.get()).isEqualTo(defaultValue);
         sessionSetting.apply(SESSION_SETTINGS, generateInput("true"), EVAL);
         assertThat(contextBooleanSupplier.get()).isTrue();
         sessionSetting.apply(SESSION_SETTINGS, generateInput("false"), EVAL);

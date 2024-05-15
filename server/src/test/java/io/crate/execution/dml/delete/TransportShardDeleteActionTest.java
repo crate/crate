@@ -22,8 +22,6 @@
 package io.crate.execution.dml.delete;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -106,7 +104,7 @@ public class TransportShardDeleteActionTest extends CrateDummyClusterServiceUnit
             transportShardDeleteAction.processRequestItems(indexShard, request, new AtomicBoolean(true));
 
         assertThat(result.finalResponseIfSuccessful.failure()).isExactlyInstanceOf(InterruptedException.class);
-        assertThat(request.skipFromLocation(), is(1));
+        assertThat(request.skipFromLocation()).isEqualTo(1);
     }
 
     @Test

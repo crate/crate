@@ -21,6 +21,7 @@
 
 package io.crate.protocols.postgres.types;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -43,9 +44,9 @@ public class TimestampZTypeTest extends BasePGTypeTest<Long> {
             long value = 1467072000000L;
             int written = pgType.writeAsBinary(buffer, value);
             int length = buffer.readInt();
-            assertThat(written - 4, is(length));
+            assertThat(written - 4).isEqualTo(length);
             long readValue = (long) pgType.readBinaryValue(buffer, length);
-            assertThat(readValue, is(value));
+            assertThat(readValue).isEqualTo(value);
         } finally {
             buffer.release();
         }
@@ -53,10 +54,8 @@ public class TimestampZTypeTest extends BasePGTypeTest<Long> {
 
     @Test
     public void testEncodeAsUTF8Text() {
-        assertThat(new String(TimestampZType.INSTANCE.encodeAsUTF8Text(1467072000000L), UTF_8),
-            is("2016-06-28 00:00:00.000+00"));
-        assertThat(new String(TimestampZType.INSTANCE.encodeAsUTF8Text(-93661920000000L), UTF_8),
-            is("1000-12-22 00:00:00.000+00 BC"));
+        assertThat(new String(TimestampZType.INSTANCE.encodeAsUTF8Text(1467072000000L), UTF_8)).isEqualTo("2016-06-28 00:00:00.000+00");
+        assertThat(new String(TimestampZType.INSTANCE.encodeAsUTF8Text(-93661920000000L), UTF_8)).isEqualTo("1000-12-22 00:00:00.000+00 BC");
     }
 
     @Test

@@ -19,9 +19,7 @@
 package org.elasticsearch.index.shard;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -110,7 +108,7 @@ public class PrimaryReplicaSyncerTests extends IndexShardTestCase {
         if (syncNeeded) {
             assertTrue("Sync action was not called", syncActionCalled.get());
             ResyncReplicationRequest resyncRequest = resyncRequests.remove(0);
-            assertThat(resyncRequest.getTrimAboveSeqNo(), equalTo(numDocs - 1L));
+            assertThat(resyncRequest.getTrimAboveSeqNo()).isEqualTo(numDocs - 1L);
 
             assertThat(resyncRequests.stream()
                     .mapToLong(ResyncReplicationRequest::getTrimAboveSeqNo)
@@ -120,20 +118,20 @@ public class PrimaryReplicaSyncerTests extends IndexShardTestCase {
               .as("trimAboveSeqNo has to be specified in request #0 only")
               .isFalse();
 
-            assertThat(resyncRequest.getMaxSeenAutoIdTimestampOnPrimary(), equalTo(shard.getMaxSeenAutoIdTimestamp()));
+            assertThat(resyncRequest.getMaxSeenAutoIdTimestampOnPrimary()).isEqualTo(shard.getMaxSeenAutoIdTimestamp());
         }
         if (syncNeeded && globalCheckPoint < numDocs - 1) {
-            assertThat(resyncTask.getSkippedOperations(), equalTo(0));
-            assertThat(resyncTask.getResyncedOperations(), equalTo(Math.toIntExact(numDocs - 1 - globalCheckPoint)));
+            assertThat(resyncTask.getSkippedOperations()).isEqualTo(0);
+            assertThat(resyncTask.getResyncedOperations()).isEqualTo(Math.toIntExact(numDocs - 1 - globalCheckPoint));
             if (shard.indexSettings.isSoftDeleteEnabled()) {
-                assertThat(resyncTask.getTotalOperations(), equalTo(Math.toIntExact(numDocs - 1 - globalCheckPoint)));
+                assertThat(resyncTask.getTotalOperations()).isEqualTo(Math.toIntExact(numDocs - 1 - globalCheckPoint));
             } else {
-                assertThat(resyncTask.getTotalOperations(), equalTo(numDocs));
+                assertThat(resyncTask.getTotalOperations()).isEqualTo(numDocs);
             }
          } else {
-             assertThat(resyncTask.getSkippedOperations(), equalTo(0));
-             assertThat(resyncTask.getResyncedOperations(), equalTo(0));
-             assertThat(resyncTask.getTotalOperations(), equalTo(0));
+             assertThat(resyncTask.getSkippedOperations()).isEqualTo(0);
+             assertThat(resyncTask.getResyncedOperations()).isEqualTo(0);
+             assertThat(resyncTask.getTotalOperations()).isEqualTo(0);
          }
         closeShards(shard);
     }
@@ -231,7 +229,7 @@ public class PrimaryReplicaSyncerTests extends IndexShardTestCase {
         PlainActionFuture<PrimaryReplicaSyncer.ResyncTask> fut = new PlainActionFuture<>();
         syncer.resync(shard, fut);
         FutureUtils.get(fut);
-        assertThat(sentOperations, equalTo(operations.stream().filter(op -> op.seqNo() >= 0).collect(Collectors.toList())));
+        assertThat(sentOperations).isEqualTo(operations.stream().filter(op -> op.seqNo() >= 0).collect(Collectors.toList()));
         closeShards(shard);
     }
 }

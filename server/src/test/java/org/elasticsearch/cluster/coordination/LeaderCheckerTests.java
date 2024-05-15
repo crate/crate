@@ -19,16 +19,17 @@
 
 package org.elasticsearch.cluster.coordination;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.coordination.LeaderChecker.LEADER_CHECK_ACTION_NAME;
 import static org.elasticsearch.cluster.coordination.LeaderChecker.LEADER_CHECK_INTERVAL_SETTING;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.coordination.LeaderChecker.LEADER_CHECK_RETRY_COUNT_SETTING;
 import static org.elasticsearch.cluster.coordination.LeaderChecker.LEADER_CHECK_TIMEOUT_SETTING;
+import static org.elasticsearch.monitor.StatusInfo.Status.HEALTHY;
+import static org.elasticsearch.monitor.StatusInfo.Status.UNHEALTHY;
 import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
 import static org.elasticsearch.transport.TransportService.HANDSHAKE_ACTION_NAME;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.endsWith;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.matchesRegex;
 import static org.hamcrest.Matchers.nullValue;
@@ -39,6 +40,7 @@ import static org.junit.Assert.fail;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
@@ -63,12 +65,6 @@ import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportResponse.Empty;
 import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
-
-
-import java.util.concurrent.atomic.AtomicReference;
-
-import static org.elasticsearch.monitor.StatusInfo.Status.HEALTHY;
-import static org.elasticsearch.monitor.StatusInfo.Status.UNHEALTHY;
 
 public class LeaderCheckerTests extends ESTestCase {
 
@@ -117,7 +113,7 @@ public class LeaderCheckerTests extends ESTestCase {
 
             @Override
             protected void onSendRequest(long requestId, String action, TransportRequest request, DiscoveryNode node) {
-                assertThat(action, equalTo(LEADER_CHECK_ACTION_NAME));
+                assertThat(action).isEqualTo(LEADER_CHECK_ACTION_NAME);
                 assertTrue(node.equals(leader1) || node.equals(leader2));
                 super.onSendRequest(requestId, action, request, node);
 
@@ -233,7 +229,7 @@ public class LeaderCheckerTests extends ESTestCase {
                     handleResponse(requestId, new TransportService.HandshakeResponse(node, ClusterName.DEFAULT, Version.CURRENT));
                     return;
                 }
-                assertThat(action, equalTo(LEADER_CHECK_ACTION_NAME));
+                assertThat(action).isEqualTo(LEADER_CHECK_ACTION_NAME);
                 assertTrue(node.equals(leader));
                 final Response response = responseHolder[0];
 
@@ -347,8 +343,8 @@ public class LeaderCheckerTests extends ESTestCase {
                     handleResponse(requestId, new TransportService.HandshakeResponse(node, ClusterName.DEFAULT, Version.CURRENT));
                     return;
                 }
-                assertThat(action, equalTo(LEADER_CHECK_ACTION_NAME));
-                assertThat(node, equalTo(leader));
+                assertThat(action).isEqualTo(LEADER_CHECK_ACTION_NAME);
+                assertThat(node).isEqualTo(leader);
                 final Response response = responseHolder[0];
 
                 deterministicTaskQueue.scheduleNow(new Runnable() {
@@ -437,8 +433,8 @@ public class LeaderCheckerTests extends ESTestCase {
             assertFalse(handler.successfulResponseReceived);
             assertThat(handler.transportException.getRootCause()).isExactlyInstanceOf(NodeHealthCheckFailureException.class);
             NodeHealthCheckFailureException cause = (NodeHealthCheckFailureException) handler.transportException.getRootCause();
-            assertThat(cause.getMessage(), equalTo("rejecting leader check from [" + otherNode
-                + "] since node is unhealthy [unhealthy-info]"));
+            assertThat(cause.getMessage()).isEqualTo("rejecting leader check from [" + otherNode
+                + "] since node is unhealthy [unhealthy-info]");
         }
 
         nodeHealthServiceStatus.getAndSet(new StatusInfo(HEALTHY, "healthy-info"));
@@ -452,7 +448,7 @@ public class LeaderCheckerTests extends ESTestCase {
             assertFalse(handler.successfulResponseReceived);
             assertThat(handler.transportException.getRootCause()).isExactlyInstanceOf(CoordinationStateRejectedException.class);
             CoordinationStateRejectedException cause = (CoordinationStateRejectedException) handler.transportException.getRootCause();
-            assertThat(cause.getMessage(), equalTo("leader check from unknown node"));
+            assertThat(cause.getMessage()).isEqualTo("leader check from unknown node");
         }
 
         {
@@ -476,8 +472,7 @@ public class LeaderCheckerTests extends ESTestCase {
             assertFalse(handler.successfulResponseReceived);
             assertThat(handler.transportException.getRootCause()).isExactlyInstanceOf(CoordinationStateRejectedException.class);
             CoordinationStateRejectedException cause = (CoordinationStateRejectedException) handler.transportException.getRootCause();
-            assertThat(cause.getMessage(),
-                       equalTo("rejecting leader check from [" + otherNode + "] sent to a node that is no longer the master"));
+            assertThat(cause.getMessage()).isEqualTo("rejecting leader check from [" + otherNode + "] sent to a node that is no longer the master");
         }
     }
 

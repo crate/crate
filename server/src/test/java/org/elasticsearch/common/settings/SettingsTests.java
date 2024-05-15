@@ -25,9 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasEntry;
-import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -68,7 +66,7 @@ public class SettingsTests extends ESTestCase {
             .put("setting1", "${property.placeholder}")
             .replacePropertyPlaceholders()
             .build();
-        assertThat(settings.get("setting1"), equalTo(value));
+        assertThat(settings.get("setting1")).isEqualTo(value);
     }
 
     @Test
@@ -101,7 +99,7 @@ public class SettingsTests extends ESTestCase {
             .put("setting1", "${HOSTNAME}")
             .replacePropertyPlaceholders(name -> "HOSTNAME".equals(name) ? hostname : null)
             .build();
-        assertThat(implicitEnvSettings.get("setting1"), equalTo(hostname));
+        assertThat(implicitEnvSettings.get("setting1")).isEqualTo(hostname);
     }
 
     @Test
@@ -115,8 +113,8 @@ public class SettingsTests extends ESTestCase {
         Settings fooSettings = settings.getAsSettings("foo");
         assertFalse(fooSettings.isEmpty());
         assertEquals(2, fooSettings.size());
-        assertThat(fooSettings.get("bar"), equalTo("def"));
-        assertThat(fooSettings.get("baz"), equalTo("ghi"));
+        assertThat(fooSettings.get("bar")).isEqualTo("def");
+        assertThat(fooSettings.get("baz")).isEqualTo("ghi");
     }
 
     @Test
@@ -130,8 +128,8 @@ public class SettingsTests extends ESTestCase {
         Settings firstLevelSettings = settings.getByPrefix("1.");
         assertFalse(firstLevelSettings.isEmpty());
         assertEquals(2, firstLevelSettings.size());
-        assertThat(firstLevelSettings.get("2.3.4"), equalTo("abc"));
-        assertThat(firstLevelSettings.get("2.3"), equalTo("hello world"));
+        assertThat(firstLevelSettings.get("2.3.4")).isEqualTo("abc");
+        assertThat(firstLevelSettings.get("2.3")).isEqualTo("hello world");
 
         Settings secondLevelSetting = firstLevelSettings.getByPrefix("2.");
         assertFalse(secondLevelSetting.isEmpty());
@@ -139,8 +137,8 @@ public class SettingsTests extends ESTestCase {
         assertNull(secondLevelSetting.get("2.3.4"));
         assertNull(secondLevelSetting.get("1.2.3.4"));
         assertNull(secondLevelSetting.get("1.2.3"));
-        assertThat(secondLevelSetting.get("3.4"), equalTo("abc"));
-        assertThat(secondLevelSetting.get("3"), equalTo("hello world"));
+        assertThat(secondLevelSetting.get("3.4")).isEqualTo("abc");
+        assertThat(secondLevelSetting.get("3")).isEqualTo("hello world");
 
         Settings thirdLevelSetting = secondLevelSetting.getByPrefix("3.");
         assertFalse(thirdLevelSetting.isEmpty());
@@ -148,7 +146,7 @@ public class SettingsTests extends ESTestCase {
         assertNull(thirdLevelSetting.get("2.3.4"));
         assertNull(thirdLevelSetting.get("3.4"));
         assertNull(thirdLevelSetting.get("1.2.3"));
-        assertThat(thirdLevelSetting.get("4"), equalTo("abc"));
+        assertThat(thirdLevelSetting.get("4")).isEqualTo("abc");
     }
 
     @Test
@@ -160,13 +158,13 @@ public class SettingsTests extends ESTestCase {
             .put("foo.baz", "ghi").build();
 
         Set<String> names = settings.names();
-        assertThat(names.size(), equalTo(2));
+        assertThat(names.size()).isEqualTo(2);
         assertTrue(names.contains("bar"));
         assertTrue(names.contains("foo"));
 
         Settings fooSettings = settings.getAsSettings("foo");
         names = fooSettings.names();
-        assertThat(names.size(), equalTo(2));
+        assertThat(names.size()).isEqualTo(2);
         assertTrue(names.contains("bar"));
         assertTrue(names.contains("baz"));
     }
@@ -270,24 +268,24 @@ public class SettingsTests extends ESTestCase {
             .put(Settings.builder().putList("value", "4", "5").build())
             .put(Settings.builder().put("value.data", "1").build())
             .build();
-        assertThat(settings.get("value.data"), is("1"));
-        assertThat(settings.get("value"), is("[4, 5]"));
+        assertThat(settings.get("value.data")).isEqualTo("1");
+        assertThat(settings.get("value")).isEqualTo("[4, 5]");
     }
 
     @Test
     public void testPrefixNormalization() {
         Settings settings = Settings.builder().normalizePrefix("foo.").build();
 
-        assertThat(settings.names().size(), equalTo(0));
+        assertThat(settings.names().size()).isEqualTo(0);
 
         settings = Settings.builder()
             .put("bar", "baz")
             .normalizePrefix("foo.")
             .build();
 
-        assertThat(settings.size(), equalTo(1));
+        assertThat(settings.size()).isEqualTo(1);
         assertThat(settings.get("bar"), nullValue());
-        assertThat(settings.get("foo.bar"), equalTo("baz"));
+        assertThat(settings.get("foo.bar")).isEqualTo("baz");
 
 
         settings = Settings.builder()
@@ -296,10 +294,10 @@ public class SettingsTests extends ESTestCase {
             .normalizePrefix("foo.")
             .build();
 
-        assertThat(settings.size(), equalTo(2));
+        assertThat(settings.size()).isEqualTo(2);
         assertThat(settings.get("bar"), nullValue());
-        assertThat(settings.get("foo.bar"), equalTo("baz"));
-        assertThat(settings.get("foo.test"), equalTo("test"));
+        assertThat(settings.get("foo.bar")).isEqualTo("baz");
+        assertThat(settings.get("foo.test")).isEqualTo("test");
 
         settings = Settings.builder()
             .put("foo.test", "test")
@@ -307,8 +305,8 @@ public class SettingsTests extends ESTestCase {
             .build();
 
 
-        assertThat(settings.size(), equalTo(1));
-        assertThat(settings.get("foo.test"), equalTo("test"));
+        assertThat(settings.size()).isEqualTo(1);
+        assertThat(settings.get("foo.test")).isEqualTo("test");
     }
 
     @Test
@@ -526,16 +524,16 @@ public class SettingsTests extends ESTestCase {
             .loadFromStream(json, getClass().getResourceAsStream(json), false)
             .build();
 
-        assertThat(settings.get("test1.value1"), equalTo("value1"));
-        assertThat(settings.get("test1.test2.value2"), equalTo("value2"));
-        assertThat(settings.getAsInt("test1.test2.value3", -1), equalTo(2));
+        assertThat(settings.get("test1.value1")).isEqualTo("value1");
+        assertThat(settings.get("test1.test2.value2")).isEqualTo("value2");
+        assertThat(settings.getAsInt("test1.test2.value3", -1)).isEqualTo(2);
 
         // check array
         assertNull(settings.get("test1.test3.0"));
         assertNull(settings.get("test1.test3.1"));
-        assertThat(settings.getAsList("test1.test3").size(), equalTo(2));
-        assertThat(settings.getAsList("test1.test3").get(0), equalTo("test3-1"));
-        assertThat(settings.getAsList("test1.test3").get(1), equalTo("test3-2"));
+        assertThat(settings.getAsList("test1.test3").size()).isEqualTo(2);
+        assertThat(settings.getAsList("test1.test3").get(0)).isEqualTo("test3-1");
+        assertThat(settings.getAsList("test1.test3").get(1)).isEqualTo("test3-2");
     }
 
     @Test

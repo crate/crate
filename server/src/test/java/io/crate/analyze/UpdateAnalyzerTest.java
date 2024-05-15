@@ -32,7 +32,6 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -193,11 +192,11 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testUpdateAssignments() throws Exception {
         AnalyzedUpdateStatement update = analyze("update users set name='Trillian'");
         assertThat(update.assignmentByTargetCol()).hasSize(1);
-        assertThat(((DocTableRelation) update.table()).tableInfo().ident(), is(new RelationName(Schemas.DOC_SCHEMA_NAME, "users")));
+        assertThat(((DocTableRelation) update.table()).tableInfo().ident()).isEqualTo(new RelationName(Schemas.DOC_SCHEMA_NAME, "users"));
 
         Reference ref = update.assignmentByTargetCol().keySet().iterator().next();
-        assertThat(ref.ident().tableIdent().name(), is("users"));
-        assertThat(ref.column().name(), is("name"));
+        assertThat(ref.ident().tableIdent().name()).isEqualTo("users");
+        assertThat(ref.column().name()).isEqualTo("name");
         assertTrue(update.assignmentByTargetCol().containsKey(ref));
 
         Symbol value = update.assignmentByTargetCol().entrySet().iterator().next().getValue();
@@ -213,7 +212,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(ref).isExactlyInstanceOf(DynamicReference.class);
         Assert.assertEquals(DataTypes.INTEGER, ref.valueType());
         assertThat(ref.column().isRoot()).isFalse();
-        assertThat(ref.column().fqn(), is("details.arms"));
+        assertThat(ref.column().fqn()).isEqualTo("details.arms");
     }
 
     @Test
@@ -308,8 +307,8 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         Symbol[] sources = assignments.bindSources(((DocTableInfo) update.table().tableInfo()), new RowN(params), SubQueryResults.EMPTY);
 
 
-        assertThat(sources[0].valueType().id(), is(ArrayType.ID));
-        assertThat(((ArrayType) sources[0].valueType()).innerType().id(), is(ObjectType.ID));
+        assertThat(sources[0].valueType().id()).isEqualTo(ArrayType.ID);
+        assertThat(((ArrayType) sources[0].valueType()).innerType().id()).isEqualTo(ObjectType.ID);
         assertThat(((List) ((Literal) sources[0]).value())).hasSize(0);
     }
 
@@ -363,8 +362,8 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedUpdateStatement expected = analyze("update users set awesome=true where awesome=false");
         AnalyzedUpdateStatement actual = analyze("update users as u set awesome=true where awesome=false");
 
-        assertThat(expected.assignmentByTargetCol(), is(actual.assignmentByTargetCol()));
-        assertThat(expected.query(), is(actual.query()));
+        assertThat(expected.assignmentByTargetCol()).isEqualTo(actual.assignmentByTargetCol());
+        assertThat(expected.query()).isEqualTo(actual.query());
     }
 
     @Test
@@ -392,7 +391,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testUpdateDynamicNestedArrayParamLiteral() throws Exception {
         AnalyzedUpdateStatement update = analyze("update users set new=[[1.9, 4.8], [9.7, 12.7]]");
         DataType dataType = update.assignmentByTargetCol().values().iterator().next().valueType();
-        assertThat(dataType, is(new ArrayType(new ArrayType(DoubleType.INSTANCE))));
+        assertThat(dataType).isEqualTo(new ArrayType(new ArrayType(DoubleType.INSTANCE)));
     }
 
     @Test
@@ -413,7 +412,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             ((DocTableInfo) update.table().tableInfo()), new RowN(params), SubQueryResults.EMPTY);
 
         DataType dataType = sources[0].valueType();
-        assertThat(dataType, is(new ArrayType(new ArrayType(DoubleType.INSTANCE))));
+        assertThat(dataType).isEqualTo(new ArrayType(new ArrayType(DoubleType.INSTANCE)));
     }
 
     @Test

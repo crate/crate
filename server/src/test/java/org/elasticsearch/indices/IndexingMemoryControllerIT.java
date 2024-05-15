@@ -18,8 +18,8 @@
  */
 package org.elasticsearch.indices;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -97,7 +97,7 @@ public class IndexingMemoryControllerIT extends IntegTestCase {
         // need to assert busily as IndexingMemoryController refreshes in background
         assertBusy(() -> {
             execute("select count(*) from doc.test");
-            assertThat(response.rows()[0][0], is(0L));
+            assertThat(response.rows()[0][0]).isEqualTo(0L);
         });
     }
 }

@@ -29,7 +29,6 @@ import static io.crate.testing.Asserts.toCondition;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
@@ -109,12 +108,12 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(collectPhase.projections().get(0)).isExactlyInstanceOf(UpdateProjection.class);
         assertThat(collectPhase.toCollect()).hasSize(1);
         assertThat(collectPhase.toCollect().get(0)).isInstanceOf(Reference.class);
-        assertThat(((Reference) collectPhase.toCollect().get(0)).column().fqn(), is("_id"));
+        assertThat(((Reference) collectPhase.toCollect().get(0)).column().fqn()).isEqualTo("_id");
 
         UpdateProjection updateProjection = (UpdateProjection) collectPhase.projections().get(0);
         assertThat(updateProjection.uidSymbol()).isExactlyInstanceOf(InputColumn.class);
 
-        assertThat(updateProjection.assignmentsColumns()[0], is("name"));
+        assertThat(updateProjection.assignmentsColumns()[0]).isEqualTo("name");
         Symbol symbol = updateProjection.assignments()[0];
         Asserts.assertThat(symbol).isLiteral("Vogon lyric fan", DataTypes.STRING);
 
@@ -133,7 +132,7 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
             toCondition(isReference("name")), toCondition(isLiteral("Vogon lyric fan")));
         assertThat(updateById.docKeys()).hasSize(1);
 
-        assertThat(updateById.docKeys().getOnlyKey().getId(txnCtx, e.nodeCtx, Row.EMPTY, SubQueryResults.EMPTY), is("1"));
+        assertThat(updateById.docKeys().getOnlyKey().getId(txnCtx, e.nodeCtx, Row.EMPTY, SubQueryResults.EMPTY)).isEqualTo("1");
     }
 
     @Test
@@ -213,13 +212,13 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
             "      └ ProjectSet[unnest([1, 2, 3, 4])] (rows=unknown)",
             "        └ TableFunction[empty_row | [] | true] (rows=unknown)");
         SelectSymbol outerSubSelectSymbol = rootPlanDependencies.values().iterator().next();
-        assertThat(outerSubSelectSymbol.getResultType(), is(SINGLE_COLUMN_SINGLE_VALUE));
-        assertThat(e.getStats(outerSubSelectPlan).numDocs(), is(1L));
+        assertThat(outerSubSelectSymbol.getResultType()).isEqualTo(SINGLE_COLUMN_SINGLE_VALUE);
+        assertThat(e.getStats(outerSubSelectPlan).numDocs()).isEqualTo(1L);
 
         LogicalPlan innerSubSelectPlan = outerSubSelectPlan.dependencies().keySet().iterator().next();
         SelectSymbol innerSubSelectSymbol = outerSubSelectPlan.dependencies().values().iterator().next();
-        assertThat(innerSubSelectSymbol.getResultType(), is(SINGLE_COLUMN_MULTIPLE_VALUES));
-        assertThat(e.getStats(innerSubSelectPlan).numDocs(), is(-1L));
+        assertThat(innerSubSelectSymbol.getResultType()).isEqualTo(SINGLE_COLUMN_MULTIPLE_VALUES);
+        assertThat(e.getStats(innerSubSelectPlan).numDocs()).isEqualTo(-1L);
     }
 
     @Test

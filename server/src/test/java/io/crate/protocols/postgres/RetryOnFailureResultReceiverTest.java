@@ -21,7 +21,7 @@
 
 package io.crate.protocols.postgres;
 
-import static org.hamcrest.Matchers.is;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThat;
 
@@ -60,7 +60,7 @@ public class RetryOnFailureResultReceiverTest extends CrateDummyClusterServiceUn
 
         retryOnFailureResultReceiver.fail(new ConnectTransportException(null, "node not connected"));
 
-        assertThat(numRetries.get(), is(1));
+        assertThat(numRetries.get()).isEqualTo(1);
     }
 
     @Test
@@ -83,7 +83,7 @@ public class RetryOnFailureResultReceiverTest extends CrateDummyClusterServiceUn
 
         retryOnFailureResultReceiver.fail(new IndexNotFoundException("t1"));
 
-        assertThat(numRetries.get(), is(1));
+        assertThat(numRetries.get()).isEqualTo(1);
     }
 
     private static class DummyUpdate extends ClusterStateUpdateTask {

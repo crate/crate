@@ -18,8 +18,8 @@
  */
 package org.elasticsearch.gateway;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.gateway.DanglingIndicesState.AUTO_IMPORT_DANGLING_INDICES_SETTING;
-import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -108,7 +108,7 @@ public class DanglingIndicesStateTests extends ESTestCase {
                 danglingState.findNewDanglingIndices(metadata);
                 fail("no exception thrown for invalid folder name");
             } catch (IllegalStateException e) {
-                assertThat(e.getMessage(), equalTo("[invalidUUID] invalid index folder name, rename to [test1UUID]"));
+                assertThat(e.getMessage()).isEqualTo("[invalidUUID] invalid index folder name, rename to [test1UUID]");
             }
         }
     }
@@ -128,7 +128,7 @@ public class DanglingIndicesStateTests extends ESTestCase {
             int numberOfChecks = randomIntBetween(1, 10);
             for (int i = 0; i < numberOfChecks; i++) {
                 Map<Index, IndexMetadata> newDanglingIndices = danglingState.findNewDanglingIndices(metadata);
-                assertThat(newDanglingIndices.size(), equalTo(1));
+                assertThat(newDanglingIndices.size()).isEqualTo(1);
                 assertThat(newDanglingIndices.keySet(), Matchers.hasItems(dangledIndex.getIndex()));
                 assertTrue(danglingState.getDanglingIndices().isEmpty());
             }
@@ -136,7 +136,7 @@ public class DanglingIndicesStateTests extends ESTestCase {
             for (int i = 0; i < numberOfChecks; i++) {
                 danglingState.findNewAndAddDanglingIndices(metadata);
 
-                assertThat(danglingState.getDanglingIndices().size(), equalTo(1));
+                assertThat(danglingState.getDanglingIndices().size()).isEqualTo(1);
                 assertThat(danglingState.getDanglingIndices().keySet(), Matchers.hasItems(dangledIndex.getIndex()));
             }
 
@@ -148,7 +148,7 @@ public class DanglingIndicesStateTests extends ESTestCase {
                 Map<Index, IndexMetadata> newDanglingIndices = danglingState.findNewDanglingIndices(metadata);
                 assertTrue(newDanglingIndices.isEmpty());
 
-                assertThat(danglingState.getDanglingIndices().size(), equalTo(1));
+                assertThat(danglingState.getDanglingIndices().size()).isEqualTo(1);
                 assertThat(danglingState.getDanglingIndices().keySet(), Matchers.hasItems(dangledIndex.getIndex()));
             }
 
@@ -168,7 +168,7 @@ public class DanglingIndicesStateTests extends ESTestCase {
 
             final IndexGraveyard graveyard = IndexGraveyard.builder().addTombstone(dangledIndex.getIndex()).build();
             final Metadata metadata = Metadata.builder().indexGraveyard(graveyard).build();
-            assertThat(danglingState.findNewDanglingIndices(metadata).size(), equalTo(0));
+            assertThat(danglingState.findNewDanglingIndices(metadata).size()).isEqualTo(0);
         }
     }
 

@@ -19,11 +19,11 @@
 
 package org.elasticsearch.cluster.coordination;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.emptyIterable;
-import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -192,7 +192,7 @@ public class PublicationTests extends ESTestCase {
         MockPublication publication = node1.publish(CoordinationStateTests.clusterState(1L, 2L,
             discoveryNodes, singleNodeConfig, singleNodeConfig, 42L), ackListener, Collections.emptySet());
 
-        assertThat(publication.pendingPublications.keySet(), equalTo(discoNodes));
+        assertThat(publication.pendingPublications.keySet()).isEqualTo(discoNodes);
         assertThat(publication.completedNodes(), empty());
         assertTrue(publication.pendingCommits.isEmpty());
         AtomicBoolean processedNode1PublishResponse = new AtomicBoolean();
@@ -224,9 +224,9 @@ public class PublicationTests extends ESTestCase {
         });
 
         if (delayProcessingNode2PublishResponse) {
-            assertThat(publication.pendingCommits.keySet(), equalTo(Set.of(n1, n3)));
+            assertThat(publication.pendingCommits.keySet()).isEqualTo(Set.of(n1, n3));
         } else {
-            assertThat(publication.pendingCommits.keySet(), equalTo(discoNodes));
+            assertThat(publication.pendingCommits.keySet()).isEqualTo(discoNodes);
         }
         assertNotNull(publication.applyCommit);
         assertEquals(publication.applyCommit.getTerm(), publication.publishRequest.getAcceptedState().term());
@@ -244,7 +244,7 @@ public class PublicationTests extends ESTestCase {
             PublishResponse publishResponse = nodeResolver.apply(n2).coordinationState.handlePublishRequest(
                 publication.publishRequest);
             publication.pendingPublications.get(n2).onResponse(new PublishWithJoinResponse(publishResponse, Optional.empty()));
-            assertThat(publication.pendingCommits.keySet(), equalTo(discoNodes));
+            assertThat(publication.pendingCommits.keySet()).isEqualTo(discoNodes);
 
             assertFalse(publication.completed);
             assertFalse(publication.committed);
@@ -297,8 +297,8 @@ public class PublicationTests extends ESTestCase {
         publication.onFaultyNode(randomFrom(n1, n3)); // has no influence
 
         List<Tuple<DiscoveryNode, Throwable>> errors = ackListener.awaitErrors(0L, TimeUnit.SECONDS);
-        assertThat(errors.size(), equalTo(1));
-        assertThat(errors.get(0).v1(), equalTo(n2));
+        assertThat(errors.size()).isEqualTo(1);
+        assertThat(errors.get(0).v1()).isEqualTo(n2);
         assertThat(errors.get(0).v2().getMessage(), containsString("faulty node"));
     }
 
@@ -350,8 +350,8 @@ public class PublicationTests extends ESTestCase {
         publication.onFaultyNode(randomFrom(n1, n3)); // has no influence
 
         List<Tuple<DiscoveryNode, Throwable>> errors = ackListener.awaitErrors(0L, TimeUnit.SECONDS);
-        assertThat(errors.size(), equalTo(1));
-        assertThat(errors.get(0).v1(), equalTo(n2));
+        assertThat(errors.size()).isEqualTo(1);
+        assertThat(errors.get(0).v1()).isEqualTo(n2);
         assertThat(errors.get(0).v2().getMessage(), containsString("faulty node"));
     }
 
@@ -381,13 +381,13 @@ public class PublicationTests extends ESTestCase {
             }
         });
 
-        assertThat(publication.pendingCommits.keySet(), equalTo(Collections.emptySet()));
+        assertThat(publication.pendingCommits.keySet()).isEqualTo(Collections.emptySet());
         assertNull(publication.applyCommit);
         assertTrue(publication.completed);
         assertFalse(publication.committed);
 
         List<Tuple<DiscoveryNode, Throwable>> errors = ackListener.awaitErrors(0L, TimeUnit.SECONDS);
-        assertThat(errors.size(), equalTo(3));
+        assertThat(errors.size()).isEqualTo(3);
         assertThat(errors.stream().map(Tuple::v1).collect(Collectors.toList()), containsInAnyOrder(n1, n2, n3));
         errors.stream().forEach(tuple ->
             assertThat(tuple.v2().getMessage(), containsString(timeOut ? "timed out" :

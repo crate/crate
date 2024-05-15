@@ -18,10 +18,9 @@
  */
 package org.elasticsearch.cluster.coordination;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Optional;
@@ -69,11 +68,11 @@ public class LinearizabilityCheckerTests extends ESTestCase {
     };
 
     public void testLockConsistent() {
-        assertThat(lockSpec.initialState(), equalTo(false));
-        assertThat(lockSpec.nextState(false, null, true), equalTo(Optional.of(true)));
-        assertThat(lockSpec.nextState(false, null, false), equalTo(Optional.empty()));
-        assertThat(lockSpec.nextState(true, null, false), equalTo(Optional.of(true)));
-        assertThat(lockSpec.nextState(true, null, true), equalTo(Optional.empty()));
+        assertThat(lockSpec.initialState()).isEqualTo(false);
+        assertThat(lockSpec.nextState(false, null, true)).isEqualTo(Optional.of(true));
+        assertThat(lockSpec.nextState(false, null, false)).isEqualTo(Optional.empty());
+        assertThat(lockSpec.nextState(true, null, false)).isEqualTo(Optional.of(true));
+        assertThat(lockSpec.nextState(true, null, true)).isEqualTo(Optional.empty());
     }
 
     public void testLockWithLinearizableHistory1() {
@@ -139,10 +138,10 @@ public class LinearizabilityCheckerTests extends ESTestCase {
     };
 
     public void testRegisterConsistent() {
-        assertThat(registerSpec.initialState(), equalTo(0));
-        assertThat(registerSpec.nextState(7, 42, null), equalTo(Optional.of(42)));
-        assertThat(registerSpec.nextState(7, null, 7), equalTo(Optional.of(7)));
-        assertThat(registerSpec.nextState(7, null, 42), equalTo(Optional.empty()));
+        assertThat(registerSpec.initialState()).isEqualTo(0);
+        assertThat(registerSpec.nextState(7, 42, null)).isEqualTo(Optional.of(42));
+        assertThat(registerSpec.nextState(7, null, 7)).isEqualTo(Optional.of(7));
+        assertThat(registerSpec.nextState(7, null, 42)).isEqualTo(Optional.empty());
     }
 
     public void testRegisterWithLinearizableHistory() {

@@ -28,7 +28,6 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
-import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
 import java.io.ByteArrayOutputStream;
@@ -94,7 +93,7 @@ public class ChainableActionsTest {
         }
 
         CompletableFuture<Integer> result = ChainableActions.run(actions);
-        assertThat(result.get(1, TimeUnit.SECONDS), is(0));
+        assertThat(result.get(1, TimeUnit.SECONDS)).isEqualTo(0);
 
         assertThat(doCalls, contains(0, 1, 2));
         assertThat(undoCalls, empty());
@@ -151,7 +150,7 @@ public class ChainableActionsTest {
         try {
             result.get();
         } catch (ExecutionException e) {
-            assertThat(e.getCause().getMessage(), is("do operation failed"));
+            assertThat(e.getCause().getMessage()).isEqualTo("do operation failed");
         }
 
         assertThat(doCalls, contains(0));
@@ -187,7 +186,7 @@ public class ChainableActionsTest {
         try {
             result.get();
         } catch (ExecutionException e) {
-            assertThat(e.getCause().getMessage(), is("do operation failed"));
+            assertThat(e.getCause().getMessage()).isEqualTo("do operation failed");
         }
 
         assertThat(doCalls, contains(2));

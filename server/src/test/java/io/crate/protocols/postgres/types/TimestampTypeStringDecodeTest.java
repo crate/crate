@@ -21,6 +21,7 @@
 
 package io.crate.protocols.postgres.types;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -76,8 +77,7 @@ public class TimestampTypeStringDecodeTest extends BasePGTypeTest<Long> {
         }
 
         assertThat(
-            TimestampType.INSTANCE.decodeUTF8Text(fullTimestamp.toString().getBytes(StandardCharsets.UTF_8)),
-            is(expectedMillis));
+            TimestampType.INSTANCE.decodeUTF8Text(fullTimestamp.toString().getBytes(StandardCharsets.UTF_8))).isEqualTo(expectedMillis);
 
         assertThat(
             TimestampType.INSTANCE.decodeUTF8Text(TimestampType.INSTANCE.encodeAsUTF8Text(expectedMillis)),

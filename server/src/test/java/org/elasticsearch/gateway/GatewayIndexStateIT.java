@@ -24,9 +24,7 @@ import static io.crate.testing.SQLTransportExecutor.REQUEST_TIMEOUT;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.indices.ShardLimitValidator.SETTING_CLUSTER_MAX_SHARDS_PER_NODE;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -112,10 +110,9 @@ public class GatewayIndexStateIT extends IntegTestCase {
         ensureGreen();
 
         ClusterStateResponse stateResponse = client().admin().cluster().state(new ClusterStateRequest()).get();
-        assertThat(stateResponse.getState().metadata().index(tableName).getState(), equalTo(IndexMetadata.State.OPEN));
-        assertThat(stateResponse.getState().routingTable().index(tableName).shards().size(), equalTo(numPrimaries));
-        assertThat(stateResponse.getState().routingTable().index(tableName).shardsWithState(ShardRoutingState.STARTED).size(),
-            equalTo(totalNumShards));
+        assertThat(stateResponse.getState().metadata().index(tableName).getState()).isEqualTo(IndexMetadata.State.OPEN);
+        assertThat(stateResponse.getState().routingTable().index(tableName).shards().size()).isEqualTo(numPrimaries);
+        assertThat(stateResponse.getState().routingTable().index(tableName).shardsWithState(ShardRoutingState.STARTED).size()).isEqualTo(totalNumShards);
 
         logger.info("--> insert a simple document");
         execute("insert into test (id) values (1)");
@@ -124,7 +121,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
         execute("alter table test close");
 
         stateResponse = client().admin().cluster().state(new ClusterStateRequest()).get();
-        assertThat(stateResponse.getState().metadata().index(tableName).getState(), equalTo(IndexMetadata.State.CLOSE));
+        assertThat(stateResponse.getState().metadata().index(tableName).getState()).isEqualTo(IndexMetadata.State.CLOSE);
         assertThat(stateResponse.getState().routingTable().index(tableName)).isNotNull();
 
         logger.info("--> verifying that the state is green");
@@ -152,21 +149,20 @@ public class GatewayIndexStateIT extends IntegTestCase {
         ensureGreen();
 
         stateResponse = client().admin().cluster().state(new ClusterStateRequest()).get(REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS);
-        assertThat(stateResponse.getState().metadata().index(tableName).getState(), equalTo(IndexMetadata.State.OPEN));
-        assertThat(stateResponse.getState().routingTable().index(tableName).shards().size(), equalTo(numPrimaries));
-        assertThat(stateResponse.getState().routingTable().index(tableName).shardsWithState(ShardRoutingState.STARTED).size(),
-            equalTo(totalNumShards));
+        assertThat(stateResponse.getState().metadata().index(tableName).getState()).isEqualTo(IndexMetadata.State.OPEN);
+        assertThat(stateResponse.getState().routingTable().index(tableName).shards().size()).isEqualTo(numPrimaries);
+        assertThat(stateResponse.getState().routingTable().index(tableName).shardsWithState(ShardRoutingState.STARTED).size()).isEqualTo(totalNumShards);
 
         logger.info("--> trying to get the indexed document on the first index");
         execute("select id from test where id = 1");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
 
 
         logger.info("--> closing test index...");
         execute("alter table test close");
 
         stateResponse = client().admin().cluster().state(new ClusterStateRequest()).get(REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS);
-        assertThat(stateResponse.getState().metadata().index(tableName).getState(), equalTo(IndexMetadata.State.CLOSE));
+        assertThat(stateResponse.getState().metadata().index(tableName).getState()).isEqualTo(IndexMetadata.State.CLOSE);
         assertThat(stateResponse.getState().routingTable().index(tableName)).isNotNull();
 
         logger.info("--> restarting nodes...");
@@ -175,7 +171,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
         ensureGreen();
 
         stateResponse = client().admin().cluster().state(new ClusterStateRequest()).get(REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS);
-        assertThat(stateResponse.getState().metadata().index(tableName).getState(), equalTo(IndexMetadata.State.CLOSE));
+        assertThat(stateResponse.getState().metadata().index(tableName).getState()).isEqualTo(IndexMetadata.State.CLOSE);
         assertThat(stateResponse.getState().routingTable().index(tableName)).isNotNull();
 
         logger.info("--> trying to index into a closed index ...");
@@ -193,14 +189,13 @@ public class GatewayIndexStateIT extends IntegTestCase {
         ensureGreen();
 
         stateResponse = client().admin().cluster().state(new ClusterStateRequest()).get();
-        assertThat(stateResponse.getState().metadata().index(tableName).getState(), equalTo(IndexMetadata.State.OPEN));
-        assertThat(stateResponse.getState().routingTable().index(tableName).shards().size(), equalTo(numPrimaries));
-        assertThat(stateResponse.getState().routingTable().index(tableName).shardsWithState(ShardRoutingState.STARTED).size(),
-            equalTo(totalNumShards));
+        assertThat(stateResponse.getState().metadata().index(tableName).getState()).isEqualTo(IndexMetadata.State.OPEN);
+        assertThat(stateResponse.getState().routingTable().index(tableName).shards().size()).isEqualTo(numPrimaries);
+        assertThat(stateResponse.getState().routingTable().index(tableName).shardsWithState(ShardRoutingState.STARTED).size()).isEqualTo(totalNumShards);
 
         logger.info("--> trying to get the indexed document on the first round (before close and shutdown)");
         execute("select id from test where id = 1");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
 
         logger.info("--> indexing a simple document");
         execute("insert into test (id) values (2)");
@@ -241,14 +236,14 @@ public class GatewayIndexStateIT extends IntegTestCase {
             ),
             REQUEST_TIMEOUT
         );
-        assertThat(health.isTimedOut(), equalTo(false));
+        assertThat(health.isTimedOut()).isEqualTo(false);
 
         logger.info("--> verify we have an index");
         var clusterStateResponse = client().admin().cluster().state(
             new ClusterStateRequest()
                 .indices(tableName)
             ).get(REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS);
-        assertThat(clusterStateResponse.getState().metadata().hasIndex(tableName), equalTo(true));
+        assertThat(clusterStateResponse.getState().metadata().hasIndex(tableName)).isEqualTo(true);
     }
 
     @Test
@@ -288,12 +283,12 @@ public class GatewayIndexStateIT extends IntegTestCase {
             ),
             REQUEST_TIMEOUT
         );
-        assertThat(health.isTimedOut(), equalTo(false));
+        assertThat(health.isTimedOut()).isEqualTo(false);
 
         logger.info("--> verify 1 doc in the index");
         for (int i = 0; i < 10; i++) {
             execute("select id from test");
-            assertThat(response.rowCount(), is(1L));
+            assertThat(response.rowCount()).isEqualTo(1L);
         }
 
         logger.info("--> closing test index...");
@@ -302,7 +297,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
         ClusterStateResponse stateResponse = client().admin().cluster()
             .state(new ClusterStateRequest())
             .get(REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS);
-        assertThat(stateResponse.getState().metadata().index(tableName).getState(), equalTo(IndexMetadata.State.CLOSE));
+        assertThat(stateResponse.getState().metadata().index(tableName).getState()).isEqualTo(IndexMetadata.State.CLOSE);
         assertThat(stateResponse.getState().routingTable().index(tableName)).isNotNull();
 
         logger.info("--> opening the index...");
@@ -318,14 +313,14 @@ public class GatewayIndexStateIT extends IntegTestCase {
             ),
             REQUEST_TIMEOUT
         );
-        assertThat(health.isTimedOut(), equalTo(false));
+        assertThat(health.isTimedOut()).isEqualTo(false);
 
         logger.info("--> verify 1 doc in the index");
         execute("select id from test");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
         for (int i = 0; i < 10; i++) {
             execute("select id from test");
-            assertThat(response.rowCount(), is(1L));
+            assertThat(response.rowCount()).isEqualTo(1L);
         }
     }
 
@@ -386,7 +381,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
                 var sqlExecutor = new SQLTransportExecutor(clientProvider);
                 //client.admin().indices().prepareDelete(indexName).execute().actionGet();
                 sqlExecutor.exec("drop table my_schema.test");
-                assertThat(response.rowCount(), is(1L));
+                assertThat(response.rowCount()).isEqualTo(1L);
                 //assertFalse(indexExists(indexName, client));
                 try {
                     sqlExecutor.exec("select * from my_schema.test");
@@ -624,7 +619,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
         assertNull(state.metadata().persistentSettings().get("archived."
             + SETTING_CLUSTER_MAX_SHARDS_PER_NODE.getKey()));
         execute("select id from test");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
     }
 
     private void restartNodesOnBrokenClusterState(ClusterState.Builder clusterStateBuilder) throws Exception {

@@ -22,9 +22,7 @@
 package io.crate.integrationtests;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
@@ -41,9 +39,8 @@ public class SysNodeCheckerIntegrationTest extends IntegTestCase {
         SQLResponse response = execute("select id, severity, passed " +
                                        "from sys.node_checks " +
                                        "order by id, node_id asc");
-        assertThat(response.rowCount(), equalTo(14L));
-        assertThat(TestingHelpers.printedTable(response.rows()),
-            is("1| 2| false\n" +  // 1 = recoveryExpectedNodesCheck
+        assertThat(response.rowCount()).isEqualTo(14L);
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("1| 2| false\n" +  // 1 = recoveryExpectedNodesCheck
                "1| 2| false\n" +
                "2| 2| false\n" +  // 2 = RecoveryAfterNodes
                "2| 2| false\n" +
@@ -56,20 +53,20 @@ public class SysNodeCheckerIntegrationTest extends IntegTestCase {
                "7| 3| true\n" +   // 7 = FloodStageDiskWatermark
                "7| 3| true\n" +
                "8| 2| true\n" +   // 8 = Max Shard per Node Limit
-               "8| 2| true\n"));
+               "8| 2| true\n");
     }
 
     @Test
     public void testUpdateAcknowledge() throws Exception {
         execute("update sys.node_checks set acknowledged = true where id = 3");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response.rowCount()).isEqualTo(2L);
 
         execute("select acknowledged from sys.node_checks where id = 3");
         assertThat(response.rows()[0][0]).isEqualTo(true);
         assertThat(response.rows()[1][0]).isEqualTo(true);
 
         execute("update sys.node_checks set acknowledged = false where id = 3");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response.rowCount()).isEqualTo(2L);
 
         execute("select acknowledged from sys.node_checks where id = 3");
         assertThat(response.rows()[0][0]).isEqualTo(false);
@@ -82,6 +79,6 @@ public class SysNodeCheckerIntegrationTest extends IntegTestCase {
         Long rc = (Long) response.rows()[0][0];
         assertThat(rc, greaterThan(0L));
         execute("update sys.node_checks set acknowledged = not passed where passed = false");
-        assertThat(response.rowCount(), is(rc));
+        assertThat(response.rowCount()).isEqualTo(rc);
     }
 }

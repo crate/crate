@@ -33,7 +33,6 @@ import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcke
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertNoFailures;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertNoTimeout;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
-import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
@@ -627,12 +626,12 @@ public abstract class IntegTestCase extends ESTestCase {
         assertBusy(() -> {
             for (Client client : clients()) {
                 ClusterHealthResponse clusterHealth = client.admin().cluster().health(new ClusterHealthRequest().local(true)).get();
-                assertThat("client " + client + " still has in flight fetch", clusterHealth.getNumberOfInFlightFetch(), equalTo(0));
+                assertThat(clusterHealth.getNumberOfInFlightFetch()).as("client " + client + " still has in flight fetch").isEqualTo(0);
                 var pendingTasks = FutureUtils.get(
                     client.admin().cluster().execute(PendingClusterTasksAction.INSTANCE, new PendingClusterTasksRequest().local(true)));
                 assertThat("client " + client + " still has pending tasks " + pendingTasks, pendingTasks, Matchers.emptyIterable());
                 clusterHealth = client.admin().cluster().health(new ClusterHealthRequest().local(true)).get();
-                assertThat("client " + client + " still has in flight fetch", clusterHealth.getNumberOfInFlightFetch(), equalTo(0));
+                assertThat(clusterHealth.getNumberOfInFlightFetch()).as("client " + client + " still has in flight fetch").isEqualTo(0);
             }
         });
         assertNoTimeout(client().admin().cluster().health(new ClusterHealthRequest().waitForEvents(Priority.LANGUID)).get());
@@ -787,10 +786,10 @@ public abstract class IntegTestCase extends ESTestCase {
                 status,
                 clusterStateResponse.getState(),
                 pendingClusterTasks);
-            assertThat("timed out waiting for relocation", actionGet.isTimedOut(), equalTo(false));
+            assertThat(actionGet.isTimedOut()).as("timed out waiting for relocation").isEqualTo(false);
         }
         if (status != null) {
-            assertThat(actionGet.getStatus(), equalTo(status));
+            assertThat(actionGet.getStatus()).isEqualTo(status);
         }
         return actionGet.getStatus();
     }

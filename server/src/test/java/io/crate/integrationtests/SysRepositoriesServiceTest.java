@@ -22,8 +22,6 @@
 package io.crate.integrationtests;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 import java.io.File;
 import java.util.Map;
@@ -67,18 +65,18 @@ public class SysRepositoriesServiceTest extends IntegTestCase {
     @Test
     public void testQueryAllColumns() throws Exception {
         execute("select * from sys.repositories");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.cols().length, is(3));
-        assertThat(response.cols(), is(new String[]{"name", "settings", "type"}));
-        assertThat(response.columnTypes(), is(new DataType[]{StringType.INSTANCE, DataTypes.UNTYPED_OBJECT, StringType.INSTANCE}));
-        assertThat((String) response.rows()[0][0], is("test-repo"));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.cols().length).isEqualTo(3);
+        assertThat(response.cols()).isEqualTo(new String[]{"name", "settings", "type"});
+        assertThat(response.columnTypes()).isEqualTo(new DataType[]{StringType.INSTANCE, DataTypes.UNTYPED_OBJECT, StringType.INSTANCE});
+        assertThat((String) response.rows()[0][0]).isEqualTo("test-repo");
 
         Map<String, Object> settings = (Map<String, Object>) response.rows()[0][1];
         assertThat(settings).hasSize(3);
-        assertThat((String) settings.get("location"), is(new File(TEMP_FOLDER.getRoot(), "backup").getAbsolutePath()));
-        assertThat((String) settings.get("chunk_size"), is("5k"));
-        assertThat((String) settings.get("compress"), is("false"));
+        assertThat((String) settings.get("location")).isEqualTo(new File(TEMP_FOLDER.getRoot(), "backup").getAbsolutePath());
+        assertThat((String) settings.get("chunk_size")).isEqualTo("5k");
+        assertThat((String) settings.get("compress")).isEqualTo("false");
 
-        assertThat((String) response.rows()[0][2], is("fs"));
+        assertThat((String) response.rows()[0][2]).isEqualTo("fs");
     }
 }

@@ -22,7 +22,6 @@
 package org.elasticsearch.common.settings;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.junit.Assert.assertThat;
 
@@ -70,15 +69,13 @@ public class MemorySizeSettingsTests extends ESTestCase {
 
     private void assertMemorySizeSetting(Setting<ByteSizeValue> setting, String settingKey, ByteSizeValue defaultValue) {
         assertThat(setting).isNotNull();
-        assertThat(setting.getKey(), equalTo(settingKey));
+        assertThat(setting.getKey()).isEqualTo(settingKey);
         assertThat(setting.getProperties(), hasItem(Property.NodeScope));
-        assertThat(setting.getDefault(Settings.EMPTY),
-                equalTo(defaultValue));
+        assertThat(setting.getDefault(Settings.EMPTY)).isEqualTo(defaultValue);
         Settings settingWithPercentage = Settings.builder().put(settingKey, "25%").build();
-        assertThat(setting.get(settingWithPercentage),
-                equalTo(new ByteSizeValue((long) (JvmInfo.jvmInfo().getMem().getHeapMax().getBytes() * 0.25))));
+        assertThat(setting.get(settingWithPercentage)).isEqualTo(new ByteSizeValue((long) (JvmInfo.jvmInfo().getMem().getHeapMax().getBytes() * 0.25)));
         Settings settingWithBytesValue = Settings.builder().put(settingKey, "1024b").build();
-        assertThat(setting.get(settingWithBytesValue), equalTo(new ByteSizeValue(1024)));
+        assertThat(setting.get(settingWithBytesValue)).isEqualTo(new ByteSizeValue(1024));
     }
 
 }

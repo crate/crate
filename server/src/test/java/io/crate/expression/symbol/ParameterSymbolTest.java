@@ -21,8 +21,7 @@
 
 package io.crate.expression.symbol;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -43,9 +42,9 @@ public class ParameterSymbolTest extends ESTestCase {
         StreamInput in = out.bytes().streamInput();
         ParameterSymbol ps2 = new ParameterSymbol(in);
 
-        assertThat(ps2.index(), is(ps1.index()));
-        assertThat(ps2.valueType(), is(ps1.valueType()));
-        assertThat(ps2.getBoundType(), is(ps1.getBoundType()));
+        assertThat(ps2.index()).isEqualTo(ps1.index());
+        assertThat(ps2.valueType()).isEqualTo(ps1.valueType());
+        assertThat(ps2.getBoundType()).isEqualTo(ps1.getBoundType());
     }
 
     @Test
@@ -58,17 +57,17 @@ public class ParameterSymbolTest extends ESTestCase {
         StreamInput in = out.bytes().streamInput();
         ParameterSymbol ps2 = new ParameterSymbol(in);
 
-        assertThat(ps2.index(), is(ps1.index()));
-        assertThat(ps2.valueType(), is(ps1.valueType()));
-        assertThat(ps2.getBoundType(), is(ps1.getBoundType()));
+        assertThat(ps2.index()).isEqualTo(ps1.index());
+        assertThat(ps2.valueType()).isEqualTo(ps1.valueType());
+        assertThat(ps2.getBoundType()).isEqualTo(ps1.getBoundType());
     }
 
     @Test
     public void testCasting() {
         Symbol parameter = new ParameterSymbol(0, DataTypes.INTEGER);
         ParameterSymbol newParameter = (ParameterSymbol) parameter.cast(DataTypes.LONG);
-        assertThat(newParameter.valueType(), is(DataTypes.LONG));
-        assertThat(newParameter.index(), is(0));
-        assertThat(newParameter.getBoundType(), is(DataTypes.INTEGER));
+        assertThat(newParameter.valueType()).isEqualTo(DataTypes.LONG);
+        assertThat(newParameter.index()).isEqualTo(0);
+        assertThat(newParameter.getBoundType()).isEqualTo(DataTypes.INTEGER);
     }
 }

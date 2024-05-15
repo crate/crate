@@ -28,7 +28,6 @@ import static org.elasticsearch.index.engine.Engine.Operation.Origin.PRIMARY;
 import static org.elasticsearch.index.engine.Engine.Operation.Origin.REPLICA;
 import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
 import static org.elasticsearch.index.translog.TranslogDeletionPolicies.createTranslogDeletionPolicy;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -838,7 +837,7 @@ public abstract class EngineTestCase extends ESTestCase {
         }
         try (Engine.Searcher searcher = engine.acquireSearcher("test")) {
             int totalHits = searcher.count(new MatchAllDocsQuery());
-            assertThat(totalHits, equalTo(numDocs));
+            assertThat(totalHits).isEqualTo(numDocs);
         }
     }
 
@@ -1000,9 +999,9 @@ public abstract class EngineTestCase extends ESTestCase {
                 // a delete state and return false for the created flag in favor of code simplicity
                 // as deleted or not. This check is just signal regression so a decision can be made if it's
                 // intentional
-                assertThat(result.isCreated(), equalTo(firstOp));
-                assertThat(result.getVersion(), equalTo(op.version()));
-                assertThat(result.getResultType(), equalTo(Engine.Result.Type.SUCCESS));
+                assertThat(result.isCreated()).isEqualTo(firstOp);
+                assertThat(result.getVersion()).isEqualTo(op.version());
+                assertThat(result.getResultType()).isEqualTo(Engine.Result.Type.SUCCESS);
 
             } else {
                 Engine.DeleteResult result = replicaEngine.delete((Engine.Delete) op);
@@ -1011,9 +1010,9 @@ public abstract class EngineTestCase extends ESTestCase {
                 // a delete state and return true for the found flag in favor of code simplicity
                 // his check is just signal regression so a decision can be made if it's
                 // intentional
-                assertThat(result.isFound(), equalTo(firstOp == false));
-                assertThat(result.getVersion(), equalTo(op.version()));
-                assertThat(result.getResultType(), equalTo(Engine.Result.Type.SUCCESS));
+                assertThat(result.isFound()).isEqualTo(firstOp == false);
+                assertThat(result.getVersion()).isEqualTo(op.version());
+                assertThat(result.getResultType()).isEqualTo(Engine.Result.Type.SUCCESS);
             }
             if (randomBoolean()) {
                 replicaEngine.refresh("test");
@@ -1029,7 +1028,7 @@ public abstract class EngineTestCase extends ESTestCase {
         if (lastFieldValue != null) {
             try (Engine.Searcher searcher = replicaEngine.acquireSearcher("test")) {
                 int totalHits = searcher.count(new TermQuery(new Term("value", lastFieldValue)));
-                assertThat(totalHits, equalTo(1));
+                assertThat(totalHits).isEqualTo(1);
             }
         }
     }
@@ -1207,10 +1206,10 @@ public abstract class EngineTestCase extends ESTestCase {
                 }
             }
             assertThat(luceneOp).isNotNull();
-            assertThat(luceneOp.toString(), luceneOp.primaryTerm(), equalTo(translogOp.primaryTerm()));
-            assertThat(luceneOp.opType(), equalTo(translogOp.opType()));
+            assertThat(luceneOp.primaryTerm()).as(luceneOp.toString()).isEqualTo(translogOp.primaryTerm());
+            assertThat(luceneOp.opType()).isEqualTo(translogOp.opType());
             if (luceneOp.opType() == Translog.Operation.Type.INDEX) {
-                assertThat(luceneOp.getSource(), equalTo(translogOp.getSource()));
+                assertThat(luceneOp.getSource()).isEqualTo(translogOp.getSource());
             }
         }
     }

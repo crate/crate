@@ -23,8 +23,7 @@
 package io.crate.expression.symbol;
 
 import static java.util.Collections.singletonList;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -87,7 +86,7 @@ public class WindowFunctionSerializationTest {
         in.setVersion(Version.V_4_7_0);
         var actualWindowFunction = new WindowFunction(in);
 
-        assertThat(actualWindowFunction, is(windowFunctionWithIgnoreNullsSetToTrue));
+        assertThat(actualWindowFunction).isEqualTo(windowFunctionWithIgnoreNullsSetToTrue);
     }
 
     @Test
@@ -100,6 +99,6 @@ public class WindowFunctionSerializationTest {
         in.setVersion(Version.V_4_6_0);
         var actualWindowFunction = new WindowFunction(in);
 
-        assertThat(actualWindowFunction, is(windowFunctionWithIgnoreNullsSetToNull));
+        assertThat(actualWindowFunction).isEqualTo(windowFunctionWithIgnoreNullsSetToNull);
     }
 }

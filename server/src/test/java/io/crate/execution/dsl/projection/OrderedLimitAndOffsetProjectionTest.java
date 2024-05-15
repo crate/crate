@@ -21,8 +21,7 @@
 
 package io.crate.execution.dsl.projection;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collections;
 
@@ -54,6 +53,6 @@ public class OrderedLimitAndOffsetProjectionTest extends ESTestCase {
         StreamInput in = out.bytes().streamInput();
         Projection projection = Projection.fromStream(in);
 
-        assertThat(projection, equalTo(p));
+        assertThat(projection).isEqualTo(p);
     }
 }

@@ -21,8 +21,7 @@
 
 package io.crate.profile;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
 
@@ -31,12 +30,12 @@ public class ProfilingContextTest {
     @Test
     public void testProfilingKeyIsIdHyphenName() {
         String key = ProfilingContext.generateProfilingKey(0, "test");
-        assertThat(key, is("0-test"));
+        assertThat(key).isEqualTo("0-test");
     }
 
     @Test
     public void testProfilingKeyForNullNameIsIdHyphenNull() {
         String key = ProfilingContext.generateProfilingKey(1, null);
-        assertThat(key, is("1-null"));
+        assertThat(key).isEqualTo("1-null");
     }
 }

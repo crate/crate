@@ -26,7 +26,6 @@ import static io.crate.planner.Plan.StatementType.UNDEFINED;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -93,10 +92,10 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
     public void testDefaultSettings() {
         JobsLogService stats = new JobsLogService(Settings.EMPTY, clusterService::localNode, clusterSettings, nodeCtx, scheduler, breakerService);
         assertThat(stats.isEnabled()).isTrue();
-        assertThat(stats.jobsLogSize, is(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getDefault(Settings.EMPTY)));
-        assertThat(stats.operationsLogSize, is(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault(Settings.EMPTY)));
-        assertThat(stats.jobsLogExpiration, is(JobsLogService.STATS_JOBS_LOG_EXPIRATION_SETTING.getDefault(Settings.EMPTY)));
-        assertThat(stats.operationsLogExpiration, is(JobsLogService.STATS_OPERATIONS_LOG_EXPIRATION_SETTING.getDefault(Settings.EMPTY)));
+        assertThat(stats.jobsLogSize).isEqualTo(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getDefault(Settings.EMPTY));
+        assertThat(stats.operationsLogSize).isEqualTo(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault(Settings.EMPTY));
+        assertThat(stats.jobsLogExpiration).isEqualTo(JobsLogService.STATS_JOBS_LOG_EXPIRATION_SETTING.getDefault(Settings.EMPTY));
+        assertThat(stats.operationsLogExpiration).isEqualTo(JobsLogService.STATS_OPERATIONS_LOG_EXPIRATION_SETTING.getDefault(Settings.EMPTY));
         assertThat(stats.get().jobsLog(), Matchers.instanceOf(FilteredLogSink.class));
         assertThat(stats.get().operationsLog(), Matchers.instanceOf(QueueSink.class));
     }
@@ -114,7 +113,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             new JobContext(UUID.randomUUID(), "insert into", 10L, Role.CRATE_USER, null), null, 20L));
         jobsLogSink.add(new JobContextLog(
             new JobContext(UUID.randomUUID(), "select * from t1", 10L, Role.CRATE_USER, null), null, 20L));
-        assertThat(StreamSupport.stream(jobsLogSink.spliterator(), false).count(), is(1L));
+        assertThat(StreamSupport.stream(jobsLogSink.spliterator(), false).count()).isEqualTo(1L);
     }
 
     @Test
@@ -154,9 +153,9 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
         LogSink<OperationContextLog> operationsLogSink = (LogSink<OperationContextLog>) stats.get().operationsLog();
 
         assertThat(stats.isEnabled()).isFalse();
-        assertThat(stats.jobsLogSize, is(100));
+        assertThat(stats.jobsLogSize).isEqualTo(100);
         assertThat(jobsLogSink, Matchers.instanceOf(NoopLogSink.class));
-        assertThat(stats.operationsLogSize, is(100));
+        assertThat(stats.operationsLogSize).isEqualTo(100);
         assertThat(operationsLogSink, Matchers.instanceOf(NoopLogSink.class));
 
         clusterService.getClusterSettings().applySettings(Settings.builder()
@@ -164,9 +163,9 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             .build());
 
         assertThat(stats.isEnabled()).isTrue();
-        assertThat(stats.jobsLogSize, is(100));
+        assertThat(stats.jobsLogSize).isEqualTo(100);
         assertThat(stats.get().jobsLog(), Matchers.instanceOf(FilteredLogSink.class));
-        assertThat(stats.operationsLogSize, is(100));
+        assertThat(stats.operationsLogSize).isEqualTo(100);
         assertThat(stats.get().operationsLog(), Matchers.instanceOf(QueueSink.class));
     }
 
@@ -261,7 +260,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true)
             .put(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getKey(), 200).build());
 
-        assertThat(StreamSupport.stream(stats.get().jobsLog().spliterator(), false).count(), is(1L));
+        assertThat(StreamSupport.stream(stats.get().jobsLog().spliterator(), false).count()).isEqualTo(1L);
 
         operationsLogSink.add(new OperationContextLog(
             new OperationContext(1, UUID.randomUUID(), "foo", 2L, () -> -1), null));
@@ -272,7 +271,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true)
             .put(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getKey(), 1).build());
 
-        assertThat(StreamSupport.stream(stats.get().operationsLog().spliterator(), false).count(), is(1L));
+        assertThat(StreamSupport.stream(stats.get().operationsLog().spliterator(), false).count()).isEqualTo(1L);
     }
 
     @Test
@@ -315,8 +314,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
 
             latch.await(10, TimeUnit.SECONDS);
             assertThat(
-                StreamSupport.stream(jobsLogs.jobsLog().spliterator(), false).count(),
-                is((long) numJobs.get()));
+                StreamSupport.stream(jobsLogs.jobsLog().spliterator(), false).count()).isEqualTo((long) numJobs.get());
         } finally {
             executor.shutdown();
             executor.awaitTermination(2, TimeUnit.SECONDS);
@@ -356,8 +354,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
 
             latch.await(10, TimeUnit.SECONDS);
             assertThat(
-                StreamSupport.stream(jobsLogs.operationsLog().spliterator(), false).count(),
-                is((long) numJobs.get()));
+                StreamSupport.stream(jobsLogs.operationsLog().spliterator(), false).count()).isEqualTo((long) numJobs.get());
         } finally {
             executor.shutdown();
             executor.awaitTermination(2, TimeUnit.SECONDS);
@@ -378,9 +375,9 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             .collect(Collectors.toList());
 
         assertThat(jobsEntries).hasSize(1);
-        assertThat(jobsEntries.get(0).username(), is(user.name()));
-        assertThat(jobsEntries.get(0).stmt(), is("select 1"));
-        assertThat(jobsEntries.get(0).classification(), is(classification));
+        assertThat(jobsEntries.get(0).username()).isEqualTo(user.name());
+        assertThat(jobsEntries.get(0).stmt()).isEqualTo("select 1");
+        assertThat(jobsEntries.get(0).classification()).isEqualTo(classification);
     }
 
     @Test
@@ -395,10 +392,10 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
         List<JobContextLog> jobsLogEntries = StreamSupport.stream(jobsLogs.jobsLog().spliterator(), false)
             .collect(Collectors.toList());
         assertThat(jobsLogEntries).hasSize(1);
-        assertThat(jobsLogEntries.get(0).username(), is(user.name()));
-        assertThat(jobsLogEntries.get(0).statement(), is("select foo"));
-        assertThat(jobsLogEntries.get(0).errorMessage(), is("stmt error"));
-        assertThat(jobsLogEntries.get(0).classification(), is(new Classification(UNDEFINED)));
+        assertThat(jobsLogEntries.get(0).username()).isEqualTo(user.name());
+        assertThat(jobsLogEntries.get(0).statement()).isEqualTo("select foo");
+        assertThat(jobsLogEntries.get(0).errorMessage()).isEqualTo("stmt error");
+        assertThat(jobsLogEntries.get(0).classification()).isEqualTo(new Classification(UNDEFINED));
     }
 
     @Test
@@ -413,9 +410,9 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
         List<MetricsView> metrics = StreamSupport.stream(jobsLogs.metrics().spliterator(), false)
             .collect(Collectors.toList());
         assertThat(metrics).hasSize(1);
-        assertThat(metrics.get(0).failedCount(), is(1L));
-        assertThat(metrics.get(0).totalCount(), is(1L));
-        assertThat(metrics.get(0).classification(), is(new Classification(UNDEFINED)));
+        assertThat(metrics.get(0).failedCount()).isEqualTo(1L);
+        assertThat(metrics.get(0).totalCount()).isEqualTo(1L);
+        assertThat(metrics.get(0).classification()).isEqualTo(new Classification(UNDEFINED));
     }
 
     @Test
@@ -445,10 +442,10 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testLowerBoundScheduler() {
-        assertThat(JobsLogService.clearInterval(TimeValue.timeValueMillis(1L)), is(1000L));
-        assertThat(JobsLogService.clearInterval(TimeValue.timeValueSeconds(8L)), is(1000L));
-        assertThat(JobsLogService.clearInterval(TimeValue.timeValueSeconds(10L)), is(1000L));
-        assertThat(JobsLogService.clearInterval(TimeValue.timeValueSeconds(20L)), is(2000L));
-        assertThat(JobsLogService.clearInterval(TimeValue.timeValueHours(720L)), is(86_400_000L));  // 30 days
+        assertThat(JobsLogService.clearInterval(TimeValue.timeValueMillis(1L))).isEqualTo(1000L);
+        assertThat(JobsLogService.clearInterval(TimeValue.timeValueSeconds(8L))).isEqualTo(1000L);
+        assertThat(JobsLogService.clearInterval(TimeValue.timeValueSeconds(10L))).isEqualTo(1000L);
+        assertThat(JobsLogService.clearInterval(TimeValue.timeValueSeconds(20L))).isEqualTo(2000L);
+        assertThat(JobsLogService.clearInterval(TimeValue.timeValueHours(720L))).isEqualTo(86_400_000L);  // 30 days
     }
 }

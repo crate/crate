@@ -22,8 +22,8 @@
 package io.crate.protocols.http;
 
 import static io.crate.protocols.ssl.SslContextProviderTest.getAbsoluteFilePathFromClassPath;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isEmptyOrNullString;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
@@ -105,7 +105,7 @@ public class CrateHttpsTransportIntegrationTest extends SQLHttpIntegrationTest {
             HttpGet httpGet = new HttpGet(blobUrl);
             CloseableHttpResponse response = httpClient.execute(httpGet);
             assertEquals(200, response.getStatusLine().getStatusCode());
-            assertThat(response.getEntity().getContentLength(), is((long) blob.length()));
+            assertThat(response.getEntity().getContentLength()).isEqualTo((long) blob.length());
         } finally {
             execute("drop table if exists test");
         }

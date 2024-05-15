@@ -21,13 +21,13 @@
 
 package io.crate.metadata;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_CREATED;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
@@ -153,8 +153,8 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
             .findRelation(fqn, Operation.READ, sessionSettings.sessionUser(), sessionSettings.searchPath());
 
         RelationName relation = tableInfo.ident();
-        assertThat(relation.schema(), is("schema"));
-        assertThat(relation.name(), is("t"));
+        assertThat(relation.schema()).isEqualTo("schema");
+        assertThat(relation.name()).isEqualTo("t");
     }
 
     private SQLExecutor getSqlExecutorBuilderForTable(RelationName tableIdent, String... searchPath) throws IOException {
@@ -194,7 +194,7 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
             .findRelation(tableQn, Operation.READ, sessionSettings.sessionUser(), sessionSettings.searchPath());
 
         RelationName relation = tableInfo.ident();
-        assertThat(relation.schema(), is("schema"));
-        assertThat(relation.name(), is("t"));
+        assertThat(relation.schema()).isEqualTo("schema");
+        assertThat(relation.name()).isEqualTo("t");
     }
 }

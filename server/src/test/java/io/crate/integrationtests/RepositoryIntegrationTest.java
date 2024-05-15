@@ -23,9 +23,8 @@ package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 import java.io.File;
 import java.util.HashMap;
@@ -65,11 +64,11 @@ public class RepositoryIntegrationTest extends IntegTestCase {
             });
         waitNoPendingTasksOnAll();
         execute("DROP REPOSITORY existing_repo");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
 
         waitNoPendingTasksOnAll();
         execute("select * from sys.repositories where name = ? ", new Object[]{"existing_repo"});
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response.rowCount()).isEqualTo(0L);
     }
 
     @Test
@@ -81,12 +80,12 @@ public class RepositoryIntegrationTest extends IntegTestCase {
             });
         waitNoPendingTasksOnAll();
         execute("select * from sys.repositories where name ='myRepo'");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((String) response.rows()[0][0], is("myRepo"));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat((String) response.rows()[0][0]).isEqualTo("myRepo");
         HashMap<String, String> settings = (HashMap) response.rows()[0][1];
-        assertThat(settings.get("compress"), is("true"));
-        assertThat(new File(settings.get("location")).getAbsolutePath(), is(repoLocation));
-        assertThat((String) response.rows()[0][2], is("fs"));
+        assertThat(settings.get("compress")).isEqualTo("true");
+        assertThat(new File(settings.get("location")).getAbsolutePath()).isEqualTo(repoLocation);
+        assertThat((String) response.rows()[0][2]).isEqualTo("fs");
     }
 
     @Test

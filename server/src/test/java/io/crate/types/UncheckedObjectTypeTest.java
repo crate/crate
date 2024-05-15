@@ -21,7 +21,7 @@
 
 package io.crate.types;
 
-import static org.hamcrest.Matchers.is;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
@@ -51,8 +51,8 @@ public class UncheckedObjectTypeTest extends ESTestCase {
         UncheckedObjectType readObject = new UncheckedObjectType();
         Map<Object, Object> readMap = readObject.readValueFrom(in);
 
-        assertThat(readMap.get(longKey), is(arrayValue));
-        assertThat(readMap.get(stringKey), is(intValue));
+        assertThat(readMap.get(longKey)).isEqualTo(arrayValue);
+        assertThat(readMap.get(stringKey)).isEqualTo(intValue);
     }
 
     @Test

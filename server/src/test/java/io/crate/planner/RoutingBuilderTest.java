@@ -22,14 +22,11 @@
 package io.crate.planner;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 import java.util.Collections;
 import java.util.List;
 
 import org.elasticsearch.common.Randomness;
-import org.hamcrest.CoreMatchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -85,7 +82,7 @@ public class RoutingBuilderTest extends CrateDummyClusterServiceUnitTest {
         // currently because the used routing are stubbed via the TestingTableInfo
         Routing routing1 = tableRoutings.get(0);
         Routing routing2 = tableRoutings.get(1);
-        assertThat(routing1, is(routing2));
+        assertThat(routing1).isEqualTo(routing2);
     }
 
     @Test
@@ -98,7 +95,7 @@ public class RoutingBuilderTest extends CrateDummyClusterServiceUnitTest {
         routingBuilder.newAllocations();
 
         assertThat(readerAllocations.indices()).hasSize(1);
-        assertThat(readerAllocations.indices().get(0), is(relationName.indexNameOrAlias()));
+        assertThat(readerAllocations.indices().get(0)).isEqualTo(relationName.indexNameOrAlias());
         assertThat(readerAllocations.nodeReaders()).hasSize(2);
 
         IntSet n1 = readerAllocations.nodeReaders().get("n1");
@@ -111,9 +108,9 @@ public class RoutingBuilderTest extends CrateDummyClusterServiceUnitTest {
         assertThat(n2.contains(1)).isTrue();
         assertThat(n2.contains(3)).isTrue();
 
-        assertThat(readerAllocations.bases().get(relationName.indexNameOrAlias()), is(0));
+        assertThat(readerAllocations.bases().get(relationName.indexNameOrAlias())).isEqualTo(0);
 
         ReaderAllocations readerAllocations2 = routingBuilder.buildReaderAllocations();
-        assertThat(readerAllocations, CoreMatchers.not(is(readerAllocations2)));
+        assertThat(readerAllocations).isNotEqualTo(readerAllocations2);
     }
 }

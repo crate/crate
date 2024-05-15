@@ -23,7 +23,6 @@ package io.crate.replication.logical.analyze;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertThrows;
 
@@ -124,7 +123,7 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
         var e = SQLExecutor.of(clusterService);
         AnalyzedDropPublication stmt = e.analyze("DROP PUBLICATION IF EXISTS pub1");
         assertThat(stmt.ifExists()).isTrue();
-        assertThat(stmt.name(), is("pub1"));
+        assertThat(stmt.name()).isEqualTo("pub1");
     }
 
     @Test
@@ -212,7 +211,7 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
         var e = SQLExecutor.of(clusterService);
         AnalyzedDropSubscription stmt = e.analyze("DROP SUBSCRIPTION IF EXISTS sub1");
         assertThat(stmt.ifExists()).isTrue();
-        assertThat(stmt.name(), is("sub1"));
+        assertThat(stmt.name()).isEqualTo("sub1");
     }
 
     @Test

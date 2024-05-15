@@ -21,8 +21,7 @@
 
 package io.crate.types;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
@@ -47,7 +46,7 @@ public class TypeCompatibilityTest {
 
     private static void assertCommonType(DataType<?> first, DataType<?> second, DataType<?> expected) {
         var actual = TypeCompatibility.getCommonType(first, second);
-        assertThat(actual, is(expected));
+        assertThat(actual).isEqualTo(expected);
     }
 
 }

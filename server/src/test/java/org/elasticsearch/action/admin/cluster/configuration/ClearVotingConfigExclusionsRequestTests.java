@@ -18,8 +18,8 @@
  */
 package org.elasticsearch.action.admin.cluster.configuration;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 
@@ -38,7 +38,7 @@ public class ClearVotingConfigExclusionsRequestTests extends ESTestCase {
         }
         final ClearVotingConfigExclusionsRequest deserialized
             = copyWriteable(originalRequest, writableRegistry(), ClearVotingConfigExclusionsRequest::new);
-        assertThat(deserialized.getWaitForRemoval(), equalTo(originalRequest.getWaitForRemoval()));
-        assertThat(deserialized.getTimeout(), equalTo(originalRequest.getTimeout()));
+        assertThat(deserialized.getWaitForRemoval()).isEqualTo(originalRequest.getWaitForRemoval());
+        assertThat(deserialized.getTimeout()).isEqualTo(originalRequest.getTimeout());
     }
 }

@@ -26,8 +26,6 @@ import static io.crate.testing.StubPhases.newPhase;
 import static java.util.Collections.singletonList;
 import static java.util.stream.StreamSupport.stream;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 import java.util.List;
 
@@ -57,7 +55,7 @@ public class NodeOperationCtxTest extends ESTestCase {
                 NodeOperation.withDownstream(p2, p3, (byte) 0))
         );
 
-        assertThat(opCtx.findLeafs(), is(IntArrayList.from(2)));
+        assertThat(opCtx.findLeafs()).isEqualTo(IntArrayList.from(2));
     }
 
     @Test
@@ -66,7 +64,7 @@ public class NodeOperationCtxTest extends ESTestCase {
         NodeOperationCtx opCtx =
             new NodeOperationCtx("n1", singletonList(NodeOperation.withDownstream(p1, p1, (byte) 0)));
 
-        assertThat(stream(opCtx.findLeafs().spliterator(), false).count(), is(0L));
+        assertThat(stream(opCtx.findLeafs().spliterator(), false).count()).isEqualTo(0L);
     }
 
     @Test

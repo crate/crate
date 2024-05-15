@@ -21,8 +21,7 @@
 
 package io.crate.expression.symbol.format;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.IllegalFormatConversionException;
 import java.util.List;
@@ -50,13 +49,13 @@ public class SymbolFormatterTest extends ESTestCase {
             List.of(Literal.of("bar"), Literal.of(3.4)),
             DataTypes.DOUBLE
         );
-        assertThat(Symbols.format("This Symbol is formatted %s", f), is("This Symbol is formatted foo('bar', 3.4)"));
+        assertThat(Symbols.format("This Symbol is formatted %s", f)).isEqualTo("This Symbol is formatted foo('bar', 3.4)");
     }
 
     @Test
     public void testFormatInvalidEscape() throws Exception {
         expectedException.expect(IllegalFormatConversionException.class);
         expectedException.expectMessage("d != java.lang.String");
-        assertThat(Symbols.format("%d", Literal.of(42L)), is(""));
+        assertThat(Symbols.format("%d", Literal.of(42L))).isEqualTo("");
     }
 }

@@ -171,7 +171,7 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
             SyncedFlushResponse syncedFlushResponse = client()
                 .execute(SyncedFlushAction.INSTANCE, new SyncedFlushRequest(indexName))
                 .get(5, TimeUnit.SECONDS);
-            assertThat(syncedFlushResponse.successfulShards(), equalTo(2));
+            assertThat(syncedFlushResponse.successfulShards()).isEqualTo(2);
         });
         cluster().stopRandomNode(TestCluster.nameFilter(nodeWithReplica));
         if (randomBoolean()) {
@@ -384,7 +384,7 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
                 new Object[]{indexName});
             long globalCheckPoint = (long) response.rows()[0][0];
             long maxSeqNo = (long) response.rows()[0][1];
-            assertThat(globalCheckPoint, equalTo(maxSeqNo));
+            assertThat(globalCheckPoint).isEqualTo(maxSeqNo);
             List<Map<String, Object>> rentetionLease = (List<Map<String, Object>>) response.rows()[0][2];
             assertThat(rentetionLease).hasSize(activeRetentionLeaseIds.size());
             for (var activeRetentionLease : rentetionLease) {

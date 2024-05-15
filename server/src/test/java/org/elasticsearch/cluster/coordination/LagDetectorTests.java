@@ -18,12 +18,12 @@
  */
 package org.elasticsearch.cluster.coordination;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.coordination.LagDetector.CLUSTER_FOLLOWER_LAG_TIMEOUT_SETTING;
 import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
@@ -73,7 +73,7 @@ public class LagDetectorTests extends ESTestCase {
         lagDetector.startLagDetector(1);
         final long startTime = deterministicTaskQueue.getCurrentTimeMillis();
         deterministicTaskQueue.runAllTasks();
-        assertThat("no lag detector started", deterministicTaskQueue.getCurrentTimeMillis(), is(startTime));
+        assertThat(deterministicTaskQueue.getCurrentTimeMillis()).as("no lag detector started").isEqualTo(startTime);
         assertThat(failedNodes, empty());
     }
 
@@ -190,7 +190,9 @@ public class LagDetectorTests extends ESTestCase {
         {
             final long startTime = deterministicTaskQueue.getCurrentTimeMillis();
             deterministicTaskQueue.runAllTasks();
-            assertThat("no lag detector started", deterministicTaskQueue.getCurrentTimeMillis(), is(startTime));
+            assertThat(deterministicTaskQueue.getCurrentTimeMillis())
+                .as("no lag detector started")
+                .isEqualTo(startTime);
         }
         assertThat(failedNodes, empty());
 

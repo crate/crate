@@ -23,8 +23,6 @@ package io.crate.metadata.doc.mappers.array;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
@@ -125,8 +123,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
         Set<String> values = uniqueValuesFromFields(fields, "array_field");
         assertThat(values, Matchers.containsInAnyOrder("a", "b", "c"));
         assertThat(
-            mapper.mappingSource().string(),
-            is("{\"default\":{" +
+            mapper.mappingSource().string()).isEqualTo("{\"default\":{" +
                "\"properties\":{" +
                "\"array_field\":{" +
                "\"type\":\"array\"," +
@@ -136,7 +133,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
                "}" +
                "}" +
                "}" +
-               "}}"));
+               "}}");
     }
 
     private static Set<String> uniqueValuesFromFields(Document fields, String fieldName) {
@@ -235,8 +232,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
             containsInAnyOrder("a", "b", "c"));
         assertThat(mapper.mappers().getMapper("array_field.s")).isExactlyInstanceOf(KeywordFieldMapper.class);
         assertThat(
-            mapper.mappingSource().string(),
-            is("{\"default\":{" +
+            mapper.mappingSource().string()).isEqualTo("{\"default\":{" +
                "\"properties\":{" +
                "\"array_field\":{" +
                "\"type\":\"array\"," +
@@ -251,7 +247,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
                "}" +
                "}" +
                "}" +
-               "}}}"));
+               "}}}");
     }
 
     @Test
@@ -305,8 +301,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
         String mappingSourceString = new CompressedXContent(mapper, XContentType.JSON, ToXContent.EMPTY_PARAMS).string();
         // column position calculation is carried out within clusterstate changes, so 'new' still has position = null
         assertThat(
-            mappingSourceString,
-            is("{\"default\":{" +
+            mappingSourceString).isEqualTo("{\"default\":{" +
                "\"properties\":{" +
                "\"array_field\":{" +
                "\"type\":\"array\"," +
@@ -322,7 +317,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
                "}" +
                "}" +
                "}" +
-               "}}}"));
+               "}}}");
     }
 
     @Test
@@ -341,15 +336,15 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
             .endObject().endObject().endObject());
         DocumentMapper mapper = mapper(INDEX, mapping);
         Mapper m = mapper.mappers().getMapper("array_field");
-        assertThat(m.name(), equalTo("array_field"));
+        assertThat(m.name()).isEqualTo("array_field");
         assertThat(m).isExactlyInstanceOf(ArrayMapper.class);
         ArrayMapper am = (ArrayMapper) m;
         m = am.getInnerMapper();
-        assertThat(m.name(), equalTo("array_field"));
+        assertThat(m.name()).isEqualTo("array_field");
         assertThat(m).isExactlyInstanceOf(ArrayMapper.class);
         am = (ArrayMapper) m;
         m = am.getInnerMapper();
-        assertThat(m.name(), equalTo("array_field"));
+        assertThat(m.name()).isEqualTo("array_field");
         assertThat(m).isExactlyInstanceOf(NumberFieldMapper.class);
     }
 

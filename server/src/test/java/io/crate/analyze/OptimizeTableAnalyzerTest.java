@@ -28,7 +28,6 @@ import static io.crate.analyze.OptimizeTableSettings.UPGRADE_SEGMENTS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.hasItems;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
@@ -98,19 +97,19 @@ public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest 
         OptimizeTablePlan.BoundOptimizeTable analysis = analyze(
             "OPTIMIZE TABLE users WITH (max_num_segments=2)");
         assertThat(analysis.indexNames(), contains("users"));
-        assertThat(MAX_NUM_SEGMENTS.get(analysis.settings()), is(2));
+        assertThat(MAX_NUM_SEGMENTS.get(analysis.settings())).isEqualTo(2);
         analysis = analyze("OPTIMIZE TABLE users WITH (only_expunge_deletes=true)");
 
         assertThat(analysis.indexNames(), contains("users"));
-        assertThat(ONLY_EXPUNGE_DELETES.get(analysis.settings()), is(Boolean.TRUE));
+        assertThat(ONLY_EXPUNGE_DELETES.get(analysis.settings())).isEqualTo(Boolean.TRUE);
 
         analysis = analyze("OPTIMIZE TABLE users WITH (flush=false)");
         assertThat(analysis.indexNames(), contains("users"));
-        assertThat(FLUSH.get(analysis.settings()), is(Boolean.FALSE));
+        assertThat(FLUSH.get(analysis.settings())).isEqualTo(Boolean.FALSE);
 
         analysis = analyze("OPTIMIZE TABLE users WITH (upgrade_segments=true)");
         assertThat(analysis.indexNames(), contains("users"));
-        assertThat(UPGRADE_SEGMENTS.get(analysis.settings()), is(Boolean.TRUE));
+        assertThat(UPGRADE_SEGMENTS.get(analysis.settings())).isEqualTo(Boolean.TRUE);
     }
 
     @Test

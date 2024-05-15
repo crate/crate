@@ -22,7 +22,7 @@
 package io.crate.execution.engine.pipeline;
 
 import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.hamcrest.core.Is.is;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertThat;
 
 import java.util.Collections;
@@ -78,8 +78,8 @@ public class MapRowUsingInputsTest extends ESTestCase {
     public void testAdd2IsAppliedToFirstColumnOfArgumentRow() throws Exception {
         MapRowUsingInputs mapRowUsingInputs = new MapRowUsingInputs(inputs, expressions);
         Row result = mapRowUsingInputs.apply(new Row1(2L));
-        assertThat(result.numColumns(), is(1));
-        assertThat(result.get(0), is(4L));
+        assertThat(result.numColumns()).isEqualTo(1);
+        assertThat(result.get(0)).isEqualTo(4L);
     }
 
     @Test

@@ -282,15 +282,15 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         );
         final int expectedOps = (int) (endingSeqNo - startingSeqNo + 1);
         RecoverySourceHandler.SendSnapshotResult result = FutureUtils.get(future);
-        assertThat(result.sentOperations, equalTo(expectedOps));
+        assertThat(result.sentOperations).isEqualTo(expectedOps);
         List<Translog.Operation> sortedShippedOps = shippedOps.stream()
             .sorted(Comparator.comparing(Translog.Operation::seqNo))
             .collect(Collectors.toList());
-        assertThat(shippedOps.size(), equalTo(expectedOps));
+        assertThat(shippedOps.size()).isEqualTo(expectedOps);
         for (int i = 0; i < shippedOps.size(); i++) {
-            assertThat(sortedShippedOps.get(i), equalTo(operations.get(i + (int) startingSeqNo + initialNumberOfDocs)));
+            assertThat(sortedShippedOps.get(i)).isEqualTo(operations.get(i + (int) startingSeqNo + initialNumberOfDocs));
         }
-        assertThat(result.targetLocalCheckpoint, equalTo(checkpointOnTarget.get()));
+        assertThat(result.targetLocalCheckpoint).isEqualTo(checkpointOnTarget.get());
     }
 
     @Test
@@ -365,11 +365,11 @@ public class RecoverySourceHandlerTests extends ESTestCase {
                                                 RetentionLeases receivedRetentionLease, long receivedMappingVersion,
                                                 ActionListener<Long> listener) {
                 received.set(true);
-                assertThat(receivedMaxSeenAutoIdTimestamp, equalTo(maxSeenAutoIdTimestamp));
-                assertThat(receivedMaxSeqNoOfUpdatesOrDeletes, equalTo(maxSeqNoOfUpdatesOrDeletes));
-                assertThat(receivedRetentionLease, equalTo(retentionLeases));
-                assertThat(receivedMappingVersion, equalTo(mappingVersion));
-                assertThat(receivedTotalOps, equalTo(numOps));
+                assertThat(receivedMaxSeenAutoIdTimestamp).isEqualTo(maxSeenAutoIdTimestamp);
+                assertThat(receivedMaxSeqNoOfUpdatesOrDeletes).isEqualTo(maxSeqNoOfUpdatesOrDeletes);
+                assertThat(receivedRetentionLease).isEqualTo(retentionLeases);
+                assertThat(receivedMappingVersion).isEqualTo(mappingVersion);
+                assertThat(receivedTotalOps).isEqualTo(numOps);
                 for (Translog.Operation operation : operations) {
                     receivedSeqNos.add(operation.seqNo());
                 }
@@ -393,15 +393,15 @@ public class RecoverySourceHandlerTests extends ESTestCase {
             mappingVersion, sendFuture);
         RecoverySourceHandler.SendSnapshotResult sendSnapshotResult = FutureUtils.get(sendFuture);
         assertTrue(received.get());
-        assertThat(sendSnapshotResult.targetLocalCheckpoint, equalTo(localCheckpoint.get()));
-        assertThat(sendSnapshotResult.sentOperations, equalTo(receivedSeqNos.size()));
+        assertThat(sendSnapshotResult.targetLocalCheckpoint).isEqualTo(localCheckpoint.get());
+        assertThat(sendSnapshotResult.sentOperations).isEqualTo(receivedSeqNos.size());
         Set<Long> sentSeqNos = new HashSet<>();
         for (Translog.Operation op : operations) {
             if (startingSeqNo <= op.seqNo() && op.seqNo() <= endingSeqNo && skipOperations.contains(op) == false) {
                 sentSeqNos.add(op.seqNo());
             }
         }
-        assertThat(receivedSeqNos, equalTo(sentSeqNos));
+        assertThat(receivedSeqNos).isEqualTo(sentSeqNos);
     }
 
     private Engine.Index getIndex(final String id) {
@@ -656,7 +656,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         PlainActionFuture<Void> sendFilesFuture = new PlainActionFuture<>();
         handler.sendFiles(store, files.toArray(new StoreFileMetadata[0]), () -> 0, sendFilesFuture);
         assertBusy(() -> {
-            assertThat(sentChunks.get(), equalTo(Math.min(totalChunks, maxConcurrentChunks)));
+            assertThat(sentChunks.get()).isEqualTo(Math.min(totalChunks, maxConcurrentChunks));
             assertThat(unrepliedChunks, hasSize(sentChunks.get()));
         });
 
@@ -682,7 +682,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
             int expectedUnrepliedChunks = unrepliedChunks.size() + chunksToSend;
             chunksToAck.forEach(c -> c.listener.onResponse(null));
             assertBusy(() -> {
-                assertThat(sentChunks.get(), equalTo(expectedSentChunks));
+                assertThat(sentChunks.get()).isEqualTo(expectedSentChunks);
                 assertThat(unrepliedChunks, hasSize(expectedUnrepliedChunks));
             });
         }
@@ -735,7 +735,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         sendFilesLatch.await();
         assertThat(sendFilesError.get()).isExactlyInstanceOf(IllegalStateException.class);
         assertThat(sendFilesError.get().getMessage(), containsString("test chunk exception"));
-        assertThat("no more chunks should be sent", sentChunks.get(), equalTo(Math.min(totalChunks, maxConcurrentChunks)));
+        assertThat(sentChunks.get()).as("no more chunks should be sent").isEqualTo(Math.min(totalChunks, maxConcurrentChunks));
         store.close();
     }
 

@@ -21,6 +21,7 @@
 
 package io.crate.planner;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -99,8 +100,7 @@ public class PlanPrinterTest extends CrateDummyClusterServiceUnitTest {
                                             "select y from t2 " +
                                             "order by 1 " +
                                             "limit 10");
-        assertThat(map.toString(),
-            is("{UnionExecutionPlan={" +
+        assertThat(map.toString()).isEqualTo("{UnionExecutionPlan={" +
                "left={Collect={" +
                     "collectPhase={COLLECT={distribution={distributedByColumn=0, type=BROADCAST}, " +
                     "executionNodes=[n1], id=0, orderBy=x ASC, " +
@@ -121,7 +121,7 @@ public class PlanPrinterTest extends CrateDummyClusterServiceUnitTest {
                     "toCollect=[y], " +
                     "type=executionPhase, where=true}}, " +
                     "type=executionPlan}}, " +
-               "type=executionPlan}}"));
+               "type=executionPlan}}");
     }
 
     @Test
@@ -129,14 +129,13 @@ public class PlanPrinterTest extends CrateDummyClusterServiceUnitTest {
         Map<String, Object> map = printPlan("select count(*) " +
                                             "from t1 " +
                                             "where t1.x > 10");
-        assertThat(map.toString(),
-            is("{CountPlan={type=executionPlan}, " +
+        assertThat(map.toString()).isEqualTo("{CountPlan={type=executionPlan}, " +
                "countPhase={COUNT={executionNodes=[n1], id=0, type=executionPhase}, " +
                    "distribution={distributedByColumn=0, type=BROADCAST}, " +
                    "routing={n1={t1=[0, 1, 2, 3]}}, " +
                    "where=(x > 10)}, " +
                "mergePhase={MERGE={distribution={distributedByColumn=0, type=BROADCAST}, " +
                     "executionNodes=[n1], id=1, " +
-                    "projections=[{type=MERGE_COUNT_AGGREGATION}], type=executionPhase}}}"));
+                    "projections=[{type=MERGE_COUNT_AGGREGATION}], type=executionPhase}}}");
     }
 }

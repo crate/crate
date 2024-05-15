@@ -20,8 +20,8 @@
  */
 package org.elasticsearch.common.settings;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -405,15 +405,15 @@ public class ScopedSettingsTests extends ESTestCase {
         service.applySettings(Settings.builder()
                 .put("eggplant._name", 2)
                 .build());
-        assertThat(affixResults.size(), equalTo(1));
-        assertThat(affixResults.get("_name"), equalTo(2));
+        assertThat(affixResults.size()).isEqualTo(1);
+        assertThat(affixResults.get("_name")).isEqualTo(2);
 
         service.applySettings(Settings.builder()
                 .put("eggplant._name", 2)
                 .put("other.thing", 3)
                 .build());
 
-        assertThat(affixResults.get("_name"), equalTo(2));
+        assertThat(affixResults.get("_name")).isEqualTo(2);
     }
 
 
@@ -529,35 +529,35 @@ public class ScopedSettingsTests extends ESTestCase {
             someGroup, someAffix)));
         Settings diff = settings.diff(Settings.builder().put("foo.bar", 5).build(), Settings.EMPTY);
         assertEquals(2, diff.size());
-        assertThat(diff.getAsInt("foo.bar.baz", null), equalTo(1));
+        assertThat(diff.getAsInt("foo.bar.baz", null)).isEqualTo(1);
         assertEquals(diff.getAsList("foo.bar.quux", null), Arrays.asList("a", "b", "c"));
 
         diff = settings.diff(
                 Settings.builder().put("foo.bar", 5).build(),
                 Settings.builder().put("foo.bar.baz", 17).putList("foo.bar.quux", "d", "e", "f").build());
         assertEquals(2, diff.size());
-        assertThat(diff.getAsInt("foo.bar.baz", null), equalTo(17));
+        assertThat(diff.getAsInt("foo.bar.baz", null)).isEqualTo(17);
         assertEquals(diff.getAsList("foo.bar.quux", null), Arrays.asList("d", "e", "f"));
 
         diff = settings.diff(
             Settings.builder().put("some.group.foo", 5).build(),
             Settings.builder().put("some.group.foobar", 17).put("some.group.foo", 25).build());
         assertEquals(4, diff.size());
-        assertThat(diff.getAsInt("some.group.foobar", null), equalTo(17));
+        assertThat(diff.getAsInt("some.group.foobar", null)).isEqualTo(17);
         assertNull(diff.get("some.group.foo"));
         assertEquals(diff.getAsList("foo.bar.quux", null), Arrays.asList("a", "b", "c"));
-        assertThat(diff.getAsInt("foo.bar.baz", null), equalTo(1));
-        assertThat(diff.getAsInt("foo.bar", null), equalTo(1));
+        assertThat(diff.getAsInt("foo.bar.baz", null)).isEqualTo(1);
+        assertThat(diff.getAsInt("foo.bar", null)).isEqualTo(1);
 
         diff = settings.diff(
             Settings.builder().put("some.prefix.foo.somekey", 5).build(),
             Settings.builder().put("some.prefix.foobar.somekey", 17).put("some.prefix.foo.somekey", 18).build());
         assertEquals(4, diff.size());
-        assertThat(diff.getAsInt("some.prefix.foobar.somekey", null), equalTo(17));
+        assertThat(diff.getAsInt("some.prefix.foobar.somekey", null)).isEqualTo(17);
         assertNull(diff.get("some.prefix.foo.somekey"));
         assertEquals(diff.getAsList("foo.bar.quux", null), Arrays.asList("a", "b", "c"));
-        assertThat(diff.getAsInt("foo.bar.baz", null), equalTo(1));
-        assertThat(diff.getAsInt("foo.bar", null), equalTo(1));
+        assertThat(diff.getAsInt("foo.bar.baz", null)).isEqualTo(1);
+        assertThat(diff.getAsInt("foo.bar", null)).isEqualTo(1);
     }
 
     @Test
@@ -573,35 +573,35 @@ public class ScopedSettingsTests extends ESTestCase {
             someGroup, someAffix)));
         Settings diff = settings.diff(Settings.builder().put("foo.bar", 5).build(), Settings.EMPTY);
         assertEquals(1, diff.size());
-        assertThat(diff.getAsInt("foo.bar.baz", null), equalTo(1));
+        assertThat(diff.getAsInt("foo.bar.baz", null)).isEqualTo(1);
         assertNull(diff.getAsList("foo.bar.quux", null)); // affix settings don't know their concrete keys
 
         diff = settings.diff(
             Settings.builder().put("foo.bar", 5).build(),
             Settings.builder().put("foo.bar.baz", 17).putList("foo.bar.quux", "d", "e", "f").build());
         assertEquals(2, diff.size());
-        assertThat(diff.getAsInt("foo.bar.baz", null), equalTo(17));
+        assertThat(diff.getAsInt("foo.bar.baz", null)).isEqualTo(17);
         assertEquals(diff.getAsList("foo.bar.quux", null), Arrays.asList("d", "e", "f"));
 
         diff = settings.diff(
             Settings.builder().put("some.group.foo", 5).build(),
             Settings.builder().put("some.group.foobar", 17).put("some.group.foo", 25).build());
         assertEquals(3, diff.size());
-        assertThat(diff.getAsInt("some.group.foobar", null), equalTo(17));
+        assertThat(diff.getAsInt("some.group.foobar", null)).isEqualTo(17);
         assertNull(diff.get("some.group.foo"));
         assertNull(diff.getAsList("foo.bar.quux", null)); // affix settings don't know their concrete keys
-        assertThat(diff.getAsInt("foo.bar.baz", null), equalTo(1));
-        assertThat(diff.getAsInt("foo.bar", null), equalTo(1));
+        assertThat(diff.getAsInt("foo.bar.baz", null)).isEqualTo(1);
+        assertThat(diff.getAsInt("foo.bar", null)).isEqualTo(1);
 
         diff = settings.diff(
             Settings.builder().put("some.prefix.foo.somekey", 5).build(),
             Settings.builder().put("some.prefix.foobar.somekey", 17).put("some.prefix.foo.somekey", 18).build());
         assertEquals(3, diff.size());
-        assertThat(diff.getAsInt("some.prefix.foobar.somekey", null), equalTo(17));
+        assertThat(diff.getAsInt("some.prefix.foobar.somekey", null)).isEqualTo(17);
         assertNull(diff.get("some.prefix.foo.somekey"));
         assertNull(diff.getAsList("foo.bar.quux", null)); // affix settings don't know their concrete keys
-        assertThat(diff.getAsInt("foo.bar.baz", null), equalTo(1));
-        assertThat(diff.getAsInt("foo.bar", null), equalTo(1));
+        assertThat(diff.getAsInt("foo.bar.baz", null)).isEqualTo(1);
+        assertThat(diff.getAsInt("foo.bar", null)).isEqualTo(1);
 
         diff = settings.diff(
             Settings.builder().put("some.prefix.foo.somekey", 5).build(),
@@ -610,12 +610,12 @@ public class ScopedSettingsTests extends ESTestCase {
             .putList("foo.baz.quux", "d", "e", "f")
                 .build());
         assertEquals(5, diff.size());
-        assertThat(diff.getAsInt("some.prefix.foobar.somekey", null), equalTo(17));
+        assertThat(diff.getAsInt("some.prefix.foobar.somekey", null)).isEqualTo(17);
         assertNull(diff.get("some.prefix.foo.somekey"));
         assertEquals(diff.getAsList("foo.bar.quux", null), Arrays.asList("x", "y", "z"));
         assertEquals(diff.getAsList("foo.baz.quux", null), Arrays.asList("d", "e", "f"));
-        assertThat(diff.getAsInt("foo.bar.baz", null), equalTo(1));
-        assertThat(diff.getAsInt("foo.bar", null), equalTo(1));
+        assertThat(diff.getAsInt("foo.bar.baz", null)).isEqualTo(1);
+        assertThat(diff.getAsInt("foo.bar", null)).isEqualTo(1);
     }
 
     @Test
@@ -928,9 +928,9 @@ public class ScopedSettingsTests extends ESTestCase {
         final Settings upgradedSettings = service.upgradeSettings(settings);
         assertFalse(oldSetting.exists(upgradedSettings));
         assertTrue(newSetting.exists(upgradedSettings));
-        assertThat(newSetting.get(upgradedSettings), equalTo("new." + oldSetting.get(settings)));
+        assertThat(newSetting.get(upgradedSettings)).isEqualTo("new." + oldSetting.get(settings));
         assertTrue(remainingSetting.exists(upgradedSettings));
-        assertThat(remainingSetting.get(upgradedSettings), equalTo(remainingSetting.get(settings)));
+        assertThat(remainingSetting.get(upgradedSettings)).isEqualTo(remainingSetting.get(settings));
     }
 
     @Test
@@ -1011,12 +1011,10 @@ public class ScopedSettingsTests extends ESTestCase {
             assertFalse(oldSetting.getConcreteSettingForNamespace(concrete).exists(upgradedSettings));
             assertTrue(newSetting.getConcreteSettingForNamespace(concrete).exists(upgradedSettings));
             assertThat(
-                    newSetting.getConcreteSettingForNamespace(concrete).get(upgradedSettings),
-                    equalTo("new." + oldSetting.getConcreteSettingForNamespace(concrete).get(settings)));
+                    newSetting.getConcreteSettingForNamespace(concrete).get(upgradedSettings)).isEqualTo("new." + oldSetting.getConcreteSettingForNamespace(concrete).get(settings));
             assertTrue(remainingSetting.getConcreteSettingForNamespace(concrete).exists(upgradedSettings));
             assertThat(
-                    remainingSetting.getConcreteSettingForNamespace(concrete).get(upgradedSettings),
-                    equalTo(remainingSetting.getConcreteSettingForNamespace(concrete).get(settings)));
+                    remainingSetting.getConcreteSettingForNamespace(concrete).get(upgradedSettings)).isEqualTo(remainingSetting.getConcreteSettingForNamespace(concrete).get(settings));
         }
     }
 
@@ -1061,8 +1059,7 @@ public class ScopedSettingsTests extends ESTestCase {
         assertFalse(oldSetting.exists(upgradedSettings));
         assertTrue(newSetting.exists(upgradedSettings));
         assertThat(
-                newSetting.get(upgradedSettings),
-                equalTo(oldSetting.get(settings).stream().map(s -> "new." + s).collect(Collectors.toList())));
+                newSetting.get(upgradedSettings)).isEqualTo(oldSetting.get(settings).stream().map(s -> "new." + s).collect(Collectors.toList()));
     }
 
     @Test
