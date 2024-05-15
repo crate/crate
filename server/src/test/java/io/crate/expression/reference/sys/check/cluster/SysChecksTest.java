@@ -22,8 +22,6 @@
 package io.crate.expression.reference.sys.check.cluster;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -68,8 +66,8 @@ public class SysChecksTest extends ESTestCase {
         List<PartitionName> partitionsSecond = buildPartitions(100);
         when(docTableInfo.getPartitions(any())).thenReturn(partitionsFirst, partitionsSecond);
 
-        assertThat(numberOfPartitionsSysCheck.id(), is(2));
-        assertThat(numberOfPartitionsSysCheck.severity(), is(Severity.MEDIUM));
+        assertThat(numberOfPartitionsSysCheck.id()).isEqualTo(2);
+        assertThat(numberOfPartitionsSysCheck.severity()).isEqualTo(Severity.MEDIUM);
         assertThat(numberOfPartitionsSysCheck.isValid()).isTrue();
     }
 
@@ -86,8 +84,8 @@ public class SysChecksTest extends ESTestCase {
         when(docTableInfo.isPartitioned()).thenReturn(true);
         when(docTableInfo.getPartitions(any())).thenReturn(partitions);
 
-        assertThat(numberOfPartitionsSysCheck.id(), is(2));
-        assertThat(numberOfPartitionsSysCheck.severity(), is(Severity.MEDIUM));
+        assertThat(numberOfPartitionsSysCheck.id()).isEqualTo(2);
+        assertThat(numberOfPartitionsSysCheck.severity()).isEqualTo(Severity.MEDIUM);
         assertThat(numberOfPartitionsSysCheck.isValid()).isFalse();
     }
 

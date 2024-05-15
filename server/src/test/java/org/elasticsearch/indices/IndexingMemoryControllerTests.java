@@ -20,9 +20,9 @@ package org.elasticsearch.indices;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.common.util.concurrent.EsExecutors.PROCESSORS_SETTING;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -252,7 +252,7 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
                                                            .put("indices.memory.index_buffer_size", "0.001%")
                                                            .put("indices.memory.min_index_buffer_size", "6mb").build());
 
-        assertThat(controller.indexingBufferSize(), equalTo(new ByteSizeValue(6, ByteSizeUnit.MB)));
+        assertThat(controller.indexingBufferSize()).isEqualTo(new ByteSizeValue(6, ByteSizeUnit.MB));
     }
 
     public void testNegativeMinIndexBufferSize() {
@@ -294,7 +294,7 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
                                                            .put("indices.memory.index_buffer_size", "90%")
                                                            .put("indices.memory.max_index_buffer_size", "6mb").build());
 
-        assertThat(controller.indexingBufferSize(), equalTo(new ByteSizeValue(6, ByteSizeUnit.MB)));
+        assertThat(controller.indexingBufferSize()).isEqualTo(new ByteSizeValue(6, ByteSizeUnit.MB));
     }
 
     public void testThrottling() throws Exception {
@@ -458,13 +458,13 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
 
         assertBusy(() -> {
             ThreadPoolStats.Stats stats = getRefreshThreadPoolStats();
-            assertThat(stats.getCompleted(), equalTo(beforeStats.getCompleted() + iterations - 1));
+            assertThat(stats.getCompleted()).isEqualTo(beforeStats.getCompleted() + iterations - 1);
         });
 
         refreshLatch.get().countDown(); // allow refresh
         assertBusy(() -> {
             ThreadPoolStats.Stats stats = getRefreshThreadPoolStats();
-            assertThat(stats.getCompleted(), equalTo(beforeStats.getCompleted() + iterations));
+            assertThat(stats.getCompleted()).isEqualTo(beforeStats.getCompleted() + iterations);
         });
         closeShards(shard);
     }

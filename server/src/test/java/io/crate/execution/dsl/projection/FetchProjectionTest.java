@@ -21,8 +21,7 @@
 
 package io.crate.execution.dsl.projection;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
 
@@ -30,16 +29,16 @@ public class FetchProjectionTest {
 
     @Test
     public void testMaxFetchSize() throws Exception {
-        assertThat(FetchProjection.maxFetchSize(56), is(2_000));
-        assertThat(FetchProjection.maxFetchSize(256), is(30_000));
-        assertThat(FetchProjection.maxFetchSize(512), is(65_840));
-        assertThat(FetchProjection.maxFetchSize(1024), is(137_520));
-        assertThat(FetchProjection.maxFetchSize(2048), is(280_880));
-        assertThat(FetchProjection.maxFetchSize(4096), is(500_000));
+        assertThat(FetchProjection.maxFetchSize(56)).isEqualTo(2_000);
+        assertThat(FetchProjection.maxFetchSize(256)).isEqualTo(30_000);
+        assertThat(FetchProjection.maxFetchSize(512)).isEqualTo(65_840);
+        assertThat(FetchProjection.maxFetchSize(1024)).isEqualTo(137_520);
+        assertThat(FetchProjection.maxFetchSize(2048)).isEqualTo(280_880);
+        assertThat(FetchProjection.maxFetchSize(4096)).isEqualTo(500_000);
     }
 
     @Test
     public void testBoundedFetchSize() throws Exception {
-        assertThat(FetchProjection.boundedFetchSize(0, 65_840), is(65_840));
+        assertThat(FetchProjection.boundedFetchSize(0, 65_840)).isEqualTo(65_840);
     }
 }

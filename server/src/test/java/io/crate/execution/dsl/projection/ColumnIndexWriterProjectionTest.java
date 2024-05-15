@@ -21,8 +21,7 @@
 
 package io.crate.execution.dsl.projection;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -82,7 +81,7 @@ public class ColumnIndexWriterProjectionTest {
         StreamInput in = out.bytes().streamInput();
         ColumnIndexWriterProjection p2 = (ColumnIndexWriterProjection) Projection.fromStream(in);
 
-        assertThat(p2, is(projection));
+        assertThat(p2).isEqualTo(projection);
     }
 
     private Reference ref(ColumnIdent column, DataType<?> type) {

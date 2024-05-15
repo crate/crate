@@ -19,9 +19,9 @@
 
 package org.elasticsearch.snapshots.mockstore;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertArrayEquals;
 
 import java.io.ByteArrayInputStream;
@@ -38,8 +38,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.blobstore.BlobContainer;
@@ -53,6 +51,7 @@ import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.indices.recovery.RecoverySettings;
 import org.elasticsearch.repositories.blobstore.BlobStoreRepository;
 import org.elasticsearch.snapshots.SnapshotInfo;
+import org.jetbrains.annotations.Nullable;
 
 
 /**
@@ -332,14 +331,14 @@ public class MockEventuallyConsistentRepository extends BlobStoreRepository {
                                         // a problem and could be the result of a correctly handled master failover.
                                         final SnapshotInfo existingInfo = SNAPSHOT_FORMAT.deserialize(
                                                 blobName, namedXContentRegistry, Streams.readFully(readBlob(blobName)));
-                                        assertThat(existingInfo.snapshotId(), equalTo(updatedInfo.snapshotId()));
-                                        assertThat(existingInfo.reason(), equalTo(updatedInfo.reason()));
-                                        assertThat(existingInfo.state(), equalTo(updatedInfo.state()));
-                                        assertThat(existingInfo.totalShards(), equalTo(updatedInfo.totalShards()));
-                                        assertThat(existingInfo.successfulShards(), equalTo(updatedInfo.successfulShards()));
+                                        assertThat(existingInfo.snapshotId()).isEqualTo(updatedInfo.snapshotId());
+                                        assertThat(existingInfo.reason()).isEqualTo(updatedInfo.reason());
+                                        assertThat(existingInfo.state()).isEqualTo(updatedInfo.state());
+                                        assertThat(existingInfo.totalShards()).isEqualTo(updatedInfo.totalShards());
+                                        assertThat(existingInfo.successfulShards()).isEqualTo(updatedInfo.successfulShards());
                                         assertThat(
                                             existingInfo.shardFailures(), containsInAnyOrder(updatedInfo.shardFailures().toArray()));
-                                        assertThat(existingInfo.indices(), equalTo(updatedInfo.indices()));
+                                        assertThat(existingInfo.indices()).isEqualTo(updatedInfo.indices());
                                         return; // No need to add a write for this since we didn't change content
                                     } catch (Exception e) {
                                         // Rethrow as AssertionError here since kind exception might otherwise be swallowed and logged by

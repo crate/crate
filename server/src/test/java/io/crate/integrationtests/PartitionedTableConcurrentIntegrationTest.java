@@ -24,7 +24,7 @@ package io.crate.integrationtests;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
 import static io.crate.testing.Asserts.assertThat;
-import static org.hamcrest.core.Is.is;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
@@ -199,8 +199,8 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
         Bucket bucket = deletePartitionsAndExecutePlan("delete from t");
         assertThat(bucket).hasSize(1);
         Row row = bucket.iterator().next();
-        assertThat(row.numColumns(), is(1));
-        assertThat(row.get(0), is(-1L));
+        assertThat(row.numColumns()).isEqualTo(1);
+        assertThat(row.get(0)).isEqualTo(-1L);
     }
 
     @Test
@@ -208,8 +208,8 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
         Bucket bucket = deletePartitionsAndExecutePlan("delete from t where name = 'Trillian'");
         assertThat(bucket).hasSize(1);
         Row row = bucket.iterator().next();
-        assertThat(row.numColumns(), is(1));
-        assertThat(row.get(0), is(0L));
+        assertThat(row.numColumns()).isEqualTo(1);
+        assertThat(row.get(0)).isEqualTo(0L);
     }
 
     @Test
@@ -217,8 +217,8 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
         Bucket bucket = deletePartitionsAndExecutePlan("delete from t where p = 'a'");
         assertThat(bucket).hasSize(1);
         Row row = bucket.iterator().next();
-        assertThat(row.numColumns(), is(1));
-        assertThat(row.get(0), is(-1L));
+        assertThat(row.numColumns()).isEqualTo(1);
+        assertThat(row.get(0)).isEqualTo(-1L);
     }
 
     @Test
@@ -226,8 +226,8 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
         Bucket bucket = deletePartitionsAndExecutePlan("update t set name = 'BoyceCodd'");
         assertThat(bucket).hasSize(1);
         Row row = bucket.iterator().next();
-        assertThat(row.numColumns(), is(1));
-        assertThat(row.get(0), is(0L));
+        assertThat(row.numColumns()).isEqualTo(1);
+        assertThat(row.get(0)).isEqualTo(0L);
     }
 
     @Test
@@ -247,7 +247,7 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
     @Test
     public void testTableUnknownExceptionNotRaisedIfPartitionsDeletedAfterCountPlan() throws Exception {
         Bucket bucket = deletePartitionsAndExecutePlan("select count(*) from t");
-        assertThat(bucket.iterator().next().get(0), is(0L));
+        assertThat(bucket.iterator().next().get(0)).isEqualTo(0L);
     }
 
     @Test
@@ -403,7 +403,7 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
         // and invalidated/rebuild on cluster state changes
         assertBusy(() -> {
             execute("select count(*) from information_schema.columns where table_name = 'dyn_parted'");
-            assertThat(response.rows()[0][0], is(3L + numCols * numSuccessfulInserts.get()));
+            assertThat(response.rows()[0][0]).isEqualTo(3L + numCols * numSuccessfulInserts.get());
         }, 10L, TimeUnit.SECONDS);
     }
 

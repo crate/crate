@@ -19,6 +19,7 @@
 
 package org.elasticsearch.cluster.coordination;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.coordination.ElectionSchedulerFactory.ELECTION_BACK_OFF_TIME_SETTING;
 import static org.elasticsearch.cluster.coordination.ElectionSchedulerFactory.ELECTION_DURATION_SETTING;
@@ -28,7 +29,6 @@ import static org.elasticsearch.cluster.coordination.ElectionSchedulerFactory.to
 import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
@@ -210,9 +210,9 @@ public class ElectionSchedulerFactoryTests extends ESTestCase {
                 .put(ELECTION_MAX_TIMEOUT_SETTING.getKey(), maxTimeoutMillis + "ms")
                 .build();
 
-            assertThat(ELECTION_INITIAL_TIMEOUT_SETTING.get(settings), is(TimeValue.timeValueMillis(initialTimeoutMillis)));
-            assertThat(ELECTION_BACK_OFF_TIME_SETTING.get(settings), is(TimeValue.timeValueMillis(backOffMillis)));
-            assertThat(ELECTION_MAX_TIMEOUT_SETTING.get(settings), is(TimeValue.timeValueMillis(maxTimeoutMillis)));
+            assertThat(ELECTION_INITIAL_TIMEOUT_SETTING.get(settings)).isEqualTo(TimeValue.timeValueMillis(initialTimeoutMillis));
+            assertThat(ELECTION_BACK_OFF_TIME_SETTING.get(settings)).isEqualTo(TimeValue.timeValueMillis(backOffMillis));
+            assertThat(ELECTION_MAX_TIMEOUT_SETTING.get(settings)).isEqualTo(TimeValue.timeValueMillis(maxTimeoutMillis));
 
             assertThat(new ElectionSchedulerFactory(settings, random(), null), not(nullValue())); // doesn't throw an IAE
         }

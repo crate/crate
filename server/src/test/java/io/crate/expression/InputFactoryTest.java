@@ -24,7 +24,6 @@ package io.crate.expression;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.sameInstance;
-import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
 
@@ -129,15 +128,15 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
         for (CollectExpression<Row, ?> expression : expressions) {
             expression.setNextRow(row);
         }
-        assertThat(expressions.get(0).value(), is(1L));
-        assertThat(expressions.get(1).value(), is(2L)); // raw input value
+        assertThat(expressions.get(0).value()).isEqualTo(1L);
+        assertThat(expressions.get(1).value()).isEqualTo(2L); // raw input value
 
         // inputs: [ x, add ]
         List<Input<?>> inputs = ctx.topLevelInputs();
 
         assertThat(inputs).hasSize(2);
-        assertThat(inputs.get(0).value(), is(1L));
-        assertThat(inputs.get(1).value(), is(12));  // + 10
+        assertThat(inputs.get(0).value()).isEqualTo(1L);
+        assertThat(inputs.get(1).value()).isEqualTo(12);  // + 10
     }
 
     @Test
@@ -178,12 +177,12 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
         for (CollectExpression<Row, ?> expression : expressions) {
             expression.setNextRow(row);
         }
-        assertThat(expressions.get(0).value(), is(1L));
-        assertThat(expressions.get(1).value(), is(2L)); // raw input value
+        assertThat(expressions.get(0).value()).isEqualTo(1L);
+        assertThat(expressions.get(1).value()).isEqualTo(2L); // raw input value
 
         assertThat(keyInputs).hasSize(2);
-        assertThat(keyInputs.get(0).value(), is(1L));
-        assertThat(keyInputs.get(1).value(), is(12));  // 2 + 10
+        assertThat(keyInputs.get(0).value()).isEqualTo(1L);
+        assertThat(keyInputs.get(1).value()).isEqualTo(12);  // 2 + 10
     }
 
     @Test
@@ -196,7 +195,7 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
         java.lang.reflect.Field f = FunctionExpression.class.getDeclaredField("scalar");
         f.setAccessible(true);
         FunctionImplementation impl = (FunctionImplementation) f.get(expression);
-        assertThat(impl.signature(), is(function.signature()));
+        assertThat(impl.signature()).isEqualTo(function.signature());
 
         FunctionImplementation uncompiled = expressions.nodeCtx.functions().getQualified(function);
         assertThat(uncompiled, not(sameInstance(impl)));

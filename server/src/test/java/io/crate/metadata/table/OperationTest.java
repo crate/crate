@@ -21,6 +21,7 @@
 
 package io.crate.metadata.table;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static io.crate.metadata.table.Operation.ALL;
 import static io.crate.metadata.table.Operation.ALTER;
 import static io.crate.metadata.table.Operation.ALTER_BLOCKS;
@@ -52,14 +53,13 @@ public class OperationTest extends ESTestCase {
 
     @Test
     public void testBuildFromEmptyIndexBlocks() throws Exception {
-        assertThat(Operation.buildFromIndexSettingsAndState(Settings.EMPTY, IndexMetadata.State.OPEN, false), is(ALL));
+        assertThat(Operation.buildFromIndexSettingsAndState(Settings.EMPTY, IndexMetadata.State.OPEN, false)).isEqualTo(ALL);
     }
 
     @Test
     public void testBuildFromSingleIndexBlocks() throws Exception {
         assertThat(Operation.buildFromIndexSettingsAndState(Settings.builder().put(
-                IndexMetadata.SETTING_READ_ONLY, true).build(), IndexMetadata.State.OPEN, false),
-            is(READ_ONLY));
+                IndexMetadata.SETTING_READ_ONLY, true).build(), IndexMetadata.State.OPEN, false)).isEqualTo(READ_ONLY);
 
         assertThat(Operation.buildFromIndexSettingsAndState(Settings.builder()
                 .put(IndexMetadata.SETTING_BLOCKS_READ, true).build(), IndexMetadata.State.OPEN, false),

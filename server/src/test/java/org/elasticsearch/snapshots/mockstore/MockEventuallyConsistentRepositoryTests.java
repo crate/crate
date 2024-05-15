@@ -50,6 +50,7 @@ import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
+import org.opentest4j.AssertionFailedError;
 
 import io.crate.action.FutureActionListener;
 
@@ -194,8 +195,8 @@ public class MockEventuallyConsistentRepositoryTests extends ESTestCase {
             assertThat(fut).failsWithin(5, TimeUnit.SECONDS)
                 .withThrowableOfType(ExecutionException.class)
                 .havingCause()
-                    .isExactlyInstanceOf(AssertionError.class)
-                    .withMessage("\nExpected: <6>\n     but: was <5>");
+                    .isExactlyInstanceOf(AssertionFailedError.class)
+                    .withMessage("\nexpected: 6\n but was: 5");
 
             // We try to write yet another snap- blob for "foo" in the next generation.
             // It passes cleanly because the content of the blob except for the timestamps.

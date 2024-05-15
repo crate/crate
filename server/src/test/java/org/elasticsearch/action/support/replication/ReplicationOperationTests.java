@@ -23,7 +23,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.action.support.replication.ClusterStateCreationUtils.state;
 import static org.elasticsearch.action.support.replication.ClusterStateCreationUtils.stateWithActivePrimary;
 import static org.hamcrest.Matchers.arrayWithSize;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -163,25 +162,25 @@ public class ReplicationOperationTests extends ESTestCase {
         );
         op.execute();
 
-        assertThat("request was not processed on primary", request.processedOnPrimary.get(), equalTo(true));
-        assertThat(request.processedOnReplicas, equalTo(expectedReplicas));
-        assertThat(replicasProxy.failedReplicas, equalTo(simulatedFailures.keySet()));
-        assertThat(replicasProxy.markedAsStaleCopies, equalTo(staleAllocationIds));
-        assertThat("post replication operations not run on primary", request.runPostReplicationActionsOnPrimary.get(), equalTo(true));
+        assertThat(request.processedOnPrimary.get()).as("request was not processed on primary").isEqualTo(true);
+        assertThat(request.processedOnReplicas).isEqualTo(expectedReplicas);
+        assertThat(replicasProxy.failedReplicas).isEqualTo(simulatedFailures.keySet());
+        assertThat(replicasProxy.markedAsStaleCopies).isEqualTo(staleAllocationIds);
+        assertThat(request.runPostReplicationActionsOnPrimary.get()).as("post replication operations not run on primary").isEqualTo(true);
         assertTrue("listener is not marked as done", listener.isDone());
         ShardInfo shardInfo = FutureUtils.get(listener).getShardInfo();
-        assertThat(shardInfo.getFailed(), equalTo(reportedFailures.size()));
+        assertThat(shardInfo.getFailed()).isEqualTo(reportedFailures.size());
         assertThat(shardInfo.getFailures(), arrayWithSize(reportedFailures.size()));
-        assertThat(shardInfo.getSuccessful(), equalTo(1 + expectedReplicas.size() - simulatedFailures.size()));
+        assertThat(shardInfo.getSuccessful()).isEqualTo(1 + expectedReplicas.size() - simulatedFailures.size());
         final List<ShardRouting> unassignedShards =
             indexShardRoutingTable.shardsWithState(ShardRoutingState.UNASSIGNED);
         final int totalShards = 1 + expectedReplicas.size() + unassignedShards.size() + untrackedShards.size();
-        assertThat(replicationGroup.toString(), shardInfo.getTotal(), equalTo(totalShards));
+        assertThat(shardInfo.getTotal()).as(replicationGroup.toString()).isEqualTo(totalShards);
 
-        assertThat(primary.knownLocalCheckpoints.remove(primaryShard.allocationId().getId()), equalTo(primary.localCheckpoint));
-        assertThat(primary.knownLocalCheckpoints, equalTo(replicasProxy.generatedLocalCheckpoints));
-        assertThat(primary.knownGlobalCheckpoints.remove(primaryShard.allocationId().getId()), equalTo(primary.globalCheckpoint));
-        assertThat(primary.knownGlobalCheckpoints, equalTo(replicasProxy.generatedGlobalCheckpoints));
+        assertThat(primary.knownLocalCheckpoints.remove(primaryShard.allocationId().getId())).isEqualTo(primary.localCheckpoint);
+        assertThat(primary.knownLocalCheckpoints).isEqualTo(replicasProxy.generatedLocalCheckpoints);
+        assertThat(primary.knownGlobalCheckpoints.remove(primaryShard.allocationId().getId())).isEqualTo(primary.globalCheckpoint);
+        assertThat(primary.knownGlobalCheckpoints).isEqualTo(replicasProxy.generatedGlobalCheckpoints);
     }
 
     public void testRetryTransientReplicationFailure() throws Exception {
@@ -242,21 +241,21 @@ public class ReplicationOperationTests extends ESTestCase {
         final TestReplicationOperation op = new TestReplicationOperation(request, primary, listener, replicasProxy, primaryTerm,
             TimeValue.timeValueMillis(20), TimeValue.timeValueSeconds(60));
         op.execute();
-        assertThat("request was not processed on primary", request.processedOnPrimary.get(), equalTo(true));
-        assertThat(request.processedOnReplicas, equalTo(expectedReplicas));
-        assertThat(replicasProxy.failedReplicas.size(), equalTo(0));
-        assertThat(replicasProxy.markedAsStaleCopies, equalTo(staleAllocationIds));
-        assertThat("post replication operations not run on primary", request.runPostReplicationActionsOnPrimary.get(), equalTo(true));
+        assertThat(request.processedOnPrimary.get()).as("request was not processed on primary").isEqualTo(true);
+        assertThat(request.processedOnReplicas).isEqualTo(expectedReplicas);
+        assertThat(replicasProxy.failedReplicas.size()).isEqualTo(0);
+        assertThat(replicasProxy.markedAsStaleCopies).isEqualTo(staleAllocationIds);
+        assertThat(request.runPostReplicationActionsOnPrimary.get()).as("post replication operations not run on primary").isEqualTo(true);
         ShardInfo shardInfo = FutureUtils.get(listener).getShardInfo();
-        assertThat(shardInfo.getSuccessful(), equalTo(1 + expectedReplicas.size()));
+        assertThat(shardInfo.getSuccessful()).isEqualTo(1 + expectedReplicas.size());
         final List<ShardRouting> unassignedShards = indexShardRoutingTable.shardsWithState(ShardRoutingState.UNASSIGNED);
         final int totalShards = 1 + expectedReplicas.size() + unassignedShards.size() + untrackedShards.size();
-        assertThat(replicationGroup.toString(), shardInfo.getTotal(), equalTo(totalShards));
+        assertThat(shardInfo.getTotal()).as(replicationGroup.toString()).isEqualTo(totalShards);
 
-        assertThat(primary.knownLocalCheckpoints.remove(primaryShard.allocationId().getId()), equalTo(primary.localCheckpoint));
-        assertThat(primary.knownLocalCheckpoints, equalTo(replicasProxy.generatedLocalCheckpoints));
-        assertThat(primary.knownGlobalCheckpoints.remove(primaryShard.allocationId().getId()), equalTo(primary.globalCheckpoint));
-        assertThat(primary.knownGlobalCheckpoints, equalTo(replicasProxy.generatedGlobalCheckpoints));
+        assertThat(primary.knownLocalCheckpoints.remove(primaryShard.allocationId().getId())).isEqualTo(primary.localCheckpoint);
+        assertThat(primary.knownLocalCheckpoints).isEqualTo(replicasProxy.generatedLocalCheckpoints);
+        assertThat(primary.knownGlobalCheckpoints.remove(primaryShard.allocationId().getId())).isEqualTo(primary.globalCheckpoint);
+        assertThat(primary.knownGlobalCheckpoints).isEqualTo(replicasProxy.generatedGlobalCheckpoints);
     }
 
     private void addTrackingInfo(IndexShardRoutingTable indexShardRoutingTable, ShardRouting primaryShard, Set<String> trackedShards,
@@ -337,7 +336,7 @@ public class ReplicationOperationTests extends ESTestCase {
                 if (testPrimaryDemotedOnStaleShardCopies) {
                     super.failShardIfNeeded(replica, primaryTerm, message, exception, shardActionListener);
                 } else {
-                    assertThat(replica, equalTo(failedReplica));
+                    assertThat(replica).isEqualTo(failedReplica);
                     shardActionListener.onFailure(shardActionFailure);
                 }
             }
@@ -363,7 +362,7 @@ public class ReplicationOperationTests extends ESTestCase {
             request, primary, listener, replicasProxy, logger, threadPool, "test", primaryTerm);
         op.execute();
 
-        assertThat("request was not processed on primary", request.processedOnPrimary.get(), equalTo(true));
+        assertThat(request.processedOnPrimary.get()).as("request was not processed on primary").isEqualTo(true);
         assertTrue("listener is not marked as done", listener.isDone());
         if (shardActionFailure instanceof ShardStateAction.NoLongerPrimaryShardException) {
             assertTrue(primaryFailed.get());
@@ -428,9 +427,9 @@ public class ReplicationOperationTests extends ESTestCase {
             primaryTerm);
         op.execute();
 
-        assertThat("request was not processed on primary", request.processedOnPrimary.get(), equalTo(true));
+        assertThat(request.processedOnPrimary.get()).as("request was not processed on primary").isEqualTo(true);
         Set<ShardRouting> expectedReplicas = getExpectedReplicas(shardId, stateWithAddedReplicas, trackedShards);
-        assertThat(request.processedOnReplicas, equalTo(expectedReplicas));
+        assertThat(request.processedOnReplicas).isEqualTo(expectedReplicas);
     }
 
     @Test
@@ -540,11 +539,11 @@ public class ReplicationOperationTests extends ESTestCase {
             request, primary, listener, replicas, logger, threadPool, "test", primaryTerm);
         operation.execute();
 
-        assertThat(primaryFailed.get(), equalTo(fatal));
+        assertThat(primaryFailed.get()).isEqualTo(fatal);
         final ShardInfo shardInfo = FutureUtils.get(listener).getShardInfo();
-        assertThat(shardInfo.getFailed(), equalTo(0));
+        assertThat(shardInfo.getFailed()).isEqualTo(0);
         assertThat(shardInfo.getFailures(), arrayWithSize(0));
-        assertThat(shardInfo.getSuccessful(), equalTo(1 + getExpectedReplicas(shardId, state, trackedShards).size()));
+        assertThat(shardInfo.getSuccessful()).isEqualTo(1 + getExpectedReplicas(shardId, state, trackedShards).size());
     }
 
     private Set<ShardRouting> getExpectedReplicas(ShardId shardId, ClusterState state, Set<String> trackedShards) {

@@ -23,7 +23,6 @@ package io.crate.execution.jobs;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 import java.lang.reflect.Field;
@@ -67,7 +66,8 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         Task subContext = new DummyTask();
         builder1.addTask(subContext);
         RootTask ctx1 = tasksService.createTask(builder1);
-        assertThat(ctx1.getTask(1), is(subContext));
+        Task task = ctx1.getTask(1);
+        assertThat(task).isEqualTo(subContext);
     }
 
     @Test
@@ -133,7 +133,7 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         @SuppressWarnings("unchecked")
         Map<UUID, RootTask> activeTasks = (Map<UUID, RootTask>) activeTasksField.get(tasksService);
         assertThat(activeTasks).hasSize(1);
-        assertThat(tasksService.killAll(Role.CRATE_USER.name()).get(5L, TimeUnit.SECONDS), is(1));
+        assertThat(tasksService.killAll(Role.CRATE_USER.name()).get(5L, TimeUnit.SECONDS)).isEqualTo(1);
 
         assertThat(killCalled.get()).isTrue();
         assertThat(activeTasks).hasSize(0);
@@ -170,7 +170,7 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         @SuppressWarnings("unchecked")
         Map<UUID, RootTask> activeTasks = (Map<UUID, RootTask>) activeTasksField.get(tasksService);
         assertThat(activeTasks).hasSize(2);
-        assertThat(tasksService.killJobs(List.of(jobId), Role.CRATE_USER.name(), null).get(5L, TimeUnit.SECONDS), is(1));
+        assertThat(tasksService.killJobs(List.of(jobId), Role.CRATE_USER.name(), null).get(5L, TimeUnit.SECONDS)).isEqualTo(1);
 
         assertThat(killCalled.get()).isTrue();
         assertThat(kill2Called.get()).isFalse();
@@ -193,9 +193,9 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         builder1.addTask(subContext);
         RootTask ctx1 = tasksService.createTask(builder1);
 
-        assertThat(numContexts(ctx1), is(1));
+        assertThat(numContexts(ctx1)).isEqualTo(1);
         subContext.close();
-        assertThat(numContexts(ctx1), is(0));
+        assertThat(numContexts(ctx1)).isEqualTo(0);
     }
 
     @Test
@@ -210,7 +210,7 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         builder.addTask(new DummyTask(1));
         tasksService.createTask(builder);
 
-        assertThat(tasksService.killAll(Role.CRATE_USER.name()).get(), is(2));
+        assertThat(tasksService.killAll(Role.CRATE_USER.name()).get()).isEqualTo(2);
     }
 
     @Test
@@ -227,7 +227,7 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         builder = tasksService.newBuilder(UUID.randomUUID());
         builder.addTask(new DummyTask());
         tasksService.createTask(builder);
-        assertThat(tasksService.killJobs(jobsToKill, Role.CRATE_USER.name(), null).get(5L, TimeUnit.SECONDS), is(1));
+        assertThat(tasksService.killJobs(jobsToKill, Role.CRATE_USER.name(), null).get(5L, TimeUnit.SECONDS)).isEqualTo(1);
     }
 
     @Test
@@ -237,12 +237,12 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         builder.addTask(new DummyTask());
         tasksService.createTask(builder);
 
-        assertThat(tasksService.killJobs(List.of(jobId), "Trillian", null).get(5L, TimeUnit.SECONDS), is(0));
-        assertThat(tasksService.killJobs(List.of(jobId), "Arthur", null).get(5L, TimeUnit.SECONDS), is(1));
+        assertThat(tasksService.killJobs(List.of(jobId), "Trillian", null).get(5L, TimeUnit.SECONDS)).isEqualTo(0);
+        assertThat(tasksService.killJobs(List.of(jobId), "Arthur", null).get(5L, TimeUnit.SECONDS)).isEqualTo(1);
     }
 
     @Test
     public void testKillNonExistingJobForNormalUser() throws Exception {
-        assertThat(tasksService.killJobs(List.of(UUID.randomUUID()), "Arthur", null).get(5L, TimeUnit.SECONDS), is(0));
+        assertThat(tasksService.killJobs(List.of(UUID.randomUUID()), "Arthur", null).get(5L, TimeUnit.SECONDS)).isEqualTo(0);
     }
 }

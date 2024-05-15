@@ -21,6 +21,7 @@
 
 package io.crate.execution.engine.fetch;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -83,8 +84,8 @@ public class ReaderBucketsTest extends CrateDummyClusterServiceUnitTest {
         long fetchId = FetchId.encode(readerId, 1);
         readerBuckets.add(new RowN(fetchId, 42));
 
-        assertThat(bytesAccounted.get(), is(1024L));
-        assertThat(readerBuckets.ramBytesUsed(), is(40L));
+        assertThat(bytesAccounted.get()).isEqualTo(1024L);
+        assertThat(readerBuckets.ramBytesUsed()).isEqualTo(40L);
 
         IntObjectHashMap<Bucket> bucketsByReader = new IntObjectHashMap<>();
         bucketsByReader.put(readerId, new CollectionBucket(List.<Object[]>of(
@@ -94,8 +95,8 @@ public class ReaderBucketsTest extends CrateDummyClusterServiceUnitTest {
         readerIds.add(readerId);
         readerBuckets.generateToFetch(readerIds);
         try (var outputRows = readerBuckets.getOutputRows(List.of(bucketsByReader))) {
-            assertThat(bytesAccounted.get(), is(1024L));
-            assertThat(readerBuckets.ramBytesUsed(), is(136L));
+            assertThat(bytesAccounted.get()).isEqualTo(1024L);
+            assertThat(readerBuckets.ramBytesUsed()).isEqualTo(136L);
         }
 
         assertThat(

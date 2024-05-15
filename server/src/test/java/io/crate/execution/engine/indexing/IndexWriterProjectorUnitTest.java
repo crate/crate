@@ -23,8 +23,7 @@ package io.crate.execution.engine.indexing;
 
 import static io.crate.data.SentinelRow.SENTINEL;
 import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.util.Collections;
@@ -138,6 +137,6 @@ public class IndexWriterProjectorUnitTest extends CrateDummyClusterServiceUnitTe
         List<Object[]> result = testingBatchConsumer.getResult();
         // Zero affected rows as a NULL as a PK value will result in an exception.
         // It must never bubble up as other rows might already have been written.
-        assertThat(result.get(0)[0], is(0L));
+        assertThat(result.get(0)[0]).isEqualTo(0L);
     }
 }

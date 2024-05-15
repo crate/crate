@@ -25,8 +25,7 @@ import static io.crate.sql.tree.FrameBound.Type.CURRENT_ROW;
 import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_FOLLOWING;
 import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_PRECEDING;
 import static io.crate.testing.Asserts.assertThat;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -106,7 +105,7 @@ public class WindowDefinitionTest extends CrateDummyClusterServiceUnitTest {
         List<Symbol> outputs = analyze.outputs();
         assertThat(outputs).hasSize(1);
         WindowFunction windowFunction = (WindowFunction) outputs.get(0);
-        assertThat(windowFunction.windowDefinition().windowFrameDefinition().end().type(), is(CURRENT_ROW));
+        assertThat(windowFunction.windowDefinition().windowFrameDefinition().end().type()).isEqualTo(CURRENT_ROW);
     }
 
     @Test
@@ -133,8 +132,8 @@ public class WindowDefinitionTest extends CrateDummyClusterServiceUnitTest {
             }
         }
         assertThat(windowFunction).isNotNull();
-        assertThat(windowFunction.windowDefinition().windowFrameDefinition().start().type(), is(UNBOUNDED_PRECEDING));
-        assertThat(windowFunction.windowDefinition().windowFrameDefinition().end().type(), is(UNBOUNDED_FOLLOWING));
+        assertThat(windowFunction.windowDefinition().windowFrameDefinition().start().type()).isEqualTo(UNBOUNDED_PRECEDING);
+        assertThat(windowFunction.windowDefinition().windowFrameDefinition().end().type()).isEqualTo(UNBOUNDED_FOLLOWING);
     }
 
 }

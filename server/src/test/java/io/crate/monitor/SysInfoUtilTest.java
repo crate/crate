@@ -21,6 +21,7 @@
 
 package io.crate.monitor;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.core.AnyOf.anyOf;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
@@ -45,12 +46,12 @@ public class SysInfoUtilTest extends ESTestCase {
 
     @Test
     public void testParseKeyValue() {
-        assertThat(SysInfo.Builder.parseKeyValuePair("KEY=\"val\"ue\""), is(new String[]{"KEY", "val\"ue"}));
-        assertThat(SysInfo.Builder.parseKeyValuePair("KEY=\"value\""), is(new String[]{"KEY", "value"}));
-        assertThat(SysInfo.Builder.parseKeyValuePair("KEY=value"), is(new String[]{"KEY", "value"}));
-        assertThat(SysInfo.Builder.parseKeyValuePair("KEY="), is(new String[]{"KEY", ""}));
-        assertThat(SysInfo.Builder.parseKeyValuePair("KEY"), is(new String[]{"KEY", ""}));
-        assertThat(SysInfo.Builder.parseKeyValuePair(""), is(new String[]{"", ""}));
+        assertThat(SysInfo.Builder.parseKeyValuePair("KEY=\"val\"ue\"")).isEqualTo(new String[]{"KEY", "val\"ue"});
+        assertThat(SysInfo.Builder.parseKeyValuePair("KEY=\"value\"")).isEqualTo(new String[]{"KEY", "value"});
+        assertThat(SysInfo.Builder.parseKeyValuePair("KEY=value")).isEqualTo(new String[]{"KEY", "value"});
+        assertThat(SysInfo.Builder.parseKeyValuePair("KEY=")).isEqualTo(new String[]{"KEY", ""});
+        assertThat(SysInfo.Builder.parseKeyValuePair("KEY")).isEqualTo(new String[]{"KEY", ""});
+        assertThat(SysInfo.Builder.parseKeyValuePair("")).isEqualTo(new String[]{"", ""});
     }
 
     @Test
@@ -60,16 +61,16 @@ public class SysInfoUtilTest extends ESTestCase {
             .withVersion("10.0")
             .withArch("x86_64")
             .gather();
-        assertThat(sysInfo.arch(), is("x86_64"));
-        assertThat(sysInfo.description(), is("Microsoft Windows 10"));
+        assertThat(sysInfo.arch()).isEqualTo("x86_64");
+        assertThat(sysInfo.description()).isEqualTo("Microsoft Windows 10");
         assertThat(sysInfo.machine(), X86_64);
-        assertThat(sysInfo.name(), is("Win32"));
-        assertThat(sysInfo.patchLevel(), is(""));
-        assertThat(sysInfo.vendor(), is("Microsoft"));
-        assertThat(sysInfo.vendorCodeName(), is(""));
-        assertThat(sysInfo.vendorName(), is("Windows 10"));
-        assertThat(sysInfo.vendorVersion(), is("10"));
-        assertThat(sysInfo.version(), is("10.0"));
+        assertThat(sysInfo.name()).isEqualTo("Win32");
+        assertThat(sysInfo.patchLevel()).isEqualTo("");
+        assertThat(sysInfo.vendor()).isEqualTo("Microsoft");
+        assertThat(sysInfo.vendorCodeName()).isEqualTo("");
+        assertThat(sysInfo.vendorName()).isEqualTo("Windows 10");
+        assertThat(sysInfo.vendorVersion()).isEqualTo("10");
+        assertThat(sysInfo.version()).isEqualTo("10.0");
     }
 
     @Test
@@ -79,16 +80,16 @@ public class SysInfoUtilTest extends ESTestCase {
             .withVersion("10.12.6")
             .withArch("x86_64")
             .gather();
-        assertThat(sysInfo.arch(), is("x86_64"));
-        assertThat(sysInfo.description(), is("Mac OS X (Sierra)"));
+        assertThat(sysInfo.arch()).isEqualTo("x86_64");
+        assertThat(sysInfo.description()).isEqualTo("Mac OS X (Sierra)");
         assertThat(sysInfo.machine(), X86_64);
-        assertThat(sysInfo.name(), is("MacOSX"));
-        assertThat(sysInfo.patchLevel(), is(""));
-        assertThat(sysInfo.vendor(), is("Apple"));
-        assertThat(sysInfo.vendorCodeName(), is("Sierra"));
-        assertThat(sysInfo.vendorName(), is("Mac OS X"));
-        assertThat(sysInfo.vendorVersion(), is("10.12"));
-        assertThat(sysInfo.version(), is("10.12.6"));
+        assertThat(sysInfo.name()).isEqualTo("MacOSX");
+        assertThat(sysInfo.patchLevel()).isEqualTo("");
+        assertThat(sysInfo.vendor()).isEqualTo("Apple");
+        assertThat(sysInfo.vendorCodeName()).isEqualTo("Sierra");
+        assertThat(sysInfo.vendorName()).isEqualTo("Mac OS X");
+        assertThat(sysInfo.vendorVersion()).isEqualTo("10.12");
+        assertThat(sysInfo.version()).isEqualTo("10.12.6");
     }
 
     @Test
@@ -98,16 +99,16 @@ public class SysInfoUtilTest extends ESTestCase {
             .withVersion("16.6.0")
             .withArch("x86_64")
             .gather();
-        assertThat(sysInfo.arch(), is("x86_64"));
-        assertThat(sysInfo.description(), is("Mac OS X (Sierra)"));
+        assertThat(sysInfo.arch()).isEqualTo("x86_64");
+        assertThat(sysInfo.description()).isEqualTo("Mac OS X (Sierra)");
         assertThat(sysInfo.machine(), X86_64);
-        assertThat(sysInfo.name(), is("MacOSX"));
-        assertThat(sysInfo.patchLevel(), is(""));
-        assertThat(sysInfo.vendor(), is("Apple"));
-        assertThat(sysInfo.vendorCodeName(), is("Sierra"));
-        assertThat(sysInfo.vendorName(), is("Mac OS X"));
-        assertThat(sysInfo.vendorVersion(), is("16.6"));
-        assertThat(sysInfo.version(), is("16.6.0"));
+        assertThat(sysInfo.name()).isEqualTo("MacOSX");
+        assertThat(sysInfo.patchLevel()).isEqualTo("");
+        assertThat(sysInfo.vendor()).isEqualTo("Apple");
+        assertThat(sysInfo.vendorCodeName()).isEqualTo("Sierra");
+        assertThat(sysInfo.vendorName()).isEqualTo("Mac OS X");
+        assertThat(sysInfo.vendorVersion()).isEqualTo("16.6");
+        assertThat(sysInfo.version()).isEqualTo("16.6.0");
     }
 
     @Test
@@ -115,8 +116,8 @@ public class SysInfoUtilTest extends ESTestCase {
         SysInfo sysInfo = new SysInfo();
         String release = "CentOS Linux release 7.4.1708 (Core)";
         SYSINFO_BUILDER.parseRedHatVendorLine(sysInfo, release);
-        assertThat(sysInfo.vendor(), is("CentOS"));
-        assertThat(sysInfo.vendorCodeName(), is("Core"));
+        assertThat(sysInfo.vendor()).isEqualTo("CentOS");
+        assertThat(sysInfo.vendorCodeName()).isEqualTo("Core");
     }
 
     @Test
@@ -124,10 +125,10 @@ public class SysInfoUtilTest extends ESTestCase {
         SysInfo sysInfo = new SysInfo();
         String release = "Red Hat Enterprise Linux Server release 6.7 (Santiago)";
         SYSINFO_BUILDER.parseGenericVendorLine(sysInfo, release);
-        assertThat(sysInfo.vendorVersion(), is("6.7")); // required for parseRedHatVendorLine()
+        assertThat(sysInfo.vendorVersion()).isEqualTo("6.7"); // required for parseRedHatVendorLine()
         SYSINFO_BUILDER.parseRedHatVendorLine(sysInfo, release);
-        assertThat(sysInfo.vendorVersion(), is("Enterprise Linux 6"));
-        assertThat(sysInfo.vendorCodeName(), is("Santiago"));
+        assertThat(sysInfo.vendorVersion()).isEqualTo("Enterprise Linux 6");
+        assertThat(sysInfo.vendorCodeName()).isEqualTo("Santiago");
     }
 
     @Test
@@ -147,6 +148,6 @@ public class SysInfoUtilTest extends ESTestCase {
     public void testFailedSysCall() {
         // by default sys call filter is enabled, so any Runtime.getRuntime().exec(...) will fail
         List<String> result = SysInfo.sysCall(new String[]{"undefined"}, "default");
-        assertThat(result.get(0), is("default"));
+        assertThat(result.get(0)).isEqualTo("default");
     }
 }

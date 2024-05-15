@@ -186,7 +186,7 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
             @Override
             protected void onSendRequest(long requestId, String action, TransportRequest request, DiscoveryNode node) {
                 assertThat(action, allOf(startsWith("cluster:admin/test/"), endsWith("[r]")));
-                assertThat(node, equalTo(node2));
+                assertThat(node).isEqualTo(node2);
                 // node2 doesn't really exist, but we are performing some trickery in mockIndicesService() to pretend that node1 holds both
                 // the primary and the replica, so redirect the request back to node1.
                 transportService.sendRequest(transportService.getLocalNode(), action, request,
@@ -397,7 +397,7 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
         assertThat(response)
             .as(name + " operation must have a non null result")
             .isNotNull();
-        assertThat(name + " operation should have been successful on 2 shards", response.getShardInfo().getSuccessful(), equalTo(2));
+        assertThat(response.getShardInfo().getSuccessful()).as(name + " operation should have been successful on 2 shards").isEqualTo(2);
     }
 
     private void assertFailedOperation(final TestAction action,final ExecutionException exception) {

@@ -99,7 +99,7 @@ public class FollowersCheckerTests extends ESTestCase {
         final MockTransport mockTransport = new MockTransport() {
             @Override
             protected void onSendRequest(long requestId, String action, TransportRequest request, DiscoveryNode node) {
-                assertThat(action, equalTo(FOLLOWER_CHECK_ACTION_NAME));
+                assertThat(action).isEqualTo(FOLLOWER_CHECK_ACTION_NAME);
                 assertThat(request).isExactlyInstanceOf(FollowerCheckRequest.class);
                 assertTrue(discoveryNodesHolder[0].nodeExists(node));
                 assertThat(node, not(equalTo(localNode)));
@@ -269,7 +269,7 @@ public class FollowersCheckerTests extends ESTestCase {
             assert false : fcr;
         }, (node, reason) -> {
             assertTrue(nodeFailed.compareAndSet(false, true));
-            assertThat(reason, equalTo("disconnected"));
+            assertThat(reason).isEqualTo("disconnected");
         }, () -> new StatusInfo(HEALTHY, "healthy-info"));
 
         DiscoveryNodes discoveryNodes = DiscoveryNodes.builder().add(localNode).add(otherNode).localNodeId(localNode.getId()).build();
@@ -340,7 +340,7 @@ public class FollowersCheckerTests extends ESTestCase {
             assert false : fcr;
         }, (node, reason) -> {
             assertTrue(nodeFailed.compareAndSet(false, true));
-            assertThat(reason, equalTo(failureReason));
+            assertThat(reason).isEqualTo(failureReason);
         }, nodeHealthService);
 
         DiscoveryNodes discoveryNodes = DiscoveryNodes.builder().add(localNode).add(otherNode).localNodeId(localNode.getId()).build();
@@ -351,7 +351,7 @@ public class FollowersCheckerTests extends ESTestCase {
             }
             deterministicTaskQueue.runAllRunnableTasks();
         }
-        assertThat(deterministicTaskQueue.getCurrentTimeMillis(), equalTo(expectedFailureTime));
+        assertThat(deterministicTaskQueue.getCurrentTimeMillis()).isEqualTo(expectedFailureTime);
         assertThat(followersChecker.getFaultyNodes(), contains(otherNode));
 
         deterministicTaskQueue.runAllTasks();
@@ -617,7 +617,7 @@ public class FollowersCheckerTests extends ESTestCase {
             deterministicTaskQueue.runAllTasks();
             assertTrue(calledCoordinator.get());
             assertThat(receivedException.get(), not(nullValue()));
-            assertThat(receivedException.get().getRootCause().getMessage(), equalTo(exceptionMessage));
+            assertThat(receivedException.get().getRootCause().getMessage()).isEqualTo(exceptionMessage);
         }
     }
 

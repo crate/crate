@@ -21,8 +21,7 @@
 
 package io.crate.execution.engine.fetch;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.util.UUID;
@@ -56,9 +55,9 @@ public class FetchRequestTest {
 
         NodeFetchRequest.FetchRequest streamed = new NodeFetchRequest.FetchRequest(in);
 
-        assertThat(orig.jobId(), is(streamed.jobId()));
-        assertThat(orig.fetchPhaseId(), is(streamed.fetchPhaseId()));
-        assertThat(orig.isCloseContext(), is(streamed.isCloseContext()));
-        assertThat(orig.toFetch().toString(), is(streamed.toFetch().toString()));
+        assertThat(orig.jobId()).isEqualTo(streamed.jobId());
+        assertThat(orig.fetchPhaseId()).isEqualTo(streamed.fetchPhaseId());
+        assertThat(orig.isCloseContext()).isEqualTo(streamed.isCloseContext());
+        assertThat(orig.toFetch().toString()).isEqualTo(streamed.toFetch().toString());
     }
 }

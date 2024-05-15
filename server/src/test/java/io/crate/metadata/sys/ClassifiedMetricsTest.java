@@ -22,8 +22,7 @@
 package io.crate.metadata.sys;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.concurrent.TimeUnit;
 
@@ -47,8 +46,8 @@ public class ClassifiedMetricsTest {
         histograms.recordValue(
             new StatementClassifier.Classification(Plan.StatementType.SELECT), -2);
         MetricsView metricsView = histograms.iterator().next();
-        assertThat(metricsView.totalCount(), is(1L));
-        assertThat(metricsView.minValue(), is(0L));
+        assertThat(metricsView.totalCount()).isEqualTo(1L);
+        assertThat(metricsView.minValue()).isEqualTo(0L);
     }
 
     @Test
@@ -65,9 +64,9 @@ public class ClassifiedMetricsTest {
 
         for (MetricsView metrics : histograms) {
             if (metrics.classification().type().equals(Plan.StatementType.SELECT)) {
-                assertThat(metrics.sumOfDurations(), is(SECONDS.toMillis(45)));
+                assertThat(metrics.sumOfDurations()).isEqualTo(SECONDS.toMillis(45));
             } else {
-                assertThat(metrics.sumOfDurations(), is(SECONDS.toMillis(35)));
+                assertThat(metrics.sumOfDurations()).isEqualTo(SECONDS.toMillis(35));
             }
         }
     }

@@ -21,8 +21,7 @@
 
 package io.crate.metadata.doc.mappers;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -77,10 +76,10 @@ public class KeywordFieldMapperTest extends CrateDummyClusterServiceUnitTest {
         var mapper = parser.parse(compressedXContent);
         var actualMapping = mapper.mappingSource().toString();
 
-        assertThat(expectedMapping, is(actualMapping));
-        assertThat(actualMapping, is(
+        assertThat(expectedMapping).isEqualTo(actualMapping);
+        assertThat(actualMapping).isEqualTo(
             "{\"default\":{\"properties\":" +
-            "{\"text_col\":{\"type\":\"keyword\",\"index\":false,\"position\":1,\"length_limit\":1}}}}"));
+            "{\"text_col\":{\"type\":\"keyword\",\"index\":false,\"position\":1,\"length_limit\":1}}}}");
     }
 
     @Test

@@ -18,8 +18,7 @@
  */
 package org.elasticsearch.cluster.coordination;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
@@ -43,45 +42,45 @@ public class CoordinationMetadataTests extends ESTestCase {
 
     public void testVotingConfiguration() {
         VotingConfiguration config0 = new VotingConfiguration(Set.of());
-        assertThat(config0, equalTo(VotingConfiguration.EMPTY_CONFIG));
-        assertThat(config0.getNodeIds(), equalTo(Set.of()));
-        assertThat(config0.isEmpty(), equalTo(true));
-        assertThat(config0.hasQuorum(Set.of()), equalTo(false));
-        assertThat(config0.hasQuorum(Set.of("id1")), equalTo(false));
+        assertThat(config0).isEqualTo(VotingConfiguration.EMPTY_CONFIG);
+        assertThat(config0.getNodeIds()).isEqualTo(Set.of());
+        assertThat(config0.isEmpty()).isEqualTo(true);
+        assertThat(config0.hasQuorum(Set.of())).isEqualTo(false);
+        assertThat(config0.hasQuorum(Set.of("id1"))).isEqualTo(false);
 
         VotingConfiguration config1 = new VotingConfiguration(Set.of("id1"));
-        assertThat(config1.getNodeIds(), equalTo(Set.of("id1")));
-        assertThat(config1.isEmpty(), equalTo(false));
-        assertThat(config1.hasQuorum(Set.of("id1")), equalTo(true));
-        assertThat(config1.hasQuorum(Set.of("id1", "id2")), equalTo(true));
-        assertThat(config1.hasQuorum(Set.of("id2")), equalTo(false));
-        assertThat(config1.hasQuorum(Set.of()), equalTo(false));
+        assertThat(config1.getNodeIds()).isEqualTo(Set.of("id1"));
+        assertThat(config1.isEmpty()).isEqualTo(false);
+        assertThat(config1.hasQuorum(Set.of("id1"))).isEqualTo(true);
+        assertThat(config1.hasQuorum(Set.of("id1", "id2"))).isEqualTo(true);
+        assertThat(config1.hasQuorum(Set.of("id2"))).isEqualTo(false);
+        assertThat(config1.hasQuorum(Set.of())).isEqualTo(false);
 
         VotingConfiguration config2 = new VotingConfiguration(Set.of("id1", "id2"));
-        assertThat(config2.getNodeIds(), equalTo(Set.of("id1", "id2")));
-        assertThat(config2.isEmpty(), equalTo(false));
-        assertThat(config2.hasQuorum(Set.of("id1", "id2")), equalTo(true));
-        assertThat(config2.hasQuorum(Set.of("id1", "id2", "id3")), equalTo(true));
-        assertThat(config2.hasQuorum(Set.of("id1")), equalTo(false));
-        assertThat(config2.hasQuorum(Set.of("id2")), equalTo(false));
-        assertThat(config2.hasQuorum(Set.of("id3")), equalTo(false));
-        assertThat(config2.hasQuorum(Set.of("id1", "id3")), equalTo(false));
-        assertThat(config2.hasQuorum(Set.of()), equalTo(false));
+        assertThat(config2.getNodeIds()).isEqualTo(Set.of("id1", "id2"));
+        assertThat(config2.isEmpty()).isEqualTo(false);
+        assertThat(config2.hasQuorum(Set.of("id1", "id2"))).isEqualTo(true);
+        assertThat(config2.hasQuorum(Set.of("id1", "id2", "id3"))).isEqualTo(true);
+        assertThat(config2.hasQuorum(Set.of("id1"))).isEqualTo(false);
+        assertThat(config2.hasQuorum(Set.of("id2"))).isEqualTo(false);
+        assertThat(config2.hasQuorum(Set.of("id3"))).isEqualTo(false);
+        assertThat(config2.hasQuorum(Set.of("id1", "id3"))).isEqualTo(false);
+        assertThat(config2.hasQuorum(Set.of())).isEqualTo(false);
 
         VotingConfiguration config3 = new VotingConfiguration(Set.of("id1", "id2", "id3"));
-        assertThat(config3.getNodeIds(), equalTo(Set.of("id1", "id2", "id3")));
-        assertThat(config3.isEmpty(), equalTo(false));
-        assertThat(config3.hasQuorum(Set.of("id1", "id2")), equalTo(true));
-        assertThat(config3.hasQuorum(Set.of("id2", "id3")), equalTo(true));
-        assertThat(config3.hasQuorum(Set.of("id1", "id3")), equalTo(true));
-        assertThat(config3.hasQuorum(Set.of("id1", "id2", "id3")), equalTo(true));
-        assertThat(config3.hasQuorum(Set.of("id1", "id2", "id4")), equalTo(true));
-        assertThat(config3.hasQuorum(Set.of("id1")), equalTo(false));
-        assertThat(config3.hasQuorum(Set.of("id2")), equalTo(false));
-        assertThat(config3.hasQuorum(Set.of("id3")), equalTo(false));
-        assertThat(config3.hasQuorum(Set.of("id1", "id4")), equalTo(false));
-        assertThat(config3.hasQuorum(Set.of("id1", "id4", "id5")), equalTo(false));
-        assertThat(config3.hasQuorum(Set.of()), equalTo(false));
+        assertThat(config3.getNodeIds()).isEqualTo(Set.of("id1", "id2", "id3"));
+        assertThat(config3.isEmpty()).isEqualTo(false);
+        assertThat(config3.hasQuorum(Set.of("id1", "id2"))).isEqualTo(true);
+        assertThat(config3.hasQuorum(Set.of("id2", "id3"))).isEqualTo(true);
+        assertThat(config3.hasQuorum(Set.of("id1", "id3"))).isEqualTo(true);
+        assertThat(config3.hasQuorum(Set.of("id1", "id2", "id3"))).isEqualTo(true);
+        assertThat(config3.hasQuorum(Set.of("id1", "id2", "id4"))).isEqualTo(true);
+        assertThat(config3.hasQuorum(Set.of("id1"))).isEqualTo(false);
+        assertThat(config3.hasQuorum(Set.of("id2"))).isEqualTo(false);
+        assertThat(config3.hasQuorum(Set.of("id3"))).isEqualTo(false);
+        assertThat(config3.hasQuorum(Set.of("id1", "id4"))).isEqualTo(false);
+        assertThat(config3.hasQuorum(Set.of("id1", "id4", "id5"))).isEqualTo(false);
+        assertThat(config3.hasQuorum(Set.of())).isEqualTo(false);
     }
 
     public void testVotingConfigurationSerializationEqualsHashCode() {
@@ -114,7 +113,7 @@ public class CoordinationMetadataTests extends ESTestCase {
 
         try (XContentParser parser = createParser(JsonXContent.JSON_XCONTENT, BytesReference.bytes(builder))) {
             final VotingConfigExclusion fromXContentTombstone = VotingConfigExclusion.fromXContent(parser);
-            assertThat(originalTombstone, equalTo(fromXContentTombstone));
+            assertThat(originalTombstone).isEqualTo(fromXContentTombstone);
         }
     }
 
@@ -193,7 +192,7 @@ public class CoordinationMetadataTests extends ESTestCase {
 
         try (XContentParser parser = createParser(JsonXContent.JSON_XCONTENT, BytesReference.bytes(builder))) {
             final CoordinationMetadata fromXContentMeta = CoordinationMetadata.fromXContent(parser);
-            assertThat(originalMeta, equalTo(fromXContentMeta));
+            assertThat(originalMeta).isEqualTo(fromXContentMeta);
         }
     }
 }

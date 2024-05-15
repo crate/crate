@@ -22,8 +22,6 @@
 package io.crate.execution.engine.distribution;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 import java.util.concurrent.ExecutionException;
@@ -68,11 +66,10 @@ public class SingleBucketBuilderTest extends ESTestCase {
     public void testSingleBucketBuilderConsumer() throws Exception {
         bucketBuilder.accept(TestingBatchIterators.range(0, 4), null);
         Bucket rows = bucketBuilder.completionFuture().get(10, TimeUnit.SECONDS);
-        assertThat(TestingHelpers.printedTable(rows),
-            is("0\n" +
+        assertThat(TestingHelpers.printedTable(rows)).isEqualTo("0\n" +
                "1\n" +
                "2\n" +
-               "3\n"));
+               "3\n");
     }
 
     @Test
@@ -80,11 +77,10 @@ public class SingleBucketBuilderTest extends ESTestCase {
         BatchIterator<Row> iterator = TestingBatchIterators.range(0, 4);
         bucketBuilder.accept(new BatchSimulatingIterator<>(iterator, 2, 2, executor), null);
         Bucket rows = bucketBuilder.completionFuture().get(10, TimeUnit.SECONDS);
-        assertThat(TestingHelpers.printedTable(rows),
-            is("0\n" +
+        assertThat(TestingHelpers.printedTable(rows)).isEqualTo("0\n" +
                "1\n" +
                "2\n" +
-               "3\n"));
+               "3\n");
     }
 
     @Test
@@ -103,7 +99,7 @@ public class SingleBucketBuilderTest extends ESTestCase {
             iterator.moveNext();
             fail("iterator must be closed");
         } catch (IllegalStateException e) {
-            assertThat(e.getMessage(), is("BatchIterator is closed"));
+            assertThat(e.getMessage()).isEqualTo("BatchIterator is closed");
         }
     }
 }

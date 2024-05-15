@@ -20,8 +20,6 @@ package org.elasticsearch.env;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
@@ -54,7 +52,7 @@ public class NodeMetadataTests extends ESTestCase {
                                                            final long generation = NodeMetadata.FORMAT.writeAndCleanup(nodeMetadata, tempDir);
                                                            final Tuple<NodeMetadata, Long> nodeMetadataLongTuple
                                                                = NodeMetadata.FORMAT.loadLatestStateWithGeneration(logger, xContentRegistry(), tempDir);
-                                                           assertThat(nodeMetadataLongTuple.v2(), equalTo(generation));
+                                                           assertThat(nodeMetadataLongTuple.v2()).isEqualTo(generation);
                                                            return nodeMetadataLongTuple.v1();
                                                        }, nodeMetadata -> {
                 if (randomBoolean()) {
@@ -78,8 +76,8 @@ public class NodeMetadataTests extends ESTestCase {
         assertThat(resource).isNotNull();
         Files.copy(resource, stateDir.resolve(NodeMetadata.FORMAT.getStateFileName(between(0, Integer.MAX_VALUE))));
         final NodeMetadata nodeMetadata = NodeMetadata.FORMAT.loadLatestState(logger, xContentRegistry(), tempDir);
-        assertThat(nodeMetadata.nodeId(), equalTo("y6VUVMSaStO4Tz-B5BxcOw"));
-        assertThat(nodeMetadata.nodeVersion(), equalTo(Version.V_EMPTY));
+        assertThat(nodeMetadata.nodeId()).isEqualTo("y6VUVMSaStO4Tz-B5BxcOw");
+        assertThat(nodeMetadata.nodeVersion()).isEqualTo(Version.V_EMPTY);
     }
 
     @Test
@@ -88,16 +86,16 @@ public class NodeMetadataTests extends ESTestCase {
         final NodeMetadata nodeMetadata = new NodeMetadata(nodeId,
                                                            randomValueOtherThanMany(v -> v.after(Version.CURRENT) || v.before(Version.CURRENT.minimumIndexCompatibilityVersion()),
                                                                                     this::randomVersion)).upgradeToCurrentVersion();
-        assertThat(nodeMetadata.nodeVersion(), equalTo(Version.CURRENT));
-        assertThat(nodeMetadata.nodeId(), equalTo(nodeId));
+        assertThat(nodeMetadata.nodeVersion()).isEqualTo(Version.CURRENT);
+        assertThat(nodeMetadata.nodeId()).isEqualTo(nodeId);
     }
 
     @Test
     public void testUpgradesMissingVersion() {
         final String nodeId = randomAlphaOfLength(10);
         final NodeMetadata nodeMetadata = new NodeMetadata(nodeId, Version.V_EMPTY).upgradeToCurrentVersion();
-        assertThat(nodeMetadata.nodeVersion(), equalTo(Version.CURRENT));
-        assertThat(nodeMetadata.nodeId(), equalTo(nodeId));
+        assertThat(nodeMetadata.nodeVersion()).isEqualTo(Version.CURRENT);
+        assertThat(nodeMetadata.nodeId()).isEqualTo(nodeId);
     }
 
     @Test
@@ -128,6 +126,6 @@ public class NodeMetadataTests extends ESTestCase {
     public void test_downgrade_hotfix_version() {
         var nodeMetadata = new NodeMetadata("test", Version.V_4_5_1);
         nodeMetadata = nodeMetadata.upgradeToVersion(Version.V_4_5_0);
-        assertThat(nodeMetadata.nodeVersion(), equalTo(Version.V_4_5_0));
+        assertThat(nodeMetadata.nodeVersion()).isEqualTo(Version.V_4_5_0);
     }
 }

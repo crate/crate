@@ -22,9 +22,8 @@
 
 package io.crate.execution.engine.collect.files;
 
-import static org.hamcrest.Matchers.is;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.net.URI;
@@ -117,12 +116,12 @@ public class LocalFsFileInputTest extends ESTestCase {
             .filter(Objects::nonNull)
             .map(fi -> fi.preGlobUri.toString())
                 .toList();
-        assertThat(preGlobURIs, is(List.of(
+        assertThat(preGlobURIs).isEqualTo(List.of(
             path + "nested_dir/",
             path + "nested_dir/",
             path + "nested_dir/",
             path + "nested_dir/nested_dir_2/",
             path + "nested_dir/"
-        )));
+        ));
     }
 }

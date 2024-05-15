@@ -18,8 +18,8 @@
  */
 package org.elasticsearch.gateway;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.lessThan;
 import static org.junit.Assert.assertThat;
@@ -189,41 +189,41 @@ public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
     public void testGetRelevantIndicesWithUnassignedShardsOnMasterEligibleNode() {
         IndexMetadata indexMetadata = createIndexMetadata("test");
         Set<Index> indices = IncrementalClusterStateWriter.getRelevantIndices(clusterStateWithUnassignedIndex(indexMetadata, true));
-        assertThat(indices.size(), equalTo(0));
+        assertThat(indices.size()).isEqualTo(0);
     }
 
     public void testGetRelevantIndicesWithUnassignedShardsOnDataOnlyNode() {
         IndexMetadata indexMetadata = createIndexMetadata("test");
         Set<Index> indices = IncrementalClusterStateWriter.getRelevantIndices(clusterStateWithUnassignedIndex(indexMetadata, false));
-        assertThat(indices.size(), equalTo(0));
+        assertThat(indices.size()).isEqualTo(0);
     }
 
     public void testGetRelevantIndicesWithAssignedShards() {
         IndexMetadata indexMetadata = createIndexMetadata("test");
         boolean masterEligible = randomBoolean();
         Set<Index> indices = IncrementalClusterStateWriter.getRelevantIndices(clusterStateWithAssignedIndex(indexMetadata, masterEligible));
-        assertThat(indices.size(), equalTo(1));
+        assertThat(indices.size()).isEqualTo(1);
     }
 
     public void testGetRelevantIndicesForNonReplicatedClosedIndexOnDataOnlyNode() {
         IndexMetadata indexMetadata = createIndexMetadata("test");
         Set<Index> indices = IncrementalClusterStateWriter.getRelevantIndices(
             clusterStateWithNonReplicatedClosedIndex(indexMetadata, false));
-        assertThat(indices.size(), equalTo(0));
+        assertThat(indices.size()).isEqualTo(0);
     }
 
     public void testGetRelevantIndicesForReplicatedClosedButUnassignedIndexOnDataOnlyNode() {
         IndexMetadata indexMetadata = createIndexMetadata("test");
         Set<Index> indices = IncrementalClusterStateWriter.getRelevantIndices(
             clusterStateWithReplicatedClosedIndex(indexMetadata, false, false));
-        assertThat(indices.size(), equalTo(0));
+        assertThat(indices.size()).isEqualTo(0);
     }
 
     public void testGetRelevantIndicesForReplicatedClosedAndAssignedIndexOnDataOnlyNode() {
         IndexMetadata indexMetadata = createIndexMetadata("test");
         Set<Index> indices = IncrementalClusterStateWriter.getRelevantIndices(
             clusterStateWithReplicatedClosedIndex(indexMetadata, false, true));
-        assertThat(indices.size(), equalTo(1));
+        assertThat(indices.size()).isEqualTo(1);
     }
 
     @Test
@@ -270,29 +270,29 @@ public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
 
         for (IncrementalClusterStateWriter.IndexMetadataAction action : actions) {
             if (action instanceof IncrementalClusterStateWriter.KeepPreviousGeneration) {
-                assertThat(action.getIndex(), equalTo(notChangedIndex.getIndex()));
+                assertThat(action.getIndex()).isEqualTo(notChangedIndex.getIndex());
                 IncrementalClusterStateWriter.AtomicClusterStateWriter writer
                     = mock(IncrementalClusterStateWriter.AtomicClusterStateWriter.class);
-                assertThat(action.execute(writer), equalTo(3L));
+                assertThat(action.execute(writer)).isEqualTo(3L);
                 verify(writer, times(1)).incrementIndicesSkipped();
                 verifyNoMoreInteractions(writer);
                 keptPreviousGeneration = true;
             }
             if (action instanceof IncrementalClusterStateWriter.WriteNewIndexMetadata) {
-                assertThat(action.getIndex(), equalTo(newIndex.getIndex()));
+                assertThat(action.getIndex()).isEqualTo(newIndex.getIndex());
                 IncrementalClusterStateWriter.AtomicClusterStateWriter writer
                     = mock(IncrementalClusterStateWriter.AtomicClusterStateWriter.class);
                 when(writer.writeIndex("freshly created", newIndex)).thenReturn(0L);
-                assertThat(action.execute(writer), equalTo(0L));
+                assertThat(action.execute(writer)).isEqualTo(0L);
                 verify(writer, times(1)).incrementIndicesWritten();
                 wroteNewIndex = true;
             }
             if (action instanceof IncrementalClusterStateWriter.WriteChangedIndexMetadata) {
-                assertThat(action.getIndex(), equalTo(newVersionChangedIndex.getIndex()));
+                assertThat(action.getIndex()).isEqualTo(newVersionChangedIndex.getIndex());
                 IncrementalClusterStateWriter.AtomicClusterStateWriter writer
                     = mock(IncrementalClusterStateWriter.AtomicClusterStateWriter.class);
                 when(writer.writeIndex(anyString(), eq(newVersionChangedIndex))).thenReturn(3L);
-                assertThat(action.execute(writer), equalTo(3L));
+                assertThat(action.execute(writer)).isEqualTo(3L);
                 ArgumentCaptor<String> reason = ArgumentCaptor.forClass(String.class);
                 verify(writer).writeIndex(reason.capture(), eq(newVersionChangedIndex));
                 verify(writer, times(1)).incrementIndicesWritten();

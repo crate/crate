@@ -21,16 +21,15 @@
 
 package io.crate.execution.engine.pipeline;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.data.SentinelRow.SENTINEL;
 import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_LIMIT;
 import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_OFFSET;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static io.crate.testing.TestingHelpers.isRow;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
@@ -60,13 +59,13 @@ import io.crate.data.testing.TestingRowConsumer;
 import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
-import io.crate.execution.dsl.projection.OrderedLimitAndOffsetProjection;
 import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
+import io.crate.execution.dsl.projection.OrderedLimitAndOffsetProjection;
 import io.crate.execution.engine.aggregation.AggregationPipe;
 import io.crate.execution.engine.aggregation.GroupingProjector;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
-import io.crate.execution.engine.sort.SortingProjector;
 import io.crate.execution.engine.sort.SortingLimitAndOffsetProjector;
+import io.crate.execution.engine.sort.SortingProjector;
 import io.crate.execution.jobs.NodeLimits;
 import io.crate.expression.InputFactory;
 import io.crate.expression.eval.EvaluatingNormalizer;
@@ -136,7 +135,7 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
 
         List<Object[]> result = consumer.getResult();
         assertThat(result).hasSize(10);
-        assertThat(result.get(0), is(new Object[]{2}));
+        assertThat(result.get(0)).isEqualTo(new Object[]{2});
     }
 
     @Test

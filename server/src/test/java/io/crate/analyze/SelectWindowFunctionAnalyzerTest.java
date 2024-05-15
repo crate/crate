@@ -24,7 +24,6 @@ package io.crate.analyze;
 import static io.crate.testing.Asserts.isReference;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
@@ -67,7 +66,7 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
         WindowDefinition windowDefinition = windowFunction.windowDefinition();
         assertThat(windowDefinition.partitions()).isEmpty();
         assertThat(windowDefinition.orderBy()).isNull();
-        assertThat(windowDefinition.windowFrameDefinition(), is(WindowDefinition.RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW));
+        assertThat(windowDefinition.windowFrameDefinition()).isEqualTo(WindowDefinition.RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW);
     }
 
     @Test
@@ -161,9 +160,9 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
         WindowFunction windowFunction = (WindowFunction) outputSymbols.get(0);
         assertThat(windowFunction.arguments()).hasSize(1);
         WindowFrameDefinition frameDefinition = windowFunction.windowDefinition().windowFrameDefinition();
-        assertThat(frameDefinition.mode(), is(WindowFrame.Mode.RANGE));
-        assertThat(frameDefinition.start().type(), is(FrameBound.Type.UNBOUNDED_PRECEDING));
-        assertThat(frameDefinition.end().type(), is(FrameBound.Type.UNBOUNDED_FOLLOWING));
+        assertThat(frameDefinition.mode()).isEqualTo(WindowFrame.Mode.RANGE);
+        assertThat(frameDefinition.start().type()).isEqualTo(FrameBound.Type.UNBOUNDED_PRECEDING);
+        assertThat(frameDefinition.end().type()).isEqualTo(FrameBound.Type.UNBOUNDED_FOLLOWING);
     }
 
     @Test

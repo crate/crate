@@ -24,7 +24,7 @@ package io.crate.expression.reference.sys;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static io.crate.testing.TestingHelpers.refInfo;
 import static io.crate.testing.TestingHelpers.resolveCanonicalString;
-import static org.hamcrest.Matchers.is;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -166,7 +166,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
     public void testPathExpression() throws Exception {
         Reference refInfo = refInfo("sys.shards.path", DataTypes.STRING, RowGranularity.SHARD);
         NestableInput<String> shardPathExpression = (NestableInput<String>) resolver.getImplementation(refInfo);
-        assertThat(shardPathExpression.value(), is(resolveCanonicalString("/dummy/" + indexUUID + "/1")));
+        assertThat(shardPathExpression.value()).isEqualTo(resolveCanonicalString("/dummy/" + indexUUID + "/1"));
     }
 
     @Test
@@ -357,7 +357,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
         ShardReferenceResolver resolver = new ShardReferenceResolver(schemas, new ShardRowContext(mock, clusterService));
         Reference refInfo = refInfo("sys.shards.size", DataTypes.LONG, RowGranularity.SHARD);
         NestableInput<Long> shardSizeExpression = (NestableInput<Long>) resolver.getImplementation(refInfo);
-        assertThat(shardSizeExpression.value(), is(0L));
+        assertThat(shardSizeExpression.value()).isEqualTo(0L);
     }
 
     @Test

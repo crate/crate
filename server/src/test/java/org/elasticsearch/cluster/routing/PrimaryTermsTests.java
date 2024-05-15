@@ -21,6 +21,7 @@ package org.elasticsearch.cluster.routing;
 
 import static org.elasticsearch.cluster.routing.ShardRoutingState.INITIALIZING;
 import static org.hamcrest.Matchers.equalTo;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
 
@@ -189,8 +190,7 @@ public class PrimaryTermsTests extends ESAllocationTestCase {
         final IndexMetadata indexMetadata = clusterState.metadata().index(index);
         for (IndexShardRoutingTable shardRoutingTable : this.clusterState.routingTable().index(index)) {
             final int shard = shardRoutingTable.shardId().id();
-            assertThat("primary term mismatch between indexMetadata of [" + index + "] and shard [" + shard + "]'s routing",
-                       indexMetadata.primaryTerm(shard), equalTo(terms[shard]));
+            assertThat(indexMetadata.primaryTerm(shard)).as("primary term mismatch between indexMetadata of [" + index + "] and shard [" + shard + "]'s routing").isEqualTo(terms[shard]);
         }
     }
 

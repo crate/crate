@@ -23,7 +23,6 @@ package io.crate.integrationtests;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
@@ -227,7 +226,7 @@ public class RecoveryTests extends BlobIntegrationTestBase {
                         .timeout(ACCEPTABLE_RELOCATION_TIME)
                 ));
 
-            assertThat(clusterHealthResponse.isTimedOut(), equalTo(false));
+            assertThat(clusterHealthResponse.isTimedOut()).isEqualTo(false);
             clusterHealthResponse = FutureUtils.get(cluster().client(node2).admin().cluster()
                 .health(
                     new ClusterHealthRequest()
@@ -235,7 +234,7 @@ public class RecoveryTests extends BlobIntegrationTestBase {
                         .waitForNoRelocatingShards(true)
                         .timeout(ACCEPTABLE_RELOCATION_TIME)
                 ));
-            assertThat(clusterHealthResponse.isTimedOut(), equalTo(false));
+            assertThat(clusterHealthResponse.isTimedOut()).isEqualTo(false);
             logger.trace("--> DONE relocate the shard from {} to {}", fromNode, toNode);
         }
         logger.trace("--> done relocations");

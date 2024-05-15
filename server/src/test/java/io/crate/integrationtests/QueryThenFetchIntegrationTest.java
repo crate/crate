@@ -24,8 +24,7 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
@@ -43,11 +42,11 @@ public class QueryThenFetchIntegrationTest extends IntegTestCase {
         ensureGreen();
 
         execute("select * from t order by substr(name, 1, 1) = 'M', b");
-        assertThat(printedTable(response.rows()), is(
+        assertThat(printedTable(response.rows())).isEqualTo(
             "1| Trillian\n" +
             "2| Arthur\n" +
             "0| Marvin\n" +
-            "3| Max\n"));
+            "3| Max\n");
     }
 
     @Test
@@ -75,8 +74,8 @@ public class QueryThenFetchIntegrationTest extends IntegTestCase {
         execute("refresh table t");
 
         execute("select extract(day from ts) from t order by 1");
-        assertThat((Integer) response.rows()[0][0], is(1));
-        assertThat((Integer) response.rows()[1][0], is(17));
+        assertThat((Integer) response.rows()[0][0]).isEqualTo(1);
+        assertThat((Integer) response.rows()[1][0]).isEqualTo(17);
     }
 
     @Test
@@ -88,7 +87,7 @@ public class QueryThenFetchIntegrationTest extends IntegTestCase {
         execute("refresh table t");
 
         execute("select * from t limit ?", new Object[]{Paging.PAGE_SIZE + 10000});
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
     }
 
     @Test
@@ -109,17 +108,16 @@ public class QueryThenFetchIntegrationTest extends IntegTestCase {
 
         long limit = docCount - 1;
         execute("select * from t limit ?", new Object[]{limit});
-        assertThat(response.rowCount(), is(limit));
+        assertThat(response.rowCount()).isEqualTo(limit);
 
         // test if all is fine if we limit more than we have
         limit += 10;
         execute("select * from t limit ?", new Object[]{limit});
-        assertThat(response.rowCount(), is((long) docCount));
+        assertThat(response.rowCount()).isEqualTo((long) docCount);
 
         // test with sorting
         execute("select * from t order by x limit ?", new Object[]{limit});
-        assertThat(printedTable(response.rows()),
-            is("0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n"));
-        assertThat(response.rowCount(), is((long) docCount));
+        assertThat(printedTable(response.rows())).isEqualTo("0\n1\n2\n3\n4\n5\n6\n7\n8\n9\n10\n11\n12\n13\n14\n15\n16\n17\n18\n19\n20\n21\n");
+        assertThat(response.rowCount()).isEqualTo((long) docCount);
     }
 }

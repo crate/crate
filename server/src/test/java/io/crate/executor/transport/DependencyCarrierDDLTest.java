@@ -22,8 +22,8 @@
 package io.crate.executor.transport;
 
 import static io.crate.testing.TestingHelpers.isRow;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
@@ -31,6 +31,7 @@ import static org.mockito.Mockito.mock;
 import java.util.List;
 
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -41,7 +42,6 @@ import io.crate.data.Row1;
 import io.crate.data.testing.TestingRowConsumer;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import org.elasticsearch.test.IntegTestCase;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
@@ -76,7 +76,7 @@ public class DependencyCarrierDDLTest extends IntegTestCase {
         ensureYellow();
 
         execute("insert into t (id, name) values (1, 'Ford')");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
         ensureYellow();
 
         PlanForNode plan = plan("delete from t where id = ?");
@@ -87,7 +87,7 @@ public class DependencyCarrierDDLTest extends IntegTestCase {
         assertThat(bucket, contains(isRow(-1L)));
 
         execute("select * from information_schema.table_partitions where table_name = 't'");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response.rowCount()).isEqualTo(0L);
     }
 
     @Test

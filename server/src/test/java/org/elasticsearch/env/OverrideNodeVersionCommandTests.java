@@ -18,10 +18,10 @@
  */
 package org.elasticsearch.env;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -129,7 +129,7 @@ public class OverrideNodeVersionCommandTests extends ESTestCase {
             .isExactlyInstanceOf(IllegalStateException.class);
 
         final NodeMetadata nodeMetadata = PersistedClusterStateService.nodeMetadata(nodePaths);
-        assertThat(nodeMetadata.nodeVersion(), equalTo(nodeVersion));
+        assertThat(nodeMetadata.nodeVersion()).isEqualTo(nodeVersion);
     }
 
     @Test
@@ -151,7 +151,7 @@ public class OverrideNodeVersionCommandTests extends ESTestCase {
             .isExactlyInstanceOf(IllegalStateException.class);
 
         final NodeMetadata nodeMetadata = PersistedClusterStateService.nodeMetadata(nodePaths);
-        assertThat(nodeMetadata.nodeVersion(), equalTo(nodeVersion));
+        assertThat(nodeMetadata.nodeVersion()).isEqualTo(nodeVersion);
     }
 
     @Test
@@ -172,7 +172,7 @@ public class OverrideNodeVersionCommandTests extends ESTestCase {
             .isExactlyInstanceOf(IllegalStateException.class);
 
         final NodeMetadata nodeMetadata = PersistedClusterStateService.nodeMetadata(nodePaths);
-        assertThat(nodeMetadata.nodeVersion(), equalTo(Version.CURRENT));
+        assertThat(nodeMetadata.nodeVersion()).isEqualTo(Version.CURRENT);
     }
 
     @Test
@@ -192,6 +192,6 @@ public class OverrideNodeVersionCommandTests extends ESTestCase {
             .isExactlyInstanceOf(IllegalStateException.class);
 
         final NodeMetadata nodeMetadata = PersistedClusterStateService.nodeMetadata(nodePaths);
-        assertThat(nodeMetadata.nodeVersion(), equalTo(Version.CURRENT));
+        assertThat(nodeMetadata.nodeVersion()).isEqualTo(Version.CURRENT);
     }
 }

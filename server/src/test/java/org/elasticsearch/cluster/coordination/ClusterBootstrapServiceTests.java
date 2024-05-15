@@ -22,6 +22,7 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.coordination.ClusterBootstrapService.BOOTSTRAP_PLACEHOLDER_PREFIX;
 import static org.elasticsearch.cluster.coordination.ClusterBootstrapService.INITIAL_MASTER_NODES_SETTING;
@@ -33,7 +34,6 @@ import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
@@ -127,8 +127,7 @@ public class ClusterBootstrapServiceTests extends ESTestCase {
             = new ClusterBootstrapService(settings.build(), transportService, () -> discoveredNodesSupplier.get().get(),
             () -> false, vc -> {
             assertTrue(bootstrapped.compareAndSet(false, true));
-            assertThat(vc.getNodeIds(),
-                equalTo(Stream.of(localNode, otherNode1, otherNode2).map(DiscoveryNode::getId).collect(Collectors.toSet())));
+            assertThat(vc.getNodeIds()).isEqualTo(Stream.of(localNode, otherNode1, otherNode2).map(DiscoveryNode::getId).collect(Collectors.toSet()));
             assertThat(deterministicTaskQueue.getCurrentTimeMillis(), greaterThanOrEqualTo(timeout));
         });
 
@@ -247,7 +246,7 @@ public class ClusterBootstrapServiceTests extends ESTestCase {
 
             final List<String> placeholders
                 = vc.getNodeIds().stream().filter(ClusterBootstrapService::isBootstrapPlaceholder).collect(Collectors.toList());
-            assertThat(placeholders.size(), equalTo(2));
+            assertThat(placeholders.size()).isEqualTo(2);
             assertNotEquals(placeholders.get(0), placeholders.get(1));
             assertThat(placeholders, hasItem(containsString("missing-node-1")));
             assertThat(placeholders, hasItem(containsString("missing-node-2")));

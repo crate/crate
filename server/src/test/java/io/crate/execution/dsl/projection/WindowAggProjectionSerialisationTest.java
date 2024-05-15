@@ -21,8 +21,8 @@
 
 package io.crate.execution.dsl.projection;
 
+import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonList;
-import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
 import static org.junit.Assert.assertThat;
 
@@ -33,7 +33,6 @@ import java.util.Set;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.settings.Settings;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.analyze.WindowDefinition;
@@ -92,7 +91,7 @@ public class WindowAggProjectionSerialisationTest {
         assertThat(
             actualWindowAggProjection.outputs(),
             contains(standaloneInput, firstWindowFunction, secondWindowFunction));
-        assertThat(actualWindowAggProjection, is(expectedWindowAggProjection));
+        assertThat(actualWindowAggProjection).isEqualTo(expectedWindowAggProjection);
     }
 
     @Test
@@ -128,10 +127,7 @@ public class WindowAggProjectionSerialisationTest {
         assertThat(
             actualWindowAggProjection.outputs(),
             contains(standaloneInput, windowFunction));
-        assertThat(
-            actualWindowAggProjection.windowFunctions().get(0).filter(),
-            Matchers.nullValue()
-        );
+        assertThat(actualWindowAggProjection.windowFunctions().get(0).filter()).isNull();
     }
 
     private FunctionImplementation getSumFunction() {

@@ -24,7 +24,7 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.hamcrest.Matchers.is;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThat;
 
@@ -61,7 +61,7 @@ public class SysNodesITest extends IntegTestCase {
     @Test
     public void testNoMatchingNode() throws Exception {
         execute("select id, name, hostname from sys.nodes where id = 'does-not-exist'");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response.rowCount()).isEqualTo(0L);
     }
 
     @Test
@@ -86,12 +86,12 @@ public class SysNodesITest extends IntegTestCase {
         for (int i = 0; i < cluster().numDataNodes(); i++) {
             sb.append("{color=").append(getColor(i)).append(", ").append("ordinal=").append(i).append("}\n");
         }
-        assertThat(printedTable(response.rows()), is(sb.toString()));
+        assertThat(printedTable(response.rows())).isEqualTo(sb.toString());
     }
 
     @Test
     public void test_filter_on_not_selected_column_on_sys_nodes_returns_record() throws Exception {
         execute("select fs from sys.nodes where name = 'node_s0'");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
     }
 }

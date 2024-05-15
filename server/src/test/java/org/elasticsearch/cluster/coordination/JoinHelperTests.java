@@ -18,15 +18,13 @@
  */
 package org.elasticsearch.cluster.coordination;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.monitor.StatusInfo.Status.HEALTHY;
 import static org.elasticsearch.monitor.StatusInfo.Status.UNHEALTHY;
 import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
@@ -83,7 +81,7 @@ public class JoinHelperTests extends ESTestCase {
             Optional.of(new Join(localNode, node1, randomNonNegativeLong(), randomNonNegativeLong(), randomNonNegativeLong()));
         joinHelper.sendJoinRequest(node1, 0L, optionalJoin1);
         CapturedRequest[] capturedRequests1 = capturingTransport.getCapturedRequestsAndClear();
-        assertThat(capturedRequests1.length, equalTo(1));
+        assertThat(capturedRequests1.length).isEqualTo(1);
         CapturedRequest capturedRequest1 = capturedRequests1[0];
         assertEquals(node1, capturedRequest1.node);
 
@@ -94,13 +92,13 @@ public class JoinHelperTests extends ESTestCase {
             Optional.of(new Join(localNode, node2, randomNonNegativeLong(), randomNonNegativeLong(), randomNonNegativeLong()));
         joinHelper.sendJoinRequest(node2, 0L, optionalJoin2);
         CapturedRequest[] capturedRequests2 = capturingTransport.getCapturedRequestsAndClear();
-        assertThat(capturedRequests2.length, equalTo(1));
+        assertThat(capturedRequests2.length).isEqualTo(1);
         CapturedRequest capturedRequest2 = capturedRequests2[0];
         assertEquals(node2, capturedRequest2.node);
 
         // check that sending another join to node1 is a noop as the previous join is still in progress
         joinHelper.sendJoinRequest(node1, 0L, optionalJoin1);
-        assertThat(capturingTransport.getCapturedRequestsAndClear().length, equalTo(0));
+        assertThat(capturingTransport.getCapturedRequestsAndClear().length).isEqualTo(0);
 
         // complete the previous join to node1
         if (randomBoolean()) {
@@ -112,7 +110,7 @@ public class JoinHelperTests extends ESTestCase {
         // check that sending another join to node1 now works again
         joinHelper.sendJoinRequest(node1, 0L, optionalJoin1);
         CapturedRequest[] capturedRequests1a = capturingTransport.getCapturedRequestsAndClear();
-        assertThat(capturedRequests1a.length, equalTo(1));
+        assertThat(capturedRequests1a.length).isEqualTo(1);
         CapturedRequest capturedRequest1a = capturedRequests1a[0];
         assertEquals(node1, capturedRequest1a.node);
 
@@ -121,7 +119,7 @@ public class JoinHelperTests extends ESTestCase {
             Optional.of(new Join(localNode, node2, randomNonNegativeLong(), randomNonNegativeLong(), randomNonNegativeLong()));
         joinHelper.sendJoinRequest(node2, 0L, optionalJoin2a);
         CapturedRequest[] capturedRequests2a = capturingTransport.getCapturedRequestsAndClear();
-        assertThat(capturedRequests2a.length, equalTo(1));
+        assertThat(capturedRequests2a.length).isEqualTo(1);
         CapturedRequest capturedRequest2a = capturedRequests2a[0];
         assertEquals(node2, capturedRequest2a.node);
 
@@ -134,22 +132,22 @@ public class JoinHelperTests extends ESTestCase {
     }
 
     public void testFailedJoinAttemptLogLevel() {
-        assertThat(JoinHelper.FailedJoinAttempt.getLogLevel(new TransportException("generic transport exception")), is(Level.INFO));
+        assertThat(JoinHelper.FailedJoinAttempt.getLogLevel(new TransportException("generic transport exception"))).isEqualTo(Level.INFO);
 
         assertThat(JoinHelper.FailedJoinAttempt.getLogLevel(
-                new RemoteTransportException("remote transport exception with generic cause", new Exception())), is(Level.INFO));
+                new RemoteTransportException("remote transport exception with generic cause", new Exception()))).isEqualTo(Level.INFO);
 
         assertThat(JoinHelper.FailedJoinAttempt.getLogLevel(
                 new RemoteTransportException("caused by CoordinationStateRejectedException",
-                        new CoordinationStateRejectedException("test"))), is(Level.DEBUG));
+                        new CoordinationStateRejectedException("test")))).isEqualTo(Level.DEBUG);
 
         assertThat(JoinHelper.FailedJoinAttempt.getLogLevel(
                 new RemoteTransportException("caused by FailedToCommitClusterStateException",
-                        new FailedToCommitClusterStateException("test"))), is(Level.DEBUG));
+                        new FailedToCommitClusterStateException("test")))).isEqualTo(Level.DEBUG);
 
         assertThat(JoinHelper.FailedJoinAttempt.getLogLevel(
                 new RemoteTransportException("caused by NotMasterException",
-                        new NotMasterException("test"))), is(Level.DEBUG));
+                        new NotMasterException("test")))).isEqualTo(Level.DEBUG);
     }
 
     @Test
@@ -218,7 +216,7 @@ public class JoinHelperTests extends ESTestCase {
             Optional.of(new Join(localNode, node1, randomNonNegativeLong(), randomNonNegativeLong(), randomNonNegativeLong()));
         joinHelper.sendJoinRequest(node1, randomNonNegativeLong(), optionalJoin1);
         CapturedRequest[] capturedRequests1 = capturingTransport.getCapturedRequestsAndClear();
-        assertThat(capturedRequests1.length, equalTo(0));
+        assertThat(capturedRequests1.length).isEqualTo(0);
 
         assertFalse(joinHelper.isJoinPending());
 
@@ -230,7 +228,7 @@ public class JoinHelperTests extends ESTestCase {
         joinHelper.sendJoinRequest(node2, randomNonNegativeLong(), optionalJoin2);
 
         CapturedRequest[] capturedRequests2 = capturingTransport.getCapturedRequestsAndClear();
-        assertThat(capturedRequests2.length, equalTo(0));
+        assertThat(capturedRequests2.length).isEqualTo(0);
 
         assertFalse(joinHelper.isJoinPending());
 
@@ -238,7 +236,7 @@ public class JoinHelperTests extends ESTestCase {
         // check that sending another join to node1 now works again
         joinHelper.sendJoinRequest(node1, 0L, optionalJoin1);
         CapturedRequest[] capturedRequests1a = capturingTransport.getCapturedRequestsAndClear();
-        assertThat(capturedRequests1a.length, equalTo(1));
+        assertThat(capturedRequests1a.length).isEqualTo(1);
         CapturedRequest capturedRequest1a = capturedRequests1a[0];
         assertEquals(node1, capturedRequest1a.node);
     }

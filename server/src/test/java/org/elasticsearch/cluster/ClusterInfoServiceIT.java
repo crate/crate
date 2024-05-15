@@ -19,6 +19,7 @@
 
 package org.elasticsearch.cluster;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.junit.Assert.assertEquals;
@@ -34,7 +35,6 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.TestCluster;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
@@ -76,7 +76,9 @@ public class ClusterInfoServiceIT extends IntegTestCase {
         ImmutableOpenMap<String, Long> shardSizes = info.shardSizes;
         assertNotNull(leastUsages);
         assertNotNull(shardSizes);
-        assertThat("some usages are populated", leastUsages.values().size(), Matchers.equalTo(2));
+        assertThat(leastUsages.values())
+            .as("some usages are populated")
+            .hasSize(2);
         assertThat("some shard sizes are populated", shardSizes.values().size(), greaterThan(0));
         for (ObjectCursor<DiskUsage> usage : leastUsages.values()) {
             logger.info("--> usage: {}", usage.value);

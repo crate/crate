@@ -24,7 +24,6 @@ package io.crate.metadata;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
@@ -289,7 +288,7 @@ public class FunctionsTest extends ESTestCase {
         var func = new Function(dummyFunction.signature(), List.of(Literal.of("hoschi")), DataTypes.INTEGER);
         var funcImpl = createFunctions().getQualified(func);
 
-        assertThat(funcImpl, is(dummyFunction));
+        assertThat(funcImpl).isEqualTo(dummyFunction);
     }
 
     @Test
@@ -310,7 +309,7 @@ public class FunctionsTest extends ESTestCase {
         var agg = new Aggregation(dummyFunction.signature, DataTypes.STRING, List.of(Literal.of("hoschi")));
         var funcImpl = createFunctions().getQualified(agg);
 
-        assertThat(funcImpl, is(dummyFunction));
+        assertThat(funcImpl).isEqualTo(dummyFunction);
     }
 
     @Test

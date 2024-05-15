@@ -24,7 +24,6 @@ import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcke
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
@@ -120,8 +119,8 @@ public class SnapshotShardsServiceIT extends AbstractSnapshotIntegTestCase {
 
         assertBusy(() -> {
             execute("select state, array_length(failures,0) from sys.snapshots where name='snapshot'");
-            assertThat(response.rowCount(), is(1L));
-            assertThat(response.rows()[0][0], is("SUCCESS"));
+            assertThat(response.rowCount()).isEqualTo(1L);
+            assertThat(response.rows()[0][0]).isEqualTo("SUCCESS");
             assertThat(response.rows()[0][1]).isNull();
         }, 30L, TimeUnit.SECONDS);
     }

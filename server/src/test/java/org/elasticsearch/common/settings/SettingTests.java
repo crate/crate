@@ -23,10 +23,8 @@ package org.elasticsearch.common.settings;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.hasToString;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -82,7 +80,7 @@ public class SettingTests extends ESTestCase {
                 Setting.byteSizeSetting("a.byte.size", new ByteSizeValue(1024), Property.Dynamic, Property.NodeScope);
         assertFalse(byteSizeValueSetting.isGroupSetting());
         final ByteSizeValue byteSizeValue = byteSizeValueSetting.get(Settings.EMPTY);
-        assertThat(byteSizeValue.getBytes(), equalTo(1024L));
+        assertThat(byteSizeValue.getBytes()).isEqualTo(1024L);
     }
 
     @Test
@@ -121,13 +119,13 @@ public class SettingTests extends ESTestCase {
         final Setting<ByteSizeValue> byteSizeValueSetting =
                 Setting.byteSizeSetting("a.byte.size", s -> "2048b", Property.Dynamic, Property.NodeScope);
         final ByteSizeValue byteSizeValue = byteSizeValueSetting.get(Settings.EMPTY);
-        assertThat(byteSizeValue.getBytes(), equalTo(2048L));
+        assertThat(byteSizeValue.getBytes()).isEqualTo(2048L);
         AtomicReference<ByteSizeValue> value = new AtomicReference<>(null);
         ClusterSettings.SettingUpdater<ByteSizeValue> settingUpdater = byteSizeValueSetting.newUpdater(value::set, logger);
         assertTrue(settingUpdater.apply(Settings.builder().put("a.byte.size", "12").build(), Settings.EMPTY));
-        assertThat(value.get(), equalTo(new ByteSizeValue(12)));
+        assertThat(value.get()).isEqualTo(new ByteSizeValue(12));
         assertTrue(settingUpdater.apply(Settings.builder().put("a.byte.size", "12b").build(), Settings.EMPTY));
-        assertThat(value.get(), equalTo(new ByteSizeValue(12)));
+        assertThat(value.get()).isEqualTo(new ByteSizeValue(12));
     }
 
     @Test
@@ -222,16 +220,16 @@ public class SettingTests extends ESTestCase {
         @Override
         public void validate(final String value) {
             invokedInIsolation = true;
-            assertThat(value, equalTo("foo.bar value"));
+            assertThat(value).isEqualTo("foo.bar value");
         }
 
         @Override
         public void validate(final String value, final Map<Setting<?>, Object> settings) {
             invokedWithDependencies = true;
             assertTrue(settings.keySet().contains(BAZ_QUX_SETTING));
-            assertThat(settings.get(BAZ_QUX_SETTING), equalTo("baz.qux value"));
+            assertThat(settings.get(BAZ_QUX_SETTING)).isEqualTo("baz.qux value");
             assertTrue(settings.keySet().contains(QUUX_QUUZ_SETTING));
-            assertThat(settings.get(QUUX_QUUZ_SETTING), equalTo("quux.quuz value"));
+            assertThat(settings.get(QUUX_QUUZ_SETTING)).isEqualTo("quux.quuz value");
         }
 
         @Override
@@ -833,31 +831,31 @@ public class SettingTests extends ESTestCase {
         final TimeValue random = TimeValue.parseTimeValue(randomTimeValue(), "test");
 
         Setting<TimeValue> setting = Setting.timeSetting("foo", random);
-        assertThat(setting.get(Settings.EMPTY), equalTo(random));
+        assertThat(setting.get(Settings.EMPTY)).isEqualTo(random);
 
         final int factor = randomIntBetween(1, 10);
         setting = Setting.timeSetting("foo", (s) -> TimeValue.timeValueMillis(random.millis() * factor), TimeValue.ZERO);
-        assertThat(setting.get(Settings.builder().put("foo", "12h").build()), equalTo(TimeValue.timeValueHours(12)));
-        assertThat(setting.get(Settings.EMPTY).millis(), equalTo(random.millis() * factor));
+        assertThat(setting.get(Settings.builder().put("foo", "12h").build())).isEqualTo(TimeValue.timeValueHours(12));
+        assertThat(setting.get(Settings.EMPTY).millis()).isEqualTo(random.millis() * factor);
     }
 
     @Test
     public void testTimeValueBounds() {
         Setting<TimeValue> settingWithLowerBound
             = Setting.timeSetting("foo", TimeValue.timeValueSeconds(10), TimeValue.timeValueSeconds(5));
-        assertThat(settingWithLowerBound.get(Settings.EMPTY), equalTo(TimeValue.timeValueSeconds(10)));
+        assertThat(settingWithLowerBound.get(Settings.EMPTY)).isEqualTo(TimeValue.timeValueSeconds(10));
 
-        assertThat(settingWithLowerBound.get(Settings.builder().put("foo", "5000ms").build()), equalTo(TimeValue.timeValueSeconds(5)));
+        assertThat(settingWithLowerBound.get(Settings.builder().put("foo", "5000ms").build())).isEqualTo(TimeValue.timeValueSeconds(5));
         assertThatThrownBy(() -> settingWithLowerBound.get(Settings.builder().put("foo", "4999ms").build()))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("failed to parse value [4999ms] for setting [foo], must be >= [5s]");
 
         Setting<TimeValue> settingWithBothBounds = Setting.timeSetting("bar",
             TimeValue.timeValueSeconds(10), TimeValue.timeValueSeconds(5), TimeValue.timeValueSeconds(20));
-        assertThat(settingWithBothBounds.get(Settings.EMPTY), equalTo(TimeValue.timeValueSeconds(10)));
+        assertThat(settingWithBothBounds.get(Settings.EMPTY)).isEqualTo(TimeValue.timeValueSeconds(10));
 
-        assertThat(settingWithBothBounds.get(Settings.builder().put("bar", "5000ms").build()), equalTo(TimeValue.timeValueSeconds(5)));
-        assertThat(settingWithBothBounds.get(Settings.builder().put("bar", "20000ms").build()), equalTo(TimeValue.timeValueSeconds(20)));
+        assertThat(settingWithBothBounds.get(Settings.builder().put("bar", "5000ms").build())).isEqualTo(TimeValue.timeValueSeconds(5));
+        assertThat(settingWithBothBounds.get(Settings.builder().put("bar", "20000ms").build())).isEqualTo(TimeValue.timeValueSeconds(20));
         assertThatThrownBy(() -> settingWithBothBounds.get(Settings.builder().put("bar", "4999ms").build()))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("failed to parse value [4999ms] for setting [bar], must be >= [5s]");
@@ -934,7 +932,7 @@ public class SettingTests extends ESTestCase {
 
         boolean expectedChange = removeAffixKeySetting || removePrefixKeySetting || changeAffixKeySetting || changePrefixKeySetting
             || removeAffixNamespace;
-        assertThat(updater.apply(currentSettingsBuilder.build(), previousSettingsBuilder.build()), is(expectedChange));
+        assertThat(updater.apply(currentSettingsBuilder.build(), previousSettingsBuilder.build())).isEqualTo(expectedChange);
     }
 
     @Test
@@ -979,21 +977,21 @@ public class SettingTests extends ESTestCase {
     public void testGetWithFallbackWithProvidedSettingValue() {
         Setting<String> fallbackSetting = Setting.simpleString("bar", Property.NodeScope);
         Setting<String> setting = Setting.simpleString("foo", fallbackSetting, Property.NodeScope);
-        assertThat(setting.getWithFallback(Settings.builder().put("foo", "test").build()), is("test"));
+        assertThat(setting.getWithFallback(Settings.builder().put("foo", "test").build())).isEqualTo("test");
     }
 
     @Test
     public void testGetWithFallbackWithProvidedFallbackSettingValue() {
         Setting<String> fallbackSetting = Setting.simpleString("bar", Property.NodeScope);
         Setting<String> setting = Setting.simpleString("foo", fallbackSetting, Property.NodeScope);
-        assertThat(setting.getWithFallback(Settings.builder().put("bar", "test").build()), is("test"));
+        assertThat(setting.getWithFallback(Settings.builder().put("bar", "test").build())).isEqualTo("test");
     }
 
     @Test
     public void testGetWithFallbackReturnsFallbackSettingDefaultIfNoSettingValuesProvided() {
         Setting<String> fallbackSetting = Setting.simpleString("bar", "test", Property.NodeScope);
         Setting<String> setting = Setting.simpleString("foo", fallbackSetting, Property.NodeScope);
-        assertThat(setting.getWithFallback(Settings.EMPTY), is("test"));
+        assertThat(setting.getWithFallback(Settings.EMPTY)).isEqualTo("test");
     }
 
     @Test
@@ -1038,7 +1036,7 @@ public class SettingTests extends ESTestCase {
     @Test
     public void test_empty_version_from_setting() {
         var emptyVersion = IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(Settings.EMPTY);
-        assertThat(emptyVersion, is((Version.V_EMPTY)));
+        assertThat(emptyVersion).isEqualTo((Version.V_EMPTY));
     }
 
     /*
@@ -1048,6 +1046,6 @@ public class SettingTests extends ESTestCase {
     @Test
     public void test_default_version_from_setting() {
         var defaultVersion = Setting.versionSetting(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT).get(Settings.EMPTY);
-        assertThat(defaultVersion, is(Version.CURRENT));
+        assertThat(defaultVersion).isEqualTo(Version.CURRENT);
     }
 }

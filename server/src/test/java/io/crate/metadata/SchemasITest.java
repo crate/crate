@@ -22,9 +22,7 @@
 package io.crate.metadata;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.isOneOf;
-import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -72,16 +70,16 @@ public class SchemasITest extends IntegTestCase {
         ensureYellow();
 
         DocTableInfo ti = schemas.getTableInfo(new RelationName(sqlExecutor.getCurrentSchema(), "t1"));
-        assertThat(ti.ident().name(), is("t1"));
+        assertThat(ti.ident().name()).isEqualTo("t1");
 
         assertThat(ti.columns()).hasSize(3);
         assertThat(ti.primaryKey()).hasSize(1);
-        assertThat(ti.primaryKey().get(0), is(new ColumnIdent("id")));
-        assertThat(ti.clusteredBy(), is(new ColumnIdent("id")));
+        assertThat(ti.primaryKey().get(0)).isEqualTo(new ColumnIdent("id"));
+        assertThat(ti.clusteredBy()).isEqualTo(new ColumnIdent("id"));
         List<CheckConstraint<Symbol>> checkConstraints = ti.checkConstraints();
         assertEquals(1, checkConstraints.size());
         assertEquals(checkConstraints.get(0).name(), "not_miguel");
-        assertThat(checkConstraints.get(0).expressionStr(), equalTo("\"name\" <> 'miguel'"));
+        assertThat(checkConstraints.get(0).expressionStr()).isEqualTo("\"name\" <> 'miguel'");
 
         ClusterService clusterService = clusterService();
         Routing routing = ti.getRouting(
@@ -99,11 +97,11 @@ public class SchemasITest extends IntegTestCase {
         int numShards = 0;
         for (Map.Entry<String, Map<String, IntIndexedContainer>> nodeEntry : routing.locations().entrySet()) {
             for (Map.Entry<String, IntIndexedContainer> indexEntry : nodeEntry.getValue().entrySet()) {
-                assertThat(indexEntry.getKey(), is(getFqn("t1")));
+                assertThat(indexEntry.getKey()).isEqualTo(getFqn("t1"));
                 numShards += indexEntry.getValue().size();
             }
         }
-        assertThat(numShards, is(10));
+        assertThat(numShards).isEqualTo(10);
     }
 
     @Test
@@ -139,8 +137,8 @@ public class SchemasITest extends IntegTestCase {
                 numShards += indexEntry.getValue().size();
             }
         }
-        assertThat(numShards, is(12));
-        assertThat(tables, is(expectedTables));
+        assertThat(numShards).isEqualTo(12);
+        assertThat(tables).isEqualTo(expectedTables);
     }
 
     @Test

@@ -21,8 +21,8 @@
 
 package io.crate.planner.operators;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
@@ -53,7 +53,7 @@ public class JoinOrderingTest {
         joinPairs.add(Set.of(T3.T1, T3.T2));
         joinPairs.add(Set.of(T3.T2, T3.T3));
         joinPairs.add(Set.of(T3.T3, T3.T4));
-        assertThat(JoinOrdering.findAndRemoveFirstJoinPair(occurrences, joinPairs), is(Set.of(T3.T2, T3.T3)));
+        assertThat(JoinOrdering.findAndRemoveFirstJoinPair(occurrences, joinPairs)).isEqualTo(Set.of(T3.T2, T3.T3));
     }
 
     @Test
@@ -68,7 +68,7 @@ public class JoinOrderingTest {
         sets.add(Set.of(T3.T1, T3.T2));
         sets.add(Set.of(T3.T2, T3.T3));
         sets.add(Set.of(T3.T3, T3.T4));
-        assertThat(JoinOrdering.findAndRemoveFirstJoinPair(occurrences, sets), is(Set.of(T3.T1, T3.T2)));
+        assertThat(JoinOrdering.findAndRemoveFirstJoinPair(occurrences, sets)).isEqualTo(Set.of(T3.T1, T3.T2));
     }
 
     @Test

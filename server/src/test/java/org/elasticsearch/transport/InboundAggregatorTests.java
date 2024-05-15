@@ -20,11 +20,9 @@
 package org.elasticsearch.transport;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.CoreMatchers.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
@@ -99,8 +97,8 @@ public class InboundAggregatorTests extends ESTestCase {
         assertThat(aggregated).isNotNull();
         assertFalse(aggregated.isPing());
         assertTrue(aggregated.getHeader().isRequest());
-        assertThat(aggregated.getHeader().getRequestId(), equalTo(requestId));
-        assertThat(aggregated.getHeader().getVersion(), equalTo(Version.CURRENT));
+        assertThat(aggregated.getHeader().getRequestId()).isEqualTo(requestId);
+        assertThat(aggregated.getHeader().getVersion()).isEqualTo(Version.CURRENT);
         for (ReleasableBytesReference reference : references) {
             assertEquals(1, reference.refCount());
         }

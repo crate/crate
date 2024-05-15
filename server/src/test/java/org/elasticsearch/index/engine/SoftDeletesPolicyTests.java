@@ -19,8 +19,7 @@
 
 package org.elasticsearch.index.engine;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -61,7 +60,7 @@ public class SoftDeletesPolicyTests extends ESTestCase {
         // set the local checkpoint of the safe commit to more than the policy dicated by the global checkpoint
         final long localCheckpointOfSafeCommit = randomLongBetween(1 + globalCheckpoint.get() - retentionOperations + 1, Long.MAX_VALUE);
         policy.setLocalCheckpointOfSafeCommit(localCheckpointOfSafeCommit);
-        assertThat(policy.getMinRetainedSeqNo(), equalTo(1 + globalCheckpoint.get() - retentionOperations));
+        assertThat(policy.getMinRetainedSeqNo()).isEqualTo(1 + globalCheckpoint.get() - retentionOperations);
     }
 
     @Test
@@ -89,7 +88,7 @@ public class SoftDeletesPolicyTests extends ESTestCase {
         final SoftDeletesPolicy policy =
                 new SoftDeletesPolicy(globalCheckpoint::get, 0, retentionOperations, leasesSupplier);
         policy.setLocalCheckpointOfSafeCommit(localCheckpointOfSafeCommit);
-        assertThat(policy.getMinRetainedSeqNo(), equalTo(1 + localCheckpointOfSafeCommit));
+        assertThat(policy.getMinRetainedSeqNo()).isEqualTo(1 + localCheckpointOfSafeCommit);
     }
 
     @Test
@@ -118,6 +117,6 @@ public class SoftDeletesPolicyTests extends ESTestCase {
         final SoftDeletesPolicy policy =
                 new SoftDeletesPolicy(globalCheckpoint::get, 0, retentionOperations, leasesSupplier);
         policy.setLocalCheckpointOfSafeCommit(localCheckpointOfSafeCommit);
-        assertThat(policy.getMinRetainedSeqNo(), equalTo(minimumRetainingSequenceNumber.getAsLong()));
+        assertThat(policy.getMinRetainedSeqNo()).isEqualTo(minimumRetainingSequenceNumber.getAsLong());
     }
 }

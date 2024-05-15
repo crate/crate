@@ -23,8 +23,6 @@ package io.crate.planner.node;
 
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThat;
 
@@ -77,14 +75,14 @@ public class RoutedCollectPhaseTest extends ESTestCase {
 
         StreamInput in = out.bytes().streamInput();
         RoutedCollectPhase cn2 = new RoutedCollectPhase(in);
-        assertThat(cn, equalTo(cn2));
+        assertThat(cn).isEqualTo(cn2);
 
-        assertThat(cn.toCollect(), is(cn2.toCollect()));
-        assertThat(cn.nodeIds(), is(cn2.nodeIds()));
-        assertThat(cn.jobId(), is(cn2.jobId()));
-        assertThat(cn.phaseId(), is(cn2.phaseId()));
-        assertThat(cn.maxRowGranularity(), is(cn2.maxRowGranularity()));
-        assertThat(cn.distributionInfo(), is(cn2.distributionInfo()));
+        assertThat(cn.toCollect()).isEqualTo(cn2.toCollect());
+        assertThat(cn.nodeIds()).isEqualTo(cn2.nodeIds());
+        assertThat(cn.jobId()).isEqualTo(cn2.jobId());
+        assertThat(cn.phaseId()).isEqualTo(cn2.phaseId());
+        assertThat(cn.maxRowGranularity()).isEqualTo(cn2.maxRowGranularity());
+        assertThat(cn.distributionInfo()).isEqualTo(cn2.distributionInfo());
     }
 
     @Test
@@ -128,7 +126,7 @@ public class RoutedCollectPhaseTest extends ESTestCase {
         RoutedCollectPhase normalizedCollect = collect.normalize(
             normalizer, new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults()));
 
-        assertThat(normalizedCollect.nodePageSizeHint(), is(10));
+        assertThat(normalizedCollect.nodePageSizeHint()).isEqualTo(10);
     }
 
     @Test

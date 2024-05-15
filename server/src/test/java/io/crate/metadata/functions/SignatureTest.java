@@ -22,8 +22,7 @@
 package io.crate.metadata.functions;
 
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
@@ -68,6 +67,6 @@ public class SignatureTest {
         StreamInput in = out.bytes().streamInput();
         var signature2 = new Signature(in);
 
-        assertThat(signature2, equalTo(signature));
+        assertThat(signature2).isEqualTo(signature);
     }
 }

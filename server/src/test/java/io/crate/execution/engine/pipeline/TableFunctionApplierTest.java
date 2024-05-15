@@ -22,8 +22,6 @@
 package io.crate.execution.engine.pipeline;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -56,9 +54,9 @@ public class TableFunctionApplierTest {
             Collections.emptyList()
         );
         Iterator<Row> iterator = tableFunctionApplier.apply(new RowN(0));
-        assertThat(iterator.next().materialize(), is(new Object[]{1, 4, 10}));
-        assertThat(iterator.next().materialize(), is(new Object[]{2, 5, 10}));
-        assertThat(iterator.next().materialize(), is(new Object[]{3, null, 10}));
+        assertThat(iterator.next().materialize()).isEqualTo(new Object[]{1, 4, 10});
+        assertThat(iterator.next().materialize()).isEqualTo(new Object[]{2, 5, 10});
+        assertThat(iterator.next().materialize()).isEqualTo(new Object[]{3, null, 10});
         assertThat(iterator.hasNext()).isFalse();
     }
 }

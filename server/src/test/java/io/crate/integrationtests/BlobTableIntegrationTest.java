@@ -23,9 +23,9 @@ package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
@@ -63,10 +63,9 @@ public class BlobTableIntegrationTest extends SQLHttpIntegrationTest {
         refresh();
 
         execute("select b1.digest from blob.b1 order by b1.digest desc");
-        assertThat(TestingHelpers.printedTable(response.rows()),
-            is("bbe960a25ea311d21d40669e93df2003ba9b90a2\n" +
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("bbe960a25ea311d21d40669e93df2003ba9b90a2\n" +
                "62cdb7020ff920e5aa642c3d4066950dd1f01f4d\n" +
-               "0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33\n"));
+               "0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33\n");
     }
 
     @Test
@@ -79,10 +78,9 @@ public class BlobTableIntegrationTest extends SQLHttpIntegrationTest {
         refresh();
 
         execute("select b1.digest from blob.b1 join blob.b2 on b1.digest = b2.digest order by b1.digest");
-        assertThat(TestingHelpers.printedTable(response.rows()),
-            is("0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33\n" +
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33\n" +
                "62cdb7020ff920e5aa642c3d4066950dd1f01f4d\n" +
-               "bbe960a25ea311d21d40669e93df2003ba9b90a2\n"));
+               "bbe960a25ea311d21d40669e93df2003ba9b90a2\n");
     }
 
     @Test
@@ -103,9 +101,8 @@ public class BlobTableIntegrationTest extends SQLHttpIntegrationTest {
                 "join files on b1.digest = files.digest " +
                 "where files.i = 2 " +
                 "order by files.digest");
-        assertThat(TestingHelpers.printedTable(response.rows()),
-            is("0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33\n" +
-               "62cdb7020ff920e5aa642c3d4066950dd1f01f4d\n"));
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33\n" +
+               "62cdb7020ff920e5aa642c3d4066950dd1f01f4d\n");
     }
 
     @Test
@@ -117,8 +114,7 @@ public class BlobTableIntegrationTest extends SQLHttpIntegrationTest {
         refresh();
 
         execute("select digest from blob.b1 where digest = '62cdb7020ff920e5aa642c3d4066950dd1f01f4d'");
-        assertThat(TestingHelpers.printedTable(response.rows()),
-            is("62cdb7020ff920e5aa642c3d4066950dd1f01f4d\n"));
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("62cdb7020ff920e5aa642c3d4066950dd1f01f4d\n");
     }
 
     /**
@@ -137,7 +133,7 @@ public class BlobTableIntegrationTest extends SQLHttpIntegrationTest {
 
         execute("alter blob table b1 set (\"blocks.read_only_allow_delete\"=false)");
         execute("drop blob table b1");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
     }
 
     private void blobUpload(String[] contents, String... tables) throws Exception {

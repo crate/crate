@@ -21,6 +21,7 @@
 
 package io.crate.expression.tablefunctions;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
@@ -115,6 +116,6 @@ public abstract class AbstractTableFunctionsTest extends ESTestCase {
     }
 
     protected void assertExecute(String expr, String expected) {
-        assertThat(printedTable(execute(expr)), is(expected));
+        assertThat(printedTable(execute(expr))).isEqualTo(expected);
     }
 }

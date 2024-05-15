@@ -21,14 +21,11 @@
 
 package io.crate.integrationtests;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.util.Locale;
-
-import org.jetbrains.annotations.Nullable;
 
 import org.apache.http.Header;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -43,6 +40,7 @@ import org.apache.http.impl.client.HttpClients;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.test.IntegTestCase;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 
@@ -141,7 +139,7 @@ public abstract class SQLHttpIntegrationTest extends IntegTestCase {
         httpPut.setEntity(new StringEntity(content));
 
         CloseableHttpResponse response = httpClient.execute(httpPut);
-        assertThat(response.getStatusLine().getStatusCode(), is(201));
+        assertThat(response.getStatusLine().getStatusCode()).isEqualTo(201);
         response.close();
 
         return url;

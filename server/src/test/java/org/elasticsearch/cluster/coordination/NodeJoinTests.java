@@ -22,10 +22,10 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.monitor.StatusInfo.Status.HEALTHY;
 import static org.elasticsearch.transport.TransportService.HANDSHAKE_ACTION_NAME;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -463,7 +463,7 @@ public class NodeJoinTests extends ESTestCase {
         }));
         deterministicTaskQueue.runAllRunnableTasks();
         assertFalse(isLocalNodeElectedMaster());
-        assertThat(coordinator.getMode(), equalTo(Coordinator.Mode.CANDIDATE));
+        assertThat(coordinator.getMode()).isEqualTo(Coordinator.Mode.CANDIDATE);
     }
 
     private void handleFollowerCheckFrom(DiscoveryNode node, long term) throws Exception {
@@ -484,7 +484,7 @@ public class NodeJoinTests extends ESTestCase {
         // Will throw exception if failed
         deterministicTaskQueue.runAllRunnableTasks();
         assertFalse(isLocalNodeElectedMaster());
-        assertThat(coordinator.getMode(), equalTo(Coordinator.Mode.FOLLOWER));
+        assertThat(coordinator.getMode()).isEqualTo(Coordinator.Mode.FOLLOWER);
     }
 
     public void testJoinFollowerFails() throws Exception {

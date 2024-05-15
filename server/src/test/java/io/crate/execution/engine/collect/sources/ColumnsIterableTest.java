@@ -25,7 +25,7 @@ import static io.crate.testing.T3.T1;
 import static io.crate.testing.T3.T1_DEFINITION;
 import static io.crate.testing.T3.T4;
 import static io.crate.testing.T3.T4_DEFINITION;
-import static org.hamcrest.Matchers.is;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
@@ -87,12 +87,12 @@ public class ColumnsIterableTest extends CrateDummyClusterServiceUnitTest {
             .collect(Collectors.toList());
 
         // sub columns must have NON-NULL ordinal value
-        assertThat(contexts.get(1).ref().position(), is(2));
-        assertThat(contexts.get(2).ref().position(), is(3));
+        assertThat(contexts.get(1).ref().position()).isEqualTo(2);
+        assertThat(contexts.get(2).ref().position()).isEqualTo(3);
 
         // array of object sub columns also
-        assertThat(contexts.get(3).ref().position(), is(4));
-        assertThat(contexts.get(4).ref().position(), is(5));
+        assertThat(contexts.get(3).ref().position()).isEqualTo(4);
+        assertThat(contexts.get(4).ref().position()).isEqualTo(5);
     }
 
     @Test
@@ -102,6 +102,6 @@ public class ColumnsIterableTest extends CrateDummyClusterServiceUnitTest {
         var columns = new InformationSchemaIterables.ColumnsIterable(e.resolveTableInfo("bit_table"));
         var contexts = StreamSupport.stream(columns.spliterator(), false).toList();
 
-        assertThat(contexts.get(0).ref().valueType().characterMaximumLength(), is(12));
+        assertThat(contexts.get(0).ref().valueType().characterMaximumLength()).isEqualTo(12);
     }
 }

@@ -21,9 +21,8 @@
 
 package org.elasticsearch.common.settings;
 
-import static org.hamcrest.Matchers.is;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 import java.util.LinkedHashMap;
@@ -87,7 +86,7 @@ public class PropertyPlaceholderTests extends ESTestCase {
             propertyPlaceholder.replacePlaceholders("${foo}", placeholderResolver);
             fail("Expected IllegalArgumentException");
         } catch (IllegalArgumentException e) {
-            assertThat(e.getMessage(), is("Could not resolve placeholder 'foo'"));
+            assertThat(e.getMessage()).isEqualTo("Could not resolve placeholder 'foo'");
         }
     }
 
@@ -158,7 +157,7 @@ public class PropertyPlaceholderTests extends ESTestCase {
             propertyPlaceholder.replacePlaceholders("${foo}", placeholderResolver);
             fail("Expected IllegalArgumentException");
         } catch (IllegalArgumentException e) {
-            assertThat(e.getMessage(), is("Circular placeholder reference 'foo' in property definitions"));
+            assertThat(e.getMessage()).isEqualTo("Circular placeholder reference 'foo' in property definitions");
         }
     }
 

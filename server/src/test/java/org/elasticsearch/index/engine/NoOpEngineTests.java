@@ -19,10 +19,9 @@
 
 package org.elasticsearch.index.engine;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
@@ -62,8 +61,8 @@ public class NoOpEngineTests extends EngineTestCase {
     public void testNoopEngine() throws IOException {
         engine.close();
         final NoOpEngine engine = new NoOpEngine(noOpConfig(INDEX_SETTINGS, store, primaryTranslogDir));
-        assertThat(engine.refreshNeeded(), equalTo(false));
-        assertThat(engine.shouldPeriodicallyFlush(), equalTo(false));
+        assertThat(engine.refreshNeeded()).isEqualTo(false);
+        assertThat(engine.shouldPeriodicallyFlush()).isEqualTo(false);
         engine.close();
     }
 
@@ -101,11 +100,11 @@ public class NoOpEngineTests extends EngineTestCase {
         engine.close();
 
         final NoOpEngine noOpEngine = new NoOpEngine(noOpConfig(INDEX_SETTINGS, store, primaryTranslogDir, tracker));
-        assertThat(noOpEngine.getPersistedLocalCheckpoint(), equalTo(localCheckpoint));
-        assertThat(noOpEngine.getSeqNoStats(100L).getMaxSeqNo(), equalTo(maxSeqNo));
+        assertThat(noOpEngine.getPersistedLocalCheckpoint()).isEqualTo(localCheckpoint);
+        assertThat(noOpEngine.getSeqNoStats(100L).getMaxSeqNo()).isEqualTo(maxSeqNo);
         try (Engine.IndexCommitRef ref = noOpEngine.acquireLastIndexCommit(false)) {
             try (IndexReader reader = DirectoryReader.open(ref.getIndexCommit())) {
-                assertThat(reader.numDocs(), equalTo(docs));
+                assertThat(reader.numDocs()).isEqualTo(docs);
             }
         }
         noOpEngine.close();
@@ -196,11 +195,11 @@ public class NoOpEngineTests extends EngineTestCase {
         engine.close();
 
         final NoOpEngine noOpEngine = new NoOpEngine(noOpConfig(INDEX_SETTINGS, store, primaryTranslogDir, tracker));
-        assertThat(noOpEngine.getTranslogStats().estimatedNumberOfOperations(), equalTo(totalTranslogOps));
+        assertThat(noOpEngine.getTranslogStats().estimatedNumberOfOperations()).isEqualTo(totalTranslogOps);
         noOpEngine.trimUnreferencedTranslogFiles();
-        assertThat(noOpEngine.getTranslogStats().estimatedNumberOfOperations(), equalTo(0));
-        assertThat(noOpEngine.getTranslogStats().getUncommittedOperations(), equalTo(0));
-        assertThat(noOpEngine.getTranslogStats().getTranslogSizeInBytes(), equalTo((long)Translog.DEFAULT_HEADER_SIZE_IN_BYTES));
+        assertThat(noOpEngine.getTranslogStats().estimatedNumberOfOperations()).isEqualTo(0);
+        assertThat(noOpEngine.getTranslogStats().getUncommittedOperations()).isEqualTo(0);
+        assertThat(noOpEngine.getTranslogStats().getTranslogSizeInBytes()).isEqualTo((long)Translog.DEFAULT_HEADER_SIZE_IN_BYTES);
         snapshot.close();
         noOpEngine.close();
     }

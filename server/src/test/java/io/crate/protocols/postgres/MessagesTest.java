@@ -22,8 +22,7 @@
 package io.crate.protocols.postgres;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -74,7 +73,7 @@ public class MessagesTest extends ESTestCase {
             fail("sendDataRow should raise an exception");
         } catch (Exception ignored) {
         }
-        assertThat(buf.refCnt(), is(0));
+        assertThat(buf.refCnt()).isEqualTo(0);
     }
 
     @Test
@@ -90,11 +89,11 @@ public class MessagesTest extends ESTestCase {
 
         try {
             // message type
-            assertThat((char) buffer.readByte(), is('D'));
+            assertThat((char) buffer.readByte()).isEqualTo('D');
 
             // size of the message
-            assertThat(buffer.readInt(), is(16));
-            assertThat(buffer.readableBytes(), is(12)); // 16 - INT4 because the size was already read
+            assertThat(buffer.readInt()).isEqualTo(16);
+            assertThat(buffer.readableBytes()).isEqualTo(12); // 16 - INT4 because the size was already read
         } finally {
             buffer.release();
             channel.finishAndReleaseAll();
@@ -128,11 +127,11 @@ public class MessagesTest extends ESTestCase {
         byte[] responseBytes = response.getBytes(StandardCharsets.UTF_8);
         ByteBuf buffer = (ByteBuf) channel.outboundMessages().poll();
         try {
-            assertThat(buffer.readByte(), is((byte) 'C'));
-            assertThat(buffer.readInt(), is(responseBytes.length + 4 + 1));
+            assertThat(buffer.readByte()).isEqualTo((byte) 'C');
+            assertThat(buffer.readInt()).isEqualTo(responseBytes.length + 4 + 1);
             byte[] string = new byte[9];
             buffer.readBytes(string);
-            assertThat(string, is(responseBytes));
+            assertThat(string).isEqualTo(responseBytes);
         } finally {
             buffer.release();
         }

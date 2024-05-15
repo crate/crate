@@ -22,9 +22,8 @@
 package io.crate.planner.node.ddl;
 
 import static io.crate.planner.node.ddl.ResetSettingsPlan.buildSettingsFrom;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 import java.util.Map;
 import java.util.Set;
@@ -55,7 +54,7 @@ public class ResetSettingsPlanTest extends ESTestCase {
             .put("stats.enabled", (String) null)
             .build();
 
-        assertThat(buildSettingsFrom(settings, symbolEvaluator(Row.EMPTY)), is(expected));
+        assertThat(buildSettingsFrom(settings, symbolEvaluator(Row.EMPTY))).isEqualTo(expected);
     }
 
     @Test
@@ -76,7 +75,7 @@ public class ResetSettingsPlanTest extends ESTestCase {
             .put("stats.service.max_bytes_per_sec", (String) null)
             .build();
 
-        assertThat(buildSettingsFrom(settings, symbolEvaluator(Row.EMPTY)), is(expected));
+        assertThat(buildSettingsFrom(settings, symbolEvaluator(Row.EMPTY))).isEqualTo(expected);
 
     }
 
@@ -106,7 +105,7 @@ public class ResetSettingsPlanTest extends ESTestCase {
             .put("logger.action", (String) null)
             .build();
 
-        assertThat(buildSettingsFrom(settings, symbolEvaluator(Row.EMPTY)), is(expected));
+        assertThat(buildSettingsFrom(settings, symbolEvaluator(Row.EMPTY))).isEqualTo(expected);
     }
 
     private Function<Symbol, Object> symbolEvaluator(Row row) {
@@ -126,7 +125,7 @@ public class ResetSettingsPlanTest extends ESTestCase {
             .put("cluster.graceful_stop.min_availability", (String) null)
             .build();
 
-        assertThat(buildSettingsFrom(settings, symbolEvaluator(Row.EMPTY)), is(expected));
+        assertThat(buildSettingsFrom(settings, symbolEvaluator(Row.EMPTY))).isEqualTo(expected);
     }
 
     @Test
@@ -139,7 +138,7 @@ public class ResetSettingsPlanTest extends ESTestCase {
             .build();
 
         assertThat(
-            buildSettingsFrom(settings, symbolEvaluator(Row.EMPTY)), is(expected));
+            buildSettingsFrom(settings, symbolEvaluator(Row.EMPTY))).isEqualTo(expected);
     }
 
     @Test

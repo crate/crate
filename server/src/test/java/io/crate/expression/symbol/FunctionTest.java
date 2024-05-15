@@ -24,7 +24,6 @@ package io.crate.expression.symbol;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
 import static io.crate.testing.TestingHelpers.createReference;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
@@ -70,7 +69,7 @@ public class FunctionTest extends ESTestCase {
         StreamInput input = output.bytes().streamInput();
         Function fn2 = (Function) Symbols.fromStream(input);
 
-        assertThat(fn, is(fn2));
+        assertThat(fn).isEqualTo(fn2);
     }
 
     @Test
@@ -89,7 +88,7 @@ public class FunctionTest extends ESTestCase {
         Function fn2 = (Function) Symbols.fromStream(input);
 
         assertThat(fn2.filter(), not(nullValue()));
-        assertThat(fn, is(fn2));
+        assertThat(fn).isEqualTo(fn2);
     }
 
     @Test
@@ -109,7 +108,7 @@ public class FunctionTest extends ESTestCase {
         Function fn2 = (Function) Symbols.fromStream(input);
 
         assertThat(fn2.filter()).isNull();
-        assertThat(fn, is(fn2));
+        assertThat(fn).isEqualTo(fn2);
     }
 
     private static Set<Scalar.Feature> randomFeatures() {

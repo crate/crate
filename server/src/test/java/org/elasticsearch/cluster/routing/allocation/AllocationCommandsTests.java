@@ -21,6 +21,7 @@ package org.elasticsearch.cluster.routing.allocation;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singleton;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.routing.ShardRoutingState.INITIALIZING;
 import static org.elasticsearch.cluster.routing.ShardRoutingState.RELOCATING;
@@ -129,14 +130,14 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
             false, false).getClusterState();
         assertThat(newState, not(equalTo(clusterState)));
         clusterState = newState;
-        assertThat(clusterState.getRoutingNodes().node(existingNodeId).iterator().next().state(), equalTo(ShardRoutingState.RELOCATING));
-        assertThat(clusterState.getRoutingNodes().node(toNodeId).iterator().next().state(), equalTo(ShardRoutingState.INITIALIZING));
+        assertThat(clusterState.getRoutingNodes().node(existingNodeId).iterator().next().state()).isEqualTo(ShardRoutingState.RELOCATING);
+        assertThat(clusterState.getRoutingNodes().node(toNodeId).iterator().next().state()).isEqualTo(ShardRoutingState.INITIALIZING);
 
         logger.info("finish moving the shard");
         clusterState = startInitializingShardsAndReroute(allocation, clusterState);
 
-        assertThat(clusterState.getRoutingNodes().node(existingNodeId).isEmpty(), equalTo(true));
-        assertThat(clusterState.getRoutingNodes().node(toNodeId).iterator().next().state(), equalTo(ShardRoutingState.STARTED));
+        assertThat(clusterState.getRoutingNodes().node(existingNodeId).isEmpty()).isEqualTo(true);
+        assertThat(clusterState.getRoutingNodes().node(toNodeId).iterator().next().state()).isEqualTo(ShardRoutingState.STARTED);
     }
 
     private AbstractAllocateAllocationCommand randomAllocateCommand(String index, int shardId, String node) {
@@ -178,7 +179,7 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
                 .add(newNode("node4", singleton(DiscoveryNodeRole.MASTER_ROLE)))
         ).build();
         clusterState = allocation.reroute(clusterState, "reroute");
-        assertThat(clusterState.getRoutingNodes().shardsWithState(INITIALIZING).size(), equalTo(0));
+        assertThat(clusterState.getRoutingNodes().shardsWithState(INITIALIZING).size()).isEqualTo(0);
 
         logger.info("--> allocating to non-existent node, should fail");
         try {
@@ -238,15 +239,15 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
             false, false).getClusterState();
         assertThat(newState, not(equalTo(clusterState)));
         clusterState = newState;
-        assertThat(clusterState.getRoutingNodes().node("node1").size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node1").shardsWithState(INITIALIZING).size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node2").size(), equalTo(0));
+        assertThat(clusterState.getRoutingNodes().node("node1").size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node1").shardsWithState(INITIALIZING).size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node2").size()).isEqualTo(0);
 
         logger.info("--> start the primary shard");
         clusterState = startInitializingShardsAndReroute(allocation, clusterState);
-        assertThat(clusterState.getRoutingNodes().node("node1").size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node1").shardsWithState(STARTED).size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node2").size(), equalTo(0));
+        assertThat(clusterState.getRoutingNodes().node("node1").size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node1").shardsWithState(STARTED).size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node2").size()).isEqualTo(0);
 
         logger.info("--> allocate the replica shard on the primary shard node, should fail");
         try {
@@ -261,18 +262,18 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
             new AllocationCommands(new AllocateReplicaAllocationCommand("test", 0, "node2")), false, false).getClusterState();
         assertThat(newState, not(equalTo(clusterState)));
         clusterState = newState;
-        assertThat(clusterState.getRoutingNodes().node("node1").size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node1").shardsWithState(STARTED).size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node2").size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node2").shardsWithState(INITIALIZING).size(), equalTo(1));
+        assertThat(clusterState.getRoutingNodes().node("node1").size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node1").shardsWithState(STARTED).size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node2").size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node2").shardsWithState(INITIALIZING).size()).isEqualTo(1);
 
 
         logger.info("--> start the replica shard");
         clusterState = startInitializingShardsAndReroute(allocation, clusterState);
-        assertThat(clusterState.getRoutingNodes().node("node1").size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node1").shardsWithState(STARTED).size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node2").size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node2").shardsWithState(STARTED).size(), equalTo(1));
+        assertThat(clusterState.getRoutingNodes().node("node1").size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node1").shardsWithState(STARTED).size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node2").size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node2").shardsWithState(STARTED).size()).isEqualTo(1);
 
         logger.info("--> verify that we fail when there are no unassigned shards");
         try {
@@ -319,15 +320,15 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
         clusterState = allocation.reroute(clusterState,
             new AllocationCommands(new AllocateStalePrimaryAllocationCommand(index, 0, node1, true)), false, false).getClusterState();
         RoutingNode routingNode1 = clusterState.getRoutingNodes().node(node1);
-        assertThat(routingNode1.size(), equalTo(1));
-        assertThat(routingNode1.shardsWithState(INITIALIZING).size(), equalTo(1));
+        assertThat(routingNode1.size()).isEqualTo(1);
+        assertThat(routingNode1.shardsWithState(INITIALIZING).size()).isEqualTo(1);
         Set<String> inSyncAllocationIds = clusterState.metadata().index(index).inSyncAllocationIds(0);
-        assertThat(inSyncAllocationIds, equalTo(Collections.singleton(RecoverySource.ExistingStoreRecoverySource.FORCED_ALLOCATION_ID)));
+        assertThat(inSyncAllocationIds).isEqualTo(Collections.singleton(RecoverySource.ExistingStoreRecoverySource.FORCED_ALLOCATION_ID));
 
         clusterState = startInitializingShardsAndReroute(allocation, clusterState);
         routingNode1 = clusterState.getRoutingNodes().node(node1);
-        assertThat(routingNode1.size(), equalTo(1));
-        assertThat(routingNode1.shardsWithState(STARTED).size(), equalTo(1));
+        assertThat(routingNode1.size()).isEqualTo(1);
+        assertThat(routingNode1.shardsWithState(STARTED).size()).isEqualTo(1);
         inSyncAllocationIds = clusterState.metadata().index(index).inSyncAllocationIds(0);
         assertThat(inSyncAllocationIds, hasSize(1));
         assertThat(inSyncAllocationIds, not(Collections.singleton(RecoverySource.ExistingStoreRecoverySource.FORCED_ALLOCATION_ID)));
@@ -357,16 +358,16 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
                 .add(newNode("node3"))
         ).build();
         clusterState = allocation.reroute(clusterState, "reroute");
-        assertThat(clusterState.getRoutingNodes().shardsWithState(INITIALIZING).size(), equalTo(0));
+        assertThat(clusterState.getRoutingNodes().shardsWithState(INITIALIZING).size()).isEqualTo(0);
 
         logger.info("--> allocating empty primary shard with accept_data_loss flag set to true");
         ClusterState newState = allocation.reroute(clusterState,
             new AllocationCommands(new AllocateEmptyPrimaryAllocationCommand("test", 0, "node1", true)), false, false).getClusterState();
         assertThat(newState, not(equalTo(clusterState)));
         clusterState = newState;
-        assertThat(clusterState.getRoutingNodes().node("node1").size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node1").shardsWithState(INITIALIZING).size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node2").size(), equalTo(0));
+        assertThat(clusterState.getRoutingNodes().node("node1").size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node1").shardsWithState(INITIALIZING).size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node2").size()).isEqualTo(0);
 
         logger.info("--> cancel primary allocation, make sure it fails...");
         try {
@@ -377,9 +378,9 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
 
         logger.info("--> start the primary shard");
         clusterState = startInitializingShardsAndReroute(allocation, clusterState);
-        assertThat(clusterState.getRoutingNodes().node("node1").size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node1").shardsWithState(STARTED).size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node2").size(), equalTo(0));
+        assertThat(clusterState.getRoutingNodes().node("node1").size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node1").shardsWithState(STARTED).size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node2").size()).isEqualTo(0);
 
         logger.info("--> cancel primary allocation, make sure it fails...");
         try {
@@ -393,30 +394,30 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
             new AllocationCommands(new AllocateReplicaAllocationCommand("test", 0, "node2")), false, false).getClusterState();
         assertThat(newState, not(equalTo(clusterState)));
         clusterState = newState;
-        assertThat(clusterState.getRoutingNodes().node("node1").size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node1").shardsWithState(STARTED).size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node2").size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node2").shardsWithState(INITIALIZING).size(), equalTo(1));
+        assertThat(clusterState.getRoutingNodes().node("node1").size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node1").shardsWithState(STARTED).size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node2").size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node2").shardsWithState(INITIALIZING).size()).isEqualTo(1);
 
         logger.info("--> cancel the relocation allocation");
         newState = allocation.reroute(clusterState,
             new AllocationCommands(new CancelAllocationCommand("test", 0, "node2", false)), false, false).getClusterState();
         assertThat(newState, not(equalTo(clusterState)));
         clusterState = newState;
-        assertThat(clusterState.getRoutingNodes().node("node1").size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node1").shardsWithState(STARTED).size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node2").size(), equalTo(0));
-        assertThat(clusterState.getRoutingNodes().node("node3").size(), equalTo(0));
+        assertThat(clusterState.getRoutingNodes().node("node1").size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node1").shardsWithState(STARTED).size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node2").size()).isEqualTo(0);
+        assertThat(clusterState.getRoutingNodes().node("node3").size()).isEqualTo(0);
 
         logger.info("--> allocate the replica shard on on the second node");
         newState = allocation.reroute(clusterState,
             new AllocationCommands(new AllocateReplicaAllocationCommand("test", 0, "node2")), false, false).getClusterState();
         assertThat(newState, not(equalTo(clusterState)));
         clusterState = newState;
-        assertThat(clusterState.getRoutingNodes().node("node1").size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node1").shardsWithState(STARTED).size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node2").size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node2").shardsWithState(INITIALIZING).size(), equalTo(1));
+        assertThat(clusterState.getRoutingNodes().node("node1").size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node1").shardsWithState(STARTED).size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node2").size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node2").shardsWithState(INITIALIZING).size()).isEqualTo(1);
 
         logger.info("--> cancel the primary being replicated, make sure it fails");
         try {
@@ -427,46 +428,46 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
 
         logger.info("--> start the replica shard");
         clusterState = startInitializingShardsAndReroute(allocation, clusterState);
-        assertThat(clusterState.getRoutingNodes().node("node1").size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node1").shardsWithState(STARTED).size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node2").size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node2").shardsWithState(STARTED).size(), equalTo(1));
+        assertThat(clusterState.getRoutingNodes().node("node1").size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node1").shardsWithState(STARTED).size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node2").size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node2").shardsWithState(STARTED).size()).isEqualTo(1);
 
         logger.info("--> cancel allocation of the replica shard");
         newState = allocation.reroute(clusterState,
             new AllocationCommands(new CancelAllocationCommand("test", 0, "node2", false)), false, false).getClusterState();
         assertThat(newState, not(equalTo(clusterState)));
         clusterState = newState;
-        assertThat(clusterState.getRoutingNodes().node("node1").size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node1").shardsWithState(STARTED).size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node2").size(), equalTo(0));
-        assertThat(clusterState.getRoutingNodes().node("node3").size(), equalTo(0));
+        assertThat(clusterState.getRoutingNodes().node("node1").size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node1").shardsWithState(STARTED).size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node2").size()).isEqualTo(0);
+        assertThat(clusterState.getRoutingNodes().node("node3").size()).isEqualTo(0);
 
         logger.info("--> allocate the replica shard on on the second node");
         newState = allocation.reroute(clusterState,
             new AllocationCommands(new AllocateReplicaAllocationCommand("test", 0, "node2")), false, false).getClusterState();
         assertThat(newState, not(equalTo(clusterState)));
         clusterState = newState;
-        assertThat(clusterState.getRoutingNodes().node("node1").size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node1").shardsWithState(STARTED).size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node2").size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node2").shardsWithState(INITIALIZING).size(), equalTo(1));
+        assertThat(clusterState.getRoutingNodes().node("node1").size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node1").shardsWithState(STARTED).size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node2").size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node2").shardsWithState(INITIALIZING).size()).isEqualTo(1);
         logger.info("--> start the replica shard");
         clusterState = startInitializingShardsAndReroute(allocation, clusterState);
-        assertThat(clusterState.getRoutingNodes().node("node1").size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node1").shardsWithState(STARTED).size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node2").size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node2").shardsWithState(STARTED).size(), equalTo(1));
+        assertThat(clusterState.getRoutingNodes().node("node1").size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node1").shardsWithState(STARTED).size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node2").size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node2").shardsWithState(STARTED).size()).isEqualTo(1);
 
         logger.info("--> move the replica shard");
         clusterState = allocation.reroute(clusterState,
             new AllocationCommands(new MoveAllocationCommand("test", 0, "node2", "node3")), false, false).getClusterState();
-        assertThat(clusterState.getRoutingNodes().node("node1").size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node1").shardsWithState(STARTED).size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node2").size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node2").shardsWithState(RELOCATING).size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node3").size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node3").shardsWithState(INITIALIZING).size(), equalTo(1));
+        assertThat(clusterState.getRoutingNodes().node("node1").size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node1").shardsWithState(STARTED).size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node2").size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node2").shardsWithState(RELOCATING).size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node3").size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node3").shardsWithState(INITIALIZING).size()).isEqualTo(1);
 
         if (randomBoolean()) {
             logger.info("--> cancel the primary allocation (with allow_primary set to true)");
@@ -474,53 +475,53 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
                 new AllocationCommands(new CancelAllocationCommand("test", 0, "node1", true)), false, false).getClusterState();
             assertThat(newState, not(equalTo(clusterState)));
             clusterState = newState;
-            assertThat(clusterState.getRoutingNodes().node("node1").size(), equalTo(0));
-            assertThat(clusterState.getRoutingNodes().node("node2").shardsWithState(STARTED).iterator().next().primary(), equalTo(true));
-            assertThat(clusterState.getRoutingNodes().node("node3").size(), equalTo(0));
+            assertThat(clusterState.getRoutingNodes().node("node1").size()).isEqualTo(0);
+            assertThat(clusterState.getRoutingNodes().node("node2").shardsWithState(STARTED).iterator().next().primary()).isEqualTo(true);
+            assertThat(clusterState.getRoutingNodes().node("node3").size()).isEqualTo(0);
         } else {
             logger.info("--> cancel the move of the replica shard");
             clusterState = allocation.reroute(clusterState,
                 new AllocationCommands(new CancelAllocationCommand("test", 0, "node3", false)), false, false).getClusterState();
-            assertThat(clusterState.getRoutingNodes().node("node1").size(), equalTo(1));
-            assertThat(clusterState.getRoutingNodes().node("node1").shardsWithState(STARTED).size(), equalTo(1));
-            assertThat(clusterState.getRoutingNodes().node("node2").size(), equalTo(1));
-            assertThat(clusterState.getRoutingNodes().node("node2").shardsWithState(STARTED).size(), equalTo(1));
+            assertThat(clusterState.getRoutingNodes().node("node1").size()).isEqualTo(1);
+            assertThat(clusterState.getRoutingNodes().node("node1").shardsWithState(STARTED).size()).isEqualTo(1);
+            assertThat(clusterState.getRoutingNodes().node("node2").size()).isEqualTo(1);
+            assertThat(clusterState.getRoutingNodes().node("node2").shardsWithState(STARTED).size()).isEqualTo(1);
 
             logger.info("--> move the replica shard again");
             clusterState = allocation.reroute(clusterState,
                 new AllocationCommands(new MoveAllocationCommand("test", 0, "node2", "node3")), false, false).getClusterState();
-            assertThat(clusterState.getRoutingNodes().node("node1").size(), equalTo(1));
-            assertThat(clusterState.getRoutingNodes().node("node1").shardsWithState(STARTED).size(), equalTo(1));
-            assertThat(clusterState.getRoutingNodes().node("node2").size(), equalTo(1));
-            assertThat(clusterState.getRoutingNodes().node("node2").shardsWithState(RELOCATING).size(), equalTo(1));
-            assertThat(clusterState.getRoutingNodes().node("node3").size(), equalTo(1));
-            assertThat(clusterState.getRoutingNodes().node("node3").shardsWithState(INITIALIZING).size(), equalTo(1));
+            assertThat(clusterState.getRoutingNodes().node("node1").size()).isEqualTo(1);
+            assertThat(clusterState.getRoutingNodes().node("node1").shardsWithState(STARTED).size()).isEqualTo(1);
+            assertThat(clusterState.getRoutingNodes().node("node2").size()).isEqualTo(1);
+            assertThat(clusterState.getRoutingNodes().node("node2").shardsWithState(RELOCATING).size()).isEqualTo(1);
+            assertThat(clusterState.getRoutingNodes().node("node3").size()).isEqualTo(1);
+            assertThat(clusterState.getRoutingNodes().node("node3").shardsWithState(INITIALIZING).size()).isEqualTo(1);
 
             logger.info("--> cancel the source replica shard");
             clusterState = allocation.reroute(clusterState,
                 new AllocationCommands(new CancelAllocationCommand("test", 0, "node2", false)), false, false).getClusterState();
-            assertThat(clusterState.getRoutingNodes().node("node1").size(), equalTo(1));
-            assertThat(clusterState.getRoutingNodes().node("node1").shardsWithState(STARTED).size(), equalTo(1));
-            assertThat(clusterState.getRoutingNodes().node("node2").size(), equalTo(0));
-            assertThat(clusterState.getRoutingNodes().node("node3").size(), equalTo(1));
-            assertThat(clusterState.getRoutingNodes().node("node3").shardsWithState(INITIALIZING).size(), equalTo(1));
+            assertThat(clusterState.getRoutingNodes().node("node1").size()).isEqualTo(1);
+            assertThat(clusterState.getRoutingNodes().node("node1").shardsWithState(STARTED).size()).isEqualTo(1);
+            assertThat(clusterState.getRoutingNodes().node("node2").size()).isEqualTo(0);
+            assertThat(clusterState.getRoutingNodes().node("node3").size()).isEqualTo(1);
+            assertThat(clusterState.getRoutingNodes().node("node3").shardsWithState(INITIALIZING).size()).isEqualTo(1);
             assertThat(clusterState.getRoutingNodes().node("node3").shardsWithState(INITIALIZING).get(0).relocatingNodeId(), nullValue());
 
             logger.info("--> start the former target replica shard");
             clusterState = startInitializingShardsAndReroute(allocation, clusterState);
-            assertThat(clusterState.getRoutingNodes().node("node1").size(), equalTo(1));
-            assertThat(clusterState.getRoutingNodes().node("node1").shardsWithState(STARTED).size(), equalTo(1));
-            assertThat(clusterState.getRoutingNodes().node("node2").size(), equalTo(0));
-            assertThat(clusterState.getRoutingNodes().node("node3").shardsWithState(STARTED).size(), equalTo(1));
+            assertThat(clusterState.getRoutingNodes().node("node1").size()).isEqualTo(1);
+            assertThat(clusterState.getRoutingNodes().node("node1").shardsWithState(STARTED).size()).isEqualTo(1);
+            assertThat(clusterState.getRoutingNodes().node("node2").size()).isEqualTo(0);
+            assertThat(clusterState.getRoutingNodes().node("node3").shardsWithState(STARTED).size()).isEqualTo(1);
 
             logger.info("--> cancel the primary allocation (with allow_primary set to true)");
             newState = allocation.reroute(clusterState,
                 new AllocationCommands(new CancelAllocationCommand("test", 0, "node1", true)), false, false).getClusterState();
             assertThat(newState, not(equalTo(clusterState)));
             clusterState = newState;
-            assertThat(clusterState.getRoutingNodes().node("node3").shardsWithState(STARTED).iterator().next().primary(), equalTo(true));
-            assertThat(clusterState.getRoutingNodes().node("node1").size(), equalTo(0));
-            assertThat(clusterState.getRoutingNodes().node("node2").size(), equalTo(0));
+            assertThat(clusterState.getRoutingNodes().node("node3").shardsWithState(STARTED).iterator().next().primary()).isEqualTo(true);
+            assertThat(clusterState.getRoutingNodes().node("node1").size()).isEqualTo(0);
+            assertThat(clusterState.getRoutingNodes().node("node2").size()).isEqualTo(0);
         }
     }
 
@@ -544,30 +545,30 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
         // Now we can read them!
         AllocationCommands sCommands = AllocationCommands.readFrom(in);
 
-        assertThat(sCommands.commands().size(), equalTo(5));
-        assertThat(((AllocateEmptyPrimaryAllocationCommand) (sCommands.commands().get(0))).shardId(), equalTo(1));
-        assertThat(((AllocateEmptyPrimaryAllocationCommand) (sCommands.commands().get(0))).index(), equalTo("test"));
-        assertThat(((AllocateEmptyPrimaryAllocationCommand) (sCommands.commands().get(0))).node(), equalTo("node1"));
-        assertThat(((AllocateEmptyPrimaryAllocationCommand) (sCommands.commands().get(0))).acceptDataLoss(), equalTo(true));
+        assertThat(sCommands.commands().size()).isEqualTo(5);
+        assertThat(((AllocateEmptyPrimaryAllocationCommand) (sCommands.commands().get(0))).shardId()).isEqualTo(1);
+        assertThat(((AllocateEmptyPrimaryAllocationCommand) (sCommands.commands().get(0))).index()).isEqualTo("test");
+        assertThat(((AllocateEmptyPrimaryAllocationCommand) (sCommands.commands().get(0))).node()).isEqualTo("node1");
+        assertThat(((AllocateEmptyPrimaryAllocationCommand) (sCommands.commands().get(0))).acceptDataLoss()).isEqualTo(true);
 
-        assertThat(((AllocateStalePrimaryAllocationCommand) (sCommands.commands().get(1))).shardId(), equalTo(2));
-        assertThat(((AllocateStalePrimaryAllocationCommand) (sCommands.commands().get(1))).index(), equalTo("test"));
-        assertThat(((AllocateStalePrimaryAllocationCommand) (sCommands.commands().get(1))).node(), equalTo("node1"));
-        assertThat(((AllocateStalePrimaryAllocationCommand) (sCommands.commands().get(1))).acceptDataLoss(), equalTo(true));
+        assertThat(((AllocateStalePrimaryAllocationCommand) (sCommands.commands().get(1))).shardId()).isEqualTo(2);
+        assertThat(((AllocateStalePrimaryAllocationCommand) (sCommands.commands().get(1))).index()).isEqualTo("test");
+        assertThat(((AllocateStalePrimaryAllocationCommand) (sCommands.commands().get(1))).node()).isEqualTo("node1");
+        assertThat(((AllocateStalePrimaryAllocationCommand) (sCommands.commands().get(1))).acceptDataLoss()).isEqualTo(true);
 
-        assertThat(((AllocateReplicaAllocationCommand) (sCommands.commands().get(2))).shardId(), equalTo(2));
-        assertThat(((AllocateReplicaAllocationCommand) (sCommands.commands().get(2))).index(), equalTo("test"));
-        assertThat(((AllocateReplicaAllocationCommand) (sCommands.commands().get(2))).node(), equalTo("node1"));
+        assertThat(((AllocateReplicaAllocationCommand) (sCommands.commands().get(2))).shardId()).isEqualTo(2);
+        assertThat(((AllocateReplicaAllocationCommand) (sCommands.commands().get(2))).index()).isEqualTo("test");
+        assertThat(((AllocateReplicaAllocationCommand) (sCommands.commands().get(2))).node()).isEqualTo("node1");
 
-        assertThat(((MoveAllocationCommand) (sCommands.commands().get(3))).shardId(), equalTo(3));
-        assertThat(((MoveAllocationCommand) (sCommands.commands().get(3))).index(), equalTo("test"));
-        assertThat(((MoveAllocationCommand) (sCommands.commands().get(3))).fromNode(), equalTo("node2"));
-        assertThat(((MoveAllocationCommand) (sCommands.commands().get(3))).toNode(), equalTo("node3"));
+        assertThat(((MoveAllocationCommand) (sCommands.commands().get(3))).shardId()).isEqualTo(3);
+        assertThat(((MoveAllocationCommand) (sCommands.commands().get(3))).index()).isEqualTo("test");
+        assertThat(((MoveAllocationCommand) (sCommands.commands().get(3))).fromNode()).isEqualTo("node2");
+        assertThat(((MoveAllocationCommand) (sCommands.commands().get(3))).toNode()).isEqualTo("node3");
 
-        assertThat(((CancelAllocationCommand) (sCommands.commands().get(4))).shardId(), equalTo(4));
-        assertThat(((CancelAllocationCommand) (sCommands.commands().get(4))).index(), equalTo("test"));
-        assertThat(((CancelAllocationCommand) (sCommands.commands().get(4))).node(), equalTo("node5"));
-        assertThat(((CancelAllocationCommand) (sCommands.commands().get(4))).allowPrimary(), equalTo(true));
+        assertThat(((CancelAllocationCommand) (sCommands.commands().get(4))).shardId()).isEqualTo(4);
+        assertThat(((CancelAllocationCommand) (sCommands.commands().get(4))).index()).isEqualTo("test");
+        assertThat(((CancelAllocationCommand) (sCommands.commands().get(4))).node()).isEqualTo("node5");
+        assertThat(((CancelAllocationCommand) (sCommands.commands().get(4))).allowPrimary()).isEqualTo(true);
     }
 
 
@@ -741,7 +742,7 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
         clusterState = startInitializingShardsAndReroute(allocation, clusterState);
 
         final ClusterState updatedClusterState = clusterState;
-        assertThat(updatedClusterState.getRoutingNodes().node(node1).shardsWithState(STARTED).size(), equalTo(1));
+        assertThat(updatedClusterState.getRoutingNodes().node(node1).shardsWithState(STARTED).size()).isEqualTo(1);
 
         logger.info("--> subsequent replica allocation fails as all configured replicas have been allocated");
         assertThatThrownBy(() -> {

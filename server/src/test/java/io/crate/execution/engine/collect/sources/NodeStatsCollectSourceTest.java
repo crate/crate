@@ -21,10 +21,8 @@
 
 package io.crate.execution.engine.collect.sources;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static io.crate.testing.DiscoveryNodes.newNode;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -77,34 +75,34 @@ public class NodeStatsCollectSourceTest extends ESTestCase {
     public void testFilterNodesById() throws Exception {
         List<DiscoveryNode> discoveryNodes = filterNodes("id = 'node-3'");
         assertThat(discoveryNodes).hasSize(1);
-        assertThat(discoveryNodes.get(0).getId(), is("node-3"));
+        assertThat(discoveryNodes.get(0).getId()).isEqualTo("node-3");
 
         // Filter for two nodes by id
         discoveryNodes = filterNodes("id = 'node-3' or id ='node-2' or id='unknown'");
         assertThat(discoveryNodes).hasSize(2);
-        assertThat(discoveryNodes.get(0).getId(), is("node-2"));
-        assertThat(discoveryNodes.get(1).getId(), is("node-3"));
+        assertThat(discoveryNodes.get(0).getId()).isEqualTo("node-2");
+        assertThat(discoveryNodes.get(1).getId()).isEqualTo("node-3");
     }
 
     @Test
     public void testFilterNodesByName() throws Exception {
         List<DiscoveryNode> discoveryNodes = filterNodes("name = 'Arthur'");
         assertThat(discoveryNodes).hasSize(1);
-        assertThat(discoveryNodes.get(0).getId(), is("node-3"));
+        assertThat(discoveryNodes.get(0).getId()).isEqualTo("node-3");
 
         // Filter for two nodes by id
         discoveryNodes = filterNodes("name = 'Arthur' or name ='Trillian' or name='unknown'");
         assertThat(discoveryNodes).hasSize(2);
-        assertThat(discoveryNodes.get(0).getId(), is("node-2"));
-        assertThat(discoveryNodes.get(1).getId(), is("node-3"));
+        assertThat(discoveryNodes.get(0).getId()).isEqualTo("node-2");
+        assertThat(discoveryNodes.get(1).getId()).isEqualTo("node-3");
     }
 
     @Test
     public void testMixedFilter() throws Exception {
         List<DiscoveryNode> discoveryNodes = filterNodes("name = 'Arthur' or id ='node-2' or name='unknown'");
         assertThat(discoveryNodes).hasSize(2);
-        assertThat(discoveryNodes.get(0).getId(), is("node-2"));
-        assertThat(discoveryNodes.get(1).getId(), is("node-3"));
+        assertThat(discoveryNodes.get(0).getId()).isEqualTo("node-2");
+        assertThat(discoveryNodes.get(1).getId()).isEqualTo("node-3");
 
 
         discoveryNodes = filterNodes("name = 'Arthur' or id ='node-2' or hostname='unknown'");
@@ -112,8 +110,8 @@ public class NodeStatsCollectSourceTest extends ESTestCase {
 
         discoveryNodes = filterNodes("name = 'Arthur' or id ='node-2' and hostname='unknown'");
         assertThat(discoveryNodes).hasSize(2);
-        assertThat(discoveryNodes.get(0).getId(), is("node-2"));
-        assertThat(discoveryNodes.get(1).getId(), is("node-3"));
+        assertThat(discoveryNodes.get(0).getId()).isEqualTo("node-2");
+        assertThat(discoveryNodes.get(1).getId()).isEqualTo("node-3");
 
         discoveryNodes = filterNodes("name = 'Arthur' and id = 'node-2'");
         assertThat(discoveryNodes).hasSize(0);

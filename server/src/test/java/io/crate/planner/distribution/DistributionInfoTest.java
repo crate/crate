@@ -21,8 +21,7 @@
 
 package io.crate.planner.distribution;
 
-import static org.hamcrest.core.IsEqual.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -41,7 +40,7 @@ public class DistributionInfoTest extends ESTestCase {
         StreamInput in = out.bytes().streamInput();
         DistributionInfo streamed = new DistributionInfo(in);
 
-        assertThat(streamed, equalTo(distributionInfo));
+        assertThat(streamed).isEqualTo(distributionInfo);
     }
 
     @Test
@@ -54,6 +53,6 @@ public class DistributionInfoTest extends ESTestCase {
         StreamInput in = out.bytes().streamInput();
         DistributionInfo streamed = new DistributionInfo(in);
 
-        assertThat(streamed, equalTo(distributionInfo));
+        assertThat(streamed).isEqualTo(distributionInfo);
     }
 }

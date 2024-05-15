@@ -20,7 +20,6 @@
 package org.elasticsearch.action.admin.cluster.state;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
@@ -59,7 +58,7 @@ public class ClusterStateApiTests extends IntegTestCase {
         });
         ClusterStateResponse response = future2.get();
         assertThat(response.isWaitForTimedOut()).isFalse();
-        assertThat(response.getState().metadata().version(), equalTo(metadataVersion + 1));
+        assertThat(response.getState().metadata().version()).isEqualTo(metadataVersion + 1);
 
         // Verify that the timed out property has been set"
         metadataVersion = response.getState().metadata().version();

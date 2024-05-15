@@ -23,7 +23,6 @@ package io.crate.metadata;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasEntry;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 import java.util.Iterator;
@@ -95,9 +94,9 @@ public class PartitionInfosTest extends CrateDummyClusterServiceUnitTest {
         Iterable<PartitionInfo> partitioninfos = new PartitionInfos(clusterService);
         Iterator<PartitionInfo> iter = partitioninfos.iterator();
         PartitionInfo partitioninfo = iter.next();
-        assertThat(partitioninfo.name().asIndexName(), is(partitionName.asIndexName()));
-        assertThat(partitioninfo.numberOfShards(), is(10));
-        assertThat(partitioninfo.numberOfReplicas(), is("4"));
+        assertThat(partitioninfo.name().asIndexName()).isEqualTo(partitionName.asIndexName());
+        assertThat(partitioninfo.numberOfShards()).isEqualTo(10);
+        assertThat(partitioninfo.numberOfReplicas()).isEqualTo("4");
         assertThat(partitioninfo.values(), hasEntry("col", "foo"));
         assertThat(iter.hasNext()).isFalse();
     }
@@ -116,9 +115,9 @@ public class PartitionInfosTest extends CrateDummyClusterServiceUnitTest {
         Iterable<PartitionInfo> partitioninfos = new PartitionInfos(clusterService);
         Iterator<PartitionInfo> iter = partitioninfos.iterator();
         PartitionInfo partitioninfo = iter.next();
-        assertThat(partitioninfo.name().asIndexName(), is(partitionName.asIndexName()));
-        assertThat(partitioninfo.numberOfShards(), is(10));
-        assertThat(partitioninfo.numberOfReplicas(), is("4"));
+        assertThat(partitioninfo.name().asIndexName()).isEqualTo(partitionName.asIndexName());
+        assertThat(partitioninfo.numberOfShards()).isEqualTo(10);
+        assertThat(partitioninfo.numberOfReplicas()).isEqualTo("4");
         assertThat(partitioninfo.values(), hasEntry("col", "foo"));
         assertThat(partitioninfo.values(), hasEntry("col2", 1));
         assertThat(iter.hasNext()).isFalse();

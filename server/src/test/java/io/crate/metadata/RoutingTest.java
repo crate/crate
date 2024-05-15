@@ -21,10 +21,9 @@
 
 package io.crate.metadata;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
@@ -61,7 +60,7 @@ public class RoutingTest extends ESTestCase {
         StreamInput in = out.bytes().streamInput();
         Routing routing2 = new Routing(in);
 
-        assertThat(routing1.locations(), is(routing2.locations()));
+        assertThat(routing1.locations()).isEqualTo(routing2.locations());
     }
 
     @Test
@@ -72,7 +71,7 @@ public class RoutingTest extends ESTestCase {
 
         StreamInput in = out.bytes().streamInput();
         Routing routing2 = new Routing(in);
-        assertThat(routing1.locations(), is(routing2.locations()));
+        assertThat(routing1.locations()).isEqualTo(routing2.locations());
     }
 
 
@@ -95,8 +94,7 @@ public class RoutingTest extends ESTestCase {
         assertThat(routing.locations().keySet(), anyOf(contains("data_master_node_1"), contains("data_master_node_2")));
 
         Routing routing2 = routingProvider.forRandomMasterOrDataNode(new RelationName("doc", "table"), nodes);
-        assertThat("routingProvider is seeded and must return deterministic routing",
-            routing.locations(), equalTo(routing2.locations()));
+        assertThat(routing.locations()).as("routingProvider is seeded and must return deterministic routing").isEqualTo(routing2.locations());
     }
 
     @Test

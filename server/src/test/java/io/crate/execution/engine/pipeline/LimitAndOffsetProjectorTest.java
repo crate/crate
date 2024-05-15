@@ -21,10 +21,9 @@
 
 package io.crate.execution.engine.pipeline;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static io.crate.data.SentinelRow.SENTINEL;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.emptyIterable;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 import java.util.stream.StreamSupport;
@@ -59,7 +58,7 @@ public class LimitAndOffsetProjectorTest extends ESTestCase {
         assertThat(projected).hasSize(10);
 
         long iterateLength = StreamSupport.stream(consumer.getBucket().spliterator(), false).count();
-        assertThat(iterateLength, is(10L));
+        assertThat(iterateLength).isEqualTo(10L);
     }
 
     @Test
@@ -72,7 +71,7 @@ public class LimitAndOffsetProjectorTest extends ESTestCase {
         assertThat(projected).hasSize(5);
 
         long iterateLength = StreamSupport.stream(consumer.getBucket().spliterator(), false).count();
-        assertThat(iterateLength, is(5L));
+        assertThat(iterateLength).isEqualTo(5L);
     }
 
     @Test
@@ -84,7 +83,7 @@ public class LimitAndOffsetProjectorTest extends ESTestCase {
         assertThat(projected).hasSize(10);
 
         long iterateLength = StreamSupport.stream(consumer.getBucket().spliterator(), false).count();
-        assertThat(iterateLength, is(10L));
+        assertThat(iterateLength).isEqualTo(10L);
 
     }
 
@@ -97,7 +96,7 @@ public class LimitAndOffsetProjectorTest extends ESTestCase {
         assertThat(projected, emptyIterable());
 
         long iterateLength = StreamSupport.stream(consumer.getBucket().spliterator(), false).count();
-        assertThat(iterateLength, is(0L));
+        assertThat(iterateLength).isEqualTo(0L);
     }
 
     @Test
@@ -110,7 +109,7 @@ public class LimitAndOffsetProjectorTest extends ESTestCase {
         assertThat(projected).hasSize(1);
 
         long iterateLength = StreamSupport.stream(consumer.getBucket().spliterator(), false).count();
-        assertThat(iterateLength, is(1L));
+        assertThat(iterateLength).isEqualTo(1L);
     }
 
     @Test
@@ -123,7 +122,7 @@ public class LimitAndOffsetProjectorTest extends ESTestCase {
         assertThat(projected).hasSize(90);
 
         long iterateLength = StreamSupport.stream(consumer.getBucket().spliterator(), false).count();
-        assertThat(iterateLength, is(90L));
+        assertThat(iterateLength).isEqualTo(90L);
     }
 
     @Test
@@ -149,7 +148,7 @@ public class LimitAndOffsetProjectorTest extends ESTestCase {
         assertThat(projected).hasSize(10);
 
         long iterateLength = StreamSupport.stream(consumer.getBucket().spliterator(), false).count();
-        assertThat(iterateLength, is(10L));
+        assertThat(iterateLength).isEqualTo(10L);
     }
 
     @Test
@@ -161,7 +160,7 @@ public class LimitAndOffsetProjectorTest extends ESTestCase {
         assertThat(projected).hasSize(5);
 
         long iterateLength = StreamSupport.stream(consumer.getBucket().spliterator(), false).count();
-        assertThat(iterateLength, is(5L));
+        assertThat(iterateLength).isEqualTo(5L);
     }
 
 
@@ -182,7 +181,7 @@ public class LimitAndOffsetProjectorTest extends ESTestCase {
         assertThat(projected).hasSize(90);
 
         long iterateLength = StreamSupport.stream(consumer.getBucket().spliterator(), false).count();
-        assertThat(iterateLength, is(90L));
+        assertThat(iterateLength).isEqualTo(90L);
     }
 
     @Test

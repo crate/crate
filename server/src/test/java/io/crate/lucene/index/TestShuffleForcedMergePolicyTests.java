@@ -19,9 +19,6 @@
 
 package io.crate.lucene.index;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThan;
-
 import java.io.IOException;
 import java.util.function.Consumer;
 
@@ -42,6 +39,8 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.tests.index.BaseMergePolicyTestCase;
 import org.apache.lucene.tests.util.VerifyTestClassNamingConvention;
 import org.junit.Test;
+
+import io.crate.testing.Asserts;
 
 /**
  * Note: the class name starts with Test to follow Lucene test class naming convention, {@link
@@ -73,7 +72,7 @@ public class TestShuffleForcedMergePolicyTests extends BaseMergePolicyTestCase {
                     writer.addDocument(doc);
                 }
                 try (DirectoryReader reader = DirectoryReader.open(writer)) {
-                    assertThat(reader.leaves().size(), greaterThan(2));
+                    Asserts.assertThat(reader.leaves()).hasSizeGreaterThan(2);
                     assertSegmentReaders(
                             reader,
                             leaf -> {
@@ -82,7 +81,7 @@ public class TestShuffleForcedMergePolicyTests extends BaseMergePolicyTestCase {
                 }
                 writer.forceMerge(1);
                 try (DirectoryReader reader = DirectoryReader.open(writer)) {
-                    assertThat(reader.leaves().size(), equalTo(1));
+                    Asserts.assertThat(reader.leaves()).hasSize(1);
                     assertSegmentReaders(
                             reader,
                             leaf -> {

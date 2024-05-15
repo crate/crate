@@ -21,7 +21,7 @@
 
 package io.crate.integrationtests.disruption.seqno;
 
-import static org.hamcrest.Matchers.equalTo;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -775,27 +775,20 @@ public class ConcurrentSeqNoVersioningIT extends AbstractDisruptionTestCase {
 
         LinearizabilityChecker.SequentialSpec spec = new CASSequentialSpec(version1);
 
-        assertThat(spec.initialState(), equalTo(casSuccess(version1)));
+        assertThat(spec.initialState()).isEqualTo(casSuccess(version1));
 
-        assertThat(spec.nextState(casSuccess(version1), version1, new IndexResponseHistoryOutput(version2)),
-                   equalTo(Optional.of(casSuccess(version2))));
-        assertThat(spec.nextState(casFail(version1), version2, new IndexResponseHistoryOutput(version3)),
-                   equalTo(Optional.of(casSuccess(version3))));
-        assertThat(spec.nextState(casSuccess(version1), version2, new IndexResponseHistoryOutput(version3)),
-                   equalTo(Optional.empty()));
-        assertThat(spec.nextState(casSuccess(version2), version1, new IndexResponseHistoryOutput(version3)),
-                   equalTo(Optional.empty()));
-        assertThat(spec.nextState(casFail(version2), version1, new IndexResponseHistoryOutput(version3)),
-                   equalTo(Optional.empty()));
+        assertThat(spec.nextState(casSuccess(version1), version1, new IndexResponseHistoryOutput(version2))).isEqualTo(Optional.of(casSuccess(version2)));
+        assertThat(spec.nextState(casFail(version1), version2, new IndexResponseHistoryOutput(version3))).isEqualTo(Optional.of(casSuccess(version3)));
+        assertThat(spec.nextState(casSuccess(version1), version2, new IndexResponseHistoryOutput(version3))).isEqualTo(Optional.empty());
+        assertThat(spec.nextState(casSuccess(version2), version1, new IndexResponseHistoryOutput(version3))).isEqualTo(Optional.empty());
+        assertThat(spec.nextState(casFail(version2), version1, new IndexResponseHistoryOutput(version3))).isEqualTo(Optional.empty());
 
         // for version conflicts, we keep state version with lastFailed set, regardless of input/output version.
         versions.forEach(stateVersion ->
                              versions.forEach(inputVersion ->
                                                   versions.forEach(outputVersion -> {
-                                                      assertThat(spec.nextState(casSuccess(stateVersion), inputVersion, new CASFailureHistoryOutput(outputVersion)),
-                                                                 equalTo(Optional.of(casFail(stateVersion))));
-                                                      assertThat(spec.nextState(casFail(stateVersion), inputVersion, new CASFailureHistoryOutput(outputVersion)),
-                                                                 equalTo(Optional.of(casFail(stateVersion))));
+                                                      assertThat(spec.nextState(casSuccess(stateVersion), inputVersion, new CASFailureHistoryOutput(outputVersion))).isEqualTo(Optional.of(casFail(stateVersion)));
+                                                      assertThat(spec.nextState(casFail(stateVersion), inputVersion, new CASFailureHistoryOutput(outputVersion))).isEqualTo(Optional.of(casFail(stateVersion)));
                                                   })
                              )
         );
@@ -803,10 +796,8 @@ public class ConcurrentSeqNoVersioningIT extends AbstractDisruptionTestCase {
         // for non version conflict failures, we keep state version with lastFailed set, regardless of input version.
         versions.forEach(stateVersion ->
                              versions.forEach(inputVersion -> {
-                                 assertThat(spec.nextState(casSuccess(stateVersion), inputVersion, new FailureHistoryOutput()),
-                                            equalTo(Optional.of(casFail(stateVersion))));
-                                 assertThat(spec.nextState(casFail(stateVersion), inputVersion, new FailureHistoryOutput()),
-                                            equalTo(Optional.of(casFail(stateVersion))));
+                                 assertThat(spec.nextState(casSuccess(stateVersion), inputVersion, new FailureHistoryOutput())).isEqualTo(Optional.of(casFail(stateVersion)));
+                                 assertThat(spec.nextState(casFail(stateVersion), inputVersion, new FailureHistoryOutput())).isEqualTo(Optional.of(casFail(stateVersion)));
                              })
         );
     }

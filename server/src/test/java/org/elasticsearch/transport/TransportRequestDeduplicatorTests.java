@@ -18,7 +18,7 @@
  */
 package org.elasticsearch.transport;
 
-import static org.hamcrest.CoreMatchers.equalTo;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.sameInstance;
 import static org.junit.Assert.assertThat;
 
@@ -73,20 +73,20 @@ public class TransportRequestDeduplicatorTests extends ESTestCase {
             t.join();
         }
         final ActionListener<Void> listener = listenerHolder.get();
-        assertThat(deduplicator.size(), equalTo(1));
+        assertThat(deduplicator.size()).isEqualTo(1);
         if (failure != null) {
             listener.onFailure(failure);
         } else {
             listener.onResponse(null);
         }
-        assertThat(deduplicator.size(), equalTo(0));
+        assertThat(deduplicator.size()).isEqualTo(0);
         assertBusy(() -> {
             if (failure != null) {
-                assertThat(successCount.get(), equalTo(0));
-                assertThat(failureCount.get(), equalTo(threads.length * iterationsPerThread));
+                assertThat(successCount.get()).isEqualTo(0);
+                assertThat(failureCount.get()).isEqualTo(threads.length * iterationsPerThread);
             } else {
-                assertThat(successCount.get(), equalTo(threads.length * iterationsPerThread));
-                assertThat(failureCount.get(), equalTo(0));
+                assertThat(successCount.get()).isEqualTo(threads.length * iterationsPerThread);
+                assertThat(failureCount.get()).isEqualTo(0);
             }
         });
     }

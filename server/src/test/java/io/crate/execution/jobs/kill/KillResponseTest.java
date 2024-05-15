@@ -21,7 +21,7 @@
 
 package io.crate.execution.jobs.kill;
 
-import static org.hamcrest.core.Is.is;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
@@ -36,6 +36,6 @@ public class KillResponseTest {
         KillResponse response = KillResponse.MERGE_FUNCTION.apply(
             Arrays.asList(new KillResponse(10), new KillResponse(20)));
         assertThat(response, Matchers.notNullValue());
-        assertThat(response.numKilled(), is(30L));
+        assertThat(response.numKilled()).isEqualTo(30L);
     }
 }

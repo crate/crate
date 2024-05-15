@@ -19,6 +19,7 @@
 
 package org.elasticsearch.gateway;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.gateway.GatewayService.STATE_NOT_RECOVERED_BLOCK;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.Matchers.hasItem;
@@ -54,7 +55,6 @@ import org.elasticsearch.node.Node;
 import org.elasticsearch.snapshots.EmptySnapshotsInfoService;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.gateway.TestGatewayAllocator;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -86,14 +86,14 @@ public class GatewayServiceTests extends ESTestCase {
 
         // ensure default is set when setting expected_data_nodes
         service = createService(Settings.builder().put("gateway.expected_data_nodes", 1));
-        assertThat(service.recoverAfterTime(), Matchers.equalTo(GatewayService.DEFAULT_RECOVER_AFTER_TIME_IF_EXPECTED_NODES_IS_SET));
+        assertThat(service.recoverAfterTime()).isEqualTo(GatewayService.DEFAULT_RECOVER_AFTER_TIME_IF_EXPECTED_NODES_IS_SET);
 
         // ensure settings override default
         final TimeValue timeValue = TimeValue.timeValueHours(3);
         // ensure default is set when setting expected_nodes
         service = createService(Settings.builder().put("gateway.recover_after_time",
             timeValue.toString()));
-        assertThat(service.recoverAfterTime().millis(), Matchers.equalTo(timeValue.millis()));
+        assertThat(service.recoverAfterTime().millis()).isEqualTo(timeValue.millis());
     }
 
     @Test

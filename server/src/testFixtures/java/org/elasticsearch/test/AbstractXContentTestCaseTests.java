@@ -21,6 +21,7 @@ package org.elasticsearch.test;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertThat;
 
 import java.util.Map;
@@ -52,7 +53,7 @@ public class AbstractXContentTestCaseTests extends ESTestCase {
                         this::createParser));
         try (XContentParser parser = createParser(XContentType.JSON.xContent(), insertRandomFieldsAndShuffle)) {
             Map<String, Object> mapOrdered = parser.mapOrdered();
-            assertThat(mapOrdered.size(), equalTo(2));
+            assertThat(mapOrdered.size()).isEqualTo(2);
             assertThat(mapOrdered.keySet().iterator().next(), not(equalTo("field")));
         }
     }

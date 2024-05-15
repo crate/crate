@@ -23,7 +23,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.index.translog.Translog.CHECKPOINT_FILE_NAME;
 import static org.elasticsearch.index.translog.Translog.TRANSLOG_FILE_SUFFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 
 import java.io.IOException;
@@ -165,7 +164,7 @@ public class TestTranslog {
                 do {
                     // read
                     fileChannel.position(corruptPosition);
-                    assertThat(fileChannel.position(), equalTo(corruptPosition));
+                    assertThat(fileChannel.position()).isEqualTo(corruptPosition);
                     ByteBuffer bb = ByteBuffer.wrap(new byte[1]);
                     fileChannel.read(bb);
                     bb.flip();

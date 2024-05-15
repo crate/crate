@@ -19,9 +19,8 @@
 
 package org.elasticsearch.index.seqno;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 
@@ -66,7 +65,7 @@ public class RetentionLeaseTests extends ESTestCase {
         try (BytesStreamOutput out = new BytesStreamOutput()) {
             retentionLease.writeTo(out);
             try (StreamInput in = out.bytes().streamInput()) {
-                assertThat(retentionLease, equalTo(new RetentionLease(in)));
+                assertThat(retentionLease).isEqualTo(new RetentionLease(in));
             }
         }
     }

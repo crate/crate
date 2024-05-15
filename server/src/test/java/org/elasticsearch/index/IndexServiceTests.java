@@ -21,6 +21,7 @@ package org.elasticsearch.index;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.index.shard.IndexShardTestCase.flushShard;
 import static org.elasticsearch.index.shard.IndexShardTestCase.getEngine;
 import static org.elasticsearch.test.InternalSettingsPlugin.TRANSLOG_RETENTION_CHECK_INTERVAL_SETTING;
@@ -402,8 +403,8 @@ public class IndexServiceTests extends IntegTestCase {
                 }
             }
         }
-        assertThat(translog.totalOperations(), equalTo(translogOps));
-        assertThat(translog.stats().estimatedNumberOfOperations(), equalTo(translogOps));
+        assertThat(translog.totalOperations()).isEqualTo(translogOps);
+        assertThat(translog.stats().estimatedNumberOfOperations()).isEqualTo(translogOps);
 
         execute("alter table test close");
 
@@ -419,8 +420,8 @@ public class IndexServiceTests extends IntegTestCase {
 
         indexService = getIndexService("test");
         translog = IndexShardTestCase.getTranslog(indexService.getShard(0));
-        assertThat(translog.totalOperations(), equalTo(0));
-        assertThat(translog.stats().estimatedNumberOfOperations(), equalTo(0));
+        assertThat(translog.totalOperations()).isEqualTo(0);
+        assertThat(translog.stats().estimatedNumberOfOperations()).isEqualTo(0);
     }
 
     public void testIllegalFsyncInterval() {

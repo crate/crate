@@ -23,8 +23,6 @@ package io.crate.execution.dsl.phases;
 
 import static io.crate.testing.TestingHelpers.createReference;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -71,21 +69,21 @@ public class FileUriCollectPhaseTest {
         input.setVersion(Version.V_4_3_0);
         var actual = new FileUriCollectPhase(input);
 
-        assertThat(expected.nodeIds(), is(actual.nodeIds()));
-        assertThat(expected.distributionInfo(), is(actual.distributionInfo()));
-        assertThat(expected.targetUri(), is(actual.targetUri()));
-        assertThat(expected.targetColumns(), is(actual.targetColumns()));
-        assertThat(expected.toCollect(), is(actual.toCollect()));
+        assertThat(expected.nodeIds()).isEqualTo(actual.nodeIds());
+        assertThat(expected.distributionInfo()).isEqualTo(actual.distributionInfo());
+        assertThat(expected.targetUri()).isEqualTo(actual.targetUri());
+        assertThat(expected.targetColumns()).isEqualTo(actual.targetColumns());
+        assertThat(expected.toCollect()).isEqualTo(actual.toCollect());
 
         // parser properties option serialization implemented in crate >= 4.4.0
         assertThat(expected.parserProperties().emptyStringAsNull()).isTrue();
         assertThat(actual.parserProperties().emptyStringAsNull()).isFalse();
 
-        assertThat(actual.parserProperties().columnSeparator(), is(CsvSchema.DEFAULT_COLUMN_SEPARATOR));
+        assertThat(actual.parserProperties().columnSeparator()).isEqualTo(CsvSchema.DEFAULT_COLUMN_SEPARATOR);
 
-        assertThat(expected.inputFormat(), is(actual.inputFormat()));
-        assertThat(expected.compression(), is(actual.compression()));
-        assertThat(expected.sharedStorage(), is(actual.sharedStorage()));
+        assertThat(expected.inputFormat()).isEqualTo(actual.inputFormat());
+        assertThat(expected.compression()).isEqualTo(actual.compression());
+        assertThat(expected.sharedStorage()).isEqualTo(actual.sharedStorage());
     }
 
     @Test
@@ -115,8 +113,8 @@ public class FileUriCollectPhaseTest {
         var actual = new FileUriCollectPhase(input);
 
         assertThat(expected.parserProperties().emptyStringAsNull()).isTrue();
-        assertThat(actual.parserProperties().columnSeparator(), is('|'));
-        assertThat(expected, is(actual));
+        assertThat(actual.parserProperties().columnSeparator()).isEqualTo('|');
+        assertThat(expected).isEqualTo(actual);
     }
 
     @Test
@@ -161,7 +159,7 @@ public class FileUriCollectPhaseTest {
         input.setVersion(Version.V_4_7_0);
         var actual = new FileUriCollectPhase(input);
 
-        assertThat(actual, is(expected));
+        assertThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -190,6 +188,6 @@ public class FileUriCollectPhaseTest {
         input.setVersion(Version.V_4_8_0);
         var actual = new FileUriCollectPhase(input);
 
-        assertThat(actual, is(expected));
+        assertThat(actual).isEqualTo(expected);
     }
 }

@@ -21,7 +21,7 @@
 
 package io.crate.integrationtests;
 
-import static org.hamcrest.Matchers.is;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -42,7 +42,7 @@ public class SysOperationsTest extends IntegTestCase {
     public void testDistinctSysOperations() throws Exception {
         // this tests a distributing collect without shards but DOC level granularity
         SQLResponse response = execute("select distinct name  from sys.operations limit 1");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
     }
 
     @Test
@@ -66,7 +66,7 @@ public class SysOperationsTest extends IntegTestCase {
     public void testNodeExpressionOnSysOperations() throws Exception {
         execute("select * from sys.nodes");
         SQLResponse response = execute("select node['name'], id from sys.operations limit 1");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
         assertThat(response.rows()[0][0].toString(), startsWith("node_s"));
     }
 }

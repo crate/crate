@@ -25,8 +25,7 @@ import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATIO
 import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_READ_POLL_DURATION;
 import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_RECOVERY_CHUNK_SIZE;
 import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_RECOVERY_MAX_CONCURRENT_FILE_CHUNKS;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -55,9 +54,9 @@ public class LogicalReplicationSettingsTest extends CrateDummyClusterServiceUnit
             ))
             .build();
         ClusterServiceUtils.setState(clusterService, newState);
-        assertThat(replicationSettings.batchSize(), is(20));
-        assertThat(replicationSettings.pollDelay().millis(), is(1000L));
-        assertThat(replicationSettings.recoveryChunkSize(), is(new ByteSizeValue(10, ByteSizeUnit.MB)));
-        assertThat(replicationSettings.maxConcurrentFileChunks(), is(3));
+        assertThat(replicationSettings.batchSize()).isEqualTo(20);
+        assertThat(replicationSettings.pollDelay().millis()).isEqualTo(1000L);
+        assertThat(replicationSettings.recoveryChunkSize()).isEqualTo(new ByteSizeValue(10, ByteSizeUnit.MB));
+        assertThat(replicationSettings.maxConcurrentFileChunks()).isEqualTo(3);
     }
 }

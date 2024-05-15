@@ -21,8 +21,7 @@
 
 package io.crate.integrationtests;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
 import java.nio.file.Paths;
@@ -57,16 +56,16 @@ public class DefaultSchemaIntegrationTest extends IntegTestCase {
         waitNoPendingTasksOnAll();
         execute("alter table foobar set (number_of_replicas = '0-1')", "foo");
 
-        assertThat(getTableCount("foo", "foobar"), is(1L));
-        assertThat(getTableCount("doc", "foobar"), is(0L));
+        assertThat(getTableCount("foo", "foobar")).isEqualTo(1L);
+        assertThat(getTableCount("doc", "foobar")).isEqualTo(0L);
 
         execute("insert into foobar (x) values ('a'), ('b')", "foo");
         execute("refresh table foobar", "foo");
         execute("update foobar set x = 'c'", "foo");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response.rowCount()).isEqualTo(2L);
 
         execute("select * from foobar", "foo");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response.rowCount()).isEqualTo(2L);
 
         File foobarExport = tmpFolder.newFolder("foobar_export");
         String uriTemplate = Paths.get(foobarExport.toURI()).toUri().toString();
@@ -76,20 +75,20 @@ public class DefaultSchemaIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("select * from foobar", "foo");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response.rowCount()).isEqualTo(0L);
 
         execute("copy foobar from ? with (shared=True)", new Object[]{uriTemplate + "*"}, "foo");
         execute("refresh table foobar", "foo");
         execute("select * from foobar", "foo");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response.rowCount()).isEqualTo(2L);
 
         execute("insert into foobar (x) (select x from foobar)", "foo");
         execute("refresh table foobar", "foo");
         execute("select * from foobar", "foo");
-        assertThat(response.rowCount(), is(4L));
+        assertThat(response.rowCount()).isEqualTo(4L);
 
         execute("drop table foobar", "foo");
-        assertThat(getTableCount("foo", "foobar"), is(0L));
+        assertThat(getTableCount("foo", "foobar")).isEqualTo(0L);
     }
 
     private long getTableCount(String schema, String tableName) {

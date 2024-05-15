@@ -27,7 +27,6 @@ import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 import java.io.File;
@@ -129,11 +128,11 @@ public class SslContextProviderTest extends ESTestCase {
     @Test
     public void testKeyStoreLoading() throws Exception {
         KeyStore keyStore = SslContextProvider.loadKeyStore(keyStoreFile.getAbsolutePath(), KEYSTORE_PASSWORD.toCharArray());
-        assertThat(keyStore.getType(), is("pkcs12"));
+        assertThat(keyStore.getType()).isEqualTo("pkcs12");
         assertThat(keyStore.getCertificate(ROOT_CA_ALIAS)).isNotNull();
 
         KeyManager[] keyManagers = SslContextProvider.createKeyManagers(keyStore, KEYSTORE_KEY_PASSWORD.toCharArray());
-        assertThat(keyManagers.length, is(1));
+        assertThat(keyManagers.length).isEqualTo(1);
     }
 
     @Test
@@ -158,10 +157,10 @@ public class SslContextProviderTest extends ESTestCase {
         KeyStore keyStore = SslContextProvider.loadKeyStore(keyStoreFile.getAbsolutePath(), KEYSTORE_PASSWORD.toCharArray());
 
         X509Certificate[] certificates = SslContextProvider.getRootCertificates(keyStore);
-        assertThat(certificates.length, is(1));
+        assertThat(certificates.length).isEqualTo(1);
 
         assertThat(certificates[0].getIssuerDN().getName(), containsString("CN=myCA"));
-        assertThat(certificates[0].getNotAfter().getTime(), is(1651658343000L));
+        assertThat(certificates[0].getNotAfter().getTime()).isEqualTo(1651658343000L);
     }
 
     @Test
@@ -170,7 +169,7 @@ public class SslContextProviderTest extends ESTestCase {
 
         X509Certificate[] certificates = SslContextProvider.getCertificateChain(keyStore);
 
-        assertThat(certificates.length, is(2));
+        assertThat(certificates.length).isEqualTo(2);
         assertThat(certificates[0].getIssuerDN().getName(), containsString("CN=myCA, O=Dummy Company, L=Dummy Country, ST=Dummy State, C=AT"));
         assertThat(certificates[0].getSubjectDN().getName(), containsString("CN=localhost"));
         assertThat(certificates[1].getIssuerDN().getName(), containsString("CN=myCA, O=Dummy Company, L=Dummy Country, ST=Dummy State, C=AT"));

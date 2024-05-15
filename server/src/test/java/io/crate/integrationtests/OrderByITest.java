@@ -21,7 +21,7 @@
 
 package io.crate.integrationtests;
 
-import static org.hamcrest.Matchers.is;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
@@ -72,7 +72,7 @@ public class OrderByITest extends IntegTestCase {
         refresh();
 
         execute("select s from t1 order by s");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("foo\n" +
-                                                                    "hello\n"));
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("foo\n" +
+                                                                    "hello\n");
     }
 }

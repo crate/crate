@@ -22,8 +22,6 @@
 package io.crate.execution.engine.export;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
 import java.io.FileOutputStream;
 import java.io.OutputStream;
@@ -50,7 +48,7 @@ public class FileWriterCountCollectorTest extends ESTestCase {
 
         Map someMap = (Map) convertedMap.get("some");
         Map nestedMap = (Map) someMap.get("nested");
-        assertThat(nestedMap.get("column"), is("foo"));
+        assertThat(nestedMap.get("column")).isEqualTo("foo");
     }
 
     @Test

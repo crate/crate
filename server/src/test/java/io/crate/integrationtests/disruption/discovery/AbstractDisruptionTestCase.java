@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests.disruption.discovery;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertNull;
@@ -195,14 +196,10 @@ public abstract class AbstractDisruptionTestCase extends IntegTestCase {
             for (String node : nodes) {
                 ClusterState state = getNodeClusterState(node);
                 String failMsgSuffix = "cluster_state:\n" + state;
-                assertThat("wrong node count on [" + node + "]. " + failMsgSuffix,
-                           state.nodes().getSize(),
-                           equalTo(nodes.size()));
+                assertThat(state.nodes().getSize()).as("wrong node count on [" + node + "]. " + failMsgSuffix).isEqualTo(nodes.size());
                 String otherMasterNodeName =
                     state.nodes().getMasterNode() != null ? state.nodes().getMasterNode().getName() : null;
-                assertThat("wrong master on node [" + node + "]. " + failMsgSuffix,
-                           otherMasterNodeName,
-                           equalTo(masterNode));
+                assertThat(otherMasterNodeName).as("wrong master on node [" + node + "]. " + failMsgSuffix).isEqualTo(masterNode);
             }
         });
     }

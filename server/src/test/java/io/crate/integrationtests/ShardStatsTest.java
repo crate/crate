@@ -21,6 +21,7 @@
 
 package io.crate.integrationtests;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
@@ -95,8 +96,8 @@ public class ShardStatsTest extends IntegTestCase {
         ensureYellow();
 
         execute("select count(*) from sys.shards where table_name='locations'");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((Long) response.rows()[0][0], is(15L));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat((Long) response.rows()[0][0]).isEqualTo(15L);
     }
 
     @Test
@@ -105,10 +106,10 @@ public class ShardStatsTest extends IntegTestCase {
         ensureGreen();
 
         execute("select schema_name, table_name from sys.shards where table_name = 'blobs'");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response.rowCount()).isEqualTo(2L);
         for (int i = 0; i < response.rowCount(); i++) {
-            assertThat((String) response.rows()[i][0], is("blob"));
-            assertThat((String) response.rows()[i][1], is("blobs"));
+            assertThat((String) response.rows()[i][0]).isEqualTo("blob");
+            assertThat((String) response.rows()[i][1]).isEqualTo("blobs");
         }
 
         execute("create blob table sbolb clustered into 4 shards " +
@@ -116,15 +117,15 @@ public class ShardStatsTest extends IntegTestCase {
         ensureYellow();
 
         execute("select schema_name, table_name from sys.shards where table_name = 'sbolb'");
-        assertThat(response.rowCount(), is(4L));
+        assertThat(response.rowCount()).isEqualTo(4L);
         for (int i = 0; i < response.rowCount(); i++) {
-            assertThat((String) response.rows()[i][0], is("blob"));
-            assertThat((String) response.rows()[i][1], is("sbolb"));
+            assertThat((String) response.rows()[i][0]).isEqualTo("blob");
+            assertThat((String) response.rows()[i][1]).isEqualTo("sbolb");
         }
         execute("select count(*) from sys.shards " +
                 "where schema_name='blob' and table_name != 'blobs' " +
                 "and table_name != 'sbolb'");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((Long) response.rows()[0][0], is(0L));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat((Long) response.rows()[0][0]).isEqualTo(0L);
     }
 }

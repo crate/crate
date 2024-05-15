@@ -21,6 +21,7 @@
 
 package io.crate.planner.node.ddl;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static io.crate.planner.node.ddl.UpdateSettingsPlan.buildSettingsFrom;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.hamcrest.Matchers.contains;
@@ -71,7 +72,7 @@ public class UpdateSettingsPlanTest extends ESTestCase {
             .put("cluster.graceful_stop.min_availability", "full")
             .build();
 
-        assertThat(buildSettingsFrom(settings, symbolEvaluator(Row.EMPTY)), is(expected));
+        assertThat(buildSettingsFrom(settings, symbolEvaluator(Row.EMPTY))).isEqualTo(expected);
     }
 
     @Test
@@ -112,7 +113,7 @@ public class UpdateSettingsPlanTest extends ESTestCase {
             .put("stats.breaker.log.jobs.overhead", 1.05d)
             .build();
 
-        assertThat(buildSettingsFrom(settings, symbolEvaluator(new RowN(new Object[]{param}))), is(expected));
+        assertThat(buildSettingsFrom(settings, symbolEvaluator(new RowN(new Object[]{param})))).isEqualTo(expected);
     }
 
     @Test
@@ -169,7 +170,7 @@ public class UpdateSettingsPlanTest extends ESTestCase {
         );
         Assignment<Symbol> assignment = new Assignment<>(Literal.of("cluster.routing.allocation.exclude._id"), idsArray);
         Settings settings = buildSettingsFrom(List.of(assignment), symbolEvaluator(Row.EMPTY));
-        assertThat(settings.get("cluster.routing.allocation.exclude._id"), is("id1,id2"));
+        assertThat(settings.get("cluster.routing.allocation.exclude._id")).isEqualTo("id1,id2");
         assertThat(settings.getAsList("cluster.routing.allocation.exclude._id"), contains("id1", "id2"));
     }
 }

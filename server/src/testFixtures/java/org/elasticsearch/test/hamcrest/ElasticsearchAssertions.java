@@ -19,8 +19,6 @@
 package org.elasticsearch.test.hamcrest;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -53,7 +51,7 @@ public class ElasticsearchAssertions {
     }
 
     public static void assertAcked(AcknowledgedResponse response) {
-        assertThat(response.getClass().getSimpleName() + " failed - not acked", response.isAcknowledged(), equalTo(true));
+        assertThat(response.isAcknowledged()).as(response.getClass().getSimpleName() + " failed - not acked").isEqualTo(true);
     }
 
     /**
@@ -61,14 +59,14 @@ public class ElasticsearchAssertions {
      * state update was successful and that the requisite number of shard copies were started before returning.
      */
     public static void assertAcked(CreateIndexResponse response) {
-        assertThat(response.getClass().getSimpleName() + " failed - not acked", response.isAcknowledged(), equalTo(true));
+        assertThat(response.isAcknowledged()).as(response.getClass().getSimpleName() + " failed - not acked").isEqualTo(true);
         assertTrue(response.getClass().getSimpleName() + " failed - index creation acked but not all shards were started",
             response.isShardsAcknowledged());
     }
 
 
     public static void assertNoFailures(BroadcastResponse response) {
-        assertThat("Unexpected ShardFailures: " + Arrays.toString(response.getShardFailures()), response.getFailedShards(), equalTo(0));
+        assertThat(response.getFailedShards()).as("Unexpected ShardFailures: " + Arrays.toString(response.getShardFailures())).isEqualTo(0);
     }
 
     /**
