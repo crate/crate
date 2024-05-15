@@ -21,6 +21,7 @@
 
 package io.crate.expression;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.core.Is.is;
@@ -120,7 +121,7 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
         InputFactory.Context<CollectExpression<Row, ?>> ctx = factory.ctxForAggregations(txnCtx);
         ctx.add(keys);
         ArrayList<CollectExpression<Row, ?>> expressions = new ArrayList<>(ctx.expressions());
-        assertThat(expressions.size(), is(2));
+        assertThat(expressions).hasSize(2);
 
         // keyExpressions: [ in0, in1 ]
 
@@ -134,7 +135,7 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
         // inputs: [ x, add ]
         List<Input<?>> inputs = ctx.topLevelInputs();
 
-        assertThat(inputs.size(), is(2));
+        assertThat(inputs).hasSize(2);
         assertThat(inputs.get(0).value(), is(1L));
         assertThat(inputs.get(1).value(), is(12));  // + 10
     }
@@ -164,14 +165,14 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
         ctx.add(values);
 
         List<AggregationContext> aggregations = ctx.aggregations();
-        assertThat(aggregations.size(), is(1));
+        assertThat(aggregations).hasSize(1);
 
         // collectExpressions: [ in0, in1 ]
         List<CollectExpression<Row, ?>> expressions = new ArrayList<>(ctx.expressions());
-        assertThat(expressions.size(), is(2));
+        assertThat(expressions).hasSize(2);
 
         List<Input<?>> allInputs = ctx.topLevelInputs();
-        assertThat(allInputs.size(), is(2)); // only 2 because count is no input
+        assertThat(allInputs).hasSize(2); // only 2 because count is no input
 
         RowN row = new RowN(1L, 2L);
         for (CollectExpression<Row, ?> expression : expressions) {
@@ -180,7 +181,7 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
         assertThat(expressions.get(0).value(), is(1L));
         assertThat(expressions.get(1).value(), is(2L)); // raw input value
 
-        assertThat(keyInputs.size(), is(2));
+        assertThat(keyInputs).hasSize(2);
         assertThat(keyInputs.get(0).value(), is(1L));
         assertThat(keyInputs.get(1).value(), is(12));  // 2 + 10
     }

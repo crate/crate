@@ -21,6 +21,7 @@
 
 package io.crate.metadata;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.isOneOf;
 import static org.hamcrest.core.Is.is;
@@ -73,8 +74,8 @@ public class SchemasITest extends IntegTestCase {
         DocTableInfo ti = schemas.getTableInfo(new RelationName(sqlExecutor.getCurrentSchema(), "t1"));
         assertThat(ti.ident().name(), is("t1"));
 
-        assertThat(ti.columns().size(), is(3));
-        assertThat(ti.primaryKey().size(), is(1));
+        assertThat(ti.columns()).hasSize(3);
+        assertThat(ti.primaryKey()).hasSize(1);
         assertThat(ti.primaryKey().get(0), is(new ColumnIdent("id")));
         assertThat(ti.clusteredBy(), is(new ColumnIdent("id")));
         List<CheckConstraint<Symbol>> checkConstraints = ti.checkConstraints();
@@ -148,6 +149,6 @@ public class SchemasITest extends IntegTestCase {
         ClusterService clusterService = clusterService();
         assertThat(ti.getRouting(
             clusterService.state(), routingProvider, null, null, CoordinatorSessionSettings.systemDefaults()
-        ).locations().size(), is(1));
+        ).locations()).hasSize(1);
     }
 }

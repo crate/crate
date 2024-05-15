@@ -21,8 +21,8 @@
 
 package io.crate.execution.engine.sort;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static io.crate.testing.TestingHelpers.isRow;
-import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
 import java.util.List;
@@ -76,7 +76,7 @@ public class SortingProjectorTest extends ESTestCase {
         BatchIterator batchIterator = projector.apply(TestingBatchIterators.range(1, 11));
         consumer.accept(batchIterator, null);
         Bucket rows = consumer.getBucket();
-        assertThat(rows.size(), is(10));
+        assertThat(rows).hasSize(10);
         int iterateLength = 1;
         for (Row row : rows) {
             assertThat(row, isRow(iterateLength++, true));
@@ -91,7 +91,7 @@ public class SortingProjectorTest extends ESTestCase {
         consumer.accept(batchIterator, null);
         Bucket rows = consumer.getBucket();
 
-        assertThat(rows.size(), is(5));
+        assertThat(rows).hasSize(5);
         int iterateLength = 6;
         for (Row row : rows) {
             assertThat(row, isRow(iterateLength++, true));

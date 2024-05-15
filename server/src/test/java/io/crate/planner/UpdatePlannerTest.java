@@ -105,9 +105,9 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
 
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
         Asserts.assertThat(collectPhase.where()).isSQL("true");
-        assertThat(collectPhase.projections().size(), is(1));
+        assertThat(collectPhase.projections()).hasSize(1);
         assertThat(collectPhase.projections().get(0)).isExactlyInstanceOf(UpdateProjection.class);
-        assertThat(collectPhase.toCollect().size(), is(1));
+        assertThat(collectPhase.toCollect()).hasSize(1);
         assertThat(collectPhase.toCollect().get(0)).isInstanceOf(Reference.class);
         assertThat(((Reference) collectPhase.toCollect().get(0)).column().fqn(), is("_id"));
 
@@ -119,10 +119,10 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
         Asserts.assertThat(symbol).isLiteral("Vogon lyric fan", DataTypes.STRING);
 
         MergePhase mergePhase = merge.mergePhase();
-        assertThat(mergePhase.projections().size(), is(1));
+        assertThat(mergePhase.projections()).hasSize(1);
         assertThat(mergePhase.projections().get(0)).isExactlyInstanceOf(MergeCountProjection.class);
 
-        assertThat(mergePhase.outputTypes().size(), is(1));
+        assertThat(mergePhase.outputTypes()).hasSize(1);
     }
 
     @Test
@@ -131,7 +131,7 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
 
         Asserts.assertThat(updateById.assignmentByTargetCol()).hasEntrySatisfying(
             toCondition(isReference("name")), toCondition(isLiteral("Vogon lyric fan")));
-        assertThat(updateById.docKeys().size(), is(1));
+        assertThat(updateById.docKeys()).hasSize(1);
 
         assertThat(updateById.docKeys().getOnlyKey().getId(txnCtx, e.nodeCtx, Row.EMPTY, SubQueryResults.EMPTY), is("1"));
     }
@@ -139,7 +139,7 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testUpdatePlanWithMultiplePrimaryKeyValues() throws Exception {
         UpdateById update = e.plan("update users set name='Vogon lyric fan' where id in (1,2,3)");
-        assertThat(update.docKeys().size(), is(3));
+        assertThat(update.docKeys()).hasSize(3);
     }
 
     // bug: https://github.com/crate/crate/issues/14347
@@ -167,7 +167,7 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
                                      "(id=2 and date = 0) OR" +
                                      "(id=3 and date=123)");
         assertThat(update).isExactlyInstanceOf(UpdateById.class);
-        assertThat(((UpdateById) update).docKeys().size(), is(2));
+        assertThat(((UpdateById) update).docKeys()).hasSize(2);
     }
 
     @Test

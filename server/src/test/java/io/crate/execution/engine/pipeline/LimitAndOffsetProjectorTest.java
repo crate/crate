@@ -21,6 +21,7 @@
 
 package io.crate.execution.engine.pipeline;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static io.crate.data.SentinelRow.SENTINEL;
 import static org.hamcrest.Matchers.emptyIterable;
 import static org.hamcrest.Matchers.is;
@@ -55,7 +56,7 @@ public class LimitAndOffsetProjectorTest extends ESTestCase {
         consumer.accept(batchIterator, null);
 
         Bucket projected = consumer.getBucket();
-        assertThat(projected.size(), is(10));
+        assertThat(projected).hasSize(10);
 
         long iterateLength = StreamSupport.stream(consumer.getBucket().spliterator(), false).count();
         assertThat(iterateLength, is(10L));
@@ -68,7 +69,7 @@ public class LimitAndOffsetProjectorTest extends ESTestCase {
         consumer.accept(batchIterator, null);
 
         Bucket projected = consumer.getBucket();
-        assertThat(projected.size(), is(5));
+        assertThat(projected).hasSize(5);
 
         long iterateLength = StreamSupport.stream(consumer.getBucket().spliterator(), false).count();
         assertThat(iterateLength, is(5L));
@@ -80,7 +81,7 @@ public class LimitAndOffsetProjectorTest extends ESTestCase {
         BatchIterator<Row> batchIterator = projector.apply(TestingBatchIterators.range(0, 10));
         consumer.accept(batchIterator, null);
         Bucket projected = consumer.getBucket();
-        assertThat(projected.size(), is(10));
+        assertThat(projected).hasSize(10);
 
         long iterateLength = StreamSupport.stream(consumer.getBucket().spliterator(), false).count();
         assertThat(iterateLength, is(10L));
@@ -106,7 +107,7 @@ public class LimitAndOffsetProjectorTest extends ESTestCase {
         consumer.accept(batchIterator, null);
 
         Bucket projected = consumer.getBucket();
-        assertThat(projected.size(), is(1));
+        assertThat(projected).hasSize(1);
 
         long iterateLength = StreamSupport.stream(consumer.getBucket().spliterator(), false).count();
         assertThat(iterateLength, is(1L));
@@ -119,7 +120,7 @@ public class LimitAndOffsetProjectorTest extends ESTestCase {
         consumer.accept(batchIterator, null);
 
         Bucket projected = consumer.getBucket();
-        assertThat(projected.size(), is(90));
+        assertThat(projected).hasSize(90);
 
         long iterateLength = StreamSupport.stream(consumer.getBucket().spliterator(), false).count();
         assertThat(iterateLength, is(90L));
@@ -145,7 +146,7 @@ public class LimitAndOffsetProjectorTest extends ESTestCase {
         BatchIterator<Row> batchIterator = projector.apply(TestingBatchIterators.range(0, 12));
         consumer.accept(batchIterator, null);
         Bucket projected = consumer.getBucket();
-        assertThat(projected.size(), is(10));
+        assertThat(projected).hasSize(10);
 
         long iterateLength = StreamSupport.stream(consumer.getBucket().spliterator(), false).count();
         assertThat(iterateLength, is(10L));
@@ -157,7 +158,7 @@ public class LimitAndOffsetProjectorTest extends ESTestCase {
         BatchIterator<Row> batchIterator = projector.apply(TestingBatchIterators.range(0, 5));
         consumer.accept(batchIterator, null);
         Bucket projected = consumer.getBucket();
-        assertThat(projected.size(), is(5));
+        assertThat(projected).hasSize(5);
 
         long iterateLength = StreamSupport.stream(consumer.getBucket().spliterator(), false).count();
         assertThat(iterateLength, is(5L));
@@ -178,7 +179,7 @@ public class LimitAndOffsetProjectorTest extends ESTestCase {
         BatchIterator<Row> batchIterator = projector.apply(TestingBatchIterators.range(0, 100));
         consumer.accept(batchIterator, null);
         Bucket projected = consumer.getBucket();
-        assertThat(projected.size(), is(90));
+        assertThat(projected).hasSize(90);
 
         long iterateLength = StreamSupport.stream(consumer.getBucket().spliterator(), false).count();
         assertThat(iterateLength, is(90L));

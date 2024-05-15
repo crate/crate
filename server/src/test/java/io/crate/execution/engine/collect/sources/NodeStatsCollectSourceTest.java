@@ -21,6 +21,7 @@
 
 package io.crate.execution.engine.collect.sources;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static io.crate.testing.DiscoveryNodes.newNode;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -75,12 +76,12 @@ public class NodeStatsCollectSourceTest extends ESTestCase {
     @Test
     public void testFilterNodesById() throws Exception {
         List<DiscoveryNode> discoveryNodes = filterNodes("id = 'node-3'");
-        assertThat(discoveryNodes.size(), is(1));
+        assertThat(discoveryNodes).hasSize(1);
         assertThat(discoveryNodes.get(0).getId(), is("node-3"));
 
         // Filter for two nodes by id
         discoveryNodes = filterNodes("id = 'node-3' or id ='node-2' or id='unknown'");
-        assertThat(discoveryNodes.size(), is(2));
+        assertThat(discoveryNodes).hasSize(2);
         assertThat(discoveryNodes.get(0).getId(), is("node-2"));
         assertThat(discoveryNodes.get(1).getId(), is("node-3"));
     }
@@ -88,12 +89,12 @@ public class NodeStatsCollectSourceTest extends ESTestCase {
     @Test
     public void testFilterNodesByName() throws Exception {
         List<DiscoveryNode> discoveryNodes = filterNodes("name = 'Arthur'");
-        assertThat(discoveryNodes.size(), is(1));
+        assertThat(discoveryNodes).hasSize(1);
         assertThat(discoveryNodes.get(0).getId(), is("node-3"));
 
         // Filter for two nodes by id
         discoveryNodes = filterNodes("name = 'Arthur' or name ='Trillian' or name='unknown'");
-        assertThat(discoveryNodes.size(), is(2));
+        assertThat(discoveryNodes).hasSize(2);
         assertThat(discoveryNodes.get(0).getId(), is("node-2"));
         assertThat(discoveryNodes.get(1).getId(), is("node-3"));
     }
@@ -101,27 +102,27 @@ public class NodeStatsCollectSourceTest extends ESTestCase {
     @Test
     public void testMixedFilter() throws Exception {
         List<DiscoveryNode> discoveryNodes = filterNodes("name = 'Arthur' or id ='node-2' or name='unknown'");
-        assertThat(discoveryNodes.size(), is(2));
+        assertThat(discoveryNodes).hasSize(2);
         assertThat(discoveryNodes.get(0).getId(), is("node-2"));
         assertThat(discoveryNodes.get(1).getId(), is("node-3"));
 
 
         discoveryNodes = filterNodes("name = 'Arthur' or id ='node-2' or hostname='unknown'");
-        assertThat(discoveryNodes.size(), is(3));
+        assertThat(discoveryNodes).hasSize(3);
 
         discoveryNodes = filterNodes("name = 'Arthur' or id ='node-2' and hostname='unknown'");
-        assertThat(discoveryNodes.size(), is(2));
+        assertThat(discoveryNodes).hasSize(2);
         assertThat(discoveryNodes.get(0).getId(), is("node-2"));
         assertThat(discoveryNodes.get(1).getId(), is("node-3"));
 
         discoveryNodes = filterNodes("name = 'Arthur' and id = 'node-2'");
-        assertThat(discoveryNodes.size(), is(0));
+        assertThat(discoveryNodes).hasSize(0);
     }
 
     @Test
     public void testNoLocalInfoInWhereClause() throws Exception {
         List<DiscoveryNode> discoveryNodes = filterNodes("hostname = 'localhost'");
-        assertThat(discoveryNodes.size(), is(3));
+        assertThat(discoveryNodes).hasSize(3);
     }
 
 }

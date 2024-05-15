@@ -21,6 +21,7 @@
 
 package io.crate.metadata.sys;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertNotNull;
@@ -76,7 +77,7 @@ public class SysAllocationsTest extends IntegTestCase {
         // first row: UNASSIGNED shard
         row = response.rows()[0];
         List decisions = (List) row[0];
-        assertThat(decisions.size(), is(1));
+        assertThat(decisions).hasSize(1);
         Map decision = (Map) decisions.get(0);
         assertNotNull("nodeId must not be null", decision.get("node_id"));
         assertNotNull("nodeName must not be null", decision.get("node_name"));

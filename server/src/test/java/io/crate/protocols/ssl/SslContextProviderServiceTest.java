@@ -22,8 +22,6 @@
 package io.crate.protocols.ssl;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -84,7 +82,7 @@ public class SslContextProviderServiceTest extends CrateDummyClusterServiceUnitT
         )) {
 
             List<FingerPrint> filesToWatch = sslContextProviderService.createFilesToWatch();
-            assertThat(filesToWatch.size(), is(1));
+            assertThat(filesToWatch).hasSize(1);
 
             FingerPrint fingerPrint = filesToWatch.get(0);
             long checksum = fingerPrint.checksum;

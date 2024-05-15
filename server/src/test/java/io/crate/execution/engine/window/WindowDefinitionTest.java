@@ -104,7 +104,7 @@ public class WindowDefinitionTest extends CrateDummyClusterServiceUnitTest {
             "unnest([1, 2, 1, 1, 1, 4])");
         assertThat(analyze).isExactlyInstanceOf(QueriedSelectRelation.class);
         List<Symbol> outputs = analyze.outputs();
-        assertThat(outputs.size(), is(1));
+        assertThat(outputs).hasSize(1);
         WindowFunction windowFunction = (WindowFunction) outputs.get(0);
         assertThat(windowFunction.windowDefinition().windowFrameDefinition().end().type(), is(CURRENT_ROW));
     }
@@ -115,7 +115,7 @@ public class WindowDefinitionTest extends CrateDummyClusterServiceUnitTest {
             "select sum(unnest) over(RANGE BETWEEN UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING) FROM " +
             "unnest([1, 2, 1, 1, 1, 4])");
         List<Projection> projections = collect.collectPhase().projections();
-        assertThat(projections.size(), is(2));
+        assertThat(projections).hasSize(2);
         WindowAggProjection windowProjection = null;
         for (Projection projection : projections) {
             if (projection instanceof WindowAggProjection) {
@@ -125,7 +125,7 @@ public class WindowDefinitionTest extends CrateDummyClusterServiceUnitTest {
         }
         assertThat(windowProjection).isNotNull();
         List<? extends Symbol> outputs = windowProjection.outputs();
-        assertThat(outputs.size(), is(2)); // IC and window function
+        assertThat(outputs).hasSize(2); // IC and window function
         WindowFunction windowFunction = null;
         for (Symbol output : outputs) {
             if (output instanceof WindowFunction) {

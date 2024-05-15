@@ -21,8 +21,8 @@
 
 package io.crate.integrationtests;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
@@ -86,7 +86,7 @@ public class BulkInsertOnClientNodeTest extends IntegTestCase {
                     new Object[]{1, 1},                                 // use id 1 to ensure shard 0
                     new Object[] {3, Map.of("foo", 127)}         // use id 3 to ensure shard 1
                 })).boxed().collect(Collectors.toList());
-        assertThat(rowCounts.size(), is(2));
+        assertThat(rowCounts).hasSize(2);
         assertThat(rowCounts, Matchers.anyOf(
             contains(1L, -2L),
             contains(-2L, 1L)

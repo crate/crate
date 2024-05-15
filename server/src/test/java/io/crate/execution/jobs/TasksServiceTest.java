@@ -132,11 +132,11 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         activeTasksField.setAccessible(true);
         @SuppressWarnings("unchecked")
         Map<UUID, RootTask> activeTasks = (Map<UUID, RootTask>) activeTasksField.get(tasksService);
-        assertThat(activeTasks.size(), is(1));
+        assertThat(activeTasks).hasSize(1);
         assertThat(tasksService.killAll(Role.CRATE_USER.name()).get(5L, TimeUnit.SECONDS), is(1));
 
         assertThat(killCalled.get()).isTrue();
-        assertThat(activeTasks.size(), is(0));
+        assertThat(activeTasks).hasSize(0);
     }
 
     @Test
@@ -169,12 +169,12 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         activeTasksField.setAccessible(true);
         @SuppressWarnings("unchecked")
         Map<UUID, RootTask> activeTasks = (Map<UUID, RootTask>) activeTasksField.get(tasksService);
-        assertThat(activeTasks.size(), is(2));
+        assertThat(activeTasks).hasSize(2);
         assertThat(tasksService.killJobs(List.of(jobId), Role.CRATE_USER.name(), null).get(5L, TimeUnit.SECONDS), is(1));
 
         assertThat(killCalled.get()).isTrue();
         assertThat(kill2Called.get()).isFalse();
-        assertThat(activeTasks.size(), is(1)); //only one job is killed
+        assertThat(activeTasks).hasSize(1); //only one job is killed
 
     }
 
