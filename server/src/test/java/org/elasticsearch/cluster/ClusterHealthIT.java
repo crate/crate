@@ -91,7 +91,7 @@ public class ClusterHealthIT extends IntegTestCase {
         assertThat(healthResponse.getIndices().isEmpty(), equalTo(true));
 
         logger.info("--> Creating index test1 with zero replicas");
-        createIndex("test1");
+        execute("create table doc.test1 (x int) with (number_of_replicas = 0)");
 
         logger.info("--> running cluster health on an index that does exists");
         healthResponse = FutureUtils.get(client().admin().cluster().health(
@@ -206,7 +206,7 @@ public class ClusterHealthIT extends IntegTestCase {
         };
         clusterHealthThread.start();
         for (int i = 0; i < 10; i++) {
-            createIndex("test" + i);
+            execute("create table doc.test" + i + " (x int) with (number_of_replicas = 0)");
         }
         finished.set(true);
         clusterHealthThread.join();
@@ -215,7 +215,7 @@ public class ClusterHealthIT extends IntegTestCase {
     @Test
     public void testWaitForEventsRetriesIfOtherConditionsNotMet() throws Exception {
         final CompletableFuture<ClusterHealthResponse> healthResponseFuture = client().admin().cluster().health(
-            new ClusterHealthRequest("index")
+            new ClusterHealthRequest("tbl")
                 .waitForEvents(Priority.LANGUID)
                 .waitForGreenStatus()
             );
@@ -241,8 +241,8 @@ public class ClusterHealthIT extends IntegTestCase {
                 }
             });
 
-        createIndex("index");
-        var clusterHealthResponse = FutureUtils.get(client().admin().cluster().health(new ClusterHealthRequest("index").waitForGreenStatus()));
+        execute("create table doc.tbl (x int) with (number_of_replicas = 0)");
+        var clusterHealthResponse = FutureUtils.get(client().admin().cluster().health(new ClusterHealthRequest("tbl").waitForGreenStatus()));
         assertFalse(clusterHealthResponse.isTimedOut());
 
         // at this point the original health response should not have returned: there was never a point where the index was green AND

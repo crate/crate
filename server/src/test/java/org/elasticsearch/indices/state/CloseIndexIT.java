@@ -29,24 +29,14 @@ import java.util.List;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.ByteSizeUnit;
-import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
-import org.elasticsearch.index.IndexSettings;
+import org.elasticsearch.test.IntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.execution.ddl.tables.TransportCloseTable;
-import org.elasticsearch.test.IntegTestCase;
 
 public class CloseIndexIT extends IntegTestCase {
-
-    @Override
-    public Settings indexSettings() {
-        return Settings.builder().put(super.indexSettings())
-            .put(IndexSettings.INDEX_TRANSLOG_FLUSH_THRESHOLD_SIZE_SETTING.getKey(),
-                 new ByteSizeValue(randomIntBetween(1, 4096), ByteSizeUnit.KB)).build();
-    }
 
     /**
      * Test for https://github.com/elastic/elasticsearch/issues/47276 which checks that the persisted metadata on a data node does not

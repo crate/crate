@@ -19,24 +19,18 @@
 
 package org.elasticsearch.cluster;
 
-import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.store.Store;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.TestCluster;
@@ -58,14 +52,14 @@ public class ClusterInfoServiceIT extends IntegTestCase {
     @UseRandomizedSchema(random = false)
     public void testClusterInfoServiceCollectsInformation() throws Exception {
         cluster().startNodes(2);
-        assertAcked(client().admin().indices().create(
-            new CreateIndexRequest("test", Settings.builder()
-                .put(Store.INDEX_STORE_STATS_REFRESH_INTERVAL_SETTING.getKey(), 0)
-                .put(IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.getKey(), 1)
-                .put(EnableAllocationDecider.INDEX_ROUTING_REBALANCE_ENABLE_SETTING.getKey(), EnableAllocationDecider.Rebalance.NONE)
-                .build()
-            ))
-            .get());
+        execute("""
+            create table doc.test (x int)
+            clustered into 1 shards
+            with (
+                "store.stats_refresh_interval" = 0
+            )
+            """
+        );
         if (randomBoolean()) {
             execute("alter table test close");
         }

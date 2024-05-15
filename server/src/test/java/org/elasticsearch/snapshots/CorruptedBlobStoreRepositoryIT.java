@@ -375,7 +375,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
                 new Object[] { repoPath.toAbsolutePath().toString() });
 
         final String indexName = "test-index";
-        createIndex(indexName);
+        execute("create table doc.\"test-index\" (x int) with (number_of_replicas = 0)");
 
         assertCreateSnapshotSuccess(repoName, "snapshot-1");
 
@@ -429,7 +429,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
                 new Object[] { repoPath.toAbsolutePath().toString() });
 
         final String indexName = "test-index";
-        createIndex(indexName);
+        execute("create table doc.\"test-index\" (x int) with (number_of_replicas = 0)");
 
         assertCreateSnapshotSuccess(repoName, "snapshot-1");
 

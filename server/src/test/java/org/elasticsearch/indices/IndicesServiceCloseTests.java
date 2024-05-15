@@ -19,11 +19,9 @@
 
 package org.elasticsearch.indices;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.coordination.ClusterBootstrapService.INITIAL_MASTER_NODES_SETTING;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
 import static org.elasticsearch.discovery.SettingsBasedSeedHostsProvider.DISCOVERY_SEED_HOSTS_SETTING;
-import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -32,8 +30,8 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.routing.allocation.DiskThresholdSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -51,6 +49,12 @@ import org.elasticsearch.test.MockHttpTransport;
 import org.elasticsearch.test.TestCluster;
 import org.elasticsearch.transport.Netty4Plugin;
 import org.junit.Test;
+
+import io.crate.action.sql.CollectingResultReceiver;
+import io.crate.action.sql.Session;
+import io.crate.action.sql.Sessions;
+import io.crate.data.Row;
+import io.crate.role.Role;
 
 public class IndicesServiceCloseTests extends ESTestCase {
 
@@ -97,12 +101,13 @@ public class IndicesServiceCloseTests extends ESTestCase {
         IndicesService indicesService = node.injector().getInstance(IndicesService.class);
         assertEquals(1, indicesService.indicesRefCount.refCount());
 
-        assertAcked(node.client().admin().indices().create(new CreateIndexRequest("test")
-            .settings(Settings.builder()
-                .put(SETTING_NUMBER_OF_SHARDS, 1)
-                .put(SETTING_NUMBER_OF_REPLICAS, 0)
-            )
-        ).get());
+        Sessions sessions = node.injector().getInstance(Sessions.class);
+        try (Session session = sessions.newSession("doc", Role.CRATE_USER)) {
+            String stmt = "create table test (x int) clustered into 1 shards with (number_of_replicas = 0)";
+            var resultReceiver = new CollectingResultReceiver<>(Collectors.toList());
+            session.quickExec(stmt, resultReceiver, Row.EMPTY);
+            assertThat(resultReceiver.completionFuture()).succeedsWithin(5, TimeUnit.SECONDS);
+        }
 
         assertEquals(2, indicesService.indicesRefCount.refCount());
         assertFalse(indicesService.awaitClose(0, TimeUnit.MILLISECONDS));
@@ -118,14 +123,13 @@ public class IndicesServiceCloseTests extends ESTestCase {
         IndicesService indicesService = node.injector().getInstance(IndicesService.class);
         assertEquals(1, indicesService.indicesRefCount.refCount());
 
-        assertAcked(node.client().admin().indices().create(new CreateIndexRequest(
-            "test",
-            Settings.builder()
-                .put(SETTING_NUMBER_OF_SHARDS, 1)
-                .put(SETTING_NUMBER_OF_REPLICAS, 0)
-                .build()
-            )).get());
-
+        Sessions sessions = node.injector().getInstance(Sessions.class);
+        try (Session session = sessions.newSession("doc", Role.CRATE_USER)) {
+            String stmt = "create table test (x int) clustered into 1 shards with (number_of_replicas = 0)";
+            var resultReceiver = new CollectingResultReceiver<>(Collectors.toList());
+            session.quickExec(stmt, resultReceiver, Row.EMPTY);
+            assertThat(resultReceiver.completionFuture()).succeedsWithin(5, TimeUnit.SECONDS);
+        }
         assertEquals(2, indicesService.indicesRefCount.refCount());
 
         IndexService indexService = indicesService.iterator().next();
