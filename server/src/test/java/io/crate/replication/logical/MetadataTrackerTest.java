@@ -23,13 +23,13 @@ package io.crate.replication.logical;
 
 import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME;
 import static io.crate.role.Role.CRATE_USER;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
 import static org.elasticsearch.cluster.routing.TestShardRouting.newShardRouting;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
@@ -296,7 +296,7 @@ public class MetadataTrackerTest extends ESTestCase {
             IndexScopedSettings.DEFAULT_SCOPED_SETTINGS
         );
 
-        assertThat(SUBSCRIBER_CLUSTER_STATE, is(not(syncedSubscriberClusterState)));
+        assertThat(SUBSCRIBER_CLUSTER_STATE).isNotEqualTo(syncedSubscriberClusterState);
         var syncedIndexMetadata = syncedSubscriberClusterState.metadata().index("test");
         var updatedPublisherMetadata = updatedPublisherClusterState.metadata().index("test");
         assertThat(syncedIndexMetadata.mapping(), is(updatedPublisherMetadata.mapping()));
@@ -352,7 +352,7 @@ public class MetadataTrackerTest extends ESTestCase {
             IndexScopedSettings.DEFAULT_SCOPED_SETTINGS
         );
         var syncedIndexMetadata = syncedSubscriberClusterState.metadata().index("test");
-        assertThat(syncedIndexMetadata.getSettings().get(SETTING_INDEX_UUID, "default"), is(not(publisherIndexUuid)));
+        assertThat(syncedIndexMetadata.getSettings().get(SETTING_INDEX_UUID, "default")).isNotEqualTo(publisherIndexUuid);
     }
 
     @Test

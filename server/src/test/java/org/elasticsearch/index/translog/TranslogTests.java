@@ -1898,9 +1898,9 @@ public class TranslogTests extends ESTestCase {
             }
         }
 
-        assertThat(expectedException, is(not(nullValue())));
+        assertThat(expectedException).isNotEqualTo(nullValue());
         assertThat(failableTLog.getTragicException(), equalTo(expectedException));
-        assertThat(fileChannels, is(not(empty())));
+        assertThat(fileChannels).isNotEqualTo(empty());
         assertThat(fileChannels.stream().filter(f -> f.isOpen()).findFirst())
           .as("all file channels have to be closed")
           .isNotPresent();
