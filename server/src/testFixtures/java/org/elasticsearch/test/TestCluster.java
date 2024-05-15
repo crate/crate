@@ -73,7 +73,6 @@ import org.elasticsearch.action.admin.cluster.configuration.ClearVotingConfigExc
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryAction;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.client.Client;
@@ -81,7 +80,6 @@ import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.coordination.ClusterBootstrapService;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -95,7 +93,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.component.LifecycleListener;
 import org.elasticsearch.common.io.FileSystemUtils;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
@@ -114,7 +111,6 @@ import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.env.ShardLockObtainFailedException;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.index.Index;
-import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.CommitStats;
 import org.elasticsearch.index.engine.DocIdSeqNoAndSource;
@@ -141,7 +137,6 @@ import org.elasticsearch.transport.TransportService;
 import org.elasticsearch.transport.TransportSettings;
 import org.jetbrains.annotations.Nullable;
 
-import com.carrotsearch.hppc.ObjectArrayList;
 import com.carrotsearch.hppc.ObjectLongMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
@@ -157,8 +152,9 @@ import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.ddl.tables.DropTableRequest;
 import io.crate.execution.ddl.tables.TransportDropTableAction;
+import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
 import io.crate.execution.jobs.TasksService;
-import io.crate.metadata.RelationName;
+import io.crate.metadata.RelationInfo.RelationType;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.testing.SQLTransportExecutor;
 
@@ -412,54 +408,18 @@ public final class TestCluster implements Closeable {
      * Wipes any data that a test can leave behind: indices, templates (except exclude templates) and repositories
      */
     public void wipe() {
-        wipeIndices("_all");
-        wipeAllTemplates();
+        wipeAllTables();
         wipeRepositories();
     }
 
-    /**
-     * Deletes the given indices from the tests cluster. If no index name is passed to this method
-     * all indices are removed.
-     */
-    public void wipeIndices(String... indices) {
-        assert indices != null && indices.length > 0;
+    public void wipeAllTables() {
         if (size() > 0) {
-            try {
-                var acknowledgedResponse = FutureUtils.get(client().admin().indices().delete(new DeleteIndexRequest(indices)));
-                assertAcked(acknowledgedResponse);
-            } catch (IndexNotFoundException e) {
-                // ignore
-            } catch (IllegalArgumentException e) {
-                // Happens if `action.destructive_requires_name` is set to true
-                // which is the case in the CloseIndexDisableCloseAllTests
-                if ("_all".equals(indices[0])) {
-                    var clusterStateResponse = FutureUtils
-                        .get(client().admin().cluster().state(new ClusterStateRequest()));
-                    ObjectArrayList<String> concreteIndices = new ObjectArrayList<>();
-                    for (IndexMetadata indexMetadata : clusterStateResponse.getState().metadata()) {
-                        concreteIndices.add(indexMetadata.getIndex().getName());
-                    }
-                    if (!concreteIndices.isEmpty()) {
-                        var acknowledgedResponse = FutureUtils.get(client().admin().indices().delete(new DeleteIndexRequest(concreteIndices.toArray(String.class))));
-                        assertAcked(acknowledgedResponse);
-                    }
+            InformationSchemaIterables infoSchema = getCurrentMasterNodeInstance(InformationSchemaIterables.class);
+            List<CompletableFuture<AcknowledgedResponse>> futures = new ArrayList<>();
+            for (var relation : infoSchema.relations()) {
+                if (relation.relationType() == RelationType.BASE_TABLE) {
+                    futures.add(client().execute(TransportDropTableAction.ACTION, new DropTableRequest(relation.ident())));
                 }
-            }
-        }
-    }
-
-    /**
-     * Removes all templates, except the templates defined in the exclude
-     */
-    public void wipeAllTemplates() {
-        if (size() > 0) {
-            ClusterState state = clusterService().state();
-            ImmutableOpenMap<String, IndexTemplateMetadata> templates = state.metadata().templates();
-            List<CompletableFuture<AcknowledgedResponse>> futures = new ArrayList<>(templates.size());
-            for (var cursor : templates) {
-                String templateName = cursor.key;
-                RelationName relationName = RelationName.fromIndexName(templateName);
-                futures.add(client().execute(TransportDropTableAction.ACTION, new DropTableRequest(relationName)));
             }
             CompletableFuture<List<AcknowledgedResponse>> allResponses = CompletableFutures.allAsList(futures);
             try {
@@ -469,6 +429,7 @@ public final class TestCluster implements Closeable {
             }
         }
     }
+
 
     /**
      * Deletes repositories, supports wildcard notation.

@@ -21,15 +21,23 @@
 
 package io.crate.integrationtests;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.test.IntegTestCase;
+import org.junit.After;
 import org.junit.Test;
+
+import io.crate.execution.ddl.tables.AlterTableOperation;
 
 @IntegTestCase.ClusterScope(numDataNodes = 1)
 public class DanglingIndicesIntegrationTest extends IntegTestCase {
+
+    @After
+    public void cleanupDangling() {
+        execute("alter cluster gc dangling artifacts");
+    }
 
     @Test
     public void testDanglingIndicesAreFilteredOutFromDBCatalog() throws Exception {
@@ -40,34 +48,32 @@ public class DanglingIndicesIntegrationTest extends IntegTestCase {
         execute("refresh table doc.t2");
         execute("create blob table blobs clustered into 3 shards with (number_of_replicas=0)");
 
-        final String dangling1 = ".shrink.t1";
-        final String dangling2 = ".shrinked..partitioned.t2.ident";
-        final String dangling3 = ".blob.blob_blobs";
+        final String dangling1 = AlterTableOperation.RESIZE_PREFIX + "t1";
+        final String dangling2 = AlterTableOperation.RESIZE_PREFIX + ".partitioned.t2.ident";
 
-        createIndex(dangling1, dangling2, dangling3);
+        createIndex(dangling1, dangling2);
 
         ClusterService clusterService = cluster().getInstance(ClusterService.class);
-        assertThat(clusterService.state().metadata().hasIndex(dangling1), is(true));
-        assertThat(clusterService.state().metadata().hasIndex(dangling2), is(true));
-        assertThat(clusterService.state().metadata().hasIndex(dangling3), is(true));
+        assertThat(clusterService.state().metadata().hasIndex(dangling1)).isTrue();
+        assertThat(clusterService.state().metadata().hasIndex(dangling2)).isTrue();
 
         execute("select id, table_name, state from sys.shards where table_name = 't1'");
-        assertThat(response.rowCount(), is(3L));
+        assertThat(response).hasRowCount(3L);
 
         execute("select * from sys.health where table_name = 't1'");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRowCount(1L);
 
         execute("select * from sys.allocations where table_name = 't1'");
-        assertThat(response.rowCount(), is(3L));
+        assertThat(response).hasRowCount(3L);
 
         execute("select * from information_schema.tables where table_name = 't1'");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRowCount(1L);
 
         execute("select * from information_schema.tables where table_schema = 'blob'");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRowCount(1L);
 
         execute("select table_schema, table_name, values from information_schema.table_partitions " +
                 "where table_name = 't2'");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response).hasRowCount(2L);
     }
 }
