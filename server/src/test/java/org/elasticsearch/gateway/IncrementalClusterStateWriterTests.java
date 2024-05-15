@@ -262,7 +262,7 @@ public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
         List<IncrementalClusterStateWriter.IndexMetadataAction> actions =
             IncrementalClusterStateWriter.resolveIndexMetadataActions(indices, relevantIndices, oldMetadata, newMetadata);
 
-        assertThat(actions, hasSize(3));
+        assertThat(actions).hasSize(3);
 
         boolean keptPreviousGeneration = false;
         boolean wroteNewIndex = false;

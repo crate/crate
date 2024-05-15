@@ -211,7 +211,7 @@ public class ClusterBootstrapServiceTests extends ESTestCase {
             INITIAL_MASTER_NODES_SETTING.getKey(), localNode.getName(), otherNode1.getName(), otherNode2.getName()).build(),
             transportService, () -> singletonList(otherNode1), () -> false, vc -> {
             assertTrue(bootstrapped.compareAndSet(false, true));
-            assertThat(vc.getNodeIds(), hasSize(3));
+            assertThat(vc.getNodeIds()).hasSize(3);
             assertThat(vc.getNodeIds(), hasItem(localNode.getId()));
             assertThat(vc.getNodeIds(), hasItem(otherNode1.getId()));
             assertThat(vc.getNodeIds(), hasItem(allOf(startsWith(BOOTSTRAP_PLACEHOLDER_PREFIX), containsString(otherNode2.getName()))));
@@ -239,7 +239,7 @@ public class ClusterBootstrapServiceTests extends ESTestCase {
             "missing-node-1", "missing-node-2").build(),
             transportService, () -> Stream.of(otherNode1, otherNode2).collect(Collectors.toList()), () -> false, vc -> {
             assertTrue(bootstrapped.compareAndSet(false, true));
-            assertThat(vc.getNodeIds(), hasSize(5));
+            assertThat(vc.getNodeIds()).hasSize(5);
             assertThat(vc.getNodeIds(), hasItem(localNode.getId()));
             assertThat(vc.getNodeIds(), hasItem(otherNode1.getId()));
             assertThat(vc.getNodeIds(), hasItem(otherNode2.getId()));
@@ -512,7 +512,7 @@ public class ClusterBootstrapServiceTests extends ESTestCase {
         ClusterBootstrapService clusterBootstrapService = new ClusterBootstrapService(settings.build(),
             transportService, () -> emptyList(), () -> false, vc -> {
             assertTrue(bootstrapped.compareAndSet(false, true));
-            assertThat(vc.getNodeIds(), hasSize(1));
+            assertThat(vc.getNodeIds()).hasSize(1);
             assertThat(vc.getNodeIds(), hasItem(localNode.getId()));
             assertTrue(vc.hasQuorum(singletonList(localNode.getId())));
         });

@@ -314,7 +314,7 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
 
         // mark all shards as stale
         final List<ShardRouting> shardRoutings = clusterState.getRoutingNodes().shardsWithState(UNASSIGNED);
-        assertThat(shardRoutings, hasSize(2));
+        assertThat(shardRoutings).hasSize(2);
 
         logger.info("--> allocating empty primary with acceptDataLoss flag set to true");
         clusterState = allocation.reroute(clusterState,
@@ -330,7 +330,7 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
         assertThat(routingNode1.size()).isEqualTo(1);
         assertThat(routingNode1.shardsWithState(STARTED).size()).isEqualTo(1);
         inSyncAllocationIds = clusterState.metadata().index(index).inSyncAllocationIds(0);
-        assertThat(inSyncAllocationIds, hasSize(1));
+        assertThat(inSyncAllocationIds).hasSize(1);
         assertThat(inSyncAllocationIds, not(Collections.singleton(RecoverySource.ExistingStoreRecoverySource.FORCED_ALLOCATION_ID)));
     }
 

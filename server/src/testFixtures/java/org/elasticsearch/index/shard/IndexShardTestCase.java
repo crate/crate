@@ -252,7 +252,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
     }
 
     protected void assertDocCount(IndexShard shard, int docDount) throws IOException {
-        assertThat(getShardDocUIDs(shard), hasSize(docDount));
+        assertThat(getShardDocUIDs(shard)).hasSize(docDount);
     }
 
     protected Engine.DeleteResult deleteDoc(IndexShard shard, String id) throws IOException {
