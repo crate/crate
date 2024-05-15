@@ -23,7 +23,6 @@ package io.crate.execution.support;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.instanceOf;
@@ -95,7 +94,7 @@ public class ChainableActionsTest {
         CompletableFuture<Integer> result = ChainableActions.run(actions);
         assertThat(result.get(1, TimeUnit.SECONDS)).isEqualTo(0);
 
-        assertThat(doCalls, contains(0, 1, 2));
+        assertThat(doCalls).containsExactly(0, 1, 2);
         assertThat(undoCalls, empty());
     }
 
@@ -127,8 +126,8 @@ public class ChainableActionsTest {
 
         assertThat(result.isCompletedExceptionally()).isTrue();
 
-        assertThat(doCalls, contains(0, 1, 2));
-        assertThat(undoCalls, contains(1, 0));
+        assertThat(doCalls).containsExactly(0, 1, 2);
+        assertThat(undoCalls).containsExactly(1, 0);
     }
 
     @Test
@@ -153,8 +152,8 @@ public class ChainableActionsTest {
             assertThat(e.getCause().getMessage()).isEqualTo("do operation failed");
         }
 
-        assertThat(doCalls, contains(0));
-        assertThat(undoCalls, contains(0));
+        assertThat(doCalls).containsExactly(0);
+        assertThat(undoCalls).containsExactly(0);
     }
 
     @Test
@@ -189,8 +188,8 @@ public class ChainableActionsTest {
             assertThat(e.getCause().getMessage()).isEqualTo("do operation failed");
         }
 
-        assertThat(doCalls, contains(2));
-        assertThat(undoCalls, contains(2));
+        assertThat(doCalls).containsExactly(2);
+        assertThat(undoCalls).containsExactly(2);
     }
 
     @Test
@@ -226,10 +225,10 @@ public class ChainableActionsTest {
         CompletableFuture<Integer> result = ChainableActions.run(actions);
 
         assertThat(result.isCompletedExceptionally()).isTrue();
-        assertThat(doCalls, contains(0, 1, 2));
+        assertThat(doCalls).containsExactly(0, 1, 2);
         // Undo was only called on action 1 as 2 failed and this undo action failed also,
         // so no other action was rolled back.
-        assertThat(undoCalls, contains(1));
+        assertThat(undoCalls).containsExactly(1);
 
         try {
             result.get();
@@ -278,9 +277,9 @@ public class ChainableActionsTest {
         CompletableFuture<Integer> result = ChainableActions.run(actions);
 
         assertThat(result.isCompletedExceptionally()).isTrue();
-        assertThat(doCalls, contains(0));
+        assertThat(doCalls).containsExactly(0);
         // undo was only called on action 0 as it failed, so rollback only action 0
-        assertThat(undoCalls, contains(0));
+        assertThat(undoCalls).containsExactly(0);
 
         try {
             result.get();

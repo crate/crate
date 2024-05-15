@@ -26,7 +26,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
 import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -91,7 +90,7 @@ public class IndexTemplateUpgraderTest {
 
         Map<String, IndexTemplateMetadata> upgradedTemplates = upgrader.apply(templates);
         IndexTemplateMetadata upgradedTemplate = upgradedTemplates.get(partitionTemplateName);
-        assertThat(upgradedTemplate.settings().keySet(), contains(SETTING_NUMBER_OF_SHARDS));
+        assertThat(upgradedTemplate.settings().keySet()).containsExactly(SETTING_NUMBER_OF_SHARDS);
 
         // ensure all other attributes remains the same
         assertThat(upgradedTemplate.mapping()).isEqualTo(oldPartitionTemplate.mapping());

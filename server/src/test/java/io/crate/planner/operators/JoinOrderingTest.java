@@ -22,8 +22,6 @@
 package io.crate.planner.operators;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.contains;
-import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -78,6 +76,6 @@ public class JoinOrderingTest {
             Set.of(new LinkedHashSet<>(List.of(T3.T1, T3.T2))),
             Set.of(new LinkedHashSet<>(List.of(T3.T2, T3.T3)))
         );
-        assertThat(qualifiedNames, contains(T3.T1, T3.T2, T3.T3));
+        assertThat(qualifiedNames).containsExactly(T3.T1, T3.T2, T3.T3);
     }
 }

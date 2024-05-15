@@ -21,8 +21,7 @@
 
 package org.elasticsearch.action.admin.indices.create;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 
@@ -39,14 +38,14 @@ public class CreatePartitionsRequestTest {
         request.writeTo(out);
         CreatePartitionsRequest requestDeserialized = new CreatePartitionsRequest(out.bytes().streamInput());
 
-        assertThat(requestDeserialized.indices(), contains("a", "b", "c"));
+        assertThat(requestDeserialized.indices()).containsExactly("a", "b", "c");
 
         request = new CreatePartitionsRequest(Arrays.asList("a", "b", "c"));
         out = new BytesStreamOutput();
         request.writeTo(out);
         requestDeserialized = new CreatePartitionsRequest(out.bytes().streamInput());
 
-        assertThat(requestDeserialized.indices(), contains("a", "b", "c"));
+        assertThat(requestDeserialized.indices()).containsExactly("a", "b", "c");
     }
 
 }

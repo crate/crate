@@ -22,8 +22,6 @@
 package io.crate.planner.consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.contains;
-import static org.junit.Assert.assertThat;
 
 import java.util.Map;
 import java.util.Set;
@@ -55,24 +53,22 @@ public class RelationNameCollectorTest extends CrateDummyClusterServiceUnitTest 
         assertThat(RelationNameCollector.collect(constantCondition)).isEqualTo(Set.of());
 
         constantCondition = sqlExpressions.asSymbol("t1.x = 4");
-        assertThat(RelationNameCollector.collect(constantCondition), contains(new RelationName("doc", "t1")));
+        assertThat(RelationNameCollector.collect(constantCondition)).containsExactly(new RelationName("doc", "t1"));
 
         constantCondition = sqlExpressions.asSymbol("t1.x < 4");
-        assertThat(RelationNameCollector.collect(constantCondition), contains(new RelationName("doc", "t1")));
+        assertThat(RelationNameCollector.collect(constantCondition)).containsExactly(new RelationName("doc", "t1"));
 
         constantCondition = sqlExpressions.asSymbol("t1.x = 4 AND true");
-        assertThat(RelationNameCollector.collect(constantCondition), contains(new RelationName("doc", "t1")));
+        assertThat(RelationNameCollector.collect(constantCondition)).containsExactly(new RelationName("doc", "t1"));
 
         constantCondition = sqlExpressions.asSymbol("t1.x = 1 and t1.i = 10");
-        assertThat(RelationNameCollector.collect(constantCondition), contains(new RelationName("doc", "t1")));
+        assertThat(RelationNameCollector.collect(constantCondition)).containsExactly(new RelationName("doc", "t1"));
 
         constantCondition = sqlExpressions.asSymbol("t1.x = 1 and t1.i = 10 and t2.y = 3");
-        assertThat(RelationNameCollector.collect(constantCondition),
-                   contains(new RelationName("doc", "t1"), new RelationName("doc", "t2")));
+        assertThat(RelationNameCollector.collect(constantCondition)).containsExactly(new RelationName("doc", "t1"), new RelationName("doc", "t2"));
 
         constantCondition = sqlExpressions.asSymbol("t1.x = t2.y AND t2.y + t2.y = 4");
-        assertThat(RelationNameCollector.collect(constantCondition),
-                   contains(new RelationName("doc", "t1"), new RelationName("doc", "t2")));
+        assertThat(RelationNameCollector.collect(constantCondition)).containsExactly(new RelationName("doc", "t1"), new RelationName("doc", "t2"));
 
     }
 }

@@ -22,8 +22,6 @@
 package io.crate.lucene;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.contains;
-import static org.junit.Assert.assertThat;
 
 import org.apache.lucene.search.ScoreMode;
 import org.elasticsearch.Version;
@@ -66,7 +64,7 @@ public class GenericFunctionQueryTest extends CrateDummyClusterServiceUnitTest {
             var searcher = tester.searcher();
             var weight = query.createWeight(searcher, ScoreMode.COMPLETE_NO_SCORES, 1.0f);
             assertThat(weight.isCacheable(searcher.getTopReaderContext().leaves().get(0))).isTrue();
-            assertThat(tester.runQuery("x", "abs(x) = 1"), contains(1));
+            assertThat(tester.runQuery("x", "abs(x) = 1")).containsExactly(1);
         }
     }
 }

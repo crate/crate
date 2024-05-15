@@ -22,7 +22,6 @@
 package io.crate.metadata.settings;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertThat;
 
@@ -65,7 +64,7 @@ public class CrateSettingsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testLoggingSettingsByNamePrefix() throws Exception {
-        assertThat(CrateSettings.settingNamesByPrefix("logger."), contains("logger."));
+        assertThat(CrateSettings.settingNamesByPrefix("logger.")).containsExactly("logger.");
     }
 
     @Test

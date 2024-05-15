@@ -21,7 +21,6 @@ package org.elasticsearch.cluster.coordination;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.coordination.LagDetector.CLUSTER_FOLLOWER_LAG_TIMEOUT_SETTING;
 import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.assertThat;
@@ -102,7 +101,7 @@ public class LagDetectorTests extends ESTestCase {
         deterministicTaskQueue.scheduleAt(deterministicTaskQueue.getCurrentTimeMillis() + followerLagTimeout.millis() + 1,
             () -> lagDetector.setAppliedVersion(node1, 1));
         deterministicTaskQueue.runAllTasksInTimeOrder();
-        assertThat(failedNodes, contains(node1));
+        assertThat(failedNodes).containsExactly(node1);
     }
 
     public void testNoLagDetectedOnLocalNode() {
@@ -125,7 +124,7 @@ public class LagDetectorTests extends ESTestCase {
         lagDetector.startLagDetector(2);
         lagDetector.setAppliedVersion(node1, 1);
         deterministicTaskQueue.runAllTasks();
-        assertThat(failedNodes, contains(node1));
+        assertThat(failedNodes).containsExactly(node1);
     }
 
     public void testNoLagDetectedIfNodeIsRemovedAfterLagDetectorStarted() {
@@ -137,7 +136,7 @@ public class LagDetectorTests extends ESTestCase {
 
         lagDetector.startLagDetector(2);
         deterministicTaskQueue.runAllTasks();
-        assertThat(failedNodes, contains(node2));
+        assertThat(failedNodes).containsExactly(node2);
     }
 
     public void testNoLagDetectedIfDetectorIsClearedAfterLagDetectorStarted() {
@@ -150,7 +149,7 @@ public class LagDetectorTests extends ESTestCase {
         lagDetector.setTrackedNodes(Collections.singletonList(node1));
         lagDetector.startLagDetector(2);
         deterministicTaskQueue.runAllTasks();
-        assertThat(failedNodes, contains(node1));
+        assertThat(failedNodes).containsExactly(node1);
     }
 
     public void testDetectorIgnoresNodesAddedAfterStarted() {
@@ -167,7 +166,7 @@ public class LagDetectorTests extends ESTestCase {
         lagDetector.startLagDetector(1);
         lagDetector.setTrackedNodes(Arrays.asList(node1, node2));
         deterministicTaskQueue.runAllTasks();
-        assertThat(failedNodes, contains(node1));
+        assertThat(failedNodes).containsExactly(node1);
     }
 
     public void testDetectorIgnoresApplicationsFromUnknownNodes() {
@@ -175,12 +174,12 @@ public class LagDetectorTests extends ESTestCase {
         lagDetector.startLagDetector(1);
         lagDetector.setAppliedVersion(node2, 1);
         deterministicTaskQueue.runAllTasks();
-        assertThat(failedNodes, contains(node1));
+        assertThat(failedNodes).containsExactly(node1);
 
         failedNodes.clear();
         lagDetector.startLagDetector(2);
         deterministicTaskQueue.runAllTasks();
-        assertThat(failedNodes, contains(node1));
+        assertThat(failedNodes).containsExactly(node1);
     }
 
     public void testLagDetection() {
@@ -215,7 +214,7 @@ public class LagDetectorTests extends ESTestCase {
         deterministicTaskQueue.scheduleAt(deterministicTaskQueue.getCurrentTimeMillis() + followerLagTimeout.millis() + 1,
             () -> lagDetector.setAppliedVersion(node1, 4));
         deterministicTaskQueue.runAllTasksInTimeOrder();
-        assertThat(failedNodes, contains(node1));
+        assertThat(failedNodes).containsExactly(node1);
         failedNodes.clear();
 
         lagDetector.startLagDetector(5);
@@ -226,7 +225,7 @@ public class LagDetectorTests extends ESTestCase {
 
         lagDetector.startLagDetector(6);
         deterministicTaskQueue.runAllTasksInTimeOrder();
-        assertThat(failedNodes, contains(node1));
+        assertThat(failedNodes).containsExactly(node1);
         failedNodes.clear(); // ... but later lag detectors still work
 
         lagDetector.setTrackedNodes(Collections.singletonList(node2));
@@ -237,7 +236,7 @@ public class LagDetectorTests extends ESTestCase {
 
         lagDetector.startLagDetector(8);
         deterministicTaskQueue.runAllTasksInTimeOrder();
-        assertThat(failedNodes, contains(node2));
+        assertThat(failedNodes).containsExactly(node2);
         failedNodes.clear();
 
         lagDetector.startLagDetector(9);

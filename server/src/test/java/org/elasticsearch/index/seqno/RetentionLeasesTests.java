@@ -21,7 +21,6 @@ package org.elasticsearch.index.seqno;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
@@ -93,7 +92,7 @@ public class RetentionLeasesTests extends ESTestCase {
         if (retentionLeases.leases().isEmpty()) {
             assertThat(retentionLeases.leases(), empty());
         } else {
-            assertThat(retentionLeases.leases(), contains(retentionLeases.leases().toArray(new RetentionLease[0])));
+            assertThat(retentionLeases.leases()).containsExactly(retentionLeases.leases().toArray(new RetentionLease[0]));
         }
     }
 

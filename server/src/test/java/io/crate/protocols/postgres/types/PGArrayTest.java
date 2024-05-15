@@ -22,7 +22,6 @@
 package io.crate.protocols.postgres.types;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertThat;
 
@@ -116,20 +115,20 @@ public class PGArrayTest extends BasePGTypeTest<PGArray> {
     public void test_can_decode_unquoted_strings_which_contain_numbers() throws Exception {
         String s = "{33a10b73-377d-4788-bbd3-9f0a0db4d595,2ea0876d-a290-438b-9816-cb4d63f48f77}";
         List<Object> values = PGArray.VARCHAR_ARRAY.decodeUTF8Text(s.getBytes(StandardCharsets.UTF_8));
-        assertThat(values, contains(
+        assertThat(values).containsExactly(
             "33a10b73-377d-4788-bbd3-9f0a0db4d595",
             "2ea0876d-a290-438b-9816-cb4d63f48f77"
-        ));
+        );
     }
 
     @Test
     public void test_can_decode_unquoted_strings_which_do_not_contain_numbers() throws Exception {
         String s = "{foo,bar}";
         List<Object> values = PGArray.VARCHAR_ARRAY.decodeUTF8Text(s.getBytes(StandardCharsets.UTF_8));
-        assertThat(values, contains(
+        assertThat(values).containsExactly(
             "foo",
             "bar"
-        ));
+        );
     }
 
     @Test
@@ -137,10 +136,10 @@ public class PGArrayTest extends BasePGTypeTest<PGArray> {
         String s = "{ \ta   b c  , \t d e   f  \t }";
         List<Object> values = PGArray.VARCHAR_ARRAY.decodeUTF8Text(s.getBytes(StandardCharsets.UTF_8));
         // leading/trailing whitespaces are ignored in the unquoted strings
-        assertThat(values, contains(
+        assertThat(values).containsExactly(
             "a   b c",
             "d e   f"
-        ));
+        );
     }
 
     @Test
@@ -148,10 +147,10 @@ public class PGArrayTest extends BasePGTypeTest<PGArray> {
         String s = "{\" a b c \t \r\n \", \"  d \t\t  \\\" e \"}";
         List<Object> values = PGArray.VARCHAR_ARRAY.decodeUTF8Text(s.getBytes(StandardCharsets.UTF_8));
         // Quoting preserves leading/trailing whitespaces
-        assertThat(values, contains(
+        assertThat(values).containsExactly(
             " a b c \t \r\n ",
             "  d \t\t  \" e "
-        ));
+        );
     }
 
     @Test

@@ -26,7 +26,6 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.discovery.PeerFinder.REQUEST_PEERS_ACTION_NAME;
 import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.emptyArray;
 import static org.hamcrest.Matchers.nullValue;
@@ -460,7 +459,7 @@ public class PeerFinderTests extends ESTestCase {
         peerFinder.setCurrentTerm(updatedTerm);
         final PeersResponse peersResponse2 = peerFinder.handlePeersRequest(new PeersRequest(sourceNode, Collections.emptyList()));
         assertFalse(peersResponse2.getMasterNode().isPresent());
-        assertThat(peersResponse2.getKnownPeers(), contains(sourceNode));
+        assertThat(peersResponse2.getKnownPeers()).containsExactly(sourceNode);
         assertThat(peersResponse2.getTerm()).isEqualTo(updatedTerm);
     }
 
@@ -533,7 +532,7 @@ public class PeerFinderTests extends ESTestCase {
         final CapturedRequest[] capturedRequests = capturingTransport.getCapturedRequestsAndClear();
         assertThat(capturedRequests.length).isEqualTo(1);
         final PeersRequest peersRequest = (PeersRequest) capturedRequests[0].request;
-        assertThat(peersRequest.getKnownPeers(), contains(otherNode));
+        assertThat(peersRequest.getKnownPeers()).containsExactly(otherNode);
     }
 
     public void testAddsReachablePeersFromResponse() {

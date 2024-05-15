@@ -23,10 +23,8 @@ package org.elasticsearch.index.shard;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.routing.TestShardRouting.newShardRouting;
 import static org.elasticsearch.index.translog.Translog.UNSET_AUTO_GENERATED_TIMESTAMP;
-import static org.hamcrest.Matchers.contains;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -868,7 +866,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
      * promotes a replica to primary, incrementing it's term and starting it if needed
      */
     protected void promoteReplica(IndexShard replica, Set<String> inSyncIds, IndexShardRoutingTable routingTable) throws IOException {
-        assertThat(inSyncIds, contains(replica.routingEntry().allocationId().getId()));
+        assertThat(inSyncIds).containsExactly(replica.routingEntry().allocationId().getId());
         final ShardRouting routingEntry = newShardRouting(
             replica.routingEntry().shardId(),
             replica.routingEntry().currentNodeId(),

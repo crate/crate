@@ -23,8 +23,6 @@ package io.crate.metadata;
 
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.contains;
-import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -106,7 +104,7 @@ public class FunctionsTest extends ESTestCase {
                 new DummyFunction(signature)
         );
         var impl = resolve("foo", List.of(Literal.of("hoschi")));
-        assertThat(impl.boundSignature().argTypes(), contains(DataTypes.STRING));
+        assertThat(impl.boundSignature().argTypes()).containsExactly(DataTypes.STRING);
     }
 
     @Test
@@ -121,7 +119,7 @@ public class FunctionsTest extends ESTestCase {
                 new DummyFunction(signature)
         );
         var impl = resolve("foo", List.of(Literal.of(1L)));
-        assertThat(impl.boundSignature().argTypes(), contains(DataTypes.INTEGER));
+        assertThat(impl.boundSignature().argTypes()).containsExactly(DataTypes.INTEGER);
     }
 
     @Test
@@ -148,7 +146,7 @@ public class FunctionsTest extends ESTestCase {
         var impl = resolve("foo", List.of(Literal.of(1L)));
 
         // float is more specific than double
-        assertThat(impl.boundSignature().argTypes(), contains(DataTypes.FLOAT));
+        assertThat(impl.boundSignature().argTypes()).containsExactly(DataTypes.FLOAT);
     }
 
     @Test
@@ -173,7 +171,7 @@ public class FunctionsTest extends ESTestCase {
         );
 
         var impl = resolve("foo", List.of(Literal.of(DataTypes.UNDEFINED, null)));
-        assertThat(impl.boundSignature().argTypes(), contains(DataTypes.STRING));
+        assertThat(impl.boundSignature().argTypes()).containsExactly(DataTypes.STRING);
     }
 
     @Test
@@ -228,7 +226,7 @@ public class FunctionsTest extends ESTestCase {
         );
 
         var impl = resolve("foo", List.of(Literal.of(DataTypes.UNDEFINED, null)));
-        assertThat(impl.boundSignature().argTypes(), contains(DataTypes.STRING));
+        assertThat(impl.boundSignature().argTypes()).containsExactly(DataTypes.STRING);
     }
 
     @Test
@@ -267,7 +265,7 @@ public class FunctionsTest extends ESTestCase {
         );
 
         var impl = resolve("foo", List.of(Literal.of(1), Literal.of(1L)));
-        assertThat(impl.boundSignature().argTypes(), contains(DataTypes.INTEGER, DataTypes.INTEGER));
+        assertThat(impl.boundSignature().argTypes()).containsExactly(DataTypes.INTEGER, DataTypes.INTEGER);
     }
 
     @Test

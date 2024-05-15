@@ -21,7 +21,6 @@ package org.elasticsearch.index.shard;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.hasItem;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
@@ -256,7 +255,7 @@ public class IndexShardRetentionLeaseTests extends IndexShardTestCase {
             final RetentionLeases retentionLeases = indexShard.getEngine().config().retentionLeasesSupplier().get();
             final RetentionLeases writtenRetentionLeases = indexShard.loadRetentionLeases();
             assertThat(writtenRetentionLeases.version()).isEqualTo(1L + length);
-            assertThat(writtenRetentionLeases.leases(), contains(retentionLeases.leases().toArray(new RetentionLease[0])));
+            assertThat(writtenRetentionLeases.leases()).containsExactly(retentionLeases.leases().toArray(new RetentionLease[0]));
 
             // when we recover, we should recover the retention leases
             final IndexShard recoveredShard = reinitShard(
@@ -267,8 +266,7 @@ public class IndexShardRetentionLeaseTests extends IndexShardTestCase {
                 final RetentionLeases recoveredRetentionLeases = recoveredShard.getEngine().config().retentionLeasesSupplier().get();
                 assertThat(recoveredRetentionLeases.version()).isEqualTo(1L + length);
                 assertThat(
-                    recoveredRetentionLeases.leases(),
-                    contains(retentionLeases.leases().toArray(new RetentionLease[0])));
+                    recoveredRetentionLeases.leases()).containsExactly(retentionLeases.leases().toArray(new RetentionLease[0]));
             } finally {
                 closeShards(recoveredShard);
             }

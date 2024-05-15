@@ -21,13 +21,13 @@
 
 package io.crate.planner.consumer;
 
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isReference;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
@@ -55,7 +55,6 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
-import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -190,13 +189,15 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         GroupProjection groupProjection = (GroupProjection) collectPhase.projections().get(0);
 
-        assertThat(Symbols.typeView(groupProjection.outputs()), contains(
-            is(DataTypes.STRING),
-            is(DataTypes.LONG)));
+        assertThat(groupProjection.outputs()).satisfiesExactly(
+            x -> assertThat(x).hasDataType(DataTypes.STRING),
+            x -> assertThat(x).hasDataType(DataTypes.LONG)
+        );
 
-        assertThat(Symbols.typeView(collectPhase.projections().get(1).outputs()), contains(
-            is(DataTypes.LONG),
-            is(DataTypes.STRING)));
+        assertThat(collectPhase.projections().get(1).outputs()).satisfiesExactly(
+            x -> assertThat(x).hasDataType(DataTypes.LONG),
+            x -> assertThat(x).hasDataType(DataTypes.STRING)
+        );
     }
 
     @Test

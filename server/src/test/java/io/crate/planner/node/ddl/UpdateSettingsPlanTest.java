@@ -21,10 +21,9 @@
 
 package io.crate.planner.node.ddl;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static io.crate.planner.node.ddl.UpdateSettingsPlan.buildSettingsFrom;
 import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.hamcrest.Matchers.contains;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -171,6 +170,6 @@ public class UpdateSettingsPlanTest extends ESTestCase {
         Assignment<Symbol> assignment = new Assignment<>(Literal.of("cluster.routing.allocation.exclude._id"), idsArray);
         Settings settings = buildSettingsFrom(List.of(assignment), symbolEvaluator(Row.EMPTY));
         assertThat(settings.get("cluster.routing.allocation.exclude._id")).isEqualTo("id1,id2");
-        assertThat(settings.getAsList("cluster.routing.allocation.exclude._id"), contains("id1", "id2"));
+        assertThat(settings.getAsList("cluster.routing.allocation.exclude._id")).containsExactly("id1", "id2");
     }
 }
