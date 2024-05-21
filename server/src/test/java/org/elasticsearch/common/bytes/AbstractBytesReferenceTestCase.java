@@ -21,6 +21,7 @@ package org.elasticsearch.common.bytes;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertArrayEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -560,7 +561,7 @@ public abstract class AbstractBytesReferenceTestCase extends ESTestCase {
         // unless randomized testing gave us a 0-length slice.
         if (sliceLength > 0) {
             BytesReference slice3 = pbr.slice(sliceFrom, sliceLength / 2);
-            assertFalse(Arrays.equals(BytesReference.toBytes(slice1), BytesReference.toBytes(slice3)));
+            assertThat(Arrays.equals(BytesReference.toBytes(slice1), BytesReference.toBytes(slice3))).isFalse();
         }
     }
 
@@ -573,8 +574,8 @@ public abstract class AbstractBytesReferenceTestCase extends ESTestCase {
         for (int i = 0; i < iters; i++) {
             int length = randomIntBetween(10, PAGE_SIZE * randomIntBetween(2, 8));
             BytesReference bytesReference = newBytesReference(length);
-            assertTrue(bytesReference.compareTo(new BytesArray("")) > 0);
-            assertTrue(new BytesArray("").compareTo(bytesReference) < 0);
+            assertThat(bytesReference.compareTo(new BytesArray("")) > 0).isTrue();
+            assertThat(new BytesArray("").compareTo(bytesReference) < 0).isTrue();
 
 
             assertEquals(0, bytesReference.compareTo(bytesReference));
@@ -605,7 +606,7 @@ public abstract class AbstractBytesReferenceTestCase extends ESTestCase {
             }
             BytesReference crazyReference = crazyStream.bytes();
 
-            assertFalse(crazyReference.compareTo(bytesReference) == 0);
+            assertThat(crazyReference.compareTo(bytesReference) == 0).isFalse();
             assertEquals(0, crazyReference.slice(offset, length).compareTo(
                 bytesReference));
             assertEquals(0, bytesReference.compareTo(

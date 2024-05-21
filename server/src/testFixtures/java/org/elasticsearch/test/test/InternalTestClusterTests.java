@@ -24,7 +24,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.discovery.DiscoveryModule.DISCOVERY_SEED_PROVIDERS_SETTING;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
@@ -127,7 +126,7 @@ public class InternalTestClusterTests extends ESTestCase {
             if (clusterUniqueSettings.contains(key) && checkClusterUniqueSettings == false) {
                 continue;
             }
-            assertTrue("key [" + key + "] is missing in " + keys1, keys1.contains(key));
+            assertThat(keys1.contains(key)).as("key [" + key + "] is missing in " + keys1).isTrue();
             assertEquals(key, right.get(key), left.get(key));
         }
     }
@@ -222,7 +221,7 @@ public class InternalTestClusterTests extends ESTestCase {
             assertArrayEquals(cluster0.getNodeNames(), cluster1.getNodeNames());
             Iterator<Client> iterator1 = cluster1.getClients().iterator();
             for (Client client : cluster0.getClients()) {
-                assertTrue(iterator1.hasNext());
+                assertThat(iterator1.hasNext()).isTrue();
                 Client other = iterator1.next();
                 assertSettings(client.settings(), other.settings(), false);
             }
@@ -392,7 +391,7 @@ public class InternalTestClusterTests extends ESTestCase {
                 }
                 Set<String> rolePaths = pathsPerRole.computeIfAbsent(role, k -> new HashSet<>());
                 for (Path path : getNodePaths(cluster, node)) {
-                    assertTrue(rolePaths.add(path.toString()));
+                    assertThat(rolePaths.add(path.toString())).isTrue();
                 }
             }
             cluster.validateClusterFormed();

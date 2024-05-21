@@ -23,7 +23,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
 import static org.hamcrest.Matchers.empty;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -192,7 +191,7 @@ public class PeerRecoveryTargetServiceTests extends IndexShardTestCase {
         shard = newStartedShard(false);
         long globalCheckpoint = populateRandomData(shard).getGlobalCheckpoint();
         Optional<SequenceNumbers.CommitInfo> safeCommit = shard.store().findSafeIndexCommit(globalCheckpoint);
-        assertTrue(safeCommit.isPresent());
+        assertThat(safeCommit.isPresent()).isTrue();
         int expectedTotalLocal = 0;
         if (safeCommit.get().localCheckpoint < globalCheckpoint) {
             try (Translog.Snapshot snapshot = getTranslog(shard).newSnapshot(safeCommit.get().localCheckpoint + 1, globalCheckpoint)) {
@@ -291,7 +290,7 @@ public class PeerRecoveryTargetServiceTests extends IndexShardTestCase {
         IndexShard shard = newStartedShard(false);
         long globalCheckpoint = populateRandomData(shard).getGlobalCheckpoint();
         Optional<SequenceNumbers.CommitInfo> safeCommit = shard.store().findSafeIndexCommit(globalCheckpoint);
-        assertTrue(safeCommit.isPresent());
+        assertThat(safeCommit.isPresent()).isTrue();
         final IndexMetadata indexMetadata;
         if (randomBoolean()) {
             indexMetadata = IndexMetadata.builder(shard.indexSettings().getIndexMetadata())

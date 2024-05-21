@@ -24,9 +24,7 @@ package io.crate.integrationtests;
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -203,10 +201,10 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         createSubscription("sub1", "pub1");
 
         LogicalReplicationService replicationService = subscriberCluster.getInstance(LogicalReplicationService.class);
-        assertTrue(replicationService.subscriptions().containsKey("sub1"));
+        assertThat(replicationService.subscriptions().containsKey("sub1")).isTrue();
 
         executeOnSubscriber("DROP SUBSCRIPTION sub1 ");
-        assertFalse(replicationService.subscriptions().containsKey("sub1"));
+        assertThat(replicationService.subscriptions().containsKey("sub1")).isFalse();
 
         var response = executeOnSubscriber("SELECT * FROM pg_subscription");
         assertThat(response).hasRowCount(0);

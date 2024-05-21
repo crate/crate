@@ -38,10 +38,8 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -297,10 +295,10 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
                             if (delayed) {
                                 final ClusterState clusterState = clusterService.state();
                                 if (globalBlock) {
-                                    assertTrue("Global block must exist", clusterState.blocks().hasGlobalBlock(block));
+                                    assertThat(clusterState.blocks().hasGlobalBlock(block)).as("Global block must exist").isTrue();
                                 } else {
                                     String indexName = primary.shardId().getIndexName();
-                                    assertTrue("Index block must exist", clusterState.blocks().hasIndexBlock(indexName, block));
+                                    assertThat(clusterState.blocks().hasIndexBlock(indexName, block)).as("Index block must exist").isTrue();
                                 }
                             }
                         }
@@ -332,11 +330,11 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
                         final ClusterState clusterState = clusterService.state();
                         final ClusterBlocks.Builder blocks = ClusterBlocks.builder();
                         if (globalBlock) {
-                            assertFalse("Global block must not exist yet", clusterState.blocks().hasGlobalBlock(block));
+                            assertThat(clusterState.blocks().hasGlobalBlock(block)).as("Global block must not exist yet").isFalse();
                             blocks.addGlobalBlock(block);
                         } else {
                             String indexName = reference.indexShard.shardId().getIndexName();
-                            assertFalse("Index block must not exist yet", clusterState.blocks().hasIndexBlock(indexName, block));
+                            assertThat(clusterState.blocks().hasIndexBlock(indexName, block)).as("Index block must not exist yet").isFalse();
                             blocks.addIndexBlock(indexName, block);
                         }
 
@@ -551,8 +549,8 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
 
         private void assertNoBlocks(final String error) {
             final ClusterState clusterState = clusterService.state();
-            assertFalse("Global level " + error, clusterState.blocks().hasGlobalBlock(block));
-            assertFalse("Index level " + error, clusterState.blocks().hasIndexBlock(shardId.getIndexName(), block));
+            assertThat(clusterState.blocks().hasGlobalBlock(block)).as("Global level " + error).isFalse();
+            assertThat(clusterState.blocks().hasIndexBlock(shardId.getIndexName(), block)).as("Index level " + error).isFalse();
         }
     }
 

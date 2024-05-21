@@ -76,7 +76,7 @@ public class TestShuffleForcedMergePolicyTests extends BaseMergePolicyTestCase {
                     assertSegmentReaders(
                             reader,
                             leaf -> {
-                                assertFalse(ShuffleForcedMergePolicy.isInterleavedSegment(leaf));
+                                Asserts.assertThat(ShuffleForcedMergePolicy.isInterleavedSegment(leaf)).isFalse();
                             });
                 }
                 writer.forceMerge(1);
@@ -85,7 +85,7 @@ public class TestShuffleForcedMergePolicyTests extends BaseMergePolicyTestCase {
                     assertSegmentReaders(
                             reader,
                             leaf -> {
-                                assertTrue(ShuffleForcedMergePolicy.isInterleavedSegment(leaf));
+                                Asserts.assertThat(ShuffleForcedMergePolicy.isInterleavedSegment(leaf)).isTrue();
                             });
                 }
             }

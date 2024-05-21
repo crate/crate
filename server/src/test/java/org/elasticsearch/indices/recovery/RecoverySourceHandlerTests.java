@@ -27,7 +27,6 @@ import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -391,7 +390,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         handler.phase2(startingSeqNo, endingSeqNo, snapshot, maxSeenAutoIdTimestamp, maxSeqNoOfUpdatesOrDeletes, retentionLeases,
             mappingVersion, sendFuture);
         RecoverySourceHandler.SendSnapshotResult sendSnapshotResult = FutureUtils.get(sendFuture);
-        assertTrue(received.get());
+        assertThat(received.get()).isTrue();
         assertThat(sendSnapshotResult.targetLocalCheckpoint).isEqualTo(localCheckpoint.get());
         assertThat(sendSnapshotResult.sentOperations).isEqualTo(receivedSeqNos.size());
         Set<Long> sentSeqNos = new HashSet<>();
@@ -474,7 +473,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
             request, Math.toIntExact(recoverySettings.getChunkSize().getBytes()), between(1, 8), between(1, 8)) {
             @Override
             protected void failEngine(IOException cause) {
-                assertFalse(failedEngine.get());
+                assertThat(failedEngine.get()).isFalse();
                 failedEngine.set(true);
             }
         };
@@ -485,7 +484,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         latch.await();
         assertThat(sendFilesError.get()).isInstanceOf(IOException.class);
         assertNotNull(SQLExceptions.unwrapCorruption(sendFilesError.get()));
-        assertTrue(failedEngine.get());
+        assertThat(failedEngine.get()).isTrue();
         // ensure all chunk requests have been completed; otherwise some files on the target are left open.
         IOUtils.close(() -> terminate(threadPool), () -> threadPool = null);
         IOUtils.close(store, multiFileWriter, targetStore);
@@ -535,7 +534,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
             request, Math.toIntExact(recoverySettings.getChunkSize().getBytes()), between(1, 10), between(1, 4)) {
             @Override
             protected void failEngine(IOException cause) {
-                assertFalse(failedEngine.get());
+                assertThat(failedEngine.get()).isFalse();
                 failedEngine.set(true);
             }
         };
@@ -544,7 +543,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         assertThatThrownBy(sendFilesFuture::get)
             .rootCause()
             .hasMessageContaining(throwCorruptedIndexException ? "[File corruption occurred on recovery but checksums are ok]" : "boom");
-        assertFalse(failedEngine.get());
+        assertThat(failedEngine.get()).isFalse();
         IOUtils.close(store);
     }
 
@@ -623,9 +622,9 @@ public class RecoverySourceHandlerTests extends ESTestCase {
             handler.recoverToTarget(future);
             FutureUtils.get(future);
         }).isExactlyInstanceOf(IndexShardRelocatedException.class);
-        assertFalse(phase1Called.get());
-        assertFalse(prepareTargetForTranslogCalled.get());
-        assertFalse(phase2Called.get());
+        assertThat(phase1Called.get()).isFalse();
+        assertThat(prepareTargetForTranslogCalled.get()).isFalse();
+        assertThat(phase2Called.get()).isFalse();
     }
 
     @Test
@@ -843,7 +842,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
             latch.await();
             phase1Listener.result();
         } catch (Exception e) {
-            assertTrue(wasCancelled.get());
+            assertThat(wasCancelled.get()).isTrue();
             Class<?>[] clazzes = { CancellableThreads.ExecutionCancelledException.class };
             assertNotNull(Exceptions.firstCause(e, clazzes));
         }
@@ -860,9 +859,9 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         int numDocs = between(0, 1000);
         long localCheckpoint = randomLongBetween(SequenceNumbers.NO_OPS_PERFORMED, Long.MAX_VALUE);
         long maxSeqNo = randomLongBetween(SequenceNumbers.NO_OPS_PERFORMED, Long.MAX_VALUE);
-        assertTrue(handler.canSkipPhase1(
+        assertThat(handler.canSkipPhase1(
             newMetadataSnapshot(syncId, Long.toString(localCheckpoint), Long.toString(maxSeqNo), numDocs),
-            newMetadataSnapshot(syncId, Long.toString(localCheckpoint), Long.toString(maxSeqNo), numDocs)));
+            newMetadataSnapshot(syncId, Long.toString(localCheckpoint), Long.toString(maxSeqNo), numDocs))).isTrue();
 
         assertThatThrownBy(() -> {
             long localCheckpointOnTarget = randomValueOtherThan(localCheckpoint,

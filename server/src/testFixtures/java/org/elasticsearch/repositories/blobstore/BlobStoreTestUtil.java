@@ -21,6 +21,7 @@ package org.elasticsearch.repositories.blobstore;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasKey;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
@@ -142,7 +143,7 @@ public final class BlobStoreTestUtil {
             .map(s -> s.replace(BlobStoreRepository.INDEX_FILE_PREFIX, ""))
             .mapToLong(Long::parseLong).sorted().toArray();
         assertEquals(latestGen, indexGenerations[indexGenerations.length - 1]);
-        assertTrue(indexGenerations.length <= 2);
+        assertThat(indexGenerations.length <= 2).isTrue();
     }
 
     private static void assertShardIndexGenerations(BlobContainer repoRoot, ShardGenerations shardGenerations) throws IOException {
@@ -192,7 +193,7 @@ public final class BlobStoreTestUtil {
             }
             // TODO: assertEquals(indexMetaGenerationsExpected, indexMetaGenerationsFound); requires cleanup functionality for
             //       index meta generations blobs
-            assertTrue(indexMetaGenerationsFound.containsAll(indexMetaGenerationsExpected));
+            assertThat(indexMetaGenerationsFound.containsAll(indexMetaGenerationsExpected)).isTrue();
         }
     }
 

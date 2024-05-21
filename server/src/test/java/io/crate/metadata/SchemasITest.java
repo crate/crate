@@ -25,7 +25,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.isOneOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -110,7 +109,7 @@ public class SchemasITest extends IntegTestCase {
         ClusterService clusterService = clusterService();
         Routing routing = ti.getRouting(
             clusterService.state(), routingProvider, null, null, CoordinatorSessionSettings.systemDefaults());
-        assertTrue(routing.hasLocations());
+        assertThat(routing.hasLocations()).isTrue();
         assertEquals(1, routing.nodes().size());
         for (Map<String, ?> indices : routing.locations().values()) {
             assertEquals(1, indices.size());

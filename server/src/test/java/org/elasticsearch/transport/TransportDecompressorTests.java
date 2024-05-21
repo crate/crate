@@ -21,6 +21,7 @@ package org.elasticsearch.transport;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -55,7 +56,7 @@ public class TransportDecompressorTests extends ESTestCase {
             TransportDecompressor decompressor = new TransportDecompressor(PageCacheRecycler.NON_RECYCLING_INSTANCE);
             int bytesConsumed = decompressor.decompress(bytes);
             assertEquals(bytes.length(), bytesConsumed);
-            assertTrue(decompressor.isEOS());
+            assertThat(decompressor.isEOS()).isTrue();
             ReleasableBytesReference releasableBytesReference = decompressor.pollDecompressedPage();
             assertEquals(randomByte, releasableBytesReference.get(0));
             releasableBytesReference.close();
@@ -77,7 +78,7 @@ public class TransportDecompressorTests extends ESTestCase {
             TransportDecompressor decompressor = new TransportDecompressor(PageCacheRecycler.NON_RECYCLING_INSTANCE);
             int bytesConsumed = decompressor.decompress(bytes);
             assertEquals(bytes.length(), bytesConsumed);
-            assertTrue(decompressor.isEOS());
+            assertThat(decompressor.isEOS()).isTrue();
             ReleasableBytesReference reference1 = decompressor.pollDecompressedPage();
             ReleasableBytesReference reference2 = decompressor.pollDecompressedPage();
             ReleasableBytesReference reference3 = decompressor.pollDecompressedPage();
@@ -113,13 +114,13 @@ public class TransportDecompressorTests extends ESTestCase {
 
             int bytesConsumed1 = decompressor.decompress(inbound1);
             assertEquals(inbound1.length(), bytesConsumed1);
-            assertFalse(decompressor.isEOS());
+            assertThat(decompressor.isEOS()).isFalse();
             int bytesConsumed2 = decompressor.decompress(inbound2);
             assertEquals(inbound2.length(), bytesConsumed2);
-            assertFalse(decompressor.isEOS());
+            assertThat(decompressor.isEOS()).isFalse();
             int bytesConsumed3 = decompressor.decompress(inbound3);
             assertEquals(inbound3.length(), bytesConsumed3);
-            assertTrue(decompressor.isEOS());
+            assertThat(decompressor.isEOS()).isTrue();
             ReleasableBytesReference reference1 = decompressor.pollDecompressedPage();
             ReleasableBytesReference reference2 = decompressor.pollDecompressedPage();
             ReleasableBytesReference reference3 = decompressor.pollDecompressedPage();

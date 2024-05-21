@@ -25,9 +25,7 @@ import static io.crate.planner.Plan.StatementType.SELECT;
 import static io.crate.planner.Plan.StatementType.UNDEFINED;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.lang.reflect.Field;
 import java.util.Collections;
@@ -431,12 +429,12 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             .collect(Collectors.toList());
 
         assertThat(entries).containsExactly(new OperationContextLog(ctxB, null));
-        assertFalse(entries.contains(new OperationContextLog(ctxA, null)));
+        assertThat(entries.contains(new OperationContextLog(ctxA, null))).isFalse();
 
         jobsLogs.operationFinished(ctxA.id, ctxA.jobId, null);
         entries = StreamSupport.stream(jobsLogs.operationsLog().spliterator(), false)
             .collect(Collectors.toList());
-        assertTrue(entries.contains(new OperationContextLog(ctxA, null)));
+        assertThat(entries.contains(new OperationContextLog(ctxA, null))).isTrue();
     }
 
     @Test

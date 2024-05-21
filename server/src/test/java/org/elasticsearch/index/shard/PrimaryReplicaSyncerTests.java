@@ -20,7 +20,6 @@ package org.elasticsearch.index.shard;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -106,7 +105,7 @@ public class PrimaryReplicaSyncerTests extends IndexShardTestCase {
         PrimaryReplicaSyncer.ResyncTask resyncTask = fut.get();
 
         if (syncNeeded) {
-            assertTrue("Sync action was not called", syncActionCalled.get());
+            assertThat(syncActionCalled.get()).as("Sync action was not called").isTrue();
             ResyncReplicationRequest resyncRequest = resyncRequests.remove(0);
             assertThat(resyncRequest.getTrimAboveSeqNo()).isEqualTo(numDocs - 1L);
 
@@ -200,7 +199,7 @@ public class PrimaryReplicaSyncerTests extends IndexShardTestCase {
         closeShards(shard);
         try {
             FutureUtils.get(fut);
-            assertTrue("Sync action was not called", syncActionCalled.get());
+            assertThat(syncActionCalled.get()).as("Sync action was not called").isTrue();
         } catch (AlreadyClosedException | IndexShardClosedException ignored) {
             // ignore
         }

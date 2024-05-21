@@ -24,8 +24,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.coordination.Reconfigurator.CLUSTER_AUTO_SHRINK_VOTING_CONFIGURATION;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.Comparator;
@@ -135,10 +133,10 @@ public class ReconfiguratorTests extends ESTestCase {
         final String description = "reconfigure " + liveNodesSet + " from " + initialConfig + " yielded " + finalConfig;
 
         if (quorumSize > liveNodes.length) {
-            assertFalse(description + " without a live quorum", finalConfig.hasQuorum(Arrays.asList(liveNodes)));
+            assertThat(finalConfig.hasQuorum(Arrays.asList(liveNodes))).as(description + " without a live quorum").isFalse();
         } else {
             final List<String> expectedQuorum = randomSubsetOf(quorumSize, liveNodes);
-            assertTrue(description + " with quorum[" + quorumSize + "] of " + expectedQuorum, finalConfig.hasQuorum(expectedQuorum));
+            assertThat(finalConfig.hasQuorum(expectedQuorum)).as(description + " with quorum[" + quorumSize + "] of " + expectedQuorum).isTrue();
         }
     }
 
@@ -164,10 +162,10 @@ public class ReconfiguratorTests extends ESTestCase {
         final String description = "reconfigure " + liveNodesSet + " from " + initialConfig + " yielded " + finalConfig;
 
         if (quorumSize > liveNodes.length) {
-            assertFalse(description + " without a live quorum", finalConfig.hasQuorum(Arrays.asList(liveNodes)));
+            assertThat(finalConfig.hasQuorum(Arrays.asList(liveNodes))).as(description + " without a live quorum").isFalse();
         } else {
             final List<String> expectedQuorum = randomSubsetOf(quorumSize, liveNodes);
-            assertTrue(description + " with quorum[" + quorumSize + "] of " + expectedQuorum, finalConfig.hasQuorum(expectedQuorum));
+            assertThat(finalConfig.hasQuorum(expectedQuorum)).as(description + " with quorum[" + quorumSize + "] of " + expectedQuorum).isTrue();
         }
     }
 

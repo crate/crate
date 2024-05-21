@@ -24,8 +24,6 @@ import static org.elasticsearch.monitor.StatusInfo.Status.HEALTHY;
 import static org.elasticsearch.monitor.StatusInfo.Status.UNHEALTHY;
 import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 import java.util.Collections;
 import java.util.Optional;
@@ -74,7 +72,7 @@ public class JoinHelperTests extends ESTestCase {
         DiscoveryNode node1 = new DiscoveryNode("node1", buildNewFakeTransportAddress(), Version.CURRENT);
         DiscoveryNode node2 = new DiscoveryNode("node2", buildNewFakeTransportAddress(), Version.CURRENT);
 
-        assertFalse(joinHelper.isJoinPending());
+        assertThat(joinHelper.isJoinPending()).isFalse();
 
         // check that sending a join to node1 works
         Optional<Join> optionalJoin1 = randomBoolean() ? Optional.empty() :
@@ -85,7 +83,7 @@ public class JoinHelperTests extends ESTestCase {
         CapturedRequest capturedRequest1 = capturedRequests1[0];
         assertEquals(node1, capturedRequest1.node);
 
-        assertTrue(joinHelper.isJoinPending());
+        assertThat(joinHelper.isJoinPending()).isTrue();
 
         // check that sending a join to node2 works
         Optional<Join> optionalJoin2 = randomBoolean() ? Optional.empty() :
@@ -124,11 +122,11 @@ public class JoinHelperTests extends ESTestCase {
         assertEquals(node2, capturedRequest2a.node);
 
         // complete all the joins and check that isJoinPending is updated
-        assertTrue(joinHelper.isJoinPending());
+        assertThat(joinHelper.isJoinPending()).isTrue();
         capturingTransport.handleRemoteError(capturedRequest2.requestId, new CoordinationStateRejectedException("dummy"));
         capturingTransport.handleRemoteError(capturedRequest1a.requestId, new CoordinationStateRejectedException("dummy"));
         capturingTransport.handleRemoteError(capturedRequest2a.requestId, new CoordinationStateRejectedException("dummy"));
-        assertFalse(joinHelper.isJoinPending());
+        assertThat(joinHelper.isJoinPending()).isFalse();
     }
 
     public void testFailedJoinAttemptLogLevel() {
@@ -209,7 +207,7 @@ public class JoinHelperTests extends ESTestCase {
         DiscoveryNode node1 = new DiscoveryNode("node1", buildNewFakeTransportAddress(), Version.CURRENT);
         DiscoveryNode node2 = new DiscoveryNode("node2", buildNewFakeTransportAddress(), Version.CURRENT);
 
-        assertFalse(joinHelper.isJoinPending());
+        assertThat(joinHelper.isJoinPending()).isFalse();
 
         // check that sending a join to node1 doesn't work
         Optional<Join> optionalJoin1 = randomBoolean() ? Optional.empty() :
@@ -218,7 +216,7 @@ public class JoinHelperTests extends ESTestCase {
         CapturedRequest[] capturedRequests1 = capturingTransport.getCapturedRequestsAndClear();
         assertThat(capturedRequests1.length).isEqualTo(0);
 
-        assertFalse(joinHelper.isJoinPending());
+        assertThat(joinHelper.isJoinPending()).isFalse();
 
         // check that sending a join to node2 doesn't work
         Optional<Join> optionalJoin2 = randomBoolean() ? Optional.empty() :
@@ -230,7 +228,7 @@ public class JoinHelperTests extends ESTestCase {
         CapturedRequest[] capturedRequests2 = capturingTransport.getCapturedRequestsAndClear();
         assertThat(capturedRequests2.length).isEqualTo(0);
 
-        assertFalse(joinHelper.isJoinPending());
+        assertThat(joinHelper.isJoinPending()).isFalse();
 
         nodeHealthServiceStatus.getAndSet(new StatusInfo(HEALTHY, "healthy-info"));
         // check that sending another join to node1 now works again

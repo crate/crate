@@ -21,6 +21,7 @@ package org.elasticsearch.indices.analysis;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Map.entry;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.util.HashMap;
@@ -299,7 +300,7 @@ public abstract class AnalysisFactoryTestCase extends ESTestCase {
         missing.addAll(org.apache.lucene.analysis.TokenizerFactory.availableTokenizers()
                            .stream().map(key -> key.toLowerCase(Locale.ROOT)).collect(Collectors.toSet()));
         missing.removeAll(getTokenizers().keySet());
-        assertTrue("new tokenizers found, please update KNOWN_TOKENIZERS: " + missing.toString(), missing.isEmpty());
+        assertThat(missing.isEmpty()).as("new tokenizers found, please update KNOWN_TOKENIZERS: " + missing.toString()).isTrue();
     }
 
     public void testCharFilters() {
@@ -307,7 +308,7 @@ public abstract class AnalysisFactoryTestCase extends ESTestCase {
         missing.addAll(org.apache.lucene.analysis.CharFilterFactory.availableCharFilters()
                            .stream().map(key -> key.toLowerCase(Locale.ROOT)).collect(Collectors.toSet()));
         missing.removeAll(getCharFilters().keySet());
-        assertTrue("new charfilters found, please update KNOWN_CHARFILTERS: " + missing.toString(), missing.isEmpty());
+        assertThat(missing.isEmpty()).as("new charfilters found, please update KNOWN_CHARFILTERS: " + missing.toString()).isTrue();
     }
 
     public void testTokenFilters() {
@@ -315,7 +316,7 @@ public abstract class AnalysisFactoryTestCase extends ESTestCase {
         missing.addAll(org.apache.lucene.analysis.TokenFilterFactory.availableTokenFilters()
                            .stream().map(key -> key.toLowerCase(Locale.ROOT)).collect(Collectors.toSet()));
         missing.removeAll(getTokenFilters().keySet());
-        assertTrue("new tokenfilters found, please update KNOWN_TOKENFILTERS: " + missing.toString(), missing.isEmpty());
+        assertThat(missing.isEmpty()).as("new tokenfilters found, please update KNOWN_TOKENFILTERS: " + missing.toString()).isTrue();
     }
 
     /**

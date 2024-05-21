@@ -20,8 +20,6 @@ package org.elasticsearch.cluster.coordination;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 import java.util.Optional;
 
@@ -81,7 +79,7 @@ public class LinearizabilityCheckerTests extends ESTestCase {
         history.respond(call0, true); // 0: lock acquisition succeeded
         int call1 = history.invoke(null); // 1: acquire lock
         history.respond(call1, false); // 0: lock acquisition failed
-        assertTrue(checker.isLinearizable(lockSpec, history));
+        assertThat(checker.isLinearizable(lockSpec, history)).isTrue();
     }
 
     public void testLockWithLinearizableHistory2() {
@@ -90,7 +88,7 @@ public class LinearizabilityCheckerTests extends ESTestCase {
         int call1 = history.invoke(null); // 1: acquire lock
         history.respond(call0, false); // 0: lock acquisition failed
         history.respond(call1, true); // 0: lock acquisition succeeded
-        assertTrue(checker.isLinearizable(lockSpec, history));
+        assertThat(checker.isLinearizable(lockSpec, history)).isTrue();
     }
 
     public void testLockWithLinearizableHistory3() {
@@ -99,7 +97,7 @@ public class LinearizabilityCheckerTests extends ESTestCase {
         int call1 = history.invoke(null); // 1: acquire lock
         history.respond(call0, true); // 0: lock acquisition succeeded
         history.respond(call1, false); // 0: lock acquisition failed
-        assertTrue(checker.isLinearizable(lockSpec, history));
+        assertThat(checker.isLinearizable(lockSpec, history)).isTrue();
     }
 
     public void testLockWithNonLinearizableHistory() {
@@ -108,7 +106,7 @@ public class LinearizabilityCheckerTests extends ESTestCase {
         history.respond(call0, false); // 0: lock acquisition failed
         int call1 = history.invoke(null); // 1: acquire lock
         history.respond(call1, true); // 0: lock acquisition succeeded
-        assertFalse(checker.isLinearizable(lockSpec, history));
+        assertThat(checker.isLinearizable(lockSpec, history)).isFalse();
     }
 
     /**
@@ -154,10 +152,10 @@ public class LinearizabilityCheckerTests extends ESTestCase {
 
         assertThatThrownBy(() -> checker.isLinearizable(registerSpec, history))
             .isExactlyInstanceOf(IllegalArgumentException.class);
-        assertTrue(checker.isLinearizable(registerSpec, history, i -> null));
+        assertThat(checker.isLinearizable(registerSpec, history, i -> null)).isTrue();
 
         history.respond(call0, null); // 0: write returns
-        assertTrue(checker.isLinearizable(registerSpec, history));
+        assertThat(checker.isLinearizable(registerSpec, history)).isTrue();
     }
 
     public void testRegisterWithNonLinearizableHistory() {
@@ -170,10 +168,10 @@ public class LinearizabilityCheckerTests extends ESTestCase {
 
         assertThatThrownBy(() -> checker.isLinearizable(registerSpec, history))
             .isExactlyInstanceOf(IllegalArgumentException.class);
-        assertFalse(checker.isLinearizable(registerSpec, history, i -> null));
+        assertThat(checker.isLinearizable(registerSpec, history, i -> null)).isFalse();
 
         history.respond(call0, null); // 0: write returns
-        assertFalse(checker.isLinearizable(registerSpec, history));
+        assertThat(checker.isLinearizable(registerSpec, history)).isFalse();
     }
 
     public void testRegisterObservedSequenceOfUpdatesWitLinearizableHistory() {
@@ -190,7 +188,7 @@ public class LinearizabilityCheckerTests extends ESTestCase {
         history.respond(call0, null); // 0: write returns
         history.respond(call1, null); // 1: write returns
 
-        assertTrue(checker.isLinearizable(registerSpec, history));
+        assertThat(checker.isLinearizable(registerSpec, history)).isTrue();
     }
 
     public void testRegisterObservedSequenceOfUpdatesWithNonLinearizableHistory() {
@@ -207,7 +205,7 @@ public class LinearizabilityCheckerTests extends ESTestCase {
         history.respond(call0, null); // 0: write returns
         history.respond(call1, null); // 1: write returns
 
-        assertFalse(checker.isLinearizable(registerSpec, history));
+        assertThat(checker.isLinearizable(registerSpec, history)).isFalse();
     }
 
     final SequentialSpec multiRegisterSpec = new KeyedSpec() {
@@ -248,11 +246,11 @@ public class LinearizabilityCheckerTests extends ESTestCase {
 
         assertThatThrownBy(() -> checker.isLinearizable(multiRegisterSpec, history))
             .isExactlyInstanceOf(IllegalArgumentException.class);
-        assertTrue(checker.isLinearizable(multiRegisterSpec, history, i -> null));
+        assertThat(checker.isLinearizable(multiRegisterSpec, history, i -> null)).isTrue();
 
         history.respond(callX0, null); // 0: write returns on key x
         history.respond(callY0, null); // 0: write returns on key y
-        assertTrue(checker.isLinearizable(multiRegisterSpec, history));
+        assertThat(checker.isLinearizable(multiRegisterSpec, history)).isTrue();
     }
 
     public void testMultiRegisterWithNonLinearizableHistory() {
@@ -270,10 +268,10 @@ public class LinearizabilityCheckerTests extends ESTestCase {
 
         assertThatThrownBy(() -> checker.isLinearizable(multiRegisterSpec, history))
             .isExactlyInstanceOf(IllegalArgumentException.class);
-        assertFalse(checker.isLinearizable(multiRegisterSpec, history, i -> null));
+        assertThat(checker.isLinearizable(multiRegisterSpec, history, i -> null)).isFalse();
 
         history.respond(callX0, null); // 0: write returns on key x
         history.respond(callY0, null); // 0: write returns on key y
-        assertFalse(checker.isLinearizable(multiRegisterSpec, history));
+        assertThat(checker.isLinearizable(multiRegisterSpec, history)).isFalse();
     }
 }

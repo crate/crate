@@ -21,9 +21,7 @@ package org.elasticsearch.transport;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -95,8 +93,8 @@ public class InboundAggregatorTests extends ESTestCase {
         InboundMessage aggregated = aggregator.finishAggregation();
 
         assertThat(aggregated).isNotNull();
-        assertFalse(aggregated.isPing());
-        assertTrue(aggregated.getHeader().isRequest());
+        assertThat(aggregated.isPing()).isFalse();
+        assertThat(aggregated.getHeader().isRequest()).isTrue();
         assertThat(aggregated.getHeader().getRequestId()).isEqualTo(requestId);
         assertThat(aggregated.getHeader().getVersion()).isEqualTo(Version.CURRENT);
         for (ReleasableBytesReference reference : references) {
@@ -126,7 +124,7 @@ public class InboundAggregatorTests extends ESTestCase {
         InboundMessage aggregated = aggregator.finishAggregation();
 
         assertThat(aggregated).isNotNull();
-        assertTrue(aggregated.isShortCircuit());
+        assertThat(aggregated.isShortCircuit()).isTrue();
         assertThat(aggregated.getException()).isExactlyInstanceOf(ActionNotFoundTransportException.class);
         assertNotNull(aggregated.takeBreakerReleaseControl());
     }
@@ -150,7 +148,7 @@ public class InboundAggregatorTests extends ESTestCase {
 
         assertEquals(0, content1.refCount());
         assertThat(aggregated1).isNotNull();
-        assertTrue(aggregated1.isShortCircuit());
+        assertThat(aggregated1.isShortCircuit()).isTrue();
         assertThat(aggregated1.getException()).isExactlyInstanceOf(CircuitBreakingException.class);
 
         // Actions marked as unbreakable are not broken
@@ -169,7 +167,7 @@ public class InboundAggregatorTests extends ESTestCase {
 
         assertEquals(1, content2.refCount());
         assertThat(aggregated2).isNotNull();
-        assertFalse(aggregated2.isShortCircuit());
+        assertThat(aggregated2.isShortCircuit()).isFalse();
 
         // Handshakes are not broken
         final byte handshakeStatus = TransportStatus.setHandshake(TransportStatus.setRequest((byte) 0));
@@ -188,7 +186,7 @@ public class InboundAggregatorTests extends ESTestCase {
 
         assertEquals(1, content3.refCount());
         assertThat(aggregated3).isNotNull();
-        assertFalse(aggregated3.isShortCircuit());
+        assertThat(aggregated3.isShortCircuit()).isFalse();
     }
 
     public void testCloseWillCloseContent() {
@@ -250,14 +248,14 @@ public class InboundAggregatorTests extends ESTestCase {
             InboundMessage aggregated = aggregator.finishAggregation();
 
             assertThat(aggregated).isNotNull();
-            assertFalse(header.needsToReadVariableHeader());
+            assertThat(header.needsToReadVariableHeader()).isFalse();
             assertEquals(actionName, header.getActionName());
             if (unknownAction) {
                 assertEquals(0, content.refCount());
-                assertTrue(aggregated.isShortCircuit());
+                assertThat(aggregated.isShortCircuit()).isTrue();
             } else {
                 assertEquals(1, content.refCount());
-                assertFalse(aggregated.isShortCircuit());
+                assertThat(aggregated.isShortCircuit()).isFalse();
             }
         }
     }

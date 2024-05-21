@@ -27,9 +27,7 @@ import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasKey;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.ByteArrayInputStream;
@@ -118,7 +116,7 @@ public class StoreTests extends ESTestCase {
             if (randomBoolean()) {
                 store.incRef();
             } else {
-                assertTrue(store.tryIncRef());
+                assertThat(store.tryIncRef()).isTrue();
             }
             store.ensureOpen();
         }
@@ -134,7 +132,7 @@ public class StoreTests extends ESTestCase {
             if (randomBoolean()) {
                 store.incRef();
             } else {
-                assertTrue(store.tryIncRef());
+                assertThat(store.tryIncRef()).isTrue();
             }
             store.ensureOpen();
         }
@@ -146,7 +144,7 @@ public class StoreTests extends ESTestCase {
 
         store.decRef();
         assertThat(store.refCount()).isEqualTo(0);
-        assertFalse(store.tryIncRef());
+        assertThat(store.tryIncRef()).isFalse();
         assertThatThrownBy(store::incRef).isInstanceOf(IllegalStateException.class);
         assertThatThrownBy(store::ensureOpen).isInstanceOf(IllegalStateException.class);
     }
@@ -469,11 +467,11 @@ public class StoreTests extends ESTestCase {
     public static void assertConsistent(Store store, Store.MetadataSnapshot metadata) throws IOException {
         for (String file : store.directory().listAll()) {
             if (!IndexWriter.WRITE_LOCK_NAME.equals(file) && file.startsWith("extra") == false) {
-                assertTrue(file + " is not in the map: " + metadata.asMap().size() + " vs. " +
-                    store.directory().listAll().length, metadata.asMap().containsKey(file));
+                assertThat(metadata.asMap().containsKey(file)).as(file + " is not in the map: " + metadata.asMap().size() + " vs. " +
+                    store.directory().listAll().length).isTrue();
             } else {
-                assertFalse(file + " is not in the map: " + metadata.asMap().size() + " vs. " +
-                    store.directory().listAll().length, metadata.asMap().containsKey(file));
+                assertThat(metadata.asMap().containsKey(file)).as(file + " is not in the map: " + metadata.asMap().size() + " vs. " +
+                    store.directory().listAll().length).isFalse();
             }
         }
     }
@@ -682,13 +680,13 @@ public class StoreTests extends ESTestCase {
                 if (file.startsWith("extra")) {
                     continue;
                 }
-                assertTrue(firstMeta.contains(file) || file.equals("write.lock"));
+                assertThat(firstMeta.contains(file) || file.equals("write.lock")).isTrue();
                 if (secondMeta.contains(file) == false) {
                     numNotFound++;
                 }
 
             }
-            assertTrue("at least one file must not be in here since we have two commits?", numNotFound > 0);
+            assertThat(numNotFound > 0).as("at least one file must not be in here since we have two commits?").isTrue();
         } else {
             store.cleanupAndVerify("test", secondMeta);
             String[] strings = store.directory().listAll();
@@ -697,13 +695,13 @@ public class StoreTests extends ESTestCase {
                 if (file.startsWith("extra")) {
                     continue;
                 }
-                assertTrue(file, secondMeta.contains(file) || file.equals("write.lock"));
+                assertThat(secondMeta.contains(file) || file.equals("write.lock")).as(file).isTrue();
                 if (firstMeta.contains(file) == false) {
                     numNotFound++;
                 }
 
             }
-            assertTrue("at least one file must not be in here since we have two commits?", numNotFound > 0);
+            assertThat(numNotFound > 0).as("at least one file must not be in here since we have two commits?").isTrue();
         }
 
         deleteContent(store.directory());
@@ -740,7 +738,7 @@ public class StoreTests extends ESTestCase {
             new DummyShardLock(shardId));
         long initialStoreSize = 0;
         for (String extraFiles : store.directory().listAll()) {
-            assertTrue("expected extraFS file but got: " + extraFiles, extraFiles.startsWith("extra"));
+            assertThat(extraFiles.startsWith("extra")).as("expected extraFS file but got: " + extraFiles).isTrue();
             initialStoreSize += store.directory().fileLength(extraFiles);
         }
         final long reservedBytes =  randomBoolean() ? StoreStats.UNKNOWN_RESERVED_BYTES :randomLongBetween(0L, Integer.MAX_VALUE);
@@ -769,7 +767,7 @@ public class StoreTests extends ESTestCase {
             length = output.getFilePointer();
         }
 
-        assertTrue(numNonExtraFiles(store) > 0);
+        assertThat(numNonExtraFiles(store) > 0).isTrue();
         stats = store.stats(0L);
         assertEquals(stats.getSizeInBytes(), length + initialStoreSize);
 
@@ -854,7 +852,7 @@ public class StoreTests extends ESTestCase {
         writer.close();
         Store.MetadataSnapshot metadata;
         metadata = store.getMetadata(randomBoolean() ? null : deletionPolicy.snapshot());
-        assertFalse(metadata.asMap().isEmpty());
+        assertThat(metadata.asMap().isEmpty()).isFalse();
         // do not check for correct files, we have enough tests for that above
         assertThat(metadata.getCommitUserData().get(Engine.SYNC_COMMIT_ID)).isEqualTo(syncId);
         TestUtil.checkIndex(store.directory());
@@ -928,7 +926,7 @@ public class StoreTests extends ESTestCase {
         } catch (CorruptIndexException ex) {
             // expected
         }
-        assertTrue(store.isMarkedCorrupted());
+        assertThat(store.isMarkedCorrupted()).isTrue();
         // we have to remove the index since it's corrupted and might fail the MocKDirWrapper checkindex call
         Lucene.cleanLuceneIndex(store.directory());
         store.close();
@@ -939,17 +937,17 @@ public class StoreTests extends ESTestCase {
         IndexWriterConfig iwc = newIndexWriterConfig();
         Path tempDir = createTempDir();
         final BaseDirectoryWrapper dir = newFSDirectory(tempDir);
-        assertFalse(StoreUtils.canOpenIndex(logger, tempDir, shardId, (id, l, d) -> new DummyShardLock(id)));
+        assertThat(StoreUtils.canOpenIndex(logger, tempDir, shardId, (id, l, d) -> new DummyShardLock(id))).isFalse();
         IndexWriter writer = new IndexWriter(dir, iwc);
         Document doc = new Document();
         doc.add(new StringField("id", "1", random().nextBoolean() ? Field.Store.YES : Field.Store.NO));
         writer.addDocument(doc);
         writer.commit();
         writer.close();
-        assertTrue(StoreUtils.canOpenIndex(logger, tempDir, shardId, (id, l, d) -> new DummyShardLock(id)));
+        assertThat(StoreUtils.canOpenIndex(logger, tempDir, shardId, (id, l, d) -> new DummyShardLock(id))).isTrue();
         Store store = new Store(shardId, INDEX_SETTINGS, dir, new DummyShardLock(shardId));
         store.markStoreCorrupted(new CorruptIndexException("foo", "bar"));
-        assertFalse(StoreUtils.canOpenIndex(logger, tempDir, shardId, (id, l, d) -> new DummyShardLock(id)));
+        assertThat(StoreUtils.canOpenIndex(logger, tempDir, shardId, (id, l, d) -> new DummyShardLock(id))).isFalse();
         store.close();
     }
 
@@ -969,7 +967,7 @@ public class StoreTests extends ESTestCase {
         }
 
         store.removeCorruptionMarker();
-        assertFalse(store.isMarkedCorrupted());
+        assertThat(store.isMarkedCorrupted()).isFalse();
         FileNotFoundException ioe = new FileNotFoundException("foobar");
         store.markStoreCorrupted(ioe);
         try {

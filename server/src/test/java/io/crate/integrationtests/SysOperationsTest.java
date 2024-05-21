@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -59,7 +58,7 @@ public class SysOperationsTest extends IntegTestCase {
             names.add((String) objects[0]);
         }
         Collections.sort(names);
-        assertTrue(names.contains("collect"));
+        assertThat(names.contains("collect")).isTrue();
     }
 
     @Test

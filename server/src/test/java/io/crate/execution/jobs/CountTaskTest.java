@@ -21,8 +21,8 @@
 
 package io.crate.execution.jobs;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -72,7 +72,7 @@ public class CountTaskTest extends ESTestCase {
         final CountTask countTask1 = new CountTask(countPhaseWithId(1), txnCtx, countOperation, new TestingRowConsumer(), null);
         countTask1.start();
         future.complete(1L);
-        assertTrue(countTask1.isClosed());
+        assertThat(countTask1.isClosed()).isTrue();
         // assure that there was no exception
         countTask1.completionFuture().get();
 
@@ -84,7 +84,7 @@ public class CountTaskTest extends ESTestCase {
             new CountTask(countPhaseWithId(2), txnCtx, countOperation, new TestingRowConsumer(), null);
         countTask2.start();
         future.completeExceptionally(new UnhandledServerException("dummy"));
-        assertTrue(countTask2.isClosed());
+        assertThat(countTask2.isClosed()).isTrue();
 
         assertThatThrownBy(() -> countTask2.completionFuture().get())
             .hasCauseExactlyInstanceOf(UnhandledServerException.class)
@@ -102,7 +102,7 @@ public class CountTaskTest extends ESTestCase {
         countTask.kill(JobKilledException.of("dummy"));
 
         verify(future, times(1)).cancel(true);
-        assertTrue(countTask.isClosed());
+        assertThat(countTask.isClosed()).isTrue();
     }
 
     private static class FakeCountOperation implements CountOperation {

@@ -32,7 +32,6 @@ import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.HashSet;
@@ -157,7 +156,7 @@ public class TransportAddVotingConfigExclusionsActionTests extends ESTestCase {
             })
         );
 
-        assertTrue(countDownLatch.await(30, TimeUnit.SECONDS));
+        assertThat(countDownLatch.await(30, TimeUnit.SECONDS)).isTrue();
         assertThat(clusterService.getClusterApplierService().state().getVotingConfigExclusions()).containsExactly(otherNode1Exclusion);
     }
 
@@ -173,7 +172,7 @@ public class TransportAddVotingConfigExclusionsActionTests extends ESTestCase {
             })
         );
 
-        assertTrue(countDownLatch.await(30, TimeUnit.SECONDS));
+        assertThat(countDownLatch.await(30, TimeUnit.SECONDS)).isTrue();
         assertThat(clusterService.getClusterApplierService().state().getVotingConfigExclusions(),
                 containsInAnyOrder(otherNode1Exclusion, otherNode2Exclusion));
     }
@@ -189,7 +188,7 @@ public class TransportAddVotingConfigExclusionsActionTests extends ESTestCase {
             })
         );
 
-        assertTrue(countDownLatch.await(30, TimeUnit.SECONDS));
+        assertThat(countDownLatch.await(30, TimeUnit.SECONDS)).isTrue();
         assertThat(clusterService.getClusterApplierService().state().getVotingConfigExclusions(),
                 containsInAnyOrder(otherNode1Exclusion, otherNode2Exclusion));
         assertWarnings(AddVotingConfigExclusionsRequest.DEPRECATION_MESSAGE);
@@ -206,7 +205,7 @@ public class TransportAddVotingConfigExclusionsActionTests extends ESTestCase {
             })
         );
 
-        assertTrue(countDownLatch.await(30, TimeUnit.SECONDS));
+        assertThat(countDownLatch.await(30, TimeUnit.SECONDS)).isTrue();
         assertThat(clusterService.getClusterApplierService().state().getVotingConfigExclusions(),
                 containsInAnyOrder(localNodeExclusion, otherNode1Exclusion, otherNode2Exclusion));
         assertWarnings(AddVotingConfigExclusionsRequest.DEPRECATION_MESSAGE);
@@ -223,7 +222,7 @@ public class TransportAddVotingConfigExclusionsActionTests extends ESTestCase {
             })
         );
 
-        assertTrue(countDownLatch.await(30, TimeUnit.SECONDS));
+        assertThat(countDownLatch.await(30, TimeUnit.SECONDS)).isTrue();
         assertThat(clusterService.getClusterApplierService().state().getVotingConfigExclusions()).containsExactly(localNodeExclusion);
         assertWarnings(AddVotingConfigExclusionsRequest.DEPRECATION_MESSAGE);
     }
@@ -247,7 +246,7 @@ public class TransportAddVotingConfigExclusionsActionTests extends ESTestCase {
             })
         );
 
-        assertTrue(countDownLatch.await(30, TimeUnit.SECONDS));
+        assertThat(countDownLatch.await(30, TimeUnit.SECONDS)).isTrue();
         assertThat(clusterService.getClusterApplierService().state().getVotingConfigExclusions()).containsExactly(otherNode1Exclusion);
     }
 
@@ -262,7 +261,7 @@ public class TransportAddVotingConfigExclusionsActionTests extends ESTestCase {
             })
         );
 
-        assertTrue(countDownLatch.await(30, TimeUnit.SECONDS));
+        assertThat(countDownLatch.await(30, TimeUnit.SECONDS)).isTrue();
         final Throwable rootCause = exceptionHolder.get().getRootCause();
         assertThat(rootCause).isExactlyInstanceOf(IllegalArgumentException.class);
         assertThat(rootCause.getMessage()).isEqualTo("add voting config exclusions request for [not-a-node] matched no master-eligible nodes");
@@ -281,7 +280,7 @@ public class TransportAddVotingConfigExclusionsActionTests extends ESTestCase {
             })
         );
 
-        assertTrue(countDownLatch.await(30, TimeUnit.SECONDS));
+        assertThat(countDownLatch.await(30, TimeUnit.SECONDS)).isTrue();
         final Throwable rootCause = exceptionHolder.get().getRootCause();
         assertThat(rootCause).isExactlyInstanceOf(IllegalArgumentException.class);
         assertThat(rootCause.getMessage()).isEqualTo("add voting config exclusions request for [_all, master:false] matched no master-eligible nodes");
@@ -300,7 +299,7 @@ public class TransportAddVotingConfigExclusionsActionTests extends ESTestCase {
             })
         );
 
-        assertTrue(countDownLatch.await(30, TimeUnit.SECONDS));
+        assertThat(countDownLatch.await(30, TimeUnit.SECONDS)).isTrue();
         assertEquals(singleton(new VotingConfigExclusion("absent_id", VotingConfigExclusion.MISSING_VALUE_MARKER)),
             clusterService.getClusterApplierService().state().getVotingConfigExclusions());
     }
@@ -318,7 +317,7 @@ public class TransportAddVotingConfigExclusionsActionTests extends ESTestCase {
             })
         );
 
-        assertTrue(countDownLatch.await(30, TimeUnit.SECONDS));
+        assertThat(countDownLatch.await(30, TimeUnit.SECONDS)).isTrue();
         assertThat(clusterService.getClusterApplierService().state().getVotingConfigExclusions(),
             containsInAnyOrder(otherNode1Exclusion, otherNode2Exclusion));
     }
@@ -333,7 +332,7 @@ public class TransportAddVotingConfigExclusionsActionTests extends ESTestCase {
             })
         );
 
-        assertTrue(countDownLatch.await(30, TimeUnit.SECONDS));
+        assertThat(countDownLatch.await(30, TimeUnit.SECONDS)).isTrue();
         assertEquals(singleton(new VotingConfigExclusion(VotingConfigExclusion.MISSING_VALUE_MARKER, "absent_node")),
                     clusterService.getClusterApplierService().state().getVotingConfigExclusions());
     }
@@ -350,7 +349,7 @@ public class TransportAddVotingConfigExclusionsActionTests extends ESTestCase {
             })
         );
 
-        assertTrue(countDownLatch.await(30, TimeUnit.SECONDS));
+        assertThat(countDownLatch.await(30, TimeUnit.SECONDS)).isTrue();
         assertThat(clusterService.getClusterApplierService().state().getVotingConfigExclusions(),
             containsInAnyOrder(otherNode1Exclusion, otherNode2Exclusion));
     }
@@ -374,7 +373,7 @@ public class TransportAddVotingConfigExclusionsActionTests extends ESTestCase {
             })
         );
 
-        assertTrue(countDownLatch.await(30, TimeUnit.SECONDS));
+        assertThat(countDownLatch.await(30, TimeUnit.SECONDS)).isTrue();
         assertThat(clusterService.getClusterApplierService().state().getVotingConfigExclusions()).containsExactly(otherNode1Exclusion);
     }
 
@@ -399,7 +398,7 @@ public class TransportAddVotingConfigExclusionsActionTests extends ESTestCase {
             })
         );
 
-        assertTrue(countDownLatch.await(30, TimeUnit.SECONDS));
+        assertThat(countDownLatch.await(30, TimeUnit.SECONDS)).isTrue();
         assertThat(clusterService.getClusterApplierService().state().getVotingConfigExclusions()).containsExactly(otherNode1Exclusion);
     }
 
@@ -422,7 +421,7 @@ public class TransportAddVotingConfigExclusionsActionTests extends ESTestCase {
             })
         );
 
-        assertTrue(countDownLatch.await(30, TimeUnit.SECONDS));
+        assertThat(countDownLatch.await(30, TimeUnit.SECONDS)).isTrue();
         assertThat(clusterService.getClusterApplierService().state().getVotingConfigExclusions()).containsExactly(otherNode1Exclusion);
     }
 
@@ -459,7 +458,7 @@ public class TransportAddVotingConfigExclusionsActionTests extends ESTestCase {
             })
         );
 
-        assertTrue(countDownLatch.await(30, TimeUnit.SECONDS));
+        assertThat(countDownLatch.await(30, TimeUnit.SECONDS)).isTrue();
         final Throwable rootCause = exceptionHolder.get().getRootCause();
         assertThat(rootCause).isExactlyInstanceOf(IllegalArgumentException.class);
         assertThat(rootCause.getMessage()).isEqualTo("add voting config exclusions request for [other*] would add [" + newCount +
@@ -481,7 +480,7 @@ public class TransportAddVotingConfigExclusionsActionTests extends ESTestCase {
             })
         );
 
-        assertTrue(countDownLatch.await(30, TimeUnit.SECONDS));
+        assertThat(countDownLatch.await(30, TimeUnit.SECONDS)).isTrue();
         final Throwable rootCause = exceptionHolder.get().getRootCause();
         assertThat(rootCause,instanceOf(ElasticsearchTimeoutException.class));
         assertThat(rootCause.getMessage(), startsWith("timed out waiting for voting config exclusions [{other1}"));

@@ -22,7 +22,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.lessThan;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -301,9 +300,9 @@ public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
             }
         }
 
-        assertTrue(keptPreviousGeneration);
-        assertTrue(wroteNewIndex);
-        assertTrue(wroteChangedIndex);
+        assertThat(keptPreviousGeneration).isTrue();
+        assertThat(wroteNewIndex).isTrue();
+        assertThat(wroteChangedIndex).isTrue();
     }
 
     private static class MetaStateServiceWithFailures extends MetaStateService {
@@ -450,7 +449,7 @@ public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
             Tuple<Manifest, Metadata> manifestAndMetadata = metaStateService.loadFullState();
             Metadata loadedMetadata = manifestAndMetadata.v2();
 
-            assertTrue(possibleMetadata.stream().anyMatch(md -> metadataEquals(md, loadedMetadata)));
+            assertThat(possibleMetadata.stream().anyMatch(md -> metadataEquals(md, loadedMetadata))).isTrue();
         }
     }
 

@@ -19,12 +19,10 @@
 
 package org.elasticsearch.transport;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -261,11 +259,11 @@ public class InboundPipelineTests extends ESTestCase {
             try (ReleasableBytesReference slice = new ReleasableBytesReference(partHeaderPartBody, releasable)) {
                 pipeline.handleBytes(fakeChannel(), slice);
             }
-            assertFalse(bodyReleased.get());
+            assertThat(bodyReleased.get()).isFalse();
             try (ReleasableBytesReference slice = new ReleasableBytesReference(reference.slice(reference.length() - 1, 1), releasable)) {
                 pipeline.handleBytes(fakeChannel(), slice);
             }
-            assertTrue(bodyReleased.get());
+            assertThat(bodyReleased.get()).isTrue();
         }
     }
 

@@ -36,10 +36,8 @@ import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
@@ -385,8 +383,8 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
         }
         assertThat(lines).hasSize(2);
         for (String line : lines) {
-            assertTrue(line.contains("2") || line.contains("1"));
-            assertFalse(line.contains("1388534400000"));  // date column not included in export
+            assertThat(line.contains("2") || line.contains("1")).isTrue();
+            assertThat(line.contains("1388534400000")).isFalse();  // date column not included in export
             assertThat(line, startsWith("{"));
             assertThat(line, endsWith("}"));
         }
@@ -408,7 +406,7 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
         for (String line : lines) {
             // date column included in output
             if (!line.contains("1388534400000")) {
-                assertTrue(line.contains("1391212800000"));
+                assertThat(line.contains("1391212800000")).isTrue();
             }
             assertThat(line, startsWith("{"));
             assertThat(line, endsWith("}"));

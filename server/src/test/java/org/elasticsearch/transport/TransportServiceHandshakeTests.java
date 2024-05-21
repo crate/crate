@@ -21,6 +21,7 @@ package org.elasticsearch.transport;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -156,7 +157,7 @@ public class TransportServiceHandshakeTests extends ESTestCase {
             // the name and version should be updated
             assertEquals(connectedNode.getName(), "TS_B");
             assertEquals(connectedNode.getVersion(), handleB.discoveryNode.getVersion());
-            assertFalse(handleA.transportService.nodeConnected(discoveryNode));
+            assertThat(handleA.transportService.nodeConnected(discoveryNode)).isFalse();
         }
     }
 
@@ -179,7 +180,7 @@ public class TransportServiceHandshakeTests extends ESTestCase {
             .hasMessageContaining(
                 "handshake with [" + discoveryNode +
                 "] failed: remote cluster name [b] does not match local cluster name [a]");
-        assertFalse(handleA.transportService.nodeConnected(discoveryNode));
+        assertThat(handleA.transportService.nodeConnected(discoveryNode)).isFalse();
     }
 
     @Test
@@ -203,7 +204,7 @@ public class TransportServiceHandshakeTests extends ESTestCase {
                 "handshake with [" + discoveryNode +
                 "] failed: remote node version [" + handleB.discoveryNode.getVersion() + "] is incompatible with local node version [" +
                 Version.CURRENT + "]");
-        assertFalse(handleA.transportService.nodeConnected(discoveryNode));
+        assertThat(handleA.transportService.nodeConnected(discoveryNode)).isFalse();
     }
 
     public void testNodeConnectWithDifferentNodeId() {
@@ -220,7 +221,7 @@ public class TransportServiceHandshakeTests extends ESTestCase {
             AbstractSimpleTransportTestCase.connectToNode(handleA.transportService, discoveryNode);
         }).isExactlyInstanceOf(ConnectTransportException.class)
             .hasMessageContaining("unexpected remote node");
-        assertFalse(handleA.transportService.nodeConnected(discoveryNode));
+        assertThat(handleA.transportService.nodeConnected(discoveryNode)).isFalse();
     }
 
 

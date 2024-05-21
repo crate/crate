@@ -21,13 +21,12 @@
 
 package io.crate.integrationtests;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -56,7 +55,7 @@ public class SysClusterTest extends IntegTestCase {
         execute("select master_node from sys.cluster");
         assertThat(response.rowCount()).isEqualTo(1L);
         String node = (String) response.rows()[0][0];
-        assertTrue(nodes.contains(node));
+        assertThat(nodes.contains(node)).isTrue();
     }
 
     @Test

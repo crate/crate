@@ -21,6 +21,7 @@ package org.elasticsearch.gateway;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.fail;
 
 import java.nio.file.Files;
@@ -89,8 +90,7 @@ public class MetadataWriteDataNodesIT extends IntegTestCase {
     protected void assertIndexDirectoryDeleted(final String nodeName, final Index index) throws Exception {
         assertBusy(() -> {
                        logger.info("checking if index directory exists...");
-                       assertFalse("Expecting index directory of " + index + " to be deleted from node " + nodeName,
-                                   indexDirectoryExists(nodeName, index));
+                       assertThat(indexDirectoryExists(nodeName, index)).as("Expecting index directory of " + index + " to be deleted from node " + nodeName).isFalse();
                    }
         );
     }
@@ -105,8 +105,7 @@ public class MetadataWriteDataNodesIT extends IntegTestCase {
         assertBusy(() -> {
                        logger.info("checking if meta state exists...");
                        try {
-                           assertTrue("Expecting meta state of index " + indexName + " to be on node " + nodeName,
-                                      getIndicesMetadataOnNode(nodeName).containsKey(indexName));
+                           assertThat(getIndicesMetadataOnNode(nodeName).containsKey(indexName)).as("Expecting meta state of index " + indexName + " to be on node " + nodeName).isTrue();
                        } catch (Exception e) {
                            logger.info("failed to load meta state", e);
                            fail("could not load meta state");
