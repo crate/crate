@@ -35,7 +35,6 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -197,7 +196,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         Reference ref = update.assignmentByTargetCol().keySet().iterator().next();
         assertThat(ref.ident().tableIdent().name()).isEqualTo("users");
         assertThat(ref.column().name()).isEqualTo("name");
-        assertTrue(update.assignmentByTargetCol().containsKey(ref));
+        assertThat(update.assignmentByTargetCol().containsKey(ref)).isTrue();
 
         Symbol value = update.assignmentByTargetCol().entrySet().iterator().next().getValue();
         assertThat(value).isLiteral("Trillian");

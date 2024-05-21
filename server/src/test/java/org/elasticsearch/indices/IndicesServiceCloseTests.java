@@ -23,8 +23,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.coordination.ClusterBootstrapService.INITIAL_MASTER_NODES_SETTING;
 import static org.elasticsearch.discovery.SettingsBasedSeedHostsProvider.DISCOVERY_SEED_HOSTS_SETTING;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -89,10 +87,10 @@ public class IndicesServiceCloseTests extends ESTestCase {
         Node node = startNode();
         IndicesService indicesService = node.injector().getInstance(IndicesService.class);
         assertEquals(1, indicesService.indicesRefCount.refCount());
-        assertFalse(indicesService.awaitClose(0, TimeUnit.MILLISECONDS));
+        assertThat(indicesService.awaitClose(0, TimeUnit.MILLISECONDS)).isFalse();
         node.close();
         assertEquals(0, indicesService.indicesRefCount.refCount());
-        assertTrue(indicesService.awaitClose(0, TimeUnit.MILLISECONDS));
+        assertThat(indicesService.awaitClose(0, TimeUnit.MILLISECONDS)).isTrue();
     }
 
     @Test
@@ -110,11 +108,11 @@ public class IndicesServiceCloseTests extends ESTestCase {
         }
 
         assertEquals(2, indicesService.indicesRefCount.refCount());
-        assertFalse(indicesService.awaitClose(0, TimeUnit.MILLISECONDS));
+        assertThat(indicesService.awaitClose(0, TimeUnit.MILLISECONDS)).isFalse();
 
         node.close();
         assertEquals(0, indicesService.indicesRefCount.refCount());
-        assertTrue(indicesService.awaitClose(0, TimeUnit.MILLISECONDS));
+        assertThat(indicesService.awaitClose(0, TimeUnit.MILLISECONDS)).isTrue();
     }
 
     @Test

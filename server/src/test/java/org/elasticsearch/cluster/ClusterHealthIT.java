@@ -20,12 +20,8 @@
 package org.elasticsearch.cluster;
 
 import static io.crate.testing.SQLTransportExecutor.REQUEST_TIMEOUT;
-import static org.hamcrest.Matchers.equalTo;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -64,7 +60,7 @@ public class ClusterHealthIT extends IntegTestCase {
                     .timeout("30s")
                 ), REQUEST_TIMEOUT);
             logger.info("--> got cluster health on [{}]", node);
-            assertFalse("timed out on " + node, health.isTimedOut());
+            assertThat(health.isTimedOut()).as("timed out on " + node).isFalse();
             assertThat(health.getStatus()).as("health status on " + node).isEqualTo(ClusterHealthStatus.GREEN);
         }
     }
@@ -201,7 +197,7 @@ public class ClusterHealthIT extends IntegTestCase {
                 while (finished.get() == false) {
                     ClusterHealthResponse health = FutureUtils.get(
                         client().admin().cluster().health(new ClusterHealthRequest()));
-                    assertThat(health.getStatus(), not(equalTo(ClusterHealthStatus.RED)));
+                    assertThat(health.getStatus()).isNotEqualTo(ClusterHealthStatus.RED);
                 }
             }
         };
@@ -244,14 +240,14 @@ public class ClusterHealthIT extends IntegTestCase {
 
         execute("create table doc.tbl (x int) with (number_of_replicas = 0)");
         var clusterHealthResponse = FutureUtils.get(client().admin().cluster().health(new ClusterHealthRequest("tbl").waitForGreenStatus()));
-        assertFalse(clusterHealthResponse.isTimedOut());
+        assertThat(clusterHealthResponse.isTimedOut()).isFalse();
 
         // at this point the original health response should not have returned: there was never a point where the index was green AND
         // the master had processed all pending tasks above LANGUID priority.
-        assertFalse(healthResponseFuture.isDone());
+        assertThat(healthResponseFuture.isDone()).isFalse();
 
         keepSubmittingTasks.set(false);
-        assertFalse(healthResponseFuture.get().isTimedOut());
+        assertThat(healthResponseFuture.get().isTimedOut()).isFalse();
     }
 
     @Test

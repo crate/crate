@@ -18,12 +18,10 @@
  */
 package org.elasticsearch.action.admin.cluster.state;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider.CLUSTER_ROUTING_REBALANCE_ENABLE_SETTING;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -162,7 +160,7 @@ public class TransportClusterStateActionDisruptionIT extends IntegTestCase {
                 .stream()
                 .filter(n -> ClusterBootstrapService.isBootstrapPlaceholder(n) == false)
                 .collect(Collectors.toSet());
-            assertThat(nodes, hasSize(3));
+            assertThat(nodes).hasSize(3);
         });
 
         final String masterName = cluster().getMasterName();
@@ -209,7 +207,7 @@ public class TransportClusterStateActionDisruptionIT extends IntegTestCase {
         assertBusy(() -> {
             final String nonMasterNode = randomValueOtherThan(masterName, () -> randomFrom(cluster().getNodeNames()));
             final String claimedMasterName = cluster().getMasterName(nonMasterNode);
-            assertThat(claimedMasterName, not(equalTo(masterName)));
+            assertThat(claimedMasterName).isNotEqualTo(masterName);
         });
 
         shutdown.set(true);

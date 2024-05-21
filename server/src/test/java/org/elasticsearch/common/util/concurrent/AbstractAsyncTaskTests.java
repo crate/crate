@@ -21,6 +21,7 @@ package org.elasticsearch.common.util.concurrent;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -69,7 +70,7 @@ public class AbstractAsyncTaskTests extends ESTestCase {
 
             @Override
             protected void runInternal() {
-                assertTrue("generic threadpool is configured", Thread.currentThread().getName().contains("[generic]"));
+                assertThat(Thread.currentThread().getName().contains("[generic]")).as("generic threadpool is configured").isTrue();
                 try {
                     barrier1.await();
                 } catch (Exception e) {
@@ -92,22 +93,22 @@ public class AbstractAsyncTaskTests extends ESTestCase {
             }
         };
 
-        assertFalse(task.isScheduled());
+        assertThat(task.isScheduled()).isFalse();
         task.rescheduleIfNecessary();
-        assertTrue(task.isScheduled());
+        assertThat(task.isScheduled()).isTrue();
         barrier1.await();
-        assertTrue(task.isScheduled());
+        assertThat(task.isScheduled()).isTrue();
         barrier2.await();
         assertEquals(1, count.get());
         barrier1.reset();
         barrier2.reset();
         barrier1.await();
-        assertTrue(task.isScheduled());
+        assertThat(task.isScheduled()).isTrue();
         task.close();
         barrier2.await();
         assertEquals(2, count.get());
-        assertTrue(task.isClosed());
-        assertFalse(task.isScheduled());
+        assertThat(task.isClosed()).isTrue();
+        assertThat(task.isScheduled()).isFalse();
         assertEquals(2, count.get());
     }
 
@@ -126,7 +127,7 @@ public class AbstractAsyncTaskTests extends ESTestCase {
 
             @Override
             protected void runInternal() {
-                assertTrue("generic threadpool is configured", Thread.currentThread().getName().contains("[generic]"));
+                assertThat(Thread.currentThread().getName().contains("[generic]")).as("generic threadpool is configured").isTrue();
                 count.incrementAndGet();
                 try {
                     barrier.await();
@@ -144,11 +145,11 @@ public class AbstractAsyncTaskTests extends ESTestCase {
             }
         };
 
-        assertFalse(task.isScheduled());
+        assertThat(task.isScheduled()).isFalse();
         task.rescheduleIfNecessary();
         barrier.await();
         assertEquals(1, count.get());
-        assertFalse(task.isScheduled());
+        assertThat(task.isScheduled()).isFalse();
         barrier.reset();
         assertThatThrownBy(() -> barrier.await(10, TimeUnit.MILLISECONDS))
             .isExactlyInstanceOf(TimeoutException.class);
@@ -157,10 +158,10 @@ public class AbstractAsyncTaskTests extends ESTestCase {
         task.rescheduleIfNecessary();
         barrier.await();
         assertEquals(2, count.get());
-        assertFalse(task.isScheduled());
-        assertFalse(task.isClosed());
+        assertThat(task.isScheduled()).isFalse();
+        assertThat(task.isClosed()).isFalse();
         task.close();
-        assertTrue(task.isClosed());
+        assertThat(task.isClosed()).isTrue();
     }
 
     @Test
@@ -178,12 +179,12 @@ public class AbstractAsyncTaskTests extends ESTestCase {
             }
         };
 
-        assertFalse(task.isScheduled());
+        assertThat(task.isScheduled()).isFalse();
         task.rescheduleIfNecessary();
-        assertTrue(task.isScheduled());
+        assertThat(task.isScheduled()).isTrue();
         task.close();
-        assertTrue(task.isClosed());
-        assertFalse(task.isScheduled());
+        assertThat(task.isClosed()).isTrue();
+        assertThat(task.isScheduled()).isFalse();
     }
 
     @Test
@@ -204,16 +205,16 @@ public class AbstractAsyncTaskTests extends ESTestCase {
             }
         };
 
-        assertFalse(task.isScheduled());
+        assertThat(task.isScheduled()).isFalse();
         task.rescheduleIfNecessary();
-        assertTrue(task.isScheduled());
+        assertThat(task.isScheduled()).isTrue();
         task.setInterval(TimeValue.timeValueMillis(1));
-        assertTrue(task.isScheduled());
+        assertThat(task.isScheduled()).isTrue();
         // This should only take 2 milliseconds in ideal conditions, but allow 10 seconds in case of VM stalls
-        assertTrue(latch.await(10, TimeUnit.SECONDS));
+        assertThat(latch.await(10, TimeUnit.SECONDS)).isTrue();
         assertBusy(() -> assertFalse(task.isScheduled()));
         task.close();
-        assertFalse(task.isScheduled());
-        assertTrue(task.isClosed());
+        assertThat(task.isScheduled()).isFalse();
+        assertThat(task.isClosed()).isTrue();
     }
 }

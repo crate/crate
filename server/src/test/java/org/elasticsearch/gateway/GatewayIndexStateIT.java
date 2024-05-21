@@ -26,11 +26,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.indices.ShardLimitValidator.SETTING_CLUSTER_MAX_SHARDS_PER_NODE;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
@@ -414,7 +412,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
         assertBusy(() -> {
             final NodeEnvironment nodeEnv = cluster().getInstance(NodeEnvironment.class);
             try {
-                assertFalse("index folder " + indexUUID + " should be deleted", nodeEnv.availableIndexFolders().contains(indexUUID));
+                assertThat(nodeEnv.availableIndexFolders().contains(indexUUID)).as("index folder " + indexUUID + " should be deleted").isFalse();
             } catch (IOException e) {
                 logger.error("Unable to retrieve available index folders from the node", e);
                 fail("Unable to retrieve available index folders from the node");
@@ -469,7 +467,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
             final IndexRoutingTable indexRoutingTable = routingTable.index(tableName);
             assertNotNull(indexRoutingTable);
             for (IndexShardRoutingTable shardRoutingTable : indexRoutingTable) {
-                assertTrue(shardRoutingTable.primaryShard().unassigned());
+                assertThat(shardRoutingTable.primaryShard().unassigned()).isTrue();
                 assertEquals(UnassignedInfo.AllocationStatus.DECIDERS_NO,
                     shardRoutingTable.primaryShard().unassignedInfo().getLastAllocationStatus());
                 assertThat(shardRoutingTable.primaryShard().unassignedInfo().getNumFailedAllocations(), greaterThan(0));
@@ -555,7 +553,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
             final IndexRoutingTable indexRoutingTable = routingTable.index(tableName);
             assertNotNull(indexRoutingTable);
             for (IndexShardRoutingTable shardRoutingTable : indexRoutingTable) {
-                assertTrue(shardRoutingTable.primaryShard().unassigned());
+                assertThat(shardRoutingTable.primaryShard().unassigned()).isTrue();
                 assertEquals(UnassignedInfo.AllocationStatus.DECIDERS_NO,
                 shardRoutingTable.primaryShard().unassignedInfo().getLastAllocationStatus());
                 assertThat(shardRoutingTable.primaryShard().unassignedInfo().getNumFailedAllocations(), greaterThan(0));

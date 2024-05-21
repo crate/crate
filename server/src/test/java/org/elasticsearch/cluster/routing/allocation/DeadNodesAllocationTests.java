@@ -19,13 +19,10 @@
 
 package org.elasticsearch.cluster.routing.allocation;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.routing.ShardRoutingState.INITIALIZING;
 import static org.elasticsearch.cluster.routing.ShardRoutingState.RELOCATING;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.routing.ShardRoutingState.STARTED;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertThat;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -146,7 +143,7 @@ public class DeadNodesAllocationTests extends ESAllocationTestCase {
         AllocationService.CommandsResult commandsResult = allocation.reroute(clusterState, new AllocationCommands(
             new MoveAllocationCommand("test", 0, clusterState.routingTable().index("test")
                 .shard(0).primaryShard().currentNodeId(), "node3")), false, false);
-        assertThat(commandsResult.getClusterState(), not(equalTo(clusterState)));
+        assertThat(commandsResult.getClusterState()).isNotEqualTo(clusterState);
         clusterState = commandsResult.getClusterState();
         assertThat(clusterState.getRoutingNodes().node(origPrimaryNodeId).iterator().next().state()).isEqualTo(RELOCATING);
         assertThat(clusterState.getRoutingNodes().node("node3").iterator().next().state()).isEqualTo(INITIALIZING);
@@ -216,7 +213,7 @@ public class DeadNodesAllocationTests extends ESAllocationTestCase {
         AllocationService.CommandsResult commandsResult = allocation.reroute(clusterState, new AllocationCommands(
             new MoveAllocationCommand("test",0 , clusterState.routingTable().index("test")
                 .shard(0).primaryShard().currentNodeId(), "node3")), false, false);
-        assertThat(commandsResult.getClusterState(), not(equalTo(clusterState)));
+        assertThat(commandsResult.getClusterState()).isNotEqualTo(clusterState);
         clusterState = commandsResult.getClusterState();
         assertThat(clusterState.getRoutingNodes().node(origPrimaryNodeId).iterator().next().state()).isEqualTo(RELOCATING);
         assertThat(clusterState.getRoutingNodes().node("node3").iterator().next().state()).isEqualTo(INITIALIZING);

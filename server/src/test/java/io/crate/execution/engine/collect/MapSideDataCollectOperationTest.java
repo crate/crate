@@ -23,9 +23,7 @@ package io.crate.execution.engine.collect;
 
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static io.crate.testing.TestingHelpers.createReference;
-import static io.crate.testing.TestingHelpers.isRow;
-import static org.hamcrest.Matchers.contains;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.io.File;
@@ -46,7 +44,6 @@ import org.junit.rules.TemporaryFolder;
 
 import io.crate.analyze.CopyFromParserProperties;
 import io.crate.data.BatchIterator;
-import io.crate.data.CollectionBucket;
 import io.crate.data.Row;
 import io.crate.data.testing.TestingRowConsumer;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
@@ -103,9 +100,9 @@ public class MapSideDataCollectOperationTest extends CrateDummyClusterServiceUni
         BatchIterator<Row> iterator = fileCollectSource.getIterator(
             CoordinatorTxnCtx.systemTransactionContext(), collectNode, collectTask, false).get(5, TimeUnit.SECONDS);
         consumer.accept(iterator, null);
-        assertThat(new CollectionBucket(consumer.getResult()), contains(
-            isRow("Arthur", 38),
-            isRow("Trillian", 33)
-        ));
+        assertThat(consumer.getResult()).containsExactly(
+            new Object[] { "Arthur", 38 },
+            new Object[] { "Trillian", 33}
+        );
     }
 }

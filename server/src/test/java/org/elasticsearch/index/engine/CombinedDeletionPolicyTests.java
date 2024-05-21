@@ -19,14 +19,12 @@
 
 package org.elasticsearch.index.engine;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.index.seqno.SequenceNumbers.NO_OPS_PERFORMED;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.index.translog.TranslogDeletionPolicies.createTranslogDeletionPolicy;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -231,11 +229,11 @@ public class CombinedDeletionPolicyTests extends ESTestCase {
             IndexCommit nextSafeCommit = commitList.get(safeCommitIndex + 1);
             globalCheckpoint.set(randomLongBetween(globalCheckpoint.get(),
                 Long.parseLong(nextSafeCommit.getUserData().get(SequenceNumbers.MAX_SEQ_NO)) - 1));
-            assertFalse(indexPolicy.hasUnreferencedCommits());
+            assertThat(indexPolicy.hasUnreferencedCommits()).isFalse();
             // Advanced enough for some index commit becomes safe
             globalCheckpoint.set(randomLongBetween(
                 Long.parseLong(nextSafeCommit.getUserData().get(SequenceNumbers.MAX_SEQ_NO)), lastMaxSeqNo));
-            assertTrue(indexPolicy.hasUnreferencedCommits());
+            assertThat(indexPolicy.hasUnreferencedCommits()).isTrue();
             // Advanced enough for the last commit becomes safe
             globalCheckpoint.set(randomLongBetween(lastMaxSeqNo, Long.MAX_VALUE));
             commitList.forEach(this::resetDeletion);

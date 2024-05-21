@@ -32,7 +32,6 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -74,7 +73,7 @@ public class ElectionSchedulerFactoryTests extends ESTestCase {
                     }
                     deterministicTaskQueue.runAllRunnableTasks();
                 }
-                assertTrue(electionStarted.compareAndSet(true, false));
+                assertThat(electionStarted.compareAndSet(true, false)).isTrue();
 
                 final long thisElectionStartTime = deterministicTaskQueue.getCurrentTimeMillis();
 
@@ -108,7 +107,7 @@ public class ElectionSchedulerFactoryTests extends ESTestCase {
             }
         }
         deterministicTaskQueue.runAllTasks();
-        assertFalse(electionStarted.get());
+        assertThat(electionStarted.get()).isFalse();
     }
 
     public void testRetriesOnCorrectSchedule() {

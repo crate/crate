@@ -22,9 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.io.IOError;
 import java.io.IOException;
@@ -115,7 +113,7 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
                     .incrementVersion().build());
                 clusterState = loadPersistedClusterState(persistedClusterStateService);
                 assertThat(clusterState.metadata().clusterUUID()).isEqualTo(clusterUUID);
-                assertTrue(clusterState.metadata().clusterUUIDCommitted());
+                assertThat(clusterState.metadata().clusterUUIDCommitted()).isTrue();
                 assertThat(clusterState.metadata().version()).isEqualTo(version);
             }
 
@@ -130,7 +128,7 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
 
             clusterState = loadPersistedClusterState(persistedClusterStateService);
             assertThat(clusterState.metadata().clusterUUID()).isEqualTo(clusterUUID);
-            assertTrue(clusterState.metadata().clusterUUIDCommitted());
+            assertThat(clusterState.metadata().clusterUUIDCommitted()).isTrue();
             assertThat(clusterState.metadata().version()).isEqualTo(version + 1);
         }
     }
@@ -241,7 +239,7 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
         try (NodeEnvironment nodeEnvironment = newNodeEnvironment(combinedPaths)) {
             try (Writer writer = newPersistedClusterStateService(nodeEnvironment).createWriter()) {
                 final ClusterState clusterState = loadPersistedClusterState(newPersistedClusterStateService(nodeEnvironment));
-                assertFalse(clusterState.metadata().clusterUUIDCommitted());
+                assertThat(clusterState.metadata().clusterUUIDCommitted()).isFalse();
                 writer.writeFullStateAndCommit(0L, clusterState);
             }
         }
@@ -249,7 +247,7 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
         try (NodeEnvironment nodeEnvironment = newNodeEnvironment(dataPaths1)) {
             try (Writer writer = newPersistedClusterStateService(nodeEnvironment).createWriter()) {
                 final ClusterState clusterState = loadPersistedClusterState(newPersistedClusterStateService(nodeEnvironment));
-                assertFalse(clusterState.metadata().clusterUUIDCommitted());
+                assertThat(clusterState.metadata().clusterUUIDCommitted()).isFalse();
                 writer.writeFullStateAndCommit(0L, ClusterState.builder(clusterState)
                     .metadata(Metadata.builder(clusterState.metadata())
                                   .clusterUUID(clusterUUID1)
@@ -262,7 +260,7 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
         try (NodeEnvironment nodeEnvironment = newNodeEnvironment(dataPaths2)) {
             try (Writer writer = newPersistedClusterStateService(nodeEnvironment).createWriter()) {
                 final ClusterState clusterState = loadPersistedClusterState(newPersistedClusterStateService(nodeEnvironment));
-                assertFalse(clusterState.metadata().clusterUUIDCommitted());
+                assertThat(clusterState.metadata().clusterUUIDCommitted()).isFalse();
                 writer.writeFullStateAndCommit(0L, ClusterState.builder(clusterState)
                     .metadata(Metadata.builder(clusterState.metadata())
                                   .clusterUUID(clusterUUID2)
@@ -302,7 +300,7 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
         try (NodeEnvironment nodeEnvironment = newNodeEnvironment(combinedPaths)) {
             try (Writer writer = newPersistedClusterStateService(nodeEnvironment).createWriter()) {
                 final ClusterState clusterState = loadPersistedClusterState(newPersistedClusterStateService(nodeEnvironment));
-                assertFalse(clusterState.metadata().clusterUUIDCommitted());
+                assertThat(clusterState.metadata().clusterUUIDCommitted()).isFalse();
                 writeState(writer, staleCurrentTerm, ClusterState.builder(clusterState)
                                .metadata(Metadata.builder(clusterState.metadata()).version(1)
                                              .coordinationMetadata(CoordinationMetadata.builder(clusterState.coordinationMetadata()).term(staleTerm).build()))
@@ -420,7 +418,7 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
                     }
                 }).isExactlyInstanceOf(OutOfMemoryError.class)
                     .hasMessageContaining("simulated");
-                assertFalse(writer.isOpen());
+                assertThat(writer.isOpen()).isFalse();
             }
 
             // check if we can open writer again
@@ -468,7 +466,7 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
                     }
                 }).isExactlyInstanceOf(IOError.class)
                     .hasMessageContaining("simulated");
-                assertFalse(writer.isOpen());
+                assertThat(writer.isOpen()).isFalse();
             }
 
             // check if we can open writer again
@@ -906,7 +904,7 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
 
     @Override
     public Settings buildEnvSettings(Settings settings) {
-        assertTrue(settings.hasValue(Environment.PATH_DATA_SETTING.getKey()));
+        assertThat(settings.hasValue(Environment.PATH_DATA_SETTING.getKey())).isTrue();
         return Settings.builder()
             .put(settings)
             .put(Environment.PATH_HOME_SETTING.getKey(), createTempDir().toAbsolutePath()).build();

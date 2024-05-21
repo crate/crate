@@ -19,11 +19,10 @@
 
 package org.elasticsearch.transport;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -70,15 +69,15 @@ public class InboundDecoderTests extends ESTestCase {
         final Header header = (Header) fragments.get(0);
         assertEquals(requestId, header.getRequestId());
         assertEquals(Version.CURRENT, header.getVersion());
-        assertFalse(header.isCompressed());
-        assertFalse(header.isHandshake());
+        assertThat(header.isCompressed()).isFalse();
+        assertThat(header.isHandshake()).isFalse();
         if (isRequest) {
             assertEquals(action, header.getActionName());
-            assertTrue(header.isRequest());
+            assertThat(header.isRequest()).isTrue();
         } else {
-            assertTrue(header.isResponse());
+            assertThat(header.isResponse()).isTrue();
         }
-        assertFalse(header.needsToReadVariableHeader());
+        assertThat(header.needsToReadVariableHeader()).isFalse();
         fragments.clear();
 
         final BytesReference bytes2 = totalBytes.slice(bytesConsumed, totalBytes.length() - bytesConsumed);
@@ -119,9 +118,9 @@ public class InboundDecoderTests extends ESTestCase {
         assertEquals(requestId, header.getRequestId());
         assertEquals(preHeaderVariableInt, header.getVersion());
         assertEquals(isCompressed, header.isCompressed());
-        assertTrue(header.isHandshake());
-        assertTrue(header.isRequest());
-        assertTrue(header.needsToReadVariableHeader());
+        assertThat(header.isHandshake()).isTrue();
+        assertThat(header.isRequest()).isTrue();
+        assertThat(header.needsToReadVariableHeader()).isTrue();
         fragments.clear();
 
         final BytesReference bytes2 = totalBytes.slice(bytesConsumed, totalBytes.length() - bytesConsumed);
@@ -152,11 +151,11 @@ public class InboundDecoderTests extends ESTestCase {
         final Header header = (Header) fragments.get(0);
         assertEquals(requestId, header.getRequestId());
         assertEquals(handshakeCompat, header.getVersion());
-        assertFalse(header.isCompressed());
-        assertTrue(header.isHandshake());
-        assertTrue(header.isRequest());
+        assertThat(header.isCompressed()).isFalse();
+        assertThat(header.isHandshake()).isTrue();
+        assertThat(header.isRequest()).isTrue();
         // TODO: On 9.0 this will be true because all compatible versions with contain the variable header int
-        assertTrue(header.needsToReadVariableHeader());
+        assertThat(header.needsToReadVariableHeader()).isTrue();
         fragments.clear();
     }
 
@@ -192,15 +191,15 @@ public class InboundDecoderTests extends ESTestCase {
         final Header header = (Header) fragments.get(0);
         assertEquals(requestId, header.getRequestId());
         assertEquals(Version.CURRENT, header.getVersion());
-        assertTrue(header.isCompressed());
-        assertFalse(header.isHandshake());
+        assertThat(header.isCompressed()).isTrue();
+        assertThat(header.isHandshake()).isFalse();
         if (isRequest) {
             assertEquals(action, header.getActionName());
-            assertTrue(header.isRequest());
+            assertThat(header.isRequest()).isTrue();
         } else {
-            assertTrue(header.isResponse());
+            assertThat(header.isResponse()).isTrue();
         }
-        assertFalse(header.needsToReadVariableHeader());
+        assertThat(header.needsToReadVariableHeader()).isFalse();
         fragments.clear();
 
         final BytesReference bytes2 = totalBytes.slice(bytesConsumed, totalBytes.length() - bytesConsumed);
@@ -237,11 +236,11 @@ public class InboundDecoderTests extends ESTestCase {
         final Header header = (Header) fragments.get(0);
         assertEquals(requestId, header.getRequestId());
         assertEquals(handshakeCompat, header.getVersion());
-        assertTrue(header.isCompressed());
-        assertTrue(header.isHandshake());
-        assertTrue(header.isRequest());
+        assertThat(header.isCompressed()).isTrue();
+        assertThat(header.isHandshake()).isTrue();
+        assertThat(header.isRequest()).isTrue();
         // TODO: On 9.0 this will be true because all compatible versions with contain the variable header int
-        assertTrue(header.needsToReadVariableHeader());
+        assertThat(header.needsToReadVariableHeader()).isTrue();
         fragments.clear();
     }
 

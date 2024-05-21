@@ -22,7 +22,6 @@
 package io.crate.statistics;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.junit.Assert.assertThat;
@@ -100,7 +99,7 @@ public class ColumnStatsTest {
 
         ColumnStats<Integer> columnStats = StatsUtils.statsFromValues(DataTypes.INTEGER, numbers);
         List<Integer> histogramSample = columnStats.histogram().subList(0, 8);
-        assertThat(histogramSample, contains(1, 3, 5, 7, 9, 31, 33, 35));
+        assertThat(histogramSample).containsExactly(1, 3, 5, 7, 9, 31, 33, 35);
         MostCommonValues mostCommonValues = columnStats.mostCommonValues();
         assertThat(mostCommonValues.values()).hasSize(2);
         assertThat(mostCommonValues.values().get(0)).isEqualTo(10);
@@ -114,7 +113,7 @@ public class ColumnStatsTest {
         HistogramSketch<Integer> sketch = new HistogramSketch<>(Integer.class, DataTypes.INTEGER);
         IntStream.range(1, 21).boxed().forEach(sketch::update);
         List<Integer> histogram = sketch.toHistogram(4, List.of());
-        assertThat(histogram, contains(1, 7, 13, 19));
+        assertThat(histogram).containsExactly(1, 7, 13, 19);
     }
 
     @Test

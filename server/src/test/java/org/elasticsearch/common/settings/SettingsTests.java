@@ -23,16 +23,13 @@ package org.elasticsearch.common.settings;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -60,7 +57,7 @@ public class SettingsTests extends ESTestCase {
     @Test
     public void testReplacePropertiesPlaceholderSystemProperty() {
         String value = System.getProperty("java.home");
-        assertFalse(value.isEmpty());
+        assertThat(value.isEmpty()).isFalse();
         Settings settings = Settings.builder()
             .put("property.placeholder", value)
             .put("setting1", "${property.placeholder}")
@@ -77,7 +74,7 @@ public class SettingsTests extends ESTestCase {
             .putList("setting1", "${HOSTNAME}", "${HOSTIP}")
             .replacePropertyPlaceholders(name -> name.equals("HOSTNAME") ? hostname : name.equals("HOSTIP") ? hostip : null)
             .build();
-        assertThat(settings.getAsList("setting1"), contains(hostname, hostip));
+        assertThat(settings.getAsList("setting1")).containsExactly(hostname, hostip);
     }
 
     @Test
@@ -111,7 +108,7 @@ public class SettingsTests extends ESTestCase {
             .put("foo.baz", "ghi").build();
 
         Settings fooSettings = settings.getAsSettings("foo");
-        assertFalse(fooSettings.isEmpty());
+        assertThat(fooSettings.isEmpty()).isFalse();
         assertEquals(2, fooSettings.size());
         assertThat(fooSettings.get("bar")).isEqualTo("def");
         assertThat(fooSettings.get("baz")).isEqualTo("ghi");
@@ -126,13 +123,13 @@ public class SettingsTests extends ESTestCase {
             .put("3.4", "ghi").build();
 
         Settings firstLevelSettings = settings.getByPrefix("1.");
-        assertFalse(firstLevelSettings.isEmpty());
+        assertThat(firstLevelSettings.isEmpty()).isFalse();
         assertEquals(2, firstLevelSettings.size());
         assertThat(firstLevelSettings.get("2.3.4")).isEqualTo("abc");
         assertThat(firstLevelSettings.get("2.3")).isEqualTo("hello world");
 
         Settings secondLevelSetting = firstLevelSettings.getByPrefix("2.");
-        assertFalse(secondLevelSetting.isEmpty());
+        assertThat(secondLevelSetting.isEmpty()).isFalse();
         assertEquals(2, secondLevelSetting.size());
         assertNull(secondLevelSetting.get("2.3.4"));
         assertNull(secondLevelSetting.get("1.2.3.4"));
@@ -141,7 +138,7 @@ public class SettingsTests extends ESTestCase {
         assertThat(secondLevelSetting.get("3")).isEqualTo("hello world");
 
         Settings thirdLevelSetting = secondLevelSetting.getByPrefix("3.");
-        assertFalse(thirdLevelSetting.isEmpty());
+        assertThat(thirdLevelSetting.isEmpty()).isFalse();
         assertEquals(1, thirdLevelSetting.size());
         assertNull(thirdLevelSetting.get("2.3.4"));
         assertNull(thirdLevelSetting.get("3.4"));
@@ -159,14 +156,14 @@ public class SettingsTests extends ESTestCase {
 
         Set<String> names = settings.names();
         assertThat(names.size()).isEqualTo(2);
-        assertTrue(names.contains("bar"));
-        assertTrue(names.contains("foo"));
+        assertThat(names.contains("bar")).isTrue();
+        assertThat(names.contains("foo")).isTrue();
 
         Settings fooSettings = settings.getAsSettings("foo");
         names = fooSettings.names();
         assertThat(names.size()).isEqualTo(2);
-        assertTrue(names.contains("bar"));
-        assertTrue(names.contains("baz"));
+        assertThat(names.contains("bar")).isTrue();
+        assertThat(names.contains("baz")).isTrue();
     }
 
     @Test
@@ -176,83 +173,83 @@ public class SettingsTests extends ESTestCase {
             .put(Settings.builder().putList("value", "1").build())
             .put(Settings.builder().putList("value", "2", "3").build())
             .build();
-        assertThat(settings.getAsList("value"), contains("2", "3"));
+        assertThat(settings.getAsList("value")).containsExactly("2", "3");
 
         settings = Settings.builder()
             .put(Settings.builder().put("value", "1").build())
             .put(Settings.builder().putList("value", "2", "3").build())
             .build();
-        assertThat(settings.getAsList("value"), contains("2", "3"));
+        assertThat(settings.getAsList("value")).containsExactly("2", "3");
         settings = Settings.builder().loadFromSource("value: 1", XContentType.YAML)
             .loadFromSource("value: [ 2, 3 ]", XContentType.YAML)
             .build();
-        assertThat(settings.getAsList("value"), contains("2", "3"));
+        assertThat(settings.getAsList("value")).containsExactly("2", "3");
 
         settings = Settings.builder()
             .put(Settings.builder().put("value.with.deep.key", "1").build())
             .put(Settings.builder().putList("value.with.deep.key", "2", "3").build())
             .build();
-        assertThat(settings.getAsList("value.with.deep.key"), contains("2", "3"));
+        assertThat(settings.getAsList("value.with.deep.key")).containsExactly("2", "3");
 
         // overriding an array with a shorter array
         settings = Settings.builder()
             .put(Settings.builder().putList("value", "1", "2").build())
             .put(Settings.builder().putList("value", "3").build())
             .build();
-        assertThat(settings.getAsList("value"), contains("3"));
+        assertThat(settings.getAsList("value")).containsExactly("3");
 
         settings = Settings.builder()
             .put(Settings.builder().putList("value", "1", "2", "3").build())
             .put(Settings.builder().putList("value", "4", "5").build())
             .build();
-        assertThat(settings.getAsList("value"), contains("4", "5"));
+        assertThat(settings.getAsList("value")).containsExactly("4", "5");
 
         settings = Settings.builder()
             .put(Settings.builder().putList("value.deep.key", "1", "2", "3").build())
             .put(Settings.builder().putList("value.deep.key", "4", "5").build())
             .build();
-        assertThat(settings.getAsList("value.deep.key"), contains("4", "5"));
+        assertThat(settings.getAsList("value.deep.key")).containsExactly("4", "5");
 
         // overriding an array with a longer array
         settings = Settings.builder()
             .put(Settings.builder().putList("value", "1", "2").build())
             .put(Settings.builder().putList("value", "3", "4", "5").build())
             .build();
-        assertThat(settings.getAsList("value"), contains("3", "4", "5"));
+        assertThat(settings.getAsList("value")).containsExactly("3", "4", "5");
 
         settings = Settings.builder()
             .put(Settings.builder().putList("value.deep.key", "1", "2", "3").build())
             .put(Settings.builder().putList("value.deep.key", "4", "5").build())
             .build();
-        assertThat(settings.getAsList("value.deep.key"), contains("4", "5"));
+        assertThat(settings.getAsList("value.deep.key")).containsExactly("4", "5");
 
         // overriding an array with a single value
         settings = Settings.builder()
             .put(Settings.builder().putList("value", "1", "2").build())
             .put(Settings.builder().put("value", "3").build())
             .build();
-        assertThat(settings.getAsList("value"), contains("3"));
+        assertThat(settings.getAsList("value")).containsExactly("3");
 
         settings = Settings.builder()
             .put(Settings.builder().putList("value.deep.key", "1", "2").build())
             .put(Settings.builder().put("value.deep.key", "3").build())
             .build();
-        assertThat(settings.getAsList("value.deep.key"), contains("3"));
+        assertThat(settings.getAsList("value.deep.key")).containsExactly("3");
 
         // test that other arrays are not overridden
         settings = Settings.builder()
             .put(Settings.builder().putList("value", "1", "2", "3").putList("a", "b", "c").build())
             .put(Settings.builder().putList("value", "4", "5").putList("d", "e", "f").build())
             .build();
-        assertThat(settings.getAsList("value"), contains("4", "5"));
-        assertThat(settings.getAsList("a"), contains("b", "c"));
-        assertThat(settings.getAsList("d"), contains("e", "f"));
+        assertThat(settings.getAsList("value")).containsExactly("4", "5");
+        assertThat(settings.getAsList("a")).containsExactly("b", "c");
+        assertThat(settings.getAsList("d")).containsExactly("e", "f");
 
         settings = Settings.builder()
             .put(Settings.builder().putList("value.deep.key", "1", "2", "3").putList("a", "b", "c").build())
             .put(Settings.builder().putList("value.deep.key", "4", "5").putList("d", "e", "f").build())
             .build();
-        assertThat(settings.getAsList("value.deep.key"), contains("4", "5"));
+        assertThat(settings.getAsList("value.deep.key")).containsExactly("4", "5");
         assertThat(settings.getAsList("a")).isNotNull();
         assertThat(settings.getAsList("d")).isNotNull();
 
@@ -261,7 +258,7 @@ public class SettingsTests extends ESTestCase {
             .put(Settings.builder().put("value.data", "1").build())
             .put(Settings.builder().putList("value", "4", "5").build())
             .build();
-        assertThat(settings.getAsList("value"), contains("4", "5"));
+        assertThat(settings.getAsList("value")).containsExactly("4", "5");
 
         // overriding an array with a deeper structure
         settings = Settings.builder()
@@ -324,15 +321,15 @@ public class SettingsTests extends ESTestCase {
         int numKeys = 0;
         for (String k : filteredSettings.keySet()) {
             numKeys++;
-            assertTrue(k.startsWith("a.b"));
+            assertThat(k.startsWith("a.b")).isTrue();
         }
 
         assertEquals(3, numKeys);
-        assertFalse(filteredSettings.keySet().contains("a.c"));
-        assertFalse(filteredSettings.keySet().contains("a"));
-        assertTrue(filteredSettings.keySet().contains("a.b"));
-        assertTrue(filteredSettings.keySet().contains("a.b.c"));
-        assertTrue(filteredSettings.keySet().contains("a.b.c.d"));
+        assertThat(filteredSettings.keySet().contains("a.c")).isFalse();
+        assertThat(filteredSettings.keySet().contains("a")).isFalse();
+        assertThat(filteredSettings.keySet().contains("a.b")).isTrue();
+        assertThat(filteredSettings.keySet().contains("a.b.c")).isTrue();
+        assertThat(filteredSettings.keySet().contains("a.b.c.d")).isTrue();
         assertThatThrownBy(() -> filteredSettings.keySet().remove("a.b"))
             .isExactlyInstanceOf(UnsupportedOperationException.class);
         assertEquals("ab1", filteredSettings.get("a.b"));
@@ -341,18 +338,18 @@ public class SettingsTests extends ESTestCase {
 
         Iterator<String> iterator = filteredSettings.keySet().iterator();
         for (int i = 0; i < 10; i++) {
-            assertTrue(iterator.hasNext());
+            assertThat(iterator.hasNext()).isTrue();
         }
         assertEquals("a.b", iterator.next());
         if (randomBoolean()) {
-            assertTrue(iterator.hasNext());
+            assertThat(iterator.hasNext()).isTrue();
         }
         assertEquals("a.b.c", iterator.next());
         if (randomBoolean()) {
-            assertTrue(iterator.hasNext());
+            assertThat(iterator.hasNext()).isTrue();
         }
         assertEquals("a.b.c.d", iterator.next());
-        assertFalse(iterator.hasNext());
+        assertThat(iterator.hasNext()).isFalse();
         assertThatThrownBy(() -> iterator.next())
             .isExactlyInstanceOf(NoSuchElementException.class);
 
@@ -372,16 +369,16 @@ public class SettingsTests extends ESTestCase {
         int numKeys = 0;
         for (String k : prefixMap.keySet()) {
             numKeys++;
-            assertTrue(k, k.startsWith("b") || k.startsWith("c"));
+            assertThat(k.startsWith("b") || k.startsWith("c")).as(k).isTrue();
         }
 
         assertEquals(4, numKeys);
 
-        assertFalse(prefixMap.keySet().contains("a"));
-        assertTrue(prefixMap.keySet().contains("c"));
-        assertTrue(prefixMap.keySet().contains("b"));
-        assertTrue(prefixMap.keySet().contains("b.c"));
-        assertTrue(prefixMap.keySet().contains("b.c.d"));
+        assertThat(prefixMap.keySet().contains("a")).isFalse();
+        assertThat(prefixMap.keySet().contains("c")).isTrue();
+        assertThat(prefixMap.keySet().contains("b")).isTrue();
+        assertThat(prefixMap.keySet().contains("b.c")).isTrue();
+        assertThat(prefixMap.keySet().contains("b.c.d")).isTrue();
         assertThatThrownBy(() -> prefixMap.keySet().remove("a.b"))
             .isExactlyInstanceOf(UnsupportedOperationException.class);
         assertEquals("ab1", prefixMap.get("b"));
@@ -389,22 +386,22 @@ public class SettingsTests extends ESTestCase {
         assertEquals("ab3", prefixMap.get("b.c.d"));
         Iterator<String> prefixIterator = prefixMap.keySet().iterator();
         for (int i = 0; i < 10; i++) {
-            assertTrue(prefixIterator.hasNext());
+            assertThat(prefixIterator.hasNext()).isTrue();
         }
         assertEquals("b", prefixIterator.next());
         if (randomBoolean()) {
-            assertTrue(prefixIterator.hasNext());
+            assertThat(prefixIterator.hasNext()).isTrue();
         }
         assertEquals("b.c", prefixIterator.next());
         if (randomBoolean()) {
-            assertTrue(prefixIterator.hasNext());
+            assertThat(prefixIterator.hasNext()).isTrue();
         }
         assertEquals("b.c.d", prefixIterator.next());
         if (randomBoolean()) {
-            assertTrue(prefixIterator.hasNext());
+            assertThat(prefixIterator.hasNext()).isTrue();
         }
         assertEquals("c", prefixIterator.next());
-        assertFalse(prefixIterator.hasNext());
+        assertThat(prefixIterator.hasNext()).isFalse();
         assertThatThrownBy(() -> prefixIterator.next())
             .isExactlyInstanceOf(NoSuchElementException.class);
     }
@@ -439,11 +436,11 @@ public class SettingsTests extends ESTestCase {
         Settings filteredSettings = builder.build().filter((k) -> false);
         assertEquals(0, filteredSettings.size());
 
-        assertFalse(filteredSettings.keySet().contains("a.c"));
-        assertFalse(filteredSettings.keySet().contains("a"));
-        assertFalse(filteredSettings.keySet().contains("a.b"));
-        assertFalse(filteredSettings.keySet().contains("a.b.c"));
-        assertFalse(filteredSettings.keySet().contains("a.b.c.d"));
+        assertThat(filteredSettings.keySet().contains("a.c")).isFalse();
+        assertThat(filteredSettings.keySet().contains("a")).isFalse();
+        assertThat(filteredSettings.keySet().contains("a.b")).isFalse();
+        assertThat(filteredSettings.keySet().contains("a.b.c")).isFalse();
+        assertThat(filteredSettings.keySet().contains("a.b.c.d")).isFalse();
         assertThatThrownBy(() -> filteredSettings.keySet().remove("a.b"))
             .isExactlyInstanceOf(UnsupportedOperationException.class);
         assertNull(filteredSettings.get("a.b"));
@@ -452,7 +449,7 @@ public class SettingsTests extends ESTestCase {
 
         Iterator<String> iterator = filteredSettings.keySet().iterator();
         for (int i = 0; i < 10; i++) {
-            assertFalse(iterator.hasNext());
+            assertThat(iterator.hasNext()).isFalse();
         }
         assertThatThrownBy(() -> iterator.next())
             .isExactlyInstanceOf(NoSuchElementException.class);
@@ -460,7 +457,7 @@ public class SettingsTests extends ESTestCase {
 
     @Test
     public void testEmpty() {
-        assertTrue(Settings.EMPTY.isEmpty());
+        assertThat(Settings.EMPTY.isEmpty()).isTrue();
     }
 
     @Test
@@ -477,7 +474,7 @@ public class SettingsTests extends ESTestCase {
         assertEquals(3, settings.size());
         assertEquals("blah1", settings.get("test.key1.baz"));
         assertNull(settings.get("test.key3.bar"));
-        assertTrue(settings.keySet().contains("test.key3.bar"));
+        assertThat(settings.keySet().contains("test.key3.bar")).isTrue();
         assertEquals(Arrays.asList("1", "2"), settings.getAsList("test.key4.foo"));
     }
 
@@ -591,7 +588,7 @@ public class SettingsTests extends ESTestCase {
                      Settings.builder().copy("foo.bar", settings).build().getAsList("foo.bar"));
         assertEquals("baz", Settings.builder().copy("foo.bar.baz", settings).build().get("foo.bar.baz"));
         assertNull(Settings.builder().copy("foo.bar.baz", settings).build().get("test"));
-        assertTrue(Settings.builder().copy("test", settings).build().keySet().contains("test"));
+        assertThat(Settings.builder().copy("test", settings).build().keySet().contains("test")).isTrue();
         assertThatThrownBy(() -> Settings.builder().copy("not_there", settings))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("source key not found in the source settings");

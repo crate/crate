@@ -19,14 +19,9 @@
 
 package org.elasticsearch.test;
 
-import java.io.IOException;
-
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+
+import java.io.IOException;
 
 /**
  * Utility class that encapsulates standard checks and assertions around testing the equals() and hashCode()
@@ -72,30 +67,29 @@ public class EqualsHashCodeTestUtils {
             MutateFunction<T> mutationFunction) {
         try {
             String objectName = original.getClass().getSimpleName();
-            assertFalse(objectName + " is equal to null", original.equals(null));
+            assertThat(original.equals(null)).as(objectName + " is equal to null").isFalse();
             // TODO not sure how useful the following test is
-            assertFalse(objectName + " is equal to incompatible type", original.equals(ESTestCase.randomFrom(someObjects)));
-            assertTrue(objectName + " is not equal to self", original.equals(original));
+            assertThat(original.equals(ESTestCase.randomFrom(someObjects))).as(objectName + " is equal to incompatible type").isFalse();
+            assertThat(original.equals(original)).as(objectName + " is not equal to self").isTrue();
             assertThat(original.hashCode()).as(objectName + " hashcode returns different values if called multiple times").isEqualTo(original.hashCode());
             if (mutationFunction != null) {
                 T mutation = mutationFunction.mutate(original);
-                assertThat(objectName + " mutation should not be equal to original", mutation,
-                        not(equalTo(original)));
+                assertThat(mutation).as(objectName + " mutation should not be equal to original").isNotEqualTo(original);
             }
 
             T copy = copyFunction.copy(original);
-            assertTrue(objectName + " copy is not equal to self", copy.equals(copy));
-            assertTrue(objectName + " is not equal to its copy", original.equals(copy));
-            assertTrue("equals is not symmetric", copy.equals(original));
+            assertThat(copy.equals(copy)).as(objectName + " copy is not equal to self").isTrue();
+            assertThat(original.equals(copy)).as(objectName + " is not equal to its copy").isTrue();
+            assertThat(copy.equals(original)).as("equals is not symmetric").isTrue();
             assertThat(copy.hashCode()).as(objectName + " hashcode is different from copies hashcode").isEqualTo(original.hashCode());
 
             T secondCopy = copyFunction.copy(copy);
-            assertTrue("second copy is not equal to self", secondCopy.equals(secondCopy));
-            assertTrue("copy is not equal to its second copy", copy.equals(secondCopy));
+            assertThat(secondCopy.equals(secondCopy)).as("second copy is not equal to self").isTrue();
+            assertThat(copy.equals(secondCopy)).as("copy is not equal to its second copy").isTrue();
             assertThat(copy.hashCode()).as("second copy's hashcode is different from original hashcode").isEqualTo(secondCopy.hashCode());
-            assertTrue("equals is not transitive", original.equals(secondCopy));
-            assertTrue("equals is not symmetric", secondCopy.equals(copy));
-            assertTrue("equals is not symmetric", secondCopy.equals(original));
+            assertThat(original.equals(secondCopy)).as("equals is not transitive").isTrue();
+            assertThat(secondCopy.equals(copy)).as("equals is not symmetric").isTrue();
+            assertThat(secondCopy.equals(original)).as("equals is not symmetric").isTrue();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

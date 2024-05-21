@@ -22,7 +22,6 @@ package org.elasticsearch.index.engine;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -139,7 +138,7 @@ public class NoOpEngineTests extends EngineTestCase {
                     if (randomBoolean()) {
                         String delId = Integer.toString(i);
                         Engine.DeleteResult result = engine.delete(new Engine.Delete(delId, newUid(delId), primaryTerm.get()));
-                        assertTrue(result.isFound());
+                        assertThat(result.isFound()).isTrue();
                         engine.syncTranslog(); // advance persisted local checkpoint
                         globalCheckpoint.set(engine.getPersistedLocalCheckpoint());
                         deletions += 1;

@@ -22,7 +22,6 @@
 package io.crate.planner.optimizer.symbol.rule;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 
@@ -106,7 +105,7 @@ public class SimplifyEqualsOperationOnIdenticalReferencesTest {
             ),
             DataTypes.BOOLEAN);
         Match<Function> match = RULE.pattern().accept(functionToOptimize, Captures.empty());
-        assertTrue(match.isPresent());
+        assertThat(match.isPresent()).isTrue();
         Symbol optimizedFunction = RULE.apply(match.value(), match.captures(), NODE_CONTEXT, null);
         Symbol expected = new Function(
             NotPredicate.SIGNATURE,
@@ -139,7 +138,7 @@ public class SimplifyEqualsOperationOnIdenticalReferencesTest {
             DataTypes.BOOLEAN
         );
         Match<Function> match = RULE.pattern().accept(functionToOptimize, Captures.empty());
-        assertTrue(match.isPresent());
+        assertThat(match.isPresent()).isTrue();
         Symbol optimizedFunction = RULE.apply(match.value(), match.captures(), NODE_CONTEXT, dummyParent);
         assertThat(optimizedFunction).isNull();
     }
@@ -154,7 +153,7 @@ public class SimplifyEqualsOperationOnIdenticalReferencesTest {
             ),
             DataTypes.BOOLEAN);
         Match<Function> match = RULE.pattern().accept(functionToOptimize, Captures.empty());
-        assertTrue(match.isPresent());
+        assertThat(match.isPresent()).isTrue();
         // function to optimize has no parent
         Symbol optimizedFunction = RULE.apply(match.value(), match.captures(), NODE_CONTEXT, null);
         assertThat(optimizedFunction).isEqualTo(Literal.BOOLEAN_TRUE);
@@ -184,7 +183,7 @@ public class SimplifyEqualsOperationOnIdenticalReferencesTest {
             ),
             DataTypes.BOOLEAN);
         Match<Function> match = RULE.pattern().accept(func.arguments().get(0), Captures.empty());
-        assertTrue(match.isPresent());
+        assertThat(match.isPresent()).isTrue();
         Symbol optimizedFunction = RULE.apply(match.value(), match.captures(), NODE_CONTEXT, func);
         assertThat(optimizedFunction).isEqualTo(Literal.BOOLEAN_TRUE);
     }

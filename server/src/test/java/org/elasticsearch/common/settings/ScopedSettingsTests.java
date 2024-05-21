@@ -22,12 +22,9 @@ package org.elasticsearch.common.settings;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -81,40 +78,40 @@ public class ScopedSettingsTests extends ESTestCase {
 
         Settings.Builder target = Settings.builder().put(currentSettings);
         Settings.Builder update = Settings.builder();
-        assertTrue(service.updateDynamicSettings(Settings.builder().put("some.dyn.setting", 8).build(),
-            target, update, "node"));
+        assertThat(service.updateDynamicSettings(Settings.builder().put("some.dyn.setting", 8).build(),
+            target, update, "node")).isTrue();
         assertEquals(8, dynamicSetting.get(target.build()).intValue());
         assertEquals(6, staticSetting.get(target.build()).intValue());
         assertEquals(9, target.build().getAsInt("archived.foo.bar", null).intValue());
 
         target = Settings.builder().put(currentSettings);
         update = Settings.builder();
-        assertTrue(service.updateDynamicSettings(Settings.builder().putNull("some.dyn.setting").build(),
-            target, update, "node"));
+        assertThat(service.updateDynamicSettings(Settings.builder().putNull("some.dyn.setting").build(),
+            target, update, "node")).isTrue();
         assertEquals(1, dynamicSetting.get(target.build()).intValue());
         assertEquals(6, staticSetting.get(target.build()).intValue());
         assertEquals(9, target.build().getAsInt("archived.foo.bar", null).intValue());
 
         target = Settings.builder().put(currentSettings);
         update = Settings.builder();
-        assertTrue(service.updateDynamicSettings(Settings.builder().putNull("archived.foo.bar").build(),
-            target, update, "node"));
+        assertThat(service.updateDynamicSettings(Settings.builder().putNull("archived.foo.bar").build(),
+            target, update, "node")).isTrue();
         assertEquals(5, dynamicSetting.get(target.build()).intValue());
         assertEquals(6, staticSetting.get(target.build()).intValue());
         assertNull(target.build().getAsInt("archived.foo.bar", null));
 
         target = Settings.builder().put(currentSettings);
         update = Settings.builder();
-        assertTrue(service.updateDynamicSettings(Settings.builder().putNull("some.*").build(),
-            target, update, "node"));
+        assertThat(service.updateDynamicSettings(Settings.builder().putNull("some.*").build(),
+            target, update, "node")).isTrue();
         assertEquals(1, dynamicSetting.get(target.build()).intValue());
         assertEquals(6, staticSetting.get(target.build()).intValue());
         assertEquals(9, target.build().getAsInt("archived.foo.bar", null).intValue());
 
         target = Settings.builder().put(currentSettings);
         update = Settings.builder();
-        assertTrue(service.updateDynamicSettings(Settings.builder().putNull("*").build(),
-            target, update, "node"));
+        assertThat(service.updateDynamicSettings(Settings.builder().putNull("*").build(),
+            target, update, "node")).isTrue();
         assertEquals(1, dynamicSetting.get(target.build()).intValue());
         assertEquals(6, staticSetting.get(target.build()).intValue());
         assertNull(target.build().getAsInt("archived.foo.bar", null));
@@ -491,8 +488,8 @@ public class ScopedSettingsTests extends ESTestCase {
             new ClusterSettings(Settings.EMPTY,
                 new HashSet<>(Arrays.asList(Setting.intSetting("foo.bar", 1, Property.Dynamic, Property.NodeScope),
                     Setting.intSetting("foo.bar.baz", 1, Property.NodeScope))));
-        assertFalse(settings.isDynamicSetting("foo.bar.baz"));
-        assertTrue(settings.isDynamicSetting("foo.bar"));
+        assertThat(settings.isDynamicSetting("foo.bar.baz")).isFalse();
+        assertThat(settings.isDynamicSetting("foo.bar")).isTrue();
         assertNotNull(settings.get("foo.bar.baz"));
     }
 
@@ -505,15 +502,15 @@ public class ScopedSettingsTests extends ESTestCase {
                     Setting.groupSetting("foo.list.",  Property.Final, Property.NodeScope),
                     Setting.intSetting("foo.int.baz", 1, Property.NodeScope))));
 
-        assertFalse(settings.isFinalSetting("foo.int.baz"));
-        assertTrue(settings.isFinalSetting("foo.int"));
+        assertThat(settings.isFinalSetting("foo.int.baz")).isFalse();
+        assertThat(settings.isFinalSetting("foo.int")).isTrue();
 
-        assertFalse(settings.isFinalSetting("foo.list"));
-        assertTrue(settings.isFinalSetting("foo.list.0.key"));
-        assertTrue(settings.isFinalSetting("foo.list.key"));
+        assertThat(settings.isFinalSetting("foo.list")).isFalse();
+        assertThat(settings.isFinalSetting("foo.list.0.key")).isTrue();
+        assertThat(settings.isFinalSetting("foo.list.key")).isTrue();
 
-        assertFalse(settings.isFinalSetting("foo.group"));
-        assertTrue(settings.isFinalSetting("foo.group.key"));
+        assertThat(settings.isFinalSetting("foo.group")).isFalse();
+        assertThat(settings.isFinalSetting("foo.group.key")).isTrue();
     }
 
     @Test
@@ -677,13 +674,13 @@ public class ScopedSettingsTests extends ESTestCase {
 
     @Test
     public void testKeyPattern() {
-        assertTrue(AbstractScopedSettings.isValidKey("a.b.c-b.d"));
-        assertTrue(AbstractScopedSettings.isValidKey("a.b.c.d"));
-        assertTrue(AbstractScopedSettings.isValidKey("a.b_012.c_b.d"));
-        assertTrue(AbstractScopedSettings.isValidKey("a"));
-        assertFalse(AbstractScopedSettings.isValidKey("a b"));
-        assertFalse(AbstractScopedSettings.isValidKey(""));
-        assertFalse(AbstractScopedSettings.isValidKey("\""));
+        assertThat(AbstractScopedSettings.isValidKey("a.b.c-b.d")).isTrue();
+        assertThat(AbstractScopedSettings.isValidKey("a.b.c.d")).isTrue();
+        assertThat(AbstractScopedSettings.isValidKey("a.b_012.c_b.d")).isTrue();
+        assertThat(AbstractScopedSettings.isValidKey("a")).isTrue();
+        assertThat(AbstractScopedSettings.isValidKey("a b")).isFalse();
+        assertThat(AbstractScopedSettings.isValidKey("")).isFalse();
+        assertThat(AbstractScopedSettings.isValidKey("\"")).isFalse();
 
         try {
             new IndexScopedSettings(
@@ -726,14 +723,14 @@ public class ScopedSettingsTests extends ESTestCase {
 
     @Test
     public void testAffixKeyPattern() {
-        assertTrue(AbstractScopedSettings.isValidAffixKey("prefix.*.suffix"));
-        assertTrue(AbstractScopedSettings.isValidAffixKey("prefix.*.split.suffix"));
-        assertTrue(AbstractScopedSettings.isValidAffixKey("split.prefix.*.split.suffix"));
-        assertFalse(AbstractScopedSettings.isValidAffixKey("prefix.*.suffix."));
-        assertFalse(AbstractScopedSettings.isValidAffixKey("prefix.*"));
-        assertFalse(AbstractScopedSettings.isValidAffixKey("*.suffix"));
-        assertFalse(AbstractScopedSettings.isValidAffixKey("*"));
-        assertFalse(AbstractScopedSettings.isValidAffixKey(""));
+        assertThat(AbstractScopedSettings.isValidAffixKey("prefix.*.suffix")).isTrue();
+        assertThat(AbstractScopedSettings.isValidAffixKey("prefix.*.split.suffix")).isTrue();
+        assertThat(AbstractScopedSettings.isValidAffixKey("split.prefix.*.split.suffix")).isTrue();
+        assertThat(AbstractScopedSettings.isValidAffixKey("prefix.*.suffix.")).isFalse();
+        assertThat(AbstractScopedSettings.isValidAffixKey("prefix.*")).isFalse();
+        assertThat(AbstractScopedSettings.isValidAffixKey("*.suffix")).isFalse();
+        assertThat(AbstractScopedSettings.isValidAffixKey("*")).isFalse();
+        assertThat(AbstractScopedSettings.isValidAffixKey("")).isFalse();
     }
 
     @Test
@@ -926,10 +923,10 @@ public class ScopedSettingsTests extends ESTestCase {
                         .put("foo.remaining", randomAlphaOfLength(8))
                         .build();
         final Settings upgradedSettings = service.upgradeSettings(settings);
-        assertFalse(oldSetting.exists(upgradedSettings));
-        assertTrue(newSetting.exists(upgradedSettings));
+        assertThat(oldSetting.exists(upgradedSettings)).isFalse();
+        assertThat(newSetting.exists(upgradedSettings)).isTrue();
         assertThat(newSetting.get(upgradedSettings)).isEqualTo("new." + oldSetting.get(settings));
-        assertTrue(remainingSetting.exists(upgradedSettings));
+        assertThat(remainingSetting.exists(upgradedSettings)).isTrue();
         assertThat(remainingSetting.get(upgradedSettings)).isEqualTo(remainingSetting.get(settings));
     }
 
@@ -960,7 +957,7 @@ public class ScopedSettingsTests extends ESTestCase {
 
         final Settings settings = Settings.builder().put("foo.remaining", randomAlphaOfLength(8)).build();
         final Settings upgradedSettings = service.upgradeSettings(settings);
-        assertThat(upgradedSettings, sameInstance(settings));
+        assertThat(upgradedSettings).isSameAs(settings);
     }
 
     @Test
@@ -1008,11 +1005,11 @@ public class ScopedSettingsTests extends ESTestCase {
         final Settings settings = builder.build();
         final Settings upgradedSettings = service.upgradeSettings(settings);
         for (final String concrete : concretes) {
-            assertFalse(oldSetting.getConcreteSettingForNamespace(concrete).exists(upgradedSettings));
-            assertTrue(newSetting.getConcreteSettingForNamespace(concrete).exists(upgradedSettings));
+            assertThat(oldSetting.getConcreteSettingForNamespace(concrete).exists(upgradedSettings)).isFalse();
+            assertThat(newSetting.getConcreteSettingForNamespace(concrete).exists(upgradedSettings)).isTrue();
             assertThat(
                     newSetting.getConcreteSettingForNamespace(concrete).get(upgradedSettings)).isEqualTo("new." + oldSetting.getConcreteSettingForNamespace(concrete).get(settings));
-            assertTrue(remainingSetting.getConcreteSettingForNamespace(concrete).exists(upgradedSettings));
+            assertThat(remainingSetting.getConcreteSettingForNamespace(concrete).exists(upgradedSettings)).isTrue();
             assertThat(
                     remainingSetting.getConcreteSettingForNamespace(concrete).get(upgradedSettings)).isEqualTo(remainingSetting.getConcreteSettingForNamespace(concrete).get(settings));
         }
@@ -1056,8 +1053,8 @@ public class ScopedSettingsTests extends ESTestCase {
 
         final Settings settings = Settings.builder().putList("foo.old", values).build();
         final Settings upgradedSettings = service.upgradeSettings(settings);
-        assertFalse(oldSetting.exists(upgradedSettings));
-        assertTrue(newSetting.exists(upgradedSettings));
+        assertThat(oldSetting.exists(upgradedSettings)).isFalse();
+        assertThat(newSetting.exists(upgradedSettings)).isTrue();
         assertThat(
                 newSetting.get(upgradedSettings)).isEqualTo(oldSetting.get(settings).stream().map(s -> "new." + s).collect(Collectors.toList()));
     }

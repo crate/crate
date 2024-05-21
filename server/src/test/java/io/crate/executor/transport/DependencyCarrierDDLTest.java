@@ -21,11 +21,8 @@
 
 package io.crate.executor.transport;
 
-import static io.crate.testing.TestingHelpers.isRow;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.contains;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.util.List;
@@ -84,7 +81,7 @@ public class DependencyCarrierDDLTest extends IntegTestCase {
         execute("alter table t partition (id = 1) close");
 
         Bucket bucket = executePlan(plan.plan, plan.plannerContext, new Row1(1));
-        assertThat(bucket, contains(isRow(-1L)));
+        assertThat(bucket).containsExactly(new Row1(-1L));
 
         execute("select * from information_schema.table_partitions where table_name = 't'");
         assertThat(response.rowCount()).isEqualTo(0L);
@@ -103,7 +100,7 @@ public class DependencyCarrierDDLTest extends IntegTestCase {
         PlannerContext plannerContext = mock(PlannerContext.class);
         Bucket objects = executePlan(node, plannerContext);
 
-        assertThat(objects, contains(isRow(1L)));
+        assertThat(objects).containsExactly(new Row1(1L));
         var stateResponse = client().admin().cluster().state(new ClusterStateRequest()).get();
         assertEquals("false", stateResponse.getState().metadata()
             .persistentSettings().get(persistentSetting)
@@ -116,7 +113,7 @@ public class DependencyCarrierDDLTest extends IntegTestCase {
         node = new UpdateSettingsPlan(transientSettings, false);
         objects = executePlan(node, plannerContext);
 
-        assertThat(objects, contains(isRow(1L)));
+        assertThat(objects).containsExactly(new Row1(1L));
         stateResponse = client().admin().cluster().state(new ClusterStateRequest()).get();
         assertEquals("123s", stateResponse.getState().metadata()
             .transientSettings().get(transientSetting)

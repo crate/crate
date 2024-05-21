@@ -43,7 +43,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -1228,7 +1227,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             Thread.sleep(100);
             retry++;
         }
-        assertTrue(retry < 100);
+        assertThat(retry < 100).isTrue();
     }
 
     @Test
@@ -1298,7 +1297,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         ensureYellow();
         refresh();
 
-        assertTrue(clusterService().state().metadata().hasAlias(getFqn("tbl")));
+        assertThat(clusterService().state().metadata().hasAlias(getFqn("tbl"))).isTrue();
 
         RelationName relationName = new RelationName(defaultSchema, "tbl");
         List<String> partitions = List.of(

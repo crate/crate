@@ -23,9 +23,7 @@ package io.crate.expression.udf;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertThat;
 
 import java.util.List;
@@ -68,22 +66,22 @@ public class UserDefinedFunctionServiceTest extends UdfUnitTest {
     @Test
     public void testFirstFunction() throws Exception {
         UserDefinedFunctionsMetadata metadata = udfService.putFunction(null, same1, true);
-        assertThat(metadata.functionsMetadata(), hasSize(1));
-        assertThat(metadata.functionsMetadata(), contains(same1));
+        assertThat(metadata.functionsMetadata()).hasSize(1);
+        assertThat(metadata.functionsMetadata()).containsExactly(same1);
     }
 
     @Test
     public void testReplaceExistingFunction() throws Exception {
         UserDefinedFunctionsMetadata metadata = udfService.putFunction(UserDefinedFunctionsMetadata.of(same1), same2, true);
-        assertThat(metadata.functionsMetadata(), hasSize(1));
-        assertThat(metadata.functionsMetadata(), contains(same2));
+        assertThat(metadata.functionsMetadata()).hasSize(1);
+        assertThat(metadata.functionsMetadata()).containsExactly(same2);
     }
 
     @Test
     public void testReplaceNotExistingFunction() throws Exception {
         UserDefinedFunctionsMetadata metadata =
             udfService.putFunction(UserDefinedFunctionsMetadata.of(same1), different, true);
-        assertThat(metadata.functionsMetadata(), hasSize(2));
+        assertThat(metadata.functionsMetadata()).hasSize(2);
         assertThat(metadata.functionsMetadata(), containsInAnyOrder(same1, different));
     }
 

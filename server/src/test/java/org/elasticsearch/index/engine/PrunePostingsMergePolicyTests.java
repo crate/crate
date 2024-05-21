@@ -21,6 +21,7 @@ package org.elasticsearch.index.engine;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -96,11 +97,11 @@ public class PrunePostingsMergePolicyTests extends ESTestCase {
                     Terms id = leafReader.terms("id");
                     TermsEnum iterator = id.iterator();
                     for (int i = 0; i < numUniqueDocs; i++) {
-                        assertTrue(iterator.seekExact(new BytesRef("" + i)));
+                        assertThat(iterator.seekExact(new BytesRef("" + i))).isTrue();
                         assertEquals(1, iterator.docFreq());
                     }
                     iterator = leafReader.terms("text").iterator();
-                    assertTrue(iterator.seekExact(new BytesRef("quick")));
+                    assertThat(iterator.seekExact(new BytesRef("quick"))).isTrue();
                     assertEquals(leafReader.maxDoc(), iterator.docFreq());
                     int numValues = 0;
                     NumericDocValues sort = leafReader.getNumericDocValues("sort");
@@ -108,8 +109,8 @@ public class PrunePostingsMergePolicyTests extends ESTestCase {
                         if (sorted) {
                             assertEquals(sort.docID(), sort.longValue());
                         } else {
-                            assertTrue(sort.longValue() >= 0);
-                            assertTrue(sort.longValue() < numDocs);
+                            assertThat(sort.longValue() >= 0).isTrue();
+                            assertThat(sort.longValue() < numDocs).isTrue();
                         }
                         numValues++;
                     }
@@ -133,12 +134,12 @@ public class PrunePostingsMergePolicyTests extends ESTestCase {
                         TermsEnum iterator = id.iterator();
                         assertEquals(numUniqueDocs, id.size());
                         for (int i = 0; i < numUniqueDocs; i++) {
-                            assertTrue(iterator.seekExact(new BytesRef("" + i)));
+                            assertThat(iterator.seekExact(new BytesRef("" + i))).isTrue();
                             assertEquals(1, iterator.docFreq());
                         }
-                        assertFalse(iterator.seekExact(new BytesRef("test")));
+                        assertThat(iterator.seekExact(new BytesRef("test"))).isFalse();
                         iterator = leafReader.terms("text").iterator();
-                        assertTrue(iterator.seekExact(new BytesRef("quick")));
+                        assertThat(iterator.seekExact(new BytesRef("quick"))).isTrue();
                         assertEquals(leafReader.maxDoc(), iterator.docFreq());
                     }
                 }
@@ -163,7 +164,7 @@ public class PrunePostingsMergePolicyTests extends ESTestCase {
                         assertEquals(0, leafReader.numDocs());
                         assertNull(leafReader.terms("id"));
                         TermsEnum iterator = leafReader.terms("text").iterator();
-                        assertTrue(iterator.seekExact(new BytesRef("quick")));
+                        assertThat(iterator.seekExact(new BytesRef("quick"))).isTrue();
                         assertEquals(leafReader.maxDoc(), iterator.docFreq());
                     }
                 }

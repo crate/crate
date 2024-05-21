@@ -19,9 +19,8 @@
 
 package org.elasticsearch.gateway;
 
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.Matchers.equalTo;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -207,7 +206,7 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
             assertBusy(() -> {
                 execute("select unnest(retention_leases['leases']['id']) from sys.shards where table_name = 'test'");
                 for (var row : response.rows()) {
-                    assertThat(row[0], not(equalTo((ReplicationTracker.getPeerRecoveryRetentionLeaseId(discoNodeWithReplica.getId())))));
+                    assertThat(row[0]).isNotEqualTo((ReplicationTracker.getPeerRecoveryRetentionLeaseId(discoNodeWithReplica.getId())));
                 }
             });
             // AllocationService only calls GatewayAllocator if there are unassigned shards

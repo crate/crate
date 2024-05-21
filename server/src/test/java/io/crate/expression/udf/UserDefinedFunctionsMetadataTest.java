@@ -25,7 +25,6 @@ import static io.crate.expression.udf.UserDefinedFunctionMetadata.argumentTypesF
 import static io.crate.expression.udf.UserDefinedFunctionMetadata.specificName;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.List;
@@ -128,7 +127,7 @@ public class UserDefinedFunctionsMetadataTest extends ESTestCase {
             xContentRegistry(), DeprecationHandler.THROW_UNSUPPORTED_OPERATION, BytesReference.toBytes(BytesReference.bytes(builder)));
         parser.nextToken();  // enter START_OBJECT
         ArrayType type2 = (ArrayType) UserDefinedFunctionMetadata.DataTypeXContent.fromXContent(parser);
-        assertTrue(type.equals(type2));
+        assertThat(type.equals(type2)).isTrue();
     }
 
     @Test

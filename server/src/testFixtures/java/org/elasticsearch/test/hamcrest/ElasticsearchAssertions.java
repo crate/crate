@@ -21,7 +21,6 @@ package org.elasticsearch.test.hamcrest;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -60,8 +59,7 @@ public class ElasticsearchAssertions {
      */
     public static void assertAcked(CreateIndexResponse response) {
         assertThat(response.isAcknowledged()).as(response.getClass().getSimpleName() + " failed - not acked").isEqualTo(true);
-        assertTrue(response.getClass().getSimpleName() + " failed - index creation acked but not all shards were started",
-            response.isShardsAcknowledged());
+        assertThat(response.isShardsAcknowledged()).as(response.getClass().getSimpleName() + " failed - index creation acked but not all shards were started").isTrue();
     }
 
 
@@ -109,7 +107,7 @@ public class ElasticsearchAssertions {
             String expectedKey = expectedEntry.getKey();
             Object expectedValue = expectedEntry.getValue();
             if (expectedValue == null) {
-                assertTrue(actual.get(expectedKey) == null && actual.containsKey(expectedKey));
+                assertThat(actual.get(expectedKey) == null && actual.containsKey(expectedKey)).isTrue();
             } else {
                 Object actualValue = actual.get(expectedKey);
                 assertObjectEquals(expectedValue, actualValue);

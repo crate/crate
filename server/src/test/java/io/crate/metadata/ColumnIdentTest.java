@@ -21,7 +21,6 @@
 
 package io.crate.metadata;
 
-import static junit.framework.TestCase.assertTrue;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -154,7 +153,7 @@ public class ColumnIdentTest {
             }
         }
 
-        assertTrue(expecedExceptionIsThrown);
+        assertThat(expecedExceptionIsThrown).isTrue();
     }
 
     @Test

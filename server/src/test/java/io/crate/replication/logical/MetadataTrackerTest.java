@@ -27,7 +27,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
 import static org.elasticsearch.cluster.routing.TestShardRouting.newShardRouting;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.junit.Assert.assertThat;
 
@@ -413,8 +412,8 @@ public class MetadataTrackerTest extends ESTestCase {
             subscriberClusterState,
             updatedResponse
         );
-        assertThat(restoreDiff.relationsForStateUpdate(), contains(RelationName.fromIndexName("t2")));
-        assertThat(restoreDiff.indexNamesToRestore(), contains("t2"));
+        assertThat(restoreDiff.relationsForStateUpdate()).containsExactly(RelationName.fromIndexName("t2"));
+        assertThat(restoreDiff.indexNamesToRestore()).containsExactly("t2");
         assertThat(restoreDiff.templatesToRestore(), empty());
     }
 
@@ -442,9 +441,9 @@ public class MetadataTrackerTest extends ESTestCase {
             subscriberClusterState,
             publisherStateResponse
         );
-        assertThat(restoreDiff.relationsForStateUpdate(), contains(RelationName.fromIndexName("p1")));
+        assertThat(restoreDiff.relationsForStateUpdate()).containsExactly(RelationName.fromIndexName("p1"));
         assertThat(restoreDiff.indexNamesToRestore(), empty());
-        assertThat(restoreDiff.templatesToRestore(), contains(templateName));
+        assertThat(restoreDiff.templatesToRestore()).containsExactly(templateName);
     }
 
     @Test
@@ -470,9 +469,9 @@ public class MetadataTrackerTest extends ESTestCase {
             publisherStateResponse
         );
 
-        assertThat(restoreDiff.relationsForStateUpdate(), contains(newRelation));
-        assertThat(restoreDiff.indexNamesToRestore(), contains(newPartitionName.asIndexName()));
-        assertThat(restoreDiff.templatesToRestore(), contains(templateName));
+        assertThat(restoreDiff.relationsForStateUpdate()).containsExactly(newRelation);
+        assertThat(restoreDiff.indexNamesToRestore()).containsExactly(newPartitionName.asIndexName());
+        assertThat(restoreDiff.templatesToRestore()).containsExactly(templateName);
     }
 
     @Test
@@ -498,8 +497,8 @@ public class MetadataTrackerTest extends ESTestCase {
             publisherStateResponse
         );
 
-        assertThat(restoreDiff.relationsForStateUpdate(), contains(relationName));
-        assertThat(restoreDiff.indexNamesToRestore(), contains(newPartitionName.asIndexName()));
+        assertThat(restoreDiff.relationsForStateUpdate()).containsExactly(relationName);
+        assertThat(restoreDiff.indexNamesToRestore()).containsExactly(newPartitionName.asIndexName());
         assertThat(restoreDiff.templatesToRestore(), empty());
     }
 
@@ -532,9 +531,9 @@ public class MetadataTrackerTest extends ESTestCase {
             publisherStateResponse
         );
 
-        assertThat(restoreDiff.relationsForStateUpdate(), contains(newRelationName));
+        assertThat(restoreDiff.relationsForStateUpdate()).containsExactly(newRelationName);
         assertThat(restoreDiff.indexNamesToRestore()).isEqualTo(List.of(newPartitionName.asIndexName()));
-        assertThat(restoreDiff.templatesToRestore(), contains(newTemplateName));
+        assertThat(restoreDiff.templatesToRestore()).containsExactly(newTemplateName);
     }
 
     @Test

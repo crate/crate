@@ -24,12 +24,11 @@ package org.elasticsearch.indices.recovery;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.biasedDoubleBetween;
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonMap;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.node.RecoverySettingsChunkSizePlugin.CHUNK_SIZE_SETTING;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -207,7 +206,7 @@ public class IndexRecoveryIT extends IntegTestCase {
                     .put(CHUNK_SIZE_SETTING.getKey(), new ByteSizeValue(chunkSize, ByteSizeUnit.BYTES))
                 )
             ));
-        assertTrue(response.isAcknowledged());
+        assertThat(response.isAcknowledged()).isTrue();
     }
 
     private void restoreRecoverySpeed() {
@@ -219,7 +218,7 @@ public class IndexRecoveryIT extends IntegTestCase {
                     .put(CHUNK_SIZE_SETTING.getKey(), RecoverySettings.DEFAULT_CHUNK_SIZE)
                 )
         ));
-        assertTrue(response.isAcknowledged());
+        assertThat(response.isAcknowledged()).isTrue();
     }
 
     private List<RecoveryState> findRecoveriesForTargetNode(String nodeName, List<RecoveryState> recoveryStates) {
@@ -560,7 +559,7 @@ public class IndexRecoveryIT extends IntegTestCase {
 
         logger.info("--> start node C");
         String nodeC = cluster().startNode();
-        assertFalse(client().admin().cluster().health(new ClusterHealthRequest().waitForNodes("3")).get().isTimedOut());
+        assertThat(client().admin().cluster().health(new ClusterHealthRequest().waitForNodes("3")).get().isTimedOut()).isFalse();
 
         logger.info("--> slowing down recoveries");
         slowDownRecovery(shardSize);
@@ -733,7 +732,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         ClusterStateResponse stateResponse = client().admin().cluster().state(new ClusterStateRequest()).get();
         final String blueNodeId = cluster().getInstance(ClusterService.class, blueNodeName).localNode().getId();
 
-        assertFalse(stateResponse.getState().getRoutingNodes().node(blueNodeId).isEmpty());
+        assertThat(stateResponse.getState().getRoutingNodes().node(blueNodeId).isEmpty()).isFalse();
 
         refresh();
         var searchResponse = execute("SELECT COUNT(*) FROM doc." + indexName);
@@ -858,7 +857,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         ClusterStateResponse stateResponse = client().admin().cluster().state(new ClusterStateRequest()).get();
         final String blueNodeId = cluster().getInstance(ClusterService.class, blueNodeName).localNode().getId();
 
-        assertFalse(stateResponse.getState().getRoutingNodes().node(blueNodeId).isEmpty());
+        assertThat(stateResponse.getState().getRoutingNodes().node(blueNodeId).isEmpty()).isFalse();
 
         refresh();
         var searchResponse = execute("SELECT COUNT(*) FROM doc." + indexName);
@@ -1219,7 +1218,7 @@ public class IndexRecoveryIT extends IntegTestCase {
             cluster().ensureAtLeastNumDataNodes(3);
             execute("ALTER TABLE doc.test RESET (\"routing.allocation.include._name\")");
             execute("ALTER TABLE doc.test SET (number_of_replicas = 2)");
-            assertFalse(client().admin().cluster().health(new ClusterHealthRequest("test").waitForActiveShards(2)).get().isTimedOut());
+            assertThat(client().admin().cluster().health(new ClusterHealthRequest("test").waitForActiveShards(2)).get().isTimedOut()).isFalse();
         } finally {
             allowToCompletePhase1Latch.countDown();
         }
@@ -1298,8 +1297,8 @@ public class IndexRecoveryIT extends IntegTestCase {
                 public Settings onNodeStopped(String nodeName) throws Exception {
                     assertBusy(() -> {
                         var indicesStats = client().admin().indices().stats(new IndicesStatsRequest().indices(indexName)).get();
-                        assertFalse(indicesStats.getShards()[0].getRetentionLeaseStats().leases().contains(
-                            ReplicationTracker.getPeerRecoveryRetentionLeaseId(shardToResync)));
+                        assertThat(indicesStats.getShards()[0].getRetentionLeaseStats().leases().contains(
+                            ReplicationTracker.getPeerRecoveryRetentionLeaseId(shardToResync))).isFalse();
                     });
                     return super.onNodeStopped(nodeName);
                 }
@@ -1429,12 +1428,12 @@ public class IndexRecoveryIT extends IntegTestCase {
                                       new TestCluster.RestartCallback() {
                                           @Override
                                           public Settings onNodeStopped(String nodeName) throws Exception {
-                                              assertFalse(
+                                              assertThat(
                                                     client().admin().cluster().health(
                                                         new ClusterHealthRequest()
                                                             .waitForNodes(Integer.toString(discoveryNodes.getSize() - 1))
                                                             .waitForEvents(Priority.LANGUID)
-                                                    ).get().isTimedOut());
+                                                    ).get().isTimedOut()).isFalse();
 
                                               final PlainActionFuture<ReplicationResponse> future = new PlainActionFuture<>();
                                               primary.removeRetentionLease(ReplicationTracker.getPeerRecoveryRetentionLeaseId(replicaShardRouting), future);
@@ -1485,13 +1484,13 @@ public class IndexRecoveryIT extends IntegTestCase {
             new TestCluster.RestartCallback() {
                 @Override
                 public Settings onNodeStopped(String nodeName) throws Exception {
-                    assertFalse(
+                    assertThat(
                         client().admin().cluster().health(
                             new ClusterHealthRequest()
                                 .waitForNodes(Integer.toString(discoveryNodes.getSize() - 1))
                                 .waitForEvents(Priority.LANGUID)
                             ).get().isTimedOut()
-                    );
+                    ).isFalse();
 
                     execute("INSERT INTO doc.test (num) VALUES (?)", args);
 
@@ -1556,9 +1555,8 @@ public class IndexRecoveryIT extends IntegTestCase {
             var indicesStats = client().admin().indices().stats(new IndicesStatsRequest().indices(indexName)).get();
             for (ShardStats shardStats : indicesStats.getShards()) {
                 final long maxSeqNo = shardStats.getSeqNoStats().getMaxSeqNo();
-                assertTrue(shardStats.getRetentionLeaseStats().leases() + " should discard history up to " + maxSeqNo,
-                           shardStats.getRetentionLeaseStats().leases().leases().stream().allMatch(
-                               l -> l.retainingSequenceNumber() == maxSeqNo + 1));
+                assertThat(shardStats.getRetentionLeaseStats().leases().leases().stream().allMatch(
+                               l -> l.retainingSequenceNumber() == maxSeqNo + 1)).as(shardStats.getRetentionLeaseStats().leases() + " should discard history up to " + maxSeqNo).isTrue();
             }
         });
         execute("OPTIMIZE TABLE doc.test"); // ensure that all operations are in the safe commit
@@ -1575,18 +1573,18 @@ public class IndexRecoveryIT extends IntegTestCase {
 
         final ShardRouting replicaShardRouting = indexShardRoutingTable.replicaShards().get(0);
         indicesStats = client().admin().indices().stats(new IndicesStatsRequest().indices(indexName)).get();
-        assertTrue("should have lease for " + replicaShardRouting, indicesStats.getShards()[0].getRetentionLeaseStats()
-                       .leases().contains(ReplicationTracker.getPeerRecoveryRetentionLeaseId(replicaShardRouting)));
+        assertThat(indicesStats.getShards()[0].getRetentionLeaseStats()
+                       .leases().contains(ReplicationTracker.getPeerRecoveryRetentionLeaseId(replicaShardRouting))).as("should have lease for " + replicaShardRouting).isTrue();
         cluster().restartNode(discoveryNodes.get(replicaShardRouting.currentNodeId()).getName(),
                                       new TestCluster.RestartCallback() {
                                           @Override
                                           public Settings onNodeStopped(String nodeName) throws Exception {
-                                              assertFalse(
+                                              assertThat(
                                                     client().admin().cluster().health(
                                                         new ClusterHealthRequest()
                                                             .waitForNodes(Integer.toString(discoveryNodes.getSize() - 1))
                                                             .waitForEvents(Priority.LANGUID)
-                                                    ).get().isTimedOut());
+                                                    ).get().isTimedOut()).isFalse();
 
                                               final int newDocCount = Math.toIntExact(Math.round(Math.ceil(
                                                   (1 + Math.ceil(docCount * reasonableOperationsBasedRecoveryProportion))
@@ -1620,10 +1618,9 @@ public class IndexRecoveryIT extends IntegTestCase {
 
                                               assertBusy(() -> {
                                                   var indicesStats = client().admin().indices().stats(new IndicesStatsRequest().indices(indexName)).get();
-                                                  assertFalse(
-                                                        "should no longer have lease for " + replicaShardRouting,
-                                                        indicesStats.getShards()[0].getRetentionLeaseStats().leases().contains(
-                                                            ReplicationTracker.getPeerRecoveryRetentionLeaseId(replicaShardRouting)));
+                                                  assertThat(indicesStats.getShards()[0].getRetentionLeaseStats().leases().contains(
+                                                            ReplicationTracker.getPeerRecoveryRetentionLeaseId(replicaShardRouting))).as(
+                                                        "should no longer have lease for " + replicaShardRouting).isFalse();
                                               });
                                               return super.onNodeStopped(nodeName);
                                           }

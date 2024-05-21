@@ -22,10 +22,7 @@
 package io.crate.execution.engine.indexing;
 
 import static io.crate.data.SentinelRow.SENTINEL;
-import static io.crate.testing.TestingHelpers.isRow;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
-import static org.junit.Assert.assertThat;
 
 import java.util.Collections;
 import java.util.List;
@@ -46,6 +43,7 @@ import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
+import io.crate.data.Row1;
 import io.crate.data.RowN;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.data.testing.TestingRowConsumer;
@@ -126,7 +124,7 @@ public class IndexWriterProjectorTest extends IntegTestCase {
         consumer.accept(writerProjector.apply(rowsIterator), null);
         Bucket objects = consumer.getBucket();
 
-        assertThat(objects, contains(isRow(100L)));
+        assertThat(objects).containsExactly(new Row1(100L));
 
         execute("refresh table bulk_import");
         execute("select count(*) from bulk_import");

@@ -19,13 +19,11 @@
 
 package org.elasticsearch.cluster.routing.allocation;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
 import static org.elasticsearch.cluster.routing.ShardRoutingState.INITIALIZING;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.routing.ShardRoutingState.STARTED;
 import static org.elasticsearch.cluster.routing.ShardRoutingState.UNASSIGNED;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
@@ -108,7 +106,7 @@ public class IndexBalanceTests extends ESAllocationTestCase {
                 .add(newNode("node3"))).build();
 
         ClusterState newState = strategy.reroute(clusterState, "reroute");
-        assertThat(newState, not(equalTo(clusterState)));
+        assertThat(newState).isNotEqualTo(clusterState);
         clusterState = newState;
 
         assertThat(clusterState.routingTable().index("test").shards().size()).isEqualTo(3);
@@ -127,7 +125,7 @@ public class IndexBalanceTests extends ESAllocationTestCase {
         assertThat(newState).isEqualTo(clusterState);
 
         newState = startInitializingShardsAndReroute(strategy, clusterState);
-        assertThat(newState, not(equalTo(clusterState)));
+        assertThat(newState).isNotEqualTo(clusterState);
         clusterState = newState;
         assertThat(clusterState.routingTable().index("test").shards().size()).isEqualTo(3);
         for (int i = 0; i < clusterState.routingTable().index("test").shards().size(); i++) {
@@ -147,7 +145,7 @@ public class IndexBalanceTests extends ESAllocationTestCase {
 
         logger.info("Start the more shards");
         newState = startInitializingShardsAndReroute(strategy, clusterState);
-        assertThat(newState, not(equalTo(clusterState)));
+        assertThat(newState).isNotEqualTo(clusterState);
         clusterState = newState;
         RoutingNodes routingNodes = clusterState.getRoutingNodes();
 
@@ -231,7 +229,7 @@ public class IndexBalanceTests extends ESAllocationTestCase {
         clusterState = ClusterState.builder(clusterState).nodes(DiscoveryNodes.builder().add(newNode("node1"))).build();
 
         ClusterState newState = strategy.reroute(clusterState, "reroute");
-        assertThat(newState, not(equalTo(clusterState)));
+        assertThat(newState).isNotEqualTo(clusterState);
         clusterState = newState;
         assertThat(clusterState.routingTable().index("test").shards().size()).isEqualTo(3);
         for (int i = 0; i < clusterState.routingTable().index("test").shards().size(); i++) {
@@ -252,7 +250,7 @@ public class IndexBalanceTests extends ESAllocationTestCase {
 
         logger.info("Start the primary shard");
         newState = startInitializingShardsAndReroute(strategy, clusterState);
-        assertThat(newState, not(equalTo(clusterState)));
+        assertThat(newState).isNotEqualTo(clusterState);
         clusterState = newState;
         assertThat(clusterState.routingTable().index("test").shards().size()).isEqualTo(3);
         for (int i = 0; i < clusterState.routingTable().index("test").shards().size(); i++) {
@@ -272,7 +270,7 @@ public class IndexBalanceTests extends ESAllocationTestCase {
 
         logger.info("Start the backup shard");
         newState = startInitializingShardsAndReroute(strategy, clusterState);
-        assertThat(newState, not(equalTo(clusterState)));
+        assertThat(newState).isNotEqualTo(clusterState);
         clusterState = newState;
 
         assertThat(clusterState.routingTable().index("test").shards().size()).isEqualTo(3);
@@ -296,7 +294,7 @@ public class IndexBalanceTests extends ESAllocationTestCase {
         clusterState = ClusterState.builder(clusterState)
             .nodes(DiscoveryNodes.builder(clusterState.nodes()).add(newNode("node3"))).build();
         newState = strategy.reroute(clusterState, "reroute");
-        assertThat(newState, not(equalTo(clusterState)));
+        assertThat(newState).isNotEqualTo(clusterState);
         clusterState = newState;
 
         logger.info("Reroute, nothing should change");
@@ -305,13 +303,13 @@ public class IndexBalanceTests extends ESAllocationTestCase {
 
         logger.info("Start the backup shard");
         newState = startInitializingShardsAndReroute(strategy, clusterState);
-        assertThat(newState, not(equalTo(clusterState)));
+        assertThat(newState).isNotEqualTo(clusterState);
         clusterState = newState;
 
         assertThat(clusterState.routingTable().index("test").shards().size()).isEqualTo(3);
 
         newState = startInitializingShardsAndReroute(strategy, clusterState);
-        assertThat(newState, not(equalTo(clusterState)));
+        assertThat(newState).isNotEqualTo(clusterState);
         clusterState = newState;
         RoutingNodes routingNodes = clusterState.getRoutingNodes();
 
@@ -366,7 +364,7 @@ public class IndexBalanceTests extends ESAllocationTestCase {
             .nodes(DiscoveryNodes.builder().add(newNode("node1")).add(newNode("node2")).add(newNode("node3"))).build();
 
         ClusterState newState = strategy.reroute(clusterState, "reroute");
-        assertThat(newState, not(equalTo(clusterState)));
+        assertThat(newState).isNotEqualTo(clusterState);
         clusterState = newState;
         assertThat(clusterState.routingTable().index("test").shards().size()).isEqualTo(3);
         for (int i = 0; i < clusterState.routingTable().index("test").shards().size(); i++) {
@@ -385,7 +383,7 @@ public class IndexBalanceTests extends ESAllocationTestCase {
 
 
         newState = startInitializingShardsAndReroute(strategy, clusterState);
-        assertThat(newState, not(equalTo(clusterState)));
+        assertThat(newState).isNotEqualTo(clusterState);
         clusterState = newState;
         assertThat(clusterState.routingTable().index("test").shards().size()).isEqualTo(3);
         for (int i = 0; i < clusterState.routingTable().index("test").shards().size(); i++) {
@@ -405,7 +403,7 @@ public class IndexBalanceTests extends ESAllocationTestCase {
 
         logger.info("Start the more shards");
         newState = startInitializingShardsAndReroute(strategy, clusterState);
-        assertThat(newState, not(equalTo(clusterState)));
+        assertThat(newState).isNotEqualTo(clusterState);
         clusterState = newState;
         RoutingNodes routingNodes = clusterState.getRoutingNodes();
         assertThat(clusterState.routingTable().index("test").shards().size()).isEqualTo(3);
@@ -440,7 +438,7 @@ public class IndexBalanceTests extends ESAllocationTestCase {
         assertThat(clusterState.routingTable().index("test1").shards().size()).isEqualTo(3);
 
         newState = strategy.reroute(clusterState, "reroute");
-        assertThat(newState, not(equalTo(clusterState)));
+        assertThat(newState).isNotEqualTo(clusterState);
         clusterState = newState;
         assertThat(clusterState.routingTable().index("test1").shards().size()).isEqualTo(3);
         for (int i = 0; i < clusterState.routingTable().index("test1").shards().size(); i++) {
@@ -459,7 +457,7 @@ public class IndexBalanceTests extends ESAllocationTestCase {
 
 
         newState = startInitializingShardsAndReroute(strategy, clusterState);
-        assertThat(newState, not(equalTo(clusterState)));
+        assertThat(newState).isNotEqualTo(clusterState);
         clusterState = newState;
         assertThat(clusterState.routingTable().index("test1").shards().size()).isEqualTo(3);
         for (int i = 0; i < clusterState.routingTable().index("test1").shards().size(); i++) {
@@ -479,7 +477,7 @@ public class IndexBalanceTests extends ESAllocationTestCase {
 
         logger.info("Start the more shards");
         newState = startInitializingShardsAndReroute(strategy, clusterState);
-        assertThat(newState, not(equalTo(clusterState)));
+        assertThat(newState).isNotEqualTo(clusterState);
         clusterState = newState;
         routingNodes = clusterState.getRoutingNodes();
         assertThat(clusterState.routingTable().index("test1").shards().size()).isEqualTo(3);

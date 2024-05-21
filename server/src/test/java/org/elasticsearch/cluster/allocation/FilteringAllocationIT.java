@@ -21,7 +21,6 @@ package org.elasticsearch.cluster.allocation;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -268,9 +267,8 @@ public class FilteringAllocationIT extends IntegTestCase {
         for (ShardRouting shard : state.routingTable().shardsWithState(ShardRoutingState.STARTED)) {
             String node = state.getRoutingNodes().node(shard.currentNodeId()).node().getName();
             logger.info("--> shard on {} - {}", node, shard);
-            assertTrue("shard on " + node + " but should only be on the include node list: " +
-                       String.join(", ", includeNodes),
-                       includeNodes.contains(node));
+            assertThat(includeNodes.contains(node)).as("shard on " + node + " but should only be on the include node list: " +
+                       String.join(", ", includeNodes)).isTrue();
         }
 
         logger.info("--> updating settings with random persistent setting");
@@ -290,9 +288,8 @@ public class FilteringAllocationIT extends IntegTestCase {
         for (ShardRouting shard : state.routingTable().shardsWithState(ShardRoutingState.STARTED)) {
             String node = state.getRoutingNodes().node(shard.currentNodeId()).node().getName();
             logger.info("--> shard on {} - {}", node, shard);
-            assertTrue("shard on " + node + " but should only be on the include node list: " +
-                       String.join(", ", includeNodes),
-                       includeNodes.contains(node));
+            assertThat(includeNodes.contains(node)).as("shard on " + node + " but should only be on the include node list: " +
+                       String.join(", ", includeNodes)).isTrue();
         }
     }
 }

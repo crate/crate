@@ -20,7 +20,6 @@ package org.elasticsearch.env;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -66,7 +65,7 @@ public class NodeMetadataTests extends ESTestCase {
     @Test
     public void testReadsFormatWithoutVersion() throws IOException, URISyntaxException {
         // the behaviour tested here is only appropriate if the current version is compatible with versions 7 and earlier
-        assertTrue(Version.CURRENT.minimumIndexCompatibilityVersion().onOrBefore(Version.V_4_0_0));
+        assertThat(Version.CURRENT.minimumIndexCompatibilityVersion().onOrBefore(Version.V_4_0_0)).isTrue();
         // when the current version is incompatible with version 4, the behaviour should change to reject files like the given resource
         // which do not have the version field
 

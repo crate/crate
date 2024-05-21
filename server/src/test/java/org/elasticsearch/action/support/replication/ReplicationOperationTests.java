@@ -24,10 +24,8 @@ import static org.elasticsearch.action.support.replication.ClusterStateCreationU
 import static org.elasticsearch.action.support.replication.ClusterStateCreationUtils.stateWithActivePrimary;
 import static org.hamcrest.Matchers.arrayWithSize;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.net.InetAddress;
@@ -167,7 +165,7 @@ public class ReplicationOperationTests extends ESTestCase {
         assertThat(replicasProxy.failedReplicas).isEqualTo(simulatedFailures.keySet());
         assertThat(replicasProxy.markedAsStaleCopies).isEqualTo(staleAllocationIds);
         assertThat(request.runPostReplicationActionsOnPrimary.get()).as("post replication operations not run on primary").isEqualTo(true);
-        assertTrue("listener is not marked as done", listener.isDone());
+        assertThat(listener.isDone()).as("listener is not marked as done").isTrue();
         ShardInfo shardInfo = FutureUtils.get(listener).getShardInfo();
         assertThat(shardInfo.getFailed()).isEqualTo(reportedFailures.size());
         assertThat(shardInfo.getFailures(), arrayWithSize(reportedFailures.size()));
@@ -355,7 +353,7 @@ public class ReplicationOperationTests extends ESTestCase {
         final TestPrimary primary = new TestPrimary(primaryShard, () -> replicationGroup, threadPool) {
             @Override
             public void failShard(String message, Exception exception) {
-                assertTrue(primaryFailed.compareAndSet(false, true));
+                assertThat(primaryFailed.compareAndSet(false, true)).isTrue();
             }
         };
         final TestReplicationOperation op = new TestReplicationOperation(
@@ -363,11 +361,11 @@ public class ReplicationOperationTests extends ESTestCase {
         op.execute();
 
         assertThat(request.processedOnPrimary.get()).as("request was not processed on primary").isEqualTo(true);
-        assertTrue("listener is not marked as done", listener.isDone());
+        assertThat(listener.isDone()).as("listener is not marked as done").isTrue();
         if (shardActionFailure instanceof ShardStateAction.NoLongerPrimaryShardException) {
-            assertTrue(primaryFailed.get());
+            assertThat(primaryFailed.get()).isTrue();
         } else {
-            assertFalse(primaryFailed.get());
+            assertThat(primaryFailed.get()).isFalse();
         }
         assertListenerThrows("should throw exception to trigger retry", listener,
                              ReplicationOperation.RetryOnPrimaryException.class);
@@ -480,13 +478,11 @@ public class ReplicationOperationTests extends ESTestCase {
         if (passesActiveShardCheck) {
             assertThat(op.checkActiveShardCount(), nullValue());
             op.execute();
-            assertTrue("operations should have been performed, active shard count is met",
-                       request.processedOnPrimary.get());
+            assertThat(request.processedOnPrimary.get()).as("operations should have been performed, active shard count is met").isTrue();
         } else {
             assertThat(op.checkActiveShardCount()).isNotNull();
             op.execute();
-            assertFalse("operations should not have been perform, active shard count is *NOT* met",
-                        request.processedOnPrimary.get());
+            assertThat(request.processedOnPrimary.get()).as("operations should not have been perform, active shard count is *NOT* met").isFalse();
             assertListenerThrows("should throw exception to trigger retry", listener, UnavailableShardsException.class);
         }
     }
@@ -765,13 +761,12 @@ public class ReplicationOperationTests extends ESTestCase {
                 final ActionListener<ReplicationOperation.ReplicaResponse> listener) {
             boolean added = request.processedOnReplicas.add(replica);
             if (retryable == false) {
-                assertTrue("replica request processed twice on [" + replica + "]", added);
+                assertThat(added).as("replica request processed twice on [" + replica + "]").isTrue();
             }
             // If replication is not retryable OR this is the first attempt, the post replication actions
             // should not have run.
             if (retryable == false || added) {
-                assertFalse("primary post replication actions should run after replication",
-                    request.runPostReplicationActionsOnPrimary.get());
+                assertThat(request.runPostReplicationActionsOnPrimary.get()).as("primary post replication actions should run after replication").isFalse();
             }
             // If this is a retryable scenario and this is the second try, we finish successfully
             int n = attemptsNumber.incrementAndGet();

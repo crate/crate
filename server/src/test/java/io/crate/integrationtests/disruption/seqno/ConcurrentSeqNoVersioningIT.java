@@ -24,7 +24,6 @@ package io.crate.integrationtests.disruption.seqno;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.FileInputStream;
@@ -506,7 +505,7 @@ public class ConcurrentSeqNoVersioningIT extends AbstractDisruptionTestCase {
                                  id, spec, initialVersion, serializedHistory);
                 }
             }
-            assertTrue("Must be linearizable", linearizable);
+            assertThat(linearizable).as("Must be linearizable").isTrue();
         }
     }
 

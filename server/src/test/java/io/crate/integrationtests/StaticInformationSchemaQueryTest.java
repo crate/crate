@@ -23,8 +23,8 @@ package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
@@ -147,16 +147,16 @@ public class StaticInformationSchemaQueryTest extends IntegTestCase {
     public void testNotEqualsString() throws Exception {
         execute("select table_name from information_schema.tables where table_schema = ? and table_name != 't1'", new Object[]{sqlExecutor.getCurrentSchema()});
         assertEquals(2L, response.rowCount());
-        assertTrue(!response.rows()[0][0].equals("t1"));
-        assertTrue(!response.rows()[1][0].equals("t1"));
+        assertThat(!response.rows()[0][0].equals("t1")).isTrue();
+        assertThat(!response.rows()[1][0].equals("t1")).isTrue();
     }
 
     @Test
     public void testNotEqualsNumber() throws Exception {
         execute("select table_name, number_of_shards from information_schema.tables where table_schema = ? and number_of_shards != 7", new Object[]{sqlExecutor.getCurrentSchema()});
         assertEquals(2L, response.rowCount());
-        assertTrue((int) response.rows()[0][1] != 7);
-        assertTrue((int) response.rows()[1][1] != 7);
+        assertThat((int) response.rows()[0][1] != 7).isTrue();
+        assertThat((int) response.rows()[1][1] != 7).isTrue();
     }
 
     @Test

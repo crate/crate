@@ -21,13 +21,13 @@
 
 package io.crate.planner.consumer;
 
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isReference;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
@@ -55,7 +55,6 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
-import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -184,19 +183,21 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
             .hasSize(1);
 
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
-        assertThat(collectPhase.projections(), contains(
-            instanceOf(GroupProjection.class),
-            instanceOf(EvalProjection.class)));
+        assertThat(collectPhase.projections()).satisfiesExactly(
+            x -> assertThat(x).isExactlyInstanceOf(GroupProjection.class),
+            x -> assertThat(x).isExactlyInstanceOf(EvalProjection.class));
 
         GroupProjection groupProjection = (GroupProjection) collectPhase.projections().get(0);
 
-        assertThat(Symbols.typeView(groupProjection.outputs()), contains(
-            is(DataTypes.STRING),
-            is(DataTypes.LONG)));
+        assertThat(groupProjection.outputs()).satisfiesExactly(
+            x -> assertThat(x).hasDataType(DataTypes.STRING),
+            x -> assertThat(x).hasDataType(DataTypes.LONG)
+        );
 
-        assertThat(Symbols.typeView(collectPhase.projections().get(1).outputs()), contains(
-            is(DataTypes.LONG),
-            is(DataTypes.STRING)));
+        assertThat(collectPhase.projections().get(1).outputs()).satisfiesExactly(
+            x -> assertThat(x).hasDataType(DataTypes.LONG),
+            x -> assertThat(x).hasDataType(DataTypes.STRING)
+        );
     }
 
     @Test
@@ -209,11 +210,11 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
             "select count(*), id from users group by id limit 20");
         Collect collect = ((Collect) merge.subPlan());
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
-        assertThat(collectPhase.projections(), contains(
-            instanceOf(GroupProjection.class),
-            instanceOf(LimitAndOffsetProjection.class),
-            instanceOf(EvalProjection.class) // swaps id, count(*) output from group by to count(*), id
-        ));
+        assertThat(collectPhase.projections()).satisfiesExactly(
+            x -> assertThat(x).isExactlyInstanceOf(GroupProjection.class),
+            x -> assertThat(x).isExactlyInstanceOf(LimitAndOffsetProjection.class),
+            x -> assertThat(x).isExactlyInstanceOf(EvalProjection.class) // swaps id, count(*) output from group by to count(*), id
+        );
         assertThat(collectPhase.projections().get(0).requiredGranularity()).isEqualTo(RowGranularity.SHARD);
         MergePhase mergePhase = merge.mergePhase();
         assertThat(mergePhase.projections(), contains(
@@ -232,19 +233,19 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         Collect collect = ((Collect) merge.subPlan());
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
         List<Projection> collectProjections = collectPhase.projections();
-        assertThat(collectProjections, contains(
-            instanceOf(GroupProjection.class),
-            instanceOf(OrderedLimitAndOffsetProjection.class),
-            instanceOf(EvalProjection.class) // swap id, count(*) -> count(*), id
-        ));
+        assertThat(collectProjections).satisfiesExactly(
+            x -> assertThat(x).isExactlyInstanceOf(GroupProjection.class),
+            x -> assertThat(x).isExactlyInstanceOf(OrderedLimitAndOffsetProjection.class),
+            x -> assertThat(x).isExactlyInstanceOf(EvalProjection.class) // swap id, count(*) -> count(*), id
+        );
         assertThat(collectProjections.get(1)).isExactlyInstanceOf(OrderedLimitAndOffsetProjection.class);
         assertThat(((OrderedLimitAndOffsetProjection) collectProjections.get(1)).orderBy()).hasSize(1);
 
         assertThat(collectProjections.get(0).requiredGranularity()).isEqualTo(RowGranularity.SHARD);
         MergePhase mergePhase = merge.mergePhase();
-        assertThat(mergePhase.projections(), contains(
-            instanceOf(LimitAndOffsetProjection.class)
-        ));
+        assertThat(mergePhase.projections()).satisfiesExactly(
+            x -> assertThat(x).isExactlyInstanceOf(LimitAndOffsetProjection.class)
+        );
 
         PositionalOrderBy positionalOrderBy = mergePhase.orderByPositions();
         assertThat(positionalOrderBy).isNotNull();
@@ -264,18 +265,18 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
             "select count(*) + 1, id from users group by id order by count(*) + 1 limit 20");
         Collect collect = (Collect) merge.subPlan();
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
-        assertThat(collectPhase.projections(), contains(
-            instanceOf(GroupProjection.class),
-            instanceOf(OrderedLimitAndOffsetProjection.class),
-            instanceOf(EvalProjection.class)
-        ));
+        assertThat(collectPhase.projections()).satisfiesExactly(
+            x -> assertThat(x).isExactlyInstanceOf(GroupProjection.class),
+            x -> assertThat(x).isExactlyInstanceOf(OrderedLimitAndOffsetProjection.class),
+            x -> assertThat(x).isExactlyInstanceOf(EvalProjection.class)
+        );
         assertThat(((OrderedLimitAndOffsetProjection) collectPhase.projections().get(1)).orderBy()).hasSize(1);
 
         assertThat(collectPhase.projections().get(0).requiredGranularity()).isEqualTo(RowGranularity.SHARD);
         MergePhase mergePhase = merge.mergePhase();
-        assertThat(mergePhase.projections(), contains(
-            instanceOf(LimitAndOffsetProjection.class)
-        ));
+        assertThat(mergePhase.projections()).satisfiesExactly(
+            x -> assertThat(x).isExactlyInstanceOf(LimitAndOffsetProjection.class)
+        );
 
         PositionalOrderBy positionalOrderBy = mergePhase.orderByPositions();
         assertThat(positionalOrderBy).isNotNull();
@@ -299,11 +300,11 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         Merge reducerMerge = (Merge) merge.subPlan();
         MergePhase mergePhase = reducerMerge.mergePhase();
 
-        assertThat(mergePhase.projections(), contains(
-            instanceOf(GroupProjection.class),
-            instanceOf(OrderedLimitAndOffsetProjection.class),
-            instanceOf(EvalProjection.class)
-        ));
+        assertThat(mergePhase.projections()).satisfiesExactly(
+            x -> assertThat(x).isExactlyInstanceOf(GroupProjection.class),
+            x -> assertThat(x).isExactlyInstanceOf(OrderedLimitAndOffsetProjection.class),
+            x -> assertThat(x).isExactlyInstanceOf(EvalProjection.class)
+        );
         OrderedLimitAndOffsetProjection projection = (OrderedLimitAndOffsetProjection) mergePhase.projections().get(1);
         Symbol orderBy = projection.orderBy().get(0);
         assertThat(orderBy).isExactlyInstanceOf(InputColumn.class);
@@ -323,10 +324,10 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(collectPhase.toCollect().get(0)).isInstanceOf(Reference.class);
         assertThat(collectPhase.toCollect()).hasSize(1);
 
-        assertThat(collectPhase.projections(), contains(
-            instanceOf(GroupProjection.class),
-            instanceOf(EvalProjection.class)
-        ));
+        assertThat(collectPhase.projections()).satisfiesExactly(
+            x -> assertThat(x).isExactlyInstanceOf(GroupProjection.class),
+            x -> assertThat(x).isExactlyInstanceOf(EvalProjection.class)
+        );
     }
 
     @Test
@@ -394,9 +395,9 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         Collect collect = (Collect) merge.subPlan();
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
         Asserts.assertThat(collectPhase.where()).isSQL("(doc.users.id > 0::bigint)");
-        assertThat(collectPhase.projections(), contains(
-            instanceOf(GroupProjection.class)
-        ));
+        assertThat(collectPhase.projections()).satisfiesExactly(
+            x -> assertThat(x).isExactlyInstanceOf(GroupProjection.class)
+        );
 
         MergePhase localMergeNode = merge.mergePhase();
         assertThat(localMergeNode.projections(), empty());
@@ -483,10 +484,10 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         // filter projection
         //      outputs: name, count(*)
 
-        assertThat(reduceMergePhase.projections(), contains(
-            instanceOf(GroupProjection.class),
-            instanceOf(FilterProjection.class)
-        ));
+        assertThat(reduceMergePhase.projections()).satisfiesExactly(
+            x -> assertThat(x).isExactlyInstanceOf(GroupProjection.class),
+            x -> assertThat(x).isExactlyInstanceOf(FilterProjection.class)
+        );
         Projection projection = reduceMergePhase.projections().get(1);
         assertThat(projection).isExactlyInstanceOf(FilterProjection.class);
         FilterProjection filterProjection = (FilterProjection) projection;
@@ -614,11 +615,11 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
             "select (count(*) + 1), id from empty_parted group by id");
 
         CollectPhase collectPhase = collect.collectPhase();
-        assertThat(collectPhase.projections(), contains(
-            instanceOf(GroupProjection.class), // shard level
-            instanceOf(GroupProjection.class), // node level
-            instanceOf(EvalProjection.class) // count(*) + 1
-        ));
+        assertThat(collectPhase.projections()).satisfiesExactly(
+            x -> assertThat(x).isExactlyInstanceOf(GroupProjection.class), // shard level
+            x -> assertThat(x).isExactlyInstanceOf(GroupProjection.class), // node level
+            x -> assertThat(x).isExactlyInstanceOf(EvalProjection.class) // count(*) + 1
+        );
     }
 
     @Test
@@ -668,13 +669,13 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
             .hasSize(1);
 
         CollectPhase collectPhase = collect.collectPhase();
-        assertThat(collectPhase.projections(), contains(
-            instanceOf(GroupProjection.class),
-            instanceOf(FilterProjection.class),
-            instanceOf(EvalProjection.class),
-            instanceOf(GroupProjection.class),
-            instanceOf(EvalProjection.class)
-        ));
+        assertThat(collectPhase.projections()).satisfiesExactly(
+            x -> assertThat(x).isExactlyInstanceOf(GroupProjection.class),
+            x -> assertThat(x).isExactlyInstanceOf(FilterProjection.class),
+            x -> assertThat(x).isExactlyInstanceOf(EvalProjection.class),
+            x -> assertThat(x).isExactlyInstanceOf(GroupProjection.class),
+            x -> assertThat(x).isExactlyInstanceOf(EvalProjection.class)
+        );
         Projection firstGroupProjection = collectPhase.projections().get(0);
         assertThat(((GroupProjection) firstGroupProjection).mode()).isEqualTo(AggregateMode.ITER_FINAL);
 
@@ -701,9 +702,9 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         Merge optimizedPlan = e.plan("select count(*), city from clustered_parted where date=1395874800000 group by city");
         Collect collect = (Collect) optimizedPlan.subPlan();
 
-        assertThat(collect.collectPhase().projections(), contains(
-            instanceOf(GroupProjection.class),
-            instanceOf(EvalProjection.class)));
+        assertThat(collect.collectPhase().projections()).satisfiesExactly(
+            x -> assertThat(x).isExactlyInstanceOf(GroupProjection.class),
+            x -> assertThat(x).isExactlyInstanceOf(EvalProjection.class));
         assertThat(collect.collectPhase().projections().get(0)).isExactlyInstanceOf(GroupProjection.class);
 
         assertThat(optimizedPlan.mergePhase().projections()).hasSize(0);

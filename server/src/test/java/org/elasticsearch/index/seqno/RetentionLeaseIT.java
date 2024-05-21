@@ -23,9 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.emptyCollectionOf;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.Closeable;
@@ -512,7 +510,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
                 }
             );
             actionLatch.await();
-            assertTrue(success.get());
+            assertThat(success.get()).isTrue();
             afterSync.accept(primary);
         } finally {
             execute("alter table doc.tbl reset (\"blocks." + block + "\")");
@@ -595,7 +593,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
         ensureYellowAndNoInitializingShards("tbl");
         var clusterHealthResponse = FutureUtils.get(
             client().admin().cluster().health(new ClusterHealthRequest("tbl").waitForActiveShards(numDataNodes)));
-        assertFalse(clusterHealthResponse.isTimedOut());
+        assertThat(clusterHealthResponse.isTimedOut()).isFalse();
 
         final String primaryShardNodeId = clusterService().state().routingTable().index("tbl").shard(0).primaryShard().currentNodeId();
         final String primaryShardNodeName = clusterService().state().nodes().get(primaryShardNodeId).getName();
@@ -632,7 +630,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
 
                 });
         actionLatch.await();
-        assertTrue(success.get());
+        assertThat(success.get()).isTrue();
         afterSync.accept(primary);
     }
 

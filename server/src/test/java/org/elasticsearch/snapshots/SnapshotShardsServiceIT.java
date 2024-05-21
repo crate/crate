@@ -23,7 +23,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.everyItem;
-import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
@@ -109,7 +108,7 @@ public class SnapshotShardsServiceIT extends AbstractSnapshotIntegTestCase {
             final Snapshot snapshot = new Snapshot("repo", snapshotId);
             List<IndexShardSnapshotStatus.Stage> stages = snapshotShardsService.currentSnapshotShards(snapshot)
                 .values().stream().map(status -> status.asCopy().getStage()).collect(Collectors.toList());
-            assertThat(stages, hasSize(shards));
+            assertThat(stages).hasSize(shards);
             assertThat(stages, everyItem(equalTo(IndexShardSnapshotStatus.Stage.DONE)));
         }, 30L, TimeUnit.SECONDS);
 

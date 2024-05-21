@@ -21,6 +21,7 @@ package org.elasticsearch.repositories.blobstore;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -105,7 +106,7 @@ public class BlobStoreRepositoryRestoreTests extends IndexShardTestCase {
 
             // capture current store files
             final Store.MetadataSnapshot storeFiles = shard.snapshotStoreMetadata();
-            assertFalse(storeFiles.asMap().isEmpty());
+            assertThat(storeFiles.asMap().isEmpty()).isFalse();
 
             // close the shard
             closeShards(shard);
@@ -142,7 +143,7 @@ public class BlobStoreRepositoryRestoreTests extends IndexShardTestCase {
 
             for (StoreFileMetadata storeFile : storeFiles) {
                 String fileName = storeFile.name();
-                assertTrue("File [" + fileName + "] does not exist in store directory", directoryFiles.contains(fileName));
+                assertThat(directoryFiles.contains(fileName)).as("File [" + fileName + "] does not exist in store directory").isTrue();
                 assertEquals(storeFile.length(), shard.store().directory().fileLength(fileName));
             }
         } finally {

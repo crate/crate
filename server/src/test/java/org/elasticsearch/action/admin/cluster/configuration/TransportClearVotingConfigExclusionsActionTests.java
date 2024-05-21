@@ -21,8 +21,8 @@
 package org.elasticsearch.action.admin.cluster.configuration;
 
 import static java.util.Collections.emptyMap;
-import static org.assertj.core.api.Assertions.assertThat;
 import static java.util.Collections.emptySet;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.ClusterState.builder;
 import static org.elasticsearch.test.ClusterServiceUtils.createClusterService;
 import static org.elasticsearch.test.ClusterServiceUtils.setState;
@@ -31,7 +31,6 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
@@ -132,7 +131,7 @@ public class TransportClearVotingConfigExclusionsActionTests extends ESTestCase 
             })
         );
 
-        assertTrue(countDownLatch.await(30, TimeUnit.SECONDS));
+        assertThat(countDownLatch.await(30, TimeUnit.SECONDS)).isTrue();
         assertNotNull(responseHolder.get());
         assertThat(clusterService.getClusterApplierService().state().getVotingConfigExclusions(), empty());
     }
@@ -151,7 +150,7 @@ public class TransportClearVotingConfigExclusionsActionTests extends ESTestCase 
             })
         );
 
-        assertTrue(countDownLatch.await(30, TimeUnit.SECONDS));
+        assertThat(countDownLatch.await(30, TimeUnit.SECONDS)).isTrue();
         assertThat(clusterService.getClusterApplierService().state().getVotingConfigExclusions(),
                 containsInAnyOrder(otherNode1Exclusion, otherNode2Exclusion));
         final Throwable rootCause = responseHolder.get().getRootCause();
@@ -176,7 +175,7 @@ public class TransportClearVotingConfigExclusionsActionTests extends ESTestCase 
         builder.nodes(DiscoveryNodes.builder(clusterService.state().nodes()).remove(otherNode1).remove(otherNode2));
         setState(clusterService, builder);
 
-        assertTrue(countDownLatch.await(30, TimeUnit.SECONDS));
+        assertThat(countDownLatch.await(30, TimeUnit.SECONDS)).isTrue();
         assertThat(clusterService.getClusterApplierService().state().getVotingConfigExclusions(), empty());
     }
 

@@ -25,9 +25,7 @@ import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
@@ -220,9 +218,9 @@ public class DiscoveryNodesTests extends ESTestCase {
         }
 
         if (Objects.equals(masterAId, masterBId)) {
-            assertFalse(delta.masterNodeChanged());
+            assertThat(delta.masterNodeChanged()).isFalse();
         } else {
-            assertTrue(delta.masterNodeChanged());
+            assertThat(delta.masterNodeChanged()).isTrue();
         }
 
         Set<DiscoveryNode> newNodes = new HashSet<>(nodesB);

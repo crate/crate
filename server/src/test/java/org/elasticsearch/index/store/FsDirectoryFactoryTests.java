@@ -21,6 +21,7 @@ package org.elasticsearch.index.store;
 
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -70,19 +71,19 @@ public class FsDirectoryFactoryTests extends ESTestCase {
         try (Directory directory = service.newFSDirectory(tempDir, NoLockFactory.INSTANCE, indexSettings)) {
             switch (type) {
                 case HYBRIDFS:
-                    assertTrue(FsDirectoryFactory.isHybridFs(directory));
+                    assertThat(FsDirectoryFactory.isHybridFs(directory)).isTrue();
                     break;
                 case NIOFS:
-                    assertTrue(type + " " + directory.toString(), directory instanceof NIOFSDirectory);
+                    assertThat(directory instanceof NIOFSDirectory).as(type + " " + directory.toString()).isTrue();
                     break;
                 case MMAPFS:
-                    assertTrue(type + " " + directory.toString(), directory instanceof MMapDirectory);
+                    assertThat(directory instanceof MMapDirectory).as(type + " " + directory.toString()).isTrue();
                     break;
                 case FS:
                     if (Constants.JRE_IS_64BIT && MMapDirectory.UNMAP_SUPPORTED) {
-                        assertTrue(FsDirectoryFactory.isHybridFs(directory));
+                        assertThat(FsDirectoryFactory.isHybridFs(directory)).isTrue();
                     } else {
-                        assertTrue(directory.toString(), directory instanceof NIOFSDirectory);
+                        assertThat(directory instanceof NIOFSDirectory).as(directory.toString()).isTrue();
                     }
                     break;
                 default:

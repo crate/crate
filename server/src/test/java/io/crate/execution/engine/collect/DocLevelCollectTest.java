@@ -21,10 +21,7 @@
 
 package io.crate.execution.engine.collect;
 
-import static io.crate.testing.TestingHelpers.isRow;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.util.Arrays;
@@ -37,6 +34,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.UnaryOperator;
+import java.util.stream.StreamSupport;
 
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.Randomness;
@@ -51,6 +49,8 @@ import com.carrotsearch.hppc.IntIndexedContainer;
 
 import io.crate.analyze.WhereClause;
 import io.crate.data.Bucket;
+import io.crate.data.Row;
+import io.crate.data.Row1;
 import io.crate.execution.dsl.phases.ExecutionPhase;
 import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
@@ -156,10 +156,11 @@ public class DocLevelCollectTest extends IntegTestCase {
         List<Symbol> toCollect = Arrays.asList(testDocLevelReference, underscoreIdReference);
         RoutedCollectPhase collectNode = getCollectNode(toCollect, WhereClause.MATCH_ALL);
         Bucket result = collect(collectNode);
-        assertThat(result, containsInAnyOrder(
-            isRow(2, "1"),
-            isRow(4, "3")
-        ));
+        assertThat(StreamSupport.stream(result.spliterator(), false).map(Row::materialize).toList())
+            .containsExactlyInAnyOrder(
+                new Object[] {2, "1"},
+                new Object[] {4, "3"}
+            );
     }
 
     @Test
@@ -174,7 +175,7 @@ public class DocLevelCollectTest extends IntegTestCase {
         RoutedCollectPhase collectNode = getCollectNode(toCollect, whereClause);
 
         Bucket result = collect(collectNode);
-        assertThat(result, contains(isRow(2)));
+        assertThat(result).containsExactly(new Row1(2));
     }
 
     private RoutedCollectPhase getCollectNode(List<Symbol> toCollect, Routing routing, WhereClause whereClause) {
@@ -215,10 +216,10 @@ public class DocLevelCollectTest extends IntegTestCase {
         );
 
         Bucket result = collect(collectNode);
-        assertThat(result, containsInAnyOrder(
-            isRow(1, 0L),
-            isRow(2, 1L)
-        ));
+        assertThat(StreamSupport.stream(result.spliterator(), false).map(Row::materialize).toList()).containsExactlyInAnyOrder(
+            new Object[] {1, 0L},
+            new Object[] {2, 1L}
+        );
     }
 
     private Bucket collect(RoutedCollectPhase collectNode) throws Throwable {

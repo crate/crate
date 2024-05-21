@@ -113,6 +113,6 @@ public class RoutingTest extends ESTestCase {
 
         RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), Collections.emptyList());
         Routing routing = routingProvider.forRandomMasterOrDataNode(new RelationName("doc", "table"), nodes);
-        assertThat(routing.locations().keySet(), contains("local_data"));
+        assertThat(routing.locations().keySet()).containsExactly("local_data");
     }
 }

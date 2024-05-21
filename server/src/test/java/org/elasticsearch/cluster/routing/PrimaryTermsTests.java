@@ -19,11 +19,8 @@
 
 package org.elasticsearch.cluster.routing;
 
-import static org.elasticsearch.cluster.routing.ShardRoutingState.INITIALIZING;
-import static org.hamcrest.Matchers.equalTo;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertThat;
+import static org.elasticsearch.cluster.routing.ShardRoutingState.INITIALIZING;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -95,7 +92,7 @@ public class PrimaryTermsTests extends ESAllocationTestCase {
         }
         this.clusterState = ClusterState.builder(clusterState).nodes(discoBuilder).build();
         ClusterState rerouteResult = allocationService.reroute(clusterState, "reroute");
-        assertThat(rerouteResult, not(equalTo(this.clusterState)));
+        assertThat(rerouteResult).isNotEqualTo(this.clusterState);
         applyRerouteResult(rerouteResult);
         primaryTermsPerIndex.keySet().forEach(this::incrementPrimaryTerm);
     }

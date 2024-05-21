@@ -21,6 +21,7 @@ package org.elasticsearch.index.engine;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
@@ -156,10 +157,10 @@ public class RecoverySourcePruneMergePolicyTests extends ESTestCase {
                     for (int i = 0; i < reader.maxDoc(); i++) {
                         Document document = reader.document(i);
                         Set<String> collect = document.getFields().stream().map(IndexableField::name).collect(Collectors.toSet());
-                        assertTrue(collect.contains("source"));
-                        assertTrue(collect.contains("even"));
+                        assertThat(collect.contains("source")).isTrue();
+                        assertThat(collect.contains("even")).isTrue();
                         if (collect.size() == 3) {
-                            assertTrue(collect.contains("extra_source"));
+                            assertThat(collect.contains("extra_source")).isTrue();
                             assertEquals("true", document.getField("even").stringValue());
                             assertEquals(i, extra_source.nextDoc());
                         } else {
@@ -197,8 +198,8 @@ public class RecoverySourcePruneMergePolicyTests extends ESTestCase {
                     for (int i = 0; i < reader.maxDoc(); i++) {
                         Document document = reader.document(i);
                         Set<String> collect = document.getFields().stream().map(IndexableField::name).collect(Collectors.toSet());
-                        assertTrue(collect.contains("source"));
-                        assertTrue(collect.contains("extra_source"));
+                        assertThat(collect.contains("source")).isTrue();
+                        assertThat(collect.contains("extra_source")).isTrue();
                         assertEquals(i, extra_source.nextDoc());
                     }
                     assertEquals(DocIdSetIterator.NO_MORE_DOCS, extra_source.nextDoc());

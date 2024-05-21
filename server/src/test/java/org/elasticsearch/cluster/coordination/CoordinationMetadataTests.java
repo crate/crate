@@ -19,7 +19,6 @@
 package org.elasticsearch.cluster.coordination;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -145,7 +144,7 @@ public class CoordinationMetadataTests extends ESTestCase {
         final int size = randomIntBetween(1, 10);
         final Set<VotingConfigExclusion> nodes = new HashSet<>(size);
         while (nodes.size() < size) {
-            assertTrue(nodes.add(new VotingConfigExclusion(randomAlphaOfLength(10), randomAlphaOfLength(10))));
+            assertThat(nodes.add(new VotingConfigExclusion(randomAlphaOfLength(10), randomAlphaOfLength(10)))).isTrue();
         }
         return nodes;
     }
