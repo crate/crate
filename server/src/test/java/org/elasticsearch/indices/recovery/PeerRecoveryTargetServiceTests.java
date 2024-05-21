@@ -22,7 +22,6 @@ package org.elasticsearch.indices.recovery;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
 import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -363,7 +362,7 @@ public class PeerRecoveryTargetServiceTests extends IndexShardTestCase {
         StartRecoveryRequest request = PeerRecoveryTargetService.getStartRecoveryRequest(
             logger, rNode, recoveryTarget, randomNonNegativeLong());
         assertThat(request.startingSeqNo()).isEqualTo(UNASSIGNED_SEQ_NO);
-        assertThat(request.metadataSnapshot(), sameInstance(Store.MetadataSnapshot.EMPTY));
+        assertThat(request.metadataSnapshot()).isSameAs(Store.MetadataSnapshot.EMPTY);
         recoveryTarget.decRef();
         closeShards(shard);
     }

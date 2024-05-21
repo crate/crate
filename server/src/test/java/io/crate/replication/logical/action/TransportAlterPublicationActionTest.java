@@ -21,7 +21,7 @@
 
 package io.crate.replication.logical.action;
 
-import static org.hamcrest.Matchers.contains;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
@@ -78,7 +78,7 @@ public class TransportAlterPublicationActionTest extends CrateDummyClusterServic
 
         var newPublication = TransportAlterPublicationAction.updatePublication(request, metadata, oldPublication);
         assertThat(newPublication, not(oldPublication));
-        assertThat(newPublication.tables(), contains(RelationName.fromIndexName("t2")));
+        assertThat(newPublication.tables()).containsExactly(RelationName.fromIndexName("t2"));
     }
 
     @Test

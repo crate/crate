@@ -23,8 +23,6 @@ package io.crate.planner.operators;
 
 import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.contains;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 
@@ -50,7 +48,7 @@ public class StatementClassifierTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan plan = e.logicalPlan("SELECT * FROM users LIMIT 10");
         StatementClassifier.Classification classification = StatementClassifier.classify(plan);
         assertThat(classification.type()).isEqualTo(Plan.StatementType.SELECT);
-        assertThat(classification.labels(), contains("Collect", "Fetch", "Limit"));
+        assertThat(classification.labels()).containsExactly("Collect", "Fetch", "Limit");
     }
 
     @Test
@@ -58,47 +56,47 @@ public class StatementClassifierTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan plan = e.logicalPlan("SELECT 1");
         StatementClassifier.Classification classification = StatementClassifier.classify(plan);
         assertThat(classification.type()).isEqualTo(Plan.StatementType.SELECT);
-        assertThat(classification.labels(), contains("Eval", "TableFunction"));
+        assertThat(classification.labels()).containsExactly("Eval", "TableFunction");
 
         plan = e.logicalPlan("SELECT * FROM users WHERE id = 1");
         classification = StatementClassifier.classify(plan);
         assertThat(classification.type()).isEqualTo(Plan.StatementType.SELECT);
-        assertThat(classification.labels(), contains("Get"));
+        assertThat(classification.labels()).containsExactly("Get");
 
         plan = e.logicalPlan("SELECT * FROM users ORDER BY id");
         classification = StatementClassifier.classify(plan);
         assertThat(classification.type()).isEqualTo(Plan.StatementType.SELECT);
-        assertThat(classification.labels(), contains("Collect", "Fetch", "Order"));
+        assertThat(classification.labels()).containsExactly("Collect", "Fetch", "Order");
 
         plan = e.logicalPlan("SELECT a.id, b.id FROM users a, users b WHERE a.id = b.id");
         classification = StatementClassifier.classify(plan);
         assertThat(classification.type()).isEqualTo(Plan.StatementType.SELECT);
-        assertThat(classification.labels(), contains("Collect", "HashJoin"));
+        assertThat(classification.labels()).containsExactly("Collect", "HashJoin");
 
         plan = e.logicalPlan("SELECT a.id, b.id FROM users a, users b WHERE a.id > b.id");
         classification = StatementClassifier.classify(plan);
         assertThat(classification.type()).isEqualTo(Plan.StatementType.SELECT);
-        assertThat(classification.labels(), contains("Collect", "NestedLoopJoin"));
+        assertThat(classification.labels()).containsExactly("Collect", "NestedLoopJoin");
 
         plan = e.logicalPlan("SELECT id FROM users UNION ALL SELECT id FROM users");
         classification = StatementClassifier.classify(plan);
         assertThat(classification.type()).isEqualTo(Plan.StatementType.SELECT);
-        assertThat(classification.labels(), contains("Collect", "Union"));
+        assertThat(classification.labels()).containsExactly("Collect", "Union");
 
         plan = e.logicalPlan("SELECT count(*) FROM users");
         classification = StatementClassifier.classify(plan);
         assertThat(classification.type()).isEqualTo(Plan.StatementType.SELECT);
-        assertThat(classification.labels(), contains("Count"));
+        assertThat(classification.labels()).containsExactly("Count");
 
         plan = e.logicalPlan("SELECT count(*), name FROM users GROUP BY 2");
         classification = StatementClassifier.classify(plan);
         assertThat(classification.type()).isEqualTo(Plan.StatementType.SELECT);
-        assertThat(classification.labels(), contains("Collect", "Eval", "GroupHashAggregate"));
+        assertThat(classification.labels()).containsExactly("Collect", "Eval", "GroupHashAggregate");
 
         plan = e.logicalPlan("SELECT * FROM users WHERE id = (SELECT 1) OR name = (SELECT 'Arthur')");
         classification = StatementClassifier.classify(plan);
         assertThat(classification.type()).isEqualTo(Plan.StatementType.SELECT);
-        assertThat(classification.labels(), contains("Collect", "Eval", "Limit", "MultiPhase", "TableFunction"));
+        assertThat(classification.labels()).containsExactly("Collect", "Eval", "Limit", "MultiPhase", "TableFunction");
     }
 
 
@@ -113,7 +111,7 @@ public class StatementClassifierTest extends CrateDummyClusterServiceUnitTest {
             "WHERE y >= 2");
         var classification = StatementClassifier.classify(plan);
         assertThat(classification.type()).isEqualTo(Plan.StatementType.SELECT);
-        assertThat(classification.labels(), contains("Eval", "Filter", "ProjectSet", "TableFunction", "WindowAgg"));
+        assertThat(classification.labels()).containsExactly("Eval", "Filter", "ProjectSet", "TableFunction", "WindowAgg");
     }
 
     @Test
@@ -121,17 +119,17 @@ public class StatementClassifierTest extends CrateDummyClusterServiceUnitTest {
         Plan plan = e.logicalPlan("INSERT INTO users (id, name) VALUES (1, 'foo')");
         StatementClassifier.Classification classification = StatementClassifier.classify(plan);
         assertThat(classification.type()).isEqualTo(Plan.StatementType.INSERT);
-        assertThat(classification.labels(), contains("InsertFromValues"));
+        assertThat(classification.labels()).containsExactly("InsertFromValues");
 
         plan = e.logicalPlan("INSERT INTO users (id, name) (SELECT id, name FROM users)");
         classification = StatementClassifier.classify(plan);
         assertThat(classification.type()).isEqualTo(Plan.StatementType.INSERT);
-        assertThat(classification.labels(), contains("Collect"));
+        assertThat(classification.labels()).containsExactly("Collect");
 
         plan = e.logicalPlan("INSERT INTO users (id, name) (SELECT * FROM unnest([1], ['foo']))");
         classification = StatementClassifier.classify(plan);
         assertThat(classification.type()).isEqualTo(Plan.StatementType.INSERT);
-        assertThat(classification.labels(), contains("TableFunction"));
+        assertThat(classification.labels()).containsExactly("TableFunction");
     }
 
     @Test

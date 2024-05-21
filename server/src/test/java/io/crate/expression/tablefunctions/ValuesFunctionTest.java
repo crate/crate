@@ -22,8 +22,6 @@
 package io.crate.expression.tablefunctions;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.contains;
-import static org.junit.Assert.assertThat;
 
 import java.util.List;
 
@@ -102,7 +100,7 @@ public class ValuesFunctionTest extends AbstractTableFunctionsTest {
         );
 
         assertThat(funcImplementation.returnType()).isExactlyInstanceOf(RowType.class);
-        assertThat(funcImplementation.returnType().fieldTypes(), contains(DataTypes.STRING_ARRAY));
+        assertThat(funcImplementation.returnType().fieldTypes()).containsExactly(DataTypes.STRING_ARRAY);
 
     }
 

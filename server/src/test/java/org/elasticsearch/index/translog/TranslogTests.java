@@ -25,9 +25,7 @@ import static org.elasticsearch.common.util.BigArrays.NON_RECYCLING_INSTANCE;
 import static org.elasticsearch.index.translog.SnapshotMatchers.containsOperationsInAnyOrder;
 import static org.elasticsearch.index.translog.TranslogDeletionPolicies.createTranslogDeletionPolicy;
 import static org.hamcrest.CoreMatchers.hasItem;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.isIn;
@@ -136,7 +134,6 @@ import org.elasticsearch.index.translog.Translog.Location;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.IndexSettingsModule;
 import org.elasticsearch.test.VersionUtils;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -366,7 +363,7 @@ public class TranslogTests extends ESTestCase {
 
         long firstId = translog.currentFileGeneration();
         translog.rollGeneration();
-        assertThat(translog.currentFileGeneration(), Matchers.not(equalTo(firstId)));
+        assertThat(translog.currentFileGeneration()).isNotEqualTo(firstId);
 
         try (Translog.Snapshot snapshot = translog.newSnapshot()) {
             assertThat(snapshot, SnapshotMatchers.equalsTo(ops));
@@ -1343,7 +1340,7 @@ public class TranslogTests extends ESTestCase {
             writer.sync();
 
             // Sequence numbers are marked as persisted after sync
-            assertThat(persistedSeqNos, contains(1L, 2L, 3L, 4L, 5L));
+            assertThat(persistedSeqNos).containsExactly(1L, 2L, 3L, 4L, 5L);
         }
     }
 
@@ -1443,7 +1440,7 @@ public class TranslogTests extends ESTestCase {
             // Sync against so that both operations are written
             writer.sync();
 
-            assertThat(persistedSeqNos, contains(1L, 2L));
+            assertThat(persistedSeqNos).containsExactly(1L, 2L);
             thread.join();
         }
     }

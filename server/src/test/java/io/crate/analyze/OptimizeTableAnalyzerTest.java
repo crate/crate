@@ -27,7 +27,6 @@ import static io.crate.analyze.OptimizeTableSettings.ONLY_EXPUNGE_DELETES;
 import static io.crate.analyze.OptimizeTableSettings.UPGRADE_SEGMENTS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.hasItems;
-import static org.hamcrest.Matchers.contains;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
@@ -83,32 +82,32 @@ public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     @Test
     public void testOptimizeTable() throws Exception {
         OptimizeTablePlan.BoundOptimizeTable analysis = analyze("OPTIMIZE TABLE users");
-        assertThat(analysis.indexNames(), contains("users"));
+        assertThat(analysis.indexNames()).containsExactly("users");
     }
 
     @Test
     public void testOptimizeBlobTable() throws Exception {
         OptimizeTablePlan.BoundOptimizeTable analysis = analyze("OPTIMIZE TABLE blob.blobs");
-        assertThat(analysis.indexNames(), contains(".blob_blobs"));
+        assertThat(analysis.indexNames()).containsExactly(".blob_blobs");
     }
 
     @Test
     public void testOptimizeTableWithParams() throws Exception {
         OptimizeTablePlan.BoundOptimizeTable analysis = analyze(
             "OPTIMIZE TABLE users WITH (max_num_segments=2)");
-        assertThat(analysis.indexNames(), contains("users"));
+        assertThat(analysis.indexNames()).containsExactly("users");
         assertThat(MAX_NUM_SEGMENTS.get(analysis.settings())).isEqualTo(2);
         analysis = analyze("OPTIMIZE TABLE users WITH (only_expunge_deletes=true)");
 
-        assertThat(analysis.indexNames(), contains("users"));
+        assertThat(analysis.indexNames()).containsExactly("users");
         assertThat(ONLY_EXPUNGE_DELETES.get(analysis.settings())).isEqualTo(Boolean.TRUE);
 
         analysis = analyze("OPTIMIZE TABLE users WITH (flush=false)");
-        assertThat(analysis.indexNames(), contains("users"));
+        assertThat(analysis.indexNames()).containsExactly("users");
         assertThat(FLUSH.get(analysis.settings())).isEqualTo(Boolean.FALSE);
 
         analysis = analyze("OPTIMIZE TABLE users WITH (upgrade_segments=true)");
-        assertThat(analysis.indexNames(), contains("users"));
+        assertThat(analysis.indexNames()).containsExactly("users");
         assertThat(UPGRADE_SEGMENTS.get(analysis.settings())).isEqualTo(Boolean.TRUE);
     }
 
@@ -130,14 +129,14 @@ public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     public void testOptimizePartition() throws Exception {
         OptimizeTablePlan.BoundOptimizeTable analysis = analyze(
             "OPTIMIZE TABLE parted PARTITION (date=1395874800000)");
-        assertThat(analysis.indexNames(), contains(".partitioned.parted.04732cpp6ks3ed1o60o30c1g"));
+        assertThat(analysis.indexNames()).containsExactly(".partitioned.parted.04732cpp6ks3ed1o60o30c1g");
     }
 
     @Test
     public void testOptimizePartitionedTableNullPartition() throws Exception {
         OptimizeTablePlan.BoundOptimizeTable analysis = analyze(
             "OPTIMIZE TABLE parted PARTITION (date=null)");
-        assertThat(analysis.indexNames(), contains(".partitioned.parted.0400"));
+        assertThat(analysis.indexNames()).containsExactly(".partitioned.parted.0400");
     }
 
     @Test
@@ -145,7 +144,7 @@ public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest 
         OptimizeTablePlan.BoundOptimizeTable analysis = analyze(
             "OPTIMIZE TABLE parted PARTITION (date=1395874800000) " +
             "WITH (only_expunge_deletes=true)");
-        assertThat(analysis.indexNames(), contains(".partitioned.parted.04732cpp6ks3ed1o60o30c1g"));
+        assertThat(analysis.indexNames()).containsExactly(".partitioned.parted.04732cpp6ks3ed1o60o30c1g");
     }
 
     @Test

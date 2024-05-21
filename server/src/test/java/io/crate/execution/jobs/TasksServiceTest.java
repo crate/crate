@@ -22,8 +22,6 @@
 package io.crate.execution.jobs;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.contains;
-import static org.junit.Assert.assertThat;
 
 import java.lang.reflect.Field;
 import java.util.List;
@@ -81,7 +79,7 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         assertThat(contexts.iterator().hasNext()).isFalse();
 
         contexts = tasksService.getJobIdsByCoordinatorNode("n1").collect(Collectors.toList());
-        assertThat(contexts, contains(ctx.jobId()));
+        assertThat(contexts).containsExactly(ctx.jobId());
     }
 
     @Test

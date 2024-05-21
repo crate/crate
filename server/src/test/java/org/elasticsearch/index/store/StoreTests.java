@@ -24,10 +24,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.test.VersionUtils.randomVersion;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.endsWith;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasKey;
-import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
@@ -1014,7 +1012,7 @@ public class StoreTests extends ESTestCase {
 
             segmentInfos = Lucene.readSegmentInfos(store.directory());
             assertThat(segmentInfos.getUserData(), hasKey(Engine.HISTORY_UUID_KEY));
-            assertThat(segmentInfos.getUserData().get(Engine.HISTORY_UUID_KEY), not(equalTo(oldHistoryUUID)));
+            assertThat(segmentInfos.getUserData().get(Engine.HISTORY_UUID_KEY)).isNotEqualTo(oldHistoryUUID);
         }
     }
 

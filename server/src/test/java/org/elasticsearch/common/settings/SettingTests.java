@@ -23,7 +23,6 @@ package org.elasticsearch.common.settings;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.hasToString;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -941,8 +940,8 @@ public class SettingTests extends ESTestCase {
             Setting.affixKeySetting("prefix.","suffix",
                 (key) -> Setting.groupSetting(key + ".", Setting.Property.Dynamic, Setting.Property.NodeScope));
 
-        assertThat(affixSetting.getNamespaces(Settings.builder().put("prefix.infix.suffix", "anything").build()), hasSize(1));
-        assertThat(affixSetting.getNamespaces(Settings.builder().put("prefix.infix.suffix.anything", "anything").build()), hasSize(1));
+        assertThat(affixSetting.getNamespaces(Settings.builder().put("prefix.infix.suffix", "anything").build())).hasSize(1);
+        assertThat(affixSetting.getNamespaces(Settings.builder().put("prefix.infix.suffix.anything", "anything").build())).hasSize(1);
     }
 
     @Test

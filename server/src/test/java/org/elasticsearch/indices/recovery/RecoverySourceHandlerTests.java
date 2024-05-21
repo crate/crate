@@ -26,7 +26,6 @@ import static org.elasticsearch.index.engine.Engine.Operation.Origin.PRIMARY;
 import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -657,7 +656,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         handler.sendFiles(store, files.toArray(new StoreFileMetadata[0]), () -> 0, sendFilesFuture);
         assertBusy(() -> {
             assertThat(sentChunks.get()).isEqualTo(Math.min(totalChunks, maxConcurrentChunks));
-            assertThat(unrepliedChunks, hasSize(sentChunks.get()));
+            assertThat(unrepliedChunks).hasSize(sentChunks.get());
         });
 
         List<FileChunkResponse> ackedChunks = new ArrayList<>();
@@ -683,7 +682,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
             chunksToAck.forEach(c -> c.listener.onResponse(null));
             assertBusy(() -> {
                 assertThat(sentChunks.get()).isEqualTo(expectedSentChunks);
-                assertThat(unrepliedChunks, hasSize(expectedUnrepliedChunks));
+                assertThat(unrepliedChunks).hasSize(expectedUnrepliedChunks);
             });
         }
         FutureUtils.get(sendFilesFuture);

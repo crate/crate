@@ -23,7 +23,6 @@ package org.elasticsearch.common.settings;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.nullValue;
@@ -77,7 +76,7 @@ public class SettingsTests extends ESTestCase {
             .putList("setting1", "${HOSTNAME}", "${HOSTIP}")
             .replacePropertyPlaceholders(name -> name.equals("HOSTNAME") ? hostname : name.equals("HOSTIP") ? hostip : null)
             .build();
-        assertThat(settings.getAsList("setting1"), contains(hostname, hostip));
+        assertThat(settings.getAsList("setting1")).containsExactly(hostname, hostip);
     }
 
     @Test
@@ -176,83 +175,83 @@ public class SettingsTests extends ESTestCase {
             .put(Settings.builder().putList("value", "1").build())
             .put(Settings.builder().putList("value", "2", "3").build())
             .build();
-        assertThat(settings.getAsList("value"), contains("2", "3"));
+        assertThat(settings.getAsList("value")).containsExactly("2", "3");
 
         settings = Settings.builder()
             .put(Settings.builder().put("value", "1").build())
             .put(Settings.builder().putList("value", "2", "3").build())
             .build();
-        assertThat(settings.getAsList("value"), contains("2", "3"));
+        assertThat(settings.getAsList("value")).containsExactly("2", "3");
         settings = Settings.builder().loadFromSource("value: 1", XContentType.YAML)
             .loadFromSource("value: [ 2, 3 ]", XContentType.YAML)
             .build();
-        assertThat(settings.getAsList("value"), contains("2", "3"));
+        assertThat(settings.getAsList("value")).containsExactly("2", "3");
 
         settings = Settings.builder()
             .put(Settings.builder().put("value.with.deep.key", "1").build())
             .put(Settings.builder().putList("value.with.deep.key", "2", "3").build())
             .build();
-        assertThat(settings.getAsList("value.with.deep.key"), contains("2", "3"));
+        assertThat(settings.getAsList("value.with.deep.key")).containsExactly("2", "3");
 
         // overriding an array with a shorter array
         settings = Settings.builder()
             .put(Settings.builder().putList("value", "1", "2").build())
             .put(Settings.builder().putList("value", "3").build())
             .build();
-        assertThat(settings.getAsList("value"), contains("3"));
+        assertThat(settings.getAsList("value")).containsExactly("3");
 
         settings = Settings.builder()
             .put(Settings.builder().putList("value", "1", "2", "3").build())
             .put(Settings.builder().putList("value", "4", "5").build())
             .build();
-        assertThat(settings.getAsList("value"), contains("4", "5"));
+        assertThat(settings.getAsList("value")).containsExactly("4", "5");
 
         settings = Settings.builder()
             .put(Settings.builder().putList("value.deep.key", "1", "2", "3").build())
             .put(Settings.builder().putList("value.deep.key", "4", "5").build())
             .build();
-        assertThat(settings.getAsList("value.deep.key"), contains("4", "5"));
+        assertThat(settings.getAsList("value.deep.key")).containsExactly("4", "5");
 
         // overriding an array with a longer array
         settings = Settings.builder()
             .put(Settings.builder().putList("value", "1", "2").build())
             .put(Settings.builder().putList("value", "3", "4", "5").build())
             .build();
-        assertThat(settings.getAsList("value"), contains("3", "4", "5"));
+        assertThat(settings.getAsList("value")).containsExactly("3", "4", "5");
 
         settings = Settings.builder()
             .put(Settings.builder().putList("value.deep.key", "1", "2", "3").build())
             .put(Settings.builder().putList("value.deep.key", "4", "5").build())
             .build();
-        assertThat(settings.getAsList("value.deep.key"), contains("4", "5"));
+        assertThat(settings.getAsList("value.deep.key")).containsExactly("4", "5");
 
         // overriding an array with a single value
         settings = Settings.builder()
             .put(Settings.builder().putList("value", "1", "2").build())
             .put(Settings.builder().put("value", "3").build())
             .build();
-        assertThat(settings.getAsList("value"), contains("3"));
+        assertThat(settings.getAsList("value")).containsExactly("3");
 
         settings = Settings.builder()
             .put(Settings.builder().putList("value.deep.key", "1", "2").build())
             .put(Settings.builder().put("value.deep.key", "3").build())
             .build();
-        assertThat(settings.getAsList("value.deep.key"), contains("3"));
+        assertThat(settings.getAsList("value.deep.key")).containsExactly("3");
 
         // test that other arrays are not overridden
         settings = Settings.builder()
             .put(Settings.builder().putList("value", "1", "2", "3").putList("a", "b", "c").build())
             .put(Settings.builder().putList("value", "4", "5").putList("d", "e", "f").build())
             .build();
-        assertThat(settings.getAsList("value"), contains("4", "5"));
-        assertThat(settings.getAsList("a"), contains("b", "c"));
-        assertThat(settings.getAsList("d"), contains("e", "f"));
+        assertThat(settings.getAsList("value")).containsExactly("4", "5");
+        assertThat(settings.getAsList("a")).containsExactly("b", "c");
+        assertThat(settings.getAsList("d")).containsExactly("e", "f");
 
         settings = Settings.builder()
             .put(Settings.builder().putList("value.deep.key", "1", "2", "3").putList("a", "b", "c").build())
             .put(Settings.builder().putList("value.deep.key", "4", "5").putList("d", "e", "f").build())
             .build();
-        assertThat(settings.getAsList("value.deep.key"), contains("4", "5"));
+        assertThat(settings.getAsList("value.deep.key")).containsExactly("4", "5");
         assertThat(settings.getAsList("a")).isNotNull();
         assertThat(settings.getAsList("d")).isNotNull();
 
@@ -261,7 +260,7 @@ public class SettingsTests extends ESTestCase {
             .put(Settings.builder().put("value.data", "1").build())
             .put(Settings.builder().putList("value", "4", "5").build())
             .build();
-        assertThat(settings.getAsList("value"), contains("4", "5"));
+        assertThat(settings.getAsList("value")).containsExactly("4", "5");
 
         // overriding an array with a deeper structure
         settings = Settings.builder()

@@ -22,8 +22,6 @@ package org.elasticsearch.common.io.stream;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.closeTo;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -473,7 +471,7 @@ public class BytesStreamsTests extends ESTestCase {
 
         final List<TestWriteable> loaded = in.readList(TestWriteable::new);
 
-        assertThat(loaded, hasSize(expected.size()));
+        assertThat(loaded).hasSize(expected.size());
 
         for (int i = 0; i < expected.size(); ++i) {
             assertEquals(expected.get(i).value, loaded.get(i).value);
@@ -562,7 +560,7 @@ public class BytesStreamsTests extends ESTestCase {
 
             List<String> loadedList = loaded.get(entry.getKey());
 
-            assertThat(loadedList, hasSize(entry.getValue().size()));
+            assertThat(loadedList).hasSize(entry.getValue().size());
 
             for (int i = 0; i < loadedList.size(); ++i) {
                 assertEquals(entry.getValue().get(i), loadedList.get(i));
@@ -924,7 +922,7 @@ public class BytesStreamsTests extends ESTestCase {
         BytesStreamOutput prodOut = new BytesStreamOutput() {
             @Override
             boolean failOnTooManyNestedExceptions(Throwable throwable) {
-                assertThat(throwable, sameInstance(rootEx));
+                assertThat(throwable).isSameAs(rootEx);
                 return true;
             }
         };

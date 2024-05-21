@@ -27,10 +27,8 @@ import static org.elasticsearch.monitor.StatusInfo.Status.HEALTHY;
 import static org.elasticsearch.monitor.StatusInfo.Status.UNHEALTHY;
 import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
 import static org.elasticsearch.transport.TransportService.HANDSHAKE_ACTION_NAME;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
@@ -102,7 +100,7 @@ public class FollowersCheckerTests extends ESTestCase {
                 assertThat(action).isEqualTo(FOLLOWER_CHECK_ACTION_NAME);
                 assertThat(request).isExactlyInstanceOf(FollowerCheckRequest.class);
                 assertTrue(discoveryNodesHolder[0].nodeExists(node));
-                assertThat(node, not(equalTo(localNode)));
+                assertThat(node).isNotEqualTo(localNode);
                 checkedNodes.add(node);
                 checkCount.incrementAndGet();
                 handleResponse(requestId, Empty.INSTANCE);
@@ -139,7 +137,7 @@ public class FollowersCheckerTests extends ESTestCase {
                 deterministicTaskQueue.advanceTime();
             }
         }
-        assertThat(checkedNodes, contains(otherNode1));
+        assertThat(checkedNodes).containsExactly(otherNode1);
         assertThat(followersChecker.getFaultyNodes(), empty());
 
         checkedNodes.clear();
@@ -167,7 +165,7 @@ public class FollowersCheckerTests extends ESTestCase {
                 deterministicTaskQueue.advanceTime();
             }
         }
-        assertThat(checkedNodes, contains(otherNode2));
+        assertThat(checkedNodes).containsExactly(otherNode2);
         assertThat(followersChecker.getFaultyNodes(), empty());
 
         checkedNodes.clear();
@@ -279,7 +277,7 @@ public class FollowersCheckerTests extends ESTestCase {
         transportService.disconnectFromNode(otherNode);
         deterministicTaskQueue.runAllRunnableTasks();
         assertTrue(nodeFailed.get());
-        assertThat(followersChecker.getFaultyNodes(), contains(otherNode));
+        assertThat(followersChecker.getFaultyNodes()).containsExactly(otherNode);
     }
 
     public void testFailsNodeThatIsUnhealthy() {
@@ -352,7 +350,7 @@ public class FollowersCheckerTests extends ESTestCase {
             deterministicTaskQueue.runAllRunnableTasks();
         }
         assertThat(deterministicTaskQueue.getCurrentTimeMillis()).isEqualTo(expectedFailureTime);
-        assertThat(followersChecker.getFaultyNodes(), contains(otherNode));
+        assertThat(followersChecker.getFaultyNodes()).containsExactly(otherNode);
 
         deterministicTaskQueue.runAllTasks();
 
@@ -363,7 +361,7 @@ public class FollowersCheckerTests extends ESTestCase {
         deterministicTaskQueue.runAllRunnableTasks();
         deterministicTaskQueue.advanceTime();
         deterministicTaskQueue.runAllRunnableTasks();
-        assertThat(followersChecker.getFaultyNodes(), contains(otherNode));
+        assertThat(followersChecker.getFaultyNodes()).containsExactly(otherNode);
 
         // remove the faulty node and see that it is removed
         discoveryNodes = DiscoveryNodes.builder(discoveryNodes).remove(otherNode).build();
@@ -385,7 +383,7 @@ public class FollowersCheckerTests extends ESTestCase {
         assertThat(followersChecker.getFaultyNodes(), empty());
         deterministicTaskQueue.runAllTasksInTimeOrder();
         assertTrue(nodeFailed.get());
-        assertThat(followersChecker.getFaultyNodes(), contains(otherNode));
+        assertThat(followersChecker.getFaultyNodes()).containsExactly(otherNode);
     }
 
     public void testFollowerCheckRequestEqualsHashCodeSerialization() {

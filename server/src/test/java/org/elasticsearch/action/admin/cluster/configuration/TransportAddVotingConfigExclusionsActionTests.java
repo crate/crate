@@ -26,10 +26,8 @@ import static org.elasticsearch.action.admin.cluster.configuration.TransportAddV
 import static org.elasticsearch.cluster.ClusterState.builder;
 import static org.elasticsearch.test.ClusterServiceUtils.createClusterService;
 import static org.elasticsearch.test.ClusterServiceUtils.setState;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.sameInstance;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -160,7 +158,7 @@ public class TransportAddVotingConfigExclusionsActionTests extends ESTestCase {
         );
 
         assertTrue(countDownLatch.await(30, TimeUnit.SECONDS));
-        assertThat(clusterService.getClusterApplierService().state().getVotingConfigExclusions(), contains(otherNode1Exclusion));
+        assertThat(clusterService.getClusterApplierService().state().getVotingConfigExclusions()).containsExactly(otherNode1Exclusion);
     }
 
     public void testWithdrawsVotesFromMultipleNodes() throws InterruptedException {
@@ -226,8 +224,7 @@ public class TransportAddVotingConfigExclusionsActionTests extends ESTestCase {
         );
 
         assertTrue(countDownLatch.await(30, TimeUnit.SECONDS));
-        assertThat(clusterService.getClusterApplierService().state().getVotingConfigExclusions(),
-                contains(localNodeExclusion));
+        assertThat(clusterService.getClusterApplierService().state().getVotingConfigExclusions()).containsExactly(localNodeExclusion);
         assertWarnings(AddVotingConfigExclusionsRequest.DEPRECATION_MESSAGE);
     }
 
@@ -251,8 +248,7 @@ public class TransportAddVotingConfigExclusionsActionTests extends ESTestCase {
         );
 
         assertTrue(countDownLatch.await(30, TimeUnit.SECONDS));
-        assertThat(clusterService.getClusterApplierService().state().getVotingConfigExclusions(),
-                contains(otherNode1Exclusion));
+        assertThat(clusterService.getClusterApplierService().state().getVotingConfigExclusions()).containsExactly(otherNode1Exclusion);
     }
 
     public void testReturnsErrorIfNoMatchingNodeDescriptions() throws InterruptedException {
@@ -379,8 +375,7 @@ public class TransportAddVotingConfigExclusionsActionTests extends ESTestCase {
         );
 
         assertTrue(countDownLatch.await(30, TimeUnit.SECONDS));
-        assertThat(clusterService.getClusterApplierService().state().getVotingConfigExclusions(),
-                contains(otherNode1Exclusion));
+        assertThat(clusterService.getClusterApplierService().state().getVotingConfigExclusions()).containsExactly(otherNode1Exclusion);
     }
 
     public void testExcludeByNodeIdSucceedsEvenIfAllExclusionsAlreadyAdded() throws InterruptedException {
@@ -405,8 +400,7 @@ public class TransportAddVotingConfigExclusionsActionTests extends ESTestCase {
         );
 
         assertTrue(countDownLatch.await(30, TimeUnit.SECONDS));
-        assertThat(clusterService.getClusterApplierService().state().getVotingConfigExclusions(),
-            contains(otherNode1Exclusion));
+        assertThat(clusterService.getClusterApplierService().state().getVotingConfigExclusions()).containsExactly(otherNode1Exclusion);
     }
 
     public void testExcludeByNodeNameSucceedsEvenIfAllExclusionsAlreadyAdded() throws InterruptedException {
@@ -429,8 +423,7 @@ public class TransportAddVotingConfigExclusionsActionTests extends ESTestCase {
         );
 
         assertTrue(countDownLatch.await(30, TimeUnit.SECONDS));
-        assertThat(clusterService.getClusterApplierService().state().getVotingConfigExclusions(),
-            contains(otherNode1Exclusion));
+        assertThat(clusterService.getClusterApplierService().state().getVotingConfigExclusions()).containsExactly(otherNode1Exclusion);
     }
 
     public void testReturnsErrorIfMaximumExclusionCountExceeded() throws InterruptedException {
@@ -547,7 +540,7 @@ public class TransportAddVotingConfigExclusionsActionTests extends ESTestCase {
             clusterService.getMasterService().submitStateUpdateTask("reconfiguration", new ClusterStateUpdateTask() {
                 @Override
                 public ClusterState execute(ClusterState currentState) {
-                    assertThat(currentState, sameInstance(state));
+                    assertThat(currentState).isSameAs(state);
                     final Set<String> votingNodeIds = new HashSet<>();
                     currentState.nodes().forEach(n -> votingNodeIds.add(n.getId()));
                     currentState.getVotingConfigExclusions().forEach(t -> votingNodeIds.remove(t.getNodeId()));

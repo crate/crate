@@ -19,8 +19,6 @@
 package org.elasticsearch.transport;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.CoreMatchers.sameInstance;
-import static org.junit.Assert.assertThat;
 
 import java.util.concurrent.Phaser;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -60,7 +58,7 @@ public class TransportRequestDeduplicatorTests extends ESTestCase {
 
                         @Override
                         public void onFailure(Exception e) {
-                            assertThat(e, sameInstance(failure));
+                            assertThat(e).isSameAs(failure);
                             failureCount.incrementAndGet();
                         }
                     }, (req, reqListener) -> listenerHolder.set(reqListener));

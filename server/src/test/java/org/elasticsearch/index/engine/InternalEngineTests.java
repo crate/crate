@@ -32,21 +32,17 @@ import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_PRIMARY_T
 import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
 import static org.elasticsearch.index.translog.TranslogDeletionPolicies.createTranslogDeletionPolicy;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasKey;
-import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.isIn;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -235,7 +231,7 @@ public class InternalEngineTests extends EngineTestCase {
         Engine.Index update = indexForDoc(doc);
         engine.index(update);
         assertTrue(engine.isSafeAccessRequired());
-        assertThat(engine.getVersionMap().values(), hasSize(1));
+        assertThat(engine.getVersionMap().values()).hasSize(1);
         try (Engine.Searcher searcher = engine.acquireSearcher("test")) {
             assertEquals(0, searcher.getIndexReader().numDocs());
         }
@@ -267,7 +263,7 @@ public class InternalEngineTests extends EngineTestCase {
             : appendOnlyReplica(doc, false, 1, generateNewSeqNo(engine));
         engine.index(operation);
         assertTrue("safe access should be required", engine.isSafeAccessRequired());
-        assertThat(engine.getVersionMap().values(), hasSize(1)); // now we add this to the map
+        assertThat(engine.getVersionMap().values()).hasSize(1); // now we add this to the map
         engine.refresh("test");
         if (randomBoolean()) { // randomly refresh here again
             engine.refresh("test");
@@ -581,7 +577,7 @@ public class InternalEngineTests extends EngineTestCase {
             }
             engine.refresh("test");
             List<Segment> segments = engine.segments(randomBoolean());
-            assertThat(segments, hasSize(1));
+            assertThat(segments).hasSize(1);
             assertThat(segments.get(0).getNumDocs()).isEqualTo(liveDocsFirstSegment.size());
             assertThat(segments.get(0).getDeletedDocs()).isEqualTo(0);
             assertFalse(segments.get(0).committed);
@@ -611,7 +607,7 @@ public class InternalEngineTests extends EngineTestCase {
             }
             engine.refresh("test");
             segments = engine.segments(randomBoolean());
-            assertThat(segments, hasSize(2));
+            assertThat(segments).hasSize(2);
             assertThat(segments.get(0).getNumDocs()).isEqualTo(liveDocsFirstSegment.size());
             assertThat(segments.get(0).getDeletedDocs()).isEqualTo(updates + deletes);
             assertThat(segments.get(0).committed).isEqualTo(committed);
@@ -668,7 +664,7 @@ public class InternalEngineTests extends EngineTestCase {
             assertThat(stats2.getRawCommitId()).isEqualTo(commitId);
             assertThat(stats2.getGeneration(), greaterThan(stats1.getGeneration()));
             assertThat(stats2.getId()).isNotNull();
-            assertThat(stats2.getId(), not(equalTo(stats1.getId())));
+            assertThat(stats2.getId()).isNotEqualTo(stats1.getId());
             assertThat(stats2.getUserData(), hasKey(Translog.TRANSLOG_UUID_KEY));
             assertThat(stats2.getUserData().get(Translog.TRANSLOG_UUID_KEY)).isEqualTo(stats1.getUserData().get(Translog.TRANSLOG_UUID_KEY));
             assertThat(Long.parseLong(stats2.getUserData().get(SequenceNumbers.LOCAL_CHECKPOINT_KEY))).isEqualTo(localCheckpoint.get());
@@ -1616,7 +1612,7 @@ public class InternalEngineTests extends EngineTestCase {
 
             engine.forceMerge(true, 1, false, UUIDs.randomBase64UUID());
             assertConsistentHistoryBetweenTranslogAndLuceneIndex(engine);
-            assertThat(readAllOperationsInLucene(engine), hasSize(liveDocs.size()));
+            assertThat(readAllOperationsInLucene(engine)).hasSize(liveDocs.size());
         }
     }
 
@@ -1728,7 +1724,7 @@ public class InternalEngineTests extends EngineTestCase {
             }
             engine.forceMerge(true, 1, false, UUIDs.randomBase64UUID());
             assertConsistentHistoryBetweenTranslogAndLuceneIndex(engine);
-            assertThat(readAllOperationsInLucene(engine), hasSize(liveDocsWithSource.size()));
+            assertThat(readAllOperationsInLucene(engine)).hasSize(liveDocsWithSource.size());
         }
     }
 
@@ -2359,7 +2355,7 @@ public class InternalEngineTests extends EngineTestCase {
         for (int i = 0; i < sortedHistory.size(); i++) {
             OpAndVersion op = sortedHistory.get(i);
             if (i > 0) {
-                assertThat("duplicate version", op.version, not(equalTo(sortedHistory.get(i - 1).version)));
+                assertThat(op.version).as("duplicate version").isNotEqualTo(sortedHistory.get(i - 1).version);
             }
             boolean exists = op.removed == null ? true : currentValues.remove(op.removed);
             assertTrue(op.removed + " should exist", exists);
@@ -4456,7 +4452,7 @@ public class InternalEngineTests extends EngineTestCase {
             assertThat(noOp.reason()).isEqualTo(reason);
             if (engine.engineConfig.getIndexSettings().isSoftDeleteEnabled()) {
                 List<Translog.Operation> operationsFromLucene = readAllOperationsInLucene(noOpEngine);
-                assertThat(operationsFromLucene, hasSize(maxSeqNo + 2 - localCheckpoint)); // fills n gap and 2 manual noop.
+                assertThat(operationsFromLucene).hasSize(maxSeqNo + 2 - localCheckpoint); // fills n gap and 2 manual noop.
                 for (int i = 0; i < operationsFromLucene.size(); i++) {
                     assertThat(operationsFromLucene.get(i)).isEqualTo(new Translog.NoOp(localCheckpoint + 1 + i, primaryTerm.get(), "filling gaps"));
                 }
@@ -4534,7 +4530,7 @@ public class InternalEngineTests extends EngineTestCase {
         }
         if (engine.engineConfig.getIndexSettings().isSoftDeleteEnabled()) {
             List<Translog.Operation> operations = readAllOperationsInLucene(engine);
-            assertThat(operations, hasSize(numOps));
+            assertThat(operations).hasSize(numOps);
         }
     }
 
@@ -5088,13 +5084,13 @@ public class InternalEngineTests extends EngineTestCase {
             try (IndexReader reader = DirectoryReader.open(snapshot.getIndexCommit())) {
                 assertThat(reader.numDocs()).isEqualTo(flushFirst && safeCommit == false ? numDocs : 0);
             }
-            assertThat(DirectoryReader.listCommits(engine.store.directory()), hasSize(2));
+            assertThat(DirectoryReader.listCommits(engine.store.directory())).hasSize(2);
 
             if (closeSnapshotBeforeEngine) {
                 snapshot.close();
                 // check it's clean up
                 engine.flush(true, true);
-                assertThat(DirectoryReader.listCommits(engine.store.directory()), hasSize(1));
+                assertThat(DirectoryReader.listCommits(engine.store.directory())).hasSize(1);
             }
         }
 
@@ -5135,7 +5131,7 @@ public class InternalEngineTests extends EngineTestCase {
             // Global checkpoint advanced enough - only the last commit is kept.
             globalCheckpoint.set(randomLongBetween(engine.getPersistedLocalCheckpoint(), Long.MAX_VALUE));
             engine.syncTranslog();
-            assertThat(DirectoryReader.listCommits(store.directory()), contains(commits.get(commits.size() - 1)));
+            assertThat(DirectoryReader.listCommits(store.directory())).containsExactly(commits.get(commits.size() - 1));
             assertThat(engine.getTranslog().totalOperations()).isEqualTo(0);
         }
     }
@@ -5168,7 +5164,7 @@ public class InternalEngineTests extends EngineTestCase {
                 assertThat(DirectoryReader.listCommits(store.directory())).isEqualTo(commits);
             }
             snapshots.get(numSnapshots - 1).close(); // release the last snapshot - delete all except the last commit
-            assertThat(DirectoryReader.listCommits(store.directory()), hasSize(1));
+            assertThat(DirectoryReader.listCommits(store.directory())).hasSize(1);
         }
     }
 
@@ -5214,7 +5210,7 @@ public class InternalEngineTests extends EngineTestCase {
         assertThat(uncommittedTranslogOperationsSinceLastCommit.getAsInt()).isEqualTo(numDocs);
         assertThat(engine.shouldPeriodicallyFlush()).isEqualTo(true);
         engine.flush(false, false);
-        assertThat(engine.getLastCommittedSegmentInfos(), not(sameInstance(lastCommitInfo)));
+        assertThat(engine.getLastCommittedSegmentInfos()).isNotSameAs(lastCommitInfo);
         assertThat(uncommittedTranslogOperationsSinceLastCommit.getAsInt()).isEqualTo(0);
         // If the new index commit still points to the same translog generation as the current index commit,
         // we should not enable the periodically flush condition; otherwise we can get into an infinite loop of flushes.
@@ -5228,7 +5224,7 @@ public class InternalEngineTests extends EngineTestCase {
             engine.index(replicaIndexForDoc(doc, 2L, generateNewSeqNo(engine), false));
             if (engine.shouldPeriodicallyFlush()) {
                 engine.flush();
-                assertThat(engine.getLastCommittedSegmentInfos(), not(sameInstance(lastCommitInfo)));
+                assertThat(engine.getLastCommittedSegmentInfos()).isNotSameAs(lastCommitInfo);
                 assertThat(engine.shouldPeriodicallyFlush()).isEqualTo(false);
             }
         }
@@ -5460,7 +5456,7 @@ public class InternalEngineTests extends EngineTestCase {
                     .reduce((s1, s2) -> s2) // get the last one.
                     .orElse(SequenceNumbers.NO_OPS_PERFORMED);
             final List<IndexCommit> commits = DirectoryReader.listCommits(store.directory());
-            assertThat(commits, hasSize(1));
+            assertThat(commits).hasSize(1);
             assertThat(commits.get(0).getUserData().get(SequenceNumbers.MAX_SEQ_NO)).isEqualTo(Long.toString(safeMaxSeqNo));
             try (IndexReader reader = DirectoryReader.open(commits.get(0))) {
                 for (LeafReaderContext context: reader.leaves()) {

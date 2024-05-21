@@ -20,9 +20,7 @@
 package org.elasticsearch.common.bytes;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -65,7 +63,9 @@ public class RecyclingBytesStreamOutputTests extends ESTestCase {
                 assertThat(bytesRef.offset).isEqualTo(0);
 
                 if (source.length <= buffer.length) {
-                    assertThat("should have re-used the same buffer", bytesRef.bytes, sameInstance(buffer));
+                    assertThat(bytesRef.bytes)
+                        .as("should have re-used the same buffer")
+                        .isSameAs(buffer);
                 } else {
                     assertThat(bytesRef.bytes.length).as("new buffer should be the right size").isEqualTo(source.length);
                 }

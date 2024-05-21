@@ -22,7 +22,6 @@ package org.elasticsearch.gateway;
 import static java.util.Collections.unmodifiableMap;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
@@ -211,7 +210,7 @@ public class ReplicaShardAllocatorTests extends ESAllocationTestCase {
         testAllocator.processExistingRecoveries(allocation);
         assertThat(allocation.routingNodesChanged()).isEqualTo(true);
         List<ShardRouting> unassignedShards = allocation.routingNodes().shardsWithState(ShardRoutingState.UNASSIGNED);
-        assertThat(unassignedShards, hasSize(1));
+        assertThat(unassignedShards).hasSize(1);
         assertThat(unassignedShards.get(0).shardId()).isEqualTo(shardId);
         assertThat(unassignedShards.get(0).unassignedInfo().getNumFailedAllocations()).isEqualTo(0);
         assertThat(unassignedShards.get(0).unassignedInfo().getFailedNodeIds()).isEqualTo(failedNodeIds);

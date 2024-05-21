@@ -22,10 +22,7 @@
 package io.crate.integrationtests.disruption.discovery;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
@@ -34,8 +31,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-
-import org.jetbrains.annotations.Nullable;
 
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.cluster.ClusterState;
@@ -63,6 +58,7 @@ import org.elasticsearch.test.disruption.ServiceDisruptionScheme;
 import org.elasticsearch.test.disruption.SlowClusterStateProcessing;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.transport.TransportSettings;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 
 import io.crate.common.unit.TimeValue;
@@ -186,8 +182,9 @@ public abstract class AbstractDisruptionTestCase extends IntegTestCase {
                 masterNode = state.nodes().getMasterNode().getName();
             }
             logger.trace("[{}] master is [{}]", node, state.nodes().getMasterNode());
-            assertThat("node [" + node + "] still has [" + masterNode + "] as master",
-                       oldMasterNode, not(equalTo(masterNode)));
+            assertThat(oldMasterNode)
+                .as("node [" + node + "] still has [" + masterNode + "] as master")
+                .isNotEqualTo(masterNode);
         }, 30, TimeUnit.SECONDS);
     }
 
