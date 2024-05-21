@@ -142,7 +142,7 @@ public abstract class TransportBroadcastReplicationAction<Request extends Broadc
 
     protected abstract ShardRequest newShardRequest(Request request, ShardId shardId);
 
-    private void finishAndNotifyListener(ActionListener listener, CopyOnWriteArrayList<ShardResponse> shardsResponses) {
+    private void finishAndNotifyListener(ActionListener<Response> listener, CopyOnWriteArrayList<ShardResponse> shardsResponses) {
         logger.trace("{}: got all shard responses", actionName);
         int successfulShards = 0;
         int failedShards = 0;
@@ -167,6 +167,8 @@ public abstract class TransportBroadcastReplicationAction<Request extends Broadc
         listener.onResponse(newResponse(successfulShards, failedShards, totalNumCopies, shardFailures));
     }
 
-    protected abstract BroadcastResponse newResponse(int successfulShards, int failedShards, int totalNumCopies,
-                                                     List<DefaultShardOperationFailedException> shardFailures);
+    protected abstract Response newResponse(int successfulShards,
+                                            int failedShards,
+                                            int totalNumCopies,
+                                            List<DefaultShardOperationFailedException> shardFailures);
 }
