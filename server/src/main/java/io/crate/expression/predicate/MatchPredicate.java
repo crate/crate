@@ -44,6 +44,8 @@ import org.elasticsearch.index.mapper.GeoShapeFieldMapper;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.query.MultiMatchQueryType;
 import org.elasticsearch.index.query.QueryShardContext;
+import org.elasticsearch.index.search.MatchQuery;
+import org.elasticsearch.index.search.MultiMatchQuery;
 import org.jetbrains.annotations.Nullable;
 import org.locationtech.spatial4j.shape.Shape;
 
@@ -56,7 +58,8 @@ import io.crate.geo.GeoJSONUtils;
 import io.crate.lucene.FunctionToQuery;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.lucene.LuceneQueryBuilder.Context;
-import io.crate.lucene.match.MatchQueries;
+import io.crate.lucene.match.OptionParser;
+import io.crate.lucene.match.ParsedOptions;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
@@ -118,6 +121,14 @@ public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
     );
 
     private static final Set<String> SUPPORTED_GEO_MATCH_TYPES = Set.of("intersects", "disjoint", "within");
+
+    private static final Map<String, MultiMatchQueryType> SUPPORTED_MATCH_TYPES = Map.of(
+        "best_fields", MultiMatchQueryType.BEST_FIELDS,
+        "most_fields", MultiMatchQueryType.MOST_FIELDS,
+        "cross_fields", MultiMatchQueryType.CROSS_FIELDS,
+        "phrase", MultiMatchQueryType.PHRASE,
+        "phrase_prefix", MultiMatchQueryType.PHRASE_PREFIX
+    );
 
     private final Signature signature;
     private final BoundSignature boundSignature;
@@ -184,10 +195,10 @@ public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
             "matchType must be literal";
 
         Symbol queryTerm = arguments.get(1);
-        if (!(queryTerm instanceof Input)) {
+        if (!(queryTerm instanceof Input<?> input)) {
             throw new IllegalArgumentException("queryTerm must be a literal");
         }
-        Object queryTermVal = ((Input) queryTerm).value();
+        Object queryTermVal = input.value();
         if (queryTermVal == null) {
             throw new IllegalArgumentException("cannot use NULL as query term in match predicate");
         }
@@ -293,7 +304,7 @@ public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
                 }
                 return null;
             });
-            return MatchQueries.multiMatch(
+            return multiMatch(
                 context.queryShardContext(),
                 matchType,
                 (Map) fields,
@@ -308,17 +319,82 @@ public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
                                           String queryString,
                                           String matchType,
                                           Map<String, Object> options) {
-        Query query = MatchQueries.singleMatch(
-            queryShardContext,
-            entry.getKey(),
-            queryString,
-            matchType,
-            options
-        );
+        MultiMatchQueryType type = getType(matchType);
+        ParsedOptions parsedOptions = OptionParser.parse(type, options);
+
+        MatchQuery matchQuery = new MatchQuery(queryShardContext);
+
+        if (parsedOptions.analyzer() != null) {
+            matchQuery.setAnalyzer(parsedOptions.analyzer());
+        }
+        matchQuery.setCommonTermsCutoff(parsedOptions.commonTermsCutoff());
+        matchQuery.setFuzziness(parsedOptions.fuzziness());
+        matchQuery.setFuzzyPrefixLength(parsedOptions.prefixLength());
+        matchQuery.setFuzzyRewriteMethod(parsedOptions.rewriteMethod());
+        matchQuery.setMaxExpansions(parsedOptions.maxExpansions());
+        matchQuery.setPhraseSlop(parsedOptions.phraseSlop());
+        matchQuery.setTranspositions(parsedOptions.transpositions());
+        matchQuery.setZeroTermsQuery(parsedOptions.zeroTermsQuery());
+        matchQuery.setOccur(parsedOptions.operator());
+
+        MatchQuery.Type matchQueryType = type.matchQueryType();
+        String fieldName = entry.getKey();
+        Query query = matchQuery.parse(matchQueryType, fieldName, queryString);
         Object boost = entry.getValue();
         if (boost instanceof Number number) {
             return new BoostQuery(query, number.floatValue());
         }
         return query;
+    }
+
+    private static Query multiMatch(QueryShardContext queryShardContext,
+                                    @Nullable String matchType,
+                                    Map<String, Float> fieldNames,
+                                    String queryString,
+                                    Map<String, Object> options) {
+        MultiMatchQueryType type = getType(matchType);
+        ParsedOptions parsedOptions = OptionParser.parse(type, options);
+
+        MultiMatchQuery multiMatchQuery = new MultiMatchQuery(queryShardContext);
+        Float tieBreaker = parsedOptions.tieBreaker();
+        if (tieBreaker != null) {
+            multiMatchQuery.setTieBreaker(tieBreaker);
+        }
+        String analyzer = parsedOptions.analyzer();
+        if (analyzer != null) {
+            multiMatchQuery.setAnalyzer(analyzer);
+        }
+        multiMatchQuery.setCommonTermsCutoff(parsedOptions.commonTermsCutoff());
+        multiMatchQuery.setFuzziness(parsedOptions.fuzziness());
+        multiMatchQuery.setFuzzyPrefixLength(parsedOptions.prefixLength());
+        multiMatchQuery.setFuzzyRewriteMethod(parsedOptions.rewriteMethod());
+        multiMatchQuery.setMaxExpansions(parsedOptions.maxExpansions());
+        multiMatchQuery.setPhraseSlop(parsedOptions.phraseSlop());
+        multiMatchQuery.setTranspositions(parsedOptions.transpositions());
+        multiMatchQuery.setZeroTermsQuery(parsedOptions.zeroTermsQuery());
+        multiMatchQuery.setOccur(parsedOptions.operator());
+
+        return multiMatchQuery.parse(type, fieldNames, queryString, parsedOptions.minimumShouldMatch());
+    }
+
+
+    private static MultiMatchQueryType getType(@Nullable String matchType) {
+        if (matchType == null) {
+            return MultiMatchQueryType.BEST_FIELDS;
+        }
+        MultiMatchQueryType type = SUPPORTED_MATCH_TYPES.get(matchType);
+        if (type == null) {
+            throw illegalMatchType(matchType);
+        }
+        return type;
+    }
+
+    private static IllegalArgumentException illegalMatchType(String matchType) {
+        String matchTypes = String.join(", ", SUPPORTED_MATCH_TYPES.keySet());
+        throw new IllegalArgumentException(String.format(
+            Locale.ENGLISH,
+            "Unknown matchType \"%s\". Possible matchTypes are: %s",
+            matchType,
+            matchTypes));
     }
 }
