@@ -31,12 +31,10 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.isIn;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.Closeable;
@@ -569,7 +567,7 @@ public class TranslogTests extends ESTestCase {
 
     @Test
     public void testSnapshotOnClosedTranslog() throws IOException {
-        assertTrue(Files.exists(translogDir.resolve(Translog.getFilename(1))));
+        assertThat(Files.exists(translogDir.resolve(Translog.getFilename(1)))).isTrue();
         translog.add(new Translog.Index("1", 0, primaryTerm.get(), new byte[]{1}));
         translog.close();
         assertThatThrownBy(() -> translog.newSnapshot())
@@ -645,7 +643,7 @@ public class TranslogTests extends ESTestCase {
     }
 
     public void assertFileDeleted(Translog translog, long id) {
-        assertFalse("translog [" + id + "] still exists", Files.exists(translog.location().resolve(Translog.getFilename(id))));
+        assertThat(Files.exists(translog.location().resolve(Translog.getFilename(id)))).as("translog [" + id + "] still exists").isFalse();
     }
 
     private void assertFilePresences(Translog translog) {
@@ -1050,26 +1048,26 @@ public class TranslogTests extends ESTestCase {
                 translog.add(new Translog.Index("" + op, seqNo, primaryTerm.get(),
                     Integer.toString(seqNo).getBytes(Charset.forName("UTF-8"))));
             if (randomBoolean()) {
-                assertTrue("at least one operation pending", translog.syncNeeded());
-                assertTrue("this operation has not been synced", translog.ensureSynced(location));
+                assertThat(translog.syncNeeded()).as("at least one operation pending").isTrue();
+                assertThat(translog.ensureSynced(location)).as("this operation has not been synced").isTrue();
                 // we are the last location so everything should be synced
-                assertFalse("the last call to ensureSycned synced all previous ops", translog.syncNeeded());
+                assertThat(translog.syncNeeded()).as("the last call to ensureSycned synced all previous ops").isFalse();
                 seqNo = ++count;
                 translog.add(new Translog.Index("" + op, seqNo, primaryTerm.get(),
                     Integer.toString(seqNo).getBytes(Charset.forName("UTF-8"))));
-                assertTrue("one pending operation", translog.syncNeeded());
-                assertFalse("this op has been synced before", translog.ensureSynced(location)); // not syncing now
-                assertTrue("we only synced a previous operation yet", translog.syncNeeded());
+                assertThat(translog.syncNeeded()).as("one pending operation").isTrue();
+                assertThat(translog.ensureSynced(location)).as("this op has been synced before").isFalse(); // not syncing now
+                assertThat(translog.syncNeeded()).as("we only synced a previous operation yet").isTrue();
             }
             if (rarely()) {
                 translog.rollGeneration();
-                assertFalse("location is from a previous translog - already synced", translog.ensureSynced(location)); // not syncing now
-                assertFalse("no sync needed since no operations in current translog", translog.syncNeeded());
+                assertThat(translog.ensureSynced(location)).as("location is from a previous translog - already synced").isFalse(); // not syncing now
+                assertThat(translog.syncNeeded()).as("no sync needed since no operations in current translog").isFalse();
             }
 
             if (randomBoolean()) {
                 translog.sync();
-                assertFalse("translog has been synced already", translog.ensureSynced(location));
+                assertThat(translog.ensureSynced(location)).as("translog has been synced already").isFalse();
             }
         }
     }
@@ -1092,21 +1090,21 @@ public class TranslogTests extends ESTestCase {
             }
             Collections.shuffle(locations, random());
             if (randomBoolean()) {
-                assertTrue("at least one operation pending", translog.syncNeeded());
-                assertTrue("this operation has not been synced", translog.ensureSynced(locations.stream()));
+                assertThat(translog.syncNeeded()).as("at least one operation pending").isTrue();
+                assertThat(translog.ensureSynced(locations.stream())).as("this operation has not been synced").isTrue();
                 // we are the last location so everything should be synced
-                assertFalse("the last call to ensureSycned synced all previous ops", translog.syncNeeded());
+                assertThat(translog.syncNeeded()).as("the last call to ensureSycned synced all previous ops").isFalse();
             } else if (rarely()) {
                 translog.rollGeneration();
                 // not syncing now
-                assertFalse("location is from a previous translog - already synced", translog.ensureSynced(locations.stream()));
-                assertFalse("no sync needed since no operations in current translog", translog.syncNeeded());
+                assertThat(translog.ensureSynced(locations.stream())).as("location is from a previous translog - already synced").isFalse();
+                assertThat(translog.syncNeeded()).as("no sync needed since no operations in current translog").isFalse();
             } else {
                 translog.sync();
-                assertFalse("translog has been synced already", translog.ensureSynced(locations.stream()));
+                assertThat(translog.ensureSynced(locations.stream())).as("translog has been synced already").isFalse();
             }
             for (Location location : locations) {
-                assertFalse("all of the locations should be synced: " + location, translog.ensureSynced(location));
+                assertThat(translog.ensureSynced(location)).as("all of the locations should be synced: " + location).isFalse();
             }
         }
     }
@@ -1503,7 +1501,7 @@ public class TranslogTests extends ESTestCase {
             translog = createTranslog(config);
             assertEquals(0, translog.stats().estimatedNumberOfOperations());
             assertEquals(2, translog.currentFileGeneration());
-            assertFalse(translog.syncNeeded());
+            assertThat(translog.syncNeeded()).isFalse();
             try(Translog.Snapshot snapshot = translog.newSnapshot()) {
                 assertNull(snapshot.next());
             }
@@ -1512,7 +1510,7 @@ public class TranslogTests extends ESTestCase {
                 () -> SequenceNumbers.NO_OPS_PERFORMED, primaryTerm::get, seqNo -> {});
             assertEquals("lastCommitted must be 1 less than current",
                 translogGeneration.translogFileGeneration + 1, translog.currentFileGeneration());
-            assertFalse(translog.syncNeeded());
+            assertThat(translog.syncNeeded()).isFalse();
             try (Translog.Snapshot snapshot = translog.newSnapshot(minUncommittedOp, Long.MAX_VALUE)) {
                 for (int i = minUncommittedOp; i < translogOperations; i++) {
                     assertEquals("expected operation" + i + " to be in the previous translog but wasn't",
@@ -1556,7 +1554,7 @@ public class TranslogTests extends ESTestCase {
             assertNotNull(translogGeneration);
             assertEquals("lastCommitted must be 2 less than current - we never finished the commit",
                 translogGeneration.translogFileGeneration + 2, translog.currentFileGeneration());
-            assertFalse(translog.syncNeeded());
+            assertThat(translog.syncNeeded()).isFalse();
             try (Translog.Snapshot snapshot = new SortedSnapshot(translog.newSnapshot())) {
                 int upTo = sync ? translogOperations : prepareOp;
                 for (int i = 0; i < upTo; i++) {
@@ -1572,7 +1570,7 @@ public class TranslogTests extends ESTestCase {
                 assertNotNull(translogGeneration);
                 assertEquals("lastCommitted must be 3 less than current - we never finished the commit and run recovery twice",
                     translogGeneration.translogFileGeneration + 3, translog.currentFileGeneration());
-                assertFalse(translog.syncNeeded());
+                assertThat(translog.syncNeeded()).isFalse();
                 try (Translog.Snapshot snapshot = new SortedSnapshot(translog.newSnapshot())) {
                     int upTo = sync ? translogOperations : prepareOp;
                     for (int i = 0; i < upTo; i++) {
@@ -1622,7 +1620,7 @@ public class TranslogTests extends ESTestCase {
             assertNotNull(translogGeneration);
             assertEquals("lastCommitted must be 2 less than current - we never finished the commit",
                 translogGeneration.translogFileGeneration + 2, translog.currentFileGeneration());
-            assertFalse(translog.syncNeeded());
+            assertThat(translog.syncNeeded()).isFalse();
             try (Translog.Snapshot snapshot = new SortedSnapshot(translog.newSnapshot())) {
                 int upTo = sync ? translogOperations : prepareOp;
                 for (int i = 0; i < upTo; i++) {
@@ -1639,7 +1637,7 @@ public class TranslogTests extends ESTestCase {
                 assertNotNull(translogGeneration);
                 assertEquals("lastCommitted must be 3 less than current - we never finished the commit and run recovery twice",
                     translogGeneration.translogFileGeneration + 3, translog.currentFileGeneration());
-                assertFalse(translog.syncNeeded());
+                assertThat(translog.syncNeeded()).isFalse();
                 try (Translog.Snapshot snapshot = new SortedSnapshot(translog.newSnapshot())) {
                     int upTo = sync ? translogOperations : prepareOp;
                     for (int i = 0; i < upTo; i++) {
@@ -1696,7 +1694,7 @@ public class TranslogTests extends ESTestCase {
             assertNotNull(translogGeneration);
             assertEquals("lastCommitted must be 2 less than current - we never finished the commit",
                 translogGeneration.translogFileGeneration + 2, translog.currentFileGeneration());
-            assertFalse(translog.syncNeeded());
+            assertThat(translog.syncNeeded()).isFalse();
             try (Translog.Snapshot snapshot = new SortedSnapshot(translog.newSnapshot())) {
                 int upTo = sync ? translogOperations : prepareOp;
                 for (int i = 0; i < upTo; i++) {
@@ -1934,14 +1932,14 @@ public class TranslogTests extends ESTestCase {
                 Translog.Location location = RandomPicks.randomFrom(random(), locations);
                 for (Translog.Location loc : locations) {
                     if (loc == location) {
-                        assertTrue(loc.equals(location));
+                        assertThat(loc.equals(location)).isTrue();
                         assertEquals(loc.hashCode(), location.hashCode());
                     } else {
-                        assertFalse(loc.equals(location));
+                        assertThat(loc.equals(location)).isFalse();
                     }
                 }
                 for (int j = 0; j < translogOperations; j++) {
-                    assertTrue(locations.get(j).equals(locations2.get(j)));
+                    assertThat(locations.get(j).equals(locations2.get(j))).isTrue();
                     assertEquals(locations.get(j).hashCode(), locations2.get(j).hashCode());
                 }
             }
@@ -2124,10 +2122,10 @@ public class TranslogTests extends ESTestCase {
                 opsSynced++;
             } catch (MockDirectoryWrapper.FakeIOException ex) {
                 failed = true;
-                assertFalse(translog.isOpen());
+                assertThat(translog.isOpen()).isFalse();
             } catch (IOException ex) {
                 failed = true;
-                assertFalse(translog.isOpen());
+                assertThat(translog.isOpen()).isFalse();
                 assertEquals("__FAKE__ no space left on device", ex.getMessage());
             }
             if (randomBoolean()) {
@@ -2171,7 +2169,7 @@ public class TranslogTests extends ESTestCase {
             assertSame(translog.getTragicException(), ex.getCause());
         }
 
-        assertFalse(translog.isOpen());
+        assertThat(translog.isOpen()).isFalse();
         translog.close(); // we are closed
         final String translogUUID = translog.getTranslogUUID();
         final TranslogDeletionPolicy deletionPolicy = translog.getDeletionPolicy();
@@ -2179,7 +2177,7 @@ public class TranslogTests extends ESTestCase {
                 () -> SequenceNumbers.NO_OPS_PERFORMED, primaryTerm::get, seqNo -> {})) {
             assertEquals("lastCommitted must be 1 less than current",
                 translogGeneration.translogFileGeneration + 1, tlog.currentFileGeneration());
-            assertFalse(tlog.syncNeeded());
+            assertThat(tlog.syncNeeded()).isFalse();
 
             try (Translog.Snapshot snapshot = tlog.newSnapshot()) {
                 assertEquals(opsSynced, snapshot.totalOperations());
@@ -2242,10 +2240,10 @@ public class TranslogTests extends ESTestCase {
         } catch (UnknownException ex) {
             // w00t
         } catch (TranslogException ex) {
-            assertTrue(ex.getCause() instanceof UnknownException);
+            assertThat(ex.getCause() instanceof UnknownException).isTrue();
         }
-        assertFalse(translog.isOpen());
-        assertTrue(translog.getTragicException() instanceof UnknownException);
+        assertThat(translog.isOpen()).isFalse();
+        assertThat(translog.getTragicException() instanceof UnknownException).isTrue();
     }
 
     @Test
@@ -2298,7 +2296,7 @@ public class TranslogTests extends ESTestCase {
             boolean atLeastOneFailed = false;
             for (Throwable ex : threadExceptions) {
                 if (ex != null) {
-                    assertTrue(ex.toString(), ex instanceof IOException || ex instanceof AlreadyClosedException);
+                    assertThat(ex instanceof IOException || ex instanceof AlreadyClosedException).as(ex.toString()).isTrue();
                     atLeastOneFailed = true;
                 }
             }
@@ -2306,13 +2304,13 @@ public class TranslogTests extends ESTestCase {
                 try {
                     boolean syncNeeded = translog.syncNeeded();
                     translog.close();
-                    assertFalse("should have failed if sync was needed", syncNeeded);
+                    assertThat(syncNeeded).as("should have failed if sync was needed").isFalse();
                 } catch (IOException ex) {
                     // boom now we failed
                 }
             }
             Collections.sort(writtenOperations, (a, b) -> a.location.compareTo(b.location));
-            assertFalse(translog.isOpen());
+            assertThat(translog.isOpen()).isFalse();
             final Checkpoint checkpoint = Checkpoint.read(config.getTranslogPath().resolve(Translog.CHECKPOINT_FILE_NAME));
             // drop all that haven't been synced
             writtenOperations.removeIf(next -> checkpoint.offset < (next.location.translogLocation + next.location.size));
@@ -2684,7 +2682,7 @@ public class TranslogTests extends ESTestCase {
         Files.createFile(config.getTranslogPath().resolve("translog-" + (read.generation + 1) + ".tlog"));
         try (Translog tlog = openTranslog(config, translog.getTranslogUUID());
              Translog.Snapshot snapshot = tlog.newSnapshot()) {
-            assertFalse(tlog.syncNeeded());
+            assertThat(tlog.syncNeeded()).isFalse();
 
             Translog.Operation op = snapshot.next();
             assertNotNull("operation 1 must be non-null", op);
@@ -2696,7 +2694,7 @@ public class TranslogTests extends ESTestCase {
 
         try (Translog tlog = openTranslog(config, translog.getTranslogUUID());
              Translog.Snapshot snapshot = tlog.newSnapshot()) {
-            assertFalse(tlog.syncNeeded());
+            assertThat(tlog.syncNeeded()).isFalse();
 
             Translog.Operation secondOp = snapshot.next();
             assertNotNull("operation 2 must be non-null", secondOp);
@@ -2748,7 +2746,7 @@ public class TranslogTests extends ESTestCase {
         Files.createFile(config.getTranslogPath().resolve("translog-" + (read.generation + 2) + ".tlog"));
         try (Translog tlog = new Translog(config, translogUUID, deletionPolicy,
                 () -> SequenceNumbers.NO_OPS_PERFORMED, primaryTerm::get, seqNo -> {})) {
-            assertFalse(tlog.syncNeeded());
+            assertThat(tlog.syncNeeded()).isFalse();
             try (Translog.Snapshot snapshot = tlog.newSnapshot()) {
                 for (int i = 0; i < 1; i++) {
                     Translog.Operation next = snapshot.next();
@@ -3418,7 +3416,7 @@ public class TranslogTests extends ESTestCase {
             assertThatThrownBy(brokenTranslog::rollGeneration)
                 .isExactlyInstanceOf(IOException.class)
                 .hasMessage(expectedExceptionMessage);
-            assertFalse(brokenTranslog.isOpen());
+            assertThat(brokenTranslog.isOpen()).isFalse();
 
             try (Translog recoveredTranslog = new Translog(getTranslogConfig(path), brokenTranslog.getTranslogUUID(),
                 brokenTranslog.getDeletionPolicy(), () -> SequenceNumbers.NO_OPS_PERFORMED, primaryTerm::get, seqNo -> {})) {

@@ -23,7 +23,6 @@ package io.crate.integrationtests.disruption.discovery;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -167,8 +166,7 @@ public abstract class AbstractDisruptionTestCase extends IntegTestCase {
             assertNull("node [" + node + "] still has [" + nodes.getMasterNode() + "] as master", nodes.getMasterNode());
             if (expectedBlocks != null) {
                 for (ClusterBlockLevel level : expectedBlocks.levels()) {
-                    assertTrue("node [" + node + "] does have level [" + level + "] in it's blocks",
-                        state.blocks().hasGlobalBlockWithLevel(level));
+                    assertThat(state.blocks().hasGlobalBlockWithLevel(level)).as("node [" + node + "] does have level [" + level + "] in it's blocks").isTrue();
                 }
             }
         }, maxWaitTime.millis(), TimeUnit.MILLISECONDS);

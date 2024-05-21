@@ -31,7 +31,6 @@ import static org.elasticsearch.index.translog.TranslogDeletionPolicies.createTr
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -1249,7 +1248,7 @@ public abstract class EngineTestCase extends ESTestCase {
             NumericDocValues seqNoDocValues = leaf.reader().getNumericDocValues(DocSysColumns.Names.SEQ_NO);
             int docId;
             while ((docId = seqNoDocValues.nextDoc()) != DocIdSetIterator.NO_MORE_DOCS) {
-                assertTrue(seqNoDocValues.advanceExact(docId));
+                assertThat(seqNoDocValues.advanceExact(docId)).isTrue();
                 long seqNo = seqNoDocValues.longValue();
                 assertThat(seqNo, greaterThanOrEqualTo(0L));
                 if (primaryTermDocValues.advanceExact(docId)) {

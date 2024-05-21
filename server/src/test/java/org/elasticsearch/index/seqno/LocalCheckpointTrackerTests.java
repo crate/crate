@@ -22,9 +22,7 @@ package org.elasticsearch.index.seqno;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.index.seqno.LocalCheckpointTracker.BIT_SET_SIZE;
 import static org.hamcrest.Matchers.isOneOf;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -291,13 +289,13 @@ public class LocalCheckpointTrackerTests extends ESTestCase {
         Randomness.shuffle(elements);
         for (int i = 0; i < elements.size() - 1; i++) {
             tracker.markSeqNoAsProcessed(elements.get(i));
-            assertFalse(complete.get());
+            assertThat(complete.get()).isFalse();
         }
 
         tracker.markSeqNoAsProcessed(elements.get(elements.size() - 1));
         // synchronize with the waiting thread to mark that it is complete
         barrier.await();
-        assertTrue(complete.get());
+        assertThat(complete.get()).isTrue();
 
         thread.join();
     }

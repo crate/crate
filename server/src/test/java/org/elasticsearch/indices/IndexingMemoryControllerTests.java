@@ -25,9 +25,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.common.util.concurrent.EsExecutors.PROCESSORS_SETTING;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -126,12 +124,12 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
 
         @Override
         public void activateThrottling(IndexShard shard) {
-            assertTrue(throttled.add(shard));
+            assertThat(throttled.add(shard)).isTrue();
         }
 
         @Override
         public void deactivateThrottling(IndexShard shard) {
-            assertTrue(throttled.remove(shard));
+            assertThat(throttled.remove(shard)).isTrue();
         }
 
         public void doneWriting(IndexShard shard) {
@@ -147,11 +145,11 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
         }
 
         public void assertThrottled(IndexShard shard) {
-            assertTrue(throttled.contains(shard));
+            assertThat(throttled.contains(shard)).isTrue();
         }
 
         public void assertNotThrottled(IndexShard shard) {
-            assertFalse(throttled.contains(shard));
+            assertThat(throttled.contains(shard)).isFalse();
         }
 
         public void assertWriting(IndexShard shard, int expectedMB) {
@@ -382,7 +380,7 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
         shard.markAsRecovering("store", new RecoveryState(shard.routingEntry(), localNode, null));
 
         assertEquals(1, imc.availableShards().size());
-        assertTrue(recoverFromStore(shard));
+        assertThat(recoverFromStore(shard)).isTrue();
         assertThat("we should have flushed in IMC at least once", flushes.get(), greaterThanOrEqualTo(1));
         closeShards(shard);
     }

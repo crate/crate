@@ -18,10 +18,9 @@
  */
 package org.elasticsearch.cluster.routing;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.lessThan;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
@@ -107,7 +106,7 @@ public class BatchedRerouteServiceTests extends ESTestCase {
 
         final AtomicBoolean rerouteExecuted = new AtomicBoolean();
         final BatchedRerouteService batchedRerouteService = new BatchedRerouteService(clusterService, (s, r) -> {
-            assertTrue(rerouteExecuted.compareAndSet(false, true)); // only called once
+            assertThat(rerouteExecuted.compareAndSet(false, true)).isTrue(); // only called once
             return s;
         });
 
@@ -118,7 +117,7 @@ public class BatchedRerouteServiceTests extends ESTestCase {
         final Function<Priority, Runnable> rerouteFromPriority = priority -> () -> {
             final AtomicBoolean alreadyRun = new AtomicBoolean();
             batchedRerouteService.reroute("reroute at " + priority, priority, ActionListener.wrap(() -> {
-                assertTrue(alreadyRun.compareAndSet(false, true));
+                assertThat(alreadyRun.compareAndSet(false, true)).isTrue();
                 tasksCompletedCountDown.countDown();
             }));
             tasksSubmittedCountDown.countDown();
@@ -143,7 +142,7 @@ public class BatchedRerouteServiceTests extends ESTestCase {
                                 switch (priority) {
                                     case IMMEDIATE:
                                         if (submittedConcurrentlyWithReroute) {
-                                            assertFalse("should have rerouted after " + priority + " priority task", rerouteExecuted.get());
+                                            assertThat(rerouteExecuted.get()).as("should have rerouted after " + priority + " priority task").isFalse();
                                         } // else this task might be submitted too late to precede the reroute
                                         break;
                                     case URGENT:
@@ -151,7 +150,7 @@ public class BatchedRerouteServiceTests extends ESTestCase {
                                         break;
                                     case HIGH:
                                     case NORMAL:
-                                        assertTrue("should have rerouted before " + priority + " priority task", rerouteExecuted.get());
+                                        assertThat(rerouteExecuted.get()).as("should have rerouted before " + priority + " priority task").isTrue();
                                         break;
                                     default:
                                         fail("unexpected priority: " + priority);
@@ -178,11 +177,11 @@ public class BatchedRerouteServiceTests extends ESTestCase {
         }
         Randomness.shuffle(actions);
         actions.forEach(threadPool.generic()::execute);
-        assertTrue(tasksSubmittedCountDown.await(10, TimeUnit.SECONDS));
+        assertThat(tasksSubmittedCountDown.await(10, TimeUnit.SECONDS)).isTrue();
 
         cyclicBarrier.await(); // allow master thread to continue;
-        assertTrue(tasksCompletedCountDown.await(10, TimeUnit.SECONDS)); // wait for reroute to complete
-        assertTrue(rerouteExecuted.get()); // see above for assertion that it's only called once
+        assertThat(tasksCompletedCountDown.await(10, TimeUnit.SECONDS)).isTrue(); // wait for reroute to complete
+        assertThat(rerouteExecuted.get()).isTrue(); // see above for assertion that it's only called once
     }
 
     public void testNotifiesOnFailure() throws InterruptedException {
@@ -227,6 +226,6 @@ public class BatchedRerouteServiceTests extends ESTestCase {
             }
         }
 
-        assertTrue(countDownLatch.await(10, TimeUnit.SECONDS)); // i.e. it doesn't leak any listeners
+        assertThat(countDownLatch.await(10, TimeUnit.SECONDS)).isTrue(); // i.e. it doesn't leak any listeners
     }
 }

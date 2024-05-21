@@ -20,7 +20,6 @@ package org.elasticsearch.repositories;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -51,8 +50,8 @@ public abstract class ESBlobStoreTestCase extends ESTestCase {
             assertArrayEquals(readBlobFully(containerFoo, "test", data1.length), data1);
             assertArrayEquals(readBlobFully(containerBar, "test", data2.length), data2);
 
-            assertTrue(BlobStoreTestUtil.blobExists(containerFoo, "test"));
-            assertTrue(BlobStoreTestUtil.blobExists(containerBar, "test"));
+            assertThat(BlobStoreTestUtil.blobExists(containerFoo, "test")).isTrue();
+            assertThat(BlobStoreTestUtil.blobExists(containerBar, "test")).isTrue();
         }
     }
 

@@ -268,7 +268,7 @@ public class GlobalCheckpointListenersTests extends ESTestCase {
                 }),
                 null);
         latch.await();
-        assertTrue(invoked.get());
+        assertThat(invoked.get()).isTrue();
     }
 
     @Test
@@ -565,7 +565,7 @@ public class GlobalCheckpointListenersTests extends ESTestCase {
         }
         // now shutdown
         executor.shutdown();
-        assertTrue(executor.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS));
+        assertThat(executor.awaitTermination(Long.MAX_VALUE, TimeUnit.SECONDS)).isTrue();
         updatingThread.join();
         listenersThread.join();
     }
@@ -600,7 +600,7 @@ public class GlobalCheckpointListenersTests extends ESTestCase {
                 timeout);
         latch.await();
 
-        assertTrue(notified.get());
+        assertThat(notified.get()).isTrue();
     }
 
     @Test
@@ -639,7 +639,7 @@ public class GlobalCheckpointListenersTests extends ESTestCase {
             timeout);
         latch.await();
         // ensure the listener notification occurred on the executor
-        assertTrue(notified.get());
+        assertThat(notified.get()).isTrue();
         assertThat(count.get()).isEqualTo(1);
     }
 
@@ -687,7 +687,7 @@ public class GlobalCheckpointListenersTests extends ESTestCase {
         final ScheduledFuture<?> future = globalCheckpointListeners.getTimeoutFuture(globalCheckpointListener);
         assertNotNull(future);
         globalCheckpointListeners.globalCheckpointUpdated(NO_OPS_PERFORMED);
-        assertTrue(future.isCancelled());
+        assertThat(future.isCancelled()).isTrue();
     }
 
     private GlobalCheckpointListeners.GlobalCheckpointListener maybeMultipleInvocationProtectingListener(

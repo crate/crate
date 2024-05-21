@@ -24,7 +24,6 @@ package io.crate.execution.jobs;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -107,7 +106,7 @@ public class DistResultRXTaskTest extends ESTestCase {
         final AtomicReference<Throwable> throwable = new AtomicReference<>();
         ctx.completionFuture().whenComplete((r, t) -> {
             if (t != null) {
-                assertTrue(throwable.compareAndSet(null, t));
+                assertThat(throwable.compareAndSet(null, t)).isTrue();
             } else {
                 fail("Expected exception");
             }

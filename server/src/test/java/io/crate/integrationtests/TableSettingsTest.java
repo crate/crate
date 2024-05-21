@@ -29,7 +29,6 @@ import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 import java.util.Locale;
 import java.util.Map;
@@ -76,14 +75,14 @@ public class TableSettingsTest extends IntegTestCase {
 
         execute("select settings from information_schema.tables where table_name = 'settings_table'");
         for (Object[] row : response.rows()) {
-            assertTrue(((Map<String, Object>) row[0]).containsKey("blocks"));
-            assertTrue(((Map<String, Object>) row[0]).containsKey("mapping"));
-            assertTrue(((Map<String, Object>) row[0]).containsKey("routing"));
-            assertTrue(((Map<String, Object>) row[0]).containsKey("translog"));
-            assertTrue(((Map<String, Object>) row[0]).containsKey("refresh_interval"));
-            assertTrue(((Map<String, Object>) row[0]).containsKey("unassigned"));
-            assertTrue(((Map<String, Object>) row[0]).containsKey("write"));
-            assertTrue(((Map<String, Object>) row[0]).containsKey("store"));
+            assertThat(((Map<String, Object>) row[0]).containsKey("blocks")).isTrue();
+            assertThat(((Map<String, Object>) row[0]).containsKey("mapping")).isTrue();
+            assertThat(((Map<String, Object>) row[0]).containsKey("routing")).isTrue();
+            assertThat(((Map<String, Object>) row[0]).containsKey("translog")).isTrue();
+            assertThat(((Map<String, Object>) row[0]).containsKey("refresh_interval")).isTrue();
+            assertThat(((Map<String, Object>) row[0]).containsKey("unassigned")).isTrue();
+            assertThat(((Map<String, Object>) row[0]).containsKey("write")).isTrue();
+            assertThat(((Map<String, Object>) row[0]).containsKey("store")).isTrue();
         }
     }
 

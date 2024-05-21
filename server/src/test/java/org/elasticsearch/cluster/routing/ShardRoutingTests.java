@@ -21,6 +21,7 @@ package org.elasticsearch.cluster.routing;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
@@ -48,19 +49,19 @@ public class ShardRoutingTests extends ESTestCase {
         ShardRouting startedShard1 = initializingShard1.moveToStarted();
 
         // test identity
-        assertTrue(initializingShard0.isSameAllocation(initializingShard0));
+        assertThat(initializingShard0.isSameAllocation(initializingShard0)).isTrue();
 
         // test same allocation different state
-        assertTrue(initializingShard0.isSameAllocation(startedShard0));
+        assertThat(initializingShard0.isSameAllocation(startedShard0)).isTrue();
 
         // test unassigned is false even to itself
-        assertFalse(unassignedShard0.isSameAllocation(unassignedShard0));
+        assertThat(unassignedShard0.isSameAllocation(unassignedShard0)).isFalse();
 
         // test different shards/nodes/state
-        assertFalse(unassignedShard0.isSameAllocation(unassignedShard1));
-        assertFalse(unassignedShard0.isSameAllocation(initializingShard0));
-        assertFalse(unassignedShard0.isSameAllocation(initializingShard1));
-        assertFalse(unassignedShard0.isSameAllocation(startedShard1));
+        assertThat(unassignedShard0.isSameAllocation(unassignedShard1)).isFalse();
+        assertThat(unassignedShard0.isSameAllocation(initializingShard0)).isFalse();
+        assertThat(unassignedShard0.isSameAllocation(initializingShard1)).isFalse();
+        assertThat(unassignedShard0.isSameAllocation(startedShard1)).isFalse();
     }
 
     private ShardRouting randomShardRouting(String index, int shard) {
@@ -76,46 +77,46 @@ public class ShardRoutingTests extends ESTestCase {
             TestShardRouting.newShardRouting("test", 0, "node1", randomBoolean(), ShardRoutingState.INITIALIZING);
         ShardRouting initializingShard1 =
             TestShardRouting.newShardRouting("test", 1, "node1", randomBoolean(), ShardRoutingState.INITIALIZING);
-        assertFalse(initializingShard0.isRelocationTarget());
+        assertThat(initializingShard0.isRelocationTarget()).isFalse();
         ShardRouting startedShard0 = initializingShard0.moveToStarted();
-        assertFalse(startedShard0.isRelocationTarget());
-        assertFalse(initializingShard1.isRelocationTarget());
+        assertThat(startedShard0.isRelocationTarget()).isFalse();
+        assertThat(initializingShard1.isRelocationTarget()).isFalse();
         ShardRouting startedShard1 = initializingShard1.moveToStarted();
-        assertFalse(startedShard1.isRelocationTarget());
+        assertThat(startedShard1.isRelocationTarget()).isFalse();
         ShardRouting sourceShard0a = startedShard0.relocate("node2", -1);
-        assertFalse(sourceShard0a.isRelocationTarget());
+        assertThat(sourceShard0a.isRelocationTarget()).isFalse();
         ShardRouting targetShard0a = sourceShard0a.getTargetRelocatingShard();
-        assertTrue(targetShard0a.isRelocationTarget());
+        assertThat(targetShard0a.isRelocationTarget()).isTrue();
         ShardRouting sourceShard0b = startedShard0.relocate("node2", -1);
         ShardRouting sourceShard1 = startedShard1.relocate("node2", -1);
 
         // test true scenarios
-        assertTrue(targetShard0a.isRelocationTargetOf(sourceShard0a));
-        assertTrue(sourceShard0a.isRelocationSourceOf(targetShard0a));
+        assertThat(targetShard0a.isRelocationTargetOf(sourceShard0a)).isTrue();
+        assertThat(sourceShard0a.isRelocationSourceOf(targetShard0a)).isTrue();
 
         // test two shards are not mixed
-        assertFalse(targetShard0a.isRelocationTargetOf(sourceShard1));
-        assertFalse(sourceShard1.isRelocationSourceOf(targetShard0a));
+        assertThat(targetShard0a.isRelocationTargetOf(sourceShard1)).isFalse();
+        assertThat(sourceShard1.isRelocationSourceOf(targetShard0a)).isFalse();
 
         // test two allocations are not mixed
-        assertFalse(targetShard0a.isRelocationTargetOf(sourceShard0b));
-        assertFalse(sourceShard0b.isRelocationSourceOf(targetShard0a));
+        assertThat(targetShard0a.isRelocationTargetOf(sourceShard0b)).isFalse();
+        assertThat(sourceShard0b.isRelocationSourceOf(targetShard0a)).isFalse();
 
         // test different shard states
-        assertFalse(targetShard0a.isRelocationTargetOf(unassignedShard0));
-        assertFalse(sourceShard0a.isRelocationTargetOf(unassignedShard0));
-        assertFalse(unassignedShard0.isRelocationSourceOf(targetShard0a));
-        assertFalse(unassignedShard0.isRelocationSourceOf(sourceShard0a));
+        assertThat(targetShard0a.isRelocationTargetOf(unassignedShard0)).isFalse();
+        assertThat(sourceShard0a.isRelocationTargetOf(unassignedShard0)).isFalse();
+        assertThat(unassignedShard0.isRelocationSourceOf(targetShard0a)).isFalse();
+        assertThat(unassignedShard0.isRelocationSourceOf(sourceShard0a)).isFalse();
 
-        assertFalse(targetShard0a.isRelocationTargetOf(initializingShard0));
-        assertFalse(sourceShard0a.isRelocationTargetOf(initializingShard0));
-        assertFalse(initializingShard0.isRelocationSourceOf(targetShard0a));
-        assertFalse(initializingShard0.isRelocationSourceOf(sourceShard0a));
+        assertThat(targetShard0a.isRelocationTargetOf(initializingShard0)).isFalse();
+        assertThat(sourceShard0a.isRelocationTargetOf(initializingShard0)).isFalse();
+        assertThat(initializingShard0.isRelocationSourceOf(targetShard0a)).isFalse();
+        assertThat(initializingShard0.isRelocationSourceOf(sourceShard0a)).isFalse();
 
-        assertFalse(targetShard0a.isRelocationTargetOf(startedShard0));
-        assertFalse(sourceShard0a.isRelocationTargetOf(startedShard0));
-        assertFalse(startedShard0.isRelocationSourceOf(targetShard0a));
-        assertFalse(startedShard0.isRelocationSourceOf(sourceShard0a));
+        assertThat(targetShard0a.isRelocationTargetOf(startedShard0)).isFalse();
+        assertThat(sourceShard0a.isRelocationTargetOf(startedShard0)).isFalse();
+        assertThat(startedShard0.isRelocationSourceOf(targetShard0a)).isFalse();
+        assertThat(startedShard0.isRelocationSourceOf(sourceShard0a)).isFalse();
     }
 
     public void testEqualsIgnoringVersion() {
@@ -212,8 +213,7 @@ public class ShardRoutingTests extends ESTestCase {
 
             if (unchanged == false) {
                 logger.debug("comparing\nthis  {} to\nother {}", routing, otherRouting);
-                assertFalse("expected non-equality\nthis  " + routing + ",\nother " + otherRouting,
-                            routing.equalsIgnoringMetadata(otherRouting));
+                assertThat(routing.equalsIgnoringMetadata(otherRouting)).as("expected non-equality\nthis  " + routing + ",\nother " + otherRouting).isFalse();
             }
         }
     }
@@ -238,15 +238,15 @@ public class ShardRoutingTests extends ESTestCase {
             if (routing.initializing() || routing.relocating()) {
                 assertEquals(routing.toString(), byteSize, routing.getExpectedShardSize());
                 if (byteSize >= 0) {
-                    assertTrue(routing.toString(), routing.toString().contains("expected_shard_size[" + byteSize + "]"));
+                    assertThat(routing.toString().contains("expected_shard_size[" + byteSize + "]")).as(routing.toString()).isTrue();
                 }
                 if (routing.initializing()) {
                     routing = routing.moveToStarted();
                     assertEquals(-1, routing.getExpectedShardSize());
-                    assertFalse(routing.toString(), routing.toString().contains("expected_shard_size[" + byteSize + "]"));
+                    assertThat(routing.toString().contains("expected_shard_size[" + byteSize + "]")).as(routing.toString()).isFalse();
                 }
             } else {
-                assertFalse(routing.toString(), routing.toString().contains("expected_shard_size [" + byteSize + "]"));
+                assertThat(routing.toString().contains("expected_shard_size [" + byteSize + "]")).as(routing.toString()).isFalse();
                 assertEquals(byteSize, routing.getExpectedShardSize());
             }
         }

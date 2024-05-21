@@ -28,9 +28,7 @@ import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
 import static org.elasticsearch.threadpool.ThreadPool.Names.SAME;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -139,8 +137,8 @@ public class PreVoteCollectorTests extends ESTestCase {
 
     private void runCollector() {
         deterministicTaskQueue.runAllRunnableTasks();
-        assertFalse(deterministicTaskQueue.hasDeferredTasks());
-        assertFalse(deterministicTaskQueue.hasRunnableTasks());
+        assertThat(deterministicTaskQueue.hasDeferredTasks()).isFalse();
+        assertThat(deterministicTaskQueue.hasRunnableTasks()).isFalse();
     }
 
     private ClusterState makeClusterState(DiscoveryNode[] votingNodes) {
@@ -155,21 +153,21 @@ public class PreVoteCollectorTests extends ESTestCase {
 
     public void testStartsElectionIfLocalNodeIsOnlyNode() {
         startAndRunCollector(localNode);
-        assertTrue(electionOccurred);
+        assertThat(electionOccurred).isTrue();
     }
 
     public void testNoElectionStartIfLocalNodeIsOnlyNodeAndUnhealthy() {
         healthStatus = new StatusInfo(UNHEALTHY, "unhealthy-info");
         preVoteCollector.update(getLocalPreVoteResponse(), null);
         startAndRunCollector(localNode);
-        assertFalse(electionOccurred);
+        assertThat(electionOccurred).isFalse();
     }
 
     public void testStartsElectionIfLocalNodeIsQuorum() {
         final DiscoveryNode otherNode = new DiscoveryNode("other-node", buildNewFakeTransportAddress(), Version.CURRENT);
         responsesByNode.put(otherNode, getLocalPreVoteResponse());
         startAndRunCollector(otherNode);
-        assertTrue(electionOccurred);
+        assertThat(electionOccurred).isTrue();
     }
 
 
@@ -177,14 +175,14 @@ public class PreVoteCollectorTests extends ESTestCase {
         final DiscoveryNode otherNode = new DiscoveryNode("other-node", buildNewFakeTransportAddress(), Version.CURRENT);
         responsesByNode.put(otherNode, getLocalPreVoteResponse());
         startAndRunCollector(otherNode);
-        assertTrue(electionOccurred);
+        assertThat(electionOccurred).isTrue();
     }
 
     public void testDoesNotStartsElectionIfOtherNodeIsQuorumAndDoesNotRespond() {
         final DiscoveryNode otherNode = new DiscoveryNode("other-node", buildNewFakeTransportAddress(), Version.CURRENT);
         responsesByNode.put(otherNode, null);
         startAndRunCollector(otherNode);
-        assertFalse(electionOccurred);
+        assertThat(electionOccurred).isFalse();
     }
 
     public void testUnhealthyNodeDoesNotOfferPreVote() {
@@ -201,7 +199,7 @@ public class PreVoteCollectorTests extends ESTestCase {
         responsesByNode.put(otherNode, getLocalPreVoteResponse());
         startCollector(otherNode).close();
         runCollector();
-        assertFalse(electionOccurred);
+        assertThat(electionOccurred).isFalse();
     }
 
     public void testIgnoresPreVotesFromLaterTerms() {
@@ -211,7 +209,7 @@ public class PreVoteCollectorTests extends ESTestCase {
         responsesByNode.put(otherNode,
             new PreVoteResponse(currentTerm, randomLongBetween(lastAcceptedTerm + 1, currentTerm - 1), randomNonNegativeLong()));
         startAndRunCollector(otherNode);
-        assertFalse(electionOccurred);
+        assertThat(electionOccurred).isFalse();
     }
 
     public void testIgnoresPreVotesFromLaterVersionInSameTerm() {
@@ -221,7 +219,7 @@ public class PreVoteCollectorTests extends ESTestCase {
         responsesByNode.put(otherNode,
             new PreVoteResponse(currentTerm, lastAcceptedTerm, randomLongBetween(lastAcceptedVersion + 1, Long.MAX_VALUE)));
         startAndRunCollector(otherNode);
-        assertFalse(electionOccurred);
+        assertThat(electionOccurred).isFalse();
     }
 
     public void testAcceptsPreVotesFromAnyVersionInEarlierTerms() {
@@ -231,7 +229,7 @@ public class PreVoteCollectorTests extends ESTestCase {
         responsesByNode.put(otherNode,
             new PreVoteResponse(currentTerm, randomLongBetween(0, lastAcceptedTerm - 1), randomNonNegativeLong()));
         startAndRunCollector(otherNode);
-        assertTrue(electionOccurred);
+        assertThat(electionOccurred).isTrue();
     }
 
     private PreVoteResponse randomPreVoteResponse() {
@@ -306,7 +304,7 @@ public class PreVoteCollectorTests extends ESTestCase {
             });
 
         deterministicTaskQueue.runAllRunnableTasks();
-        assertFalse(deterministicTaskQueue.hasDeferredTasks());
+        assertThat(deterministicTaskQueue.hasDeferredTasks()).isFalse();
 
         final PreVoteResponse response = responseRef.get();
         final TransportException transportException = exceptionRef.get();

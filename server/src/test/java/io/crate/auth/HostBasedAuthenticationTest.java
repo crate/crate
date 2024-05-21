@@ -28,10 +28,8 @@ import static io.crate.auth.HostBasedAuthentication.Matchers.isValidUser;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -263,12 +261,12 @@ public class HostBasedAuthenticationTest extends ESTestCase {
 
         entry = authService.getEntry("crate",
             new ConnectionProperties(InetAddresses.forString("123.45.67.89"), Protocol.POSTGRES, null));
-        assertTrue(entry.isPresent());
+        assertThat(entry.isPresent()).isTrue();
         assertThat(entry.get().getValue().get("method")).isEqualTo("fake");
 
         entry = authService.getEntry("cr8",
             new ConnectionProperties(InetAddresses.forString("127.0.0.1"), Protocol.POSTGRES, null));
-        assertTrue(entry.isPresent());
+        assertThat(entry.isPresent()).isTrue();
         assertThat(entry.get().getValue().get("method")).isEqualTo("md5");
 
         entry = authService.getEntry("cr8",
@@ -288,10 +286,10 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         Optional<Map.Entry<String, Map<String, String>>> entry;
         entry = authService.getEntry("crate",
             new ConnectionProperties(InetAddresses.forString("127.0.0.1"), Protocol.POSTGRES, null));
-        assertTrue(entry.isPresent());
+        assertThat(entry.isPresent()).isTrue();
         entry = authService.getEntry("crate",
             new ConnectionProperties(InetAddresses.forString("::1"), Protocol.POSTGRES, null));
-        assertTrue(entry.isPresent());
+        assertThat(entry.isPresent()).isTrue();
     }
 
     @Test
@@ -306,7 +304,7 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         Optional entry = authService.getEntry("crate",
             new ConnectionProperties(InetAddresses.forString(TEST_DNS_IP), Protocol.POSTGRES, null));
 
-        assertTrue(entry.isPresent());
+        assertThat(entry.isPresent()).isTrue();
     }
 
     @Test
@@ -315,35 +313,35 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         Map.Entry<String, Map<String, String>> entry = new HashMap.SimpleEntry<>(
             "0", Collections.singletonMap("user", "crate")
         );
-        assertTrue(isValidUser(entry, "crate"));
-        assertFalse(isValidUser(entry, "postgres"));
+        assertThat(isValidUser(entry, "crate")).isTrue();
+        assertThat(isValidUser(entry, "postgres")).isFalse();
 
         // any user matches
         entry = new HashMap.SimpleEntry<>(
             "0", Collections.emptyMap() // key "user" not present in map
         );
-        assertTrue(isValidUser(entry, randomAlphaOfLength(8)));
+        assertThat(isValidUser(entry, randomAlphaOfLength(8))).isTrue();
     }
 
     @Test
     public void testMatchProtocol() throws Exception {
-        assertTrue(isValidProtocol("pg", Protocol.POSTGRES));
-        assertFalse(isValidProtocol("http", Protocol.POSTGRES));
-        assertTrue(isValidProtocol(null, Protocol.POSTGRES));
+        assertThat(isValidProtocol("pg", Protocol.POSTGRES)).isTrue();
+        assertThat(isValidProtocol("http", Protocol.POSTGRES)).isFalse();
+        assertThat(isValidProtocol(null, Protocol.POSTGRES)).isTrue();
     }
 
     @Test
     public void testMatchAddress() throws Exception {
         String hbaAddress = "10.0.1.100";
-        assertTrue(isValidAddress(hbaAddress, InetAddresses.forString("10.0.1.100"), SystemDefaultDnsResolver.INSTANCE));
-        assertFalse(isValidAddress(hbaAddress, InetAddresses.forString("10.0.1.99"), SystemDefaultDnsResolver.INSTANCE));
-        assertFalse(isValidAddress(hbaAddress, InetAddresses.forString("10.0.1.101"), SystemDefaultDnsResolver.INSTANCE));
+        assertThat(isValidAddress(hbaAddress, InetAddresses.forString("10.0.1.100"), SystemDefaultDnsResolver.INSTANCE)).isTrue();
+        assertThat(isValidAddress(hbaAddress, InetAddresses.forString("10.0.1.99"), SystemDefaultDnsResolver.INSTANCE)).isFalse();
+        assertThat(isValidAddress(hbaAddress, InetAddresses.forString("10.0.1.101"), SystemDefaultDnsResolver.INSTANCE)).isFalse();
 
         hbaAddress = "10.0.1.0/24";  // 10.0.1.0 -- 10.0.1.255
-        assertTrue(isValidAddress(hbaAddress, InetAddresses.forString("10.0.1.0"), SystemDefaultDnsResolver.INSTANCE));
-        assertTrue(isValidAddress(hbaAddress, InetAddresses.forString("10.0.1.255"), SystemDefaultDnsResolver.INSTANCE));
-        assertFalse(isValidAddress(hbaAddress, InetAddresses.forString("10.0.0.255"), SystemDefaultDnsResolver.INSTANCE));
-        assertFalse(isValidAddress(hbaAddress, InetAddresses.forString("10.0.2.0"), SystemDefaultDnsResolver.INSTANCE));
+        assertThat(isValidAddress(hbaAddress, InetAddresses.forString("10.0.1.0"), SystemDefaultDnsResolver.INSTANCE)).isTrue();
+        assertThat(isValidAddress(hbaAddress, InetAddresses.forString("10.0.1.255"), SystemDefaultDnsResolver.INSTANCE)).isTrue();
+        assertThat(isValidAddress(hbaAddress, InetAddresses.forString("10.0.0.255"), SystemDefaultDnsResolver.INSTANCE)).isFalse();
+        assertThat(isValidAddress(hbaAddress, InetAddresses.forString("10.0.2.0"), SystemDefaultDnsResolver.INSTANCE)).isFalse();
 
         hbaAddress = ".b.crate.io";
 
@@ -355,16 +353,16 @@ public class HostBasedAuthenticationTest extends ESTestCase {
                             randomInt(255)));
         long randomAddressAsLong = HostBasedAuthentication.Matchers.inetAddressToInt(randomAddress);
 
-        assertTrue(isValidAddress(hbaAddress, randomAddressAsLong, () -> TEST_SUBDOMAIN_HOSTNAME, IN_MEMORY_RESOLVER));
-        assertFalse(isValidAddress(hbaAddress, randomAddressAsLong, () -> TEST_DOMAIN_HOSTNAME, IN_MEMORY_RESOLVER));
+        assertThat(isValidAddress(hbaAddress, randomAddressAsLong, () -> TEST_SUBDOMAIN_HOSTNAME, IN_MEMORY_RESOLVER)).isTrue();
+        assertThat(isValidAddress(hbaAddress, randomAddressAsLong, () -> TEST_DOMAIN_HOSTNAME, IN_MEMORY_RESOLVER)).isFalse();
 
-        assertTrue(isValidAddress(null, randomAddress, SystemDefaultDnsResolver.INSTANCE));
+        assertThat(isValidAddress(null, randomAddress, SystemDefaultDnsResolver.INSTANCE)).isTrue();
     }
 
     @Test
     public void test_cidr_check_with_ip_requiring_all_bits() throws Exception {
         String hbaAddress = "192.168.0.0/16";
-        assertTrue(isValidAddress(hbaAddress, InetAddresses.forString("192.168.101.92"), SystemDefaultDnsResolver.INSTANCE));
+        assertThat(isValidAddress(hbaAddress, InetAddresses.forString("192.168.101.92"), SystemDefaultDnsResolver.INSTANCE)).isTrue();
     }
 
     @Test

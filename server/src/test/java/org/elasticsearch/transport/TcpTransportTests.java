@@ -24,7 +24,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
@@ -91,7 +90,7 @@ public class TcpTransportTests extends ESTestCase {
             TcpTransport.parse("::1", 1234);
             fail("should have gotten exception");
         } catch (IllegalArgumentException expected) {
-            assertTrue(expected.getMessage().contains("must be bracketed"));
+            assertThat(expected.getMessage().contains("must be bracketed")).isTrue();
         }
     }
 

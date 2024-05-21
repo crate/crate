@@ -21,6 +21,7 @@ package org.elasticsearch.common.util.concurrent;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
@@ -88,7 +89,7 @@ public class AsyncIOProcessorTests extends ESTestCase {
         for (int i = 0; i < thread.length; i++) {
             thread[i].join();
         }
-        assertTrue(semaphore.tryAcquire(Integer.MAX_VALUE, 10, TimeUnit.SECONDS));
+        assertThat(semaphore.tryAcquire(Integer.MAX_VALUE, 10, TimeUnit.SECONDS)).isTrue();
         assertEquals(count * thread.length, received.get());
     }
 
@@ -142,7 +143,7 @@ public class AsyncIOProcessorTests extends ESTestCase {
         for (int i = 0; i < thread.length; i++) {
             thread[i].join();
         }
-        assertTrue(semaphore.tryAcquire(Integer.MAX_VALUE, 10, TimeUnit.SECONDS));
+        assertThat(semaphore.tryAcquire(Integer.MAX_VALUE, 10, TimeUnit.SECONDS)).isTrue();
         assertEquals(count * thread.length, received.get());
         assertEquals(actualFailed.get(), failed.get());
     }
@@ -206,7 +207,7 @@ public class AsyncIOProcessorTests extends ESTestCase {
             @Override
             public void run() {
                 try {
-                    assertTrue(serializePutSemaphore.tryAcquire(10, TimeUnit.SECONDS));
+                    assertThat(serializePutSemaphore.tryAcquire(10, TimeUnit.SECONDS)).isTrue();
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }

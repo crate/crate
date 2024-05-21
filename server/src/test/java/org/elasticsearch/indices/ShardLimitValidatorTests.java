@@ -21,6 +21,7 @@ package org.elasticsearch.indices;
 
 import static org.elasticsearch.cluster.shards.ShardCounts.forDataNodeCount;
 import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -57,7 +58,7 @@ public class ShardLimitValidatorTests extends ESTestCase {
         int totalShards = counts.getFailingIndexShards() * (1 + counts.getFailingIndexReplicas());
         int currentShards = counts.getFirstIndexShards() * (1 + counts.getFirstIndexReplicas());
         int maxShards = counts.getShardsPerNode() * nodesInCluster;
-        assertTrue(errorMessage.isPresent());
+        assertThat(errorMessage.isPresent()).isTrue();
         assertEquals("this action would add [" + totalShards + "] total shards, but this cluster currently has [" + currentShards
             + "]/[" + maxShards + "] maximum shards open", errorMessage.get());
     }
@@ -76,7 +77,7 @@ public class ShardLimitValidatorTests extends ESTestCase {
         int shardsToAdd = randomIntBetween(1, (counts.getShardsPerNode() * nodesInCluster) - existingShards);
         Optional<String> errorMessage = ShardLimitValidator.checkShardLimit(shardsToAdd, state, counts.getShardsPerNode());
 
-        assertFalse(errorMessage.isPresent());
+        assertThat(errorMessage.isPresent()).isFalse();
     }
 
 

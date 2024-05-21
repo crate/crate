@@ -23,7 +23,6 @@ package io.crate.integrationtests;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.sql.Connection;
@@ -68,7 +67,7 @@ public class PostgresJobsLogsITest extends IntegTestCase {
         properties.setProperty("user", "crate");
         try (Connection conn = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {
             ResultSet rs = conn.createStatement().executeQuery("select stmt from sys.jobs");
-            assertTrue("sys.jobs must contain statement", rs.next());
+            assertThat(rs.next()).as("sys.jobs must contain statement").isTrue();
             assertEquals(rs.getString(1), "select stmt from sys.jobs");
         }
     }

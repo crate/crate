@@ -21,6 +21,7 @@ package org.elasticsearch.cluster.routing.allocation;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
+import static org.assertj.core.api.Assertions.assertThat;
 import static java.util.Collections.emptySet;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.startsWith;
@@ -55,7 +56,7 @@ public class AllocateUnassignedDecisionTests extends ESTestCase {
 
     public void testDecisionNotTaken() {
         AllocateUnassignedDecision allocateUnassignedDecision = AllocateUnassignedDecision.NOT_TAKEN;
-        assertFalse(allocateUnassignedDecision.isDecisionTaken());
+        assertThat(allocateUnassignedDecision.isDecisionTaken()).isFalse();
         assertThatThrownBy(() -> allocateUnassignedDecision.getAllocationDecision())
             .isExactlyInstanceOf(IllegalStateException.class);
         assertThatThrownBy(() -> allocateUnassignedDecision.getAllocationStatus())
@@ -75,7 +76,7 @@ public class AllocateUnassignedDecisionTests extends ESTestCase {
             AllocationStatus.DELAYED_ALLOCATION, AllocationStatus.NO_VALID_SHARD_COPY, AllocationStatus.FETCHING_SHARD_DATA
         );
         AllocateUnassignedDecision noDecision = AllocateUnassignedDecision.no(allocationStatus, null);
-        assertTrue(noDecision.isDecisionTaken());
+        assertThat(noDecision.isDecisionTaken()).isTrue();
         assertEquals(AllocationDecision.fromAllocationStatus(allocationStatus), noDecision.getAllocationDecision());
         assertEquals(allocationStatus, noDecision.getAllocationStatus());
         if (allocationStatus == AllocationStatus.FETCHING_SHARD_DATA) {
@@ -96,7 +97,7 @@ public class AllocateUnassignedDecisionTests extends ESTestCase {
         nodeDecisions.add(new NodeAllocationResult(node2, Decision.NO, 2));
         final boolean reuseStore = randomBoolean();
         noDecision = AllocateUnassignedDecision.no(AllocationStatus.DECIDERS_NO, nodeDecisions, reuseStore);
-        assertTrue(noDecision.isDecisionTaken());
+        assertThat(noDecision.isDecisionTaken()).isTrue();
         assertEquals(AllocationDecision.NO, noDecision.getAllocationDecision());
         assertEquals(AllocationStatus.DECIDERS_NO, noDecision.getAllocationStatus());
         if (reuseStore) {
@@ -121,7 +122,7 @@ public class AllocateUnassignedDecisionTests extends ESTestCase {
         nodeDecisions.add(new NodeAllocationResult(node1, Decision.NO, 1));
         nodeDecisions.add(new NodeAllocationResult(node2, Decision.THROTTLE, 2));
         AllocateUnassignedDecision throttleDecision = AllocateUnassignedDecision.throttle(nodeDecisions);
-        assertTrue(throttleDecision.isDecisionTaken());
+        assertThat(throttleDecision.isDecisionTaken()).isTrue();
         assertEquals(AllocationDecision.THROTTLED, throttleDecision.getAllocationDecision());
         assertEquals(AllocationStatus.DECIDERS_THROTTLED, throttleDecision.getAllocationStatus());
         assertThat(throttleDecision.getExplanation(), startsWith("allocation temporarily throttled"));
@@ -139,7 +140,7 @@ public class AllocateUnassignedDecisionTests extends ESTestCase {
         String allocId = randomBoolean() ? "allocId" : null;
         AllocateUnassignedDecision yesDecision = AllocateUnassignedDecision.yes(
             node2, allocId, nodeDecisions, randomBoolean());
-        assertTrue(yesDecision.isDecisionTaken());
+        assertThat(yesDecision.isDecisionTaken()).isTrue();
         assertEquals(AllocationDecision.YES, yesDecision.getAllocationDecision());
         assertNull(yesDecision.getAllocationStatus());
         assertEquals("can allocate the shard", yesDecision.getExplanation());

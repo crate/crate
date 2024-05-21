@@ -38,7 +38,6 @@ import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -125,7 +124,7 @@ public class ClusterBootstrapServiceTests extends ESTestCase {
         ClusterBootstrapService clusterBootstrapService
             = new ClusterBootstrapService(settings.build(), transportService, () -> discoveredNodesSupplier.get().get(),
             () -> false, vc -> {
-            assertTrue(bootstrapped.compareAndSet(false, true));
+            assertThat(bootstrapped.compareAndSet(false, true)).isTrue();
             assertThat(vc.getNodeIds()).isEqualTo(Stream.of(localNode, otherNode1, otherNode2).map(DiscoveryNode::getId).collect(Collectors.toSet()));
             assertThat(deterministicTaskQueue.getCurrentTimeMillis(), greaterThanOrEqualTo(timeout));
         });
@@ -136,7 +135,7 @@ public class ClusterBootstrapServiceTests extends ESTestCase {
         transportService.start();
         clusterBootstrapService.scheduleUnconfiguredBootstrap();
         deterministicTaskQueue.runAllTasksInTimeOrder();
-        assertTrue(bootstrapped.get());
+        assertThat(bootstrapped.get()).isTrue();
     }
 
     public void testDoesNothingByDefaultIfHostsProviderConfigured() {
@@ -187,7 +186,7 @@ public class ClusterBootstrapServiceTests extends ESTestCase {
         ClusterBootstrapService clusterBootstrapService = new ClusterBootstrapService(Settings.builder().putList(
             INITIAL_MASTER_NODES_SETTING.getKey(), localNode.getName(), otherNode1.getName(), otherNode2.getName()).build(),
             transportService, () -> Stream.of(otherNode1, otherNode2).collect(Collectors.toList()), () -> false, vc -> {
-            assertTrue(bootstrapped.compareAndSet(false, true));
+            assertThat(bootstrapped.compareAndSet(false, true)).isTrue();
             assertThat(vc.getNodeIds(), containsInAnyOrder(localNode.getId(), otherNode1.getId(), otherNode2.getId()));
             assertThat(vc.getNodeIds(), not(hasItem(containsString("placeholder"))));
         });
@@ -195,12 +194,12 @@ public class ClusterBootstrapServiceTests extends ESTestCase {
         transportService.start();
         clusterBootstrapService.onFoundPeersUpdated();
         deterministicTaskQueue.runAllTasks();
-        assertTrue(bootstrapped.get());
+        assertThat(bootstrapped.get()).isTrue();
 
         bootstrapped.set(false);
         clusterBootstrapService.onFoundPeersUpdated();
         deterministicTaskQueue.runAllTasks();
-        assertFalse(bootstrapped.get()); // should only bootstrap once
+        assertThat(bootstrapped.get()).isFalse(); // should only bootstrap once
     }
 
     public void testBootstrapsOnDiscoveryOfTwoOfThreeRequiredNodes() {
@@ -209,25 +208,25 @@ public class ClusterBootstrapServiceTests extends ESTestCase {
         ClusterBootstrapService clusterBootstrapService = new ClusterBootstrapService(Settings.builder().putList(
             INITIAL_MASTER_NODES_SETTING.getKey(), localNode.getName(), otherNode1.getName(), otherNode2.getName()).build(),
             transportService, () -> singletonList(otherNode1), () -> false, vc -> {
-            assertTrue(bootstrapped.compareAndSet(false, true));
+            assertThat(bootstrapped.compareAndSet(false, true)).isTrue();
             assertThat(vc.getNodeIds()).hasSize(3);
             assertThat(vc.getNodeIds(), hasItem(localNode.getId()));
             assertThat(vc.getNodeIds(), hasItem(otherNode1.getId()));
             assertThat(vc.getNodeIds(), hasItem(allOf(startsWith(BOOTSTRAP_PLACEHOLDER_PREFIX), containsString(otherNode2.getName()))));
-            assertTrue(vc.hasQuorum(Stream.of(localNode, otherNode1).map(DiscoveryNode::getId).collect(Collectors.toList())));
-            assertFalse(vc.hasQuorum(singletonList(localNode.getId())));
-            assertFalse(vc.hasQuorum(singletonList(otherNode1.getId())));
+            assertThat(vc.hasQuorum(Stream.of(localNode, otherNode1).map(DiscoveryNode::getId).collect(Collectors.toList()))).isTrue();
+            assertThat(vc.hasQuorum(singletonList(localNode.getId()))).isFalse();
+            assertThat(vc.hasQuorum(singletonList(otherNode1.getId()))).isFalse();
         });
 
         transportService.start();
         clusterBootstrapService.onFoundPeersUpdated();
         deterministicTaskQueue.runAllTasks();
-        assertTrue(bootstrapped.get());
+        assertThat(bootstrapped.get()).isTrue();
 
         bootstrapped.set(false);
         clusterBootstrapService.onFoundPeersUpdated();
         deterministicTaskQueue.runAllTasks();
-        assertFalse(bootstrapped.get()); // should only bootstrap once
+        assertThat(bootstrapped.get()).isFalse(); // should only bootstrap once
     }
 
     public void testBootstrapsOnDiscoveryOfThreeOfFiveRequiredNodes() {
@@ -237,7 +236,7 @@ public class ClusterBootstrapServiceTests extends ESTestCase {
             INITIAL_MASTER_NODES_SETTING.getKey(), localNode.getName(), otherNode1.getName(), otherNode2.getName(),
             "missing-node-1", "missing-node-2").build(),
             transportService, () -> Stream.of(otherNode1, otherNode2).collect(Collectors.toList()), () -> false, vc -> {
-            assertTrue(bootstrapped.compareAndSet(false, true));
+            assertThat(bootstrapped.compareAndSet(false, true)).isTrue();
             assertThat(vc.getNodeIds()).hasSize(5);
             assertThat(vc.getNodeIds(), hasItem(localNode.getId()));
             assertThat(vc.getNodeIds(), hasItem(otherNode1.getId()));
@@ -250,20 +249,20 @@ public class ClusterBootstrapServiceTests extends ESTestCase {
             assertThat(placeholders, hasItem(containsString("missing-node-1")));
             assertThat(placeholders, hasItem(containsString("missing-node-2")));
 
-            assertTrue(vc.hasQuorum(Stream.of(localNode, otherNode1, otherNode2).map(DiscoveryNode::getId).collect(Collectors.toList())));
-            assertFalse(vc.hasQuorum(Stream.of(localNode, otherNode1).map(DiscoveryNode::getId).collect(Collectors.toList())));
-            assertFalse(vc.hasQuorum(Stream.of(localNode, otherNode1).map(DiscoveryNode::getId).collect(Collectors.toList())));
+            assertThat(vc.hasQuorum(Stream.of(localNode, otherNode1, otherNode2).map(DiscoveryNode::getId).collect(Collectors.toList()))).isTrue();
+            assertThat(vc.hasQuorum(Stream.of(localNode, otherNode1).map(DiscoveryNode::getId).collect(Collectors.toList()))).isFalse();
+            assertThat(vc.hasQuorum(Stream.of(localNode, otherNode1).map(DiscoveryNode::getId).collect(Collectors.toList()))).isFalse();
         });
 
         transportService.start();
         clusterBootstrapService.onFoundPeersUpdated();
         deterministicTaskQueue.runAllTasks();
-        assertTrue(bootstrapped.get());
+        assertThat(bootstrapped.get()).isTrue();
 
         bootstrapped.set(false);
         clusterBootstrapService.onFoundPeersUpdated();
         deterministicTaskQueue.runAllTasks();
-        assertFalse(bootstrapped.get()); // should only bootstrap once
+        assertThat(bootstrapped.get()).isFalse(); // should only bootstrap once
     }
 
     public void testDoesNotBootstrapIfNoNodesDiscovered() {
@@ -434,7 +433,7 @@ public class ClusterBootstrapServiceTests extends ESTestCase {
         transportService.start();
         clusterBootstrapService.onFoundPeersUpdated();
         deterministicTaskQueue.runAllTasks();
-        assertTrue(bootstrapped.get());
+        assertThat(bootstrapped.get()).isTrue();
     }
 
     public void testMatchesOnHostName() {
@@ -446,7 +445,7 @@ public class ClusterBootstrapServiceTests extends ESTestCase {
         transportService.start();
         clusterBootstrapService.onFoundPeersUpdated();
         deterministicTaskQueue.runAllTasks();
-        assertTrue(bootstrapped.get());
+        assertThat(bootstrapped.get()).isTrue();
     }
 
     public void testMatchesOnNodeAddress() {
@@ -458,7 +457,7 @@ public class ClusterBootstrapServiceTests extends ESTestCase {
         transportService.start();
         clusterBootstrapService.onFoundPeersUpdated();
         deterministicTaskQueue.runAllTasks();
-        assertTrue(bootstrapped.get());
+        assertThat(bootstrapped.get()).isTrue();
     }
 
     public void testMatchesOnNodeHostAddress() {
@@ -470,7 +469,7 @@ public class ClusterBootstrapServiceTests extends ESTestCase {
         transportService.start();
         clusterBootstrapService.onFoundPeersUpdated();
         deterministicTaskQueue.runAllTasks();
-        assertTrue(bootstrapped.get());
+        assertThat(bootstrapped.get()).isTrue();
     }
 
     public void testDoesNotJustMatchEverything() {
@@ -492,14 +491,14 @@ public class ClusterBootstrapServiceTests extends ESTestCase {
             INITIAL_MASTER_NODES_SETTING.getKey(), localNode.getName(), otherNode1.getName(), otherNode2.getName()).build(),
             transportService, () -> Stream.of(otherNode1, otherNode2, extraNode).collect(Collectors.toList()), () -> false,
             vc -> {
-                assertTrue(bootstrapped.compareAndSet(false, true));
+                assertThat(bootstrapped.compareAndSet(false, true)).isTrue();
                 assertThat(vc.getNodeIds(), not(hasItem(extraNode.getId())));
             });
 
         transportService.start();
         clusterBootstrapService.onFoundPeersUpdated();
         deterministicTaskQueue.runAllTasks();
-        assertTrue(bootstrapped.get());
+        assertThat(bootstrapped.get()).isTrue();
     }
 
     public void testBootstrapsAutomaticallyWithSingleNodeDiscovery() {
@@ -510,21 +509,21 @@ public class ClusterBootstrapServiceTests extends ESTestCase {
 
         ClusterBootstrapService clusterBootstrapService = new ClusterBootstrapService(settings.build(),
             transportService, () -> emptyList(), () -> false, vc -> {
-            assertTrue(bootstrapped.compareAndSet(false, true));
+            assertThat(bootstrapped.compareAndSet(false, true)).isTrue();
             assertThat(vc.getNodeIds()).hasSize(1);
             assertThat(vc.getNodeIds(), hasItem(localNode.getId()));
-            assertTrue(vc.hasQuorum(singletonList(localNode.getId())));
+            assertThat(vc.hasQuorum(singletonList(localNode.getId()))).isTrue();
         });
 
         transportService.start();
         clusterBootstrapService.onFoundPeersUpdated();
         deterministicTaskQueue.runAllTasks();
-        assertTrue(bootstrapped.get());
+        assertThat(bootstrapped.get()).isTrue();
 
         bootstrapped.set(false);
         clusterBootstrapService.onFoundPeersUpdated();
         deterministicTaskQueue.runAllTasks();
-        assertFalse(bootstrapped.get()); // should only bootstrap once
+        assertThat(bootstrapped.get()).isFalse(); // should only bootstrap once
     }
 
     @Test

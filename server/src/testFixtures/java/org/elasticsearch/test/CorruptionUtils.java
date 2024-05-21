@@ -20,7 +20,6 @@ package org.elasticsearch.test;
 
 import static io.crate.lucene.CrateLuceneTestCase.assumeTrue;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -68,9 +67,9 @@ public final class CorruptionUtils {
      * Corrupts a random file at a random position
      */
     public static void corruptFile(Random random, Path... files) throws IOException {
-        assertTrue("files must be non-empty", files.length > 0);
+        assertThat(files.length > 0).as("files must be non-empty").isTrue();
         final Path fileToCorrupt = RandomPicks.randomFrom(random, files);
-        assertTrue(fileToCorrupt + " is not a file", Files.isRegularFile(fileToCorrupt));
+        assertThat(Files.isRegularFile(fileToCorrupt)).as(fileToCorrupt + " is not a file").isTrue();
         try (Directory dir = FSDirectory.open(fileToCorrupt.toAbsolutePath().getParent())) {
             long checksumBeforeCorruption;
             try (IndexInput input = dir.openInput(fileToCorrupt.getFileName().toString(), IOContext.DEFAULT)) {

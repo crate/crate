@@ -22,9 +22,7 @@ package org.elasticsearch.index.shard;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.hasItem;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -347,19 +345,19 @@ public class IndexShardRetentionLeaseTests extends IndexShardTestCase {
              final long version,
              final boolean primary,
              final boolean expireLeases) {
-        assertTrue(expireLeases == false || primary);
+        assertThat(expireLeases == false || primary).isTrue();
         final RetentionLeases retentionLeases;
         if (expireLeases == false) {
             if (randomBoolean()) {
                 retentionLeases = indexShard.getRetentionLeases();
             } else {
                 final Tuple<Boolean, RetentionLeases> tuple = indexShard.getRetentionLeases(false);
-                assertFalse(tuple.v1());
+                assertThat(tuple.v1()).isFalse();
                 retentionLeases = tuple.v2();
             }
         } else {
             final Tuple<Boolean, RetentionLeases> tuple = indexShard.getRetentionLeases(true);
-            assertTrue(tuple.v1());
+            assertThat(tuple.v1()).isTrue();
             retentionLeases = tuple.v2();
         }
         assertRetentionLeases(

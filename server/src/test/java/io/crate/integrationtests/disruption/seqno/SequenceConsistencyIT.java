@@ -22,7 +22,6 @@
 package io.crate.integrationtests.disruption.seqno;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.Set;
@@ -108,7 +107,7 @@ public class SequenceConsistencyIT extends AbstractDisruptionTestCase {
                 .index(index).shard(0).primaryShard();
             // the node that's part of the same partition as master is now the primary for the table shard
             assertThat(primaryShard.currentNodeId()).isEqualTo(nonIsolatedDataNodeId);
-            assertTrue(primaryShard.active());
+            assertThat(primaryShard.active()).isTrue();
         }, 30, TimeUnit.SECONDS);
 
         execute("update registers set value = 'value set on master' where id = 1", null, masterNodeName);

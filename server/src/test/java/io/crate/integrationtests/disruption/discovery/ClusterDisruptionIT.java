@@ -28,9 +28,7 @@ import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.in;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -193,7 +191,7 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
             for (Semaphore semaphore : semaphores) {
                 semaphore.release(docsPerIndexer);
             }
-            assertTrue(countDownLatchRef.get().await(1, TimeUnit.MINUTES));
+            assertThat(countDownLatchRef.get().await(1, TimeUnit.MINUTES)).isTrue();
 
             for (int iter = 1 + randomInt(1); iter > 0; iter--) {
                 logger.info("starting disruptions & indexing (iteration [{}])", iter);
@@ -286,10 +284,10 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
         scheme.startDisrupting();
         ensureStableCluster(2, notIsolatedNode);
         String indexName = toIndexName(sqlExecutor.getCurrentSchema(), "t", null);
-        assertFalse(FutureUtils.get(
+        assertThat(FutureUtils.get(
             client(notIsolatedNode).admin().cluster().health(
                 new ClusterHealthRequest(indexName).waitForYellowStatus()
-            )).isTimedOut());
+            )).isTimedOut()).isFalse();
 
         execute("insert into t (id, x) values (1, 10)", null, notIsolatedNode);
 
@@ -369,7 +367,7 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
         latch.await();
 
         // the listener should be notified
-        assertTrue(success.get());
+        assertThat(success.get()).isTrue();
 
         // the failed shard should be gone
         List<ShardRouting> shards = clusterService().state().routingTable()

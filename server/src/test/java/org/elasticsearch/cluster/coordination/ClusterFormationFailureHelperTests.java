@@ -28,8 +28,6 @@ import static org.elasticsearch.cluster.coordination.ClusterBootstrapService.INI
 import static org.elasticsearch.monitor.StatusInfo.Status.HEALTHY;
 import static org.elasticsearch.monitor.StatusInfo.Status.UNHEALTHY;
 import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -93,7 +91,7 @@ public class ClusterFormationFailureHelperTests extends ESTestCase {
         clusterFormationFailureHelper.start();
 
         while (warningCount.get() == 0) {
-            assertTrue(clusterFormationFailureHelper.isRunning());
+            assertThat(clusterFormationFailureHelper.isRunning()).isTrue();
             if (deterministicTaskQueue.hasRunnableTasks()) {
                 deterministicTaskQueue.runRandomTask();
             } else {
@@ -104,7 +102,7 @@ public class ClusterFormationFailureHelperTests extends ESTestCase {
         assertThat(deterministicTaskQueue.getCurrentTimeMillis() - startTimeMillis).isEqualTo(expectedDelayMillis);
 
         while (warningCount.get() < 5) {
-            assertTrue(clusterFormationFailureHelper.isRunning());
+            assertThat(clusterFormationFailureHelper.isRunning()).isTrue();
             if (deterministicTaskQueue.hasRunnableTasks()) {
                 deterministicTaskQueue.runRandomTask();
             } else {
@@ -114,7 +112,7 @@ public class ClusterFormationFailureHelperTests extends ESTestCase {
         assertThat(deterministicTaskQueue.getCurrentTimeMillis() - startTimeMillis).isEqualTo(5 * expectedDelayMillis);
 
         clusterFormationFailureHelper.stop();
-        assertFalse(clusterFormationFailureHelper.isRunning());
+        assertThat(clusterFormationFailureHelper.isRunning()).isFalse();
         deterministicTaskQueue.runAllTasksInTimeOrder();
 
         assertThat(warningCount.get()).isEqualTo(5L);
@@ -128,7 +126,7 @@ public class ClusterFormationFailureHelperTests extends ESTestCase {
         final long secondStartTimeMillis = deterministicTaskQueue.getCurrentTimeMillis();
 
         while (warningCount.get() < 5) {
-            assertTrue(clusterFormationFailureHelper.isRunning());
+            assertThat(clusterFormationFailureHelper.isRunning()).isTrue();
             if (deterministicTaskQueue.hasRunnableTasks()) {
                 deterministicTaskQueue.runRandomTask();
             } else {
@@ -138,7 +136,7 @@ public class ClusterFormationFailureHelperTests extends ESTestCase {
         assertThat(deterministicTaskQueue.getCurrentTimeMillis() - secondStartTimeMillis).isEqualTo(5 * expectedDelayMillis);
 
         clusterFormationFailureHelper.stop();
-        assertFalse(clusterFormationFailureHelper.isRunning());
+        assertThat(clusterFormationFailureHelper.isRunning()).isFalse();
         deterministicTaskQueue.runAllTasksInTimeOrder();
 
         assertThat(warningCount.get()).isEqualTo(5L);

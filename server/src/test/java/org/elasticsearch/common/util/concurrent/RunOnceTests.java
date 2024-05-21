@@ -21,6 +21,7 @@ package org.elasticsearch.common.util.concurrent;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.CountDownLatch;
@@ -35,14 +36,14 @@ public class RunOnceTests extends ESTestCase {
     public void testRunOnce() {
         final AtomicInteger counter = new AtomicInteger(0);
         final RunOnce runOnce = new RunOnce(counter::incrementAndGet);
-        assertFalse(runOnce.hasRun());
+        assertThat(runOnce.hasRun()).isFalse();
 
         runOnce.run();
-        assertTrue(runOnce.hasRun());
+        assertThat(runOnce.hasRun()).isTrue();
         assertEquals(1, counter.get());
 
         runOnce.run();
-        assertTrue(runOnce.hasRun());
+        assertThat(runOnce.hasRun()).isTrue();
         assertEquals(1, counter.get());
     }
 
@@ -70,7 +71,7 @@ public class RunOnceTests extends ESTestCase {
         for (Thread thread : threads) {
             thread.join();
         }
-        assertTrue(runOnce.hasRun());
+        assertThat(runOnce.hasRun()).isTrue();
         assertEquals(1, counter.get());
     }
 
@@ -104,7 +105,7 @@ public class RunOnceTests extends ESTestCase {
             assertEquals(1, onRun.get());
             assertEquals(1, onFailure.get());
             assertEquals(1, onAfter.get());
-            assertTrue(runOnce.hasRun());
+            assertThat(runOnce.hasRun()).isTrue();
         }
     }
 }

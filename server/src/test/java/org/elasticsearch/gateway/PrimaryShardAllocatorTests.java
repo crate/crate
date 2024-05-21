@@ -26,7 +26,6 @@ import static org.elasticsearch.cluster.routing.UnassignedInfo.Reason.INDEX_REOP
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -239,7 +238,7 @@ public class PrimaryShardAllocatorTests extends ESAllocationTestCase {
         RoutingAllocation allocation = routingAllocationWithOnePrimaryNoReplicas(deciders, CLUSTER_RECOVERED, "allocId1");
         allocateAllUnassigned(allocation);
         assertThat(allocation.routingNodesChanged()).isEqualTo(true);
-        assertTrue(allocation.routingNodes().unassigned().ignored().isEmpty());
+        assertThat(allocation.routingNodes().unassigned().ignored().isEmpty()).isTrue();
         assertEquals(allocation.routingNodes().shardsWithState(ShardRoutingState.INITIALIZING).size(), 1);
         assertEquals(allocation.routingNodes().shardsWithState(ShardRoutingState.INITIALIZING).get(0).currentNodeId(), node1.getId());
     }
@@ -267,7 +266,7 @@ public class PrimaryShardAllocatorTests extends ESAllocationTestCase {
         assertEquals(ignored.size(), 1);
         assertEquals(ignored.get(0).unassignedInfo().getLastAllocationStatus(),
             forceDecisionNo ? AllocationStatus.DECIDERS_NO : AllocationStatus.DECIDERS_THROTTLED);
-        assertTrue(allocation.routingNodes().shardsWithState(ShardRoutingState.INITIALIZING).isEmpty());
+        assertThat(allocation.routingNodes().shardsWithState(ShardRoutingState.INITIALIZING).isEmpty()).isTrue();
     }
 
     /**
@@ -291,7 +290,7 @@ public class PrimaryShardAllocatorTests extends ESAllocationTestCase {
         List<ShardRouting> ignored = allocation.routingNodes().unassigned().ignored();
         assertEquals(ignored.size(), 1);
         assertEquals(ignored.get(0).unassignedInfo().getLastAllocationStatus(), AllocationStatus.DECIDERS_THROTTLED);
-        assertTrue(allocation.routingNodes().shardsWithState(ShardRoutingState.INITIALIZING).isEmpty());
+        assertThat(allocation.routingNodes().shardsWithState(ShardRoutingState.INITIALIZING).isEmpty()).isTrue();
     }
 
     /**

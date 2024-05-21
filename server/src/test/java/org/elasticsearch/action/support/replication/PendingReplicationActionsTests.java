@@ -21,6 +21,7 @@ package org.elasticsearch.action.support.replication;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collections;
 
@@ -65,7 +66,7 @@ public class PendingReplicationActionsTests extends ESTestCase {
         pendingReplication.addPendingAction(allocationId, action);
         action.run();
         future.get();
-        assertTrue(future.isDone());
+        assertThat(future.isDone()).isTrue();
     }
 
     @Test

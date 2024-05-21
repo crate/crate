@@ -21,6 +21,7 @@ package org.elasticsearch.cluster.service;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
 import static org.hamcrest.Matchers.anyOf;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasKey;
@@ -156,7 +157,7 @@ public class MasterServiceTests extends ESTestCase {
         });
 
         latch1.await();
-        assertTrue("cluster state update task was executed on a non-master", taskFailed[0]);
+        assertThat(taskFailed[0]).as("cluster state update task was executed on a non-master").isTrue();
 
         final CountDownLatch latch2 = new CountDownLatch(1);
         nonMaster.submitStateUpdateTask("test", new LocalClusterUpdateTask() {
@@ -174,7 +175,7 @@ public class MasterServiceTests extends ESTestCase {
             }
         });
         latch2.await();
-        assertFalse("non-master cluster state update task was not executed", taskFailed[0]);
+        assertThat(taskFailed[0]).as("non-master cluster state update task was not executed").isFalse();
 
         nonMaster.close();
     }
@@ -220,7 +221,7 @@ public class MasterServiceTests extends ESTestCase {
             );
 
             latch.await();
-            assertTrue(published.get());
+            assertThat(published.get()).isTrue();
         }
     }
 

@@ -21,6 +21,7 @@
 
 package org.elasticsearch.transport;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
@@ -255,25 +256,25 @@ public class TransportActionProxyTests extends ESTestCase {
     public void testGetAction() {
         String action = "foo/bar";
         String proxyAction = TransportActionProxy.getProxyAction(action);
-        assertTrue(proxyAction.endsWith(action));
+        assertThat(proxyAction.endsWith(action)).isTrue();
         assertEquals("internal:transport/proxy/foo/bar", proxyAction);
     }
 
     public void testUnwrap() {
         TransportRequest transportRequest = TransportActionProxy.wrapRequest(nodeA, TransportService.HandshakeRequest.INSTANCE);
-        assertTrue(transportRequest instanceof TransportActionProxy.ProxyRequest);
+        assertThat(transportRequest instanceof TransportActionProxy.ProxyRequest).isTrue();
         assertSame(TransportService.HandshakeRequest.INSTANCE, TransportActionProxy.unwrapRequest(transportRequest));
     }
 
     public void testIsProxyAction() {
         String action = "foo/bar";
         String proxyAction = TransportActionProxy.getProxyAction(action);
-        assertTrue(TransportActionProxy.isProxyAction(proxyAction));
-        assertFalse(TransportActionProxy.isProxyAction(action));
+        assertThat(TransportActionProxy.isProxyAction(proxyAction)).isTrue();
+        assertThat(TransportActionProxy.isProxyAction(action)).isFalse();
     }
 
     public void testIsProxyRequest() {
-        assertTrue(TransportActionProxy.isProxyRequest(new TransportActionProxy.ProxyRequest<>(TransportRequest.Empty.INSTANCE, null)));
-        assertFalse(TransportActionProxy.isProxyRequest(TransportRequest.Empty.INSTANCE));
+        assertThat(TransportActionProxy.isProxyRequest(new TransportActionProxy.ProxyRequest<>(TransportRequest.Empty.INSTANCE, null))).isTrue();
+        assertThat(TransportActionProxy.isProxyRequest(TransportRequest.Empty.INSTANCE)).isFalse();
     }
 }

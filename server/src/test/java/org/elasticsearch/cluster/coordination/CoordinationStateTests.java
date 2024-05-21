@@ -23,7 +23,6 @@ import static java.util.Collections.emptySet;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -758,8 +757,8 @@ public class CoordinationStateTests extends ESTestCase {
         final CoordinationState.VoteCollection voteCollection = new CoordinationState.VoteCollection();
         assertThat(voteCollection.isEmpty()).isTrue();
 
-        assertFalse(voteCollection.addVote(
-            new DiscoveryNode("master-ineligible", buildNewFakeTransportAddress(), emptyMap(), emptySet(), Version.CURRENT)));
+        assertThat(voteCollection.addVote(
+            new DiscoveryNode("master-ineligible", buildNewFakeTransportAddress(), emptyMap(), emptySet(), Version.CURRENT))).isFalse();
         assertThat(voteCollection.isEmpty()).isTrue();
 
         voteCollection.addVote(node1);
