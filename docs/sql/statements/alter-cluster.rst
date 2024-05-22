@@ -97,7 +97,7 @@ Options
 
    A boolean option that if set to ``true`` causes the command to remove the
    ``source`` table after the rename. This causes the command to *replace*
-   ``source`` with ``target``, instead of swapping the names.
+   ``target`` with ``source``, instead of swapping the names.
 
 .. _alter_cluster_gc_dangling_artifacts:
 
