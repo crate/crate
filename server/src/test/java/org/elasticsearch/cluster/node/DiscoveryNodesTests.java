@@ -23,7 +23,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -65,7 +64,7 @@ public class DiscoveryNodesTests extends ESTestCase {
         Set<String> matchingNodeIds = nodeSelector.matchingNodeIds(discoveryNodes);
         try {
             DiscoveryNode resolvedNode = discoveryNodes.resolveNode(nodeSelector.selector);
-            assertThat(matchingNodeIds.size()).isEqualTo(1);
+            assertThat(matchingNodeIds).hasSize(1);
             assertThat(resolvedNode.getId()).isEqualTo(matchingNodeIds.iterator().next());
         } catch (IllegalArgumentException e) {
             if (matchingNodeIds.size() == 0) {
@@ -207,12 +206,12 @@ public class DiscoveryNodesTests extends ESTestCase {
         DiscoveryNodes.Delta delta = discoNodesB.delta(discoNodesA);
 
         if (masterA == null) {
-            assertThat(delta.previousMasterNode(), nullValue());
+            assertThat(delta.previousMasterNode()).isNull();
         } else {
             assertThat(delta.previousMasterNode().getId()).isEqualTo(masterAId);
         }
         if (masterB == null) {
-            assertThat(delta.newMasterNode(), nullValue());
+            assertThat(delta.newMasterNode()).isNull();
         } else {
             assertThat(delta.newMasterNode().getId()).isEqualTo(masterBId);
         }
@@ -226,14 +225,14 @@ public class DiscoveryNodesTests extends ESTestCase {
         Set<DiscoveryNode> newNodes = new HashSet<>(nodesB);
         newNodes.removeAll(nodesA);
         assertThat(delta.added()).isEqualTo(newNodes.isEmpty() == false);
-        assertThat(delta.addedNodes(), containsInAnyOrder(newNodes.stream().collect(Collectors.toList()).toArray()));
-        assertThat(delta.addedNodes().size()).isEqualTo(newNodes.size());
+        assertThat(delta.addedNodes(), containsInAnyOrder(newNodes.stream().toList().toArray()));
+        assertThat(delta.addedNodes()).hasSize(newNodes.size());
 
         Set<DiscoveryNode> removedNodes = new HashSet<>(nodesA);
         removedNodes.removeAll(nodesB);
         assertThat(delta.removed()).isEqualTo(removedNodes.isEmpty() == false);
-        assertThat(delta.removedNodes(), containsInAnyOrder(removedNodes.stream().collect(Collectors.toList()).toArray()));
-        assertThat(delta.removedNodes().size()).isEqualTo(removedNodes.size());
+        assertThat(delta.removedNodes(), containsInAnyOrder(removedNodes.stream().toList().toArray()));
+        assertThat(delta.removedNodes()).hasSize(removedNodes.size());
     }
 
     private static AtomicInteger idGenerator = new AtomicInteger();

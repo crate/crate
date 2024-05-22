@@ -93,7 +93,7 @@ public class SharedShardContextsTest {
         List<ShardId> allShards = new ArrayList<>();
         allShards.addAll(shards1);
         allShards.addAll(shards2);
-        assertThat(sharedShardContexts.allocatedShards.size()).isEqualTo(allShards.size());
+        assertThat(sharedShardContexts.allocatedShards).hasSize(allShards.size());
         assertThat(sharedShardContexts.allocatedShards).containsOnlyKeys(allShards);
     }
 }

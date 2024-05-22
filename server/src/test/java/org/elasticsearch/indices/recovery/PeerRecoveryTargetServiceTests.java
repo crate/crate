@@ -21,8 +21,6 @@ package org.elasticsearch.indices.recovery;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
-import static org.hamcrest.Matchers.empty;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -146,7 +144,7 @@ public class PeerRecoveryTargetServiceTests extends IndexShardTestCase {
         recoveryTarget.decRef();
         Store.MetadataSnapshot targetSnapshot = targetShard.snapshotStoreMetadata();
         Store.RecoveryDiff diff = sourceSnapshot.recoveryDiff(targetSnapshot);
-        assertThat(diff.different, empty());
+        assertThat(diff.different).isEmpty();
         closeShards(sourceShard, targetShard);
     }
 
@@ -332,7 +330,7 @@ public class PeerRecoveryTargetServiceTests extends IndexShardTestCase {
         RecoveryTarget recoveryTarget = new RecoveryTarget(shard, null, null);
         StartRecoveryRequest request = PeerRecoveryTargetService.getStartRecoveryRequest(logger, rNode, recoveryTarget, startingSeqNo);
         assertThat(request.startingSeqNo()).isEqualTo(UNASSIGNED_SEQ_NO);
-        assertThat(request.metadataSnapshot().size()).isEqualTo(0);
+        assertThat(request.metadataSnapshot()).hasSize(0);
         recoveryTarget.decRef();
         closeShards(shard);
     }

@@ -44,7 +44,7 @@ public class IndexBaseBuilderTest {
         builder.allocate("i3", IntArrayList.from(1, 3));
 
         TreeMap<String, Integer> bases = builder.build();
-        assertThat(bases.size()).isEqualTo(3);
+        assertThat(bases).hasSize(3);
         assertThat(bases.get("i1")).isEqualTo(0);
         assertThat(bases.get("i2")).isEqualTo(6);
         assertThat(bases.get("i3")).isEqualTo(9);
@@ -57,7 +57,7 @@ public class IndexBaseBuilderTest {
         builder.allocate("i1", IntArrayList.from(1, 4));
         builder.allocate("i2", IntArrayList.from(1, 5));
         TreeMap<String, Integer> bases = builder.build();
-        assertThat(bases.size()).isEqualTo(2);
+        assertThat(bases).hasSize(2);
         assertThat(bases.get("i1")).isEqualTo(0);
         assertThat(bases.get("i2")).isEqualTo(5);
     }

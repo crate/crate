@@ -244,7 +244,7 @@ public class ClusterBootstrapServiceTests extends ESTestCase {
 
             final List<String> placeholders
                 = vc.getNodeIds().stream().filter(ClusterBootstrapService::isBootstrapPlaceholder).collect(Collectors.toList());
-            assertThat(placeholders.size()).isEqualTo(2);
+            assertThat(placeholders).hasSize(2);
             assertNotEquals(placeholders.get(0), placeholders.get(1));
             assertThat(placeholders, hasItem(containsString("missing-node-1")));
             assertThat(placeholders, hasItem(containsString("missing-node-2")));

@@ -58,7 +58,7 @@ public class ReleasableBytesReferenceTests extends AbstractBytesReferenceTestCas
             for (int i = 0; i < length; i++) {
                 byteArray.set(i, (byte) random().nextInt(1 << 8));
             }
-            assertThat(byteArray.size()).isEqualTo((long) length);
+            assertThat(byteArray.size()).isEqualTo(length);
             BytesReference ref = BytesReference.fromByteArray(byteArray, length);
             assertThat(ref.length()).isEqualTo(length);
             delegate = ref;

@@ -1145,8 +1145,8 @@ public class IndexShardTests extends IndexShardTestCase {
             while (stop.get() == false) {
                 try {
                     Store.MetadataSnapshot readMeta = newShard.snapshotStoreMetadata();
-                    assertThat(storeFileMetadatas.recoveryDiff(readMeta).different.size()).isEqualTo(0);
-                    assertThat(storeFileMetadatas.recoveryDiff(readMeta).missing.size()).isEqualTo(0);
+                    assertThat(storeFileMetadatas.recoveryDiff(readMeta).different).hasSize(0);
+                    assertThat(storeFileMetadatas.recoveryDiff(readMeta).missing).hasSize(0);
                     assertThat(storeFileMetadatas.recoveryDiff(readMeta).identical.size())
                         .isEqualTo(storeFileMetadatas.size());
                 } catch (IOException e) {
@@ -1369,8 +1369,8 @@ public class IndexShardTests extends IndexShardTestCase {
                 try {
                     Store.MetadataSnapshot readMeta = newShard.snapshotStoreMetadata();
                     assertThat(readMeta.getNumDocs()).isEqualTo(numDocs);
-                    assertThat(storeFileMetadatas.recoveryDiff(readMeta).different.size()).isEqualTo(0);
-                    assertThat(storeFileMetadatas.recoveryDiff(readMeta).missing.size()).isEqualTo(0);
+                    assertThat(storeFileMetadatas.recoveryDiff(readMeta).different).hasSize(0);
+                    assertThat(storeFileMetadatas.recoveryDiff(readMeta).missing).hasSize(0);
                     assertThat(storeFileMetadatas.recoveryDiff(readMeta).identical.size())
                         .isEqualTo(storeFileMetadatas.size());
                 } catch (IOException e) {
@@ -3531,7 +3531,7 @@ public class IndexShardTests extends IndexShardTestCase {
             assertThat(segment.search).isTrue();
             names.add(segment.getName());
         }
-        assertThat(segments.size()).isEqualTo(3);
+        assertThat(segments).hasSize(3);
         primary.flush(new FlushRequest());
         primary.forceMerge(new ForceMergeRequest().maxNumSegments(1).flush(false));
         primary.refresh("test");
@@ -3545,7 +3545,7 @@ public class IndexShardTests extends IndexShardTestCase {
                 assertThat(segment.search).isTrue();
             }
         }
-        assertThat(segments.size()).isEqualTo(4);
+        assertThat(segments).hasSize(4);
 
         assertThat(markedInactive.get()).isFalse();
         assertBusy(() -> {

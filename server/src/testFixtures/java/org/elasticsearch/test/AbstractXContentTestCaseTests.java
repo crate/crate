@@ -50,7 +50,7 @@ public class AbstractXContentTestCaseTests extends ESTestCase {
                         this::createParser));
         try (XContentParser parser = createParser(XContentType.JSON.xContent(), insertRandomFieldsAndShuffle)) {
             Map<String, Object> mapOrdered = parser.mapOrdered();
-            assertThat(mapOrdered.size()).isEqualTo(2);
+            assertThat(mapOrdered).hasSize(2);
             assertThat(mapOrdered.keySet().iterator().next()).isNotEqualTo("field");
         }
     }

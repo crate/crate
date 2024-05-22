@@ -138,10 +138,10 @@ public class LocalCheckpointTrackerTests extends ESTestCase {
          */
         long seqNo = randomNonNegativeLong();
         tracker.markSeqNoAsProcessed(seqNo);
-        assertThat(tracker.processedSeqNo.size()).isEqualTo(1);
+        assertThat(tracker.processedSeqNo).hasSize(1);
         assertThat(tracker.hasProcessed(seqNo)).isEqualTo(true);
         assertThat(tracker.hasProcessed(randomValueOtherThan(seqNo, ESTestCase::randomNonNegativeLong))).isEqualTo(false);
-        assertThat(tracker.processedSeqNo.size()).isEqualTo(1);
+        assertThat(tracker.processedSeqNo).hasSize(1);
     }
 
     public void testSimpleOverFlow() {
@@ -157,7 +157,7 @@ public class LocalCheckpointTrackerTests extends ESTestCase {
             tracker.markSeqNoAsProcessed(seqNo);
         }
         assertThat(tracker.processedCheckpoint.get()).isEqualTo(maxOps - 1L);
-        assertThat(tracker.processedSeqNo.size()).isEqualTo(aligned ? 0 : 1);
+        assertThat(tracker.processedSeqNo).hasSize(aligned ? 0 : 1);
         if (aligned == false) {
             assertThat(tracker.processedSeqNo.keys().iterator().next().value).isEqualTo(tracker.processedCheckpoint.get() / BIT_SET_SIZE);
         }
@@ -203,7 +203,7 @@ public class LocalCheckpointTrackerTests extends ESTestCase {
         assertThat(tracker.getProcessedCheckpoint()).isEqualTo(unFinishedSeq - 1L);
         tracker.markSeqNoAsProcessed(unFinishedSeq);
         assertThat(tracker.getProcessedCheckpoint()).isEqualTo(maxOps - 1L);
-        assertThat(tracker.processedSeqNo.size(), isOneOf(0, 1));
+        assertThat(tracker.processedSeqNo).hasSizeBetween(0, 1);
         if (tracker.processedSeqNo.size() == 1) {
             assertThat(tracker.processedSeqNo.keys().iterator().next().value).isEqualTo(tracker.processedCheckpoint.get() / BIT_SET_SIZE);
         }

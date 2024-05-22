@@ -24,11 +24,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.index.engine.Engine.Operation.Origin.PRIMARY;
 import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -58,7 +55,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.IntSupplier;
-import java.util.stream.Collectors;
 import java.util.zip.CRC32;
 
 import org.apache.lucene.document.Document;
@@ -283,8 +279,8 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         assertThat(result.sentOperations).isEqualTo(expectedOps);
         List<Translog.Operation> sortedShippedOps = shippedOps.stream()
             .sorted(Comparator.comparing(Translog.Operation::seqNo))
-            .collect(Collectors.toList());
-        assertThat(shippedOps.size()).isEqualTo(expectedOps);
+            .toList();
+        assertThat(shippedOps).hasSize(expectedOps);
         for (int i = 0; i < shippedOps.size(); i++) {
             assertThat(sortedShippedOps.get(i)).isEqualTo(operations.get(i + (int) startingSeqNo + initialNumberOfDocs));
         }
@@ -480,7 +476,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         SetOnce<Exception> sendFilesError = new SetOnce<>();
         CountDownLatch latch = new CountDownLatch(1);
         handler.sendFiles(store, metas.toArray(new StoreFileMetadata[0]), () -> 0,
-            new LatchedActionListener<>(ActionListener.wrap(r -> sendFilesError.set(null), e -> sendFilesError.set(e)), latch));
+            new LatchedActionListener<>(ActionListener.wrap(r -> sendFilesError.set(null), sendFilesError::set), latch));
         latch.await();
         assertThat(sendFilesError.get()).isInstanceOf(IOException.class);
         assertNotNull(SQLExceptions.unwrapCorruption(sendFilesError.get()));
@@ -556,6 +552,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         when(shard.isRelocatedPrimary()).thenReturn(true);
         when(shard.acquireSafeIndexCommit()).thenReturn(mock(Engine.IndexCommitRef.class));
         doAnswer(invocation -> {
+            //noinspection unchecked
             ((ActionListener<Releasable>)invocation.getArguments()[0]).onResponse(() -> {});
             return null;
         }).when(shard).acquirePrimaryOperationPermit(any(), anyString(), any());
@@ -713,8 +710,8 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         SetOnce<Exception> sendFilesError = new SetOnce<>();
         CountDownLatch sendFilesLatch = new CountDownLatch(1);
         handler.sendFiles(store, files.toArray(new StoreFileMetadata[0]), () -> 0,
-            new LatchedActionListener<>(ActionListener.wrap(r -> sendFilesError.set(null), e -> sendFilesError.set(e)), sendFilesLatch));
-        assertBusy(() -> assertThat(sentChunks.get(), equalTo(Math.min(totalChunks, maxConcurrentChunks))));
+            new LatchedActionListener<>(ActionListener.wrap(r -> sendFilesError.set(null), sendFilesError::set), sendFilesLatch));
+        assertBusy(() -> assertThat(sentChunks.get()).isEqualTo(Math.min(totalChunks, maxConcurrentChunks)));
         List<FileChunkResponse> failedChunks = randomSubsetOf(between(1, unrepliedChunks.size()), unrepliedChunks);
         CountDownLatch replyLatch = new CountDownLatch(failedChunks.size());
         failedChunks.forEach(c -> {
@@ -732,7 +729,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         });
         sendFilesLatch.await();
         assertThat(sendFilesError.get()).isExactlyInstanceOf(IllegalStateException.class);
-        assertThat(sendFilesError.get().getMessage(), containsString("test chunk exception"));
+        assertThat(sendFilesError.get().getMessage()).contains("test chunk exception");
         assertThat(sentChunks.get()).as("no more chunks should be sent").isEqualTo(Math.min(totalChunks, maxConcurrentChunks));
         store.close();
     }
@@ -745,6 +742,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         when(shard.isRelocatedPrimary()).thenReturn(false);
         doAnswer(invocation -> {
             freed.set(false);
+            //noinspection unchecked
             ((ActionListener<Releasable>)invocation.getArguments()[0]).onResponse(() -> freed.set(true));
             return null;
         }).when(shard).acquirePrimaryOperationPermit(any(), anyString(), any());
@@ -835,7 +833,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         final StepListener<RecoverySourceHandler.SendFileResult> phase1Listener = new StepListener<>();
         try {
             final CountDownLatch latch = new CountDownLatch(1);
-            handler.phase1(DirectoryReader.listCommits(dir).get(0),
+            handler.phase1(DirectoryReader.listCommits(dir).getFirst(),
                 0,
                 () -> 0,
                 new LatchedActionListener<>(phase1Listener, latch));

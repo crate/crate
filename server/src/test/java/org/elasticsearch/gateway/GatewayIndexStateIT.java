@@ -109,8 +109,8 @@ public class GatewayIndexStateIT extends IntegTestCase {
 
         ClusterStateResponse stateResponse = client().admin().cluster().state(new ClusterStateRequest()).get();
         assertThat(stateResponse.getState().metadata().index(tableName).getState()).isEqualTo(IndexMetadata.State.OPEN);
-        assertThat(stateResponse.getState().routingTable().index(tableName).shards().size()).isEqualTo(numPrimaries);
-        assertThat(stateResponse.getState().routingTable().index(tableName).shardsWithState(ShardRoutingState.STARTED).size()).isEqualTo(totalNumShards);
+        assertThat(stateResponse.getState().routingTable().index(tableName).shards()).hasSize(numPrimaries);
+        assertThat(stateResponse.getState().routingTable().index(tableName).shardsWithState(ShardRoutingState.STARTED)).hasSize(totalNumShards);
 
         logger.info("--> insert a simple document");
         execute("insert into test (id) values (1)");
@@ -148,8 +148,8 @@ public class GatewayIndexStateIT extends IntegTestCase {
 
         stateResponse = client().admin().cluster().state(new ClusterStateRequest()).get(REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS);
         assertThat(stateResponse.getState().metadata().index(tableName).getState()).isEqualTo(IndexMetadata.State.OPEN);
-        assertThat(stateResponse.getState().routingTable().index(tableName).shards().size()).isEqualTo(numPrimaries);
-        assertThat(stateResponse.getState().routingTable().index(tableName).shardsWithState(ShardRoutingState.STARTED).size()).isEqualTo(totalNumShards);
+        assertThat(stateResponse.getState().routingTable().index(tableName).shards()).hasSize(numPrimaries);
+        assertThat(stateResponse.getState().routingTable().index(tableName).shardsWithState(ShardRoutingState.STARTED)).hasSize(totalNumShards);
 
         logger.info("--> trying to get the indexed document on the first index");
         execute("select id from test where id = 1");
@@ -188,8 +188,8 @@ public class GatewayIndexStateIT extends IntegTestCase {
 
         stateResponse = client().admin().cluster().state(new ClusterStateRequest()).get();
         assertThat(stateResponse.getState().metadata().index(tableName).getState()).isEqualTo(IndexMetadata.State.OPEN);
-        assertThat(stateResponse.getState().routingTable().index(tableName).shards().size()).isEqualTo(numPrimaries);
-        assertThat(stateResponse.getState().routingTable().index(tableName).shardsWithState(ShardRoutingState.STARTED).size()).isEqualTo(totalNumShards);
+        assertThat(stateResponse.getState().routingTable().index(tableName).shards()).hasSize(numPrimaries);
+        assertThat(stateResponse.getState().routingTable().index(tableName).shardsWithState(ShardRoutingState.STARTED)).hasSize(totalNumShards);
 
         logger.info("--> trying to get the indexed document on the first round (before close and shutdown)");
         execute("select id from test where id = 1");

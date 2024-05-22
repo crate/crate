@@ -168,7 +168,7 @@ public class ReplicationOperationTests extends ESTestCase {
         assertThat(listener.isDone()).as("listener is not marked as done").isTrue();
         ShardInfo shardInfo = FutureUtils.get(listener).getShardInfo();
         assertThat(shardInfo.getFailed()).isEqualTo(reportedFailures.size());
-        assertThat(shardInfo.getFailures(), arrayWithSize(reportedFailures.size()));
+        assertThat(shardInfo.getFailures()).hasSize(reportedFailures.size());
         assertThat(shardInfo.getSuccessful()).isEqualTo(1 + expectedReplicas.size() - simulatedFailures.size());
         final List<ShardRouting> unassignedShards =
             indexShardRoutingTable.shardsWithState(ShardRoutingState.UNASSIGNED);
@@ -241,7 +241,7 @@ public class ReplicationOperationTests extends ESTestCase {
         op.execute();
         assertThat(request.processedOnPrimary.get()).as("request was not processed on primary").isEqualTo(true);
         assertThat(request.processedOnReplicas).isEqualTo(expectedReplicas);
-        assertThat(replicasProxy.failedReplicas.size()).isEqualTo(0);
+        assertThat(replicasProxy.failedReplicas).hasSize(0);
         assertThat(replicasProxy.markedAsStaleCopies).isEqualTo(staleAllocationIds);
         assertThat(request.runPostReplicationActionsOnPrimary.get()).as("post replication operations not run on primary").isEqualTo(true);
         ShardInfo shardInfo = FutureUtils.get(listener).getShardInfo();
@@ -538,7 +538,7 @@ public class ReplicationOperationTests extends ESTestCase {
         assertThat(primaryFailed.get()).isEqualTo(fatal);
         final ShardInfo shardInfo = FutureUtils.get(listener).getShardInfo();
         assertThat(shardInfo.getFailed()).isEqualTo(0);
-        assertThat(shardInfo.getFailures(), arrayWithSize(0));
+        assertThat(shardInfo.getFailures()).isEmpty();
         assertThat(shardInfo.getSuccessful()).isEqualTo(1 + getExpectedReplicas(shardId, state, trackedShards).size());
     }
 

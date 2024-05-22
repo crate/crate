@@ -19,9 +19,8 @@
 package org.elasticsearch.gateway;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.gateway.DanglingIndicesState.AUTO_IMPORT_DANGLING_INDICES_SETTING;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -41,7 +40,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.test.ESTestCase;
-import org.hamcrest.Matchers;
 
 public class DanglingIndicesStateTests extends ESTestCase {
 
@@ -126,16 +124,14 @@ public class DanglingIndicesStateTests extends ESTestCase {
             int numberOfChecks = randomIntBetween(1, 10);
             for (int i = 0; i < numberOfChecks; i++) {
                 Map<Index, IndexMetadata> newDanglingIndices = danglingState.findNewDanglingIndices(metadata);
-                assertThat(newDanglingIndices.size()).isEqualTo(1);
-                assertThat(newDanglingIndices.keySet(), Matchers.hasItems(dangledIndex.getIndex()));
-                assertThat(danglingState.getDanglingIndices().isEmpty()).isTrue();
+                assertThat(newDanglingIndices).containsOnlyKeys(dangledIndex.getIndex());
+                assertThat(danglingState.getDanglingIndices()).isEmpty();
             }
 
             for (int i = 0; i < numberOfChecks; i++) {
                 danglingState.findNewAndAddDanglingIndices(metadata);
 
-                assertThat(danglingState.getDanglingIndices().size()).isEqualTo(1);
-                assertThat(danglingState.getDanglingIndices().keySet(), Matchers.hasItems(dangledIndex.getIndex()));
+                assertThat(danglingState.getDanglingIndices()).containsOnlyKeys(dangledIndex.getIndex());
             }
 
             // simulate allocation to the metadata
@@ -146,8 +142,7 @@ public class DanglingIndicesStateTests extends ESTestCase {
                 Map<Index, IndexMetadata> newDanglingIndices = danglingState.findNewDanglingIndices(metadata);
                 assertThat(newDanglingIndices.isEmpty()).isTrue();
 
-                assertThat(danglingState.getDanglingIndices().size()).isEqualTo(1);
-                assertThat(danglingState.getDanglingIndices().keySet(), Matchers.hasItems(dangledIndex.getIndex()));
+                assertThat(danglingState.getDanglingIndices()).containsOnlyKeys(dangledIndex.getIndex());
             }
 
             danglingState.cleanupAllocatedDangledIndices(metadata);
@@ -166,7 +161,7 @@ public class DanglingIndicesStateTests extends ESTestCase {
 
             final IndexGraveyard graveyard = IndexGraveyard.builder().addTombstone(dangledIndex.getIndex()).build();
             final Metadata metadata = Metadata.builder().indexGraveyard(graveyard).build();
-            assertThat(danglingState.findNewDanglingIndices(metadata).size()).isEqualTo(0);
+            assertThat(danglingState.findNewDanglingIndices(metadata)).hasSize(0);
         }
     }
 

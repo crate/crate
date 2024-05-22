@@ -27,9 +27,7 @@ import static org.elasticsearch.cluster.routing.ShardRoutingState.STARTED;
 import static org.elasticsearch.cluster.routing.ShardRoutingState.UNASSIGNED;
 import static org.elasticsearch.cluster.routing.UnassignedInfo.INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING;
 import static org.elasticsearch.test.VersionUtils.randomVersion;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -110,15 +108,15 @@ public class NodeVersionAllocationDeciderTests extends ESAllocationTestCase {
         ClusterState clusterState = ClusterState.builder(org.elasticsearch.cluster.ClusterName.CLUSTER_NAME_SETTING
                                                              .getDefault(Settings.EMPTY)).metadata(metadata).routingTable(initialRoutingTable).build();
 
-        assertThat(clusterState.routingTable().index("test").shards().size()).isEqualTo(5);
+        assertThat(clusterState.routingTable().index("test").shards()).hasSize(5);
         for (int i = 0; i < clusterState.routingTable().index("test").shards().size(); i++) {
-            assertThat(clusterState.routingTable().index("test").shard(i).shards().size()).isEqualTo(3);
+            assertThat(clusterState.routingTable().index("test").shard(i).shards()).hasSize(3);
             assertThat(clusterState.routingTable().index("test").shard(i).shards().get(0).state()).isEqualTo(UNASSIGNED);
             assertThat(clusterState.routingTable().index("test").shard(i).shards().get(1).state()).isEqualTo(UNASSIGNED);
             assertThat(clusterState.routingTable().index("test").shard(i).shards().get(2).state()).isEqualTo(UNASSIGNED);
-            assertThat(clusterState.routingTable().index("test").shard(i).shards().get(0).currentNodeId(), nullValue());
-            assertThat(clusterState.routingTable().index("test").shard(i).shards().get(1).currentNodeId(), nullValue());
-            assertThat(clusterState.routingTable().index("test").shard(i).shards().get(2).currentNodeId(), nullValue());
+            assertThat(clusterState.routingTable().index("test").shard(i).shards().get(0).currentNodeId()).isNull();
+            assertThat(clusterState.routingTable().index("test").shard(i).shards().get(1).currentNodeId()).isNull();
+            assertThat(clusterState.routingTable().index("test").shard(i).shards().get(2).currentNodeId()).isNull();
         }
 
         logger.info("start two nodes and fully start the shards");
@@ -127,28 +125,28 @@ public class NodeVersionAllocationDeciderTests extends ESAllocationTestCase {
         clusterState = strategy.reroute(clusterState, "reroute");
 
         for (int i = 0; i < clusterState.routingTable().index("test").shards().size(); i++) {
-            assertThat(clusterState.routingTable().index("test").shard(i).shards().size()).isEqualTo(3);
+            assertThat(clusterState.routingTable().index("test").shard(i).shards()).hasSize(3);
             assertThat(clusterState.routingTable().index("test").shard(i).primaryShard().state()).isEqualTo(INITIALIZING);
-            assertThat(clusterState.routingTable().index("test").shard(i).replicaShardsWithState(UNASSIGNED).size()).isEqualTo(2);
+            assertThat(clusterState.routingTable().index("test").shard(i).replicaShardsWithState(UNASSIGNED)).hasSize(2);
 
         }
 
         logger.info("start all the primary shards, replicas will start initializing");
         clusterState = startInitializingShardsAndReroute(strategy, clusterState);
         for (int i = 0; i < clusterState.routingTable().index("test").shards().size(); i++) {
-            assertThat(clusterState.routingTable().index("test").shard(i).shards().size()).isEqualTo(3);
+            assertThat(clusterState.routingTable().index("test").shard(i).shards()).hasSize(3);
             assertThat(clusterState.routingTable().index("test").shard(i).primaryShard().state()).isEqualTo(STARTED);
-            assertThat(clusterState.routingTable().index("test").shard(i).replicaShardsWithState(INITIALIZING).size()).isEqualTo(1);
-            assertThat(clusterState.routingTable().index("test").shard(i).replicaShardsWithState(UNASSIGNED).size()).isEqualTo(1);
+            assertThat(clusterState.routingTable().index("test").shard(i).replicaShardsWithState(INITIALIZING)).hasSize(1);
+            assertThat(clusterState.routingTable().index("test").shard(i).replicaShardsWithState(UNASSIGNED)).hasSize(1);
         }
 
         clusterState = startInitializingShardsAndReroute(strategy, clusterState);
 
         for (int i = 0; i < clusterState.routingTable().index("test").shards().size(); i++) {
-            assertThat(clusterState.routingTable().index("test").shard(i).shards().size()).isEqualTo(3);
+            assertThat(clusterState.routingTable().index("test").shard(i).shards()).hasSize(3);
             assertThat(clusterState.routingTable().index("test").shard(i).primaryShard().state()).isEqualTo(STARTED);
-            assertThat(clusterState.routingTable().index("test").shard(i).replicaShardsWithState(STARTED).size()).isEqualTo(1);
-            assertThat(clusterState.routingTable().index("test").shard(i).replicaShardsWithState(UNASSIGNED).size()).isEqualTo(1);
+            assertThat(clusterState.routingTable().index("test").shard(i).replicaShardsWithState(STARTED)).hasSize(1);
+            assertThat(clusterState.routingTable().index("test").shard(i).replicaShardsWithState(UNASSIGNED)).hasSize(1);
         }
 
         clusterState = ClusterState.builder(clusterState).nodes(DiscoveryNodes.builder(clusterState.nodes())
@@ -157,10 +155,10 @@ public class NodeVersionAllocationDeciderTests extends ESAllocationTestCase {
         clusterState = strategy.reroute(clusterState, "reroute");
 
         for (int i = 0; i < clusterState.routingTable().index("test").shards().size(); i++) {
-            assertThat(clusterState.routingTable().index("test").shard(i).shards().size()).isEqualTo(3);
+            assertThat(clusterState.routingTable().index("test").shard(i).shards()).hasSize(3);
             assertThat(clusterState.routingTable().index("test").shard(i).primaryShard().state()).isEqualTo(STARTED);
-            assertThat(clusterState.routingTable().index("test").shard(i).replicaShardsWithState(STARTED).size()).isEqualTo(1);
-            assertThat(clusterState.routingTable().index("test").shard(i).replicaShardsWithState(UNASSIGNED).size()).isEqualTo(1);
+            assertThat(clusterState.routingTable().index("test").shard(i).replicaShardsWithState(STARTED)).hasSize(1);
+            assertThat(clusterState.routingTable().index("test").shard(i).replicaShardsWithState(UNASSIGNED)).hasSize(1);
         }
 
 
@@ -170,18 +168,18 @@ public class NodeVersionAllocationDeciderTests extends ESAllocationTestCase {
         clusterState = strategy.reroute(clusterState, "reroute");
 
         for (int i = 0; i < clusterState.routingTable().index("test").shards().size(); i++) {
-            assertThat(clusterState.routingTable().index("test").shard(i).shards().size()).isEqualTo(3);
+            assertThat(clusterState.routingTable().index("test").shard(i).shards()).hasSize(3);
             assertThat(clusterState.routingTable().index("test").shard(i).primaryShard().state()).isEqualTo(STARTED);
-            assertThat(clusterState.routingTable().index("test").shard(i).replicaShardsWithState(STARTED).size()).isEqualTo(1);
-            assertThat(clusterState.routingTable().index("test").shard(i).replicaShardsWithState(INITIALIZING).size()).isEqualTo(1);
+            assertThat(clusterState.routingTable().index("test").shard(i).replicaShardsWithState(STARTED)).hasSize(1);
+            assertThat(clusterState.routingTable().index("test").shard(i).replicaShardsWithState(INITIALIZING)).hasSize(1);
         }
 
         clusterState = startInitializingShardsAndReroute(strategy, clusterState);
 
         for (int i = 0; i < clusterState.routingTable().index("test").shards().size(); i++) {
-            assertThat(clusterState.routingTable().index("test").shard(i).shards().size()).isEqualTo(3);
+            assertThat(clusterState.routingTable().index("test").shard(i).shards()).hasSize(3);
             assertThat(clusterState.routingTable().index("test").shard(i).primaryShard().state()).isEqualTo(STARTED);
-            assertThat(clusterState.routingTable().index("test").shard(i).replicaShardsWithState(STARTED).size()).isEqualTo(2);
+            assertThat(clusterState.routingTable().index("test").shard(i).replicaShardsWithState(STARTED)).hasSize(2);
         }
     }
 
@@ -212,7 +210,7 @@ public class NodeVersionAllocationDeciderTests extends ESAllocationTestCase {
 
         ClusterState clusterState = ClusterState.builder(org.elasticsearch.cluster.ClusterName.CLUSTER_NAME_SETTING
                                                              .getDefault(Settings.EMPTY)).metadata(metadata).routingTable(routingTable).build();
-        assertThat(routingTable.shardsWithState(UNASSIGNED).size()).isEqualTo(routingTable.allShards().size());
+        assertThat(routingTable.shardsWithState(UNASSIGNED)).hasSize(routingTable.allShards().size());
         List<DiscoveryNode> nodes = new ArrayList<>();
         int nodeIdx = 0;
         int iters = scaledRandomIntBetween(10, 100);
@@ -262,15 +260,15 @@ public class NodeVersionAllocationDeciderTests extends ESAllocationTestCase {
         ClusterState clusterState = ClusterState.builder(org.elasticsearch.cluster.ClusterName.CLUSTER_NAME_SETTING
                                                              .getDefault(Settings.EMPTY)).metadata(metadata).routingTable(routingTable).build();
 
-        assertThat(clusterState.routingTable().index("test").shards().size()).isEqualTo(5);
+        assertThat(clusterState.routingTable().index("test").shards()).hasSize(5);
         for (int i = 0; i < clusterState.routingTable().index("test").shards().size(); i++) {
-            assertThat(clusterState.routingTable().index("test").shard(i).shards().size()).isEqualTo(3);
+            assertThat(clusterState.routingTable().index("test").shard(i).shards()).hasSize(3);
             assertThat(clusterState.routingTable().index("test").shard(i).shards().get(0).state()).isEqualTo(UNASSIGNED);
             assertThat(clusterState.routingTable().index("test").shard(i).shards().get(1).state()).isEqualTo(UNASSIGNED);
             assertThat(clusterState.routingTable().index("test").shard(i).shards().get(2).state()).isEqualTo(UNASSIGNED);
-            assertThat(clusterState.routingTable().index("test").shard(i).shards().get(0).currentNodeId(), nullValue());
-            assertThat(clusterState.routingTable().index("test").shard(i).shards().get(1).currentNodeId(), nullValue());
-            assertThat(clusterState.routingTable().index("test").shard(i).shards().get(2).currentNodeId(), nullValue());
+            assertThat(clusterState.routingTable().index("test").shard(i).shards().get(0).currentNodeId()).isNull();
+            assertThat(clusterState.routingTable().index("test").shard(i).shards().get(1).currentNodeId()).isNull();
+            assertThat(clusterState.routingTable().index("test").shard(i).shards().get(2).currentNodeId()).isNull();
         }
         clusterState = ClusterState.builder(clusterState).nodes(DiscoveryNodes.builder()
                                                                     .add(newNode("old0", VersionUtils.getPreviousVersion()))
@@ -299,7 +297,7 @@ public class NodeVersionAllocationDeciderTests extends ESAllocationTestCase {
 
         clusterState = stabilize(clusterState, service);
         for (int i = 0; i < clusterState.routingTable().index("test").shards().size(); i++) {
-            assertThat(clusterState.routingTable().index("test").shard(i).shards().size()).isEqualTo(3);
+            assertThat(clusterState.routingTable().index("test").shard(i).shards()).hasSize(3);
             assertThat(clusterState.routingTable().index("test").shard(i).shards().get(0).state()).isEqualTo(STARTED);
             assertThat(clusterState.routingTable().index("test").shard(i).shards().get(1).state()).isEqualTo(STARTED);
             assertThat(clusterState.routingTable().index("test").shard(i).shards().get(2).state()).isEqualTo(STARTED);
@@ -358,8 +356,8 @@ public class NodeVersionAllocationDeciderTests extends ESAllocationTestCase {
             EmptySnapshotsInfoService.INSTANCE);
         state = strategy.reroute(state, new AllocationCommands(), true, false).getClusterState();
         // the two indices must stay as is, the replicas cannot move to oldNode2 because versions don't match
-        assertThat(state.routingTable().index(shard2.getIndex()).shardsWithState(ShardRoutingState.RELOCATING).size()).isEqualTo(0);
-        assertThat(state.routingTable().index(shard1.getIndex()).shardsWithState(ShardRoutingState.RELOCATING).size()).isEqualTo(0);
+        assertThat(state.routingTable().index(shard2.getIndex()).shardsWithState(ShardRoutingState.RELOCATING)).hasSize(0);
+        assertThat(state.routingTable().index(shard1.getIndex()).shardsWithState(ShardRoutingState.RELOCATING)).hasSize(0);
     }
 
     @Test
@@ -610,7 +608,7 @@ public class NodeVersionAllocationDeciderTests extends ESAllocationTestCase {
             .routingTable(routingTable)
             .nodes(DiscoveryNodes.builder().add(oldNode1).add(newNode2)).build();
         state = stabilize(state, strategy);
-        assertThat(state.routingTable().index(shard1.getIndex()).shardsWithState(STARTED).size()).isEqualTo(2);
+        assertThat(state.routingTable().index(shard1.getIndex()).shardsWithState(STARTED)).hasSize(2);
 
 
         logger.trace("Downgrade 2nd node");
@@ -618,6 +616,6 @@ public class NodeVersionAllocationDeciderTests extends ESAllocationTestCase {
             .nodes(DiscoveryNodes.builder().add(oldNode1).add(oldNode2))
             .build();
         state = stabilize(state, strategy);
-        assertThat(state.routingTable().index(shard1.getIndex()).shardsWithState(STARTED).size()).isEqualTo(2);
+        assertThat(state.routingTable().index(shard1.getIndex()).shardsWithState(STARTED)).hasSize(2);
     }
 }

@@ -77,7 +77,7 @@ public class TypeSignatureParserTest extends ESTestCase {
         var signature = TypeSignature.parse("array(object(text, array(integer)))");
         assertThat(signature.getBaseTypeName()).isEqualTo(ArrayType.NAME);
 
-        var innerObjectTypeSignature = signature.getParameters().get(0);
+        var innerObjectTypeSignature = signature.getParameters().getFirst();
         assertThat(innerObjectTypeSignature.getBaseTypeName()).isEqualTo(ObjectType.NAME);
         assertThat(innerObjectTypeSignature.getParameters()).containsExactly(
                 new TypeSignature(DataTypes.STRING.getName()),
@@ -152,9 +152,9 @@ public class TypeSignatureParserTest extends ESTestCase {
     public void test_parse_nested_named_text_type_signature_with_length_limit() {
         var signature = TypeSignature.parse("object(name text(11))");
         assertThat(signature.getBaseTypeName()).isEqualTo("object");
-        assertThat(signature.getParameters().size()).isEqualTo(1);
+        assertThat(signature.getParameters()).hasSize(1);
 
-        var textTypeSignature = signature.getParameters().get(0);
+        var textTypeSignature = signature.getParameters().getFirst();
         assertThat(textTypeSignature.getBaseTypeName()).isEqualTo("text");
         assertThat(textTypeSignature.getParameters()).containsExactly(new IntegerLiteralTypeSignature(11));
     }
