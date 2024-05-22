@@ -110,8 +110,6 @@ public class MatchQuery {
 
     protected BooleanClause.Occur occur = BooleanClause.Occur.SHOULD;
 
-    protected boolean enablePositionIncrements = true;
-
     protected int phraseSlop = DEFAULT_PHRASE_SLOP;
 
     protected Fuzziness fuzziness = null;
@@ -139,20 +137,12 @@ public class MatchQuery {
         }
     }
 
-    public void setAnalyzer(Analyzer analyzer) {
-        this.analyzer = analyzer;
-    }
-
     public void setOccur(BooleanClause.Occur occur) {
         this.occur = occur;
     }
 
     public void setCommonTermsCutoff(Float cutoff) {
         this.commonTermsCutoff = cutoff;
-    }
-
-    public void setEnablePositionIncrements(boolean enablePositionIncrements) {
-        this.enablePositionIncrements = enablePositionIncrements;
     }
 
     public void setPhraseSlop(int phraseSlop) {
@@ -210,7 +200,7 @@ public class MatchQuery {
         }
 
         MatchQueryBuilder builder = new MatchQueryBuilder(analyzer, fieldType);
-        builder.setEnablePositionIncrements(this.enablePositionIncrements);
+        builder.setEnablePositionIncrements(true);
         builder.setAutoGenerateMultiTermSynonymsPhraseQuery(fieldType.hasPositions());
 
         Query query = null;

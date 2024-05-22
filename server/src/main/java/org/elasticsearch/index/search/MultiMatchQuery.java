@@ -144,10 +144,6 @@ public class MultiMatchQuery extends MatchQuery {
             return MultiMatchQuery.super.blendTermsQuery(terms, fieldType);
         }
 
-        public Query termQuery(MappedFieldType fieldType, BytesRef value) {
-            return MultiMatchQuery.this.termQuery(fieldType, value);
-        }
-
         public Query blendPhrase(PhraseQuery query, MappedFieldType type) {
             return MultiMatchQuery.super.blendPhraseQuery(query, type);
         }
@@ -223,16 +219,6 @@ public class MultiMatchQuery extends MatchQuery {
                 return super.blendTerm(term, fieldType);
             }
             return MultiMatchQuery.blendTerm(context, term.bytes(), commonTermsCutoff, tieBreaker, blendedFields);
-        }
-
-        @Override
-        public Query termQuery(MappedFieldType fieldType, BytesRef value) {
-            /*
-             * Use the string value of the term because we're reusing the
-             * portion of the query is usually after the analyzer has run on
-             * each term. We just skip that analyzer phase.
-             */
-            return blendTerm(new Term(fieldType.name(), value.utf8ToString()), fieldType);
         }
 
         @Override
