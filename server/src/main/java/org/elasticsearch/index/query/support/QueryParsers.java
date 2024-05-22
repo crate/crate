@@ -20,9 +20,9 @@
 package org.elasticsearch.index.query.support;
 
 import org.apache.lucene.search.MultiTermQuery;
-import org.jetbrains.annotations.Nullable;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.ParseField;
+import org.jetbrains.annotations.Nullable;
 
 public final class QueryParsers {
 
@@ -35,13 +35,6 @@ public final class QueryParsers {
 
     private QueryParsers() {
 
-    }
-
-    public static void setRewriteMethod(MultiTermQuery query, @Nullable MultiTermQuery.RewriteMethod rewriteMethod) {
-        if (rewriteMethod == null) {
-            return;
-        }
-        query.setRewriteMethod(rewriteMethod);
     }
 
     public static MultiTermQuery.RewriteMethod parseRewriteMethod(@Nullable String rewriteMethod, DeprecationHandler deprecationHandler) {

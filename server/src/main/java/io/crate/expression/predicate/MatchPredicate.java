@@ -44,6 +44,8 @@ import org.elasticsearch.index.mapper.GeoShapeFieldMapper;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.query.MultiMatchQueryType;
 import org.elasticsearch.index.query.QueryShardContext;
+import org.elasticsearch.index.search.MatchQuery;
+import org.elasticsearch.index.search.MultiMatchQuery;
 import org.jetbrains.annotations.Nullable;
 import org.locationtech.spatial4j.shape.Shape;
 
@@ -56,13 +58,13 @@ import io.crate.geo.GeoJSONUtils;
 import io.crate.lucene.FunctionToQuery;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.lucene.LuceneQueryBuilder.Context;
-import io.crate.lucene.match.MatchQueries;
+import io.crate.lucene.match.OptionParser;
+import io.crate.lucene.match.ParsedOptions;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
-import io.crate.server.xcontent.LoggingDeprecationHandler;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -151,7 +153,7 @@ public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
         }
         if (columnType.equals(DataTypes.STRING)) {
             try {
-                MultiMatchQueryType.parse(matchType, LoggingDeprecationHandler.INSTANCE);
+                MultiMatchQueryType.parse(matchType);
                 return matchType;
             } catch (ElasticsearchParseException e) {
                 throw new IllegalArgumentException(String.format(
@@ -184,10 +186,10 @@ public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
             "matchType must be literal";
 
         Symbol queryTerm = arguments.get(1);
-        if (!(queryTerm instanceof Input)) {
+        if (!(queryTerm instanceof Input<?> input)) {
             throw new IllegalArgumentException("queryTerm must be a literal");
         }
-        Object queryTermVal = ((Input) queryTerm).value();
+        Object queryTermVal = input.value();
         if (queryTermVal == null) {
             throw new IllegalArgumentException("cannot use NULL as query term in match predicate");
         }
@@ -293,7 +295,7 @@ public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
                 }
                 return null;
             });
-            return MatchQueries.multiMatch(
+            return multiMatch(
                 context.queryShardContext(),
                 matchType,
                 (Map) fields,
@@ -308,17 +310,35 @@ public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
                                           String queryString,
                                           String matchType,
                                           Map<String, Object> options) {
-        Query query = MatchQueries.singleMatch(
-            queryShardContext,
-            entry.getKey(),
-            queryString,
-            matchType,
-            options
-        );
+        MultiMatchQueryType type = getType(matchType);
+        ParsedOptions parsedOptions = OptionParser.parse(type, options);
+
+        MatchQuery matchQuery = new MatchQuery(queryShardContext, parsedOptions);
+        MatchQuery.Type matchQueryType = type.matchQueryType();
+        String fieldName = entry.getKey();
+        Query query = matchQuery.parse(matchQueryType, fieldName, queryString);
         Object boost = entry.getValue();
         if (boost instanceof Number number) {
             return new BoostQuery(query, number.floatValue());
         }
         return query;
+    }
+
+    private static Query multiMatch(QueryShardContext queryShardContext,
+                                    @Nullable String matchType,
+                                    Map<String, Float> fieldNames,
+                                    String queryString,
+                                    Map<String, Object> options) {
+        MultiMatchQueryType type = getType(matchType);
+        ParsedOptions parsedOptions = OptionParser.parse(type, options);
+        MultiMatchQuery multiMatchQuery = new MultiMatchQuery(queryShardContext, parsedOptions);
+        return multiMatchQuery.parse(type, fieldNames, queryString, parsedOptions.minimumShouldMatch());
+    }
+
+    private static MultiMatchQueryType getType(@Nullable String matchType) {
+        if (matchType == null) {
+            return MultiMatchQueryType.BEST_FIELDS;
+        }
+        return MultiMatchQueryType.parse(matchType);
     }
 }
