@@ -45,9 +45,18 @@ public class ParsedDocumentAssert extends AbstractAssert<ParsedDocumentAssert, P
         for (int i = 0; i < expectedFields.length; i++) {
             var field1 = expectedFields[i];
             var field2 = actualFields[i];
-            assertThat(field1.binaryValue()).isEqualTo(field2.binaryValue());
-            assertThat(field1.stringValue()).isEqualTo(field2.stringValue());
-            assertThat(field1.numericValue()).isEqualTo(field2.numericValue());
+            assertThat(field1.binaryValue()).as("field " + fieldName).isEqualTo(field2.binaryValue());
+            assertThat(field1.stringValue()).as("field " + fieldName).isEqualTo(field2.stringValue());
+            assertThat(field1.numericValue()).as("field " + fieldName).isEqualTo(field2.numericValue());
+        }
+    }
+
+    public void parsesTo(ParsedDocument expected) {
+        for (IndexableField f : expected.doc()) {
+            hasSameFieldsWithNameAs(expected, f.name());
+        }
+        for (IndexableField f : actual.doc()) {
+            assertThat(expected.doc().getField(f.name())).as(f.name()).isNotNull();
         }
     }
 }

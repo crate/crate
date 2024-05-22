@@ -55,6 +55,7 @@ import io.crate.common.collections.Sets;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SchemaUnknownException;
+import io.crate.execution.dml.TranslogIndexer;
 import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.fdw.ForeignTable;
@@ -325,6 +326,11 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
                 info.ident(),
                 "The relation " + info.ident().sqlFqn() + " doesn't support the operation");
         }
+    }
+
+    public TranslogIndexer getTranslogIndexer(RelationName ident) {
+        DocTableInfo ti = getTableInfo(ident);
+        return ti.getTranslogIndexer();
     }
 
     private SchemaInfo getSchemaInfo(RelationName ident) {

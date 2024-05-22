@@ -3777,7 +3777,7 @@ public class IndexShardTests extends IndexShardTestCase {
                         Translog.Snapshot snapshot = TestTranslog.newSnapshotFromOperations(operations);
                         assertThatThrownBy(() -> shard.runTranslogRecovery(shard.getEngine(), snapshot, Engine.Operation.Origin.LOCAL_RESET, () -> {}))
                             .isExactlyInstanceOf(MapperParsingException.class)
-                            .hasMessageContaining("failed to parse field [foo] of type [text]");
+                            .hasMessageContaining("Error parsing translog source");
                     } finally {
                         engineResetLatch.countDown();
                     }
