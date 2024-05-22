@@ -23,7 +23,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.closeTo;
 import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
@@ -67,22 +66,22 @@ public class BytesStreamsTests extends ESTestCase {
         BytesStreamOutput out = new BytesStreamOutput();
 
         // test empty stream to array
-        assertEquals(0, out.size());
-        assertEquals(0, out.bytes().length());
+        assertThat(out.size()).isEqualTo(0);
+        assertThat(out.bytes().length()).isEqualTo(0);
 
         out.close();
     }
 
     public void testSingleByte() throws Exception {
         BytesStreamOutput out = new BytesStreamOutput();
-        assertEquals(0, out.size());
+        assertThat(out.size()).isEqualTo(0);
 
         int expectedSize = 1;
         byte[] expectedData = randomizedByteArrayWithSize(expectedSize);
 
         // write single byte
         out.writeByte(expectedData[0]);
-        assertEquals(expectedSize, out.size());
+        assertThat(out.size()).isEqualTo(expectedSize);
         assertArrayEquals(expectedData, BytesReference.toBytes(out.bytes()));
 
         out.close();
@@ -99,7 +98,7 @@ public class BytesStreamsTests extends ESTestCase {
             out.writeByte(expectedData[i]);
         }
 
-        assertEquals(expectedSize, out.size());
+        assertThat(out.size()).isEqualTo(expectedSize);
         assertArrayEquals(expectedData, BytesReference.toBytes(out.bytes()));
 
         out.close();
@@ -121,14 +120,14 @@ public class BytesStreamsTests extends ESTestCase {
         int expectedSize = 0;
         byte[] expectedData = randomizedByteArrayWithSize(expectedSize);
         out.writeBytes(expectedData);
-        assertEquals(expectedSize, out.size());
+        assertThat(out.size()).isEqualTo(expectedSize);
         assertArrayEquals(expectedData, BytesReference.toBytes(out.bytes()));
 
         // bulk-write again with actual bytes
         expectedSize = 10;
         expectedData = randomizedByteArrayWithSize(expectedSize);
         out.writeBytes(expectedData);
-        assertEquals(expectedSize, out.size());
+        assertThat(out.size()).isEqualTo(expectedSize);
         assertArrayEquals(expectedData, BytesReference.toBytes(out.bytes()));
 
         out.close();
@@ -143,7 +142,7 @@ public class BytesStreamsTests extends ESTestCase {
         // write in bulk
         out.writeBytes(expectedData);
 
-        assertEquals(expectedSize, out.size());
+        assertThat(out.size()).isEqualTo(expectedSize);
         assertArrayEquals(expectedData, BytesReference.toBytes(out.bytes()));
 
         out.close();
@@ -158,11 +157,11 @@ public class BytesStreamsTests extends ESTestCase {
 
         // first create initial offset
         out.writeBytes(expectedData, 0, initialOffset);
-        assertEquals(initialOffset, out.size());
+        assertThat(out.size()).isEqualTo(initialOffset);
 
         // now write the rest - more than fits into the remaining first page
         out.writeBytes(expectedData, initialOffset, additionalLength);
-        assertEquals(expectedData.length, out.size());
+        assertThat(out.size()).isEqualTo(expectedData.length);
         assertArrayEquals(expectedData, BytesReference.toBytes(out.bytes()));
 
         out.close();
@@ -175,13 +174,13 @@ public class BytesStreamsTests extends ESTestCase {
         int additionalLength = PageCacheRecycler.BYTE_PAGE_SIZE * 2;
         byte[] expectedData = randomizedByteArrayWithSize(initialOffset + additionalLength);
         out.writeBytes(expectedData, 0, initialOffset);
-        assertEquals(initialOffset, out.size());
+        assertThat(out.size()).isEqualTo(initialOffset);
 
         // now write the rest - more than fits into the remaining page + a full page after
         // that,
         // ie. we cross over into a third
         out.writeBytes(expectedData, initialOffset, additionalLength);
-        assertEquals(expectedData.length, out.size());
+        assertThat(out.size()).isEqualTo(expectedData.length);
         assertArrayEquals(expectedData, BytesReference.toBytes(out.bytes()));
 
         out.close();
@@ -198,7 +197,7 @@ public class BytesStreamsTests extends ESTestCase {
             out.writeByte(expectedData[i]);
         }
 
-        assertEquals(expectedSize, out.size());
+        assertThat(out.size()).isEqualTo(expectedSize);
         assertArrayEquals(expectedData, BytesReference.toBytes(out.bytes()));
 
         out.close();
@@ -215,7 +214,7 @@ public class BytesStreamsTests extends ESTestCase {
             out.writeByte(expectedData[i]);
         }
 
-        assertEquals(expectedSize, out.size());
+        assertThat(out.size()).isEqualTo(expectedSize);
         assertArrayEquals(expectedData, BytesReference.toBytes(out.bytes()));
 
         out.close();
@@ -232,7 +231,7 @@ public class BytesStreamsTests extends ESTestCase {
             out.writeByte(expectedData[i]);
         }
 
-        assertEquals(expectedSize, out.size());
+        assertThat(out.size()).isEqualTo(expectedSize);
         assertArrayEquals(expectedData, BytesReference.toBytes(out.bytes()));
 
         out.close();
@@ -242,14 +241,14 @@ public class BytesStreamsTests extends ESTestCase {
         BytesStreamOutput out = new BytesStreamOutput();
 
         int position = 0;
-        assertEquals(position, out.position());
+        assertThat(out.position()).isEqualTo(position);
 
         out.seek(position += 10);
         out.seek(position += PageCacheRecycler.BYTE_PAGE_SIZE);
         out.seek(position += PageCacheRecycler.BYTE_PAGE_SIZE + 10);
         out.seek(position += PageCacheRecycler.BYTE_PAGE_SIZE * 2);
-        assertEquals(position, out.position());
-        assertEquals(position, BytesReference.toBytes(out.bytes()).length);
+        assertThat(out.position()).isEqualTo(position);
+        assertThat(BytesReference.toBytes(out.bytes()).length).isEqualTo(position);
 
         assertThatThrownBy(() -> out.seek(Integer.MAX_VALUE + 1L))
             .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -262,11 +261,11 @@ public class BytesStreamsTests extends ESTestCase {
         BytesStreamOutput out = new BytesStreamOutput();
 
         int position = 0;
-        assertEquals(position, out.position());
+        assertThat(out.position()).isEqualTo(position);
 
         int forward = 100;
         out.skip(forward);
-        assertEquals(position + forward, out.position());
+        assertThat(out.position()).isEqualTo(position + forward);
 
         assertThatThrownBy(() -> out.skip(Integer.MAX_VALUE - 50))
             .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -316,7 +315,7 @@ public class BytesStreamsTests extends ESTestCase {
         out.writeGenericValue(dtOut);
         final byte[] bytes = BytesReference.toBytes(out.bytes());
         StreamInput in = StreamInput.wrap(BytesReference.toBytes(out.bytes()));
-        assertEquals(in.available(), bytes.length);
+        assertThat(bytes.length).isEqualTo(in.available());
         assertThat(in.readBoolean()).isFalse();
         assertThat(in.readByte()).isEqualTo((byte)1);
         assertThat(in.readShort()).isEqualTo((short)-1);
@@ -341,12 +340,12 @@ public class BytesStreamsTests extends ESTestCase {
         assertThat(in.readOptionalBytesReference()).isEqualTo(new BytesArray("test"));
         assertNull(in.readOptionalDouble());
         assertThat(in.readOptionalDouble(), closeTo(1.2, 0.0001));
-        assertEquals(DateTimeZone.forID("CET"), in.readTimeZone());
-        assertEquals(DateTimeZone.getDefault(), in.readOptionalTimeZone());
+        assertThat(in.readTimeZone()).isEqualTo(DateTimeZone.forID("CET"));
+        assertThat(in.readOptionalTimeZone()).isEqualTo(DateTimeZone.getDefault());
         assertNull(in.readOptionalTimeZone());
         Object dt = in.readGenericValue();
         assertThat(dt).isEqualTo(dtOut);
-        assertEquals(0, in.available());
+        assertThat(in.available()).isEqualTo(0);
         assertThatThrownBy(() -> out.writeGenericValue(new Object() {
             @Override
             public String toString() {
@@ -368,10 +367,10 @@ public class BytesStreamsTests extends ESTestCase {
             byte[] bytes = BytesReference.toBytes(out.bytes());
 
             try (StreamInput in = new NamedWriteableAwareStreamInput(StreamInput.wrap(bytes), namedWriteableRegistry)) {
-                assertEquals(in.available(), bytes.length);
+                assertThat(bytes.length).isEqualTo(in.available());
                 BaseNamedWriteable namedWriteableOut = in.readNamedWriteable(BaseNamedWriteable.class);
-                assertEquals(namedWriteableIn, namedWriteableOut);
-                assertEquals(0, in.available());
+                assertThat(namedWriteableOut).isEqualTo(namedWriteableIn);
+                assertThat(in.available()).isEqualTo(0);
             }
         }
     }
@@ -389,8 +388,8 @@ public class BytesStreamsTests extends ESTestCase {
         try (BytesStreamOutput out = new BytesStreamOutput()) {
             out.writeNamedWriteableList(expected);
             try (StreamInput in = new NamedWriteableAwareStreamInput(out.bytes().streamInput(), namedWriteableRegistry)) {
-                assertEquals(expected, in.readNamedWriteableList(BaseNamedWriteable.class));
-                assertEquals(0, in.available());
+                assertThat(in.readNamedWriteableList(BaseNamedWriteable.class)).isEqualTo(expected);
+                assertThat(in.available()).isEqualTo(0);
             }
         }
     }
@@ -415,7 +414,7 @@ public class BytesStreamsTests extends ESTestCase {
             out.writeNamedWriteable(namedWriteableIn);
             byte[] bytes = BytesReference.toBytes(out.bytes());
             try (StreamInput in = new NamedWriteableAwareStreamInput(StreamInput.wrap(bytes), namedWriteableRegistry)) {
-                assertEquals(in.available(), bytes.length);
+                assertThat(bytes.length).isEqualTo(in.available());
                 assertThatThrownBy(() -> in.readNamedWriteable(BaseNamedWriteable.class))
                      .isExactlyInstanceOf(IOException.class)
                      .hasMessageEndingWith("] returned null which is not allowed and probably means it screwed up the stream.");
@@ -448,7 +447,7 @@ public class BytesStreamsTests extends ESTestCase {
             out.writeNamedWriteable(namedWriteableIn);
             byte[] bytes = BytesReference.toBytes(out.bytes());
             try (StreamInput in = new NamedWriteableAwareStreamInput(StreamInput.wrap(bytes), namedWriteableRegistry)) {
-                assertEquals(in.available(), bytes.length);
+                assertThat(bytes.length).isEqualTo(in.available());
                 assertThatThrownBy(() -> in.readNamedWriteable(BaseNamedWriteable.class))
                     .isExactlyInstanceOf(AssertionError.class)
                     .hasMessageEndingWith(" claims to have a different name [intentionally-broken] than it was read from [test-named-writeable].");
@@ -474,10 +473,10 @@ public class BytesStreamsTests extends ESTestCase {
         assertThat(loaded).hasSize(expected.size());
 
         for (int i = 0; i < expected.size(); ++i) {
-            assertEquals(expected.get(i).value, loaded.get(i).value);
+            assertThat(loaded.get(i).value).isEqualTo(expected.get(i).value);
         }
 
-        assertEquals(0, in.available());
+        assertThat(in.available()).isEqualTo(0);
 
         in.close();
         out.close();
@@ -563,11 +562,11 @@ public class BytesStreamsTests extends ESTestCase {
             assertThat(loadedList).hasSize(entry.getValue().size());
 
             for (int i = 0; i < loadedList.size(); ++i) {
-                assertEquals(entry.getValue().get(i), loadedList.get(i));
+                assertThat(loadedList.get(i)).isEqualTo(entry.getValue().get(i));
             }
         }
 
-        assertEquals(0, in.available());
+        assertThat(in.available()).isEqualTo(0);
 
         in.close();
         out.close();
@@ -633,7 +632,7 @@ public class BytesStreamsTests extends ESTestCase {
             out.writeGenericValue(geoPoint);
             StreamInput wrap = out.bytes().streamInput();
             GeoPoint point = (GeoPoint) wrap.readGenericValue();
-            assertEquals(point, geoPoint);
+            assertThat(geoPoint).isEqualTo(point);
         }
 
         try (BytesStreamOutput out = new BytesStreamOutput()) {
@@ -641,7 +640,7 @@ public class BytesStreamsTests extends ESTestCase {
             out.writeGeoPoint(geoPoint);
             StreamInput wrap = out.bytes().streamInput();
             GeoPoint point = wrap.readGeoPoint();
-            assertEquals(point, geoPoint);
+            assertThat(geoPoint).isEqualTo(point);
         }
     }
 
@@ -691,7 +690,7 @@ public class BytesStreamsTests extends ESTestCase {
             output.writeMapWithConsistentOrder(map);
             reverseMapOutput.writeMapWithConsistentOrder(reverseMap);
 
-            assertEquals(output.bytes(), reverseMapOutput.bytes());
+            assertThat(reverseMapOutput.bytes()).isEqualTo(output.bytes());
         }
     }
 
@@ -704,7 +703,7 @@ public class BytesStreamsTests extends ESTestCase {
             streamOut.writeMapWithConsistentOrder(streamOutMap);
             StreamInput in = StreamInput.wrap(BytesReference.toBytes(streamOut.bytes()));
             Map<String, Object> streamInMap = in.readMap();
-            assertEquals(streamOutMap, streamInMap);
+            assertThat(streamInMap).isEqualTo(streamOutMap);
         }
     }
 
@@ -736,7 +735,7 @@ public class BytesStreamsTests extends ESTestCase {
             try (StreamInput streamInput = output.bytes().streamInput()) {
                 for (int i = 0; i < numStrings; i++) {
                     String s = streamInput.readString();
-                    assertEquals(strings.get(i), s);
+                    assertThat(s).isEqualTo(strings.get(i));
                 }
             }
         }
@@ -747,13 +746,13 @@ public class BytesStreamsTests extends ESTestCase {
      */
     public void testWriteLargeSurrogateOnlyString() throws IOException {
         String deseretLetter = "\uD801\uDC00";
-        assertEquals(2, deseretLetter.length());
+        assertThat(deseretLetter.length()).isEqualTo(2);
         String largeString = IntStream.range(0, 2048).mapToObj(s -> deseretLetter).collect(Collectors.joining("")).trim();
-        assertEquals("expands to 4 bytes", 4, new BytesRef(deseretLetter).length);
+        assertThat(new BytesRef(deseretLetter).length).as("expands to 4 bytes").isEqualTo(4);
         try (BytesStreamOutput output = new BytesStreamOutput(0)) {
             output.writeString(largeString);
             try (StreamInput streamInput = output.bytes().streamInput()) {
-                assertEquals(largeString, streamInput.readString());
+                assertThat(streamInput.readString()).isEqualTo(largeString);
             }
         }
     }
@@ -772,7 +771,7 @@ public class BytesStreamsTests extends ESTestCase {
             try (StreamInput streamInput = output.bytes().streamInput()) {
                 int[] ints = streamInput.readIntArray();
                 for (int i = 0; i < 10; i ++) {
-                    assertEquals(i, ints[i]);
+                    assertThat(ints[i]).isEqualTo(i);
                 }
                 assertThatThrownBy(() -> streamInput.readIntArray())
                     .isExactlyInstanceOf(IllegalStateException.class);
@@ -794,7 +793,7 @@ public class BytesStreamsTests extends ESTestCase {
             try (StreamInput streamInput = output.bytes().streamInput()) {
                 int[] ints = streamInput.readIntArray();
                 for (int i = 0; i < 10; i ++) {
-                    assertEquals(i, ints[i]);
+                    assertThat(ints[i]).isEqualTo(i);
                 }
                 assertThatThrownBy(() -> streamInput.readIntArray())
                     .isExactlyInstanceOf(EOFException.class)
@@ -817,7 +816,7 @@ public class BytesStreamsTests extends ESTestCase {
             try (StreamInput streamInput = output.bytes().streamInput()) {
                 int[] ints = streamInput.readIntArray();
                 for (int i = 0; i < 10; i ++) {
-                    assertEquals(i, ints[i]);
+                    assertThat(ints[i]).isEqualTo(i);
                 }
                 assertThatThrownBy(() -> streamInput.readIntArray())
                     .isExactlyInstanceOf(NegativeArraySizeException.class)
@@ -831,7 +830,7 @@ public class BytesStreamsTests extends ESTestCase {
         BytesStreamOutput output = new BytesStreamOutput();
         output.writeVInt(value);
         StreamInput input = output.bytes().streamInput();
-        assertEquals(value, input.readVInt());
+        assertThat(input.readVInt()).isEqualTo(value);
     }
 
     public void testVLong() throws IOException {
@@ -841,7 +840,7 @@ public class BytesStreamsTests extends ESTestCase {
             BytesStreamOutput output = new BytesStreamOutput();
             output.writeVLongNoCheck(value); // Use NoCheck variant so we can write negative numbers
             StreamInput input = output.bytes().streamInput();
-            assertEquals(value, input.readVLong());
+            assertThat(input.readVLong()).isEqualTo(value);
         }
         if (value < 0) {
             // Write doesn't work for negative numbers
@@ -863,8 +862,8 @@ public class BytesStreamsTests extends ESTestCase {
         BytesStreamOutput output = new BytesStreamOutput();
         output.writeEnum(value);
         StreamInput input = output.bytes().streamInput();
-        assertEquals(value, input.readEnum(TestEnum.class));
-        assertEquals(0, input.available());
+        assertThat(input.readEnum(TestEnum.class)).isEqualTo(value);
+        assertThat(input.available()).isEqualTo(0);
     }
 
     public void testInvalidEnum() throws IOException {
@@ -874,19 +873,19 @@ public class BytesStreamsTests extends ESTestCase {
         output.writeVInt(randomNumber);
         StreamInput input = output.bytes().streamInput();
         if (validEnum) {
-            assertEquals(TestEnum.values()[randomNumber], input.readEnum(TestEnum.class));
+            assertThat(input.readEnum(TestEnum.class)).isEqualTo(TestEnum.values()[randomNumber]);
         } else {
             assertThatThrownBy(() -> input.readEnum(TestEnum.class))
                 .isExactlyInstanceOf(IOException.class)
                 .hasMessage("Unknown TestEnum ordinal [" + randomNumber + "]");
         }
-        assertEquals(0, input.available());
+        assertThat(input.available()).isEqualTo(0);
     }
 
     private static void assertEqualityAfterSerialize(TimeValue value, int expectedSize) throws IOException {
         BytesStreamOutput out = new BytesStreamOutput();
         out.writeTimeValue(value);
-        assertEquals(expectedSize, out.size());
+        assertThat(out.size()).isEqualTo(expectedSize);
 
         StreamInput in = out.bytes().streamInput();
         TimeValue inValue = in.readTimeValue();

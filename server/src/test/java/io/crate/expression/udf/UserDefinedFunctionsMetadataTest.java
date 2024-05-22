@@ -24,7 +24,6 @@ package io.crate.expression.udf;
 import static io.crate.expression.udf.UserDefinedFunctionMetadata.argumentTypesFrom;
 import static io.crate.expression.udf.UserDefinedFunctionMetadata.specificName;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 import java.util.List;
@@ -97,7 +96,7 @@ public class UserDefinedFunctionsMetadataTest extends ESTestCase {
             xContentRegistry(), DeprecationHandler.THROW_UNSUPPORTED_OPERATION, BytesReference.toBytes(BytesReference.bytes(builder)));
         parser.nextToken(); // start object
         UserDefinedFunctionsMetadata functions = UserDefinedFunctionsMetadata.fromXContent(parser);
-        assertEquals(DUMMY_UDF_METADATA, functions);
+        assertThat(functions).isEqualTo(DUMMY_UDF_METADATA);
     }
 
     @Test
@@ -114,7 +113,7 @@ public class UserDefinedFunctionsMetadataTest extends ESTestCase {
             xContentRegistry(), DeprecationHandler.THROW_UNSUPPORTED_OPERATION, BytesReference.toBytes(BytesReference.bytes(builder)));
         parser.nextToken(); // enter START_OBJECT
         UserDefinedFunctionsMetadata functions2 = UserDefinedFunctionsMetadata.fromXContent(parser);
-        assertEquals(functions, functions2);
+        assertThat(functions2).isEqualTo(functions);
     }
 
     @Test

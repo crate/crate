@@ -21,7 +21,7 @@
 
 package io.crate.integrationtests;
 
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.file.Paths;
 
@@ -63,9 +63,9 @@ public class ShardingUpsertIntegrationTest extends IntegTestCase {
             "copy contributors from ? with (bulk_size = 25)",
             new Object[]{ copyFilePath + "data_import.json"}
         );
-        assertEquals(150L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(150L);
         refresh();
         execute("select id, day_joined, name from contributors");
-        assertEquals(150L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(150L);
     }
 }

@@ -36,7 +36,6 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.startsWith;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
@@ -322,8 +321,7 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
                 allPermitsAction.new AsyncPrimaryAction(primaryRequest, allPermitFuture) {
                     @Override
                     void runWithPrimaryShardReference(final TransportReplicationAction.PrimaryShardReference reference) {
-                        assertEquals("All permits must be acquired",
-                            IndexShard.OPERATIONS_BLOCKED, reference.indexShard.getActiveOperationsCount());
+                        assertThat(reference.indexShard.getActiveOperationsCount()).as("All permits must be acquired").isEqualTo(IndexShard.OPERATIONS_BLOCKED);
                         assertSame(primary, reference.indexShard);
 
                         final ClusterState clusterState = clusterService.state();
@@ -458,9 +456,9 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
             );
             this.shardId = Objects.requireNonNull(shardId);
             this.primary = Objects.requireNonNull(primary);
-            assertEquals(shardId, primary.shardId());
+            assertThat(primary.shardId()).isEqualTo(shardId);
             this.replica = Objects.requireNonNull(replica);
-            assertEquals(shardId, replica.shardId());
+            assertThat(replica.shardId()).isEqualTo(shardId);
             this.executedOnPrimary = executedOnPrimary;
         }
 
@@ -485,8 +483,7 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
 
         @Override
         protected ReplicaResult shardOperationOnReplica(Request shardRequest, IndexShard shard) throws Exception {
-            assertEquals("Replica is always assigned to node 2 in this test", clusterService.state().nodes().get("_node2").getId(),
-                shard.routingEntry().currentNodeId());
+            assertThat(shard.routingEntry().currentNodeId()).as("Replica is always assigned to node 2 in this test").isEqualTo(clusterService.state().nodes().get("_node2").getId());
             executedOnReplica.set(true);
             // The TransportReplicationAction.getIndexShard() method is overridden for testing purpose but we double check here
             // that the permit has been acquired on the replica shard
@@ -585,13 +582,13 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
         @Override
         protected void shardOperationOnPrimary(Request shardRequest, IndexShard shard,
                 ActionListener<PrimaryResult<Request, Response>> listener) {
-            assertEquals("All permits must be acquired", IndexShard.OPERATIONS_BLOCKED, shard.getActiveOperationsCount());
+            assertThat(shard.getActiveOperationsCount()).as("All permits must be acquired").isEqualTo(IndexShard.OPERATIONS_BLOCKED);
             super.shardOperationOnPrimary(shardRequest, shard, listener);
         }
 
         @Override
         protected ReplicaResult shardOperationOnReplica(Request shardRequest, IndexShard shard) throws Exception {
-            assertEquals("All permits must be acquired", IndexShard.OPERATIONS_BLOCKED, shard.getActiveOperationsCount());
+            assertThat(shard.getActiveOperationsCount()).as("All permits must be acquired").isEqualTo(IndexShard.OPERATIONS_BLOCKED);
             return super.shardOperationOnReplica(shardRequest, shard);
         }
     }

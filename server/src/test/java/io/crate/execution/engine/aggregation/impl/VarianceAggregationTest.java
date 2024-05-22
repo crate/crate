@@ -21,8 +21,8 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 
@@ -86,42 +86,42 @@ public class VarianceAggregationTest extends AggregationTestCase {
     public void testDouble() throws Exception {
         Object result = executeAggregation(DataTypes.DOUBLE, new Object[][]{{1.0d}, {1.0d}, {1.0d}, {null}});
 
-        assertEquals(0.0d, result);
+        assertThat(result).isEqualTo(0.0d);
     }
 
     @Test
     public void testFloat() throws Exception {
         Object result = executeAggregation(DataTypes.FLOAT, new Object[][]{{0.7f}, {0.3f}, {0.7f}});
 
-        assertEquals(0.035555551317003165d, result);
+        assertThat(result).isEqualTo(0.035555551317003165d);
     }
 
     @Test
     public void testInteger() throws Exception {
         Object result = executeAggregation(DataTypes.INTEGER, new Object[][]{{7}, {3}});
 
-        assertEquals(4d, result);
+        assertThat(result).isEqualTo(4d);
     }
 
     @Test
     public void testLong() throws Exception {
         Object result = executeAggregation(DataTypes.LONG, new Object[][]{{7L}, {3L}});
 
-        assertEquals(4d, result);
+        assertThat(result).isEqualTo(4d);
     }
 
     @Test
     public void testShort() throws Exception {
         Object result = executeAggregation(DataTypes.SHORT, new Object[][]{{(short) 7}, {(short) 3}});
 
-        assertEquals(4d, result);
+        assertThat(result).isEqualTo(4d);
     }
 
     @Test
     public void test_variance_with_byte_argument_type() throws Exception {
         Object result = executeAggregation(DataTypes.BYTE, new Object[][]{{(byte) 1}, {(byte) 1}});
 
-        assertEquals(0d, result);
+        assertThat(result).isEqualTo(0d);
     }
 
     @Test

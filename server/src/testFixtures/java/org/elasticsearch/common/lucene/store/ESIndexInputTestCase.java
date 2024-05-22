@@ -20,8 +20,8 @@
  */
 package org.elasticsearch.common.lucene.store;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
@@ -91,11 +91,11 @@ public class ESIndexInputTestCase extends ESTestCase {
                     IndexInput slice = indexInput.slice("slice (" + readPos + ", " + len + ") of " + indexInput, readPos, len);
                     temp = randomReadAndSlice(slice, len);
                     // assert that position in the original input didn't change
-                    assertEquals(readPos, indexInput.getFilePointer());
+                    assertThat(indexInput.getFilePointer()).isEqualTo(readPos);
                     System.arraycopy(temp, 0, output, readPos, len);
                     readPos += len;
                     indexInput.seek(readPos);
-                    assertEquals(readPos, indexInput.getFilePointer());
+                    assertThat(indexInput.getFilePointer()).isEqualTo(readPos);
                     break;
                 case 4:
                     // Seek at a random position and read a single byte,
@@ -103,13 +103,13 @@ public class ESIndexInputTestCase extends ESTestCase {
                     final int lastReadPos = readPos;
                     readPos = randomIntBetween(0, length - 1);
                     indexInput.seek(readPos);
-                    assertEquals(readPos, indexInput.getFilePointer());
+                    assertThat(indexInput.getFilePointer()).isEqualTo(readPos);
                     final int bytesToRead = 1;
                     temp = randomReadAndSlice(indexInput, readPos + bytesToRead);
                     System.arraycopy(temp, readPos, output, readPos, bytesToRead);
                     readPos = lastReadPos;
                     indexInput.seek(readPos);
-                    assertEquals(readPos, indexInput.getFilePointer());
+                    assertThat(indexInput.getFilePointer()).isEqualTo(readPos);
                     break;
                 case 5:
                     // Read clone or slice concurrently
@@ -188,9 +188,9 @@ public class ESIndexInputTestCase extends ESTestCase {
                 default:
                     fail();
             }
-            assertEquals(readPos, indexInput.getFilePointer());
+            assertThat(indexInput.getFilePointer()).isEqualTo(readPos);
         }
-        assertEquals(length, indexInput.getFilePointer());
+        assertThat(indexInput.getFilePointer()).isEqualTo(length);
         return output;
     }
 

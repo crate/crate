@@ -28,7 +28,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.instanceOf;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
@@ -105,14 +104,14 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(collectPhase.projections()).hasSize(1);
         assertThat(collectPhase.projections().get(0)).isExactlyInstanceOf(GroupProjection.class);
         assertThat(collectPhase.outputTypes()).hasSize(2);
-        assertEquals(DataTypes.STRING, collectPhase.outputTypes().get(0));
-        assertEquals(CountAggregation.LongStateType.INSTANCE, collectPhase.outputTypes().get(1));
+        assertThat(collectPhase.outputTypes().get(0)).isEqualTo(DataTypes.STRING);
+        assertThat(collectPhase.outputTypes().get(1)).isEqualTo(CountAggregation.LongStateType.INSTANCE);
 
         MergePhase mergePhase = reducerMerge.mergePhase();
 
         assertThat(mergePhase.numUpstreams()).isEqualTo(2);
         assertThat(mergePhase.nodeIds()).hasSize(2);
-        assertEquals(mergePhase.inputTypes(), collectPhase.outputTypes());
+        assertThat(collectPhase.outputTypes()).isEqualTo(mergePhase.inputTypes());
         // for function evaluation and column-reordering there is always a EvalProjection
         assertThat(mergePhase.projections()).hasSize(2);
         assertThat(mergePhase.projections().get(1)).isExactlyInstanceOf(EvalProjection.class);
@@ -123,15 +122,15 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(inputColumn.index()).isEqualTo(1);
 
         assertThat(mergePhase.outputTypes()).hasSize(2);
-        assertEquals(DataTypes.LONG, mergePhase.outputTypes().get(0));
-        assertEquals(DataTypes.STRING, mergePhase.outputTypes().get(1));
+        assertThat(mergePhase.outputTypes().get(0)).isEqualTo(DataTypes.LONG);
+        assertThat(mergePhase.outputTypes().get(1)).isEqualTo(DataTypes.STRING);
 
         MergePhase localMerge = distributedGroupByMerge.mergePhase();
 
         assertThat(localMerge.numUpstreams()).isEqualTo(2);
         assertThat(localMerge.nodeIds()).hasSize(1);
         assertThat(localMerge.nodeIds().iterator().next()).isEqualTo(NODE_ID);
-        assertEquals(mergePhase.outputTypes(), localMerge.inputTypes());
+        assertThat(localMerge.inputTypes()).isEqualTo(mergePhase.outputTypes());
 
         assertThat(localMerge.projections(), empty());
     }

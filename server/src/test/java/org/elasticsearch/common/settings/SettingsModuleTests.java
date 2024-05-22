@@ -24,7 +24,6 @@ package org.elasticsearch.common.settings;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -92,7 +91,7 @@ public class SettingsModuleTests extends ModuleTestCase {
                 new SettingsModule(settings, Setting.floatSetting("some.custom.setting", 1.0f, Property.NodeScope));
                 fail();
             } catch (IllegalArgumentException ex) {
-                assertEquals("Failed to parse value [false] for setting [some.custom.setting]", ex.getMessage());
+                assertThat(ex.getMessage()).isEqualTo("Failed to parse value [false] for setting [some.custom.setting]");
             }
         }
     }

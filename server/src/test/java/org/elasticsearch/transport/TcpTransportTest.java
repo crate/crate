@@ -22,7 +22,6 @@ package org.elasticsearch.transport;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -49,19 +48,19 @@ public class TcpTransportTest extends ESTestCase {
     /** Test ipv4 host with a default port works */
     public void testParseV4DefaultPort() throws Exception {
         TransportAddress[] addresses = TcpTransport.parse("127.0.0.1", 1234);
-        assertEquals(1, addresses.length);
+        assertThat(addresses.length).isEqualTo(1);
 
-        assertEquals("127.0.0.1", addresses[0].getAddress());
-        assertEquals(1234, addresses[0].getPort());
+        assertThat(addresses[0].getAddress()).isEqualTo("127.0.0.1");
+        assertThat(addresses[0].getPort()).isEqualTo(1234);
     }
 
     /** Test ipv4 host with port works */
     public void testParseV4WithPort() throws Exception {
         TransportAddress[] addresses = TcpTransport.parse("127.0.0.1:2345", 1234);
-        assertEquals(1, addresses.length);
+        assertThat(addresses.length).isEqualTo(1);
 
-        assertEquals("127.0.0.1", addresses[0].getAddress());
-        assertEquals(2345, addresses[0].getPort());
+        assertThat(addresses[0].getAddress()).isEqualTo("127.0.0.1");
+        assertThat(addresses[0].getPort()).isEqualTo(2345);
     }
 
     /** Test unbracketed ipv6 hosts in configuration fail. Leave no ambiguity */
@@ -77,19 +76,19 @@ public class TcpTransportTest extends ESTestCase {
     /** Test ipv6 host with a default port works */
     public void testParseV6DefaultPort() throws Exception {
         TransportAddress[] addresses = TcpTransport.parse("[::1]", 1234);
-        assertEquals(1, addresses.length);
+        assertThat(addresses.length).isEqualTo(1);
 
-        assertEquals("::1", addresses[0].getAddress());
-        assertEquals(1234, addresses[0].getPort());
+        assertThat(addresses[0].getAddress()).isEqualTo("::1");
+        assertThat(addresses[0].getPort()).isEqualTo(1234);
     }
 
     /** Test ipv6 host with port works */
     public void testParseV6WithPort() throws Exception {
         TransportAddress[] addresses = TcpTransport.parse("[::1]:2345", 1234);
-        assertEquals(1, addresses.length);
+        assertThat(addresses.length).isEqualTo(1);
 
-        assertEquals("::1", addresses[0].getAddress());
-        assertEquals(2345, addresses[0].getPort());
+        assertThat(addresses[0].getAddress()).isEqualTo("::1");
+        assertThat(addresses[0].getPort()).isEqualTo(2345);
     }
 
     public void testRejectsPortRanges() {
@@ -142,7 +141,7 @@ public class TcpTransportTest extends ESTestCase {
             String expected = "SSL/TLS request received but SSL/TLS is not enabled on this node, got (16,3,"
                 + Integer.toHexString(byte1 & 0xFF) + ","
                 + Integer.toHexString(byte2 & 0xFF) + ")";
-            assertEquals(expected, ex.getMessage());
+            assertThat(ex.getMessage()).isEqualTo(expected);
         }
     }
 

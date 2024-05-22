@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
@@ -44,7 +43,7 @@ public class StaticInformationSchemaQueryTest extends IntegTestCase {
     @Test
     public void testSelectZeroLimit() throws Exception {
         execute("select * from information_schema.columns limit 0");
-        assertEquals(0L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(0L);
     }
 
     @Test
@@ -58,70 +57,70 @@ public class StaticInformationSchemaQueryTest extends IntegTestCase {
     @Test
     public void testGroupByOnInformationSchema() throws Exception {
         execute("select count(*) from information_schema.columns where table_schema = ? group by table_name order by count(*) desc", new Object[]{sqlExecutor.getCurrentSchema()});
-        assertEquals(3L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(3L);
 
         execute("select count(*) from information_schema.columns where table_schema = ? group by column_name order by count(*) desc", new Object[]{sqlExecutor.getCurrentSchema()});
-        assertEquals(2L, response.rowCount());
-        assertEquals(3L, response.rows()[0][0]);
+        assertThat(response.rowCount()).isEqualTo(2L);
+        assertThat(response.rows()[0][0]).isEqualTo(3L);
     }
 
     @Test
     public void testSelectStar() throws Exception {
         execute("select * from information_schema.tables where table_schema = ?", new Object[]{sqlExecutor.getCurrentSchema()});
-        assertEquals(3L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(3L);
     }
 
     @Test
     public void testLike() throws Exception {
         execute("select * from information_schema.tables where table_schema = ? and table_name like 't%'", new Object[]{sqlExecutor.getCurrentSchema()});
-        assertEquals(3L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(3L);
     }
 
     @Test
     public void testIsNull() throws Exception {
         execute("select * from information_schema.tables where table_name is null");
-        assertEquals(0L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(0L);
     }
 
     @Test
     public void testIsNotNull() throws Exception {
         execute("select * from information_schema.tables where table_name is not null and table_schema = ?", new Object[]{sqlExecutor.getCurrentSchema()});
-        assertEquals(3L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(3L);
     }
 
     @Test
     public void testWhereAnd() throws Exception {
         execute("select table_name from information_schema.tables where table_name='t1' and " +
                 "number_of_shards > 0");
-        assertEquals(1L, response.rowCount());
-        assertEquals("t1", response.rows()[0][0]);
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows()[0][0]).isEqualTo("t1");
     }
 
     @Test
     public void testWhereAnd2() throws Exception {
         execute("select table_name from information_schema.tables where number_of_shards >= 7 and " +
                 "number_of_replicas != '8' order by table_name asc");
-        assertEquals(2L, response.rowCount());
-        assertEquals("t1", response.rows()[0][0]);
-        assertEquals("t2", response.rows()[1][0]);
+        assertThat(response.rowCount()).isEqualTo(2L);
+        assertThat(response.rows()[0][0]).isEqualTo("t1");
+        assertThat(response.rows()[1][0]).isEqualTo("t2");
     }
 
     @Test
     public void testWhereAnd3() throws Exception {
         execute("select table_name from information_schema.tables where table_name is not null and " +
                 "number_of_shards > 6 order by table_name asc");
-        assertEquals(2L, response.rowCount());
-        assertEquals("t1", response.rows()[0][0]);
-        assertEquals("t2", response.rows()[1][0]);
+        assertThat(response.rowCount()).isEqualTo(2L);
+        assertThat(response.rows()[0][0]).isEqualTo("t1");
+        assertThat(response.rows()[1][0]).isEqualTo("t2");
     }
 
     @Test
     public void testWhereOr() throws Exception {
         execute("select table_name from information_schema.tables where table_name='t1' or table_name='t3' " +
                 "order by table_name asc");
-        assertEquals(2L, response.rowCount());
-        assertEquals("t1", response.rows()[0][0]);
-        assertEquals("t3", response.rows()[1][0]);
+        assertThat(response.rowCount()).isEqualTo(2L);
+        assertThat(response.rows()[0][0]).isEqualTo("t1");
+        assertThat(response.rows()[1][0]).isEqualTo("t3");
     }
 
     @Test
@@ -129,24 +128,24 @@ public class StaticInformationSchemaQueryTest extends IntegTestCase {
         execute("select table_name from information_schema.tables where table_name='t1' or table_name='t3' " +
                 "or table_name='t2'" +
                 "order by table_name desc");
-        assertEquals(3L, response.rowCount());
-        assertEquals("t3", response.rows()[0][0]);
-        assertEquals("t2", response.rows()[1][0]);
-        assertEquals("t1", response.rows()[2][0]);
+        assertThat(response.rowCount()).isEqualTo(3L);
+        assertThat(response.rows()[0][0]).isEqualTo("t3");
+        assertThat(response.rows()[1][0]).isEqualTo("t2");
+        assertThat(response.rows()[2][0]).isEqualTo("t1");
     }
 
     @Test
     public void testWhereIn() throws Exception {
         execute("select table_name from information_schema.tables where table_name in ('t1', 't2') order by table_name asc");
-        assertEquals(2L, response.rowCount());
-        assertEquals("t1", response.rows()[0][0]);
-        assertEquals("t2", response.rows()[1][0]);
+        assertThat(response.rowCount()).isEqualTo(2L);
+        assertThat(response.rows()[0][0]).isEqualTo("t1");
+        assertThat(response.rows()[1][0]).isEqualTo("t2");
     }
 
     @Test
     public void testNotEqualsString() throws Exception {
         execute("select table_name from information_schema.tables where table_schema = ? and table_name != 't1'", new Object[]{sqlExecutor.getCurrentSchema()});
-        assertEquals(2L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(2L);
         assertThat(!response.rows()[0][0].equals("t1")).isTrue();
         assertThat(!response.rows()[1][0].equals("t1")).isTrue();
     }
@@ -154,7 +153,7 @@ public class StaticInformationSchemaQueryTest extends IntegTestCase {
     @Test
     public void testNotEqualsNumber() throws Exception {
         execute("select table_name, number_of_shards from information_schema.tables where table_schema = ? and number_of_shards != 7", new Object[]{sqlExecutor.getCurrentSchema()});
-        assertEquals(2L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(2L);
         assertThat((int) response.rows()[0][1] != 7).isTrue();
         assertThat((int) response.rows()[1][1] != 7).isTrue();
     }
@@ -162,48 +161,48 @@ public class StaticInformationSchemaQueryTest extends IntegTestCase {
     @Test
     public void testEqualsNumber() throws Exception {
         execute("select table_name from information_schema.tables where table_schema = ? and number_of_shards = 7", new Object[]{sqlExecutor.getCurrentSchema()});
-        assertEquals(1L, response.rowCount());
-        assertEquals("t1", response.rows()[0][0]);
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows()[0][0]).isEqualTo("t1");
     }
 
     @Test
     public void testEqualsString() throws Exception {
         execute("select table_name from information_schema.tables where table_name = 't1'");
-        assertEquals(1L, response.rowCount());
-        assertEquals("t1", response.rows()[0][0]);
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows()[0][0]).isEqualTo("t1");
     }
 
     @Test
     public void testGtNumber() throws Exception {
         execute("select table_name from information_schema.tables where number_of_shards > 7");
-        assertEquals(1L, response.rowCount());
-        assertEquals("t2", response.rows()[0][0]);
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows()[0][0]).isEqualTo("t2");
     }
 
     @Test
     public void testOrderByStringAndLimit() throws Exception {
         execute("select table_name, number_of_shards, number_of_replicas from information_schema.tables " +
                 " where table_schema = ? order by table_name desc limit 2", new Object[]{sqlExecutor.getCurrentSchema()});
-        assertEquals(2L, response.rowCount());
-        assertEquals("t3", response.rows()[0][0]);
-        assertEquals("t2", response.rows()[1][0]);
+        assertThat(response.rowCount()).isEqualTo(2L);
+        assertThat(response.rows()[0][0]).isEqualTo("t3");
+        assertThat(response.rows()[1][0]).isEqualTo("t2");
     }
 
     @Test
     public void testOrderByNumberAndLimit() throws Exception {
         execute("select table_name, number_of_shards, number_of_replicas from information_schema.tables " +
                 " order by number_of_shards desc nulls last limit 2");
-        assertEquals(2L, response.rowCount());
-        assertEquals(10, response.rows()[0][1]);
-        assertEquals("t2", response.rows()[0][0]);
-        assertEquals(7, response.rows()[1][1]);
-        assertEquals("t1", response.rows()[1][0]);
+        assertThat(response.rowCount()).isEqualTo(2L);
+        assertThat(response.rows()[0][1]).isEqualTo(10);
+        assertThat(response.rows()[0][0]).isEqualTo("t2");
+        assertThat(response.rows()[1][1]).isEqualTo(7);
+        assertThat(response.rows()[1][0]).isEqualTo("t1");
     }
 
     @Test
     public void testLimit1() throws Exception {
         execute("select * from information_schema.tables limit 1");
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
     }
 
     @Test

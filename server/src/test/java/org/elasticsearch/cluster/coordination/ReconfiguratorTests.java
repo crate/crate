@@ -23,7 +23,6 @@ import static java.util.Collections.emptySet;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.coordination.Reconfigurator.CLUSTER_AUTO_SHRINK_VOTING_CONFIGURATION;
-import static org.junit.Assert.assertEquals;
 
 import java.util.Arrays;
 import java.util.Comparator;
@@ -204,9 +203,8 @@ public class ReconfiguratorTests extends ESTestCase {
 
         final DiscoveryNode master = liveNodes.stream().filter(n -> n.getId().equals(masterId)).findFirst().get();
         final VotingConfiguration adaptedConfig = reconfigurator.reconfigure(liveNodes, retired, master, config);
-        assertEquals(new ParameterizedMessage("[liveNodes={}, retired={}, master={}, config={}, autoShrinkVotingConfiguration={}]",
-                liveNodes, retired, master, config, autoShrinkVotingConfiguration).getFormattedMessage(),
-            expectedConfig, adaptedConfig);
+        assertThat(adaptedConfig).as(new ParameterizedMessage("[liveNodes={}, retired={}, master={}, config={}, autoShrinkVotingConfiguration={}]",
+                liveNodes, retired, master, config, autoShrinkVotingConfiguration).getFormattedMessage()).isEqualTo(expectedConfig);
     }
 
     private Reconfigurator makeReconfigurator(Settings settings) {

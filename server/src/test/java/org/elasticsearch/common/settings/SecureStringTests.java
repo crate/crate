@@ -24,7 +24,6 @@ package org.elasticsearch.common.settings;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.fail;
 
@@ -101,7 +100,7 @@ public class SecureStringTests extends ESTestCase {
             if (pos >= expected.length) {
                 fail("Index " + i + " greated than or equal to array length " + expected.length);
             } else {
-                assertEquals(expected[pos++], (char) i);
+                assertThat((char) i).isEqualTo(expected[pos++]);
             }
         }
     }

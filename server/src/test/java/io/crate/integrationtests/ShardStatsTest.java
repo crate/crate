@@ -21,11 +21,10 @@
 
 package io.crate.integrationtests;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
@@ -39,7 +38,7 @@ public class ShardStatsTest extends IntegTestCase {
         execute("create table test (col1 int) clustered into 3 shards with (number_of_replicas=0)");
         ensureGreen();
         execute("select * from sys.shards limit 0");
-        assertEquals(0L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(0L);
     }
 
     @Test
@@ -48,8 +47,8 @@ public class ShardStatsTest extends IntegTestCase {
         ensureGreen();
 
         execute("select count(*) from sys.shards where table_name='test'");
-        assertEquals(1, response.rowCount());
-        assertEquals(3L, response.rows()[0][0]);
+        assertThat(response.rowCount()).isEqualTo(1);
+        assertThat(response.rows()[0][0]).isEqualTo(3L);
     }
 
     @Test
@@ -82,10 +81,10 @@ public class ShardStatsTest extends IntegTestCase {
         execute("select count(*), state, \"primary\" from sys.shards " +
                 "group by state, \"primary\" order by state desc");
         assertThat(response.rowCount(), greaterThanOrEqualTo(2L));
-        assertEquals(3, response.cols().length);
+        assertThat(response.cols().length).isEqualTo(3);
         assertThat((Long) response.rows()[0][0], greaterThanOrEqualTo(5L));
-        assertEquals("UNASSIGNED", response.rows()[0][1]);
-        assertEquals(false, response.rows()[0][2]);
+        assertThat(response.rows()[0][1]).isEqualTo("UNASSIGNED");
+        assertThat(response.rows()[0][2]).isEqualTo(false);
     }
 
     @Test

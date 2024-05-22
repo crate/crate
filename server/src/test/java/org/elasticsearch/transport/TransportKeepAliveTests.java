@@ -18,7 +18,7 @@
  */
 package org.elasticsearch.transport;
 
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
@@ -97,7 +97,7 @@ public class TransportKeepAliveTests extends ESTestCase {
             .setPingInterval(pingInterval)
             .build();
 
-        assertEquals(0, threadPool.scheduledTasks.size());
+        assertThat(threadPool.scheduledTasks.size()).isEqualTo(0);
 
         var channel1 = fakeChannel();
         var channel2 = fakeChannel();
@@ -105,20 +105,20 @@ public class TransportKeepAliveTests extends ESTestCase {
         channel2.markAccessed(threadPool.relativeTimeInMillis());
         keepAlive.registerNodeConnection(Arrays.asList(channel1, channel2), connectionProfile);
 
-        assertEquals(1, threadPool.scheduledTasks.size());
+        assertThat(threadPool.scheduledTasks.size()).isEqualTo(1);
         Tuple<TimeValue, Runnable> taskTuple = threadPool.scheduledTasks.poll();
-        assertEquals(pingInterval, taskTuple.v1());
+        assertThat(taskTuple.v1()).isEqualTo(pingInterval);
         Runnable keepAliveTask = taskTuple.v2();
-        assertEquals(0, threadPool.scheduledTasks.size());
+        assertThat(threadPool.scheduledTasks.size()).isEqualTo(0);
         keepAliveTask.run();
 
         verify(pingSender, times(1)).apply(same(channel1), eq(expectedPingMessage));
         verify(pingSender, times(1)).apply(same(channel2), eq(expectedPingMessage));
 
         // Test that the task has rescheduled itself
-        assertEquals(1, threadPool.scheduledTasks.size());
+        assertThat(threadPool.scheduledTasks.size()).isEqualTo(1);
         Tuple<TimeValue, Runnable> rescheduledTask = threadPool.scheduledTasks.poll();
-        assertEquals(pingInterval, rescheduledTask.v1());
+        assertThat(rescheduledTask.v1()).isEqualTo(pingInterval);
     }
 
     @Test
@@ -133,7 +133,7 @@ public class TransportKeepAliveTests extends ESTestCase {
             .setPingInterval(pingInterval2)
             .build();
 
-        assertEquals(0, threadPool.scheduledTasks.size());
+        assertThat(threadPool.scheduledTasks.size()).isEqualTo(0);
 
         var channel1 = fakeChannel();
         var channel2 = fakeChannel();
@@ -142,19 +142,19 @@ public class TransportKeepAliveTests extends ESTestCase {
         keepAlive.registerNodeConnection(Collections.singletonList(channel1), connectionProfile1);
         keepAlive.registerNodeConnection(Collections.singletonList(channel2), connectionProfile2);
 
-        assertEquals(2, threadPool.scheduledTasks.size());
+        assertThat(threadPool.scheduledTasks.size()).isEqualTo(2);
         Tuple<TimeValue, Runnable> taskTuple1 = threadPool.scheduledTasks.poll();
         Tuple<TimeValue, Runnable> taskTuple2 = threadPool.scheduledTasks.poll();
-        assertEquals(pingInterval1, taskTuple1.v1());
-        assertEquals(pingInterval2, taskTuple2.v1());
+        assertThat(taskTuple1.v1()).isEqualTo(pingInterval1);
+        assertThat(taskTuple2.v1()).isEqualTo(pingInterval2);
         Runnable keepAliveTask1 = taskTuple1.v2();
         Runnable keepAliveTask2 = taskTuple1.v2();
 
-        assertEquals(0, threadPool.scheduledTasks.size());
+        assertThat(threadPool.scheduledTasks.size()).isEqualTo(0);
         keepAliveTask1.run();
-        assertEquals(1, threadPool.scheduledTasks.size());
+        assertThat(threadPool.scheduledTasks.size()).isEqualTo(1);
         keepAliveTask2.run();
-        assertEquals(2, threadPool.scheduledTasks.size());
+        assertThat(threadPool.scheduledTasks.size()).isEqualTo(2);
     }
 
     @Test

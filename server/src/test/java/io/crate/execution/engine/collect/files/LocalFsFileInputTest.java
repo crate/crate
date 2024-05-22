@@ -23,7 +23,6 @@
 package io.crate.execution.engine.collect.files;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 import java.net.URI;
@@ -89,7 +88,7 @@ public class LocalFsFileInputTest extends ESTestCase {
                 .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
             var expected = e.getValue().stream()
                 .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
-            assertEquals(expected, actual);
+            assertThat(actual).isEqualTo(expected);
         }
     }
 

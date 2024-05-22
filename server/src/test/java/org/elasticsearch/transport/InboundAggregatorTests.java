@@ -20,7 +20,6 @@
 package org.elasticsearch.transport;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import java.io.IOException;
@@ -98,11 +97,11 @@ public class InboundAggregatorTests extends ESTestCase {
         assertThat(aggregated.getHeader().getRequestId()).isEqualTo(requestId);
         assertThat(aggregated.getHeader().getVersion()).isEqualTo(Version.CURRENT);
         for (ReleasableBytesReference reference : references) {
-            assertEquals(1, reference.refCount());
+            assertThat(reference.refCount()).isEqualTo(1);
         }
         aggregated.close();
         for (ReleasableBytesReference reference : references) {
-            assertEquals(0, reference.refCount());
+            assertThat(reference.refCount()).isEqualTo(0);
         }
     }
 
@@ -118,7 +117,7 @@ public class InboundAggregatorTests extends ESTestCase {
         final ReleasableBytesReference content = ReleasableBytesReference.wrap(bytes);
         aggregator.aggregate(content);
         content.close();
-        assertEquals(0, content.refCount());
+        assertThat(content.refCount()).isEqualTo(0);
 
         // Signal EOS
         InboundMessage aggregated = aggregator.finishAggregation();
@@ -146,7 +145,7 @@ public class InboundAggregatorTests extends ESTestCase {
         // Signal EOS
         InboundMessage aggregated1 = aggregator.finishAggregation();
 
-        assertEquals(0, content1.refCount());
+        assertThat(content1.refCount()).isEqualTo(0);
         assertThat(aggregated1).isNotNull();
         assertThat(aggregated1.isShortCircuit()).isTrue();
         assertThat(aggregated1.getException()).isExactlyInstanceOf(CircuitBreakingException.class);
@@ -165,7 +164,7 @@ public class InboundAggregatorTests extends ESTestCase {
         // Signal EOS
         InboundMessage aggregated2 = aggregator.finishAggregation();
 
-        assertEquals(1, content2.refCount());
+        assertThat(content2.refCount()).isEqualTo(1);
         assertThat(aggregated2).isNotNull();
         assertThat(aggregated2.isShortCircuit()).isFalse();
 
@@ -184,7 +183,7 @@ public class InboundAggregatorTests extends ESTestCase {
         // Signal EOS
         InboundMessage aggregated3 = aggregator.finishAggregation();
 
-        assertEquals(1, content3.refCount());
+        assertThat(content3.refCount()).isEqualTo(1);
         assertThat(aggregated3).isNotNull();
         assertThat(aggregated3.isShortCircuit()).isFalse();
     }
@@ -218,7 +217,7 @@ public class InboundAggregatorTests extends ESTestCase {
         aggregator.close();
 
         for (ReleasableBytesReference reference : references) {
-            assertEquals(0, reference.refCount());
+            assertThat(reference.refCount()).isEqualTo(0);
         }
     }
 
@@ -249,12 +248,12 @@ public class InboundAggregatorTests extends ESTestCase {
 
             assertThat(aggregated).isNotNull();
             assertThat(header.needsToReadVariableHeader()).isFalse();
-            assertEquals(actionName, header.getActionName());
+            assertThat(header.getActionName()).isEqualTo(actionName);
             if (unknownAction) {
-                assertEquals(0, content.refCount());
+                assertThat(content.refCount()).isEqualTo(0);
                 assertThat(aggregated.isShortCircuit()).isTrue();
             } else {
-                assertEquals(1, content.refCount());
+                assertThat(content.refCount()).isEqualTo(1);
                 assertThat(aggregated.isShortCircuit()).isFalse();
             }
         }

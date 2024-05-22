@@ -20,7 +20,6 @@
 package org.elasticsearch.transport;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
 import java.io.IOException;
@@ -52,10 +51,10 @@ public class TransportDecompressorTests extends ESTestCase {
 
             TransportDecompressor decompressor = new TransportDecompressor(PageCacheRecycler.NON_RECYCLING_INSTANCE);
             int bytesConsumed = decompressor.decompress(bytes);
-            assertEquals(bytes.length(), bytesConsumed);
+            assertThat(bytesConsumed).isEqualTo(bytes.length());
             assertThat(decompressor.isEOS()).isTrue();
             ReleasableBytesReference releasableBytesReference = decompressor.pollDecompressedPage();
-            assertEquals(randomByte, releasableBytesReference.get(0));
+            assertThat(releasableBytesReference.get(0)).isEqualTo(randomByte);
             releasableBytesReference.close();
 
         }
@@ -74,17 +73,17 @@ public class TransportDecompressorTests extends ESTestCase {
 
             TransportDecompressor decompressor = new TransportDecompressor(PageCacheRecycler.NON_RECYCLING_INSTANCE);
             int bytesConsumed = decompressor.decompress(bytes);
-            assertEquals(bytes.length(), bytesConsumed);
+            assertThat(bytesConsumed).isEqualTo(bytes.length());
             assertThat(decompressor.isEOS()).isTrue();
             ReleasableBytesReference reference1 = decompressor.pollDecompressedPage();
             ReleasableBytesReference reference2 = decompressor.pollDecompressedPage();
             ReleasableBytesReference reference3 = decompressor.pollDecompressedPage();
             assertNull(decompressor.pollDecompressedPage());
             BytesReference composite = CompositeBytesReference.of(reference1, reference2, reference3);
-            assertEquals(4 * 10000, composite.length());
+            assertThat(composite.length()).isEqualTo(4 * 10000);
             StreamInput streamInput = composite.streamInput();
             for (int i = 0; i < 10000; ++i) {
-                assertEquals(i, streamInput.readInt());
+                assertThat(streamInput.readInt()).isEqualTo(i);
             }
             Releasables.close(reference1, reference2, reference3);
         }
@@ -110,23 +109,23 @@ public class TransportDecompressorTests extends ESTestCase {
             BytesReference inbound3 = bytes.slice(split2, bytes.length() - split2);
 
             int bytesConsumed1 = decompressor.decompress(inbound1);
-            assertEquals(inbound1.length(), bytesConsumed1);
+            assertThat(bytesConsumed1).isEqualTo(inbound1.length());
             assertThat(decompressor.isEOS()).isFalse();
             int bytesConsumed2 = decompressor.decompress(inbound2);
-            assertEquals(inbound2.length(), bytesConsumed2);
+            assertThat(bytesConsumed2).isEqualTo(inbound2.length());
             assertThat(decompressor.isEOS()).isFalse();
             int bytesConsumed3 = decompressor.decompress(inbound3);
-            assertEquals(inbound3.length(), bytesConsumed3);
+            assertThat(bytesConsumed3).isEqualTo(inbound3.length());
             assertThat(decompressor.isEOS()).isTrue();
             ReleasableBytesReference reference1 = decompressor.pollDecompressedPage();
             ReleasableBytesReference reference2 = decompressor.pollDecompressedPage();
             ReleasableBytesReference reference3 = decompressor.pollDecompressedPage();
             assertNull(decompressor.pollDecompressedPage());
             BytesReference composite = CompositeBytesReference.of(reference1, reference2, reference3);
-            assertEquals(4 * 10000, composite.length());
+            assertThat(composite.length()).isEqualTo(4 * 10000);
             StreamInput streamInput = composite.streamInput();
             for (int i = 0; i < 10000; ++i) {
-                assertEquals(i, streamInput.readInt());
+                assertThat(streamInput.readInt()).isEqualTo(i);
             }
             Releasables.close(reference1, reference2, reference3);
 

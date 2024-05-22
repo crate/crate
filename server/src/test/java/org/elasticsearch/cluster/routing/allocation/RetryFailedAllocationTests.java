@@ -20,7 +20,6 @@
 package org.elasticsearch.cluster.routing.allocation;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
 
 import java.util.Collections;
 import java.util.List;
@@ -103,9 +102,9 @@ public class RetryFailedAllocationTests extends ESAllocationTestCase {
             false, true);
         clusterState = result.getClusterState();
 
-        assertEquals(ShardRoutingState.INITIALIZING, getReplica().state());
+        assertThat(getReplica().state()).isEqualTo(ShardRoutingState.INITIALIZING);
         clusterState = startShardsAndReroute(strategy, clusterState, getReplica());
-        assertEquals(ShardRoutingState.STARTED, getReplica().state());
+        assertThat(getReplica().state()).isEqualTo(ShardRoutingState.STARTED);
         assertThat(clusterState.getRoutingNodes().hasUnassignedShards()).isFalse();
     }
 }

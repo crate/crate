@@ -20,7 +20,6 @@
 package org.elasticsearch.indices.recovery;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import java.util.Collection;
@@ -112,7 +111,7 @@ public class RecoveryRequestTrackerTests extends ESTestCase {
                         future.get();
                         fail("expected exception");
                     } catch (Exception e) {
-                        assertEquals(expectedException.getMessage(), e.getMessage());
+                        assertThat(e.getMessage()).isEqualTo(expectedException.getMessage());
                     }
                 }
             }

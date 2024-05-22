@@ -23,7 +23,6 @@ package io.crate.analyze;
 
 import static io.crate.testing.Asserts.isReference;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 
 import java.util.List;
@@ -104,11 +103,11 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
     public void testAggregatesCannotAcceptIgnoreOrRespectNullsFlag() {
         var exception = assertThrows(IllegalArgumentException.class,
                      () -> e.analyze("select avg(x) ignore nulls OVER() from t"));
-        assertEquals("avg cannot accept RESPECT or IGNORE NULLS flag.", exception.getMessage());
+        assertThat(exception.getMessage()).isEqualTo("avg cannot accept RESPECT or IGNORE NULLS flag.");
         //without over clause
         var exception2 = assertThrows(IllegalArgumentException.class,
                                      () -> e.analyze("select avg(x) ignore nulls from t"));
-        assertEquals("avg cannot accept RESPECT or IGNORE NULLS flag.", exception2.getMessage());
+        assertThat(exception2.getMessage()).isEqualTo("avg cannot accept RESPECT or IGNORE NULLS flag.");
     }
 
     @Test
@@ -116,7 +115,7 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
         //without over clause
         var exception = assertThrows(IllegalArgumentException.class,
                                      () -> e.analyze("select abs(x) ignore nulls from t"));
-        assertEquals("abs cannot accept RESPECT or IGNORE NULLS flag.", exception.getMessage());
+        assertThat(exception.getMessage()).isEqualTo("abs cannot accept RESPECT or IGNORE NULLS flag.");
     }
 
     @Test

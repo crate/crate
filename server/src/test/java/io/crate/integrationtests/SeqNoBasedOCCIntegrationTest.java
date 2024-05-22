@@ -21,7 +21,8 @@
 
 package io.crate.integrationtests;
 
-import static org.junit.Assert.assertEquals;
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
@@ -39,16 +40,18 @@ public class SeqNoBasedOCCIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("select _seq_no, _primary_term from t where x = 1");
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
         Long seqNo = (Long) response.rows()[0][0];
         Long primaryTerm = (Long) response.rows()[0][1];
 
         execute("delete from t where x = 1 and _seq_no = ? and _primary_term = ?",
             new Object[]{seqNo, primaryTerm});
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
 
         execute("select * from t where x = 1");
-        assertEquals("Records with x=1 must be deleted", 0, response.rowCount());
+        assertThat(response)
+            .as("Records with x=1 must be deleted")
+            .hasRowCount(0);
     }
 
     @Test
@@ -58,17 +61,17 @@ public class SeqNoBasedOCCIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("select _seq_no, _primary_term from t where x = 1");
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
         Long preUpdateSeqNo = (Long) response.rows()[0][0];
         Long preUpdatePrimaryTerm = (Long) response.rows()[0][1];
 
         execute("update t set y = ? where x = ?", new Object[]{"ok now panic", 1});
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
         refresh();
 
         execute("delete from t where x = 1 and _seq_no = ? and _primary_term = ?",
                 new Object[]{preUpdateSeqNo, preUpdatePrimaryTerm});
-        assertEquals(0, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(0);
     }
 
     @Test
@@ -79,17 +82,17 @@ public class SeqNoBasedOCCIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("select _seq_no, _primary_term from t where x = 1");
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
         Long preUpdateSeqNo = (Long) response.rows()[0][0];
         Long preUpdatePrimaryTerm = (Long) response.rows()[0][1];
 
         execute("update t set y = ? where x = ? and _seq_no = ? and _primary_term = ?",
                 new Object[]{"ok now panic", 1, preUpdateSeqNo, preUpdatePrimaryTerm});
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
 
         execute("select y from t where x = 1");
-        assertEquals(1L, response.rowCount());
-        assertEquals("The y column of record with x=1 must be updated.", "ok now panic", response.rows()[0][0]);
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows()[0][0]).as("The y column of record with x=1 must be updated.").isEqualTo("ok now panic");
     }
 
     @Test
@@ -101,18 +104,18 @@ public class SeqNoBasedOCCIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("select _seq_no, _primary_term from t where x = 1");
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
         Long preUpdateSeqNo = (Long) response.rows()[0][0];
         Long preUpdatePrimaryTerm = (Long) response.rows()[0][1];
 
         execute("update t set y = ? where x = ? and _seq_no = ? and _primary_term = ?",
                 new Object[]{"hopefully not updated", 1, preUpdateSeqNo + 4, preUpdatePrimaryTerm});
-        assertEquals(0L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(0L);
 
         // Validate that the row is really NOT updated
         refresh();
         execute("select y from t where x = 1");
-        assertEquals(1L, response.rowCount());
-        assertEquals("don't panic", response.rows()[0][0]);
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows()[0][0]).isEqualTo("don't panic");
     }
 }

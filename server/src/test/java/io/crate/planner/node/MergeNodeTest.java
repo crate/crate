@@ -22,7 +22,6 @@
 package io.crate.planner.node;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -89,7 +88,7 @@ public class MergeNodeTest extends ESTestCase {
         assertThat(node.numUpstreams()).isEqualTo(node2.numUpstreams());
         assertThat(node.nodeIds()).isEqualTo(node2.nodeIds());
         assertThat(node.jobId()).isEqualTo(node2.jobId());
-        assertEquals(node.inputTypes(), node2.inputTypes());
+        assertThat(node2.inputTypes()).isEqualTo(node.inputTypes());
         assertThat(node.phaseId()).isEqualTo(node2.phaseId());
         assertThat(node.distributionInfo()).isEqualTo(node2.distributionInfo());
     }

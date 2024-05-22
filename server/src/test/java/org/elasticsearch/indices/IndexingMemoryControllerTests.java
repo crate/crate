@@ -24,7 +24,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.common.util.concurrent.EsExecutors.PROCESSORS_SETTING;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
@@ -141,7 +140,7 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
             if (actual == null) {
                 actual = 0L;
             }
-            assertEquals(expectedMB * 1024 * 1024, actual.longValue());
+            assertThat(actual.longValue()).isEqualTo(expectedMB * 1024 * 1024);
         }
 
         public void assertThrottled(IndexShard shard) {
@@ -157,7 +156,7 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
             if (actual == null) {
                 actual = 0L;
             }
-            assertEquals(expectedMB * 1024 * 1024, actual.longValue());
+            assertThat(actual.longValue()).isEqualTo(expectedMB * 1024 * 1024);
         }
 
         public void simulateIndexing(IndexShard shard) {
@@ -368,18 +367,18 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
         IndexingMemoryController imc = new IndexingMemoryController(settings, threadPool, iterable) {
             @Override
             protected void writeIndexingBufferAsync(IndexShard shard) {
-                assertEquals(shard, shardRef.get());
+                assertThat(shardRef.get()).isEqualTo(shard);
                 flushes.incrementAndGet();
                 shard.writeIndexingBuffer();
             }
         };
         shard = reinitShard(shard, imc);
         shardRef.set(shard);
-        assertEquals(0, imc.availableShards().size());
+        assertThat(imc.availableShards().size()).isEqualTo(0);
         DiscoveryNode localNode = new DiscoveryNode("foo", buildNewFakeTransportAddress(), emptyMap(), emptySet(), Version.CURRENT);
         shard.markAsRecovering("store", new RecoveryState(shard.routingEntry(), localNode, null));
 
-        assertEquals(1, imc.availableShards().size());
+        assertThat(imc.availableShards().size()).isEqualTo(1);
         assertThat(recoverFromStore(shard)).isTrue();
         assertThat("we should have flushed in IMC at least once", flushes.get(), greaterThanOrEqualTo(1));
         closeShards(shard);

@@ -22,7 +22,6 @@
 package io.crate.executor.transport;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.mock;
 
 import java.util.List;
@@ -102,9 +101,9 @@ public class DependencyCarrierDDLTest extends IntegTestCase {
 
         assertThat(objects).containsExactly(new Row1(1L));
         var stateResponse = client().admin().cluster().state(new ClusterStateRequest()).get();
-        assertEquals("false", stateResponse.getState().metadata()
+        assertThat(stateResponse.getState().metadata()
             .persistentSettings().get(persistentSetting)
-        );
+        ).isEqualTo("false");
 
         // Update transient only
         List<Assignment<Symbol>> transientSettings = List.of(
@@ -115,9 +114,9 @@ public class DependencyCarrierDDLTest extends IntegTestCase {
 
         assertThat(objects).containsExactly(new Row1(1L));
         stateResponse = client().admin().cluster().state(new ClusterStateRequest()).get();
-        assertEquals("123s", stateResponse.getState().metadata()
+        assertThat(stateResponse.getState().metadata()
             .transientSettings().get(transientSetting)
-        );
+        ).isEqualTo("123s");
     }
 
     private Bucket executePlan(Plan plan, PlannerContext plannerContext, Row params) throws Exception {

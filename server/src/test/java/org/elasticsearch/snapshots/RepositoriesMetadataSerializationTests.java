@@ -19,7 +19,8 @@
 
 package org.elasticsearch.snapshots;
 
-import static org.junit.Assert.assertEquals;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -114,9 +115,9 @@ public class RepositoriesMetadataSerializationTests extends AbstractDiffableSeri
 
     @Override
     protected Custom doParseInstance(XContentParser parser) throws IOException {
-        assertEquals(XContentParser.Token.START_OBJECT, parser.nextToken());
+        assertThat(parser.nextToken()).isEqualTo(XContentParser.Token.START_OBJECT);
         RepositoriesMetadata repositoriesMetadata = RepositoriesMetadata.fromXContent(parser);
-        assertEquals(XContentParser.Token.END_OBJECT, parser.currentToken());
+        assertThat(parser.currentToken()).isEqualTo(XContentParser.Token.END_OBJECT);
         List<RepositoryMetadata> repos = new ArrayList<>(repositoriesMetadata.repositories());
         repos.sort(Comparator.comparing(RepositoryMetadata::name));
         return new RepositoriesMetadata(repos);

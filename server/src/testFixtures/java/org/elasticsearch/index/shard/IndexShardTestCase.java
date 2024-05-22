@@ -24,7 +24,6 @@ import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.routing.TestShardRouting.newShardRouting;
 import static org.elasticsearch.index.translog.Translog.UNSET_AUTO_GENERATED_TIMESTAMP;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
 import java.io.IOException;
@@ -808,7 +807,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
         if (markAsRecovering) {
             replica.markAsRecovering("remote", new RecoveryState(replica.routingEntry(), pNode, rNode));
         } else {
-            assertEquals(replica.state(), IndexShardState.RECOVERING);
+            assertThat(IndexShardState.RECOVERING).isEqualTo(replica.state());
         }
         replica.prepareForIndexRecovery();
         final RecoveryTarget recoveryTarget = targetSupplier.apply(replica, pNode);
@@ -965,8 +964,8 @@ public abstract class IndexShardTestCase extends ESTestCase {
         }
 
         final IndexShardSnapshotStatus.Copy lastSnapshotStatus = snapshotStatus.asCopy();
-        assertEquals(IndexShardSnapshotStatus.Stage.DONE, lastSnapshotStatus.getStage());
-        assertEquals(shard.snapshotStoreMetadata().size(), lastSnapshotStatus.getTotalFileCount());
+        assertThat(lastSnapshotStatus.getStage()).isEqualTo(IndexShardSnapshotStatus.Stage.DONE);
+        assertThat(lastSnapshotStatus.getTotalFileCount()).isEqualTo(shard.snapshotStoreMetadata().size());
         assertNull(lastSnapshotStatus.getFailure());
         return shardGen;
     }

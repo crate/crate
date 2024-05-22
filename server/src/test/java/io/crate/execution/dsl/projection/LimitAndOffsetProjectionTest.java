@@ -21,7 +21,7 @@
 
 package io.crate.execution.dsl.projection;
 
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collections;
 
@@ -43,7 +43,7 @@ public class LimitAndOffsetProjectionTest extends ESTestCase {
 
         StreamInput in = out.bytes().streamInput();
         LimitAndOffsetProjection p2 = (LimitAndOffsetProjection) Projection.fromStream(in);
-        assertEquals(p, p2);
+        assertThat(p2).isEqualTo(p);
     }
 
 }

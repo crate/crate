@@ -25,7 +25,6 @@ import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERR
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.indices.ShardLimitValidator.SETTING_CLUSTER_MAX_SHARDS_PER_NODE;
 import static org.hamcrest.Matchers.greaterThan;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
@@ -468,8 +467,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
             assertNotNull(indexRoutingTable);
             for (IndexShardRoutingTable shardRoutingTable : indexRoutingTable) {
                 assertThat(shardRoutingTable.primaryShard().unassigned()).isTrue();
-                assertEquals(UnassignedInfo.AllocationStatus.DECIDERS_NO,
-                    shardRoutingTable.primaryShard().unassignedInfo().getLastAllocationStatus());
+                assertThat(shardRoutingTable.primaryShard().unassignedInfo().getLastAllocationStatus()).isEqualTo(UnassignedInfo.AllocationStatus.DECIDERS_NO);
                 assertThat(shardRoutingTable.primaryShard().unassignedInfo().getNumFailedAllocations(), greaterThan(0));
             }
         }, 60, TimeUnit.SECONDS);
@@ -478,8 +476,8 @@ public class GatewayIndexStateIT extends IntegTestCase {
         state = client().admin().cluster()
             .state(new ClusterStateRequest())
             .get(REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS).getState();
-        assertEquals(IndexMetadata.State.CLOSE, state.metadata().index(metadata.getIndex()).getState());
-        assertEquals("classic", state.metadata().index(metadata.getIndex()).getSettings().get("archived.index.similarity.BM25.type"));
+        assertThat(state.metadata().index(metadata.getIndex()).getState()).isEqualTo(IndexMetadata.State.CLOSE);
+        assertThat(state.metadata().index(metadata.getIndex()).getSettings().get("archived.index.similarity.BM25.type")).isEqualTo("classic");
         // try to open it with the broken setting - fail again!
         Asserts.assertSQLError(() -> execute("alter table test open"))
                 .hasPGError(INTERNAL_ERROR)
@@ -554,8 +552,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
             assertNotNull(indexRoutingTable);
             for (IndexShardRoutingTable shardRoutingTable : indexRoutingTable) {
                 assertThat(shardRoutingTable.primaryShard().unassigned()).isTrue();
-                assertEquals(UnassignedInfo.AllocationStatus.DECIDERS_NO,
-                shardRoutingTable.primaryShard().unassignedInfo().getLastAllocationStatus());
+                assertThat(shardRoutingTable.primaryShard().unassignedInfo().getLastAllocationStatus()).isEqualTo(UnassignedInfo.AllocationStatus.DECIDERS_NO);
                 assertThat(shardRoutingTable.primaryShard().unassignedInfo().getNumFailedAllocations(), greaterThan(0));
             }
         }, 60, TimeUnit.SECONDS);
@@ -601,9 +598,9 @@ public class GatewayIndexStateIT extends IntegTestCase {
         state = client().admin().cluster()
             .state(new ClusterStateRequest())
             .get(REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS).getState();
-        assertEquals("true", state.metadata().persistentSettings().get("archived.this.is.unknown"));
-        assertEquals("broken", state.metadata().persistentSettings().get("archived."
-            + SETTING_CLUSTER_MAX_SHARDS_PER_NODE.getKey()));
+        assertThat(state.metadata().persistentSettings().get("archived.this.is.unknown")).isEqualTo("true");
+        assertThat(state.metadata().persistentSettings().get("archived."
+            + SETTING_CLUSTER_MAX_SHARDS_PER_NODE.getKey())).isEqualTo("broken");
 
         // delete these settings
         client().admin().cluster().execute(

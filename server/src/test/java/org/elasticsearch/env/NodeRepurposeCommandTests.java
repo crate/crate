@@ -18,6 +18,7 @@
  */
 package org.elasticsearch.env;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.env.NodeRepurposeCommand.NO_CLEANUP;
 import static org.elasticsearch.env.NodeRepurposeCommand.NO_DATA_TO_CLEAN_UP_FOUND;
@@ -25,7 +26,6 @@ import static org.elasticsearch.env.NodeRepurposeCommand.NO_SHARD_DATA_TO_CLEAN_
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
@@ -269,7 +269,7 @@ public class NodeRepurposeCommandTests extends ESTestCase {
         long before = digestPaths();
         runnable.run();
         long after = digestPaths();
-        assertEquals("Must not touch files", before, after);
+        assertThat(after).as("Must not touch files").isEqualTo(before);
     }
 
     private long digestPaths() {

@@ -25,7 +25,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasToString;
 import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
@@ -133,32 +132,32 @@ public class SettingTests extends ESTestCase {
 
         assertThat(memorySizeValueSetting.isGroupSetting()).isFalse();
         ByteSizeValue memorySizeValue = memorySizeValueSetting.get(Settings.EMPTY);
-        assertEquals(memorySizeValue.getBytes(), 1024);
+        assertThat(1024).isEqualTo(memorySizeValue.getBytes());
 
         memorySizeValueSetting = Setting.memorySizeSetting("a.byte.size", s -> "2048b", Property.Dynamic, Property.NodeScope);
         memorySizeValue = memorySizeValueSetting.get(Settings.EMPTY);
-        assertEquals(memorySizeValue.getBytes(), 2048);
+        assertThat(2048).isEqualTo(memorySizeValue.getBytes());
 
         memorySizeValueSetting = Setting.memorySizeSetting("a.byte.size", "50%", Property.Dynamic, Property.NodeScope);
         assertThat(memorySizeValueSetting.isGroupSetting()).isFalse();
         memorySizeValue = memorySizeValueSetting.get(Settings.EMPTY);
-        assertEquals(memorySizeValue.getBytes(), JvmInfo.jvmInfo().getMem().getHeapMax().getBytes() * 0.5, 1.0);
+        assertThat(memorySizeValue.getBytes()).isEqualTo((long) (JvmInfo.jvmInfo().getMem().getHeapMax().getBytes() * 0.5));
 
         memorySizeValueSetting = Setting.memorySizeSetting("a.byte.size", s -> "25%", Property.Dynamic, Property.NodeScope);
         memorySizeValue = memorySizeValueSetting.get(Settings.EMPTY);
-        assertEquals(memorySizeValue.getBytes(), JvmInfo.jvmInfo().getMem().getHeapMax().getBytes() * 0.25, 1.0);
+        assertThat(memorySizeValue.getBytes()).isEqualTo((long) (JvmInfo.jvmInfo().getMem().getHeapMax().getBytes() * 0.25));
 
         AtomicReference<ByteSizeValue> value = new AtomicReference<>(null);
         ClusterSettings.SettingUpdater<ByteSizeValue> settingUpdater = memorySizeValueSetting.newUpdater(value::set, logger);
 
         assertThat(settingUpdater.apply(Settings.builder().put("a.byte.size", "12").build(), Settings.EMPTY)).isTrue();
-        assertEquals(new ByteSizeValue(12), value.get());
+        assertThat(value.get()).isEqualTo(new ByteSizeValue(12));
 
         assertThat(settingUpdater.apply(Settings.builder().put("a.byte.size", "12b").build(), Settings.EMPTY)).isTrue();
-        assertEquals(new ByteSizeValue(12), value.get());
+        assertThat(value.get()).isEqualTo(new ByteSizeValue(12));
 
         assertThat(settingUpdater.apply(Settings.builder().put("a.byte.size", "20%").build(), Settings.EMPTY)).isTrue();
-        assertEquals(new ByteSizeValue((long) (JvmInfo.jvmInfo().getMem().getHeapMax().getBytes() * 0.2)), value.get());
+        assertThat(value.get()).isEqualTo(new ByteSizeValue((long) (JvmInfo.jvmInfo().getMem().getHeapMax().getBytes() * 0.2)));
     }
 
     @Test
@@ -259,7 +258,7 @@ public class SettingTests extends ESTestCase {
             booleanSetting.newUpdater(atomicBoolean::set, logger);
             fail("not dynamic");
         } catch (IllegalStateException ex) {
-            assertEquals("setting [foo.bar] is not dynamic", ex.getMessage());
+            assertThat(ex.getMessage()).isEqualTo("setting [foo.bar] is not dynamic");
         }
     }
 
@@ -281,32 +280,32 @@ public class SettingTests extends ESTestCase {
             Setting.positiveTimeSetting("my.time.value", defaultValue, Property.NodeScope);
         assertThat(setting.isGroupSetting()).isFalse();
         String aDefault = setting.getDefaultRaw(Settings.EMPTY);
-        assertEquals(defaultValue.millis() + "ms", aDefault);
-        assertEquals(defaultValue.millis(), setting.get(Settings.EMPTY).millis());
-        assertEquals(defaultValue, setting.getDefault(Settings.EMPTY));
+        assertThat(aDefault).isEqualTo(defaultValue.millis() + "ms");
+        assertThat(setting.get(Settings.EMPTY).millis()).isEqualTo(defaultValue.millis());
+        assertThat(setting.getDefault(Settings.EMPTY)).isEqualTo(defaultValue);
 
         Setting<String> secondaryDefault =
             new Setting<>("foo.bar", (s) -> s.get("old.foo.bar", "some_default"), Function.identity(), DataTypes.STRING, Property.NodeScope);
-        assertEquals("some_default", secondaryDefault.get(Settings.EMPTY));
-        assertEquals("42", secondaryDefault.get(Settings.builder().put("old.foo.bar", 42).build()));
+        assertThat(secondaryDefault.get(Settings.EMPTY)).isEqualTo("some_default");
+        assertThat(secondaryDefault.get(Settings.builder().put("old.foo.bar", 42).build())).isEqualTo("42");
 
         Setting<String> secondaryDefaultViaSettings =
             new Setting<>("foo.bar", secondaryDefault, Function.identity(), DataTypes.STRING, Property.NodeScope);
-        assertEquals("some_default", secondaryDefaultViaSettings.get(Settings.EMPTY));
-        assertEquals("42", secondaryDefaultViaSettings.get(Settings.builder().put("old.foo.bar", 42).build()));
+        assertThat(secondaryDefaultViaSettings.get(Settings.EMPTY)).isEqualTo("some_default");
+        assertThat(secondaryDefaultViaSettings.get(Settings.builder().put("old.foo.bar", 42).build())).isEqualTo("42");
 
         // It gets more complicated when there are two settings objects....
         Settings hasFallback = Settings.builder().put("foo.bar", "o").build();
         Setting<String> fallsback =
                 new Setting<>("foo.baz", secondaryDefault, Function.identity(), DataTypes.STRING, Property.NodeScope);
-        assertEquals("o", fallsback.get(hasFallback));
-        assertEquals("some_default", fallsback.get(Settings.EMPTY));
-        assertEquals("some_default", fallsback.get(Settings.EMPTY, Settings.EMPTY));
-        assertEquals("o", fallsback.get(Settings.EMPTY, hasFallback));
-        assertEquals("o", fallsback.get(hasFallback, Settings.EMPTY));
-        assertEquals("a", fallsback.get(
+        assertThat(fallsback.get(hasFallback)).isEqualTo("o");
+        assertThat(fallsback.get(Settings.EMPTY)).isEqualTo("some_default");
+        assertThat(fallsback.get(Settings.EMPTY, Settings.EMPTY)).isEqualTo("some_default");
+        assertThat(fallsback.get(Settings.EMPTY, hasFallback)).isEqualTo("o");
+        assertThat(fallsback.get(hasFallback, Settings.EMPTY)).isEqualTo("o");
+        assertThat(fallsback.get(
                 Settings.builder().put("foo.bar", "a").build(),
-                Settings.builder().put("foo.bar", "b").build()));
+                Settings.builder().put("foo.bar", "b").build())).isEqualTo("a");
     }
 
     @Test
@@ -324,13 +323,13 @@ public class SettingTests extends ESTestCase {
         // change from default
         assertThat(settingUpdater.apply(Settings.builder().put("foo.bar", "2").build(), Settings.EMPTY)).isTrue();
         assertNotSame("update - type has changed", type, ref.get());
-        assertEquals("2", ref.get().foo);
+        assertThat(ref.get().foo).isEqualTo("2");
 
 
         // change back to default...
         assertThat(settingUpdater.apply(Settings.EMPTY, Settings.builder().put("foo.bar", "2").build())).isTrue();
         assertNotSame("update - type has changed", type, ref.get());
-        assertEquals("", ref.get().foo);
+        assertThat(ref.get().foo).isEqualTo("");
     }
 
     @Test
@@ -359,10 +358,10 @@ public class SettingTests extends ESTestCase {
         assertNotNull(ref.get());
         Settings settings = ref.get();
         Map<String, Settings> asMap = settings.getAsGroups();
-        assertEquals(3, asMap.size());
-        assertEquals(asMap.get("1").get("value"), "1");
-        assertEquals(asMap.get("2").get("value"), "2");
-        assertEquals(asMap.get("3").get("value"), "3");
+        assertThat(asMap.size()).isEqualTo(3);
+        assertThat("1").isEqualTo(asMap.get("1").get("value"));
+        assertThat("2").isEqualTo(asMap.get("2").get("value"));
+        assertThat("3").isEqualTo(asMap.get("3").get("value"));
 
         previousInput = currentInput;
         currentInput = Settings.builder().put("foo.bar.1.value", "1").put("foo.bar.2.value", "2").put("foo.bar.3.value", "3").build();
@@ -377,9 +376,9 @@ public class SettingTests extends ESTestCase {
         assertNotSame(current, ref.get());
 
         asMap = ref.get().getAsGroups();
-        assertEquals(2, asMap.size());
-        assertEquals(asMap.get("1").get("value"), "1");
-        assertEquals(asMap.get("2").get("value"), "2");
+        assertThat(asMap.size()).isEqualTo(2);
+        assertThat("1").isEqualTo(asMap.get("1").get("value"));
+        assertThat("2").isEqualTo(asMap.get("2").get("value"));
 
         previousInput = currentInput;
         currentInput = Settings.builder().put("foo.bar.1.value", "1").put("foo.bar.2.value", "4").build();
@@ -388,9 +387,9 @@ public class SettingTests extends ESTestCase {
         assertNotSame(current, ref.get());
 
         asMap = ref.get().getAsGroups();
-        assertEquals(2, asMap.size());
-        assertEquals(asMap.get("1").get("value"), "1");
-        assertEquals(asMap.get("2").get("value"), "4");
+        assertThat(asMap.size()).isEqualTo(2);
+        assertThat("1").isEqualTo(asMap.get("1").get("value"));
+        assertThat("4").isEqualTo(asMap.get("2").get("value"));
 
         assertThat(setting.match("foo.bar.baz")).isTrue();
         assertThat(setting.match("foo.baz.bar")).isFalse();
@@ -401,7 +400,7 @@ public class SettingTests extends ESTestCase {
                     Settings.EMPTY);
             fail("not accepted");
         } catch (IllegalArgumentException ex) {
-            assertEquals(ex.getMessage(), "illegal value can't update [foo.bar.] from [{}] to [{\"1.value\":\"1\",\"2.value\":\"2\"}]");
+            assertThat("illegal value can't update [foo.bar.] from [{}] to [{\"1.value\":\"1\",\"2.value\":\"2\"}]").isEqualTo(ex.getMessage());
         }
     }
 
@@ -444,8 +443,8 @@ public class SettingTests extends ESTestCase {
 
         Settings build = Settings.builder().put("foo.int.bar.a", 2).build();
         assertThat(settingUpdater.apply(build, Settings.EMPTY)).isTrue();
-        assertEquals(2, c.a.intValue());
-        assertEquals(1, c.b.intValue());
+        assertThat(c.a.intValue()).isEqualTo(2);
+        assertThat(c.b.intValue()).isEqualTo(1);
 
         Integer aValue = c.a;
         assertThat(settingUpdater.apply(build, build)).isFalse();
@@ -453,13 +452,13 @@ public class SettingTests extends ESTestCase {
         Settings previous = build;
         build = Settings.builder().put("foo.int.bar.a", 2).put("foo.int.bar.b", 5).build();
         assertThat(settingUpdater.apply(build, previous)).isTrue();
-        assertEquals(2, c.a.intValue());
-        assertEquals(5, c.b.intValue());
+        assertThat(c.a.intValue()).isEqualTo(2);
+        assertThat(c.b.intValue()).isEqualTo(5);
 
         // reset to default
         assertThat(settingUpdater.apply(Settings.EMPTY, build)).isTrue();
-        assertEquals(1, c.a.intValue());
-        assertEquals(1, c.b.intValue());
+        assertThat(c.a.intValue()).isEqualTo(1);
+        assertThat(c.b.intValue()).isEqualTo(1);
 
     }
 
@@ -475,8 +474,8 @@ public class SettingTests extends ESTestCase {
 
         Settings build = Settings.builder().put("foo.int.bar.a", 2).build();
         assertThat(settingUpdater.apply(build, Settings.EMPTY)).isTrue();
-        assertEquals(2, c.a.intValue());
-        assertEquals(1, c.b.intValue());
+        assertThat(c.a.intValue()).isEqualTo(2);
+        assertThat(c.b.intValue()).isEqualTo(1);
 
         Integer aValue = c.a;
         assertThat(settingUpdater.apply(build, build)).isFalse();
@@ -484,8 +483,8 @@ public class SettingTests extends ESTestCase {
         Settings previous = build;
         build = Settings.builder().put("foo.int.bar.a", 2).put("foo.int.bar.b", 5).build();
         assertThat(settingUpdater.apply(build, previous)).isTrue();
-        assertEquals(2, c.a.intValue());
-        assertEquals(5, c.b.intValue());
+        assertThat(c.a.intValue()).isEqualTo(2);
+        assertThat(c.b.intValue()).isEqualTo(5);
 
         Settings invalid = Settings.builder().put("foo.int.bar.a", -2).put("foo.int.bar.b", 5).build();
         assertThatThrownBy(() -> settingUpdater.apply(invalid, previous))
@@ -494,8 +493,8 @@ public class SettingTests extends ESTestCase {
 
         // reset to default
         assertThat(settingUpdater.apply(Settings.EMPTY, build)).isTrue();
-        assertEquals(1, c.a.intValue());
-        assertEquals(1, c.b.intValue());
+        assertThat(c.a.intValue()).isEqualTo(1);
+        assertThat(c.b.intValue()).isEqualTo(1);
 
     }
 
@@ -527,14 +526,14 @@ public class SettingTests extends ESTestCase {
             DataTypes.STRING_ARRAY, Property.Dynamic, Property.NodeScope);
         List<String> value = listSetting.get(Settings.EMPTY);
         assertThat(listSetting.exists(Settings.EMPTY)).isFalse();
-        assertEquals(1, value.size());
-        assertEquals("foo,bar", value.get(0));
+        assertThat(value.size()).isEqualTo(1);
+        assertThat(value.get(0)).isEqualTo("foo,bar");
 
         List<String> input = Arrays.asList("test", "test1, test2", "test", ",,,,");
         Settings.Builder builder = Settings.builder().putList("foo.bar", input.toArray(new String[0]));
         assertThat(listSetting.exists(builder.build())).isTrue();
         value = listSetting.get(builder.build());
-        assertEquals(input.size(), value.size());
+        assertThat(value.size()).isEqualTo(input.size());
         assertArrayEquals(value.toArray(new String[0]), input.toArray(new String[0]));
 
         // try to parse this really annoying format
@@ -543,7 +542,7 @@ public class SettingTests extends ESTestCase {
             builder.put("foo.bar." + i, input.get(i));
         }
         value = listSetting.get(builder.build());
-        assertEquals(input.size(), value.size());
+        assertThat(value.size()).isEqualTo(input.size());
         assertArrayEquals(value.toArray(new String[0]), input.toArray(new String[0]));
         assertThat(listSetting.exists(builder.build())).isTrue();
 
@@ -551,51 +550,51 @@ public class SettingTests extends ESTestCase {
         AbstractScopedSettings.SettingUpdater<List<String>> settingUpdater = listSetting.newUpdater(ref::set, logger);
         assertThat(settingUpdater.hasChanged(builder.build(), Settings.EMPTY)).isTrue();
         settingUpdater.apply(builder.build(), Settings.EMPTY);
-        assertEquals(input.size(), ref.get().size());
+        assertThat(ref.get().size()).isEqualTo(input.size());
         assertArrayEquals(ref.get().toArray(new String[0]), input.toArray(new String[0]));
 
         settingUpdater.apply(Settings.builder().putList("foo.bar", "123").build(), builder.build());
-        assertEquals(1, ref.get().size());
+        assertThat(ref.get().size()).isEqualTo(1);
         assertArrayEquals(ref.get().toArray(new String[0]), new String[] {"123"});
 
         settingUpdater.apply(Settings.builder().put("foo.bar", "1,2,3").build(), Settings.builder().putList("foo.bar", "123").build());
-        assertEquals(3, ref.get().size());
+        assertThat(ref.get().size()).isEqualTo(3);
         assertArrayEquals(ref.get().toArray(new String[0]), new String[] {"1", "2", "3"});
 
         settingUpdater.apply(Settings.EMPTY, Settings.builder().put("foo.bar", "1,2,3").build());
-        assertEquals(1, ref.get().size());
-        assertEquals("foo,bar", ref.get().get(0));
+        assertThat(ref.get().size()).isEqualTo(1);
+        assertThat(ref.get().get(0)).isEqualTo("foo,bar");
 
         Setting<List<Integer>> otherSettings = Setting.listSetting("foo.bar", Collections.emptyList(), Integer::parseInt,
             DataTypes.INTEGER_ARRAY, Property.Dynamic, Property.NodeScope);
         List<Integer> defaultValue = otherSettings.get(Settings.EMPTY);
-        assertEquals(0, defaultValue.size());
+        assertThat(defaultValue.size()).isEqualTo(0);
         List<Integer> intValues = otherSettings.get(Settings.builder().put("foo.bar", "0,1,2,3").build());
-        assertEquals(4, intValues.size());
+        assertThat(intValues.size()).isEqualTo(4);
         for (int i = 0; i < intValues.size(); i++) {
-            assertEquals(i, intValues.get(i).intValue());
+            assertThat(intValues.get(i).intValue()).isEqualTo(i);
         }
 
         Setting<List<String>> settingWithFallback = Setting.listSetting("foo.baz", listSetting, Function.identity(),
             DataTypes.STRING_ARRAY, Property.Dynamic, Property.NodeScope);
         value = settingWithFallback.get(Settings.EMPTY);
-        assertEquals(1, value.size());
-        assertEquals("foo,bar", value.get(0));
+        assertThat(value.size()).isEqualTo(1);
+        assertThat(value.get(0)).isEqualTo("foo,bar");
 
         value = settingWithFallback.get(Settings.builder().putList("foo.bar", "1", "2").build());
-        assertEquals(2, value.size());
-        assertEquals("1", value.get(0));
-        assertEquals("2", value.get(1));
+        assertThat(value.size()).isEqualTo(2);
+        assertThat(value.get(0)).isEqualTo("1");
+        assertThat(value.get(1)).isEqualTo("2");
 
         value = settingWithFallback.get(Settings.builder().putList("foo.baz", "3", "4").build());
-        assertEquals(2, value.size());
-        assertEquals("3", value.get(0));
-        assertEquals("4", value.get(1));
+        assertThat(value.size()).isEqualTo(2);
+        assertThat(value.get(0)).isEqualTo("3");
+        assertThat(value.get(1)).isEqualTo("4");
 
         value = settingWithFallback.get(Settings.builder().putList("foo.baz", "3", "4").putList("foo.bar", "1", "2").build());
-        assertEquals(2, value.size());
-        assertEquals("3", value.get(0));
-        assertEquals("4", value.get(1));
+        assertThat(value.size()).isEqualTo(2);
+        assertThat(value.get(0)).isEqualTo("3");
+        assertThat(value.get(1)).isEqualTo("4");
     }
 
     @Test
@@ -632,7 +631,7 @@ public class SettingTests extends ESTestCase {
             setting.getConcreteSetting("foo");
             fail();
         } catch (IllegalArgumentException ex) {
-            assertEquals("key [foo] must match [foo.] but didn't.", ex.getMessage());
+            assertThat(ex.getMessage()).isEqualTo("key [foo] must match [foo.] but didn't.");
         }
     }
 
@@ -683,7 +682,7 @@ public class SettingTests extends ESTestCase {
             .put("something.else", "true")
             .build();
         Set<String> namespaces = setting.getNamespaces(build);
-        assertEquals(3, namespaces.size());
+        assertThat(namespaces.size()).isEqualTo(3);
         assertThat(namespaces.contains("bar")).isTrue();
         assertThat(namespaces.contains("baz")).isTrue();
         assertThat(namespaces.contains("boom")).isTrue();
@@ -695,18 +694,18 @@ public class SettingTests extends ESTestCase {
             Setting.simpleString(key, Property.NodeScope));
         Settings build = Settings.builder().put("foo.bar.baz", 2).put("foo.bar.foobar", 3).build();
         Map<String, String> asMap = setting.getAsMap(build);
-        assertEquals(2, asMap.size());
-        assertEquals("2", asMap.get("baz"));
-        assertEquals("3", asMap.get("foobar"));
+        assertThat(asMap.size()).isEqualTo(2);
+        assertThat(asMap.get("baz")).isEqualTo("2");
+        assertThat(asMap.get("foobar")).isEqualTo("3");
 
         setting = Setting.prefixKeySetting("foo.bar.", key ->
             Setting.simpleString(key, Property.NodeScope));
         build = Settings.builder().put("foo.bar.baz", 2).put("foo.bar.foobar", 3).put("foo.bar.baz.deep", 45).build();
         asMap = setting.getAsMap(build);
-        assertEquals(3, asMap.size());
-        assertEquals("2", asMap.get("baz"));
-        assertEquals("3", asMap.get("foobar"));
-        assertEquals("45", asMap.get("baz.deep"));
+        assertThat(asMap.size()).isEqualTo(3);
+        assertThat(asMap.get("baz")).isEqualTo("2");
+        assertThat(asMap.get("foobar")).isEqualTo("3");
+        assertThat(asMap.get("baz.deep")).isEqualTo("45");
     }
 
     @Test
@@ -723,10 +722,10 @@ public class SettingTests extends ESTestCase {
             .build();
         Stream<Setting<List<String>>> allConcreteSettings = listAffixSetting.getAllConcreteSettings(settings);
         Map<String, List<String>> collect = allConcreteSettings.collect(Collectors.toMap(Setting::getKey, (s) -> s.get(settings)));
-        assertEquals(3, collect.size());
-        assertEquals(Arrays.asList("1", "2"), collect.get("foo.1.bar"));
-        assertEquals(Arrays.asList("3", "4", "5"), collect.get("foo.2.bar"));
-        assertEquals(Arrays.asList("6"), collect.get("foo.3.bar"));
+        assertThat(collect.size()).isEqualTo(3);
+        assertThat(collect.get("foo.1.bar")).isEqualTo(Arrays.asList("1", "2"));
+        assertThat(collect.get("foo.2.bar")).isEqualTo(Arrays.asList("3", "4", "5"));
+        assertThat(collect.get("foo.3.bar")).isEqualTo(Arrays.asList("6"));
     }
 
     @Test
@@ -737,8 +736,8 @@ public class SettingTests extends ESTestCase {
             .isExactlyInstanceOf(UnsupportedOperationException.class);
         assertThatThrownBy(() -> listAffixSetting.getRaw(Settings.EMPTY))
             .isExactlyInstanceOf(UnsupportedOperationException.class);
-        assertEquals(Collections.singletonList("testelement"), listAffixSetting.getDefault(Settings.EMPTY));
-        assertEquals("[\"testelement\"]", listAffixSetting.getDefaultRaw(Settings.EMPTY));
+        assertThat(listAffixSetting.getDefault(Settings.EMPTY)).isEqualTo(Collections.singletonList("testelement"));
+        assertThat(listAffixSetting.getDefaultRaw(Settings.EMPTY)).isEqualTo("[\"testelement\"]");
     }
 
     @Test
@@ -748,18 +747,18 @@ public class SettingTests extends ESTestCase {
             integerSetting.get(Settings.builder().put("foo.bar", 11).build());
             fail();
         } catch (IllegalArgumentException ex) {
-            assertEquals("Failed to parse value [11] for setting [foo.bar] must be <= 10", ex.getMessage());
+            assertThat(ex.getMessage()).isEqualTo("Failed to parse value [11] for setting [foo.bar] must be <= 10");
         }
 
         try {
             integerSetting.get(Settings.builder().put("foo.bar", -1).build());
             fail();
         } catch (IllegalArgumentException ex) {
-            assertEquals("Failed to parse value [-1] for setting [foo.bar] must be >= 0", ex.getMessage());
+            assertThat(ex.getMessage()).isEqualTo("Failed to parse value [-1] for setting [foo.bar] must be >= 0");
         }
 
-        assertEquals(5, integerSetting.get(Settings.builder().put("foo.bar", 5).build()).intValue());
-        assertEquals(1, integerSetting.get(Settings.EMPTY).intValue());
+        assertThat(integerSetting.get(Settings.builder().put("foo.bar", 5).build()).intValue()).isEqualTo(5);
+        assertThat(integerSetting.get(Settings.EMPTY).intValue()).isEqualTo(1);
     }
 
     /**
@@ -1019,13 +1018,13 @@ public class SettingTests extends ESTestCase {
         // THEN changes are expected when defaults aren't omitted
         final Map<String, String> updatedSettings = updater.getValue(current, previous);
         assertNotNull(updatedSettings);
-        assertEquals(1, updatedSettings.size());
+        assertThat(updatedSettings.size()).isEqualTo(1);
 
         // THEN changes are reported when defaults aren't omitted
         final String key = updatedSettings.keySet().iterator().next();
         final String value = updatedSettings.get(key);
-        assertEquals("_foo", key);
-        assertEquals("", value);
+        assertThat(key).isEqualTo("_foo");
+        assertThat(value).isEqualTo("");
     }
 
     /*
