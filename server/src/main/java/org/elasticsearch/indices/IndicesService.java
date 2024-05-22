@@ -117,6 +117,7 @@ import io.crate.common.collections.Iterables;
 import io.crate.common.collections.Sets;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
+import io.crate.metadata.Schemas;
 
 public class IndicesService extends AbstractLifecycleComponent
     implements IndicesClusterStateService.AllocatedIndices<IndexShard, IndexService>, IndexService.ShardStoreDeleter {
@@ -146,6 +147,7 @@ public class IndicesService extends AbstractLifecycleComponent
     private final Map<Index, List<PendingDelete>> pendingDeletes = new HashMap<>();
     private final AtomicInteger numUncompletedDeletes = new AtomicInteger();
     private final MapperRegistry mapperRegistry;
+    private Schemas schemas;    // not final as needs to be set after start
     private final IndexingMemoryController indexingMemoryController;
     private final QueryCache indicesQueryCache;
     private final MetaStateService metaStateService;
@@ -237,6 +239,10 @@ public class IndicesService extends AbstractLifecycleComponent
             1, 1,
             0, TimeUnit.MILLISECONDS,
             daemonThreadFactory(nodeName, DANGLING_INDICES_UPDATE_THREAD_NAME)) : null;
+    }
+
+    public final void setSchemas(Schemas schemas) {
+        this.schemas = schemas;
     }
 
     private static final String DANGLING_INDICES_UPDATE_THREAD_NAME = "DanglingIndices#updateTask";
@@ -427,7 +433,7 @@ public class IndicesService extends AbstractLifecycleComponent
     }
 
     /**
-     * This creates a new IndexService without registering itcreateIndex
+     * This creates a new IndexService without registering it
      */
     private synchronized IndexService createIndexService(IndexCreationContext indexCreationContext,
                                                          IndexMetadata indexMetadata,
@@ -459,6 +465,7 @@ public class IndicesService extends AbstractLifecycleComponent
             bigArrays,
             threadPool,
             indicesQueryCache,
+            n -> schemas.getTranslogIndexer(n),
             mapperRegistry
         );
     }

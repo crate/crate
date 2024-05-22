@@ -924,12 +924,16 @@ public class Node implements Closeable {
         injector.getInstance(JobsLogService.class).start();
         injector.getInstance(PostgresNetty.class).start();
         injector.getInstance(TasksService.class).start();
-        injector.getInstance(Schemas.class).start();
         injector.getInstance(ArrayMapperService.class).start();
         injector.getInstance(DanglingArtifactsService.class).start();
         injector.getInstance(SslContextProviderService.class).start();
 
-        injector.getInstance(IndicesService.class).start();
+        Schemas schemas = injector.getInstance(Schemas.class);
+        IndicesService indicesService = injector.getInstance(IndicesService.class);
+        schemas.start();
+        indicesService.setSchemas(schemas);
+        indicesService.start();
+
         injector.getInstance(IndicesClusterStateService.class).start();
         injector.getInstance(SnapshotsService.class).start();
         injector.getInstance(SnapshotShardsService.class).start();

@@ -53,6 +53,8 @@ import org.elasticsearch.indices.mapper.MapperRegistry;
 import org.elasticsearch.plugins.IndexStorePlugin;
 import org.elasticsearch.threadpool.ThreadPool;
 
+import io.crate.execution.dml.TranslogIndexer;
+import io.crate.metadata.RelationName;
 import io.crate.types.DataTypes;
 
 /**
@@ -274,6 +276,7 @@ public final class IndexModule {
             BigArrays bigArrays,
             ThreadPool threadPool,
             QueryCache indicesQueryCache,
+            Function<RelationName, TranslogIndexer> translogIndexer,
             MapperRegistry mapperRegistry) throws IOException {
 
         final IndexEventListener eventListener = freeze();
@@ -299,6 +302,7 @@ public final class IndexModule {
             directoryFactory,
             eventListener,
             mapperRegistry,
+            translogIndexer,
             indexOperationListeners
         );
     }

@@ -53,6 +53,7 @@ import io.crate.metadata.DocReferences;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.server.xcontent.XContentHelper;
 import io.crate.sql.tree.BitString;
 import io.crate.types.ArrayType;
@@ -85,7 +86,14 @@ public final class SourceParser {
         this.lookupNameBySourceKey = lookupNameBySourceKey;
     }
 
-    public void register(List<Symbol> symbols) {
+    public SourceParser(DocTableInfo table) {
+        this.droppedColumns
+            = table.droppedColumns().stream().map(r -> r.column().fqn()).collect(Collectors.toUnmodifiableSet());
+        this.lookupNameBySourceKey = table.lookupNameBySourceKey();
+        register(table.columns());
+    }
+
+    public void register(List<? extends Symbol> symbols) {
         if (!Symbols.containsColumn(symbols, DocSysColumns.DOC)) {
             Consumer<Reference> register = ref -> {
                 if (ref.column().isSystemColumn() == false && ref.granularity() == RowGranularity.DOC) {
