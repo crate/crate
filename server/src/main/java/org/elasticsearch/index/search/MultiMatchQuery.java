@@ -42,17 +42,12 @@ import org.elasticsearch.index.query.MultiMatchQueryType;
 import org.elasticsearch.index.query.QueryShardContext;
 
 import io.crate.lucene.BlendedTermQuery;
+import io.crate.lucene.match.ParsedOptions;
 
 public class MultiMatchQuery extends MatchQuery {
 
-    private Float groupTieBreaker = null;
-
-    public void setTieBreaker(float tieBreaker) {
-        this.groupTieBreaker = tieBreaker;
-    }
-
-    public MultiMatchQuery(QueryShardContext context) {
-        super(context);
+    public MultiMatchQuery(QueryShardContext context, ParsedOptions parsedOptions) {
+        super(context, parsedOptions);
     }
 
     private Query parseAndApply(Type type, String fieldName, Object value, String minimumShouldMatch, Float boostValue) {
@@ -65,32 +60,24 @@ public class MultiMatchQuery extends MatchQuery {
     }
 
     public Query parse(MultiMatchQueryType type, Map<String, Float> fieldNames, Object value, String minimumShouldMatch) {
-        final Query result;
-        // reset query builder
-        queryBuilder = null;
-        if (fieldNames.size() == 1) {
-            Map.Entry<String, Float> fieldBoost = fieldNames.entrySet().iterator().next();
-            Float boostValue = fieldBoost.getValue();
-            result = parseAndApply(type.matchQueryType(), fieldBoost.getKey(), value, minimumShouldMatch, boostValue);
-        } else {
-            final float tieBreaker = groupTieBreaker == null ? type.tieBreaker() : groupTieBreaker;
-            switch (type) {
-                case PHRASE:
-                case PHRASE_PREFIX:
-                case BEST_FIELDS:
-                case MOST_FIELDS:
-                    queryBuilder = new QueryBuilder(tieBreaker);
-                    break;
-                case CROSS_FIELDS:
-                    queryBuilder = new CrossFieldsQueryBuilder(tieBreaker);
-                    break;
-                default:
-                    throw new IllegalStateException("No such type: " + type);
-            }
-            final List<? extends Query> queries = queryBuilder.buildGroupedQueries(type, fieldNames, value, minimumShouldMatch);
-            result = queryBuilder.combineGrouped(queries);
+        assert fieldNames.size() > 1 : "Must have more than one fieldName if using MultiMatchQuery";
+        Float groupTieBreaker = parsedOptions.tieBreaker();
+        final float tieBreaker = groupTieBreaker == null ? type.tieBreaker() : groupTieBreaker;
+        switch (type) {
+            case PHRASE:
+            case PHRASE_PREFIX:
+            case BEST_FIELDS:
+            case MOST_FIELDS:
+                queryBuilder = new QueryBuilder(tieBreaker);
+                break;
+            case CROSS_FIELDS:
+                queryBuilder = new CrossFieldsQueryBuilder(tieBreaker);
+                break;
+            default:
+                throw new IllegalStateException("No such type: " + type);
         }
-        return result;
+        final List<? extends Query> queries = queryBuilder.buildGroupedQueries(type, fieldNames, value, minimumShouldMatch);
+        return queryBuilder.combineGrouped(queries);
     }
 
     private QueryBuilder queryBuilder;
@@ -210,6 +197,7 @@ public class MultiMatchQuery extends MatchQuery {
             for (int i = 0; i < terms.length; i++) {
                 values[i] = terms[i].bytes();
             }
+            Float commonTermsCutoff = parsedOptions.commonTermsCutoff();
             return MultiMatchQuery.blendTerms(context, values, commonTermsCutoff, tieBreaker, blendedFields);
         }
 
@@ -218,6 +206,7 @@ public class MultiMatchQuery extends MatchQuery {
             if (blendedFields == null) {
                 return super.blendTerm(term, fieldType);
             }
+            Float commonTermsCutoff = parsedOptions.commonTermsCutoff();
             return MultiMatchQuery.blendTerm(context, term.bytes(), commonTermsCutoff, tieBreaker, blendedFields);
         }
 
@@ -324,25 +313,19 @@ public class MultiMatchQuery extends MatchQuery {
 
     @Override
     protected Query blendTermQuery(Term term, MappedFieldType fieldType) {
-        if (queryBuilder == null) {
-            return super.blendTermQuery(term, fieldType);
-        }
+        assert queryBuilder != null : "Must have called parse";
         return queryBuilder.blendTerm(term, fieldType);
     }
 
     @Override
     protected Query blendTermsQuery(Term[] terms, MappedFieldType fieldType) {
-        if (queryBuilder == null) {
-            return super.blendTermsQuery(terms, fieldType);
-        }
+        assert queryBuilder != null : "Must have called parse";
         return queryBuilder.blendTerms(terms, fieldType);
     }
 
     @Override
     protected Query blendPhraseQuery(PhraseQuery query, MappedFieldType fieldType) {
-        if (queryBuilder == null) {
-            return super.blendPhraseQuery(query, fieldType);
-        }
+        assert queryBuilder != null : "Must have called parse";
         return queryBuilder.blendPhrase(query, fieldType);
     }
 

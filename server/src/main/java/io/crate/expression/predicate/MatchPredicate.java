@@ -322,21 +322,7 @@ public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
         MultiMatchQueryType type = getType(matchType);
         ParsedOptions parsedOptions = OptionParser.parse(type, options);
 
-        MatchQuery matchQuery = new MatchQuery(queryShardContext);
-
-        if (parsedOptions.analyzer() != null) {
-            matchQuery.setAnalyzer(parsedOptions.analyzer());
-        }
-        matchQuery.setCommonTermsCutoff(parsedOptions.commonTermsCutoff());
-        matchQuery.setFuzziness(parsedOptions.fuzziness());
-        matchQuery.setFuzzyPrefixLength(parsedOptions.prefixLength());
-        matchQuery.setFuzzyRewriteMethod(parsedOptions.rewriteMethod());
-        matchQuery.setMaxExpansions(parsedOptions.maxExpansions());
-        matchQuery.setPhraseSlop(parsedOptions.phraseSlop());
-        matchQuery.setTranspositions(parsedOptions.transpositions());
-        matchQuery.setZeroTermsQuery(parsedOptions.zeroTermsQuery());
-        matchQuery.setOccur(parsedOptions.operator());
-
+        MatchQuery matchQuery = new MatchQuery(queryShardContext, parsedOptions);
         MatchQuery.Type matchQueryType = type.matchQueryType();
         String fieldName = entry.getKey();
         Query query = matchQuery.parse(matchQueryType, fieldName, queryString);
@@ -354,26 +340,7 @@ public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
                                     Map<String, Object> options) {
         MultiMatchQueryType type = getType(matchType);
         ParsedOptions parsedOptions = OptionParser.parse(type, options);
-
-        MultiMatchQuery multiMatchQuery = new MultiMatchQuery(queryShardContext);
-        Float tieBreaker = parsedOptions.tieBreaker();
-        if (tieBreaker != null) {
-            multiMatchQuery.setTieBreaker(tieBreaker);
-        }
-        String analyzer = parsedOptions.analyzer();
-        if (analyzer != null) {
-            multiMatchQuery.setAnalyzer(analyzer);
-        }
-        multiMatchQuery.setCommonTermsCutoff(parsedOptions.commonTermsCutoff());
-        multiMatchQuery.setFuzziness(parsedOptions.fuzziness());
-        multiMatchQuery.setFuzzyPrefixLength(parsedOptions.prefixLength());
-        multiMatchQuery.setFuzzyRewriteMethod(parsedOptions.rewriteMethod());
-        multiMatchQuery.setMaxExpansions(parsedOptions.maxExpansions());
-        multiMatchQuery.setPhraseSlop(parsedOptions.phraseSlop());
-        multiMatchQuery.setTranspositions(parsedOptions.transpositions());
-        multiMatchQuery.setZeroTermsQuery(parsedOptions.zeroTermsQuery());
-        multiMatchQuery.setOccur(parsedOptions.operator());
-
+        MultiMatchQuery multiMatchQuery = new MultiMatchQuery(queryShardContext, parsedOptions);
         return multiMatchQuery.parse(type, fieldNames, queryString, parsedOptions.minimumShouldMatch());
     }
 
