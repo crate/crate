@@ -59,7 +59,6 @@ import org.elasticsearch.common.lucene.search.MultiPhrasePrefixQuery;
 import org.elasticsearch.common.unit.Fuzziness;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.query.QueryShardContext;
-import org.elasticsearch.index.query.support.QueryParsers;
 
 import io.crate.lucene.DisableGraphAttribute;
 import io.crate.lucene.ExtendedCommonTermsQuery;
@@ -486,23 +485,28 @@ public class MatchQuery {
     }
 
     protected Query blendTermQuery(Term term, MappedFieldType fieldType) {
-        if (fuzziness != null) {
-            try {
-                fieldType.failIfNotIndexed();
-                Query query = new FuzzyQuery(term, fuzziness.asDistance(term.text()), fuzzyPrefixLength, maxExpansions, transpositions);
-                if (query instanceof FuzzyQuery) {
-                    QueryParsers.setRewriteMethod((FuzzyQuery) query, fuzzyRewriteMethod);
-                }
-                return query;
-            } catch (RuntimeException e) {
-                if (lenient) {
-                    return newLenientFieldQuery(fieldType.name(), e);
-                } else {
-                    throw e;
-                }
+        if (fuzziness == null) {
+            return termQuery(fieldType, term.bytes(), lenient);
+        }
+        try {
+            fieldType.failIfNotIndexed();
+            int distance = fuzziness.asDistance(term.text());
+            var rewriteMethod = fuzzyRewriteMethod == null ? FuzzyQuery.defaultRewriteMethod(maxExpansions) : fuzzyRewriteMethod;
+            return new FuzzyQuery(
+                term,
+                distance,
+                fuzzyPrefixLength,
+                maxExpansions,
+                transpositions,
+                rewriteMethod
+            );
+        } catch (RuntimeException e) {
+            if (lenient) {
+                return newLenientFieldQuery(fieldType.name(), e);
+            } else {
+                throw e;
             }
         }
-        return termQuery(fieldType, term.bytes(), lenient);
     }
 
     private static Query multiPhraseQuery(String field, TokenStream stream, int slop, boolean enablePositionIncrements) throws IOException {
