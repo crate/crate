@@ -186,7 +186,6 @@ import io.crate.execution.jobs.TasksService;
 import io.crate.execution.jobs.transport.NodeDisconnectJobMonitorService;
 import io.crate.expression.reference.sys.check.SysChecksModule;
 import io.crate.expression.reference.sys.check.node.SysNodeChecksModule;
-import io.crate.lucene.ArrayMapperService;
 import io.crate.metadata.CustomMetadataUpgraderLoader;
 import io.crate.metadata.DanglingArtifactsService;
 import io.crate.metadata.Functions;
@@ -924,7 +923,6 @@ public class Node implements Closeable {
         injector.getInstance(JobsLogService.class).start();
         injector.getInstance(PostgresNetty.class).start();
         injector.getInstance(TasksService.class).start();
-        injector.getInstance(ArrayMapperService.class).start();
         injector.getInstance(DanglingArtifactsService.class).start();
         injector.getInstance(SslContextProviderService.class).start();
 
@@ -1093,7 +1091,6 @@ public class Node implements Closeable {
         injector.getInstance(PostgresNetty.class).stop();
         injector.getInstance(TasksService.class).stop();
         injector.getInstance(Schemas.class).stop();
-        injector.getInstance(ArrayMapperService.class).stop();
         injector.getInstance(DanglingArtifactsService.class).stop();
         injector.getInstance(SslContextProviderService.class).stop();
         injector.getInstance(BlobService.class).stop();
@@ -1187,8 +1184,6 @@ public class Node implements Closeable {
         toClose.add(injector.getInstance(TasksService.class));
         toClose.add(() -> stopWatch.stop().start("schemas"));
         toClose.add(injector.getInstance(Schemas.class));
-        toClose.add(() -> stopWatch.stop().start("array_mapper_service"));
-        toClose.add(injector.getInstance(ArrayMapperService.class));
         toClose.add(() -> stopWatch.stop().start("dangling_artifacts_service"));
         toClose.add(injector.getInstance(DanglingArtifactsService.class));
         toClose.add(() -> stopWatch.stop().start("ssl_context_provider_service"));

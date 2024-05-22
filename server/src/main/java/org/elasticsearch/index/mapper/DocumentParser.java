@@ -34,7 +34,6 @@ import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.mapper.array.DynamicArrayFieldMapperBuilderFactory;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.collections.Tuple;
@@ -455,24 +454,12 @@ final class DocumentParser {
             if (dynamic == ObjectMapper.Dynamic.STRICT) {
                 throw new StrictDynamicMappingException(parentMapper.fullPath(), arrayFieldName);
             } else if (dynamic == ObjectMapper.Dynamic.TRUE) {
-                MapperService mapperService = context.mapperService();
-                DynamicArrayFieldMapperBuilderFactory dynamicArrayFieldMapperBuilderFactory =
-                    mapperService.mapperRegistry.getDynamicArrayBuilderFactory();
-
-                if (dynamicArrayFieldMapperBuilderFactory != null) {
-                    mapper = dynamicArrayFieldMapperBuilderFactory.create(
-                            arrayFieldName,
-                            parentMapper,
-                            context
-                    );
-                    if (mapper != null) {
-                        context.addDynamicMapper(mapper);
-                        context.path().add(arrayFieldName);
-                        parseObjectOrField(context, mapper);
-                        context.path().remove();
-                    }
-                } else {
-                    parseNonDynamicArray(context, parentMapper, lastFieldName, arrayFieldName);
+                mapper = ArrayMapperFactory.create(arrayFieldName, parentMapper, context);
+                if (mapper != null) {
+                    context.addDynamicMapper(mapper);
+                    context.path().add(arrayFieldName);
+                    parseObjectOrField(context, mapper);
+                    context.path().remove();
                 }
             } else {
                 // TODO: shouldn't this skip, not parse?
