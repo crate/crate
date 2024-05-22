@@ -42,8 +42,6 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
@@ -166,8 +164,6 @@ import io.crate.types.ObjectType;
  *
  */
 public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
-
-    private static final Logger LOGGER = LogManager.getLogger(DocTableInfo.class);
 
     private final List<Reference> columns;
     private final Set<Reference> droppedColumns;
@@ -731,6 +727,32 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             child[0] = updatedParent.column();
             childType[0] = updatedParent.valueType();
         }
+    }
+
+    public DocTableInfo dropConstraint(String constraint) {
+        List<CheckConstraint<Symbol>> newConstraints = checkConstraints.stream()
+            .filter(x -> !x.name().equals(constraint))
+            .toList();
+        if (newConstraints.size() == checkConstraints.size()) {
+            return this;
+        }
+        return new DocTableInfo(
+            ident,
+            references,
+            indexColumns,
+            analyzers,
+            pkConstraintName,
+            primaryKeys,
+            newConstraints,
+            clusteredBy,
+            tableParameters,
+            partitionedBy,
+            columnPolicy,
+            versionCreated,
+            versionUpgraded,
+            closed,
+            supportedOperations
+        );
     }
 
     public DocTableInfo dropColumns(List<DropColumn> columns) {
