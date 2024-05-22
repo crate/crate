@@ -22,7 +22,7 @@
 package io.crate.execution.engine.export;
 
 import static io.crate.data.SentinelRow.SENTINEL;
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -73,11 +73,11 @@ public class FileWriterProjectorTest extends ESTestCase {
 
         new TestingRowConsumer().accept(fileWriterProjector.apply(sourceSupplier.get()), null);
 
-        assertEquals("input line 00\n" +
+        assertThat(TestingHelpers.readFile(file.toAbsolutePath().toString())).isEqualTo("input line 00\n" +
                      "input line 01\n" +
                      "input line 02\n" +
                      "input line 03\n" +
-                     "input line 04", TestingHelpers.readFile(file.toAbsolutePath().toString()));
+                     "input line 04");
     }
 
     @Test

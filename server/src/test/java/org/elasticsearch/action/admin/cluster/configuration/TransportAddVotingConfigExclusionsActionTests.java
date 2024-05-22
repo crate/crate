@@ -29,7 +29,6 @@ import static org.elasticsearch.test.ClusterServiceUtils.setState;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.startsWith;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 
@@ -300,8 +299,7 @@ public class TransportAddVotingConfigExclusionsActionTests extends ESTestCase {
         );
 
         assertThat(countDownLatch.await(30, TimeUnit.SECONDS)).isTrue();
-        assertEquals(singleton(new VotingConfigExclusion("absent_id", VotingConfigExclusion.MISSING_VALUE_MARKER)),
-            clusterService.getClusterApplierService().state().getVotingConfigExclusions());
+        assertThat(clusterService.getClusterApplierService().state().getVotingConfigExclusions()).isEqualTo(singleton(new VotingConfigExclusion("absent_id", VotingConfigExclusion.MISSING_VALUE_MARKER)));
     }
 
     public void testExcludeExistingNodesByNodeIds() throws InterruptedException {
@@ -333,8 +331,7 @@ public class TransportAddVotingConfigExclusionsActionTests extends ESTestCase {
         );
 
         assertThat(countDownLatch.await(30, TimeUnit.SECONDS)).isTrue();
-        assertEquals(singleton(new VotingConfigExclusion(VotingConfigExclusion.MISSING_VALUE_MARKER, "absent_node")),
-                    clusterService.getClusterApplierService().state().getVotingConfigExclusions());
+        assertThat(clusterService.getClusterApplierService().state().getVotingConfigExclusions()).isEqualTo(singleton(new VotingConfigExclusion(VotingConfigExclusion.MISSING_VALUE_MARKER, "absent_node")));
     }
 
     public void testExcludeExistingNodesByNodeNames() throws InterruptedException {

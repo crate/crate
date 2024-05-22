@@ -23,7 +23,6 @@ package io.crate.metadata;
 
 import static io.crate.metadata.SearchPath.pathWithPGCatalogAndDoc;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 import java.util.Iterator;
@@ -85,7 +84,7 @@ public class SearchPathTest {
         s1.writeTo(out);
 
         SearchPath s2 = SearchPath.createSearchPathFrom(out.bytes().streamInput());
-        assertEquals(s1, s2);
+        assertThat(s2).isEqualTo(s1);
     }
 
     @Test
@@ -95,6 +94,6 @@ public class SearchPathTest {
         s1.writeTo(out);
 
         SearchPath s2 = SearchPath.createSearchPathFrom(out.bytes().streamInput());
-        assertEquals(s1, s2);
+        assertThat(s2).isEqualTo(s1);
     }
 }

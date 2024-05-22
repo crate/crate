@@ -21,10 +21,9 @@
 
 package io.crate.types;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static io.crate.types.TimeTZParser.parse;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 import org.elasticsearch.test.ESTestCase;
@@ -131,15 +130,15 @@ public class TimeTZParserTest extends ESTestCase {
     @Test
     public void test_parse_time() {
         assertThat(parse("04"), isTZ(4 * 60 * 60 * 1000_000L, 0));
-        assertEquals(parse("04"), parse("0400"));
-        assertEquals(parse("04"), parse("04:00"));
-        assertEquals(parse("04"), parse("040000"));
-        assertEquals(parse("04"), parse("04:00:00"));
-        assertEquals(parse("04"), parse("040000.0"));
-        assertEquals(parse("04"), parse("04:00:00.0"));
-        assertEquals(parse("04+00"), parse("04:00:00.0+00"));
-        assertEquals(parse("04+00"), parse("04:00:00.0+0000"));
-        assertEquals(parse("04+00"), parse("04:00:00.0+00:00"));
+        assertThat(parse("0400")).isEqualTo(parse("04"));
+        assertThat(parse("04:00")).isEqualTo(parse("04"));
+        assertThat(parse("040000")).isEqualTo(parse("04"));
+        assertThat(parse("04:00:00")).isEqualTo(parse("04"));
+        assertThat(parse("040000.0")).isEqualTo(parse("04"));
+        assertThat(parse("04:00:00.0")).isEqualTo(parse("04"));
+        assertThat(parse("04:00:00.0+00")).isEqualTo(parse("04+00"));
+        assertThat(parse("04:00:00.0+0000")).isEqualTo(parse("04+00"));
+        assertThat(parse("04:00:00.0+00:00")).isEqualTo(parse("04+00"));
     }
 
     @Test

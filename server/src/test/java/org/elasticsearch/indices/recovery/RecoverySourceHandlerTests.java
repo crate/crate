@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.indices.recovery;
 
 import static java.util.Collections.emptyMap;
@@ -24,7 +25,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.index.engine.Engine.Operation.Origin.PRIMARY;
 import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -199,11 +199,11 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         FutureUtils.get(sendFilesFuture, (long) 5, TimeUnit.SECONDS);
         Store.MetadataSnapshot targetStoreMetadata = targetStore.getMetadata(null);
         Store.RecoveryDiff recoveryDiff = targetStoreMetadata.recoveryDiff(metadata);
-        assertEquals(metas.size(), recoveryDiff.identical.size());
-        assertEquals(0, recoveryDiff.different.size());
-        assertEquals(0, recoveryDiff.missing.size());
+        assertThat(recoveryDiff.identical.size()).isEqualTo(metas.size());
+        assertThat(recoveryDiff.different.size()).isEqualTo(0);
+        assertThat(recoveryDiff.missing.size()).isEqualTo(0);
         IndexReader reader = DirectoryReader.open(targetStore.directory());
-        assertEquals(numDocs, reader.maxDoc());
+        assertThat(reader.maxDoc()).isEqualTo(numDocs);
         IOUtils.close(reader, store, multiFileWriter, targetStore);
     }
 

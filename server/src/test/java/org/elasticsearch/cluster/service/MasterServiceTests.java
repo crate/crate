@@ -25,7 +25,6 @@ import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasKey;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -544,21 +543,20 @@ public class MasterServiceTests extends ESTestCase {
             semaphore.acquire(numberOfExecutors);
 
             // assert the number of executed tasks is correct
-            assertEquals(totalTaskCount, counter.get());
+            assertThat(counter.get()).isEqualTo(totalTaskCount);
 
             // assert each executor executed the correct number of tasks
             for (TaskExecutor executor : executors) {
                 if (counts.containsKey(executor)) {
-                    assertEquals((int) counts.get(executor), executor.counter.get());
-                    assertEquals(executor.batches.get(), executor.published.get());
+                    assertThat(executor.counter.get()).isEqualTo((int) counts.get(executor));
+                    assertThat(executor.published.get()).isEqualTo(executor.batches.get());
                 }
             }
 
             // assert the correct number of clusterStateProcessed events were triggered
             for (Map.Entry<String, AtomicInteger> entry : processedStates.entrySet()) {
                 assertThat(submittedTasksPerThread, hasKey(entry.getKey()));
-                assertEquals("not all tasks submitted by " + entry.getKey() + " received a processed event",
-                    entry.getValue().get(), submittedTasksPerThread.get(entry.getKey()).get());
+                assertThat(submittedTasksPerThread.get(entry.getKey()).get()).as("not all tasks submitted by " + entry.getKey() + " received a processed event").isEqualTo(entry.getValue().get());
             }
         }
     }

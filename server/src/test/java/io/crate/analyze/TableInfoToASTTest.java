@@ -21,8 +21,8 @@
 
 package io.crate.analyze;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.index.mapper.GeoShapeFieldMapper.Names.TREE_QUADTREE;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 import org.assertj.core.api.Assertions;
@@ -79,7 +79,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo tableInfo = e.resolveTableInfo("doc.test");
 
         var node = new TableInfoToAST(tableInfo).toStatement();
-        assertEquals("CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
+        assertThat(SqlFormatter.formatSql(node)).isEqualTo("CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
                      "   \"bools\" BOOLEAN,\n" +
                      "   \"bytes\" BYTE,\n" +
                      "   \"strings\" TEXT,\n" +
@@ -124,8 +124,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
                      "   \"translog.sync_interval\" = 5000,\n" +
                      "   \"unassigned.node_left.delayed_timeout\" = 60000,\n" +
                      "   \"write.wait_for_active_shards\" = '1'\n" +
-                     ")",
-            SqlFormatter.formatSql(node));
+                     ")");
     }
 
     @Test
@@ -145,7 +144,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo tableInfo = e.resolveTableInfo("myschema.test");
 
         var node = new TableInfoToAST(tableInfo).toStatement();
-        assertEquals("CREATE TABLE IF NOT EXISTS \"myschema\".\"test\" (\n" +
+        assertThat(SqlFormatter.formatSql(node)).isEqualTo("CREATE TABLE IF NOT EXISTS \"myschema\".\"test\" (\n" +
                      "   \"pk_col_one\" BIGINT NOT NULL,\n" +
                      "   \"pk_col_two\" BIGINT NOT NULL,\n" +
                      "   PRIMARY KEY (\"pk_col_one\", \"pk_col_two\")\n" +
@@ -173,8 +172,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
                      "   \"translog.sync_interval\" = 5000,\n" +
                      "   \"unassigned.node_left.delayed_timeout\" = 60000,\n" +
                      "   \"write.wait_for_active_shards\" = '1'\n" +
-                     ")",
-            SqlFormatter.formatSql(node));
+                     ")");
     }
 
     @Test
@@ -194,7 +192,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo tableInfo = e.resolveTableInfo("myschema.test");
 
         var node = new TableInfoToAST(tableInfo).toStatement();
-        assertEquals("CREATE TABLE IF NOT EXISTS \"myschema\".\"test\" (\n" +
+        assertThat(SqlFormatter.formatSql(node)).isEqualTo("CREATE TABLE IF NOT EXISTS \"myschema\".\"test\" (\n" +
                      "   \"col_a\" TEXT NOT NULL,\n" +
                      "   \"col_b\" TEXT NOT NULL INDEX USING FULLTEXT WITH (\n" +
                      "      analyzer = 'standard'\n" +
@@ -224,8 +222,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
                      "   \"translog.sync_interval\" = 5000,\n" +
                      "   \"unassigned.node_left.delayed_timeout\" = 60000,\n" +
                      "   \"write.wait_for_active_shards\" = '1'\n" +
-                     ")",
-            SqlFormatter.formatSql(node));
+                     ")");
     }
 
     @Test
@@ -243,7 +240,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo tableInfo = e.resolveTableInfo("doc.test");
 
         var node = new TableInfoToAST(tableInfo).toStatement();
-        assertEquals("CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
+        assertThat(SqlFormatter.formatSql(node)).isEqualTo("CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
                      "   \"floats\" REAL,\n" +
                      "   \"shorts\" SMALLINT,\n" +
                      "   CONSTRAINT test_floats_check CHECK(\"floats\" <> - 1),\n" +
@@ -271,8 +268,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
                      "   \"translog.sync_interval\" = 5000,\n" +
                      "   \"unassigned.node_left.delayed_timeout\" = 60000,\n" +
                      "   \"write.wait_for_active_shards\" = '1'\n" +
-                     ")",
-                     SqlFormatter.formatSql(node));
+                     ")");
     }
 
     @Test
@@ -292,7 +288,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo tableInfo = e.resolveTableInfo("myschema.test");
 
         var node = new TableInfoToAST(tableInfo).toStatement();
-        assertEquals("CREATE TABLE IF NOT EXISTS \"myschema\".\"test\" (\n" +
+        assertThat(SqlFormatter.formatSql(node)).isEqualTo("CREATE TABLE IF NOT EXISTS \"myschema\".\"test\" (\n" +
                      "   \"id\" BIGINT,\n" +
                      "   \"partition_column\" TEXT,\n" +
                      "   \"cluster_column\" TEXT\n" +
@@ -321,8 +317,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
                      "   \"translog.sync_interval\" = 5000,\n" +
                      "   \"unassigned.node_left.delayed_timeout\" = 60000,\n" +
                      "   \"write.wait_for_active_shards\" = '1'\n" +
-                     ")",
-            SqlFormatter.formatSql(node));
+                     ")");
     }
 
 
@@ -353,7 +348,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo tableInfo = e.resolveTableInfo("myschema.test");
 
         var node = new TableInfoToAST(tableInfo).toStatement();
-        assertEquals("CREATE TABLE IF NOT EXISTS \"myschema\".\"test\" (\n" +
+        assertThat(SqlFormatter.formatSql(node)).isEqualTo("CREATE TABLE IF NOT EXISTS \"myschema\".\"test\" (\n" +
                      "   \"id\" BIGINT,\n" +
                      "   \"col_a\" TEXT,\n" +
                      "   \"col_b\" TEXT INDEX USING FULLTEXT WITH (\n" +
@@ -396,8 +391,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
                      "   \"translog.sync_interval\" = 5000,\n" +
                      "   \"unassigned.node_left.delayed_timeout\" = 60000,\n" +
                      "   \"write.wait_for_active_shards\" = '1'\n" +
-                     ")",
-            SqlFormatter.formatSql(node));
+                     ")");
     }
 
     @Test
@@ -415,7 +409,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo tableInfo = e.resolveTableInfo("myschema.test");
 
         var node = new TableInfoToAST(tableInfo).toStatement();
-        assertEquals("CREATE TABLE IF NOT EXISTS \"myschema\".\"test\" (\n" +
+        assertThat(SqlFormatter.formatSql(node)).isEqualTo("CREATE TABLE IF NOT EXISTS \"myschema\".\"test\" (\n" +
                      "   \"s\" TEXT STORAGE WITH (\n" +
                      "      columnstore = false\n" +
                      "   )\n" +
@@ -443,8 +437,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
                      "   \"translog.sync_interval\" = 5000,\n" +
                      "   \"unassigned.node_left.delayed_timeout\" = 60000,\n" +
                      "   \"write.wait_for_active_shards\" = '1'\n" +
-                     ")",
-            SqlFormatter.formatSql(node));
+                     ")");
     }
 
     @Test
@@ -460,7 +453,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
                       ")");
         DocTableInfo tableInfo = e.resolveTableInfo("test");
         var node = new TableInfoToAST(tableInfo).toStatement();
-        assertEquals("CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
+        assertThat(SqlFormatter.formatSql(node)).isEqualTo("CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
                      "   \"col1\" TEXT,\n" +
                      "   \"col2\" INTEGER DEFAULT 2,\n" +
                      "   \"col3\" TIMESTAMP WITH TIME ZONE DEFAULT current_timestamp(3),\n" +
@@ -489,8 +482,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
                      "   \"translog.sync_interval\" = 5000,\n" +
                      "   \"unassigned.node_left.delayed_timeout\" = 60000,\n" +
                      "   \"write.wait_for_active_shards\" = '1'\n" +
-                     ")",
-                     SqlFormatter.formatSql(node));
+                     ")");
     }
 
     @Test

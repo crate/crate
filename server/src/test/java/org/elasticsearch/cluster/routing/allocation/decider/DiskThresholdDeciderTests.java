@@ -27,7 +27,6 @@ import static org.elasticsearch.cluster.routing.ShardRoutingState.RELOCATING;
 import static org.elasticsearch.cluster.routing.ShardRoutingState.STARTED;
 import static org.elasticsearch.cluster.routing.ShardRoutingState.UNASSIGNED;
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
@@ -777,8 +776,7 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
         routingAllocation.debugDecision(true);
         decision = diskThresholdDecider.canRemain(firstRouting, firstRoutingNode, routingAllocation);
         assertThat(decision.type()).isEqualTo(Decision.Type.YES);
-        assertEquals("there is enough disk on this node for the shard to remain, free: [60b]",
-                     decision.getExplanation());
+        assertThat(decision.getExplanation()).isEqualTo("there is enough disk on this node for the shard to remain, free: [60b]");
         decision = diskThresholdDecider.canAllocate(fooRouting, firstRoutingNode, routingAllocation);
         assertThat(decision.type()).isEqualTo(Decision.Type.NO);
         if (fooRouting.recoverySource().getType() == RecoverySource.Type.EMPTY_STORE) {

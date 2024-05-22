@@ -26,7 +26,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.isEmptyOrNullString;
 import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 import java.io.File;
@@ -88,7 +87,7 @@ public class CrateHttpsTransportIntegrationTest extends SQLHttpIntegrationTest {
     public void testCheckEncryptedConnection() throws Throwable {
         CloseableHttpResponse response = post("{\"stmt\": \"select 'sslWorks'\"}");
         assertThat(response).isNotNull();
-        assertEquals(200, response.getStatusLine().getStatusCode());
+        assertThat(response.getStatusLine().getStatusCode()).isEqualTo(200);
         String result = EntityUtils.toString(response.getEntity());
         assertThat(result, containsString("\"rowcount\":1"));
         assertThat(result, containsString("sslWorks"));
@@ -103,7 +102,7 @@ public class CrateHttpsTransportIntegrationTest extends SQLHttpIntegrationTest {
             assertThat(blobUrl, not(isEmptyOrNullString()));
             HttpGet httpGet = new HttpGet(blobUrl);
             CloseableHttpResponse response = httpClient.execute(httpGet);
-            assertEquals(200, response.getStatusLine().getStatusCode());
+            assertThat(response.getStatusLine().getStatusCode()).isEqualTo(200);
             assertThat(response.getEntity().getContentLength()).isEqualTo((long) blob.length());
         } finally {
             execute("drop table if exists test");

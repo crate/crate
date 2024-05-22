@@ -23,7 +23,6 @@ package org.elasticsearch.test.test;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.discovery.DiscoveryModule.DISCOVERY_SEED_PROVIDERS_SETTING;
 import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
@@ -127,7 +126,7 @@ public class InternalTestClusterTests extends ESTestCase {
                 continue;
             }
             assertThat(keys1.contains(key)).as("key [" + key + "] is missing in " + keys1).isTrue();
-            assertEquals(key, right.get(key), left.get(key));
+            assertThat(left.get(key)).as(key).isEqualTo(right.get(key));
         }
     }
 

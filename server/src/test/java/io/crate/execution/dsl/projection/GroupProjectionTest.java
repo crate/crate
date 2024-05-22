@@ -22,7 +22,6 @@
 package io.crate.execution.dsl.projection;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
 
 import java.util.Collections;
 import java.util.List;
@@ -57,7 +56,7 @@ public class GroupProjectionTest extends ESTestCase {
         StreamInput in = out.bytes().streamInput();
         GroupProjection p2 = (GroupProjection) Projection.fromStream(in);
 
-        assertEquals(p, p2);
+        assertThat(p2).isEqualTo(p);
     }
 
     @Test
@@ -97,6 +96,6 @@ public class GroupProjectionTest extends ESTestCase {
 
         StreamInput in = out.bytes().streamInput();
         GroupProjection p2 = (GroupProjection) Projection.fromStream(in);
-        assertEquals(p, p2);
+        assertThat(p2).isEqualTo(p);
     }
 }

@@ -20,7 +20,6 @@ package org.elasticsearch.test.hamcrest;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -102,7 +101,7 @@ public class ElasticsearchAssertions {
      * Compares two maps recursively, using arrays comparisons for byte[] through Arrays.equals(byte[], byte[])
      */
     private static void assertMapEquals(Map<String, Object> expected, Map<String, Object> actual) {
-        assertEquals(expected.size(), actual.size());
+        assertThat(actual.size()).isEqualTo(expected.size());
         for (Map.Entry<String, Object> expectedEntry : expected.entrySet()) {
             String expectedKey = expectedEntry.getKey();
             Object expectedValue = expectedEntry.getValue();
@@ -119,7 +118,7 @@ public class ElasticsearchAssertions {
      * Compares two lists recursively, but using arrays comparisons for byte[] through Arrays.equals(byte[], byte[])
      */
     private static void assertListEquals(List<Object> expected, List<Object> actual) {
-        assertEquals(expected.size(), actual.size());
+        assertThat(actual.size()).isEqualTo(expected.size());
         Iterator<Object> actualIterator = actual.iterator();
         for (Object expectedValue : expected) {
             Object actualValue = actualIterator.next();
@@ -143,7 +142,7 @@ public class ElasticsearchAssertions {
             //don't need to be handled. Ordinary arrays get parsed as lists.
             assertArrayEquals((byte[]) expected, (byte[]) actual);
         } else {
-            assertEquals(expected, actual);
+            assertThat(actual).isEqualTo(expected);
         }
     }
 }

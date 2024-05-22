@@ -21,7 +21,6 @@ package org.elasticsearch.transport;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import java.io.IOException;
@@ -158,11 +157,11 @@ public class InboundPipelineTests extends ESTestCase {
                     final Tuple<MessageData, Exception> actualTuple = actual.get(j);
                     final MessageData expectedMessageData = expectedTuple.v1();
                     final MessageData actualMessageData = actualTuple.v1();
-                    assertEquals(expectedMessageData.requestId, actualMessageData.requestId);
-                    assertEquals(expectedMessageData.isRequest, actualMessageData.isRequest);
-                    assertEquals(expectedMessageData.isCompressed, actualMessageData.isCompressed);
-                    assertEquals(expectedMessageData.actionName, actualMessageData.actionName);
-                    assertEquals(expectedMessageData.value, actualMessageData.value);
+                    assertThat(actualMessageData.requestId).isEqualTo(expectedMessageData.requestId);
+                    assertThat(actualMessageData.isRequest).isEqualTo(expectedMessageData.isRequest);
+                    assertThat(actualMessageData.isCompressed).isEqualTo(expectedMessageData.isCompressed);
+                    assertThat(actualMessageData.actionName).isEqualTo(expectedMessageData.actionName);
+                    assertThat(actualMessageData.value).isEqualTo(expectedMessageData.value);
                     if (expectedTuple.v2() != null) {
                         assertNotNull(actualTuple.v2());
                         assertThat(actualTuple.v2()).isExactlyInstanceOf(expectedTuple.v2().getClass());
@@ -170,12 +169,12 @@ public class InboundPipelineTests extends ESTestCase {
                 }
 
                 for (ReleasableBytesReference released : toRelease) {
-                    assertEquals(0, released.refCount());
+                    assertThat(released.refCount()).isEqualTo(0);
                 }
             }
 
-            assertEquals(bytesReceived, statsTracker.bytesReceived());
-            assertEquals(totalMessages, statsTracker.messagesReceived());
+            assertThat(statsTracker.bytesReceived()).isEqualTo(bytesReceived);
+            assertThat(statsTracker.messagesReceived()).isEqualTo(totalMessages);
         }
     }
 

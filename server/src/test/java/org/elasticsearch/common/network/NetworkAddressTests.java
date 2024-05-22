@@ -19,7 +19,8 @@
 
 package org.elasticsearch.common.network;
 
-import static org.junit.Assert.assertEquals;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.net.Inet6Address;
@@ -36,55 +37,55 @@ import org.elasticsearch.test.ESTestCase;
 public class NetworkAddressTests extends ESTestCase {
 
     public void testFormatV4() throws Exception {
-        assertEquals("127.0.0.1", NetworkAddress.format(forge("localhost", "127.0.0.1")));
-        assertEquals("127.0.0.1", NetworkAddress.format(forge(null, "127.0.0.1")));
+        assertThat(NetworkAddress.format(forge("localhost", "127.0.0.1"))).isEqualTo("127.0.0.1");
+        assertThat(NetworkAddress.format(forge(null, "127.0.0.1"))).isEqualTo("127.0.0.1");
     }
 
     public void testFormatV6() throws Exception {
-        assertEquals("::1", NetworkAddress.format(forge("localhost", "::1")));
-        assertEquals("::1", NetworkAddress.format(forge(null, "::1")));
+        assertThat(NetworkAddress.format(forge("localhost", "::1"))).isEqualTo("::1");
+        assertThat(NetworkAddress.format(forge(null, "::1"))).isEqualTo("::1");
     }
 
     public void testFormatPortV4() throws Exception {
-        assertEquals("127.0.0.1:1234", NetworkAddress.format(new InetSocketAddress(forge("localhost", "127.0.0.1"), 1234)));
-        assertEquals("127.0.0.1:1234", NetworkAddress.format(new InetSocketAddress(forge(null, "127.0.0.1"), 1234)));
+        assertThat(NetworkAddress.format(new InetSocketAddress(forge("localhost", "127.0.0.1"), 1234))).isEqualTo("127.0.0.1:1234");
+        assertThat(NetworkAddress.format(new InetSocketAddress(forge(null, "127.0.0.1"), 1234))).isEqualTo("127.0.0.1:1234");
     }
 
     public void testFormatPortV6() throws Exception {
-        assertEquals("[::1]:1234", NetworkAddress.format(new InetSocketAddress(forge("localhost", "::1"), 1234)));
-        assertEquals("[::1]:1234", NetworkAddress.format(new InetSocketAddress(forge(null, "::1"), 1234)));
+        assertThat(NetworkAddress.format(new InetSocketAddress(forge("localhost", "::1"), 1234))).isEqualTo("[::1]:1234");
+        assertThat(NetworkAddress.format(new InetSocketAddress(forge(null, "::1"), 1234))).isEqualTo("[::1]:1234");
     }
 
     public void testFormatPortsRangeV4() throws Exception {
-        assertEquals("127.0.0.1", NetworkAddress.format(forge("localhost", "127.0.0.1"), new PortsRange("")));
-        assertEquals("127.0.0.1", NetworkAddress.format(forge(null, "127.0.0.1"), new PortsRange("")));
+        assertThat(NetworkAddress.format(forge("localhost", "127.0.0.1"), new PortsRange(""))).isEqualTo("127.0.0.1");
+        assertThat(NetworkAddress.format(forge(null, "127.0.0.1"), new PortsRange(""))).isEqualTo("127.0.0.1");
 
-        assertEquals("127.0.0.1:4300", NetworkAddress.format(forge("localhost", "127.0.0.1"), new PortsRange("4300")));
-        assertEquals("127.0.0.1:4300", NetworkAddress.format(forge(null, "127.0.0.1"), new PortsRange("4300")));
+        assertThat(NetworkAddress.format(forge("localhost", "127.0.0.1"), new PortsRange("4300"))).isEqualTo("127.0.0.1:4300");
+        assertThat(NetworkAddress.format(forge(null, "127.0.0.1"), new PortsRange("4300"))).isEqualTo("127.0.0.1:4300");
 
-        assertEquals("127.0.0.1:[4300-4400]", NetworkAddress.format(forge("localhost", "127.0.0.1"), new PortsRange("4300-4400")));
-        assertEquals("127.0.0.1:[4300-4400]", NetworkAddress.format(forge(null, "127.0.0.1"), new PortsRange("4300-4400")));
+        assertThat(NetworkAddress.format(forge("localhost", "127.0.0.1"), new PortsRange("4300-4400"))).isEqualTo("127.0.0.1:[4300-4400]");
+        assertThat(NetworkAddress.format(forge(null, "127.0.0.1"), new PortsRange("4300-4400"))).isEqualTo("127.0.0.1:[4300-4400]");
     }
 
     public void testFormatPortsRangeV6() throws Exception {
-        assertEquals("::1", NetworkAddress.format(forge("localhost", "::1"), new PortsRange("")));
-        assertEquals("::1", NetworkAddress.format(forge(null, "::1"), new PortsRange("")));
+        assertThat(NetworkAddress.format(forge("localhost", "::1"), new PortsRange(""))).isEqualTo("::1");
+        assertThat(NetworkAddress.format(forge(null, "::1"), new PortsRange(""))).isEqualTo("::1");
 
-        assertEquals("[::1]:4300", NetworkAddress.format(forge("localhost", "::1"), new PortsRange("4300")));
-        assertEquals("[::1]:4300", NetworkAddress.format(forge(null, "::1"), new PortsRange("4300")));
+        assertThat(NetworkAddress.format(forge("localhost", "::1"), new PortsRange("4300"))).isEqualTo("[::1]:4300");
+        assertThat(NetworkAddress.format(forge(null, "::1"), new PortsRange("4300"))).isEqualTo("[::1]:4300");
 
-        assertEquals("[::1]:[4300-4400]", NetworkAddress.format(forge("localhost", "::1"), new PortsRange("4300-4400")));
-        assertEquals("[::1]:[4300-4400]", NetworkAddress.format(forge(null, "::1"), new PortsRange("4300-4400")));
+        assertThat(NetworkAddress.format(forge("localhost", "::1"), new PortsRange("4300-4400"))).isEqualTo("[::1]:[4300-4400]");
+        assertThat(NetworkAddress.format(forge(null, "::1"), new PortsRange("4300-4400"))).isEqualTo("[::1]:[4300-4400]");
     }
 
     public void testNoScopeID() throws Exception {
-        assertEquals("::1", NetworkAddress.format(forgeScoped(null, "::1", 5)));
-        assertEquals("::1", NetworkAddress.format(forgeScoped("localhost", "::1", 5)));
-        assertEquals("::1", NetworkAddress.format(forgeScoped("localhost", "::1", 5), new PortsRange("")));
+        assertThat(NetworkAddress.format(forgeScoped(null, "::1", 5))).isEqualTo("::1");
+        assertThat(NetworkAddress.format(forgeScoped("localhost", "::1", 5))).isEqualTo("::1");
+        assertThat(NetworkAddress.format(forgeScoped("localhost", "::1", 5), new PortsRange(""))).isEqualTo("::1");
 
-        assertEquals("[::1]:1234", NetworkAddress.format(new InetSocketAddress(forgeScoped(null, "::1", 5), 1234)));
-        assertEquals("[::1]:1234", NetworkAddress.format(new InetSocketAddress(forgeScoped("localhost", "::1", 5), 1234)));
-        assertEquals("[::1]:[4300-4400]", NetworkAddress.format(forgeScoped("localhost", "::1", 5), new PortsRange("4300-4400")));
+        assertThat(NetworkAddress.format(new InetSocketAddress(forgeScoped(null, "::1", 5), 1234))).isEqualTo("[::1]:1234");
+        assertThat(NetworkAddress.format(new InetSocketAddress(forgeScoped("localhost", "::1", 5), 1234))).isEqualTo("[::1]:1234");
+        assertThat(NetworkAddress.format(forgeScoped("localhost", "::1", 5), new PortsRange("4300-4400"))).isEqualTo("[::1]:[4300-4400]");
     }
 
     /** Test that ipv4 address formatting round trips */
@@ -112,7 +113,7 @@ public class NetworkAddressTests extends ESTestCase {
             InetAddress expected = InetAddress.getByAddress(bytes);
             String formatted = NetworkAddress.format(expected);
             InetAddress actual = InetAddress.getByName(formatted);
-            assertEquals(expected, actual);
+            assertThat(actual).isEqualTo(expected);
         }
     }
 

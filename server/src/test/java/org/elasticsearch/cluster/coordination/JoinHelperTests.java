@@ -23,7 +23,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.monitor.StatusInfo.Status.HEALTHY;
 import static org.elasticsearch.monitor.StatusInfo.Status.UNHEALTHY;
 import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
-import static org.junit.Assert.assertEquals;
 
 import java.util.Collections;
 import java.util.Optional;
@@ -81,7 +80,7 @@ public class JoinHelperTests extends ESTestCase {
         CapturedRequest[] capturedRequests1 = capturingTransport.getCapturedRequestsAndClear();
         assertThat(capturedRequests1.length).isEqualTo(1);
         CapturedRequest capturedRequest1 = capturedRequests1[0];
-        assertEquals(node1, capturedRequest1.node);
+        assertThat(capturedRequest1.node).isEqualTo(node1);
 
         assertThat(joinHelper.isJoinPending()).isTrue();
 
@@ -92,7 +91,7 @@ public class JoinHelperTests extends ESTestCase {
         CapturedRequest[] capturedRequests2 = capturingTransport.getCapturedRequestsAndClear();
         assertThat(capturedRequests2.length).isEqualTo(1);
         CapturedRequest capturedRequest2 = capturedRequests2[0];
-        assertEquals(node2, capturedRequest2.node);
+        assertThat(capturedRequest2.node).isEqualTo(node2);
 
         // check that sending another join to node1 is a noop as the previous join is still in progress
         joinHelper.sendJoinRequest(node1, 0L, optionalJoin1);
@@ -110,7 +109,7 @@ public class JoinHelperTests extends ESTestCase {
         CapturedRequest[] capturedRequests1a = capturingTransport.getCapturedRequestsAndClear();
         assertThat(capturedRequests1a.length).isEqualTo(1);
         CapturedRequest capturedRequest1a = capturedRequests1a[0];
-        assertEquals(node1, capturedRequest1a.node);
+        assertThat(capturedRequest1a.node).isEqualTo(node1);
 
         // check that sending another join to node2 works if the optionalJoin is different
         Optional<Join> optionalJoin2a = optionalJoin2.isPresent() && randomBoolean() ? Optional.empty() :
@@ -119,7 +118,7 @@ public class JoinHelperTests extends ESTestCase {
         CapturedRequest[] capturedRequests2a = capturingTransport.getCapturedRequestsAndClear();
         assertThat(capturedRequests2a.length).isEqualTo(1);
         CapturedRequest capturedRequest2a = capturedRequests2a[0];
-        assertEquals(node2, capturedRequest2a.node);
+        assertThat(capturedRequest2a.node).isEqualTo(node2);
 
         // complete all the joins and check that isJoinPending is updated
         assertThat(joinHelper.isJoinPending()).isTrue();
@@ -236,6 +235,6 @@ public class JoinHelperTests extends ESTestCase {
         CapturedRequest[] capturedRequests1a = capturingTransport.getCapturedRequestsAndClear();
         assertThat(capturedRequests1a.length).isEqualTo(1);
         CapturedRequest capturedRequest1a = capturedRequests1a[0];
-        assertEquals(node1, capturedRequest1a.node);
+        assertThat(capturedRequest1a.node).isEqualTo(node1);
     }
 }

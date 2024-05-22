@@ -29,7 +29,6 @@ import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
 import static org.elasticsearch.transport.TransportService.HANDSHAKE_ACTION_NAME;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -639,7 +638,7 @@ public class FollowersCheckerTests extends ESTestCase {
             .map(cr -> cr.node).collect(Collectors.toList());
         List<DiscoveryNode> sortedFollowerTargets = new ArrayList<>(followerTargets);
         Collections.sort(sortedFollowerTargets, Comparator.comparing(n -> n.isMasterEligibleNode() == false));
-        assertEquals(sortedFollowerTargets, followerTargets);
+        assertThat(followerTargets).isEqualTo(sortedFollowerTargets);
     }
 
     private static List<DiscoveryNode> randomNodes(final int numNodes) {

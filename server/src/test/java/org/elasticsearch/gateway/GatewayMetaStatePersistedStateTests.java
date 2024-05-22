@@ -20,7 +20,6 @@
 package org.elasticsearch.gateway;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -405,14 +404,14 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
                 persistedState.setLastAcceptedState(state);
             }
         }
-        assertEquals(currentTerm, persistedState.getCurrentTerm());
+        assertThat(persistedState.getCurrentTerm()).isEqualTo(currentTerm);
         assertClusterStateEqual(state, persistedState.getLastAcceptedState());
         assertBusy(() -> assertTrue(gateway.allPendingAsyncStatesWritten()));
 
         gateway.close();
 
         try (CoordinationState.PersistedState reloadedPersistedState = newGatewayPersistedState()) {
-            assertEquals(currentTerm, reloadedPersistedState.getCurrentTerm());
+            assertThat(reloadedPersistedState.getCurrentTerm()).isEqualTo(currentTerm);
             assertClusterStateEqual(GatewayMetaState.AsyncLucenePersistedState.resetVotingConfiguration(state),
                                     reloadedPersistedState.getLastAcceptedState());
             assertNotNull(reloadedPersistedState.getLastAcceptedState().metadata().index(indexName));
@@ -482,8 +481,8 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
                 }
             }
 
-            assertEquals(state, persistedState.getLastAcceptedState());
-            assertEquals(currentTerm, persistedState.getCurrentTerm());
+            assertThat(persistedState.getLastAcceptedState()).isEqualTo(state);
+            assertThat(persistedState.getCurrentTerm()).isEqualTo(currentTerm);
 
         } catch (IOError | Exception e) {
             if (ioExceptionRate.get() == 0.0d) {

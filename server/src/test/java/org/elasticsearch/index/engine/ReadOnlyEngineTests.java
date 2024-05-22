@@ -22,7 +22,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.common.lucene.index.ElasticsearchDirectoryReader.getElasticsearchDirectoryReader;
 import static org.hamcrest.Matchers.greaterThan;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
@@ -101,7 +100,7 @@ public class ReadOnlyEngineTests extends EngineTestCase {
                 ElasticsearchDirectoryReader esReader = getElasticsearchDirectoryReader(dirReader);
                 IndexReader.CacheHelper helper = esReader.getReaderCacheHelper();
                 assertNotNull(helper);
-                assertEquals(helper.getKey(), dirReader.getReaderCacheHelper().getKey());
+                assertThat(dirReader.getReaderCacheHelper().getKey()).isEqualTo(helper.getKey());
 
                 IOUtils.close(external, internal);
                 // the locked down engine should still point to the previous commit

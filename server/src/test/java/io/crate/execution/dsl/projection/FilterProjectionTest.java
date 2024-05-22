@@ -21,7 +21,7 @@
 
 package io.crate.execution.dsl.projection;
 
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collections;
 import java.util.List;
@@ -62,6 +62,6 @@ public class FilterProjectionTest extends ESTestCase {
         StreamInput in = out.bytes().streamInput();
         FilterProjection p2 = (FilterProjection) Projection.fromStream(in);
 
-        assertEquals(p, p2);
+        assertThat(p2).isEqualTo(p);
     }
 }

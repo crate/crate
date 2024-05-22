@@ -25,7 +25,6 @@ import static org.elasticsearch.test.VersionUtils.randomVersion;
 import static org.hamcrest.CoreMatchers.endsWith;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 
@@ -72,7 +71,7 @@ public class ClusterBlockTests extends ESTestCase {
         ClusterBlocks clusterBlocks = new ClusterBlocks(Collections.singleton(globalBlock), ImmutableOpenMap.of());
         ClusterBlockException exception = clusterBlocks.indicesBlockedException(randomFrom(globalBlock.levels()), new String[0]);
         assertNotNull(exception);
-        assertEquals(exception.blocks(), Collections.singleton(globalBlock));
+        assertThat(Collections.singleton(globalBlock)).isEqualTo(exception.blocks());
     }
 
     public void testRemoveIndexBlockWithId() {
@@ -140,7 +139,7 @@ public class ClusterBlockTests extends ESTestCase {
     }
 
     private void assertClusterBlockEquals(final ClusterBlock expected, final ClusterBlock actual) {
-        assertEquals(expected, actual);
+        assertThat(actual).isEqualTo(expected);
         assertThat(actual.id()).isEqualTo(expected.id());
         assertThat(actual.uuid()).isEqualTo(expected.uuid());
         assertThat(actual.status()).isEqualTo(expected.status());

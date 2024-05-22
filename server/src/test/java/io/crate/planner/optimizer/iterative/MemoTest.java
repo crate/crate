@@ -23,7 +23,6 @@ package io.crate.planner.optimizer.iterative;
 
 import static io.crate.common.collections.Iterables.getOnlyElement;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import java.util.List;
@@ -152,7 +151,7 @@ public class MemoTest {
 
         Memo memo = new Memo(x);
 
-        assertEquals(memo.groupCount(), 3);
+        assertThat(3).isEqualTo(memo.groupCount());
         assertThat(memo.groupCount()).isEqualTo(3);
 
         int yGroup = getChildGroup(memo, memo.getRootGroup());
@@ -237,8 +236,8 @@ public class MemoTest {
         memo.addStats(yGroup, yStats);
         memo.addStats(xGroup, xStats);
 
-        assertEquals(memo.stats(yGroup), yStats);
-        assertEquals(memo.stats(xGroup), xStats);
+        assertThat(yStats).isEqualTo(memo.stats(yGroup));
+        assertThat(xStats).isEqualTo(memo.stats(xGroup));
 
         memo.replace(yGroup, plan());
 
@@ -251,7 +250,7 @@ public class MemoTest {
         if (a instanceof TestPlan actual && e instanceof TestPlan expected) {
             assertThat(actual.getClass()).isEqualTo(expected.getClass());
             assertThat(actual.id()).isEqualTo(expected.id());
-            assertEquals(actual.sources().size(), expected.sources().size());
+            assertThat(expected.sources().size()).isEqualTo(actual.sources().size());
             for (int i = 0; i < actual.sources().size(); i++) {
                 assertMatchesStructure(actual.sources().get(i), expected.sources().get(i));
             }

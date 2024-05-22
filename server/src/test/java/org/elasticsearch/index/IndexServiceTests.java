@@ -26,7 +26,6 @@ import static org.elasticsearch.index.shard.IndexShardTestCase.flushShard;
 import static org.elasticsearch.index.shard.IndexShardTestCase.getEngine;
 import static org.elasticsearch.test.InternalSettingsPlugin.TRANSLOG_RETENTION_CHECK_INTERVAL_SETTING;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
@@ -110,15 +109,15 @@ public class IndexServiceTests extends IntegTestCase {
 
         latch.get().await();
         latch.set(new CountDownLatch(1));
-        assertEquals(1, count.get());
+        assertThat(count.get()).isEqualTo(1);
         // here we need to swap first before we let it go otherwise threads might be very fast and run that task twice due to
         // random exception and the schedule interval is 1ms
         latch2.getAndSet(new CountDownLatch(1)).countDown();
         latch.get().await();
-        assertEquals(2, count.get());
+        assertThat(count.get()).isEqualTo(2);
         task.close();
         latch2.get().countDown();
-        assertEquals(2, count.get());
+        assertThat(count.get()).isEqualTo(2);
 
         task = new IndexService.BaseAsyncTask(indexService, TimeValue.timeValueMillis(1000000)) {
             @Override
@@ -136,12 +135,12 @@ public class IndexServiceTests extends IntegTestCase {
         assertNotSame(indexService, closedIndexService);
         assertThat(task.mustReschedule()).isFalse();
         assertThat(task.isClosed()).isFalse();
-        assertEquals(1000000, task.getInterval().millis());
+        assertThat(task.getInterval().millis()).isEqualTo(1000000);
 
         assertNotSame(indexService, closedIndexService);
         assertThat(task.mustReschedule()).isFalse();
         assertThat(task.isClosed()).isFalse();
-        assertEquals(1000000, task.getInterval().millis());
+        assertThat(task.getInterval().millis()).isEqualTo(1000000);
 
         // now reopen the index
         execute("alter table test open");
@@ -171,7 +170,7 @@ public class IndexServiceTests extends IntegTestCase {
         execute("create table test (x int) clustered into 1 shards");
         IndexService indexService = getIndexService("test");
         IndexService.AsyncRefreshTask refreshTask = indexService.getRefreshTask();
-        assertEquals(1000, refreshTask.getInterval().millis());
+        assertThat(refreshTask.getInterval().millis()).isEqualTo(1000);
         assertThat(indexService.getRefreshTask().mustReschedule()).isTrue();
 
         // now disable
@@ -187,7 +186,7 @@ public class IndexServiceTests extends IntegTestCase {
         refreshTask = indexService.getRefreshTask();
         assertThat(refreshTask.mustReschedule()).isTrue();
         assertThat(refreshTask.isScheduled()).isTrue();
-        assertEquals(100, refreshTask.getInterval().millis());
+        assertThat(refreshTask.getInterval().millis()).isEqualTo(100);
 
         execute("alter table test set (refresh_interval = '200ms')");
         assertNotSame(refreshTask, indexService.getRefreshTask());
@@ -196,7 +195,7 @@ public class IndexServiceTests extends IntegTestCase {
         refreshTask = indexService.getRefreshTask();
         assertThat(refreshTask.mustReschedule()).isTrue();
         assertThat(refreshTask.isScheduled()).isTrue();
-        assertEquals(200, refreshTask.getInterval().millis());
+        assertThat(refreshTask.getInterval().millis()).isEqualTo(200);
 
         // set it to 200ms again
         execute("alter table test set (refresh_interval = '200ms')");
@@ -204,7 +203,7 @@ public class IndexServiceTests extends IntegTestCase {
         assertThat(indexService.getRefreshTask().mustReschedule()).isTrue();
         assertThat(refreshTask.isScheduled()).isTrue();
         assertThat(refreshTask.isClosed()).isFalse();
-        assertEquals(200, refreshTask.getInterval().millis());
+        assertThat(refreshTask.getInterval().millis()).isEqualTo(200);
 
         // now close the index
         execute("alter table test close");
@@ -216,7 +215,7 @@ public class IndexServiceTests extends IntegTestCase {
         assertNotSame(refreshTask, closedIndexService.getRefreshTask());
         assertThat(closedIndexService.getRefreshTask().mustReschedule()).isFalse();
         assertThat(closedIndexService.getRefreshTask().isClosed()).isFalse();
-        assertEquals(200, closedIndexService.getRefreshTask().getInterval().millis());
+        assertThat(closedIndexService.getRefreshTask().getInterval().millis()).isEqualTo(200);
 
         // now reopen the index
         execute("alter table test open");
@@ -238,7 +237,7 @@ public class IndexServiceTests extends IntegTestCase {
         IndexService indexService = getIndexService("test");
         IndexService.AsyncTranslogFSync fsyncTask = indexService.getFsyncTask();
         assertNotNull(fsyncTask);
-        assertEquals(5000, fsyncTask.getInterval().millis());
+        assertThat(fsyncTask.getInterval().millis()).isEqualTo(5000);
         assertThat(fsyncTask.mustReschedule()).isTrue();
         assertThat(fsyncTask.isScheduled()).isTrue();
 
@@ -252,7 +251,7 @@ public class IndexServiceTests extends IntegTestCase {
         assertNotSame(fsyncTask, closedIndexService.getFsyncTask());
         assertThat(closedIndexService.getFsyncTask().mustReschedule()).isFalse();
         assertThat(closedIndexService.getFsyncTask().isClosed()).isFalse();
-        assertEquals(5000, closedIndexService.getFsyncTask().getInterval().millis());
+        assertThat(closedIndexService.getFsyncTask().getInterval().millis()).isEqualTo(5000);
 
         // now reopen the index
         execute("alter table test open");
@@ -280,7 +279,7 @@ public class IndexServiceTests extends IntegTestCase {
         var indexName = indexService.index().getName();
         ensureGreen(indexName);
         IndexService.AsyncRefreshTask refreshTask = indexService.getRefreshTask();
-        assertEquals(1000, refreshTask.getInterval().millis());
+        assertThat(refreshTask.getInterval().millis()).isEqualTo(1000);
         assertThat(indexService.getRefreshTask().mustReschedule()).isTrue();
         IndexShard shard = indexService.getShard(0);
         execute("insert into test (x, data) values (1, 'foo')");
@@ -295,7 +294,7 @@ public class IndexServiceTests extends IntegTestCase {
             // we are running on updateMetadata if the interval changes
             try (Engine.Searcher searcher = shard.acquireSearcher(indexName)) {
                 TopDocs search = searcher.search(new MatchAllDocsQuery(), 10);
-                assertEquals(1, search.totalHits.value);
+                assertThat(search.totalHits.value).isEqualTo(1);
             }
         });
         assertThat(refreshTask.isClosed()).isFalse();
@@ -308,7 +307,7 @@ public class IndexServiceTests extends IntegTestCase {
             // this one becomes visible due to the force refresh we are running on updateMetadata if the interval changes
             try (Engine.Searcher searcher = shard.acquireSearcher(indexName)) {
                 TopDocs search = searcher.search(new MatchAllDocsQuery(), 10);
-                assertEquals(2, search.totalHits.value);
+                assertThat(search.totalHits.value).isEqualTo(2);
             }
         });
         execute("insert into test (x, data) values (3, 'foo')");
@@ -317,7 +316,7 @@ public class IndexServiceTests extends IntegTestCase {
             // this one becomes visible due to the scheduled refresh
             try (Engine.Searcher searcher = shard.acquireSearcher("test")) {
                 TopDocs search = searcher.search(new MatchAllDocsQuery(), 10);
-                assertEquals(3, search.totalHits.value);
+                assertThat(search.totalHits.value).isEqualTo(3);
             }
         });
     }
@@ -448,14 +447,14 @@ public class IndexServiceTests extends IntegTestCase {
         IndexMetadata indexMetadata = client().admin().cluster()
             .state(new ClusterStateRequest())
             .get().getState().metadata().index(indexName);
-        assertEquals("5s", indexMetadata.getSettings().get(IndexSettings.INDEX_TRANSLOG_SYNC_INTERVAL_SETTING.getKey()));
+        assertThat(indexMetadata.getSettings().get(IndexSettings.INDEX_TRANSLOG_SYNC_INTERVAL_SETTING.getKey())).isEqualTo("5s");
 
         execute("alter table test close");
         execute("alter table test set (\"translog.sync_interval\" = '20s')");
         indexMetadata = client().admin().cluster()
             .state(new ClusterStateRequest())
             .get().getState().metadata().index(indexName);
-        assertEquals("20s", indexMetadata.getSettings().get(IndexSettings.INDEX_TRANSLOG_SYNC_INTERVAL_SETTING.getKey()));
+        assertThat(indexMetadata.getSettings().get(IndexSettings.INDEX_TRANSLOG_SYNC_INTERVAL_SETTING.getKey())).isEqualTo("20s");
     }
 
     private IndexService getIndexService(String index) {

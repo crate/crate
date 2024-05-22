@@ -34,7 +34,6 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 
@@ -114,11 +113,11 @@ public class SysShardsTest extends IntegTestCase {
     public void testSelectGroupByAllTables() throws Exception {
         SQLResponse response = execute("select count(*), table_name from sys.shards " +
                                        "group by table_name order by table_name");
-        assertEquals(3L, response.rowCount());
-        assertEquals(10L, response.rows()[0][0]);
-        assertEquals("blobs", response.rows()[0][1]);
-        assertEquals("characters", response.rows()[1][1]);
-        assertEquals("quotes", response.rows()[2][1]);
+        assertThat(response.rowCount()).isEqualTo(3L);
+        assertThat(response.rows()[0][0]).isEqualTo(10L);
+        assertThat(response.rows()[0][1]).isEqualTo("blobs");
+        assertThat(response.rows()[1][1]).isEqualTo("characters");
+        assertThat(response.rows()[2][1]).isEqualTo("quotes");
     }
 
     @Test
@@ -142,13 +141,13 @@ public class SysShardsTest extends IntegTestCase {
     public void testSelectGroupByWhereNotLike() throws Exception {
         SQLResponse response = execute("select count(*), table_name from sys.shards " +
                                        "where table_name not like 'my_table%' group by table_name order by table_name");
-        assertEquals(3L, response.rowCount());
-        assertEquals(10L, response.rows()[0][0]);
-        assertEquals("blobs", response.rows()[0][1]);
-        assertEquals(8L, response.rows()[1][0]);
-        assertEquals("characters", response.rows()[1][1]);
-        assertEquals(8L, response.rows()[2][0]);
-        assertEquals("quotes", response.rows()[2][1]);
+        assertThat(response.rowCount()).isEqualTo(3L);
+        assertThat(response.rows()[0][0]).isEqualTo(10L);
+        assertThat(response.rows()[0][1]).isEqualTo("blobs");
+        assertThat(response.rows()[1][0]).isEqualTo(8L);
+        assertThat(response.rows()[1][1]).isEqualTo("characters");
+        assertThat(response.rows()[2][0]).isEqualTo(8L);
+        assertThat(response.rows()[2][1]).isEqualTo("quotes");
     }
 
     @Test
@@ -156,21 +155,21 @@ public class SysShardsTest extends IntegTestCase {
         SQLResponse response = execute(
             "select id, size from sys.shards " +
             "where table_name = 'characters'");
-        assertEquals(8L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(8L);
     }
 
     @Test
     public void testSelectStarWhereTable() throws Exception {
         SQLResponse response = execute(
             "select * from sys.shards where table_name = 'characters'");
-        assertEquals(8L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(8L);
     }
 
     @Test
     public void testSelectStarAllTables() throws Exception {
         SQLResponse response = execute("select * from sys.shards");
-        assertEquals(26L, response.rowCount());
-        assertEquals(21, response.cols().length);
+        assertThat(response.rowCount()).isEqualTo(26L);
+        assertThat(response.cols().length).isEqualTo(21);
         assertThat(response.cols(), arrayContaining(
             "blob_path",
             "closed",
@@ -199,21 +198,21 @@ public class SysShardsTest extends IntegTestCase {
     public void testSelectStarLike() throws Exception {
         SQLResponse response = execute(
             "select * from sys.shards where table_name like 'charact%'");
-        assertEquals(8L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(8L);
     }
 
     @Test
     public void testSelectStarNotLike() throws Exception {
         SQLResponse response = execute(
             "select * from sys.shards where table_name not like 'quotes%'");
-        assertEquals(18L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(18L);
     }
 
     @Test
     public void testSelectStarIn() throws Exception {
         SQLResponse response = execute(
             "select * from sys.shards where table_name in ('characters')");
-        assertEquals(8L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(8L);
     }
 
     @Test
@@ -240,7 +239,7 @@ public class SysShardsTest extends IntegTestCase {
     public void testSelectOrderBy() throws Exception {
         SQLResponse response = execute("select table_name, min_lucene_version, * " +
                                        "from sys.shards order by table_name");
-        assertEquals(26L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(26L);
         List<String> tableNames = Arrays.asList("blobs", "characters", "quotes");
         for (Object[] row : response.rows()) {
             assertThat(tableNames.contains(row[0])).isTrue();
@@ -257,15 +256,15 @@ public class SysShardsTest extends IntegTestCase {
     @Test
     public void testSelectWhereBoolean() throws Exception {
         SQLResponse response = execute("select * from sys.shards where \"primary\" = false");
-        assertEquals(13L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(13L);
     }
 
     @Test
     public void testSelectGlobalAggregates() throws Exception {
         SQLResponse response = execute(
             "select sum(size), min(size), max(size), avg(size) from sys.shards");
-        assertEquals(1L, response.rowCount());
-        assertEquals(4, response.rows()[0].length);
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows()[0].length).isEqualTo(4);
         assertNotNull(response.rows()[0][0]);
         assertNotNull(response.rows()[0][1]);
         assertNotNull(response.rows()[0][2]);
@@ -275,16 +274,16 @@ public class SysShardsTest extends IntegTestCase {
     @Test
     public void testSelectGlobalCount() throws Exception {
         SQLResponse response = execute("select count(*) from sys.shards");
-        assertEquals(1L, response.rowCount());
-        assertEquals(26L, response.rows()[0][0]);
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows()[0][0]).isEqualTo(26L);
     }
 
     @Test
     public void testSelectGlobalCountAndOthers() throws Exception {
         SQLResponse response = execute("select count(*), max(table_name) from sys.shards");
-        assertEquals(1L, response.rowCount());
-        assertEquals(26L, response.rows()[0][0]);
-        assertEquals("quotes", response.rows()[0][1]);
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows()[0][0]).isEqualTo(26L);
+        assertThat(response.rows()[0][1]).isEqualTo("quotes");
     }
 
     @Test
@@ -360,11 +359,11 @@ public class SysShardsTest extends IntegTestCase {
     public void testSelectNodeSysExpression() throws Exception {
         SQLResponse response = execute(
             "select node, node['name'], id from sys.shards order by node['name'], id  limit 1");
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
         Map<String, Object> fullNode = (Map<String, Object>) response.rows()[0][0];
         String nodeName = response.rows()[0][1].toString();
-        assertEquals("node_s0", nodeName);
-        assertEquals("node_s0", fullNode.get("name"));
+        assertThat(nodeName).isEqualTo("node_s0");
+        assertThat(fullNode.get("name")).isEqualTo("node_s0");
     }
 
     @Test
@@ -377,7 +376,7 @@ public class SysShardsTest extends IntegTestCase {
                 "select node['name'], id from sys.shards where table_name = 'users' order by node['name'] nulls last"
             );
             String nodeName = response.rows()[0][0].toString();
-            assertEquals("node_s0", nodeName);
+            assertThat(nodeName).isEqualTo("node_s0");
             assertThat(response.rows()[12][0]).isNull();
         } finally {
             execute("drop table users");

@@ -41,6 +41,7 @@ import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
 
 public class IndexBalanceTests extends ESAllocationTestCase {
+
     private final Logger logger = LogManager.getLogger(IndexBalanceTests.class);
 
     private Settings.Builder indexSettings() {

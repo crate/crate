@@ -33,7 +33,6 @@ import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcke
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertNoFailures;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertNoTimeout;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -883,14 +882,10 @@ public abstract class IntegTestCase extends ESTestCase {
                 if (masterClusterState.version() == localClusterState.version()
                     && masterId.equals(localClusterState.nodes().getMasterNodeId())) {
                     try {
-                        assertEquals("cluster state UUID does not match",
-                                     masterClusterState.stateUUID(),
-                                     localClusterState.stateUUID());
+                        assertThat(localClusterState.stateUUID()).as("cluster state UUID does not match").isEqualTo(masterClusterState.stateUUID());
                         // We cannot compare serialization bytes since serialization order of maps is not guaranteed
                         // but we can compare serialization sizes - they should be the same
-                        assertEquals("cluster state size does not match",
-                                     masterClusterStateSize,
-                                     localClusterStateSize);
+                        assertThat(localClusterStateSize).as("cluster state size does not match").isEqualTo(masterClusterStateSize);
                         // Compare JSON serialization
                         assertNull(
                             "cluster state JSON serialization does not match",

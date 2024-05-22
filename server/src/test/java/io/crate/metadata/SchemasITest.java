@@ -23,7 +23,6 @@ package io.crate.metadata;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.isOneOf;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 import java.util.Collections;
@@ -76,8 +75,8 @@ public class SchemasITest extends IntegTestCase {
         assertThat(ti.primaryKey().get(0)).isEqualTo(new ColumnIdent("id"));
         assertThat(ti.clusteredBy()).isEqualTo(new ColumnIdent("id"));
         List<CheckConstraint<Symbol>> checkConstraints = ti.checkConstraints();
-        assertEquals(1, checkConstraints.size());
-        assertEquals(checkConstraints.get(0).name(), "not_miguel");
+        assertThat(checkConstraints.size()).isEqualTo(1);
+        assertThat("not_miguel").isEqualTo(checkConstraints.get(0).name());
         assertThat(checkConstraints.get(0).expressionStr()).isEqualTo("\"name\" <> 'miguel'");
 
         ClusterService clusterService = clusterService();
@@ -110,9 +109,9 @@ public class SchemasITest extends IntegTestCase {
         Routing routing = ti.getRouting(
             clusterService.state(), routingProvider, null, null, CoordinatorSessionSettings.systemDefaults());
         assertThat(routing.hasLocations()).isTrue();
-        assertEquals(1, routing.nodes().size());
+        assertThat(routing.nodes().size()).isEqualTo(1);
         for (Map<String, ?> indices : routing.locations().values()) {
-            assertEquals(1, indices.size());
+            assertThat(indices.size()).isEqualTo(1);
         }
     }
 

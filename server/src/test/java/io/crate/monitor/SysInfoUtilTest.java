@@ -24,7 +24,6 @@ package io.crate.monitor;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.core.AnyOf.anyOf;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 import java.util.List;
@@ -41,7 +40,7 @@ public class SysInfoUtilTest extends ESTestCase {
     private void assertVendorVersionFromGenericLine(String line, String expectedVersionString) {
         SysInfo sysInfo = new SysInfo();
         SYSINFO_BUILDER.parseGenericVendorLine(sysInfo, line);
-        assertEquals(sysInfo.vendorVersion(), expectedVersionString);
+        assertThat(expectedVersionString).isEqualTo(sysInfo.vendorVersion());
     }
 
     @Test

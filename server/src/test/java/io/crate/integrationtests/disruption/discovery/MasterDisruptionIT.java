@@ -23,7 +23,6 @@ package io.crate.integrationtests.disruption.discovery;
 
 import static io.crate.metadata.IndexParts.toIndexName;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import java.util.List;
@@ -116,11 +115,11 @@ public class MasterDisruptionIT extends AbstractDisruptionTestCase {
                 }
                 // assert nodes are identical
                 try {
-                    assertEquals("unequal versions", state.version(), nodeState.version());
-                    assertEquals("unequal node count", state.nodes().getSize(), nodeState.nodes().getSize());
-                    assertEquals("different masters ", state.nodes().getMasterNodeId(), nodeState.nodes().getMasterNodeId());
-                    assertEquals("different meta data version", state.metadata().version(), nodeState.metadata().version());
-                    assertEquals("different routing", state.routingTable().toString(), nodeState.routingTable().toString());
+                    assertThat(nodeState.version()).as("unequal versions").isEqualTo(state.version());
+                    assertThat(nodeState.nodes().getSize()).as("unequal node count").isEqualTo(state.nodes().getSize());
+                    assertThat(nodeState.nodes().getMasterNodeId()).as("different masters ").isEqualTo(state.nodes().getMasterNodeId());
+                    assertThat(nodeState.metadata().version()).as("different meta data version").isEqualTo(state.metadata().version());
+                    assertThat(nodeState.routingTable().toString()).as("different routing").isEqualTo(state.routingTable().toString());
                 } catch (AssertionError t) {
                     fail("failed comparing cluster state: " + t.getMessage() + "\n" +
                             "--- cluster state of node [" + nodes.get(0) + "]: ---\n" + state +
@@ -150,9 +149,9 @@ public class MasterDisruptionIT extends AbstractDisruptionTestCase {
         TwoPartitions partitions = TwoPartitions.random(random(), cluster().getNodeNames());
         NetworkDisruption networkDisruption = addRandomDisruptionType(partitions);
 
-        assertEquals(1, partitions.getMinoritySide().size());
+        assertThat(partitions.getMinoritySide().size()).isEqualTo(1);
         final String isolatedNode = partitions.getMinoritySide().iterator().next();
-        assertEquals(2, partitions.getMajoritySide().size());
+        assertThat(partitions.getMajoritySide().size()).isEqualTo(2);
         final String nonIsolatedNode = partitions.getMajoritySide().iterator().next();
 
         // Simulate a network issue between the unlucky node and the rest of the cluster.

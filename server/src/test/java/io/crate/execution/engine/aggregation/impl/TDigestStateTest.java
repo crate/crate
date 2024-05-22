@@ -21,8 +21,9 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
+import org.assertj.core.data.Offset;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
@@ -36,13 +37,13 @@ public class TDigestStateTest {
         TDigestState digestState1 = new TDigestState(250, new double[]{0.5, 0.8});
         BytesStreamOutput out = new BytesStreamOutput();
         TDigestStateType digestStateType = TDigestStateType.INSTANCE;
-        Streamer streamer = digestStateType.streamer();
+        Streamer<TDigestState> streamer = digestStateType.streamer();
         streamer.writeValueTo(out, digestState1);
         StreamInput in = out.bytes().streamInput();
         TDigestState digestState2 = (TDigestState) streamer.readValueFrom(in);
 
-        assertEquals(digestState1.compression(), digestState2.compression(), 0.001d);
-        assertEquals(digestState1.fractions()[0], digestState2.fractions()[0], 0.001d);
-        assertEquals(digestState1.fractions()[1], digestState2.fractions()[1], 0.001d);
+        assertThat(digestState1.compression()).isEqualTo(digestState2.compression(), Offset.offset(0.001d));
+        assertThat(digestState1.fractions()[0]).isEqualTo(digestState2.fractions()[0], Offset.offset(0.001d));
+        assertThat(digestState1.fractions()[1]).isEqualTo(digestState2.fractions()[1], Offset.offset(0.001d));
     }
 }

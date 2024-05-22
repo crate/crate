@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
@@ -46,9 +45,9 @@ public class InformationSchemaQueryTest extends IntegTestCase {
         execute("alter table t3 close");
 
         execute("select * from information_schema.tables where table_schema = ?", new Object[]{sqlExecutor.getCurrentSchema()});
-        assertEquals(2L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(2L);
         execute("select * from information_schema.columns where table_name = 't3'");
-        assertEquals(2, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(2);
     }
 
     @Test
