@@ -26,7 +26,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.isEmptyOrNullString;
 import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
@@ -88,7 +87,7 @@ public class CrateHttpsTransportIntegrationTest extends SQLHttpIntegrationTest {
     @Test
     public void testCheckEncryptedConnection() throws Throwable {
         CloseableHttpResponse response = post("{\"stmt\": \"select 'sslWorks'\"}");
-        assertThat(response, not(nullValue()));
+        assertThat(response).isNotNull();
         assertEquals(200, response.getStatusLine().getStatusCode());
         String result = EntityUtils.toString(response.getEntity());
         assertThat(result, containsString("\"rowcount\":1"));

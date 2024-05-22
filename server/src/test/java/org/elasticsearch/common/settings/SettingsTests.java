@@ -22,10 +22,10 @@
 package org.elasticsearch.common.settings;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasEntry;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -281,7 +281,7 @@ public class SettingsTests extends ESTestCase {
             .build();
 
         assertThat(settings).hasSize(1);
-        assertThat(settings.get("bar"), nullValue());
+        assertThat(settings.get("bar")).isNull();
         assertThat(settings.get("foo.bar")).isEqualTo("baz");
 
 
@@ -292,7 +292,7 @@ public class SettingsTests extends ESTestCase {
             .build();
 
         assertThat(settings).hasSize(2);
-        assertThat(settings.get("bar"), nullValue());
+        assertThat(settings.get("bar")).isNull();
         assertThat(settings.get("foo.bar")).isEqualTo("baz");
         assertThat(settings.get("foo.test")).isEqualTo("test");
 

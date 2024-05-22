@@ -20,8 +20,6 @@
 package org.elasticsearch.action.admin.cluster.state;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
 
 import java.util.concurrent.CompletableFuture;
 
@@ -70,7 +68,7 @@ public class ClusterStateApiTests extends IntegTestCase {
         });
         response = future3.get();
         assertThat(response.isWaitForTimedOut()).isTrue();
-        assertThat(response.getState(), nullValue());
+        assertThat(response.getState()).isNull();
 
         // Remove transient setting, otherwise test fails with the reason that this test leaves state behind:
         execute("reset global cluster.max_shards_per_node");

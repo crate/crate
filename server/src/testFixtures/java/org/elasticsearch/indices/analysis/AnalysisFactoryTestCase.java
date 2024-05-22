@@ -22,7 +22,6 @@ package org.elasticsearch.indices.analysis;
 import static java.util.Collections.emptyMap;
 import static java.util.Map.entry;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.util.HashMap;
 import java.util.Locale;

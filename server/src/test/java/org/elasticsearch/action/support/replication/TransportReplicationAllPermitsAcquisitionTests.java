@@ -35,7 +35,6 @@ import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
@@ -400,8 +399,12 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
 
     private void assertFailedOperation(final TestAction action,final ExecutionException exception) {
         final String name = action.getActionName();
-        assertThat(name + " operation should not have been executed on primary", action.executedOnPrimary.get(), nullValue());
-        assertThat(name + " operation should not have been executed on replica", action.executedOnReplica.get(), nullValue());
+        assertThat(action.executedOnPrimary.get())
+            .as(name + " operation should not have been executed on primary")
+            .isNull();
+        assertThat(action.executedOnReplica.get())
+            .as(name + " operation should not have been executed on replica")
+            .isNull();
         assertThat(exception.getCause()).isExactlyInstanceOf(ClusterBlockException.class);
         ClusterBlockException clusterBlockException = (ClusterBlockException) exception.getCause();
         assertThat(clusterBlockException.blocks(), hasItem(equalTo(block)));

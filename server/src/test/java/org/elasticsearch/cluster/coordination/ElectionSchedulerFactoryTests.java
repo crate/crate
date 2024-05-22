@@ -30,8 +30,6 @@ import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -213,7 +211,7 @@ public class ElectionSchedulerFactoryTests extends ESTestCase {
             assertThat(ELECTION_BACK_OFF_TIME_SETTING.get(settings)).isEqualTo(TimeValue.timeValueMillis(backOffMillis));
             assertThat(ELECTION_MAX_TIMEOUT_SETTING.get(settings)).isEqualTo(TimeValue.timeValueMillis(maxTimeoutMillis));
 
-            assertThat(new ElectionSchedulerFactory(settings, random(), null), not(nullValue())); // doesn't throw an IAE
+            assertThat(new ElectionSchedulerFactory(settings, random(), null)).isNotNull(); // doesn't throw an IAE
         }
 
         {

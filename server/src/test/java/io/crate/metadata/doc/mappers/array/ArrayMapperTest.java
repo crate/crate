@@ -23,7 +23,6 @@ package io.crate.metadata.doc.mappers.array;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
@@ -223,7 +222,7 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
         SourceToParse sourceToParse = new SourceToParse(INDEX, "abc", bytesReference, XContentType.JSON);
         ParsedDocument doc = mapper.parse(sourceToParse);
         // @formatter: off
-        assertThat(doc.dynamicMappingsUpdate(), nullValue());
+        assertThat(doc.dynamicMappingsUpdate()).isNull();
         assertThat(
             uniqueValuesFromFields(doc.doc(), "array_field.s"),
             containsInAnyOrder("a", "b", "c"));

@@ -24,9 +24,6 @@ package io.crate.expression.symbol;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
 import static io.crate.testing.TestingHelpers.createReference;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
 
 import java.util.EnumSet;
 import java.util.List;
@@ -87,7 +84,7 @@ public class FunctionTest extends ESTestCase {
         StreamInput input = output.bytes().streamInput();
         Function fn2 = (Function) Symbols.fromStream(input);
 
-        assertThat(fn2.filter(), not(nullValue()));
+        assertThat(fn2.filter()).isNotNull();
         assertThat(fn).isEqualTo(fn2);
     }
 

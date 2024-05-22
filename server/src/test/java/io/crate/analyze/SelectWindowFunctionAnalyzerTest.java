@@ -23,10 +23,7 @@ package io.crate.analyze;
 
 import static io.crate.testing.Asserts.isReference;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertThrows;
 
 import java.util.List;
@@ -177,7 +174,7 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
         Asserts.assertThat(windowDefinition.partitions()).satisfiesExactly(isReference("x"));
 
         OrderBy orderBy = windowDefinition.orderBy();
-        assertThat(orderBy, not(nullValue()));
+        assertThat(orderBy).isNotNull();
         assertThat(orderBy.orderBySymbols()).hasSize(1);
     }
 
@@ -193,7 +190,7 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
         Asserts.assertThat(windowDefinition.partitions()).satisfiesExactly(isReference("x"));
 
         OrderBy orderBy = windowDefinition.orderBy();
-        assertThat(orderBy, not(nullValue()));
+        assertThat(orderBy).isNotNull();
         assertThat(orderBy.orderBySymbols()).hasSize(1);
     }
 

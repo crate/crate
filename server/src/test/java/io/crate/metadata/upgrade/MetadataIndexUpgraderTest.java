@@ -23,7 +23,6 @@ package io.crate.metadata.upgrade;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.core.IsNull.nullValue;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
@@ -57,7 +56,7 @@ public class MetadataIndexUpgraderTest extends ESTestCase {
         MappingMetadata newMappingMetadata = metadataIndexUpgrader.createUpdatedIndexMetadata(mappingMetadata, "dummy", null);
 
         Object dynamicTemplates = newMappingMetadata.sourceAsMap().get("dynamic_templates");
-        assertThat(dynamicTemplates, nullValue());
+        assertThat(dynamicTemplates).isNull();
 
         // Check that the new metadata still has the root "default" element
         assertThat("{\"default\":{}}").isEqualTo(newMappingMetadata.source().toString());
