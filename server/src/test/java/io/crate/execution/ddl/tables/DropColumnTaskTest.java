@@ -23,6 +23,7 @@ package io.crate.execution.ddl.tables;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
@@ -135,7 +136,12 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             clusterService.state(),
             Version.CURRENT
         )) {
-            var dropColumnTask = new DropColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
+            var dropColumnTask = new AlterTableTask<>(
+                e.nodeCtx,
+                imd -> indexEnv.mapperService(),
+                tbl.ident(),
+                TransportDropColumnAction.DROP_COLUMN_OPERATOR
+            );
             // parent specified first then its child
             Reference colToDrop1 = tbl.getReference(new ColumnIdent("o", "o2"));
             Reference colToDrop2 = tbl.getReference(new ColumnIdent("o", List.of("o2", "c")));
