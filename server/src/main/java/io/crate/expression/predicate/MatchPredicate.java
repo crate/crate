@@ -344,7 +344,6 @@ public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
         return multiMatchQuery.parse(type, fieldNames, queryString, parsedOptions.minimumShouldMatch());
     }
 
-
     private static MultiMatchQueryType getType(@Nullable String matchType) {
         if (matchType == null) {
             return MultiMatchQueryType.BEST_FIELDS;
