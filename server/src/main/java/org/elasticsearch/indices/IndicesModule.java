@@ -60,7 +60,6 @@ import org.elasticsearch.indices.cluster.IndicesClusterStateService;
 import org.elasticsearch.indices.flush.SyncedFlushService;
 import org.elasticsearch.indices.mapper.MapperRegistry;
 import org.elasticsearch.indices.store.IndicesStore;
-import org.elasticsearch.plugins.MapperPlugin;
 
 import io.crate.replication.logical.LogicalReplicationSettings;
 import io.crate.replication.logical.engine.SubscriberEngine;
@@ -72,8 +71,8 @@ import io.crate.types.FloatVectorType;
 public class IndicesModule extends AbstractModule {
     private final MapperRegistry mapperRegistry;
 
-    public IndicesModule(List<MapperPlugin> mapperPlugins) {
-        this.mapperRegistry = new MapperRegistry(getMappers(mapperPlugins), getMetadataMappers(mapperPlugins));
+    public IndicesModule() {
+        this.mapperRegistry = new MapperRegistry(getMappers(), getMetadataMappers());
     }
 
     public static List<NamedWriteableRegistry.Entry> getNamedWriteables() {
@@ -84,7 +83,7 @@ public class IndicesModule extends AbstractModule {
         return Collections.emptyList();
     }
 
-    public static Map<String, Mapper.TypeParser> getMappers(List<MapperPlugin> mapperPlugins) {
+    public static Map<String, Mapper.TypeParser> getMappers() {
         Map<String, Mapper.TypeParser> mappers = new LinkedHashMap<>();
 
         // builtin mappers
@@ -106,13 +105,6 @@ public class IndicesModule extends AbstractModule {
             mappers.put(GeoShapeFieldMapper.CONTENT_TYPE, new GeoShapeFieldMapper.TypeParser());
         }
 
-        for (MapperPlugin mapperPlugin : mapperPlugins) {
-            for (Map.Entry<String, Mapper.TypeParser> entry : mapperPlugin.getMappers().entrySet()) {
-                if (mappers.put(entry.getKey(), entry.getValue()) != null) {
-                    throw new IllegalArgumentException("Mapper [" + entry.getKey() + "] is already registered");
-                }
-            }
-        }
         return Collections.unmodifiableMap(mappers);
     }
 
@@ -131,7 +123,7 @@ public class IndicesModule extends AbstractModule {
         return Collections.unmodifiableMap(builtInMetadataMappers);
     }
 
-    public static Map<String, MetadataFieldMapper.TypeParser> getMetadataMappers(List<MapperPlugin> mapperPlugins) {
+    public static Map<String, MetadataFieldMapper.TypeParser> getMetadataMappers() {
         Map<String, MetadataFieldMapper.TypeParser> metadataMappers = new LinkedHashMap<>();
         int i = 0;
         Map.Entry<String, MetadataFieldMapper.TypeParser> fieldNamesEntry = null;
@@ -145,17 +137,6 @@ public class IndicesModule extends AbstractModule {
             i++;
         }
         assert fieldNamesEntry != null;
-
-        for (MapperPlugin mapperPlugin : mapperPlugins) {
-            for (Map.Entry<String, MetadataFieldMapper.TypeParser> entry : mapperPlugin.getMetadataMappers().entrySet()) {
-                if (entry.getKey().equals(FieldNamesFieldMapper.NAME)) {
-                    throw new IllegalArgumentException("Plugin cannot contain metadata mapper [" + FieldNamesFieldMapper.NAME + "]");
-                }
-                if (metadataMappers.put(entry.getKey(), entry.getValue()) != null) {
-                    throw new IllegalArgumentException("MetadataFieldMapper [" + entry.getKey() + "] is already registered");
-                }
-            }
-        }
 
         // we register _field_names here so that it has a chance to see all the other mappers, including from plugins
         metadataMappers.put(fieldNamesEntry.getKey(), fieldNamesEntry.getValue());

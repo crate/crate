@@ -25,7 +25,6 @@ import static org.elasticsearch.test.ESTestCase.createTestAnalysis;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Collections;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -41,14 +40,8 @@ import org.elasticsearch.test.IndexSettingsModule;
 public class MapperTestUtils {
 
     public static MapperService newMapperService(Path tempDir,
-                                                 Settings indexSettings,
+                                                 Settings settings,
                                                  String indexName) throws IOException {
-        IndicesModule indicesModule = new IndicesModule(Collections.emptyList());
-        return newMapperService(tempDir, indexSettings, indicesModule, indexName);
-    }
-
-    public static MapperService newMapperService(Path tempDir, Settings settings,
-                                                 IndicesModule indicesModule, String indexName) throws IOException {
         Settings.Builder settingsBuilder = Settings.builder()
             .put(Environment.PATH_HOME_SETTING.getKey(), tempDir)
             .put(settings);
@@ -56,7 +49,7 @@ public class MapperTestUtils {
             settingsBuilder.put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT);
         }
         Settings finalSettings = settingsBuilder.build();
-        MapperRegistry mapperRegistry = indicesModule.getMapperRegistry();
+        MapperRegistry mapperRegistry = new IndicesModule().getMapperRegistry();
         IndexSettings indexSettings = IndexSettingsModule.newIndexSettings(indexName, finalSettings);
         IndexAnalyzers indexAnalyzers = createTestAnalysis(indexSettings, finalSettings).indexAnalyzers;
         return new MapperService(

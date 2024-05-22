@@ -24,7 +24,6 @@ package io.crate.metadata.doc.mappers;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
-import java.util.List;
 
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.compress.CompressedXContent;
@@ -33,7 +32,6 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.MapperTestUtils;
 import org.elasticsearch.index.mapper.DocumentMapperParser;
 import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.indices.IndicesModule;
 import org.junit.Test;
 
 import io.crate.Constants;
@@ -47,7 +45,6 @@ public class KeywordFieldMapperTest extends CrateDummyClusterServiceUnitTest {
         MapperService mapperService = MapperTestUtils.newMapperService(
             createTempDir(),
             Settings.EMPTY,
-            new IndicesModule(List.of()),
             ""
         );
         return mapperService.documentMapperParser();
