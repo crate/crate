@@ -54,7 +54,6 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.mapper.DocumentMapper;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.SourceToParse;
 import org.junit.Ignore;
@@ -184,6 +183,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         value = Map.of("x", 10, "y", 20);
         newColumns = indexer.collectSchemaUpdates(item(value));
         assertThat(newColumns).isEmpty();
+
+        assertTranslogParses(parsedDoc, actualTable);
     }
 
     @Test
@@ -223,6 +224,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 col3 -> assertThat(col3).isReference()
                     .hasName("o['obj']['z']")
             );
+
+        assertTranslogParses(parsedDoc, actualTable);
     }
 
     @Test
@@ -243,6 +246,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(doc.doc().getFields())
             .as("source, seqNo, id...")
             .hasSize(6);
+
+        assertTranslogParses(doc, table);
     }
 
     @Test
@@ -282,6 +287,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(parsedDoc.doc().getFields())
             .hasSize(10);
+
+        assertTranslogParses(parsedDoc, actualTable);
     }
 
     @Test
@@ -386,12 +393,13 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(source(parsedDoc, table)).isEqualTo(
             "{\"o\":{\"x\":0,\"y\":2,\"z\":20}}"
         );
+        assertTranslogParses(parsedDoc, table);
     }
 
     @Test
     @Ignore("https://github.com/crate/crate/issues/14189")
     /*
-     * This isolated test would pass without the validation in {@link AnalyzedColumnDefintion} since it covers only
+     * This isolated test would pass without the validation in {@link AnalyzedColumnDefinition} since it covers only
      * part of code path but actually running a {@code CREATE TABLE tbl (x int, o object as (x int) default {x=10})}
      * throws:
      *    MapperParsingException[Failed to parse mapping: Mapping definition for [o] has unsupported
@@ -588,7 +596,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_fields_are_ommitted_in_source_for_null_values() throws Exception {
+    public void test_fields_are_omitted_in_source_for_null_values() throws Exception {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (x int, o object as (y int))");
 
@@ -649,6 +657,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 .isEqualTo("Hello World")
         );
         assertThat(fields[0].fieldType().tokenized()).isTrue();
+        assertTranslogParses(doc, table);
     }
 
     @Test
@@ -718,6 +727,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                     v -> assertThat(type.sanitizeValue(v)).isEqualTo(expected)
                 );
             }
+            assertTranslogParses(doc, table);
         }
     }
 
@@ -803,6 +813,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             {"xs": [1, 42, null, 21]}
             """
         );
+        assertTranslogParses(doc, table);
     }
 
     @Test
@@ -819,6 +830,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             {"xs": ["foo", "bar", "baz"]}
             """
         );
+        assertTranslogParses(doc, table);
     }
 
     @Test
@@ -848,6 +860,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             "{\"o\":{\"inner\":[]},\"n1\":[],\"n2\":[null,null]}",
             "{\"n1\":[],\"n2\":[null,null],\"o\":{\"inner\":[]}}"
         );
+        assertTranslogParses(doc, table);
     }
 
     @Test
@@ -860,6 +873,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         ParsedDocument doc = indexer.index(item);
         assertThat(newColumns).isEmpty();
         assertThat(doc.source().utf8ToString()).isEqualTo("{}");
+        assertTranslogParses(doc, e.resolveTableInfo("tbl"));
     }
 
     @Test
@@ -889,12 +903,13 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(insertValues).hasSize(2);
         assertThat((Map<String, ?>) insertValues[0]).containsKeys("x", "y");
         assertThat((long) insertValues[1]).isGreaterThanOrEqualTo(now);
+
+        assertTranslogParses(doc, table);
     }
 
     @Test
     @SuppressWarnings("unchecked")
     public void test_adds_non_deterministic_sub_columns_when_root_is_not_in_targets() throws Exception {
-        long now = System.currentTimeMillis();
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("""
                 create table tbl (
@@ -917,7 +932,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_fields_order_in_source_is_determinisitc() throws Exception {
+    public void test_fields_order_in_source_is_deterministic() throws Exception {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (x int, o object, y int)");
         DocTableInfo table = e.resolveTableInfo("tbl");
@@ -1024,6 +1039,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             for (int i = 0; i < fields.length; i++) {
                 assertThat(fields[i].toString()).isEqualTo(fieldsFromSource[i].toString());
             }
+
+            assertTranslogParses(doc, e.resolveTableInfo(tableName));
         }
     }
 
@@ -1061,6 +1078,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         for (int i = 0; i < fields.length; i++) {
             assertThat(fields[i].toString()).isEqualTo(fieldsFromSource[i].toString());
         }
+
+        assertTranslogParses(doc, e.resolveTableInfo(tableName));
     }
 
     @Test
@@ -1098,6 +1117,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         for (int i = 0; i < fields.length; i++) {
             assertThat(fields[i].toString()).isEqualTo(fieldsFromSource[i].toString());
         }
+
+        assertTranslogParses(doc, e.resolveTableInfo(tableName));
     }
 
     @Test
@@ -1134,6 +1155,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         for (int i = 0; i < fields.length; i++) {
             assertThat(fields[i].toString()).isEqualTo(fieldsFromSource[i].toString());
         }
+
+        assertTranslogParses(doc, e.resolveTableInfo(tableName));
     }
 
     @Test
@@ -1164,6 +1187,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(source(doc, table)).isEqualTo("""
             {"x":10,"y":[[1,2],[3,4]]}"""
         );
+        assertTranslogParses(doc, table);
     }
 
     @Test
@@ -1201,6 +1225,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             {"a":1, "gen_from_parted": 3}
             """
         );
+
+        assertTranslogParses(parsedDoc, table);
     }
 
     @Test
@@ -1241,6 +1267,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 {"empty_arr":[]}
                 """
         );
+
+        assertTranslogParses(doc, table);
     }
 
     @Test
@@ -1258,6 +1286,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 {"empty_arr":[]}
                 """
         );
+
+        assertTranslogParses(doc, e.resolveTableInfo("tbl"));
     }
 
     @UseNewCluster
@@ -1279,6 +1309,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 "{\"o\":{\"i\":1,\"ignored_col\":\"foo\"}}",
                 "{\"o\":{\"ignored_col\":\"foo\",\"i\":1}}"
         );
+
+        assertTranslogParses(doc, table);
     }
 
     @Test
@@ -1297,15 +1329,17 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 {"o":{"i":1,"ignored_col":"foo"}}
                 """
         );
+
+        assertTranslogParses(doc, e.resolveTableInfo("tbl"));
     }
 
     /**
-     * The {@link DocumentMapper#parse(SourceToParse)} is used to parse translog entries, ensure it can parse
-     * a document containing OID's instead of column names.
+     * {@link TranslogIndexer#index(String, BytesReference)} is used to parse translog entries,
+     * ensure it can parse a document containing OIDs instead of column names.
      */
     @UseNewCluster
     @Test
-    public void test_document_parser_can_read_source_with_oids() throws Exception {
+    public void test_translog_indexer_can_read_source_with_oids() throws Exception {
         var tableName = "tbl";
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (i int, o object as (x int))");
@@ -1320,18 +1354,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             """
         );
 
-        var indexName = e.resolveTableInfo(tableName).ident().indexNameOrAlias();
-        var mapping = clusterService.state().metadata().index(indexName).mapping().source().uncompressed().utf8ToString();
-        DocumentMapper mapper = mapper(indexName, mapping);
-
-        // Assert that a field mapper is registered using a OID instead of column name
-        assertThat(mapper.mappers().getMapper("1")).isNotNull();
-
-        // Ensure source containing OID's instead of column names can be parsed by the document mapper
-        ParsedDocument docFromSource = mapper.parse(
-            new SourceToParse(indexName, "dummy-id-1", doc.source(), XContentType.JSON)
-        );
-        assertThat(doc.source()).isEqualTo(docFromSource.source());
+        assertTranslogParses(doc, e.resolveTableInfo(tableName));
     }
 
     @Test
@@ -1342,28 +1365,18 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
             Supplier<Map<String, Object>> dataGenerator = DataTypeTesting.getDataGenerator(GeoShapeType.INSTANCE);
             DocTableInfo table = sqlExecutor.resolveTableInfo("tbl");
-            Reference reference = table.getReference(new ColumnIdent("x"));
 
-            try (var indexEnv = new IndexEnv(
-                THREAD_POOL,
-                table,
-                clusterService.state(),
-                Version.CURRENT)) {
+            Indexer indexer = getIndexer(sqlExecutor, "tbl", "x");
+            Map<String, Object> value = dataGenerator.get();
+            ParsedDocument doc = indexer.index(item(value));
 
-                Map<String, Object> value = dataGenerator.get();
-                MapperService mapperService = indexEnv.mapperService();
-                Indexer indexer = getIndexer(sqlExecutor, "tbl", "x");
-                ParsedDocument doc = indexer.index(item(value));
-
-                ParsedDocument parsedDocument = mapperService.documentMapper().parse(new SourceToParse(
-                    table.ident().indexNameOrAlias(),
-                    doc.id(),
-                    doc.source(),
-                    XContentType.JSON
-                ));
-
-                assertThat(parsedDocument).hasSameFieldsWithNameAs(doc, reference.storageIdent());
-            }
+            assertTranslogParses(doc, table);
         }
+    }
+
+    public static void assertTranslogParses(ParsedDocument doc, DocTableInfo info) throws Exception {
+        TranslogIndexer ti = new TranslogIndexer(info);
+        ParsedDocument d = ti.index(doc.id(), doc.source());
+        assertThat(doc).parsesTo(d);
     }
 }

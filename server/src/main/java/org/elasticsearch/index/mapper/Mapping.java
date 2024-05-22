@@ -46,6 +46,12 @@ import org.jetbrains.annotations.NotNull;
  */
 public final class Mapping implements ToXContentFragment {
 
+    public static final Mapping EMPTY = new Mapping(
+        Version.CURRENT,
+        new RootObjectMapper.Builder("default").build(new Mapper.BuilderContext(new ContentPath())),
+        new MetadataFieldMapper[0],
+        Map.of());
+
     final Version indexCreated;
     final RootObjectMapper root;
     final MetadataFieldMapper[] metadataMappers;

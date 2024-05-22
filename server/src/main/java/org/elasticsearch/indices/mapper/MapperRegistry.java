@@ -25,7 +25,6 @@ import java.util.Map;
 
 import org.elasticsearch.index.mapper.Mapper;
 import org.elasticsearch.index.mapper.MetadataFieldMapper;
-import org.elasticsearch.index.mapper.array.DynamicArrayFieldMapperBuilderFactory;
 
 /**
  * A registry for all field mappers.
@@ -34,8 +33,6 @@ public final class MapperRegistry {
 
     private final Map<String, Mapper.TypeParser> mapperParsers;
     private final Map<String, MetadataFieldMapper.TypeParser> metadataMapperParsers;
-
-    private DynamicArrayFieldMapperBuilderFactory builderFactory;
 
     public MapperRegistry(Map<String, Mapper.TypeParser> mapperParsers,
                           Map<String, MetadataFieldMapper.TypeParser> metadataMapperParsers) {
@@ -64,13 +61,5 @@ public final class MapperRegistry {
      */
     public boolean isMetadataField(String field) {
         return getMetadataMapperParsers().containsKey(field);
-    }
-
-    public void registerDynamicArrayBuilderFactory(DynamicArrayFieldMapperBuilderFactory builderFactory) {
-        this.builderFactory = builderFactory;
-    }
-
-    public DynamicArrayFieldMapperBuilderFactory getDynamicArrayBuilderFactory() {
-        return builderFactory;
     }
 }

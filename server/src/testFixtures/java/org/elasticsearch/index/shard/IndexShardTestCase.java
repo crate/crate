@@ -48,6 +48,7 @@ import org.elasticsearch.action.admin.indices.flush.FlushRequest;
 import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
@@ -106,6 +107,12 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.action.FutureActionListener;
 import io.crate.common.CheckedFunction;
 import io.crate.common.io.IOUtils;
+import io.crate.execution.dml.TranslogIndexer;
+import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.doc.DocTableInfoFactory;
 
 /**
  * A base class for unit tests that need to create and shutdown {@link IndexShard} instances easily,
@@ -246,6 +253,15 @@ public abstract class IndexShardTestCase extends ESTestCase {
     protected void updateMappings(IndexShard shard, IndexMetadata indexMetadata) {
         shard.indexSettings().updateIndexMetadata(indexMetadata);
         shard.mapperService().merge(indexMetadata, MapperService.MergeReason.MAPPING_UPDATE);
+    }
+
+    protected TranslogIndexer getTranslogIndexer(IndexShard shard) {
+        NodeContext nodeCtx = new NodeContext(new Functions.Builder().build(), List::of);
+        DocTableInfoFactory tableFactory = new DocTableInfoFactory(nodeCtx);
+        IndexMetadata indexMetadata = IndexMetadata.builder(shard.indexSettings.getIndexMetadata()).build();
+        Metadata metadata = new Metadata.Builder().put(indexMetadata, false).build();
+        DocTableInfo table = tableFactory.create(RelationName.fromIndexName(indexMetadata.getIndex().getName()), metadata);
+        return new TranslogIndexer(table);
     }
 
     protected void assertDocCount(IndexShard shard, int docDount) throws IOException {
@@ -524,6 +540,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
                 store,
                 queryCache,
                 mapperService,
+                this::getTranslogIndexer,
                 engineFactoryProviders,
                 indexEventListener,
                 threadPool,

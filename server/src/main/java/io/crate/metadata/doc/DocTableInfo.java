@@ -42,8 +42,6 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
@@ -76,6 +74,7 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.ddl.tables.MappingUtil;
 import io.crate.execution.ddl.tables.MappingUtil.AllocPosition;
+import io.crate.execution.dml.TranslogIndexer;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.RefReplacer;
 import io.crate.expression.symbol.RefVisitor;
@@ -166,9 +165,7 @@ import io.crate.types.ObjectType;
  */
 public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
-    private static final Logger LOGGER = LogManager.getLogger(DocTableInfo.class);
-
-    private final Collection<Reference> columns;
+    private final List<Reference> columns;
     private final Set<Reference> droppedColumns;
     private final List<GeneratedReference> generatedColumns;
     private final List<Reference> partitionedByColumns;
@@ -196,6 +193,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     private final Version versionUpgraded;
     private final boolean closed;
     private final ColumnPolicy columnPolicy;
+    private TranslogIndexer translogIndexer; // lazily initialised
 
     public DocTableInfo(RelationName ident,
                         Map<ColumnIdent, Reference> references,
@@ -296,13 +294,23 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     @Override
-    public Collection<Reference> columns() {
+    public List<Reference> columns() {
         return columns;
     }
 
     @Override
     public Set<Reference> droppedColumns() {
         return droppedColumns;
+    }
+
+    /**
+     * Get a TranslogIndexer based on this table
+     */
+    public TranslogIndexer getTranslogIndexer() {
+        if (this.translogIndexer == null) {
+            this.translogIndexer = new TranslogIndexer(this);
+        }
+        return this.translogIndexer;
     }
 
     public int maxPosition() {
@@ -719,6 +727,32 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             child[0] = updatedParent.column();
             childType[0] = updatedParent.valueType();
         }
+    }
+
+    public DocTableInfo dropConstraint(String constraint) {
+        List<CheckConstraint<Symbol>> newConstraints = checkConstraints.stream()
+            .filter(x -> !x.name().equals(constraint))
+            .toList();
+        if (newConstraints.size() == checkConstraints.size()) {
+            return this;
+        }
+        return new DocTableInfo(
+            ident,
+            references,
+            indexColumns,
+            analyzers,
+            pkConstraintName,
+            primaryKeys,
+            newConstraints,
+            clusteredBy,
+            tableParameters,
+            partitionedBy,
+            columnPolicy,
+            versionCreated,
+            versionUpgraded,
+            closed,
+            supportedOperations
+        );
     }
 
     public DocTableInfo dropColumns(List<DropColumn> columns) {

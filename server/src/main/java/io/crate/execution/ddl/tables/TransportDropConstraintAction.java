@@ -21,45 +21,28 @@
 
 package io.crate.execution.ddl.tables;
 
-import io.crate.execution.ddl.AbstractDDLTransportAction;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.cluster.DDLClusterStateHelpers;
-import io.crate.metadata.cluster.DDLClusterStateTaskExecutor;
-import io.crate.metadata.doc.DocTableInfoFactory;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
-import org.elasticsearch.cluster.metadata.MappingMetadata;
-import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.IndexScopedSettings;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.Index;
-import org.elasticsearch.index.mapper.DocumentMapper;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
-import java.util.List;
-
-import static io.crate.execution.ddl.tables.MappingUtil.removeConstraints;
-import static io.crate.metadata.cluster.AlterTableClusterStateExecutor.resolveIndices;
+import io.crate.execution.ddl.AbstractDDLTransportAction;
+import io.crate.metadata.NodeContext;
 
 @Singleton
 public class TransportDropConstraintAction extends AbstractDDLTransportAction<DropConstraintRequest, AcknowledgedResponse> {
 
     private static final String ACTION_NAME = "internal:crate:sql/table/drop_constraint";
+    private static final AlterTableTask.AlterTableOperator<DropConstraintRequest> DROP_CONSTRAINT_OPERATOR =
+        (req, docTableInfo, metadataBuilder, nodeCtx) -> docTableInfo.dropConstraint(req.constraintName());
+
     private final NodeContext nodeContext;
     private final IndicesService indicesService;
 
@@ -84,65 +67,12 @@ public class TransportDropConstraintAction extends AbstractDDLTransportAction<Dr
 
     @Override
     public ClusterStateTaskExecutor<DropConstraintRequest> clusterStateTaskExecutor(DropConstraintRequest request) {
-        return new DDLClusterStateTaskExecutor<>() {
-            @Override
-            protected ClusterState execute(ClusterState currentState, DropConstraintRequest request) throws Exception {
-                Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
-                boolean updated = false;
-
-                // Update template if table is partitioned
-                String templateName = PartitionName.templateName(request.relationName().schema(), request.relationName().name());
-                IndexTemplateMetadata indexTemplateMetadata = currentState.metadata().templates().get(templateName);
-
-                if (indexTemplateMetadata != null) {
-                    // Removal happens by key, value in the deepest map is not used.
-                    Map<String, Object> mapToRemove = Map.of("_meta", Map.of("check_constraints", Map.of(request.constraintName(), "")));
-
-                    IndexTemplateMetadata newIndexTemplateMetadata = DDLClusterStateHelpers.updateTemplate(
-                        indexTemplateMetadata,
-                        Collections.emptyMap(),
-                        mapToRemove,
-                        Settings.EMPTY,
-                        IndexScopedSettings.DEFAULT_SCOPED_SETTINGS // Not used if new settings are empty
-                    );
-                    updated = true;
-                    metadataBuilder.put(newIndexTemplateMetadata);
-                }
-
-                updated |= updateMapping(currentState, metadataBuilder, request);
-                if (updated) {
-                    // ensure the new table can still be parsed into a DocTableInfo to avoid breaking the table.
-                    new DocTableInfoFactory(nodeContext).create(request.relationName(), currentState.metadata());
-                    return ClusterState.builder(currentState).metadata(metadataBuilder).build();
-                }
-                return currentState;
-            }
-        };
-    }
-
-    private boolean updateMapping(ClusterState currentState,
-                                  Metadata.Builder metadataBuilder,
-                                  DropConstraintRequest request) throws IOException {
-        Index[] concreteIndices = resolveIndices(currentState, request.relationName().indexNameOrAlias());
-        boolean updated = false;
-
-        for (Index index : concreteIndices) {
-            final IndexMetadata indexMetadata = currentState.metadata().getIndexSafe(index);
-
-            Map<String, Object> currentSource = indexMetadata.mapping().sourceAsMap();
-
-            updated |= removeConstraints(currentSource, List.of(request.constraintName()));
-
-            MapperService mapperService = indicesService.createIndexMapperService(indexMetadata);
-
-            mapperService.merge(currentSource, MapperService.MergeReason.MAPPING_UPDATE);
-            DocumentMapper mapper = mapperService.documentMapper();
-
-            IndexMetadata.Builder imBuilder = IndexMetadata.builder(indexMetadata);
-            imBuilder.putMapping(new MappingMetadata(mapper.mappingSource())).mappingVersion(1 + imBuilder.mappingVersion());
-            metadataBuilder.put(imBuilder); // implicitly increments metadata version.
-        }
-        return updated;
+        return new AlterTableTask<>(
+            nodeContext,
+            indicesService::createIndexMapperService,
+            request.relationName(),
+            DROP_CONSTRAINT_OPERATOR
+        );
     }
 
     @Override

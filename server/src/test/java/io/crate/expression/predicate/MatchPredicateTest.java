@@ -71,7 +71,7 @@ public class MatchPredicateTest extends ESTestCase {
     public void testInvalidStringMatchType() {
         assertThatThrownBy(() -> MatchPredicate.getMatchType("foo", DataTypes.STRING))
             .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("invalid MATCH type 'foo' for type 'text'");
+            .hasMessage("Unknown MATCH type \"foo\". Valid types are: best_fields, most_fields, cross_fields, phrase, phrase_prefix");
     }
 
     @Test

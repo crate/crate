@@ -91,7 +91,7 @@ public final class IndexEnv implements AutoCloseable {
         IndexSettings idxSettings = IndexSettingsModule.newIndexSettings(index, nodeSettings);
         AnalysisRegistry analysisRegistry = new AnalysisModule(env, Collections.emptyList()).getAnalysisRegistry();
         IndexAnalyzers indexAnalyzers = analysisRegistry.build(idxSettings);
-        MapperRegistry mapperRegistry = new IndicesModule(List.of()).getMapperRegistry();
+        MapperRegistry mapperRegistry = new IndicesModule().getMapperRegistry();
 
         mapperService = new MapperService(
             idxSettings,
@@ -128,6 +128,7 @@ public final class IndexEnv implements AutoCloseable {
             BigArrays.NON_RECYCLING_INSTANCE,
             threadPool,
             IndicesQueryCache.createCache(Settings.EMPTY),
+            _ -> null,
             mapperRegistry
         );
         IndexWriterConfig conf = new IndexWriterConfig(new StandardAnalyzer());

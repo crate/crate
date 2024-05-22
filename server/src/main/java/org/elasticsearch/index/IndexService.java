@@ -81,6 +81,8 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
+import io.crate.execution.dml.TranslogIndexer;
+import io.crate.metadata.RelationName;
 
 public class IndexService extends AbstractIndexComponent implements IndicesClusterStateService.AllocatedIndex<IndexShard> {
 
@@ -90,6 +92,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
     private final QueryCache queryCache;
     private final IndexStorePlugin.DirectoryFactory directoryFactory;
     private final MapperService mapperService;
+    private final Function<RelationName, TranslogIndexer> translogIndexer;
     private final Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders;
     private volatile Map<Integer, IndexShard> shards = emptyMap();
     private final AtomicBoolean closed = new AtomicBoolean(false);
@@ -123,6 +126,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
             IndexStorePlugin.DirectoryFactory directoryFactory,
             IndexEventListener eventListener,
             MapperRegistry mapperRegistry,
+            Function<RelationName, TranslogIndexer> translogIndexer,
             List<IndexingOperationListener> indexingOperationListeners) throws IOException {
         super(indexSettings);
         this.indexSettings = indexSettings;
@@ -139,6 +143,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
             );
             this.queryCache = queryCache;
         }
+        this.translogIndexer = translogIndexer;
         this.shardStoreDeleter = shardStoreDeleter;
         this.bigArrays = bigArrays;
         this.threadPool = threadPool;
@@ -354,6 +359,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
                 store,
                 queryCache,
                 mapperService,
+                _ -> translogIndexer.apply(RelationName.fromIndexName(shardId.getIndexName())),
                 engineFactoryProviders,
                 eventListener,
                 threadPool,

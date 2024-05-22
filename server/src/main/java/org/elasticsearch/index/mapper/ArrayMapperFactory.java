@@ -27,16 +27,18 @@ import java.io.IOException;
 
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.index.mapper.array.DynamicArrayFieldMapperBuilderFactory;
 
 /**
  * Used when a document is parsed and a unknown field that contains an array value is encountered
  *
  * Creates a {@link ArrayMapper} or {@link ObjectArrayMapper}
  */
-public class BuilderFactory implements DynamicArrayFieldMapperBuilderFactory {
+public final class ArrayMapperFactory {
 
-    public Mapper create(String name, ObjectMapper parentMapper, ParseContext context) {
+    private ArrayMapperFactory() {
+    }
+
+    public static Mapper create(String name, ObjectMapper parentMapper, ParseContext context) {
         Mapper.BuilderContext builderContext = new Mapper.BuilderContext(context.path());
         try {
             Mapper.Builder innerBuilder = detectInnerMapper(context, name, context.parser());

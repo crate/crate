@@ -19,45 +19,54 @@
 
 package org.elasticsearch.index.engine;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
-
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.analysis.AnalyzerScope;
-import org.elasticsearch.index.analysis.IndexAnalyzers;
-import org.elasticsearch.index.analysis.NamedAnalyzer;
-import org.elasticsearch.index.mapper.DocumentMapper;
-import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.mapper.RootObjectMapper;
 import org.elasticsearch.index.mapper.SourceToParse;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.translog.Translog;
-import org.elasticsearch.indices.IndicesModule;
-import org.elasticsearch.indices.mapper.MapperRegistry;
 
-import io.crate.Constants;
+import io.crate.execution.dml.TranslogIndexer;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.sql.tree.ColumnPolicy;
 
 public class TranslogHandler implements Engine.TranslogRecoveryRunner {
 
-    private final MapperService mapperService;
+    private final String indexName;
+    private final TranslogIndexer indexer;
 
     public TranslogHandler(IndexSettings indexSettings) {
-        NamedAnalyzer defaultAnalyzer = new NamedAnalyzer("default", AnalyzerScope.INDEX, new StandardAnalyzer());
-        IndexAnalyzers indexAnalyzers =
-                new IndexAnalyzers(indexSettings, defaultAnalyzer, defaultAnalyzer, defaultAnalyzer, emptyMap(), emptyMap(), emptyMap());
-        MapperRegistry mapperRegistry = new IndicesModule(emptyList()).getMapperRegistry();
-        mapperService = new MapperService(indexSettings, indexAnalyzers, mapperRegistry);
+        this.indexName = indexSettings.getIndex().getName();
+        this.indexer = translogIndexer(indexName, indexSettings);
     }
 
-    private DocumentMapper docMapper(String type) {
-        RootObjectMapper.Builder rootBuilder = new RootObjectMapper.Builder(type);
-        DocumentMapper.Builder b = new DocumentMapper.Builder(rootBuilder, mapperService);
-        return b.build(mapperService);
+    private static TranslogIndexer translogIndexer(String indexName, IndexSettings indexSettings) {
+        RelationName relation = RelationName.fromIndexName(indexName);
+        DocTableInfo table = new DocTableInfo(
+            relation,
+            Map.of(),
+            Map.of(),
+            Map.of(),
+            null,
+            List.of(),
+            List.of(),
+            null,
+            indexSettings.getSettings(),
+            List.of(),
+            ColumnPolicy.DYNAMIC,
+            Version.CURRENT,
+            Version.CURRENT,
+            false,
+            Set.of());
+        return new TranslogIndexer(table);
     }
 
     private void applyOperation(Engine engine, Engine.Operation operation) throws IOException {
@@ -92,9 +101,8 @@ public class TranslogHandler implements Engine.TranslogRecoveryRunner {
         switch (operation.opType()) {
             case INDEX:
                 final Translog.Index index = (Translog.Index) operation;
-                final String indexName = mapperService.index().getName();
                 return IndexShard.prepareIndex(
-                    docMapper(Constants.DEFAULT_MAPPING_TYPE),
+                    indexer,
                     new SourceToParse(
                         indexName,
                         index.id(),
