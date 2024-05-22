@@ -100,11 +100,6 @@ public class MatchQuery {
     public static final int DEFAULT_PHRASE_SLOP = 0;
 
     /**
-     * the default leniency setting
-     */
-    public static final boolean DEFAULT_LENIENCY = false;
-
-    /**
      * the default zero terms query
      */
     public static final ZeroTermsQuery DEFAULT_ZERO_TERMS_QUERY = ZeroTermsQuery.NONE;
@@ -128,8 +123,6 @@ public class MatchQuery {
     protected boolean transpositions = FuzzyQuery.defaultTranspositions;
 
     protected MultiTermQuery.RewriteMethod fuzzyRewriteMethod;
-
-    protected boolean lenient = DEFAULT_LENIENCY;
 
     protected ZeroTermsQuery zeroTermsQuery = DEFAULT_ZERO_TERMS_QUERY;
 
@@ -186,10 +179,6 @@ public class MatchQuery {
 
     public void setFuzzyRewriteMethod(MultiTermQuery.RewriteMethod fuzzyRewriteMethod) {
         this.fuzzyRewriteMethod = fuzzyRewriteMethod;
-    }
-
-    public void setLenient(boolean lenient) {
-        this.lenient = lenient;
     }
 
     public void setZeroTermsQuery(ZeroTermsQuery zeroTermsQuery) {
@@ -260,15 +249,8 @@ public class MatchQuery {
         }
     }
 
-    protected final Query termQuery(MappedFieldType fieldType, BytesRef value, boolean lenient) {
-        try {
-            return new TermQuery(new Term(fieldType.name(), value));
-        } catch (RuntimeException e) {
-            if (lenient) {
-                return newLenientFieldQuery(fieldType.name(), e);
-            }
-            throw e;
-        }
+    protected final Query termQuery(MappedFieldType fieldType, BytesRef value) {
+        return new TermQuery(new Term(fieldType.name(), value));
     }
 
     protected Query zeroTermsQuery() {
@@ -311,15 +293,8 @@ public class MatchQuery {
                     return blendPhraseQuery((PhraseQuery) query, mapper);
                 }
                 return query;
-            } catch (IllegalStateException e) {
-                if (lenient) {
-                    return newLenientFieldQuery(field, e);
-                }
-                throw e;
             } catch (IllegalArgumentException e) {
-                if (lenient == false) {
-                    DEPRECATION_LOGGER.deprecatedAndMaybeLog("match_query_analyze_phrase_not_lenient", e.getMessage());
-                }
+                DEPRECATION_LOGGER.deprecatedAndMaybeLog("match_query_analyze_phrase_not_lenient", e.getMessage());
                 return newLenientFieldQuery(field, e);
             }
         }
@@ -329,15 +304,8 @@ public class MatchQuery {
             try {
                 checkForPositions(field);
                 return multiPhraseQuery(field, stream, slop, enablePositionIncrements);
-            } catch (IllegalStateException e) {
-                if (lenient) {
-                    return newLenientFieldQuery(field, e);
-                }
-                throw e;
             } catch (IllegalArgumentException e) {
-                if (lenient == false) {
-                    DEPRECATION_LOGGER.deprecatedAndMaybeLog("match_query_analyze_multiphrase_not_lenient", e.getMessage());
-                }
+                DEPRECATION_LOGGER.deprecatedAndMaybeLog("match_query_analyze_multiphrase_not_lenient", e.getMessage());
                 return newLenientFieldQuery(field, e);
             }
         }
@@ -486,27 +454,19 @@ public class MatchQuery {
 
     protected Query blendTermQuery(Term term, MappedFieldType fieldType) {
         if (fuzziness == null) {
-            return termQuery(fieldType, term.bytes(), lenient);
+            return termQuery(fieldType, term.bytes());
         }
-        try {
-            fieldType.failIfNotIndexed();
-            int distance = fuzziness.asDistance(term.text());
-            var rewriteMethod = fuzzyRewriteMethod == null ? FuzzyQuery.defaultRewriteMethod(maxExpansions) : fuzzyRewriteMethod;
-            return new FuzzyQuery(
-                term,
-                distance,
-                fuzzyPrefixLength,
-                maxExpansions,
-                transpositions,
-                rewriteMethod
-            );
-        } catch (RuntimeException e) {
-            if (lenient) {
-                return newLenientFieldQuery(fieldType.name(), e);
-            } else {
-                throw e;
-            }
-        }
+        fieldType.failIfNotIndexed();
+        int distance = fuzziness.asDistance(term.text());
+        var rewriteMethod = fuzzyRewriteMethod == null ? FuzzyQuery.defaultRewriteMethod(maxExpansions) : fuzzyRewriteMethod;
+        return new FuzzyQuery(
+            term,
+            distance,
+            fuzzyPrefixLength,
+            maxExpansions,
+            transpositions,
+            rewriteMethod
+        );
     }
 
     private static Query multiPhraseQuery(String field, TokenStream stream, int slop, boolean enablePositionIncrements) throws IOException {

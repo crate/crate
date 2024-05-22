@@ -145,7 +145,7 @@ public class MultiMatchQuery extends MatchQuery {
         }
 
         public Query termQuery(MappedFieldType fieldType, BytesRef value) {
-            return MultiMatchQuery.this.termQuery(fieldType, value, lenient);
+            return MultiMatchQuery.this.termQuery(fieldType, value);
         }
 
         public Query blendPhrase(PhraseQuery query, MappedFieldType type) {
