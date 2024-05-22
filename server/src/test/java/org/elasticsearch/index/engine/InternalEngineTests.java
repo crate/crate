@@ -302,7 +302,7 @@ public class InternalEngineTests extends EngineTestCase {
         try (Store store = createStore();
              InternalEngine engine = createEngine(config(indexSettings, store, createTempDir(), NoMergePolicy.INSTANCE, null))) {
             List<Segment> segments = engine.segments(false);
-            assertThat(segments.isEmpty()).isEqualTo(true);
+            assertThat(segments.isEmpty()).isTrue();
 
             // create two docs and refresh
             ParsedDocument doc = testParsedDocument("1", testDocumentWithTextField(), B_1, null);
@@ -315,43 +315,43 @@ public class InternalEngineTests extends EngineTestCase {
             engine.refresh("test");
 
             segments = engine.segments(false);
-            assertThat(segments.size()).isEqualTo(1);
-            assertThat(segments.get(0).isCommitted()).isEqualTo(false);
-            assertThat(segments.get(0).isSearch()).isEqualTo(true);
+            assertThat(segments).hasSize(1);
+            assertThat(segments.get(0).isCommitted()).isFalse();
+            assertThat(segments.get(0).isSearch()).isTrue();
             assertThat(segments.get(0).getNumDocs()).isEqualTo(2);
             assertThat(segments.get(0).getDeletedDocs()).isEqualTo(0);
-            assertThat(segments.get(0).isCompound()).isEqualTo(true);
+            assertThat(segments.get(0).isCompound()).isTrue();
             assertThat(segments.get(0).getAttributes().keySet(), Matchers.contains(Lucene90StoredFieldsFormat.MODE_KEY));
 
             engine.flush();
 
             segments = engine.segments(false);
-            assertThat(segments.size()).isEqualTo(1);
-            assertThat(segments.get(0).isCommitted()).isEqualTo(true);
-            assertThat(segments.get(0).isSearch()).isEqualTo(true);
+            assertThat(segments).hasSize(1);
+            assertThat(segments.get(0).isCommitted()).isTrue();
+            assertThat(segments.get(0).isSearch()).isTrue();
             assertThat(segments.get(0).getNumDocs()).isEqualTo(2);
             assertThat(segments.get(0).getDeletedDocs()).isEqualTo(0);
-            assertThat(segments.get(0).isCompound()).isEqualTo(true);
+            assertThat(segments.get(0).isCompound()).isTrue();
 
             ParsedDocument doc3 = testParsedDocument("3", testDocumentWithTextField(), B_3, null);
             engine.index(indexForDoc(doc3));
             engine.refresh("test");
 
             segments = engine.segments(false);
-            assertThat(segments.size()).isEqualTo(2);
-            assertThat(segments.get(0).getGeneration() < segments.get(1).getGeneration()).isEqualTo(true);
-            assertThat(segments.get(0).isCommitted()).isEqualTo(true);
-            assertThat(segments.get(0).isSearch()).isEqualTo(true);
+            assertThat(segments).hasSize(2);
+            assertThat(segments.get(0).getGeneration() < segments.get(1).getGeneration()).isTrue();
+            assertThat(segments.get(0).isCommitted()).isTrue();
+            assertThat(segments.get(0).isSearch()).isTrue();
             assertThat(segments.get(0).getNumDocs()).isEqualTo(2);
             assertThat(segments.get(0).getDeletedDocs()).isEqualTo(0);
-            assertThat(segments.get(0).isCompound()).isEqualTo(true);
+            assertThat(segments.get(0).isCompound()).isTrue();
 
 
-            assertThat(segments.get(1).isCommitted()).isEqualTo(false);
-            assertThat(segments.get(1).isSearch()).isEqualTo(true);
+            assertThat(segments.get(1).isCommitted()).isFalse();
+            assertThat(segments.get(1).isSearch()).isTrue();
             assertThat(segments.get(1).getNumDocs()).isEqualTo(1);
             assertThat(segments.get(1).getDeletedDocs()).isEqualTo(0);
-            assertThat(segments.get(1).isCompound()).isEqualTo(true);
+            assertThat(segments.get(1).isCompound()).isTrue();
 
 
             engine.delete(new Engine.Delete(
@@ -369,19 +369,19 @@ public class InternalEngineTests extends EngineTestCase {
             engine.refresh("test");
 
             segments = engine.segments(false);
-            assertThat(segments.size()).isEqualTo(2);
-            assertThat(segments.get(0).getGeneration() < segments.get(1).getGeneration()).isEqualTo(true);
-            assertThat(segments.get(0).isCommitted()).isEqualTo(true);
-            assertThat(segments.get(0).isSearch()).isEqualTo(true);
+            assertThat(segments).hasSize(2);
+            assertThat(segments.get(0).getGeneration() < segments.get(1).getGeneration()).isTrue();
+            assertThat(segments.get(0).isCommitted()).isTrue();
+            assertThat(segments.get(0).isSearch()).isTrue();
             assertThat(segments.get(0).getNumDocs()).isEqualTo(1);
             assertThat(segments.get(0).getDeletedDocs()).isEqualTo(1);
-            assertThat(segments.get(0).isCompound()).isEqualTo(true);
+            assertThat(segments.get(0).isCompound()).isTrue();
 
-            assertThat(segments.get(1).isCommitted()).isEqualTo(false);
-            assertThat(segments.get(1).isSearch()).isEqualTo(true);
+            assertThat(segments.get(1).isCommitted()).isFalse();
+            assertThat(segments.get(1).isSearch()).isTrue();
             assertThat(segments.get(1).getNumDocs()).isEqualTo(1);
             assertThat(segments.get(1).getDeletedDocs()).isEqualTo(0);
-            assertThat(segments.get(1).isCompound()).isEqualTo(true);
+            assertThat(segments.get(1).isCompound()).isTrue();
 
             engine.onSettingsChanged(indexSettings.getTranslogRetentionAge(), indexSettings.getTranslogRetentionSize(),
                                      indexSettings.getSoftDeleteRetentionOperations());
@@ -390,25 +390,25 @@ public class InternalEngineTests extends EngineTestCase {
             engine.refresh("test");
 
             segments = engine.segments(false);
-            assertThat(segments.size()).isEqualTo(3);
-            assertThat(segments.get(0).getGeneration() < segments.get(1).getGeneration()).isEqualTo(true);
-            assertThat(segments.get(0).isCommitted()).isEqualTo(true);
-            assertThat(segments.get(0).isSearch()).isEqualTo(true);
+            assertThat(segments).hasSize(3);
+            assertThat(segments.get(0).getGeneration() < segments.get(1).getGeneration()).isTrue();
+            assertThat(segments.get(0).isCommitted()).isTrue();
+            assertThat(segments.get(0).isSearch()).isTrue();
             assertThat(segments.get(0).getNumDocs()).isEqualTo(1);
             assertThat(segments.get(0).getDeletedDocs()).isEqualTo(1);
-            assertThat(segments.get(0).isCompound()).isEqualTo(true);
+            assertThat(segments.get(0).isCompound()).isTrue();
 
-            assertThat(segments.get(1).isCommitted()).isEqualTo(false);
-            assertThat(segments.get(1).isSearch()).isEqualTo(true);
+            assertThat(segments.get(1).isCommitted()).isFalse();
+            assertThat(segments.get(1).isSearch()).isTrue();
             assertThat(segments.get(1).getNumDocs()).isEqualTo(1);
             assertThat(segments.get(1).getDeletedDocs()).isEqualTo(0);
-            assertThat(segments.get(1).isCompound()).isEqualTo(true);
+            assertThat(segments.get(1).isCompound()).isTrue();
 
-            assertThat(segments.get(2).isCommitted()).isEqualTo(false);
-            assertThat(segments.get(2).isSearch()).isEqualTo(true);
+            assertThat(segments.get(2).isCommitted()).isFalse();
+            assertThat(segments.get(2).isSearch()).isTrue();
             assertThat(segments.get(2).getNumDocs()).isEqualTo(1);
             assertThat(segments.get(2).getDeletedDocs()).isEqualTo(0);
-            assertThat(segments.get(2).isCompound()).isEqualTo(true);
+            assertThat(segments.get(2).isCompound()).isTrue();
 
             // internal refresh - lets make sure we see those segments in the stats
             ParsedDocument doc5 = testParsedDocument("5", testDocumentWithTextField(), B_3, null);
@@ -416,60 +416,60 @@ public class InternalEngineTests extends EngineTestCase {
             engine.refresh("test", Engine.SearcherScope.INTERNAL, true);
 
             segments = engine.segments(false);
-            assertThat(segments.size()).isEqualTo(4);
-            assertThat(segments.get(0).getGeneration() < segments.get(1).getGeneration()).isEqualTo(true);
-            assertThat(segments.get(0).isCommitted()).isEqualTo(true);
-            assertThat(segments.get(0).isSearch()).isEqualTo(true);
+            assertThat(segments).hasSize(4);
+            assertThat(segments.get(0).getGeneration() < segments.get(1).getGeneration()).isTrue();
+            assertThat(segments.get(0).isCommitted()).isTrue();
+            assertThat(segments.get(0).isSearch()).isTrue();
             assertThat(segments.get(0).getNumDocs()).isEqualTo(1);
             assertThat(segments.get(0).getDeletedDocs()).isEqualTo(1);
-            assertThat(segments.get(0).isCompound()).isEqualTo(true);
+            assertThat(segments.get(0).isCompound()).isTrue();
 
-            assertThat(segments.get(1).isCommitted()).isEqualTo(false);
-            assertThat(segments.get(1).isSearch()).isEqualTo(true);
+            assertThat(segments.get(1).isCommitted()).isFalse();
+            assertThat(segments.get(1).isSearch()).isTrue();
             assertThat(segments.get(1).getNumDocs()).isEqualTo(1);
             assertThat(segments.get(1).getDeletedDocs()).isEqualTo(0);
-            assertThat(segments.get(1).isCompound()).isEqualTo(true);
+            assertThat(segments.get(1).isCompound()).isTrue();
 
-            assertThat(segments.get(2).isCommitted()).isEqualTo(false);
-            assertThat(segments.get(2).isSearch()).isEqualTo(true);
+            assertThat(segments.get(2).isCommitted()).isFalse();
+            assertThat(segments.get(2).isSearch()).isTrue();
             assertThat(segments.get(2).getNumDocs()).isEqualTo(1);
             assertThat(segments.get(2).getDeletedDocs()).isEqualTo(0);
-            assertThat(segments.get(2).isCompound()).isEqualTo(true);
+            assertThat(segments.get(2).isCompound()).isTrue();
 
-            assertThat(segments.get(3).isCommitted()).isEqualTo(false);
-            assertThat(segments.get(3).isSearch()).isEqualTo(false);
+            assertThat(segments.get(3).isCommitted()).isFalse();
+            assertThat(segments.get(3).isSearch()).isFalse();
             assertThat(segments.get(3).getNumDocs()).isEqualTo(1);
             assertThat(segments.get(3).getDeletedDocs()).isEqualTo(0);
-            assertThat(segments.get(3).isCompound()).isEqualTo(true);
+            assertThat(segments.get(3).isCompound()).isTrue();
 
             // now refresh the external searcher and make sure it has the new segment
             engine.refresh("test");
             segments = engine.segments(false);
-            assertThat(segments.size()).isEqualTo(4);
-            assertThat(segments.get(0).getGeneration() < segments.get(1).getGeneration()).isEqualTo(true);
-            assertThat(segments.get(0).isCommitted()).isEqualTo(true);
-            assertThat(segments.get(0).isSearch()).isEqualTo(true);
+            assertThat(segments).hasSize(4);
+            assertThat(segments.get(0).getGeneration() < segments.get(1).getGeneration()).isTrue();
+            assertThat(segments.get(0).isCommitted()).isTrue();
+            assertThat(segments.get(0).isSearch()).isTrue();
             assertThat(segments.get(0).getNumDocs()).isEqualTo(1);
             assertThat(segments.get(0).getDeletedDocs()).isEqualTo(1);
-            assertThat(segments.get(0).isCompound()).isEqualTo(true);
+            assertThat(segments.get(0).isCompound()).isTrue();
 
-            assertThat(segments.get(1).isCommitted()).isEqualTo(false);
-            assertThat(segments.get(1).isSearch()).isEqualTo(true);
+            assertThat(segments.get(1).isCommitted()).isFalse();
+            assertThat(segments.get(1).isSearch()).isTrue();
             assertThat(segments.get(1).getNumDocs()).isEqualTo(1);
             assertThat(segments.get(1).getDeletedDocs()).isEqualTo(0);
-            assertThat(segments.get(1).isCompound()).isEqualTo(true);
+            assertThat(segments.get(1).isCompound()).isTrue();
 
-            assertThat(segments.get(2).isCommitted()).isEqualTo(false);
-            assertThat(segments.get(2).isSearch()).isEqualTo(true);
+            assertThat(segments.get(2).isCommitted()).isFalse();
+            assertThat(segments.get(2).isSearch()).isTrue();
             assertThat(segments.get(2).getNumDocs()).isEqualTo(1);
             assertThat(segments.get(2).getDeletedDocs()).isEqualTo(0);
-            assertThat(segments.get(2).isCompound()).isEqualTo(true);
+            assertThat(segments.get(2).isCompound()).isTrue();
 
-            assertThat(segments.get(3).isCommitted()).isEqualTo(false);
-            assertThat(segments.get(3).isSearch()).isEqualTo(true);
+            assertThat(segments.get(3).isCommitted()).isFalse();
+            assertThat(segments.get(3).isSearch()).isTrue();
             assertThat(segments.get(3).getNumDocs()).isEqualTo(1);
             assertThat(segments.get(3).getDeletedDocs()).isEqualTo(0);
-            assertThat(segments.get(3).isCompound()).isEqualTo(true);
+            assertThat(segments.get(3).isCompound()).isTrue();
         }
     }
 
@@ -478,14 +478,14 @@ public class InternalEngineTests extends EngineTestCase {
         try (Store store = createStore();
              Engine engine = createEngine(defaultSettings, store, createTempDir(), NoMergePolicy.INSTANCE)) {
             List<Segment> segments = engine.segments(true);
-            assertThat(segments.isEmpty()).isEqualTo(true);
+            assertThat(segments.isEmpty()).isTrue();
 
             ParsedDocument doc = testParsedDocument("1", testDocumentWithTextField(), B_1, null);
             engine.index(indexForDoc(doc));
             engine.refresh("test");
 
             segments = engine.segments(true);
-            assertThat(segments.size()).isEqualTo(1);
+            assertThat(segments).hasSize(1);
 
             ParsedDocument doc2 = testParsedDocument("2", testDocumentWithTextField(), B_2, null);
             engine.index(indexForDoc(doc2));
@@ -495,7 +495,7 @@ public class InternalEngineTests extends EngineTestCase {
             engine.refresh("test");
 
             segments = engine.segments(true);
-            assertThat(segments.size()).isEqualTo(3);
+            assertThat(segments).hasSize(3);
         }
     }
 
@@ -507,12 +507,12 @@ public class InternalEngineTests extends EngineTestCase {
             Engine.Index index = indexForDoc(doc);
             engine.index(index);
             engine.flush();
-            assertThat(engine.segments(false).size()).isEqualTo(1);
+            assertThat(engine.segments(false)).hasSize(1);
             index = indexForDoc(testParsedDocument("2", testDocument(), B_1, null));
             engine.index(index);
             engine.flush();
             List<Segment> segments = engine.segments(false);
-            assertThat(segments.size()).isEqualTo(2);
+            assertThat(segments).hasSize(2);
             for (Segment segment : segments) {
                 assertThat(segment.getMergeId(), nullValue());
             }
@@ -520,7 +520,7 @@ public class InternalEngineTests extends EngineTestCase {
             engine.index(index);
             engine.flush();
             segments = engine.segments(false);
-            assertThat(segments.size()).isEqualTo(3);
+            assertThat(segments).hasSize(3);
             for (Segment segment : segments) {
                 assertThat(segment.getMergeId(), nullValue());
             }
@@ -2047,7 +2047,7 @@ public class InternalEngineTests extends EngineTestCase {
                     } else {
                         result = engine.index(indexWithVersion.apply(conflictingVersion, index));
                     }
-                    assertThat(result.isCreated()).isEqualTo(false);
+                    assertThat(result.isCreated()).isFalse();
                     assertThat(result.getVersion()).isEqualTo(lastOpVersion);
                     assertThat(result.getResultType()).isEqualTo(Engine.Result.Type.FAILURE);
                     assertThat(result.getFailure()).isExactlyInstanceOf(VersionConflictEngineException.class);
@@ -2193,7 +2193,7 @@ public class InternalEngineTests extends EngineTestCase {
                     docDeleted = false;
                     highestOpVersion = op.version();
                 } else {
-                    assertThat(result.isCreated()).isEqualTo(false);
+                    assertThat(result.isCreated()).isFalse();
                     assertThat(result.getVersion()).isEqualTo(highestOpVersion);
                     assertThat(result.getResultType()).isEqualTo(Engine.Result.Type.FAILURE);
                     assertThat(result.getFailure()).isExactlyInstanceOf(VersionConflictEngineException.class);
@@ -5166,7 +5166,7 @@ public class InternalEngineTests extends EngineTestCase {
 
     @Test
     public void testShouldPeriodicallyFlush() throws Exception {
-        assertThat(engine.shouldPeriodicallyFlush()).as("Empty engine does not need flushing").isEqualTo(false);
+        assertThat(engine.shouldPeriodicallyFlush()).as("Empty engine does not need flushing").isFalse();
         // A new engine may have more than one empty translog files - the test should account this extra.
         final Translog translog = engine.getTranslog();
         final IntSupplier uncommittedTranslogOperationsSinceLastCommit = () -> {
@@ -5181,7 +5181,7 @@ public class InternalEngineTests extends EngineTestCase {
                 testParsedDocument(Integer.toString(id), testDocumentWithTextField(), SOURCE, null);
             engine.index(indexForDoc(doc));
         }
-        assertThat(engine.shouldPeriodicallyFlush()).as("Not exceeded translog flush threshold yet").isEqualTo(false);
+        assertThat(engine.shouldPeriodicallyFlush()).as("Not exceeded translog flush threshold yet").isFalse();
         long flushThreshold = RandomNumbers.randomLongBetween(random(), 120,
             engine.getTranslog().stats().getUncommittedSizeInBytes()- extraTranslogSizeInNewEngine);
         final IndexSettings indexSettings = engine.config().getIndexSettings();
@@ -5192,7 +5192,7 @@ public class InternalEngineTests extends EngineTestCase {
         engine.onSettingsChanged(indexSettings.getTranslogRetentionAge(), indexSettings.getTranslogRetentionSize(),
             indexSettings.getSoftDeleteRetentionOperations());
         assertThat(engine.getTranslog().stats().getUncommittedOperations()).isEqualTo(numDocs);
-        assertThat(engine.shouldPeriodicallyFlush()).isEqualTo(true);
+        assertThat(engine.shouldPeriodicallyFlush()).isTrue();
         engine.flush();
         assertThat(uncommittedTranslogOperationsSinceLastCommit.getAsInt()).isEqualTo(0);
         // Stale operations skipped by Lucene but added to translog - still able to flush
@@ -5200,11 +5200,11 @@ public class InternalEngineTests extends EngineTestCase {
             final ParsedDocument doc =
                 testParsedDocument(Integer.toString(id), testDocumentWithTextField(), SOURCE, null);
             final Engine.IndexResult result = engine.index(replicaIndexForDoc(doc, 1L, id, false));
-            assertThat(result.isCreated()).isEqualTo(false);
+            assertThat(result.isCreated()).isFalse();
         }
         SegmentInfos lastCommitInfo = engine.getLastCommittedSegmentInfos();
         assertThat(uncommittedTranslogOperationsSinceLastCommit.getAsInt()).isEqualTo(numDocs);
-        assertThat(engine.shouldPeriodicallyFlush()).isEqualTo(true);
+        assertThat(engine.shouldPeriodicallyFlush()).isTrue();
         engine.flush(false, false);
         assertThat(engine.getLastCommittedSegmentInfos()).isNotSameAs(lastCommitInfo);
         assertThat(uncommittedTranslogOperationsSinceLastCommit.getAsInt()).isEqualTo(0);
@@ -5221,19 +5221,19 @@ public class InternalEngineTests extends EngineTestCase {
             if (engine.shouldPeriodicallyFlush()) {
                 engine.flush();
                 assertThat(engine.getLastCommittedSegmentInfos()).isNotSameAs(lastCommitInfo);
-                assertThat(engine.shouldPeriodicallyFlush()).isEqualTo(false);
+                assertThat(engine.shouldPeriodicallyFlush()).isFalse();
             }
         }
     }
 
     @Test
     public void testShouldPeriodicallyFlushAfterMerge() throws Exception {
-        assertThat(engine.shouldPeriodicallyFlush()).as("Empty engine does not need flushing").isEqualTo(false);
+        assertThat(engine.shouldPeriodicallyFlush()).as("Empty engine does not need flushing").isFalse();
         ParsedDocument doc =
             testParsedDocument(Integer.toString(0), testDocumentWithTextField(), SOURCE, null);
         engine.index(indexForDoc(doc));
         engine.refresh("test");
-        assertThat(engine.shouldPeriodicallyFlush()).as("Not exceeded translog flush threshold yet").isEqualTo(false);
+        assertThat(engine.shouldPeriodicallyFlush()).as("Not exceeded translog flush threshold yet").isFalse();
         final IndexSettings indexSettings = engine.config().getIndexSettings();
         final IndexMetadata indexMetadata = IndexMetadata.builder(indexSettings.getIndexMetadata())
             .settings(Settings.builder().put(indexSettings.getSettings())
@@ -5242,7 +5242,7 @@ public class InternalEngineTests extends EngineTestCase {
         engine.onSettingsChanged(indexSettings.getTranslogRetentionAge(), indexSettings.getTranslogRetentionSize(),
                                  indexSettings.getSoftDeleteRetentionOperations());
         assertThat(engine.getTranslog().stats().getUncommittedOperations()).isEqualTo(1);
-        assertThat(engine.shouldPeriodicallyFlush()).isEqualTo(false);
+        assertThat(engine.shouldPeriodicallyFlush()).isFalse();
         doc = testParsedDocument(Integer.toString(1), testDocumentWithTextField(), SOURCE, null);
         engine.index(indexForDoc(doc));
         assertThat(engine.getTranslog().stats().getUncommittedOperations()).isEqualTo(2);
@@ -5250,10 +5250,10 @@ public class InternalEngineTests extends EngineTestCase {
         engine.forceMerge(false, 1, false, UUIDs.randomBase64UUID());
         assertBusy(() -> {
             // the merge listner runs concurrently after the force merge returned
-            assertThat(engine.shouldPeriodicallyFlush()).isEqualTo(true);
+            assertThat(engine.shouldPeriodicallyFlush()).isTrue();
         });
         engine.flush();
-        assertThat(engine.shouldPeriodicallyFlush()).isEqualTo(false);
+        assertThat(engine.shouldPeriodicallyFlush()).isFalse();
     }
 
     @Test
@@ -5280,7 +5280,7 @@ public class InternalEngineTests extends EngineTestCase {
             }
             if (rarely() || engine.shouldPeriodicallyFlush()) {
                 engine.flush();
-                assertThat(engine.shouldPeriodicallyFlush()).isEqualTo(false);
+                assertThat(engine.shouldPeriodicallyFlush()).isFalse();
             }
         }
     }

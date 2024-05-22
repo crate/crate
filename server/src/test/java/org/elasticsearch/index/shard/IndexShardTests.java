@@ -598,7 +598,7 @@ public class IndexShardTests extends IndexShardTestCase {
                         mappingVersion,
                         ActionListener.wrap(
                             r -> {
-                                assertThat(replica.isSyncNeeded()).isEqualTo(false);
+                                assertThat(replica.isSyncNeeded()).isFalse();
                                 listener.onResponse(r);
                             },
                             listener::onFailure
@@ -716,7 +716,7 @@ public class IndexShardTests extends IndexShardTestCase {
             Version.CURRENT);
         replica.markAsRecovering("for testing", new RecoveryState(replica.routingEntry(), localNode, localNode));
         // Shard is still inactive since we haven't started recovering yet
-        assertThat(replica.isActive()).isEqualTo(false);
+        assertThat(replica.isActive()).isFalse();
         recoverReplica(replica, primary, (shard, discoveryNode) ->
             new RecoveryTarget(shard, discoveryNode, recoveryListener) {
                 @Override
@@ -766,7 +766,7 @@ public class IndexShardTests extends IndexShardTestCase {
         Consumer<IndexShard> assertListenerCalled = shard -> {
             AtomicBoolean called = new AtomicBoolean();
             shard.addRefreshListener(null, b -> {
-                assertThat(b).isEqualTo(false);
+                assertThat(b).isFalse();
                 called.set(true);
             });
             assertThat(called.get()).isTrue();
@@ -1400,7 +1400,7 @@ public class IndexShardTests extends IndexShardTestCase {
         for (int i = 0; i < iters; i++) {
             newShard.checkIndex();
         }
-        assertThat(stop.compareAndSet(false, true)).isEqualTo(true);
+        assertThat(stop.compareAndSet(false, true)).isTrue();
         snapshotter.join();
         closeShards(newShard);
     }
@@ -1463,17 +1463,17 @@ public class IndexShardTests extends IndexShardTestCase {
         IndexShard primary = newShard(new ShardId(metadata.getIndex(), 0), true, "n1", metadata, null);
         recoverShardFromStore(primary);
         indexDoc(primary, "0", "{\"foo\" : \"bar\"}");
-        assertThat(primary.getEngine().refreshNeeded()).isEqualTo(true);
-        assertThat(primary.scheduledRefresh()).isEqualTo(true);
+        assertThat(primary.getEngine().refreshNeeded()).isTrue();
+        assertThat(primary.scheduledRefresh()).isTrue();
         IndexScopedSettings scopedSettings = primary.indexSettings().getScopedSettings();
         settings = Settings.builder().put(settings).put(IndexSettings.INDEX_SEARCH_IDLE_AFTER.getKey(), TimeValue.ZERO).build();
         scopedSettings.applySettings(settings);
 
         assertThat(primary.getEngine().refreshNeeded()).isFalse();
         indexDoc(primary, "1", "{\"foo\" : \"bar\"}");
-        assertThat(primary.getEngine().refreshNeeded()).isEqualTo(true);
+        assertThat(primary.getEngine().refreshNeeded()).isTrue();
         long lastSearchAccess = primary.getLastSearcherAccess();
-        assertThat(primary.scheduledRefresh()).isEqualTo(false);
+        assertThat(primary.scheduledRefresh()).isFalse();
         assertThat(lastSearchAccess).isEqualTo(primary.getLastSearcherAccess());
         // wait until the thread-pool has moved the timestamp otherwise we can't assert on this below
         assertBusy(() -> assertThat(primary.getThreadPool().relativeTimeInMillis()).isGreaterThan(lastSearchAccess));
@@ -1495,8 +1495,8 @@ public class IndexShardTests extends IndexShardTestCase {
         try (Engine.Searcher searcher = primary.acquireSearcher("test")) {
             assertThat(searcher.getIndexReader().numDocs()).isEqualTo(1);
         }
-        assertThat(primary.getEngine().refreshNeeded()).isEqualTo(true);
-        assertThat(primary.scheduledRefresh()).isEqualTo(true);
+        assertThat(primary.getEngine().refreshNeeded()).isTrue();
+        assertThat(primary.scheduledRefresh()).isTrue();
         latch.await();
         CountDownLatch latch1 = new CountDownLatch(1);
         primary.awaitShardSearchActive(refreshed -> {
@@ -2199,19 +2199,19 @@ public class IndexShardTests extends IndexShardTestCase {
             if (indexShard.state() == IndexShardState.CREATED || indexShard.state() == IndexShardState.RECOVERING) {
                 barrier.await();
                 assertThat(indexShard.getPendingPrimaryTerm()).isEqualTo(primaryTerm);
-                assertThat(onResponse.get()).isEqualTo(false);
+                assertThat(onResponse.get()).isFalse();
                 assertThat(onFailure.get()).isExactlyInstanceOf(IndexShardNotStartedException.class);
                 Releasables.close(operation1);
                 Releasables.close(operation2);
             } else {
                 // our operation should be blocked until the previous operations complete
-                assertThat(onResponse.get()).isEqualTo(false);
+                assertThat(onResponse.get()).isFalse();
                 assertThat(onFailure.get()).isNull();
                 assertThat(indexShard.getOperationPrimaryTerm()).isEqualTo(primaryTerm);
                 assertThat(TestTranslog.getCurrentTerm(getTranslog(indexShard))).isEqualTo(primaryTerm);
                 Releasables.close(operation1);
                 // our operation should still be blocked
-                assertThat(onResponse.get()).isEqualTo(false);
+                assertThat(onResponse.get()).isFalse();
                 assertThat(onFailure.get()).isNull();
                 assertThat(indexShard.getOperationPrimaryTerm()).isEqualTo(primaryTerm);
                 assertThat(TestTranslog.getCurrentTerm(getTranslog(indexShard))).isEqualTo(primaryTerm);
@@ -2222,10 +2222,10 @@ public class IndexShardTests extends IndexShardTestCase {
                 assertThat(indexShard.getPendingPrimaryTerm()).isEqualTo(newPrimaryTerm);
                 assertThat(TestTranslog.getCurrentTerm(getTranslog(indexShard))).isEqualTo(newPrimaryTerm);
                 if (engineClosed) {
-                    assertThat(onResponse.get()).isEqualTo(false);
+                    assertThat(onResponse.get()).isFalse();
                     assertThat(onFailure.get()).isExactlyInstanceOf(AlreadyClosedException.class);
                 } else {
-                    assertThat(onResponse.get()).isEqualTo(true);
+                    assertThat(onResponse.get()).isTrue();
                     assertThat(onFailure.get()).isNull();
                     assertThat(getTranslog(indexShard).getGeneration().translogFileGeneration)
                         // if rollback happens we roll translog twice: one when we flush
@@ -2272,8 +2272,8 @@ public class IndexShardTests extends IndexShardTestCase {
                 onLockAcquired,
                 "");
             latch.await();
-            assertThat(onResponse.get()).isEqualTo(false);
-            assertThat(onFailure.get()).isEqualTo(true);
+            assertThat(onResponse.get()).isFalse();
+            assertThat(onFailure.get()).isTrue();
             assertThat(onFailureException.get()).isExactlyInstanceOf(IllegalStateException.class);
             assertThat(onFailureException.get())
                 .hasMessageContaining("operation primary term [" + oldPrimaryTerm + "] is too old");
@@ -2378,7 +2378,7 @@ public class IndexShardTests extends IndexShardTestCase {
         primaryShard.maybeSyncGlobalCheckpoint("test");
 
         // this time there should not be a sync since all the replica copies are caught up with the primary
-        assertThat(synced.get()).isEqualTo(false);
+        assertThat(synced.get()).isFalse();
 
         closeShards(replicaShard, primaryShard);
     }
@@ -2627,7 +2627,7 @@ public class IndexShardTests extends IndexShardTestCase {
         snapshot = newShard.snapshotStoreMetadata();
         assertThat(snapshot.getSegmentsFile().name()).isEqualTo("segments_3");
 
-        assertThat(recoverFromStore(newShard)).isEqualTo(true);
+        assertThat(recoverFromStore(newShard)).isTrue();
 
         snapshot = newShard.snapshotStoreMetadata();
         assertThat(snapshot.getSegmentsFile().name()).isEqualTo("segments_3");
@@ -2670,7 +2670,7 @@ public class IndexShardTests extends IndexShardTestCase {
         for (int i = 0; i < thread.length; i++) {
             thread[i].join();
         }
-        assertThat(semaphore.tryAcquire(Integer.MAX_VALUE, 10, TimeUnit.SECONDS)).isEqualTo(true);
+        assertThat(semaphore.tryAcquire(Integer.MAX_VALUE, 10, TimeUnit.SECONDS)).isTrue();
 
         closeShards(shard);
     }
@@ -2773,7 +2773,7 @@ public class IndexShardTests extends IndexShardTestCase {
             }
             assertThatThrownBy(shard::storeStats)
                 .isExactlyInstanceOf(ElasticsearchException.class);
-            assertThat(failureCallbackTriggered.get()).isEqualTo(true);
+            assertThat(failureCallbackTriggered.get()).isTrue();
 
             if (corruptIndexException && !throwWhenMarkingStoreCorrupted.get()) {
                 assertThat(store.isMarkedCorrupted()).isTrue();
@@ -2939,11 +2939,11 @@ public class IndexShardTests extends IndexShardTestCase {
             recoveryThread.start();
             latch.await();
             // recovery can only be finalized after we release the current primaryOperationLock
-            assertThat(shard.isRelocatedPrimary()).isEqualTo(false);
+            assertThat(shard.isRelocatedPrimary()).isFalse();
         }
         // recovery can be now finalized
         recoveryThread.join();
-        assertThat(shard.isRelocatedPrimary()).isEqualTo(true);
+        assertThat(shard.isRelocatedPrimary()).isTrue();
         assertThatThrownBy(() -> acquirePrimaryOperationPermitBlockingly(shard))
             .isExactlyInstanceOf(ExecutionException.class)
             .cause()
@@ -3031,7 +3031,7 @@ public class IndexShardTests extends IndexShardTestCase {
     @Test
     public void testStressRelocated() throws Exception {
         IndexShard shard = newStartedShard(true);
-        assertThat(shard.isRelocatedPrimary()).isEqualTo(false);
+        assertThat(shard.isRelocatedPrimary()).isFalse();
         ShardRouting routing = ShardRoutingHelper.relocate(shard.routingEntry(), "other_node");
         IndexShardTestCase.updateRoutingEntry(shard, routing);
         int numThreads = randomIntBetween(2, 4);
@@ -3062,17 +3062,17 @@ public class IndexShardTests extends IndexShardTestCase {
         allPrimaryOperationLocksAcquired.await();
         // start recovery thread
         recoveryThread.start();
-        assertThat(relocated.get()).isEqualTo(false);
+        assertThat(relocated.get()).isFalse();
         assertThat(shard.getActiveOperationsCount()).isGreaterThan(0);
         // ensure we only transition after pending operations completed
-        assertThat(shard.isRelocatedPrimary()).isEqualTo(false);
+        assertThat(shard.isRelocatedPrimary()).isFalse();
         // complete pending operations
         barrier.await();
         // complete recovery/relocation
         recoveryThread.join();
         // ensure relocated successfully once pending operations are done
-        assertThat(relocated.get()).isEqualTo(true);
-        assertThat(shard.isRelocatedPrimary()).isEqualTo(true);
+        assertThat(relocated.get()).isTrue();
+        assertThat(shard.isRelocatedPrimary()).isTrue();
         assertThat(shard.getActiveOperationsCount()).isEqualTo(0);
 
         for (Thread indexThread : indexThreads) {
@@ -3154,7 +3154,7 @@ public class IndexShardTests extends IndexShardTestCase {
             assertThat(cancellingException.get()).isInstanceOf(IllegalIndexShardStateException.class);
             assertThat(shard.routingEntry().relocating())
                 .as("current routing:" + shard.routingEntry())
-                .isEqualTo(true);
+                .isTrue();
             assertThat(relocationException.get()).isNull();
         } else {
             logger.debug("shard relocation was cancelled");
@@ -3164,7 +3164,7 @@ public class IndexShardTests extends IndexShardTestCase {
             );
             assertThat(shard.routingEntry().relocating())
                 .as("current routing:" + shard.routingEntry())
-                .isEqualTo(false);
+                .isFalse();
             assertThat(cancellingException.get()).isNull();
 
         }
@@ -3197,7 +3197,7 @@ public class IndexShardTests extends IndexShardTestCase {
         DiscoveryNode localNode = new DiscoveryNode(
             "foo", buildNewFakeTransportAddress(), Map.of(), Set.of(), Version.CURRENT);
         newShard.markAsRecovering("store", new RecoveryState(newShard.routingEntry(), localNode, null));
-        assertThat(recoverFromStore(newShard)).isEqualTo(true);
+        assertThat(recoverFromStore(newShard)).isTrue();
         assertThat(newShard.recoveryState().getTranslog().recoveredOperations()).isEqualTo(1);
         assertThat(newShard.recoveryState().getTranslog().totalOperations()).isEqualTo(1);
         assertThat(newShard.recoveryState().getTranslog().totalOperationsOnStart()).isEqualTo(1);
@@ -3224,7 +3224,7 @@ public class IndexShardTests extends IndexShardTestCase {
             newShard.markAsRecovering(
                 "store",
                 new RecoveryState(newShard.routingEntry(), localNode, null));
-            assertThat(recoverFromStore(newShard)).isEqualTo(true);
+            assertThat(recoverFromStore(newShard)).isTrue();
             try (Translog.Snapshot snapshot = getTranslog(newShard).newSnapshot()) {
                 assertThat(snapshot.totalOperations()).isEqualTo(newShard.indexSettings.isSoftDeleteEnabled() ? 0 : 2);
             }
@@ -3248,7 +3248,7 @@ public class IndexShardTests extends IndexShardTestCase {
         DiscoveryNode localNode = new DiscoveryNode(
             "foo", buildNewFakeTransportAddress(), Map.of(), Set.of(), Version.CURRENT);
         newShard.markAsRecovering("store", new RecoveryState(newShard.routingEntry(), localNode, null));
-        assertThat(recoverFromStore(newShard)).isEqualTo(true);
+        assertThat(recoverFromStore(newShard)).isTrue();
         assertThat(newShard.recoveryState().getTranslog().recoveredOperations()).isEqualTo(0);
         assertThat(newShard.recoveryState().getTranslog().totalOperations()).isEqualTo(0);
         assertThat(newShard.recoveryState().getTranslog().totalOperationsOnStart()).isEqualTo(0);
@@ -3463,7 +3463,7 @@ public class IndexShardTests extends IndexShardTestCase {
                                                      String source,
                                                      Consumer<Exception> onFailure) {}
         }, future);
-        assertThat(future.get(5, TimeUnit.SECONDS)).isEqualTo(true);
+        assertThat(future.get(5, TimeUnit.SECONDS)).isTrue();
         assertThat(target.getLocalCheckpoint()).isEqualTo(2L);
         assertThat(target.seqNoStats().getMaxSeqNo()).isEqualTo(2L);
         assertThat(target.seqNoStats().getGlobalCheckpoint()).isEqualTo(0L);

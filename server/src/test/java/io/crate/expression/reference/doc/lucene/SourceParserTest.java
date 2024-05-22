@@ -432,7 +432,7 @@ public class SourceParserTest extends ESTestCase {
         assertThat(Maps.getByPath(result, "o.s")).isEqualTo(3);
         assertThat(Maps.getByPath(result, "o.t")).isEqualTo(4);
         //noinspection unchecked
-        Map<String, Object> innerObj = (Map<String, Object>) ((List<?>) Maps.getByPath(result, "o.oo")).get(0);
+        Map<String, Object> innerObj = (Map<String, Object>) ((List<?>) Maps.getByPath(result, "o.oo")).getFirst();
         assertThat(innerObj).containsExactly(
             Map.entry("a", 11),
             Map.entry("s", 33));

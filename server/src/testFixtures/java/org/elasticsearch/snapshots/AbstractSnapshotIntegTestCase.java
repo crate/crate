@@ -82,7 +82,7 @@ public abstract class AbstractSnapshotIntegTestCase extends IntegTestCase {
     public void verifyNoLeakedListeners() throws Exception {
         assertBusy(() -> {
             for (SnapshotsService snapshotsService : cluster().getInstances(SnapshotsService.class)) {
-                assertThat(snapshotsService.assertAllListenersResolved()).isEqualTo(true);
+                assertThat(snapshotsService.assertAllListenersResolved()).isTrue();
             }
         }, 30L, TimeUnit.SECONDS);
     }

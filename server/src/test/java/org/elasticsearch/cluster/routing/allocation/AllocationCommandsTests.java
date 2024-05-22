@@ -130,7 +130,7 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
         logger.info("finish moving the shard");
         clusterState = startInitializingShardsAndReroute(allocation, clusterState);
 
-        assertThat(clusterState.getRoutingNodes().node(existingNodeId).isEmpty()).isEqualTo(true);
+        assertThat(clusterState.getRoutingNodes().node(existingNodeId).isEmpty()).isTrue();
         assertThat(clusterState.getRoutingNodes().node(toNodeId).iterator().next().state()).isEqualTo(ShardRoutingState.STARTED);
     }
 
@@ -470,7 +470,7 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
             assertThat(newState).isNotEqualTo(clusterState);
             clusterState = newState;
             assertThat(clusterState.getRoutingNodes().node("node1")).hasSize(0);
-            assertThat(clusterState.getRoutingNodes().node("node2").shardsWithState(STARTED).iterator().next().primary()).isEqualTo(true);
+            assertThat(clusterState.getRoutingNodes().node("node2").shardsWithState(STARTED).iterator().next().primary()).isTrue();
             assertThat(clusterState.getRoutingNodes().node("node3")).hasSize(0);
         } else {
             logger.info("--> cancel the move of the replica shard");
@@ -513,7 +513,7 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
                 new AllocationCommands(new CancelAllocationCommand("test", 0, "node1", true)), false, false).getClusterState();
             assertThat(newState).isNotEqualTo(clusterState);
             clusterState = newState;
-            assertThat(clusterState.getRoutingNodes().node("node3").shardsWithState(STARTED).iterator().next().primary()).isEqualTo(true);
+            assertThat(clusterState.getRoutingNodes().node("node3").shardsWithState(STARTED).iterator().next().primary()).isTrue();
             assertThat(clusterState.getRoutingNodes().node("node1")).hasSize(0);
             assertThat(clusterState.getRoutingNodes().node("node2")).hasSize(0);
         }
@@ -543,12 +543,12 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
         assertThat(((AllocateEmptyPrimaryAllocationCommand) (sCommands.commands().getFirst())).shardId()).isEqualTo(1);
         assertThat(((AllocateEmptyPrimaryAllocationCommand) (sCommands.commands().getFirst())).index()).isEqualTo("test");
         assertThat(((AllocateEmptyPrimaryAllocationCommand) (sCommands.commands().get(0))).node()).isEqualTo("node1");
-        assertThat(((AllocateEmptyPrimaryAllocationCommand) (sCommands.commands().get(0))).acceptDataLoss()).isEqualTo(true);
+        assertThat(((AllocateEmptyPrimaryAllocationCommand) (sCommands.commands().get(0))).acceptDataLoss()).isTrue();
 
         assertThat(((AllocateStalePrimaryAllocationCommand) (sCommands.commands().get(1))).shardId()).isEqualTo(2);
         assertThat(((AllocateStalePrimaryAllocationCommand) (sCommands.commands().get(1))).index()).isEqualTo("test");
         assertThat(((AllocateStalePrimaryAllocationCommand) (sCommands.commands().get(1))).node()).isEqualTo("node1");
-        assertThat(((AllocateStalePrimaryAllocationCommand) (sCommands.commands().get(1))).acceptDataLoss()).isEqualTo(true);
+        assertThat(((AllocateStalePrimaryAllocationCommand) (sCommands.commands().get(1))).acceptDataLoss()).isTrue();
 
         assertThat(((AllocateReplicaAllocationCommand) (sCommands.commands().get(2))).shardId()).isEqualTo(2);
         assertThat(((AllocateReplicaAllocationCommand) (sCommands.commands().get(2))).index()).isEqualTo("test");
@@ -562,7 +562,7 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
         assertThat(((CancelAllocationCommand) (sCommands.commands().get(4))).shardId()).isEqualTo(4);
         assertThat(((CancelAllocationCommand) (sCommands.commands().get(4))).index()).isEqualTo("test");
         assertThat(((CancelAllocationCommand) (sCommands.commands().get(4))).node()).isEqualTo("node5");
-        assertThat(((CancelAllocationCommand) (sCommands.commands().get(4))).allowPrimary()).isEqualTo(true);
+        assertThat(((CancelAllocationCommand) (sCommands.commands().get(4))).allowPrimary()).isTrue();
     }
 
 

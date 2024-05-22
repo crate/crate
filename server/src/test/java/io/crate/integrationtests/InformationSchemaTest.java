@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collections;
 import java.util.List;
@@ -1041,7 +1040,7 @@ public class InformationSchemaTest extends IntegTestCase {
             "parted| 04136| {par=3}| 2| 0");
 
         execute("update parted set new=true where par=1");
-        refresh();
+        execute("refresh table parted");
         waitNoPendingTasksOnAll();
 
         // ensure newer index metadata does not override settings in template
@@ -1082,7 +1081,7 @@ public class InformationSchemaTest extends IntegTestCase {
         execute("insert into my_table (par, par_str, content) values (2, 'foo', 'content3')");
         execute("insert into my_table (par, par_str, content) values (2, 'bar', 'content4')");
         ensureGreen();
-        refresh();
+        execute("refresh table my_table");
         execute("alter table my_table set (number_of_shards=4)");
         waitNoPendingTasksOnAll();
         execute("insert into my_table (par, par_str, content) values (2, 'asdf', 'content5')");
@@ -1119,7 +1118,7 @@ public class InformationSchemaTest extends IntegTestCase {
                 1, Map.of("date", "1970-01-01"),
                 2, Map.of("date", "2014-05-28")
             });
-        refresh();
+        execute("refresh table my_table");
 
         execute("select table_name, partition_ident, values from information_schema.table_partitions order by table_name, partition_ident");
         assertThat(response.rowCount()).isEqualTo(2);
@@ -1162,7 +1161,7 @@ public class InformationSchemaTest extends IntegTestCase {
         };
         execute(stmtInsert, argsInsert);
         assertThat(response.rowCount()).isEqualTo(1L);
-        refresh();
+        execute("refresh table data_points");
 
         String stmtIsColumns = "select table_name, column_name, data_type " +
                                "from information_schema.columns " +

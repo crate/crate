@@ -20,8 +20,7 @@ package org.elasticsearch.gateway;
 
 import static java.util.Collections.emptySet;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.util.Collections;
 import java.util.Map;
@@ -76,7 +75,7 @@ public class AsyncShardFetchTests extends ESTestCase {
 
         // first fetch, no data, still on going
         AsyncShardFetch.FetchResult<Response> fetchData = test.fetchData(nodes, emptySet());
-        assertThat(fetchData.hasData()).isEqualTo(false);
+        assertThat(fetchData.hasData()).isFalse();
         assertThat(test.reroute.get()).isEqualTo(0);
 
         // fire a response, wait on reroute incrementing
@@ -98,7 +97,7 @@ public class AsyncShardFetchTests extends ESTestCase {
 
         // first fetch, no data, still on going
         AsyncShardFetch.FetchResult<Response> fetchData = test.fetchData(nodes, emptySet());
-        assertThat(fetchData.hasData()).isEqualTo(false);
+        assertThat(fetchData.hasData()).isFalse();
         assertThat(test.reroute.get()).isEqualTo(0);
 
         // fire a response, wait on reroute incrementing
@@ -106,7 +105,7 @@ public class AsyncShardFetchTests extends ESTestCase {
         // verify we get back the data node
         assertThat(test.reroute.get()).isEqualTo(1);
         fetchData = test.fetchData(nodes, emptySet());
-        assertThat(fetchData.hasData()).isEqualTo(true);
+        assertThat(fetchData.hasData()).isTrue();
         assertThat(fetchData.getData()).hasSize(1);
         assertThat(fetchData.getData().get(node1)).isSameAs(response1);
     }
@@ -118,7 +117,7 @@ public class AsyncShardFetchTests extends ESTestCase {
 
         // first fetch, no data, still on going
         AsyncShardFetch.FetchResult<Response> fetchData = test.fetchData(nodes, emptySet());
-        assertThat(fetchData.hasData()).isEqualTo(false);
+        assertThat(fetchData.hasData()).isFalse();
         assertThat(test.reroute.get()).isEqualTo(0);
 
         // fire a response, wait on reroute incrementing
@@ -126,19 +125,19 @@ public class AsyncShardFetchTests extends ESTestCase {
         // failure, fetched data exists, but has no data
         assertThat(test.reroute.get()).isEqualTo(1);
         fetchData = test.fetchData(nodes, emptySet());
-        assertThat(fetchData.hasData()).isEqualTo(true);
+        assertThat(fetchData.hasData()).isTrue();
         assertThat(fetchData.getData()).hasSize(0);
 
         // on failure, we reset the failure on a successive call to fetchData, and try again afterwards
         test.addSimulation(node1.getId(), response1);
         fetchData = test.fetchData(nodes, emptySet());
-        assertThat(fetchData.hasData()).isEqualTo(false);
+        assertThat(fetchData.hasData()).isFalse();
 
         test.fireSimulationAndWait(node1.getId());
         // 2 reroutes, cause we have a failure that we clear
         assertThat(test.reroute.get()).isEqualTo(3);
         fetchData = test.fetchData(nodes, emptySet());
-        assertThat(fetchData.hasData()).isEqualTo(true);
+        assertThat(fetchData.hasData()).isTrue();
         assertThat(fetchData.getData()).hasSize(1);
         assertThat(fetchData.getData().get(node1)).isSameAs(response1);
     }
@@ -149,12 +148,12 @@ public class AsyncShardFetchTests extends ESTestCase {
 
         // first fetch, no data, still on going
         AsyncShardFetch.FetchResult<Response> fetchData = test.fetchData(nodes, emptySet());
-        assertThat(fetchData.hasData()).isEqualTo(false);
+        assertThat(fetchData.hasData()).isFalse();
         assertThat(test.reroute.get()).isEqualTo(0);
 
         // handle a response with incorrect round id, wait on reroute incrementing
         test.processAsyncFetch(Collections.singletonList(response1), Collections.emptyList(), 0);
-        assertThat(fetchData.hasData()).isEqualTo(false);
+        assertThat(fetchData.hasData()).isFalse();
         assertThat(test.reroute.get()).isEqualTo(1);
 
         // fire a response (with correct round id), wait on reroute incrementing
@@ -162,7 +161,7 @@ public class AsyncShardFetchTests extends ESTestCase {
         // verify we get back the data node
         assertThat(test.reroute.get()).isEqualTo(2);
         fetchData = test.fetchData(nodes, emptySet());
-        assertThat(fetchData.hasData()).isEqualTo(true);
+        assertThat(fetchData.hasData()).isTrue();
         assertThat(fetchData.getData()).hasSize(1);
         assertThat(fetchData.getData().get(node1)).isSameAs(response1);
     }
@@ -174,13 +173,13 @@ public class AsyncShardFetchTests extends ESTestCase {
 
         // first fetch, no data, still on going
         AsyncShardFetch.FetchResult<Response> fetchData = test.fetchData(nodes, emptySet());
-        assertThat(fetchData.hasData()).isEqualTo(false);
+        assertThat(fetchData.hasData()).isFalse();
         assertThat(test.reroute.get()).isEqualTo(0);
 
         // handle a failure with incorrect round id, wait on reroute incrementing
         test.processAsyncFetch(Collections.emptyList(), Collections.singletonList(
             new FailedNodeException(node1.getId(), "dummy failure", failure1)), 0);
-        assertThat(fetchData.hasData()).isEqualTo(false);
+        assertThat(fetchData.hasData()).isFalse();
         assertThat(test.reroute.get()).isEqualTo(1);
 
         // fire a response, wait on reroute incrementing
@@ -188,7 +187,7 @@ public class AsyncShardFetchTests extends ESTestCase {
         // failure, fetched data exists, but has no data
         assertThat(test.reroute.get()).isEqualTo(2);
         fetchData = test.fetchData(nodes, emptySet());
-        assertThat(fetchData.hasData()).isEqualTo(true);
+        assertThat(fetchData.hasData()).isTrue();
         assertThat(fetchData.getData()).hasSize(0);
     }
 
@@ -199,7 +198,7 @@ public class AsyncShardFetchTests extends ESTestCase {
 
         // no fetched data, 2 requests still on going
         AsyncShardFetch.FetchResult<Response> fetchData = test.fetchData(nodes, emptySet());
-        assertThat(fetchData.hasData()).isEqualTo(false);
+        assertThat(fetchData.hasData()).isFalse();
         assertThat(test.reroute.get()).isEqualTo(0);
 
         // fire the first response, it should trigger a reroute
@@ -207,14 +206,14 @@ public class AsyncShardFetchTests extends ESTestCase {
         // there is still another on going request, so no data
         assertThat(test.getNumberOfInFlightFetches()).isEqualTo(1);
         fetchData = test.fetchData(nodes, emptySet());
-        assertThat(fetchData.hasData()).isEqualTo(false);
+        assertThat(fetchData.hasData()).isFalse();
 
         // fire the second simulation, this should allow us to get the data
         test.fireSimulationAndWait(node2.getId());
         // no more ongoing requests, we should fetch the data
         assertThat(test.reroute.get()).isEqualTo(2);
         fetchData = test.fetchData(nodes, emptySet());
-        assertThat(fetchData.hasData()).isEqualTo(true);
+        assertThat(fetchData.hasData()).isTrue();
         assertThat(fetchData.getData()).hasSize(2);
         assertThat(fetchData.getData().get(node1)).isSameAs(response1);
         assertThat(fetchData.getData().get(node2)).isSameAs(response2);
@@ -227,21 +226,21 @@ public class AsyncShardFetchTests extends ESTestCase {
 
         // no fetched data, 2 requests still on going
         AsyncShardFetch.FetchResult<Response> fetchData = test.fetchData(nodes, emptySet());
-        assertThat(fetchData.hasData()).isEqualTo(false);
+        assertThat(fetchData.hasData()).isFalse();
         assertThat(test.reroute.get()).isEqualTo(0);
 
         // fire the first response, it should trigger a reroute
         test.fireSimulationAndWait(node1.getId());
         assertThat(test.reroute.get()).isEqualTo(1);
         fetchData = test.fetchData(nodes, emptySet());
-        assertThat(fetchData.hasData()).isEqualTo(false);
+        assertThat(fetchData.hasData()).isFalse();
 
         // fire the second simulation, this should allow us to get the data
         test.fireSimulationAndWait(node2.getId());
         assertThat(test.reroute.get()).isEqualTo(2);
         // since one of those failed, we should only have one entry
         fetchData = test.fetchData(nodes, emptySet());
-        assertThat(fetchData.hasData()).isEqualTo(true);
+        assertThat(fetchData.hasData()).isTrue();
         assertThat(fetchData.getData()).hasSize(1);
         assertThat(fetchData.getData().get(node1)).isSameAs(response1);
     }
@@ -252,7 +251,7 @@ public class AsyncShardFetchTests extends ESTestCase {
 
         // no fetched data, 2 requests still on going
         AsyncShardFetch.FetchResult<Response> fetchData = test.fetchData(nodes, emptySet());
-        assertThat(fetchData.hasData()).isEqualTo(false);
+        assertThat(fetchData.hasData()).isFalse();
         assertThat(test.reroute.get()).isEqualTo(0);
 
         // fire the first response, it should trigger a reroute
@@ -263,14 +262,14 @@ public class AsyncShardFetchTests extends ESTestCase {
         test.addSimulation(node2.getId(), response2);
         // no fetch data, has a new node introduced
         fetchData = test.fetchData(nodes, emptySet());
-        assertThat(fetchData.hasData()).isEqualTo(false);
+        assertThat(fetchData.hasData()).isFalse();
 
         // fire the second simulation, this should allow us to get the data
         test.fireSimulationAndWait(node2.getId());
 
         // since one of those failed, we should only have one entry
         fetchData = test.fetchData(nodes, emptySet());
-        assertThat(fetchData.hasData()).isEqualTo(true);
+        assertThat(fetchData.hasData()).isTrue();
         assertThat(fetchData.getData()).hasSize(2);
         assertThat(fetchData.getData().get(node1)).isSameAs(response1);
         assertThat(fetchData.getData().get(node2)).isSameAs(response2);
@@ -285,7 +284,7 @@ public class AsyncShardFetchTests extends ESTestCase {
 
         // no fetched data, request still on going
         AsyncShardFetch.FetchResult<Response> fetchData = test.fetchData(nodes, emptySet());
-        assertThat(fetchData.hasData()).isEqualTo(false);
+        assertThat(fetchData.hasData()).isFalse();
         assertThat(test.reroute.get()).isEqualTo(0);
 
         test.fireSimulationAndWait(node1.getId());
@@ -293,13 +292,13 @@ public class AsyncShardFetchTests extends ESTestCase {
 
         // verify we get back right data from node
         fetchData = test.fetchData(nodes, emptySet());
-        assertThat(fetchData.hasData()).isEqualTo(true);
+        assertThat(fetchData.hasData()).isTrue();
         assertThat(fetchData.getData()).hasSize(1);
         assertThat(fetchData.getData().get(node1)).isSameAs(response1);
 
         // second fetch gets same data
         fetchData = test.fetchData(nodes, emptySet());
-        assertThat(fetchData.hasData()).isEqualTo(true);
+        assertThat(fetchData.hasData()).isTrue();
         assertThat(fetchData.getData()).hasSize(1);
         assertThat(fetchData.getData().get(node1)).isSameAs(response1);
 
@@ -310,14 +309,14 @@ public class AsyncShardFetchTests extends ESTestCase {
 
         // no fetched data, new request on going
         fetchData = test.fetchData(nodes, emptySet());
-        assertThat(fetchData.hasData()).isEqualTo(false);
+        assertThat(fetchData.hasData()).isFalse();
 
         test.fireSimulationAndWait(node1.getId());
         assertThat(test.reroute.get()).isEqualTo(2);
 
         // verify we get new data back
         fetchData = test.fetchData(nodes, emptySet());
-        assertThat(fetchData.hasData()).isEqualTo(true);
+        assertThat(fetchData.hasData()).isTrue();
         assertThat(fetchData.getData()).hasSize(1);
         assertThat(fetchData.getData().get(node1)).isSameAs(response1_2);
     }
@@ -328,7 +327,7 @@ public class AsyncShardFetchTests extends ESTestCase {
 
         // no fetched data, request still on going
         AsyncShardFetch.FetchResult<Response> fetchData = test.fetchData(nodes, emptySet());
-        assertThat(fetchData.hasData()).isEqualTo(false);
+        assertThat(fetchData.hasData()).isFalse();
         assertThat(test.reroute.get()).isEqualTo(0);
 
         // clear cache while request is still on going, before it is processed
@@ -342,14 +341,14 @@ public class AsyncShardFetchTests extends ESTestCase {
 
         // verify still no fetched data, request still on going
         fetchData = test.fetchData(nodes, emptySet());
-        assertThat(fetchData.hasData()).isEqualTo(false);
+        assertThat(fetchData.hasData()).isFalse();
 
         test.fireSimulationAndWait(node1.getId());
         assertThat(test.reroute.get()).isEqualTo(2);
 
         // verify we get new data back
         fetchData = test.fetchData(nodes, emptySet());
-        assertThat(fetchData.hasData()).isEqualTo(true);
+        assertThat(fetchData.hasData()).isTrue();
         assertThat(fetchData.getData()).hasSize(1);
         assertThat(fetchData.getData().get(node1)).isSameAs(response1_2);
 
@@ -409,7 +408,7 @@ public class AsyncShardFetchTests extends ESTestCase {
                             entry = simulations.get(nodeId);
                             if (entry == null) {
                                 // we are simulating a master node switch, wait for it to not be null
-                                assertBusy(() -> assertTrue(simulations.containsKey(nodeId)));
+                                assertBusy(() -> assertThat(simulations.containsKey(nodeId)).isTrue());
                             }
                             assert entry != null;
                             entry.executeLatch.await();

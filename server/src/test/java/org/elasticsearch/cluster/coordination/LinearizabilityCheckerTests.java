@@ -212,12 +212,12 @@ public class LinearizabilityCheckerTests extends ESTestCase {
 
         @Override
         public Object getKey(Object value) {
-            return ((Tuple) value).v1();
+            return ((Tuple<?, ?>) value).v1();
         }
 
         @Override
         public Object getValue(Object value) {
-            return ((Tuple) value).v2();
+            return ((Tuple<?, ?>) value).v2();
         }
 
         @Override

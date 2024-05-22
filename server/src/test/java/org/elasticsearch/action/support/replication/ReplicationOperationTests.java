@@ -22,7 +22,6 @@ package org.elasticsearch.action.support.replication;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.action.support.replication.ClusterStateCreationUtils.state;
 import static org.elasticsearch.action.support.replication.ClusterStateCreationUtils.stateWithActivePrimary;
-import static org.hamcrest.Matchers.arrayWithSize;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
@@ -160,11 +159,11 @@ public class ReplicationOperationTests extends ESTestCase {
         );
         op.execute();
 
-        assertThat(request.processedOnPrimary.get()).as("request was not processed on primary").isEqualTo(true);
+        assertThat(request.processedOnPrimary.get()).as("request was not processed on primary").isTrue();
         assertThat(request.processedOnReplicas).isEqualTo(expectedReplicas);
         assertThat(replicasProxy.failedReplicas).isEqualTo(simulatedFailures.keySet());
         assertThat(replicasProxy.markedAsStaleCopies).isEqualTo(staleAllocationIds);
-        assertThat(request.runPostReplicationActionsOnPrimary.get()).as("post replication operations not run on primary").isEqualTo(true);
+        assertThat(request.runPostReplicationActionsOnPrimary.get()).as("post replication operations not run on primary").isTrue();
         assertThat(listener.isDone()).as("listener is not marked as done").isTrue();
         ShardInfo shardInfo = FutureUtils.get(listener).getShardInfo();
         assertThat(shardInfo.getFailed()).isEqualTo(reportedFailures.size());
@@ -239,11 +238,11 @@ public class ReplicationOperationTests extends ESTestCase {
         final TestReplicationOperation op = new TestReplicationOperation(request, primary, listener, replicasProxy, primaryTerm,
             TimeValue.timeValueMillis(20), TimeValue.timeValueSeconds(60));
         op.execute();
-        assertThat(request.processedOnPrimary.get()).as("request was not processed on primary").isEqualTo(true);
+        assertThat(request.processedOnPrimary.get()).as("request was not processed on primary").isTrue();
         assertThat(request.processedOnReplicas).isEqualTo(expectedReplicas);
         assertThat(replicasProxy.failedReplicas).hasSize(0);
         assertThat(replicasProxy.markedAsStaleCopies).isEqualTo(staleAllocationIds);
-        assertThat(request.runPostReplicationActionsOnPrimary.get()).as("post replication operations not run on primary").isEqualTo(true);
+        assertThat(request.runPostReplicationActionsOnPrimary.get()).as("post replication operations not run on primary").isTrue();
         ShardInfo shardInfo = FutureUtils.get(listener).getShardInfo();
         assertThat(shardInfo.getSuccessful()).isEqualTo(1 + expectedReplicas.size());
         final List<ShardRouting> unassignedShards = indexShardRoutingTable.shardsWithState(ShardRoutingState.UNASSIGNED);
@@ -360,7 +359,7 @@ public class ReplicationOperationTests extends ESTestCase {
             request, primary, listener, replicasProxy, logger, threadPool, "test", primaryTerm);
         op.execute();
 
-        assertThat(request.processedOnPrimary.get()).as("request was not processed on primary").isEqualTo(true);
+        assertThat(request.processedOnPrimary.get()).as("request was not processed on primary").isTrue();
         assertThat(listener.isDone()).as("listener is not marked as done").isTrue();
         if (shardActionFailure instanceof ShardStateAction.NoLongerPrimaryShardException) {
             assertThat(primaryFailed.get()).isTrue();
@@ -425,7 +424,7 @@ public class ReplicationOperationTests extends ESTestCase {
             primaryTerm);
         op.execute();
 
-        assertThat(request.processedOnPrimary.get()).as("request was not processed on primary").isEqualTo(true);
+        assertThat(request.processedOnPrimary.get()).as("request was not processed on primary").isTrue();
         Set<ShardRouting> expectedReplicas = getExpectedReplicas(shardId, stateWithAddedReplicas, trackedShards);
         assertThat(request.processedOnReplicas).isEqualTo(expectedReplicas);
     }
