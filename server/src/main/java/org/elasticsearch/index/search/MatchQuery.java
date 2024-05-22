@@ -45,7 +45,6 @@ import org.apache.lucene.search.FuzzyQuery;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.MultiPhraseQuery;
-import org.apache.lucene.search.MultiTermQuery;
 import org.apache.lucene.search.PhraseQuery;
 import org.apache.lucene.search.PrefixQuery;
 import org.apache.lucene.search.Query;
@@ -62,6 +61,7 @@ import org.elasticsearch.index.query.QueryShardContext;
 
 import io.crate.lucene.DisableGraphAttribute;
 import io.crate.lucene.ExtendedCommonTermsQuery;
+import io.crate.lucene.match.ParsedOptions;
 
 public class MatchQuery {
 
@@ -105,72 +105,25 @@ public class MatchQuery {
     public static final ZeroTermsQuery DEFAULT_ZERO_TERMS_QUERY = ZeroTermsQuery.NONE;
 
     protected final QueryShardContext context;
+    protected final ParsedOptions parsedOptions;
+    protected final Analyzer analyzer;
 
-    protected Analyzer analyzer;
 
-    protected BooleanClause.Occur occur = BooleanClause.Occur.SHOULD;
-
-    protected int phraseSlop = DEFAULT_PHRASE_SLOP;
-
-    protected Fuzziness fuzziness = null;
-
-    protected int fuzzyPrefixLength = FuzzyQuery.defaultPrefixLength;
-
-    protected int maxExpansions = FuzzyQuery.defaultMaxExpansions;
-
-    protected boolean transpositions = FuzzyQuery.defaultTranspositions;
-
-    protected MultiTermQuery.RewriteMethod fuzzyRewriteMethod;
-
-    protected ZeroTermsQuery zeroTermsQuery = DEFAULT_ZERO_TERMS_QUERY;
-
-    protected Float commonTermsCutoff = null;
-
-    public MatchQuery(QueryShardContext context) {
+    public MatchQuery(QueryShardContext context, ParsedOptions parsedOptions) {
         this.context = context;
+        this.parsedOptions = parsedOptions;
+        this.analyzer = getAnalyzer(parsedOptions.analyzer());
     }
 
-    public void setAnalyzer(String analyzerName) {
-        this.analyzer = context.getMapperService().getIndexAnalyzers().get(analyzerName);
+    private Analyzer getAnalyzer(String analyzerName) {
+        if (analyzerName == null) {
+            return null;
+        }
+        Analyzer analyzer = context.getMapperService().getIndexAnalyzers().get(analyzerName);
         if (analyzer == null) {
             throw new IllegalArgumentException("No analyzer found for [" + analyzerName + "]");
         }
-    }
-
-    public void setOccur(BooleanClause.Occur occur) {
-        this.occur = occur;
-    }
-
-    public void setCommonTermsCutoff(Float cutoff) {
-        this.commonTermsCutoff = cutoff;
-    }
-
-    public void setPhraseSlop(int phraseSlop) {
-        this.phraseSlop = phraseSlop;
-    }
-
-    public void setFuzziness(Fuzziness fuzziness) {
-        this.fuzziness = fuzziness;
-    }
-
-    public void setFuzzyPrefixLength(int fuzzyPrefixLength) {
-        this.fuzzyPrefixLength = fuzzyPrefixLength;
-    }
-
-    public void setMaxExpansions(int maxExpansions) {
-        this.maxExpansions = maxExpansions;
-    }
-
-    public void setTranspositions(boolean transpositions) {
-        this.transpositions = transpositions;
-    }
-
-    public void setFuzzyRewriteMethod(MultiTermQuery.RewriteMethod fuzzyRewriteMethod) {
-        this.fuzzyRewriteMethod = fuzzyRewriteMethod;
-    }
-
-    public void setZeroTermsQuery(ZeroTermsQuery zeroTermsQuery) {
-        this.zeroTermsQuery = zeroTermsQuery;
+        return analyzer;
     }
 
     protected Analyzer getAnalyzer(MappedFieldType fieldType, boolean quoted) {
@@ -203,9 +156,13 @@ public class MatchQuery {
         builder.setEnablePositionIncrements(true);
         builder.setAutoGenerateMultiTermSynonymsPhraseQuery(fieldType.hasPositions());
 
+        int phraseSlop = parsedOptions.phraseSlop();
+
         Query query = null;
         switch (type) {
             case BOOLEAN:
+                Occur occur = parsedOptions.operator();
+                Float commonTermsCutoff = parsedOptions.commonTermsCutoff();
                 if (commonTermsCutoff == null) {
                     query = builder.createBooleanQuery(field, value.toString(), occur);
                 } else {
@@ -216,7 +173,12 @@ public class MatchQuery {
                 query = builder.createPhraseQuery(field, value.toString(), phraseSlop);
                 break;
             case PHRASE_PREFIX:
-                query = builder.createPhrasePrefixQuery(field, value.toString(), phraseSlop, maxExpansions);
+                query = builder.createPhrasePrefixQuery(
+                    field,
+                    value.toString(),
+                    phraseSlop,
+                    parsedOptions.maxExpansions()
+                );
                 break;
             default:
                 throw new IllegalStateException("No type found for [" + type + "]");
@@ -234,6 +196,7 @@ public class MatchQuery {
     }
 
     protected Query zeroTermsQuery() {
+        ZeroTermsQuery zeroTermsQuery = parsedOptions.zeroTermsQuery();
         switch (zeroTermsQuery) {
             case NULL:
                 return null;
@@ -433,18 +396,23 @@ public class MatchQuery {
     }
 
     protected Query blendTermQuery(Term term, MappedFieldType fieldType) {
+        Fuzziness fuzziness = parsedOptions.fuzziness();
         if (fuzziness == null) {
             return termQuery(fieldType, term.bytes());
         }
         fieldType.failIfNotIndexed();
         int distance = fuzziness.asDistance(term.text());
-        var rewriteMethod = fuzzyRewriteMethod == null ? FuzzyQuery.defaultRewriteMethod(maxExpansions) : fuzzyRewriteMethod;
+        var fuzzyRewriteMethod = parsedOptions.rewriteMethod();
+        int maxExpansions = parsedOptions.maxExpansions();
+        var rewriteMethod = fuzzyRewriteMethod == null
+            ? FuzzyQuery.defaultRewriteMethod(maxExpansions)
+            : fuzzyRewriteMethod;
         return new FuzzyQuery(
             term,
             distance,
-            fuzzyPrefixLength,
+            parsedOptions.prefixLength(),
             maxExpansions,
-            transpositions,
+            parsedOptions.transpositions(),
             rewriteMethod
         );
     }
