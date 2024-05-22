@@ -32,6 +32,7 @@ import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.Asserts.toCondition;
 import static org.assertj.core.api.Assertions.anyOf;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -1365,7 +1366,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             () -> executor.analyze("select * from users " +
                                    "where match ((name 1.2, text), 'awesome') using some_fields"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("invalid MATCH type 'some_fields' for type 'text'");
+            .hasMessage("Unknown MATCH type \"some_fields\". Valid types are: best_fields, most_fields, cross_fields, phrase, phrase_prefix");
     }
 
     @Test

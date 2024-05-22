@@ -65,7 +65,6 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
-import io.crate.server.xcontent.LoggingDeprecationHandler;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -122,14 +121,6 @@ public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
 
     private static final Set<String> SUPPORTED_GEO_MATCH_TYPES = Set.of("intersects", "disjoint", "within");
 
-    private static final Map<String, MultiMatchQueryType> SUPPORTED_MATCH_TYPES = Map.of(
-        "best_fields", MultiMatchQueryType.BEST_FIELDS,
-        "most_fields", MultiMatchQueryType.MOST_FIELDS,
-        "cross_fields", MultiMatchQueryType.CROSS_FIELDS,
-        "phrase", MultiMatchQueryType.PHRASE,
-        "phrase_prefix", MultiMatchQueryType.PHRASE_PREFIX
-    );
-
     private final Signature signature;
     private final BoundSignature boundSignature;
 
@@ -162,7 +153,7 @@ public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
         }
         if (columnType.equals(DataTypes.STRING)) {
             try {
-                MultiMatchQueryType.parse(matchType, LoggingDeprecationHandler.INSTANCE);
+                MultiMatchQueryType.parse(matchType);
                 return matchType;
             } catch (ElasticsearchParseException e) {
                 throw new IllegalArgumentException(String.format(
@@ -348,19 +339,6 @@ public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
         if (matchType == null) {
             return MultiMatchQueryType.BEST_FIELDS;
         }
-        MultiMatchQueryType type = SUPPORTED_MATCH_TYPES.get(matchType);
-        if (type == null) {
-            throw illegalMatchType(matchType);
-        }
-        return type;
-    }
-
-    private static IllegalArgumentException illegalMatchType(String matchType) {
-        String matchTypes = String.join(", ", SUPPORTED_MATCH_TYPES.keySet());
-        throw new IllegalArgumentException(String.format(
-            Locale.ENGLISH,
-            "Unknown matchType \"%s\". Possible matchTypes are: %s",
-            matchType,
-            matchTypes));
+        return MultiMatchQueryType.parse(matchType);
     }
 }
