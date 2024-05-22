@@ -25,7 +25,6 @@ import static io.crate.testing.TestingHelpers.createNodeContext;
 import static io.crate.testing.TestingHelpers.refInfo;
 import static io.crate.testing.TestingHelpers.resolveCanonicalString;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
@@ -237,7 +236,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
 
         doThrow(new AlreadyClosedException("Already closed")).when(indexShard).minimumCompatibleVersion();
         shardExpression = (NestableInput<String>) resolver.getImplementation(refInfo);
-        assertThat(shardExpression.value(), nullValue());
+        assertThat(shardExpression.value()).isNull();
     }
 
     @Test

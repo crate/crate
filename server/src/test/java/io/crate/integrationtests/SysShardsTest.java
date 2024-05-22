@@ -34,7 +34,6 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
@@ -100,7 +99,7 @@ public class SysShardsTest extends IntegTestCase {
         assertThat(b2BlobPath, containsString(resolveCanonicalString("/nodes/")));
         assertThat(b2BlobPath, endsWith(resolveCanonicalString("/indices/" + indexUUID + "/0/blobs")));
         // t1
-        assertThat(response.rows()[2][1], nullValue());
+        assertThat(response.rows()[2][1]).isNull();
     }
 
     @Test

@@ -22,8 +22,6 @@
 package io.crate.types;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.Map;
@@ -65,6 +63,6 @@ public class UncheckedObjectTypeTest extends ESTestCase {
         StreamInput in = out.bytes().streamInput();
         UncheckedObjectType readType = new UncheckedObjectType();
         Map<Object, Object> v = readType.readValueFrom(in);
-        assertThat(v, nullValue());
+        assertThat(v).isNull();
     }
 }

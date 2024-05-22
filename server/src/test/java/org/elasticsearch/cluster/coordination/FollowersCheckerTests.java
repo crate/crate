@@ -29,8 +29,6 @@ import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
 import static org.elasticsearch.transport.TransportService.HANDSHAKE_ACTION_NAME;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -454,7 +452,7 @@ public class FollowersCheckerTests extends ESTestCase {
 
                 @Override
                 public void handleException(TransportException exp) {
-                    assertThat(exp, not(nullValue()));
+                    assertThat(exp).isNotNull();
                     assertThat(receivedException.compareAndSet(null, exp)).isTrue();
                 }
 
@@ -465,7 +463,7 @@ public class FollowersCheckerTests extends ESTestCase {
             });
         deterministicTaskQueue.runAllTasks();
         assertThat(calledCoordinator.get()).isFalse();
-        assertThat(receivedException.get(), not(nullValue()));
+        assertThat(receivedException.get()).isNotNull();
     }
 
     public void testResponder() {
@@ -537,7 +535,7 @@ public class FollowersCheckerTests extends ESTestCase {
 
                     @Override
                     public void handleException(TransportException exp) {
-                        assertThat(exp, not(nullValue()));
+                        assertThat(exp).isNotNull();
                         assertThat(receivedException.compareAndSet(null, exp)).isTrue();
                     }
 
@@ -548,7 +546,7 @@ public class FollowersCheckerTests extends ESTestCase {
                 });
             deterministicTaskQueue.runAllTasks();
             assertThat(calledCoordinator.get()).isFalse();
-            assertThat(receivedException.get(), not(nullValue()));
+            assertThat(receivedException.get()).isNotNull();
         }
 
         {
@@ -601,7 +599,7 @@ public class FollowersCheckerTests extends ESTestCase {
 
                     @Override
                     public void handleException(TransportException exp) {
-                        assertThat(exp, not(nullValue()));
+                        assertThat(exp).isNotNull();
                         assertThat(receivedException.compareAndSet(null, exp)).isTrue();
                     }
 
@@ -612,7 +610,7 @@ public class FollowersCheckerTests extends ESTestCase {
                 });
             deterministicTaskQueue.runAllTasks();
             assertThat(calledCoordinator.get()).isTrue();
-            assertThat(receivedException.get(), not(nullValue()));
+            assertThat(receivedException.get()).isNotNull();
             assertThat(receivedException.get().getRootCause().getMessage()).isEqualTo(exceptionMessage);
         }
     }

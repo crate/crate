@@ -18,10 +18,10 @@
  */
 package org.elasticsearch.test.disruption;
 
-import static org.junit.Assert.assertFalse;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Random;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;

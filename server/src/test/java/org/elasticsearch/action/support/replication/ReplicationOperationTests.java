@@ -22,9 +22,7 @@ package org.elasticsearch.action.support.replication;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.action.support.replication.ClusterStateCreationUtils.state;
 import static org.elasticsearch.action.support.replication.ClusterStateCreationUtils.stateWithActivePrimary;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
 import java.net.InetAddress;
@@ -475,7 +473,7 @@ public class ReplicationOperationTests extends ESTestCase {
             primaryTerm);
 
         if (passesActiveShardCheck) {
-            assertThat(op.checkActiveShardCount(), nullValue());
+            assertThat(op.checkActiveShardCount()).isNull();
             op.execute();
             assertThat(request.processedOnPrimary.get()).as("operations should have been performed, active shard count is met").isTrue();
         } else {

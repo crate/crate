@@ -26,9 +26,6 @@ import static org.elasticsearch.monitor.StatusInfo.Status.HEALTHY;
 import static org.elasticsearch.monitor.StatusInfo.Status.UNHEALTHY;
 import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
 import static org.elasticsearch.threadpool.ThreadPool.Names.SAME;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -310,11 +307,11 @@ public class PreVoteCollectorTests extends ESTestCase {
         final TransportException transportException = exceptionRef.get();
 
         if (transportException != null) {
-            assertThat(response, nullValue());
+            assertThat(response).isNull();
             throw transportException;
         }
 
-        assertThat(response, not(nullValue()));
+        assertThat(response).isNotNull();
         return response;
     }
 

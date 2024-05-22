@@ -41,8 +41,6 @@ import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.isIn;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
@@ -514,7 +512,7 @@ public class InternalEngineTests extends EngineTestCase {
             List<Segment> segments = engine.segments(false);
             assertThat(segments).hasSize(2);
             for (Segment segment : segments) {
-                assertThat(segment.getMergeId(), nullValue());
+                assertThat(segment.getMergeId()).isNull();
             }
             index = indexForDoc(testParsedDocument("3", testDocument(), B_1, null));
             engine.index(index);
@@ -522,7 +520,7 @@ public class InternalEngineTests extends EngineTestCase {
             segments = engine.segments(false);
             assertThat(segments).hasSize(3);
             for (Segment segment : segments) {
-                assertThat(segment.getMergeId(), nullValue());
+                assertThat(segment.getMergeId()).isNull();
             }
 
             index = indexForDoc(doc);
@@ -533,7 +531,7 @@ public class InternalEngineTests extends EngineTestCase {
             engine.forceMerge(true, 1, false, UUIDs.randomBase64UUID());
 
             for (Segment segment : engine.segments(false)) {
-                assertThat(segment.getMergeId(), nullValue());
+                assertThat(segment.getMergeId()).isNull();
             }
             // we could have multiple underlying merges, so the generation may increase more than once
             assertThat(store.readLastCommittedSegmentsInfo().getGeneration() > gen1).isTrue();
@@ -543,7 +541,7 @@ public class InternalEngineTests extends EngineTestCase {
             engine.forceMerge(flush, 1, false, UUIDs.randomBase64UUID());
 
             for (Segment segment : engine.segments(false)) {
-                assertThat(segment.getMergeId(), nullValue());
+                assertThat(segment.getMergeId()).isNull();
             }
 
             if (flush) {
@@ -2066,7 +2064,7 @@ public class InternalEngineTests extends EngineTestCase {
                     assertThat(result.isCreated()).isEqualTo(docDeleted);
                     assertThat(result.getVersion()).isEqualTo(Math.max(lastOpVersion + 1, 1));
                     assertThat(result.getResultType()).isEqualTo(Engine.Result.Type.SUCCESS);
-                    assertThat(result.getFailure(), nullValue());
+                    assertThat(result.getFailure()).isNull();
                     lastFieldValue = index.document().get("value");
                     assert lastFieldValue != null : "lastFieldValue is null after getting it from index docs";
                     docDeleted = false;
@@ -2102,7 +2100,7 @@ public class InternalEngineTests extends EngineTestCase {
                     assertThat(result.isFound()).isEqualTo(docDeleted == false);
                     assertThat(result.getVersion()).isEqualTo(Math.max(lastOpVersion + 1, 1));
                     assertThat(result.getResultType()).isEqualTo(Engine.Result.Type.SUCCESS);
-                    assertThat(result.getFailure(), nullValue());
+                    assertThat(result.getFailure()).isNull();
                     docDeleted = true;
                     lastOpVersion = result.getVersion();
                     lastOpSeqNo = result.getSeqNo();
@@ -2189,7 +2187,7 @@ public class InternalEngineTests extends EngineTestCase {
                     assertThat(result.isCreated()).isEqualTo(docDeleted);
                     assertThat(result.getVersion()).isEqualTo(op.version());
                     assertThat(result.getResultType()).isEqualTo(Engine.Result.Type.SUCCESS);
-                    assertThat(result.getFailure(), nullValue());
+                    assertThat(result.getFailure()).isNull();
                     docDeleted = false;
                     highestOpVersion = op.version();
                 } else {
@@ -2207,7 +2205,7 @@ public class InternalEngineTests extends EngineTestCase {
                     assertThat(result.isFound()).isEqualTo(docDeleted == false);
                     assertThat(result.getVersion()).isEqualTo(op.version());
                     assertThat(result.getResultType()).isEqualTo(Engine.Result.Type.SUCCESS);
-                    assertThat(result.getFailure(), nullValue());
+                    assertThat(result.getFailure()).isNull();
                     docDeleted = true;
                     highestOpVersion = op.version();
                 } else {
@@ -4473,12 +4471,12 @@ public class InternalEngineTests extends EngineTestCase {
             randomNonNegativeLong(),
             "test")
         );
-        assertThat(noOpResult.getFailure(), nullValue());
+        assertThat(noOpResult.getFailure()).isNull();
         assertThat(noOpResult.getSeqNo()).isEqualTo(seqNo);
         assertThat(noOpResult.getTerm()).isEqualTo(term);
         engine.refresh("test");
         Engine.DeleteResult deleteResult = engine.delete(replicaDeleteForDoc("id", 1, seqNo + between(1, 1000), randomNonNegativeLong()));
-        assertThat(deleteResult.getFailure(), nullValue());
+        assertThat(deleteResult.getFailure()).isNull();
         engine.refresh("test");
     }
 
@@ -4497,11 +4495,11 @@ public class InternalEngineTests extends EngineTestCase {
             switch (type) {
                 case INDEX:
                     Engine.IndexResult index = engine.index(replicaIndexForDoc(doc, between(1, 100), i, randomBoolean()));
-                    assertThat(index.getFailure(), nullValue());
+                    assertThat(index.getFailure()).isNull();
                     break;
                 case DELETE:
                     Engine.DeleteResult delete = engine.delete(replicaDeleteForDoc(doc.id(), between(1, 100), i, randomNonNegativeLong()));
-                    assertThat(delete.getFailure(), nullValue());
+                    assertThat(delete.getFailure()).isNull();
                     break;
                 case NO_OP:
                     long seqNo = i;
@@ -4509,7 +4507,7 @@ public class InternalEngineTests extends EngineTestCase {
                         randomFrom(Engine.Operation.Origin.values()), randomNonNegativeLong(), ""));
                     assertThat(noOp.getTerm()).isEqualTo(primaryTerm.get());
                     assertThat(noOp.getSeqNo()).isEqualTo(seqNo);
-                    assertThat(noOp.getFailure(), nullValue());
+                    assertThat(noOp.getFailure()).isNull();
                     break;
                 default:
                     throw new IllegalStateException("Invalid op [" + type + "]");
@@ -5500,11 +5498,11 @@ public class InternalEngineTests extends EngineTestCase {
             for (Engine.Operation op : operations) {
                 if (op instanceof Engine.Index) {
                     Engine.IndexResult indexResult = engine.index((Engine.Index) op);
-                    assertThat(indexResult.getFailure(), nullValue());
+                    assertThat(indexResult.getFailure()).isNull();
                     expectedSeqNos.add(indexResult.getSeqNo());
                 } else {
                     Engine.DeleteResult deleteResult = engine.delete((Engine.Delete) op);
-                    assertThat(deleteResult.getFailure(), nullValue());
+                    assertThat(deleteResult.getFailure()).isNull();
                     expectedSeqNos.add(deleteResult.getSeqNo());
                 }
                 if (rarely()) {
@@ -6151,7 +6149,7 @@ public class InternalEngineTests extends EngineTestCase {
                 .isExactlyInstanceOf(IllegalArgumentException. class)
                 .hasMessage("fatal");
             assertThat(engine.isClosed.get()).isTrue();
-            assertThat(engine.failedEngine.get(), not(nullValue()));
+            assertThat(engine.failedEngine.get()).isNotNull();
             assertThat(engine.failedEngine.get()).isExactlyInstanceOf(IllegalArgumentException.class);
             assertThat(engine.failedEngine.get().getMessage()).isEqualTo("fatal");
         }
@@ -6201,7 +6199,7 @@ public class InternalEngineTests extends EngineTestCase {
                 .isExactlyInstanceOf(IllegalArgumentException.class)
                 .hasMessage("fatal");
             assertThat(engine.isClosed.get()).isTrue();
-            assertThat(engine.failedEngine.get(), not(nullValue()));
+            assertThat(engine.failedEngine.get()).isNotNull();
             assertThat(engine.failedEngine.get()).isExactlyInstanceOf(IllegalArgumentException.class);
             assertThat(engine.failedEngine.get().getMessage()).isEqualTo("fatal");
         }
@@ -6405,7 +6403,7 @@ public class InternalEngineTests extends EngineTestCase {
                 .isExactlyInstanceOf(IllegalArgumentException.class)
                 .hasMessage("fatal");
             assertThat(engine.isClosed.get()).isTrue();
-            assertThat(engine.failedEngine.get(), not(nullValue()));
+            assertThat(engine.failedEngine.get()).isNotNull();
             assertThat(engine.failedEngine.get()).isExactlyInstanceOf(IllegalArgumentException.class);
             assertThat(engine.failedEngine.get().getMessage()).isEqualTo("fatal");
         }
