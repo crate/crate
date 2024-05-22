@@ -24,7 +24,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.test.VersionUtils.randomVersion;
 import static org.hamcrest.CoreMatchers.endsWith;
 import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -91,25 +90,25 @@ public class ClusterBlockTests extends ESTestCase {
                               new ClusterBlock(3, "uuid3", "", true, true, true, RestStatus.OK, copyOf(ClusterBlockLevel.ALL)));
 
         ClusterBlocks clusterBlocks = builder.build();
-        assertThat(clusterBlocks.indices().get("index-1").size()).isEqualTo(4);
-        assertThat(clusterBlocks.indices().get("index-2").size()).isEqualTo(1);
+        assertThat(clusterBlocks.indices().get("index-1")).hasSize(4);
+        assertThat(clusterBlocks.indices().get("index-2")).hasSize(1);
 
         builder.removeIndexBlockWithId("index-1", 3);
         clusterBlocks = builder.build();
 
-        assertThat(clusterBlocks.indices().get("index-1").size()).isEqualTo(2);
+        assertThat(clusterBlocks.indices().get("index-1")).hasSize(2);
         assertThat(clusterBlocks.hasIndexBlockWithId("index-1", 1)).isTrue();
         assertThat(clusterBlocks.hasIndexBlockWithId("index-1", 2)).isTrue();
-        assertThat(clusterBlocks.indices().get("index-2").size()).isEqualTo(1);
+        assertThat(clusterBlocks.indices().get("index-2")).hasSize(1);
         assertThat(clusterBlocks.hasIndexBlockWithId("index-2", 3)).isTrue();
 
         builder.removeIndexBlockWithId("index-2", 3);
         clusterBlocks = builder.build();
 
-        assertThat(clusterBlocks.indices().get("index-1").size()).isEqualTo(2);
+        assertThat(clusterBlocks.indices().get("index-1")).hasSize(2);
         assertThat(clusterBlocks.hasIndexBlockWithId("index-1", 1)).isTrue();
         assertThat(clusterBlocks.hasIndexBlockWithId("index-1", 2)).isTrue();
-        assertThat(clusterBlocks.indices().get("index-2"), nullValue());
+        assertThat(clusterBlocks.indices().get("index-2")).isNull();
         assertThat(clusterBlocks.hasIndexBlockWithId("index-2", 3)).isFalse();
     }
 
@@ -124,9 +123,9 @@ public class ClusterBlockTests extends ESTestCase {
             builder.addIndexBlock("index", clusterBlocks[i]);
         }
 
-        assertThat(builder.build().indices().get("index").size()).isEqualTo(clusterBlocks.length);
+        assertThat(builder.build().indices().get("index")).hasSize(clusterBlocks.length);
         assertThat(builder.build().getIndexBlockWithId("index", blockId)).isIn(clusterBlocks);
-        assertThat(builder.build().getIndexBlockWithId("index", randomValueOtherThan(blockId, ESTestCase::randomInt)), nullValue());
+        assertThat(builder.build().getIndexBlockWithId("index", randomValueOtherThan(blockId, ESTestCase::randomInt))).isNull();
     }
 
     private ClusterBlock randomClusterBlock() {

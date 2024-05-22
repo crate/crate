@@ -23,7 +23,6 @@ package io.crate.planner.statement;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
@@ -108,10 +107,10 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
         Merge plan = plan("copy users (name) to directory '/tmp'");
         Collect innerPlan = (Collect) plan.subPlan();
         RoutedCollectPhase node = ((RoutedCollectPhase) innerPlan.collectPhase());
-        Reference nameRef = (Reference) node.toCollect().get(0);
+        Reference nameRef = (Reference) node.toCollect().getFirst();
 
         assertThat(nameRef.column().name()).isEqualTo(DocSysColumns.DOC.name());
-        assertThat(nameRef.column().path().get(0)).isEqualTo("name");
+        assertThat(nameRef.column().path().getFirst()).isEqualTo("name");
     }
 
     @Test
@@ -120,7 +119,7 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
         Merge plan = plan("copy parted_generated to directory '/tmp'");
         Collect innerPlan = (Collect) plan.subPlan();
         RoutedCollectPhase node = ((RoutedCollectPhase) innerPlan.collectPhase());
-        WriterProjection projection = (WriterProjection) node.projections().get(0);
+        WriterProjection projection = (WriterProjection) node.projections().getFirst();
         assertThat(projection.overwrites()).isEmpty();
     }
 
@@ -151,7 +150,7 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testCopyToPlanWithParameters() {
         Merge merge = plan("copy users to directory '/path/to' with (protocol='http', wait_for_completion=false)");
         Collect collect = (Collect) merge.subPlan();
-        WriterProjection writerProjection = (WriterProjection) collect.collectPhase().projections().get(0);
+        WriterProjection writerProjection = (WriterProjection) collect.collectPhase().projections().getFirst();
         assertThat(writerProjection.withClauseOptions().get("protocol")).isEqualTo("http");
         assertThat(writerProjection.withClauseOptions().getAsBoolean(
             "wait_for_completion", true)).isFalse();
@@ -161,8 +160,8 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
             merge = plan(
                 "copy users to directory '/path/to' with (compression=" + compression + ")");
             collect = (Collect) merge.subPlan();
-            writerProjection = (WriterProjection) collect.collectPhase().projections().get(0);
-            assertThat(writerProjection.withClauseOptions().size()).isEqualTo(1);
+            writerProjection = (WriterProjection) collect.collectPhase().projections().getFirst();
+            assertThat(writerProjection.withClauseOptions()).hasSize(1);
             if (compression.equals("''")) {
                 assertThat(writerProjection.withClauseOptions().get("compression")).isEmpty();
             } else {
@@ -173,7 +172,7 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
         // verify defaults:
         merge = plan("copy users to directory '/path/to/'");
         collect = (Collect) merge.subPlan();
-        writerProjection = (WriterProjection) collect.collectPhase().projections().get(0);
+        writerProjection = (WriterProjection) collect.collectPhase().projections().getFirst();
         assertThat(writerProjection.withClauseOptions()).isEqualTo(Settings.EMPTY);
     }
 }

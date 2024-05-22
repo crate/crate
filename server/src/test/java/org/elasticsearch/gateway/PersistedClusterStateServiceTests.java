@@ -20,9 +20,6 @@ package org.elasticsearch.gateway;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.lessThan;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOError;
 import java.io.IOException;
@@ -722,7 +719,7 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
             try (Writer writer = persistedClusterStateService.createWriter()) {
                 final ClusterState clusterState = loadPersistedClusterState(persistedClusterStateService);
 
-                assertThat(clusterState.metadata().indices().size()).isEqualTo(2);
+                assertThat(clusterState.metadata().indices()).hasSize(2);
                 assertThat(clusterState.metadata().index("updated").getIndexUUID()).isEqualTo(updatedIndexUuid);
                 assertThat(IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(clusterState.metadata().index("updated").getSettings())).isEqualTo(1);
                 assertThat(clusterState.metadata().index("deleted").getIndexUUID()).isEqualTo(deletedIndexUuid);
@@ -748,11 +745,11 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
 
             final ClusterState clusterState = loadPersistedClusterState(persistedClusterStateService);
 
-            assertThat(clusterState.metadata().indices().size()).isEqualTo(2);
+            assertThat(clusterState.metadata().indices()).hasSize(2);
             assertThat(clusterState.metadata().index("updated").getIndexUUID()).isEqualTo(updatedIndexUuid);
             assertThat(IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(clusterState.metadata().index("updated").getSettings())).isEqualTo(2);
             assertThat(clusterState.metadata().index("added").getIndexUUID()).isEqualTo(addedIndexUuid);
-            assertThat(clusterState.metadata().index("deleted"), nullValue());
+            assertThat(clusterState.metadata().index("deleted")).isNull();
         }
     }
 
@@ -875,7 +872,7 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
                     Level.WARN,
                     "*"));
 
-                assertThat(currentTime.get(), lessThan(startTimeMillis + 14 * slowWriteLoggingThresholdMillis)); // ensure no overflow
+                assertThat(currentTime.get()).isLessThan(startTimeMillis + 14 * slowWriteLoggingThresholdMillis); // ensure no overflow
             }
         }
     }

@@ -109,7 +109,7 @@ public class ClusterHealthIT extends IntegTestCase {
         assertThat(healthResponse.isTimedOut()).isEqualTo(true);
         assertThat(healthResponse.getStatus()).isEqualTo(ClusterHealthStatus.RED);
         assertThat(healthResponse.getIndices().get("test1").getStatus()).isEqualTo(ClusterHealthStatus.GREEN);
-        assertThat(healthResponse.getIndices().size()).isEqualTo(1);
+        assertThat(healthResponse.getIndices()).hasSize(1);
     }
 
     @Test
@@ -136,7 +136,7 @@ public class ClusterHealthIT extends IntegTestCase {
                 ), REQUEST_TIMEOUT);
             assertThat(response.getStatus()).isEqualTo(ClusterHealthStatus.YELLOW);
             assertThat(response.isTimedOut()).isEqualTo(false);
-            assertThat(response.getIndices().size()).isEqualTo(3);
+            assertThat(response.getIndices()).hasSize(3);
             assertThat(response.getIndices().get(table_1).getStatus()).isEqualTo(ClusterHealthStatus.GREEN);
             assertThat(response.getIndices().get(table_2).getStatus()).isEqualTo(ClusterHealthStatus.GREEN);
             assertThat(response.getIndices().get(table_3).getStatus()).isEqualTo(ClusterHealthStatus.YELLOW);
@@ -148,7 +148,7 @@ public class ClusterHealthIT extends IntegTestCase {
             );
             assertThat(response.getStatus()).isEqualTo(ClusterHealthStatus.GREEN);
             assertThat(response.isTimedOut()).isEqualTo(false);
-            assertThat(response.getIndices().size()).isEqualTo(1);
+            assertThat(response.getIndices()).hasSize(1);
             assertThat(response.getIndices().get(table_1).getStatus()).isEqualTo(ClusterHealthStatus.GREEN);
         }
         {
@@ -158,7 +158,7 @@ public class ClusterHealthIT extends IntegTestCase {
             );
             assertThat(response.getStatus()).isEqualTo(ClusterHealthStatus.GREEN);
             assertThat(response.isTimedOut()).isEqualTo(false);
-            assertThat(response.getIndices().size()).isEqualTo(1);
+            assertThat(response.getIndices()).hasSize(1);
             assertThat(response.getIndices().get(table_2).getStatus()).isEqualTo(ClusterHealthStatus.GREEN);
         }
         {
@@ -168,7 +168,7 @@ public class ClusterHealthIT extends IntegTestCase {
             );
             assertThat(response.getStatus()).isEqualTo(ClusterHealthStatus.YELLOW);
             assertThat(response.isTimedOut()).isEqualTo(false);
-            assertThat(response.getIndices().size()).isEqualTo(1);
+            assertThat(response.getIndices()).hasSize(1);
             assertThat(response.getIndices().get(table_3).getStatus()).isEqualTo(ClusterHealthStatus.YELLOW);
         }
 
@@ -181,7 +181,7 @@ public class ClusterHealthIT extends IntegTestCase {
             );
             assertThat(response.getStatus()).isEqualTo(ClusterHealthStatus.GREEN);
             assertThat(response.isTimedOut()).isEqualTo(false);
-            assertThat(response.getIndices().size()).isEqualTo(3);
+            assertThat(response.getIndices()).hasSize(3);
             assertThat(response.getIndices().get(table_1).getStatus()).isEqualTo(ClusterHealthStatus.GREEN);
             assertThat(response.getIndices().get(table_2).getStatus()).isEqualTo(ClusterHealthStatus.GREEN);
             assertThat(response.getIndices().get(table_3).getStatus()).isEqualTo(ClusterHealthStatus.GREEN);

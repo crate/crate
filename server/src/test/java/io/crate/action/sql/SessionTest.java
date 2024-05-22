@@ -112,16 +112,16 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         session.describe('S', "S_1");
         session.execute("Portal", 1, new BaseResultReceiver());
 
-        assertThat(session.portals.size()).isEqualTo(1);
-        assertThat(session.preparedStatements.size()).isEqualTo(1);
-        assertThat(session.deferredExecutionsByStmt.size()).isEqualTo(0);
+        assertThat(session.portals).hasSize(1);
+        assertThat(session.preparedStatements).hasSize(1);
+        assertThat(session.deferredExecutionsByStmt).hasSize(0);
         assertThat(session.activeExecution).isEqualTo(activeExecutionFuture);
 
         session.close();
 
-        assertThat(session.portals.size()).isEqualTo(0);
-        assertThat(session.preparedStatements.size()).isEqualTo(0);
-        assertThat(session.deferredExecutionsByStmt.size()).isEqualTo(0);
+        assertThat(session.portals).hasSize(0);
+        assertThat(session.preparedStatements).hasSize(0);
+        assertThat(session.deferredExecutionsByStmt).hasSize(0);
         assertThat(session.activeExecution).isNull();
     }
 
@@ -136,7 +136,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         session.parse("", "insert into users (name) values (?)", List.of());
         session.bind("", "", List.of("Arthur"), null);
         session.execute("", -1, new BaseResultReceiver());
-        assertThat(session.deferredExecutionsByStmt.size()).isEqualTo(1);
+        assertThat(session.deferredExecutionsByStmt).hasSize(1);
         session.flush();
         var activeExecution = session.activeExecution;
         assertThat(activeExecution).isNotNull();
@@ -159,15 +159,15 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         session.bind("", "S_2", Collections.emptyList(), null);
         session.describe('S', "S_2");
 
-        assertThat(session.portals.size()).isEqualTo(2);
-        assertThat(session.preparedStatements.size()).isEqualTo(2);
-        assertThat(session.deferredExecutionsByStmt.size()).isEqualTo(0);
+        assertThat(session.portals).hasSize(2);
+        assertThat(session.preparedStatements).hasSize(2);
+        assertThat(session.deferredExecutionsByStmt).hasSize(0);
 
         session.close();
 
-        assertThat(session.portals.size()).isEqualTo(0);
-        assertThat(session.preparedStatements.size()).isEqualTo(0);
-        assertThat(session.deferredExecutionsByStmt.size()).isEqualTo(0);
+        assertThat(session.portals).hasSize(0);
+        assertThat(session.preparedStatements).hasSize(0);
+        assertThat(session.deferredExecutionsByStmt).hasSize(0);
         assertThat(session.activeExecution).isNull();
     }
 
@@ -208,7 +208,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         session.execute("", 0, new BaseResultReceiver());
 
         assertThat(session.portals).hasSizeGreaterThan(0);
-        assertThat(session.preparedStatements.size()).isEqualTo(1);
+        assertThat(session.preparedStatements).hasSize(1);
         assertThat(session.preparedStatements.get("stmt").rawStatement()).isEqualTo("DEALLOCATE test_prep_stmt;");
     }
 
@@ -220,8 +220,8 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         session.parse("S_1", "SELECT 1", List.of());
         session.bind("P_1", "S_1", List.of(), null);
 
-        assertThat(session.portals.size()).isEqualTo(1);
-        assertThat(session.preparedStatements.size()).isEqualTo(1);
+        assertThat(session.portals).hasSize(1);
+        assertThat(session.preparedStatements).hasSize(1);
 
         session.close((byte) 'S', "S_1");
         assertThat(session.portals).isEmpty();
@@ -258,8 +258,8 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         session.parse("S_1", "SELECT 1", List.of());
         session.bind("P_1", "S_1", List.of(), null);
 
-        assertThat(session.portals.size()).isEqualTo(1);
-        assertThat(session.preparedStatements.size()).isEqualTo(1);
+        assertThat(session.portals).hasSize(1);
+        assertThat(session.preparedStatements).hasSize(1);
 
         session.parse("stmt", "DISCARD ALL", Collections.emptyList());
         session.bind("", "stmt", Collections.emptyList(), null);

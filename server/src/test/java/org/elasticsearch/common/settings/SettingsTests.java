@@ -21,7 +21,7 @@
 
 package org.elasticsearch.common.settings;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasEntry;
@@ -155,13 +155,13 @@ public class SettingsTests extends ESTestCase {
             .put("foo.baz", "ghi").build();
 
         Set<String> names = settings.names();
-        assertThat(names.size()).isEqualTo(2);
+        assertThat(names).hasSize(2);
         assertThat(names.contains("bar")).isTrue();
         assertThat(names.contains("foo")).isTrue();
 
         Settings fooSettings = settings.getAsSettings("foo");
         names = fooSettings.names();
-        assertThat(names.size()).isEqualTo(2);
+        assertThat(names).hasSize(2);
         assertThat(names.contains("bar")).isTrue();
         assertThat(names.contains("baz")).isTrue();
     }
@@ -273,14 +273,14 @@ public class SettingsTests extends ESTestCase {
     public void testPrefixNormalization() {
         Settings settings = Settings.builder().normalizePrefix("foo.").build();
 
-        assertThat(settings.names().size()).isEqualTo(0);
+        assertThat(settings.names()).hasSize(0);
 
         settings = Settings.builder()
             .put("bar", "baz")
             .normalizePrefix("foo.")
             .build();
 
-        assertThat(settings.size()).isEqualTo(1);
+        assertThat(settings).hasSize(1);
         assertThat(settings.get("bar"), nullValue());
         assertThat(settings.get("foo.bar")).isEqualTo("baz");
 
@@ -291,7 +291,7 @@ public class SettingsTests extends ESTestCase {
             .normalizePrefix("foo.")
             .build();
 
-        assertThat(settings.size()).isEqualTo(2);
+        assertThat(settings).hasSize(2);
         assertThat(settings.get("bar"), nullValue());
         assertThat(settings.get("foo.bar")).isEqualTo("baz");
         assertThat(settings.get("foo.test")).isEqualTo("test");
@@ -302,7 +302,7 @@ public class SettingsTests extends ESTestCase {
             .build();
 
 
-        assertThat(settings.size()).isEqualTo(1);
+        assertThat(settings).hasSize(1);
         assertThat(settings.get("foo.test")).isEqualTo("test");
     }
 
@@ -528,7 +528,7 @@ public class SettingsTests extends ESTestCase {
         // check array
         assertNull(settings.get("test1.test3.0"));
         assertNull(settings.get("test1.test3.1"));
-        assertThat(settings.getAsList("test1.test3").size()).isEqualTo(2);
+        assertThat(settings.getAsList("test1.test3")).hasSize(2);
         assertThat(settings.getAsList("test1.test3").get(0)).isEqualTo("test3-1");
         assertThat(settings.getAsList("test1.test3").get(1)).isEqualTo("test3-2");
     }

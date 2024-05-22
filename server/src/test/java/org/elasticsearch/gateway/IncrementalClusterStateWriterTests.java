@@ -19,9 +19,6 @@
 package org.elasticsearch.gateway;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.lessThan;
-import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -187,41 +184,41 @@ public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
     public void testGetRelevantIndicesWithUnassignedShardsOnMasterEligibleNode() {
         IndexMetadata indexMetadata = createIndexMetadata("test");
         Set<Index> indices = IncrementalClusterStateWriter.getRelevantIndices(clusterStateWithUnassignedIndex(indexMetadata, true));
-        assertThat(indices.size()).isEqualTo(0);
+        assertThat(indices).hasSize(0);
     }
 
     public void testGetRelevantIndicesWithUnassignedShardsOnDataOnlyNode() {
         IndexMetadata indexMetadata = createIndexMetadata("test");
         Set<Index> indices = IncrementalClusterStateWriter.getRelevantIndices(clusterStateWithUnassignedIndex(indexMetadata, false));
-        assertThat(indices.size()).isEqualTo(0);
+        assertThat(indices).hasSize(0);
     }
 
     public void testGetRelevantIndicesWithAssignedShards() {
         IndexMetadata indexMetadata = createIndexMetadata("test");
         boolean masterEligible = randomBoolean();
         Set<Index> indices = IncrementalClusterStateWriter.getRelevantIndices(clusterStateWithAssignedIndex(indexMetadata, masterEligible));
-        assertThat(indices.size()).isEqualTo(1);
+        assertThat(indices).hasSize(1);
     }
 
     public void testGetRelevantIndicesForNonReplicatedClosedIndexOnDataOnlyNode() {
         IndexMetadata indexMetadata = createIndexMetadata("test");
         Set<Index> indices = IncrementalClusterStateWriter.getRelevantIndices(
             clusterStateWithNonReplicatedClosedIndex(indexMetadata, false));
-        assertThat(indices.size()).isEqualTo(0);
+        assertThat(indices).hasSize(0);
     }
 
     public void testGetRelevantIndicesForReplicatedClosedButUnassignedIndexOnDataOnlyNode() {
         IndexMetadata indexMetadata = createIndexMetadata("test");
         Set<Index> indices = IncrementalClusterStateWriter.getRelevantIndices(
             clusterStateWithReplicatedClosedIndex(indexMetadata, false, false));
-        assertThat(indices.size()).isEqualTo(0);
+        assertThat(indices).hasSize(0);
     }
 
     public void testGetRelevantIndicesForReplicatedClosedAndAssignedIndexOnDataOnlyNode() {
         IndexMetadata indexMetadata = createIndexMetadata("test");
         Set<Index> indices = IncrementalClusterStateWriter.getRelevantIndices(
             clusterStateWithReplicatedClosedIndex(indexMetadata, false, true));
-        assertThat(indices.size()).isEqualTo(1);
+        assertThat(indices).hasSize(1);
     }
 
     @Test
@@ -294,8 +291,8 @@ public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
                 ArgumentCaptor<String> reason = ArgumentCaptor.forClass(String.class);
                 verify(writer).writeIndex(reason.capture(), eq(newVersionChangedIndex));
                 verify(writer, times(1)).incrementIndicesWritten();
-                assertThat(reason.getValue(), containsString(Long.toString(versionChangedIndex.getVersion())));
-                assertThat(reason.getValue(), containsString(Long.toString(newVersionChangedIndex.getVersion())));
+                assertThat(reason.getValue()).contains(versionChangedIndex.getVersion() + "");
+                assertThat(reason.getValue()).contains(newVersionChangedIndex.getVersion() + "");
                 wroteChangedIndex = true;
             }
         }
@@ -513,7 +510,7 @@ public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
             "writing cluster state took [*] which is above the warn threshold of [*]; " +
                 "wrote metadata for [0] indices and skipped [0] unchanged indices"));
 
-        assertThat(currentTime.get(), lessThan(startTimeMillis + 10 * slowWriteLoggingThresholdMillis)); // ensure no overflow
+        assertThat(currentTime.get()).isLessThan(startTimeMillis + 10 * slowWriteLoggingThresholdMillis); // ensure no overflow
     }
 
     private void assertExpectedLogs(ClusterState clusterState, IncrementalClusterStateWriter incrementalClusterStateWriter,

@@ -238,7 +238,7 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
         Map<String, Object> mapping = XContentHelper.convertToMap(JsonXContent.JSON_XCONTENT, getIndexMapping("t"), false);
         Set<Long> oids = new HashSet<>();
         collectOID((Map<String, Map<String, Object>>) Maps.getByPath(mapping, "default.properties"), oids);
-        assertThat(oids.size()).isEqualTo(48);
+        assertThat(oids).hasSize(48);
         assertThat(oids.stream().max(Long::compareTo).get()).isEqualTo(48);
     }
 

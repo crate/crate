@@ -20,16 +20,11 @@
 package org.elasticsearch.cluster.coordination;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.emptyIterable;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -191,7 +186,7 @@ public class PublicationTests extends ESTestCase {
             discoveryNodes, singleNodeConfig, singleNodeConfig, 42L), ackListener, Collections.emptySet());
 
         assertThat(publication.pendingPublications.keySet()).isEqualTo(discoNodes);
-        assertThat(publication.completedNodes(), empty());
+        assertThat(publication.completedNodes()).isEmpty();
         assertThat(publication.pendingCommits.isEmpty()).isTrue();
         AtomicBoolean processedNode1PublishResponse = new AtomicBoolean();
         boolean delayProcessingNode2PublishResponse = randomBoolean();
@@ -246,15 +241,15 @@ public class PublicationTests extends ESTestCase {
 
             assertThat(publication.completed).isFalse();
             assertThat(publication.committed).isFalse();
-            assertThat(publication.completedNodes(), containsInAnyOrder(n1, n3));
+            assertThat(publication.completedNodes()).containsExactlyInAnyOrder(n1, n3);
             publication.pendingCommits.get(n2).onResponse(TransportResponse.Empty.INSTANCE);
         }
 
         assertThat(publication.completed).isTrue();
-        assertThat(publication.completedNodes(), containsInAnyOrder(n1, n2, n3));
+        assertThat(publication.completedNodes()).containsExactlyInAnyOrder(n1, n2, n3);
         assertThat(publication.committed).isTrue();
 
-        assertThat(ackListener.await(0L, TimeUnit.SECONDS), containsInAnyOrder(n1, n2, n3));
+        assertThat(ackListener.await(0L, TimeUnit.SECONDS)).containsExactlyInAnyOrder(n1, n2, n3);
     }
 
     public void testClusterStatePublishingWithFaultyNodeBeforeCommit() throws InterruptedException {
@@ -295,9 +290,9 @@ public class PublicationTests extends ESTestCase {
         publication.onFaultyNode(randomFrom(n1, n3)); // has no influence
 
         List<Tuple<DiscoveryNode, Throwable>> errors = ackListener.awaitErrors(0L, TimeUnit.SECONDS);
-        assertThat(errors.size()).isEqualTo(1);
-        assertThat(errors.get(0).v1()).isEqualTo(n2);
-        assertThat(errors.get(0).v2().getMessage(), containsString("faulty node"));
+        assertThat(errors).hasSize(1);
+        assertThat(errors.getFirst().v1()).isEqualTo(n2);
+        assertThat(errors.getFirst().v2().getMessage()).contains("faulty node");
     }
 
     public void testClusterStatePublishingWithFaultyNodeAfterCommit() throws InterruptedException {
@@ -348,9 +343,9 @@ public class PublicationTests extends ESTestCase {
         publication.onFaultyNode(randomFrom(n1, n3)); // has no influence
 
         List<Tuple<DiscoveryNode, Throwable>> errors = ackListener.awaitErrors(0L, TimeUnit.SECONDS);
-        assertThat(errors.size()).isEqualTo(1);
-        assertThat(errors.get(0).v1()).isEqualTo(n2);
-        assertThat(errors.get(0).v2().getMessage(), containsString("faulty node"));
+        assertThat(errors).hasSize(1);
+        assertThat(errors.getFirst().v1()).isEqualTo(n2);
+        assertThat(errors.getFirst().v2().getMessage()).contains("faulty node");
     }
 
     public void testClusterStatePublishingFailsOrTimesOutBeforeCommit() throws InterruptedException {
@@ -385,11 +380,11 @@ public class PublicationTests extends ESTestCase {
         assertThat(publication.committed).isFalse();
 
         List<Tuple<DiscoveryNode, Throwable>> errors = ackListener.awaitErrors(0L, TimeUnit.SECONDS);
-        assertThat(errors.size()).isEqualTo(3);
-        assertThat(errors.stream().map(Tuple::v1).collect(Collectors.toList()), containsInAnyOrder(n1, n2, n3));
-        errors.stream().forEach(tuple ->
-            assertThat(tuple.v2().getMessage(), containsString(timeOut ? "timed out" :
-                tuple.v1().equals(n2) ? "dummy failure" : "non-failed nodes do not form a quorum")));
+        assertThat(errors).hasSize(3);
+        assertThat(errors.stream().map(Tuple::v1).toList()).containsExactlyInAnyOrder(n1, n2, n3);
+        errors.forEach(tuple ->
+            assertThat(tuple.v2().getMessage()).contains(timeOut ? "timed out" :
+                tuple.v1().equals(n2) ? "dummy failure" : "non-failed nodes do not form a quorum"));
     }
 
     public void testPublishingToMastersFirst() {
@@ -397,14 +392,14 @@ public class PublicationTests extends ESTestCase {
         initializeCluster(singleNodeConfig);
 
         DiscoveryNodes.Builder discoNodesBuilder = DiscoveryNodes.builder();
-        randomNodes(10).forEach(dn -> discoNodesBuilder.add(dn));
+        randomNodes(10).forEach(discoNodesBuilder::add);
         DiscoveryNodes discoveryNodes = discoNodesBuilder.add(n1).localNodeId(n1.getId()).build();
         MockPublication publication = node1.publish(CoordinationStateTests.clusterState(1L, 2L,
             discoveryNodes, singleNodeConfig, singleNodeConfig, 42L), null, Collections.emptySet());
 
         List<DiscoveryNode> publicationTargets = new ArrayList<>(publication.pendingPublications.keySet());
         List<DiscoveryNode> sortedPublicationTargets = new ArrayList<>(publicationTargets);
-        Collections.sort(sortedPublicationTargets, Comparator.comparing(n -> n.isMasterEligibleNode() == false));
+        sortedPublicationTargets.sort(Comparator.comparing(n -> n.isMasterEligibleNode() == false));
         assertEquals(sortedPublicationTargets, publicationTargets);
     }
 
@@ -517,7 +512,7 @@ public class PublicationTests extends ESTestCase {
         }
 
         public Set<DiscoveryNode> await(long timeout, TimeUnit unit) throws InterruptedException {
-            assertThat(awaitErrors(timeout, unit), emptyIterable());
+            assertThat(awaitErrors(timeout, unit)).isEmpty();
             assertThat(commitCountDown.await(timeout, unit)).isTrue();
             return new HashSet<>(successfulAcks);
         }
@@ -526,6 +521,5 @@ public class PublicationTests extends ESTestCase {
             countDown.await(timeout, unit);
             return errors;
         }
-
     }
 }

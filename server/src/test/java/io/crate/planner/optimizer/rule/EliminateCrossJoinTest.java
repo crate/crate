@@ -23,7 +23,6 @@ package io.crate.planner.optimizer.rule;
 
 import static io.crate.common.collections.Iterables.getOnlyElement;
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
@@ -519,7 +518,7 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(joinGraph.nodes()).containsExactly(a, b);
         assertThat(joinGraph.edges()).hasSize(2);
         assertThat(joinGraph.filters()).hasSize(1);
-        assertThat(joinGraph.filters().get(0)).isEqualTo(e.asSymbol("a.x > 1"));
+        assertThat(joinGraph.filters().getFirst()).isEqualTo(e.asSymbol("a.x > 1"));
 
         var reordered = EliminateCrossJoin.reorder(joinGraph, List.of(b, a));
         assertThat(reordered).hasOperators(

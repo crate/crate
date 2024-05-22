@@ -71,9 +71,9 @@ public class DeadNodesAllocationTests extends ESAllocationTestCase {
         clusterState = startInitializingShardsAndReroute(allocation, clusterState);
 
         logger.info("--> verifying all is allocated");
-        assertThat(clusterState.getRoutingNodes().node("node1").size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node1")).hasSize(1);
         assertThat(clusterState.getRoutingNodes().node("node1").iterator().next().state()).isEqualTo(STARTED);
-        assertThat(clusterState.getRoutingNodes().node("node2").size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node2")).hasSize(1);
         assertThat(clusterState.getRoutingNodes().node("node2").iterator().next().state()).isEqualTo(STARTED);
 
         logger.info("--> fail node with primary");
@@ -119,9 +119,9 @@ public class DeadNodesAllocationTests extends ESAllocationTestCase {
         clusterState = startInitializingShardsAndReroute(allocation, clusterState);
 
         logger.info("--> verifying all is allocated");
-        assertThat(clusterState.getRoutingNodes().node("node1").size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node1")).hasSize(1);
         assertThat(clusterState.getRoutingNodes().node("node1").iterator().next().state()).isEqualTo(STARTED);
-        assertThat(clusterState.getRoutingNodes().node("node2").size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node2")).hasSize(1);
         assertThat(clusterState.getRoutingNodes().node("node2").iterator().next().state()).isEqualTo(STARTED);
 
         logger.info("--> adding additional node");
@@ -130,11 +130,11 @@ public class DeadNodesAllocationTests extends ESAllocationTestCase {
         ).build();
         clusterState = allocation.reroute(clusterState, "reroute");
 
-        assertThat(clusterState.getRoutingNodes().node("node1").size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node1")).hasSize(1);
         assertThat(clusterState.getRoutingNodes().node("node1").iterator().next().state()).isEqualTo(STARTED);
-        assertThat(clusterState.getRoutingNodes().node("node2").size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node2")).hasSize(1);
         assertThat(clusterState.getRoutingNodes().node("node2").iterator().next().state()).isEqualTo(STARTED);
-        assertThat(clusterState.getRoutingNodes().node("node3").size()).isEqualTo(0);
+        assertThat(clusterState.getRoutingNodes().node("node3")).hasSize(0);
 
         String origPrimaryNodeId = clusterState.routingTable().index("test").shard(0).primaryShard().currentNodeId();
         String origReplicaNodeId = clusterState.routingTable().index("test").shard(0).replicaShards().get(0).currentNodeId();
@@ -189,9 +189,9 @@ public class DeadNodesAllocationTests extends ESAllocationTestCase {
         clusterState = startInitializingShardsAndReroute(allocation, clusterState);
 
         logger.info("--> verifying all is allocated");
-        assertThat(clusterState.getRoutingNodes().node("node1").size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node1")).hasSize(1);
         assertThat(clusterState.getRoutingNodes().node("node1").iterator().next().state()).isEqualTo(STARTED);
-        assertThat(clusterState.getRoutingNodes().node("node2").size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node2")).hasSize(1);
         assertThat(clusterState.getRoutingNodes().node("node2").iterator().next().state()).isEqualTo(STARTED);
 
         logger.info("--> adding additional node");
@@ -200,11 +200,11 @@ public class DeadNodesAllocationTests extends ESAllocationTestCase {
         ).build();
         clusterState = allocation.reroute(clusterState, "reroute");
 
-        assertThat(clusterState.getRoutingNodes().node("node1").size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node1")).hasSize(1);
         assertThat(clusterState.getRoutingNodes().node("node1").iterator().next().state()).isEqualTo(STARTED);
-        assertThat(clusterState.getRoutingNodes().node("node2").size()).isEqualTo(1);
+        assertThat(clusterState.getRoutingNodes().node("node2")).hasSize(1);
         assertThat(clusterState.getRoutingNodes().node("node2").iterator().next().state()).isEqualTo(STARTED);
-        assertThat(clusterState.getRoutingNodes().node("node3").size()).isEqualTo(0);
+        assertThat(clusterState.getRoutingNodes().node("node3")).hasSize(0);
 
         String origPrimaryNodeId = clusterState.routingTable().index("test").shard(0).primaryShard().currentNodeId();
         String origReplicaNodeId = clusterState.routingTable().index("test").shard(0).replicaShards().get(0).currentNodeId();

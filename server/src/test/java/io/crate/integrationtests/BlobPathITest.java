@@ -22,10 +22,6 @@
 package io.crate.integrationtests;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.lessThan;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -34,13 +30,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.test.IntegTestCase;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 
@@ -128,7 +122,7 @@ public class BlobPathITest extends BlobIntegrationTestBase {
         execute("drop blob table test");
         String blobRootPath = String.format("%s/nodes/0/indices/.blob_test", tableBlobPath.toString());
 
-        assertBusy(() -> assertFalse(Files.exists(Paths.get(blobRootPath))), 5, TimeUnit.SECONDS);
+        assertBusy(() -> assertThat(Files.exists(Paths.get(blobRootPath))).isFalse(), 5, TimeUnit.SECONDS);
     }
 
     @Test
@@ -148,8 +142,8 @@ public class BlobPathITest extends BlobIntegrationTestBase {
         List<String> data1Files = gatherDigests(data1);
         List<String> data2Files = gatherDigests(data2);
 
-        assertThat(data1Files.size(), Matchers.allOf(lessThan(10), greaterThan(0)));
-        assertThat(data2Files.size(), Matchers.allOf(lessThan(10), greaterThan(0)));
+        assertThat(data1Files.size()).isGreaterThan(0).isLessThan(10);
+        assertThat(data2Files.size()).isGreaterThan(0).isLessThan(10);
         assertThat(data1Files.size() + data2Files.size()).isEqualTo(10);
     }
 
@@ -159,7 +153,7 @@ public class BlobPathITest extends BlobIntegrationTestBase {
                 .map(Path::getFileName)
                 .map(Path::toString)
                 .filter(i -> i.length() == 40)
-                .collect(Collectors.toList());
+                .toList();
         }
     }
 }

@@ -212,8 +212,8 @@ public class RenameColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             newState = renameColumnTask.execute(newState, request);
             tbl = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
 
-            assertThat(tbl.checkConstraints().size()).isEqualTo(1);
-            assertThat(tbl.checkConstraints().get(0).toString())
+            assertThat(tbl.checkConstraints()).hasSize(1);
+            assertThat(tbl.checkConstraints().getFirst().toString())
                 .isEqualTo("CheckConstraint{name='c_1', expression=(p['b'] > 1)}");
         }
     }
@@ -238,9 +238,9 @@ public class RenameColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             var request = new RenameColumnRequest(tbl.ident(), refToRename, newName);
             ClusterState newState = renameColumnTask.execute(clusterService.state(), request);
             DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
-            assertThat(newTable.generatedColumns().size()).isEqualTo(1);
-            assertThat(newTable.generatedColumns().get(0).column()).isEqualTo(new ColumnIdent("o2", List.of("b")));
-            assertThat(newTable.generatedColumns().get(0).formattedGeneratedExpression()).isEqualTo("(o2['a'] + 1)");
+            assertThat(newTable.generatedColumns()).hasSize(1);
+            assertThat(newTable.generatedColumns().getFirst().column()).isEqualTo(new ColumnIdent("o2", List.of("b")));
+            assertThat(newTable.generatedColumns().getFirst().formattedGeneratedExpression()).isEqualTo("(o2['a'] + 1)");
         }
     }
 
@@ -349,8 +349,8 @@ public class RenameColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             tbl = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
 
             var renamedIndexColumn = tbl.indexColumn(new ColumnIdent("i2"));
-            assertThat(renamedIndexColumn.columns().size()).isEqualTo(1);
-            assertThat(renamedIndexColumn.columns().get(0)).isReference().hasName("x2");
+            assertThat(renamedIndexColumn.columns()).hasSize(1);
+            assertThat(renamedIndexColumn.columns().getFirst()).isReference().hasName("x2");
             assertThat(renamedIndexColumn.column()).isEqualTo(new ColumnIdent("i2"));
         }
     }

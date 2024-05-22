@@ -71,7 +71,7 @@ public class TransportCreatePartitionsActionTest extends IntegTestCase {
         execute("refresh table test");
 
         Metadata updatedMetadata = cluster().clusterService().state().metadata();
-        assertThat(updatedMetadata.indices().size()).isEqualTo(3); // 1 table with 3 partitions.
+        assertThat(updatedMetadata.indices()).hasSize(3); // 1 table with 3 partitions.
 
         // CREATE TABLE statement assigns specific names to partitioned tables indices, all having template name as a prefix.
         // See BoundCreateTable.templateName
