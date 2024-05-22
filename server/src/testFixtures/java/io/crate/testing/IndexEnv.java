@@ -26,7 +26,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.index.IndexWriter;
@@ -67,7 +66,7 @@ import io.crate.metadata.doc.DocTableInfo;
 
 public final class IndexEnv implements AutoCloseable {
 
-    private final AtomicReference<QueryShardContext> queryShardContext = new AtomicReference<>();
+    private final QueryShardContext queryShardContext;
     private final MapperService mapperService;
     private final LuceneReferenceResolver luceneReferenceResolver;
     private final NodeEnvironment nodeEnvironment;
@@ -133,7 +132,7 @@ public final class IndexEnv implements AutoCloseable {
         );
         IndexWriterConfig conf = new IndexWriterConfig(new StandardAnalyzer());
         writer = new IndexWriter(new ByteBuffersDirectory(), conf);
-        queryShardContext.set(new QueryShardContext(idxSettings, mapperService));
+        queryShardContext = new QueryShardContext(mapperService);
     }
 
     @Override
@@ -148,7 +147,7 @@ public final class IndexEnv implements AutoCloseable {
     }
 
     public QueryShardContext queryShardContext() {
-        return queryShardContext.get();
+        return queryShardContext;
     }
 
     public QueryCache queryCache() {

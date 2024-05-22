@@ -20,12 +20,8 @@
 package org.elasticsearch.index.query;
 
 import org.apache.lucene.analysis.Analyzer;
-import org.elasticsearch.index.Index;
-import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.analysis.IndexAnalyzers;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.mapper.ObjectMapper;
 
 /**
  * Context object used to create lucene queries on the shard level.
@@ -33,24 +29,13 @@ import org.elasticsearch.index.mapper.ObjectMapper;
 public class QueryShardContext {
 
     private final MapperService mapperService;
-    private final Index fullyQualifiedIndex;
 
-    public QueryShardContext(IndexSettings indexSettings,
-                             MapperService mapperService) {
+    public QueryShardContext(MapperService mapperService) {
         this.mapperService = mapperService;
-        this.fullyQualifiedIndex = indexSettings.getIndex();
-    }
-
-    public IndexAnalyzers getIndexAnalyzers() {
-        return mapperService.getIndexAnalyzers();
     }
 
     public MappedFieldType fieldMapper(String name) {
         return mapperService.fieldType(name);
-    }
-
-    public ObjectMapper getObjectMapper(String name) {
-        return mapperService.getObjectMapper(name);
     }
 
     /**
@@ -80,12 +65,5 @@ public class QueryShardContext {
      */
     public MapperService getMapperService() {
         return mapperService;
-    }
-
-    /**
-     * Returns the fully qualified index including a remote cluster alias if applicable, and the index uuid
-     */
-    public Index getFullyQualifiedIndex() {
-        return fullyQualifiedIndex;
     }
 }

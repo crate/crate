@@ -849,8 +849,7 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
                 org.elasticsearch.indices.TypeMissingException::new, 137, UNKNOWN_VERSION_ADDED),
         FAILED_TO_COMMIT_CLUSTER_STATE_EXCEPTION(org.elasticsearch.cluster.coordination.FailedToCommitClusterStateException.class,
                 org.elasticsearch.cluster.coordination.FailedToCommitClusterStateException::new, 140, UNKNOWN_VERSION_ADDED),
-        QUERY_SHARD_EXCEPTION(org.elasticsearch.index.query.QueryShardException.class,
-                org.elasticsearch.index.query.QueryShardException::new, 141, UNKNOWN_VERSION_ADDED),
+        // 141 was QueryShardException
         NO_LONGER_PRIMARY_SHARD_EXCEPTION(ShardStateAction.NoLongerPrimaryShardException.class,
                 ShardStateAction.NoLongerPrimaryShardException::new, 142, UNKNOWN_VERSION_ADDED),
         // 143 was ScriptException

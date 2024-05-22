@@ -461,7 +461,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
      * Creates a new QueryShardContext
      */
     public QueryShardContext newQueryShardContext() {
-        return new QueryShardContext(indexSettings, mapperService());
+        return new QueryShardContext(mapperService());
     }
 
     @Override
