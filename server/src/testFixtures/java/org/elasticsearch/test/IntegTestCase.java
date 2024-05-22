@@ -786,7 +786,7 @@ public abstract class IntegTestCase extends ESTestCase {
                 status,
                 clusterStateResponse.getState(),
                 pendingClusterTasks);
-            assertThat(actionGet.isTimedOut()).as("timed out waiting for relocation").isEqualTo(false);
+            assertThat(actionGet.isTimedOut()).as("timed out waiting for relocation").isFalse();
         }
         if (status != null) {
             assertThat(actionGet.getStatus()).isEqualTo(status);
@@ -1060,7 +1060,7 @@ public abstract class IntegTestCase extends ESTestCase {
         boolean autoManageMasterNodes() default true;
 
         /**
-         * Returns the number of client nodes in the cluster. Default is {@link InternalTestCluster#DEFAULT_NUM_CLIENT_NODES}, a
+         * Returns the number of client nodes in the cluster. Default is {@link TestCluster#DEFAULT_NUM_CLIENT_NODES}, a
          * negative value means that the number of client nodes will be randomized.
          */
         int numClientNodes() default TestCluster.DEFAULT_NUM_CLIENT_NODES;

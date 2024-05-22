@@ -85,7 +85,7 @@ public class DeadNodesAllocationTests extends ESAllocationTestCase {
 
         clusterState = allocation.disassociateDeadNodes(clusterState, true, "reroute");
 
-        assertThat(clusterState.getRoutingNodes().node(nodeIdRemaining).iterator().next().primary()).isEqualTo(true);
+        assertThat(clusterState.getRoutingNodes().node(nodeIdRemaining).iterator().next().primary()).isTrue();
         assertThat(clusterState.getRoutingNodes().node(nodeIdRemaining).iterator().next().state()).isEqualTo(STARTED);
     }
 

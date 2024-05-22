@@ -62,7 +62,7 @@ public class StringTypeTest extends DataTypeTestCase<String> {
     @Test
     public void test_create_text_type_with_length_limit() {
         var stringDataType = StringType.of(10);
-        assertThat(stringDataType.unbound()).isEqualTo(false);
+        assertThat(stringDataType.unbound()).isFalse();
         assertThat(stringDataType.lengthLimit()).isEqualTo(10);
     }
 

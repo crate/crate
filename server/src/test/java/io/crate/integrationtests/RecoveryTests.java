@@ -22,9 +22,6 @@
 package io.crate.integrationtests;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -226,7 +223,7 @@ public class RecoveryTests extends BlobIntegrationTestBase {
                         .timeout(ACCEPTABLE_RELOCATION_TIME)
                 ));
 
-            assertThat(clusterHealthResponse.isTimedOut()).isEqualTo(false);
+            assertThat(clusterHealthResponse.isTimedOut()).isFalse();
             clusterHealthResponse = FutureUtils.get(cluster().client(node2).admin().cluster()
                 .health(
                     new ClusterHealthRequest()
@@ -234,7 +231,7 @@ public class RecoveryTests extends BlobIntegrationTestBase {
                         .waitForNoRelocatingShards(true)
                         .timeout(ACCEPTABLE_RELOCATION_TIME)
                 ));
-            assertThat(clusterHealthResponse.isTimedOut()).isEqualTo(false);
+            assertThat(clusterHealthResponse.isTimedOut()).isFalse();
             logger.trace("--> DONE relocate the shard from {} to {}", fromNode, toNode);
         }
         logger.trace("--> done relocations");
@@ -246,13 +243,12 @@ public class RecoveryTests extends BlobIntegrationTestBase {
         logger.trace("--> uploading threads stopped");
 
         logger.trace("--> expected {} got {}", indexCounter.get(), uploadedDigests.size());
-        assertEquals(indexCounter.get(), uploadedDigests.size());
+        assertThat(uploadedDigests.size()).isEqualTo(indexCounter.get());
 
         BlobIndicesService blobIndicesService = cluster().getInstance(BlobIndicesService.class, node2);
         for (String digest : uploadedDigests) {
             BlobShard blobShard = blobIndicesService.localBlobShard(BlobIndex.fullIndexName("test"), digest);
-            long length = blobShard.blobContainer().getFile(digest).length();
-            assertThat(length, greaterThanOrEqualTo(1L));
+            assertThat(blobShard.blobContainer().getFile(digest).length()).isGreaterThanOrEqualTo(1);
         }
 
         for (Thread writer : writers) {

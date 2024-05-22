@@ -234,14 +234,14 @@ public class GatewayIndexStateIT extends IntegTestCase {
             ),
             REQUEST_TIMEOUT
         );
-        assertThat(health.isTimedOut()).isEqualTo(false);
+        assertThat(health.isTimedOut()).isFalse();
 
         logger.info("--> verify we have an index");
         var clusterStateResponse = client().admin().cluster().state(
             new ClusterStateRequest()
                 .indices(tableName)
             ).get(REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS);
-        assertThat(clusterStateResponse.getState().metadata().hasIndex(tableName)).isEqualTo(true);
+        assertThat(clusterStateResponse.getState().metadata().hasIndex(tableName)).isTrue();
     }
 
     @Test
@@ -281,7 +281,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
             ),
             REQUEST_TIMEOUT
         );
-        assertThat(health.isTimedOut()).isEqualTo(false);
+        assertThat(health.isTimedOut()).isFalse();
 
         logger.info("--> verify 1 doc in the index");
         for (int i = 0; i < 10; i++) {
@@ -311,7 +311,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
             ),
             REQUEST_TIMEOUT
         );
-        assertThat(health.isTimedOut()).isEqualTo(false);
+        assertThat(health.isTimedOut()).isFalse();
 
         logger.info("--> verify 1 doc in the index");
         execute("select id from test");

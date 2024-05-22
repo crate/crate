@@ -52,22 +52,22 @@ final class StringUtilsTest {
         long[] outputLong = new long[1];
 
         wasLong = StringUtils.tryParseLong("-123456", outputLong);
-        assertThat(wasLong).isEqualTo(true);
+        assertThat(wasLong).isTrue();
         assertThat(outputLong[0]).isEqualTo(-123456);
 
         wasLong = StringUtils.tryParseLong("9223372036854775808", outputLong);
-        assertThat(wasLong).isEqualTo(false);
+        assertThat(wasLong).isFalse();
 
         wasLong = StringUtils.tryParseLong("/", outputLong);
-        assertThat(wasLong).isEqualTo(false);
+        assertThat(wasLong).isFalse();
 
         wasLong = StringUtils.tryParseLong("+", outputLong);
-        assertThat(wasLong).isEqualTo(false);
+        assertThat(wasLong).isFalse();
 
         wasLong = StringUtils.tryParseLong("", outputLong);
-        assertThat(wasLong).isEqualTo(false);
+        assertThat(wasLong).isFalse();
 
         wasLong = StringUtils.tryParseLong("++", outputLong);
-        assertThat(wasLong).isEqualTo(false);
+        assertThat(wasLong).isFalse();
     }
 }

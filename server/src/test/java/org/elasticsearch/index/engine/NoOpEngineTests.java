@@ -60,8 +60,8 @@ public class NoOpEngineTests extends EngineTestCase {
     public void testNoopEngine() throws IOException {
         engine.close();
         final NoOpEngine engine = new NoOpEngine(noOpConfig(INDEX_SETTINGS, store, primaryTranslogDir));
-        assertThat(engine.refreshNeeded()).isEqualTo(false);
-        assertThat(engine.shouldPeriodicallyFlush()).isEqualTo(false);
+        assertThat(engine.refreshNeeded()).isFalse();
+        assertThat(engine.shouldPeriodicallyFlush()).isFalse();
         engine.close();
     }
 

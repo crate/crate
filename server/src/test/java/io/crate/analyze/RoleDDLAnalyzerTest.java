@@ -76,7 +76,7 @@ public class RoleDDLAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         String userOrRole = randomBoolean() ? "USER" : "ROLE";
         AnalyzedDropRole analysis = e.analyze("DROP " + userOrRole + " IF EXISTS ROOT");
         assertThat(analysis.roleName()).isEqualTo("root");
-        assertThat(analysis.ifExists()).isEqualTo(true);
+        assertThat(analysis.ifExists()).isTrue();
     }
 
     @Test

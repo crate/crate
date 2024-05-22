@@ -160,9 +160,9 @@ public class CombinedDeletionPolicyTests extends ESTestCase {
         commitList.forEach(this::resetDeletion);
         indexPolicy.onCommit(commitList);
         for (int i = 0; i < commitList.size() - 1; i++) {
-            assertThat(commitList.get(i).isDeleted()).isEqualTo(true);
+            assertThat(commitList.get(i).isDeleted()).isTrue();
         }
-        assertThat(commitList.get(commitList.size() - 1).isDeleted()).isEqualTo(false);
+        assertThat(commitList.get(commitList.size() - 1).isDeleted()).isFalse();
         assertThat(translogPolicy.getLocalCheckpointOfSafeCommit()).isEqualTo(getLocalCheckpoint(commitList.get(commitList.size() - 1)));
         IndexCommit safeCommit = CombinedDeletionPolicy.findSafeCommitPoint(commitList, globalCheckpoint.get());
         assertThat(softDeletesPolicy.getMinRetainedSeqNo()).isEqualTo(
@@ -223,7 +223,7 @@ public class CombinedDeletionPolicyTests extends ESTestCase {
         if (safeCommitIndex == commitList.size() - 1) {
             // Safe commit is the last commit - no need to clean up
             assertThat(translogPolicy.getLocalCheckpointOfSafeCommit()).isEqualTo(getLocalCheckpoint(commitList.get(commitList.size() - 1)));
-            assertThat(indexPolicy.hasUnreferencedCommits()).isEqualTo(false);
+            assertThat(indexPolicy.hasUnreferencedCommits()).isFalse();
         } else {
             // Advanced but not enough for any commit after the safe commit becomes safe
             IndexCommit nextSafeCommit = commitList.get(safeCommitIndex + 1);
@@ -240,7 +240,7 @@ public class CombinedDeletionPolicyTests extends ESTestCase {
             indexPolicy.onCommit(commitList);
             // Safe commit is the last commit - no need to clean up
             assertThat(translogPolicy.getLocalCheckpointOfSafeCommit()).isEqualTo(getLocalCheckpoint(commitList.get(commitList.size() - 1)));
-            assertThat(indexPolicy.hasUnreferencedCommits()).isEqualTo(false);
+            assertThat(indexPolicy.hasUnreferencedCommits()).isFalse();
         }
     }
 

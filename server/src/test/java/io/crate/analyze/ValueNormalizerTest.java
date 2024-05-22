@@ -103,7 +103,7 @@ public class ValueNormalizerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public void testNormalizeDynamicEmptyObjectLiteral() throws Exception {
         Reference objRef = userTableInfo.getReference(new ColumnIdent("dyn_empty"));
         Map<String, Object> map = new HashMap<>();
@@ -112,7 +112,7 @@ public class ValueNormalizerTest extends CrateDummyClusterServiceUnitTest {
         Literal<Map<String, Object>> normalized = (Literal) normalizeInputForReference(
             Literal.of(map), objRef);
         assertThat((String) normalized.value().get("time")).isEqualTo("2014-02-16T00:00:01");
-        assertThat((Boolean) normalized.value().get("false")).isEqualTo(true);
+        assertThat((Boolean) normalized.value().get("false")).isTrue();
     }
 
     @Test(expected = ColumnValidationException.class)

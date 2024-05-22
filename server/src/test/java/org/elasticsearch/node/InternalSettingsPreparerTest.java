@@ -48,9 +48,9 @@ public class InternalSettingsPreparerTest {
         Settings finalSettings = InternalSettingsPreparer
             .prepareEnvironment(Settings.EMPTY, settings, config, () -> "node1").settings();
         // Overriding value from crate.yml
-        assertThat(finalSettings.getAsBoolean("stats.enabled", null)).isEqualTo(false);
+        assertThat(finalSettings.getAsBoolean("stats.enabled", null)).isFalse();
         // Value kept from crate.yml
-        assertThat(finalSettings.getAsBoolean("psql.enabled", null)).isEqualTo(false);
+        assertThat(finalSettings.getAsBoolean("psql.enabled", null)).isFalse();
         // Overriding value from crate.yml
         assertThat(finalSettings.get("cluster.name")).isEqualTo("clusterNameOverridden");
         // Value kept from crate.yml
