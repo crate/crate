@@ -142,7 +142,6 @@ import org.elasticsearch.plugins.ClusterPlugin;
 import org.elasticsearch.plugins.DiscoveryPlugin;
 import org.elasticsearch.plugins.EnginePlugin;
 import org.elasticsearch.plugins.IndexStorePlugin;
-import org.elasticsearch.plugins.MapperPlugin;
 import org.elasticsearch.plugins.MetadataUpgrader;
 import org.elasticsearch.plugins.NetworkPlugin;
 import org.elasticsearch.plugins.Plugin;
@@ -447,7 +446,7 @@ public class Node implements Closeable {
             final FsHealthService fsHealthService = new FsHealthService(settings, clusterService.getClusterSettings(), threadPool,
                 nodeEnvironment);
             modules.add(clusterModule);
-            IndicesModule indicesModule = new IndicesModule(pluginsService.filterPlugins(MapperPlugin.class));
+            IndicesModule indicesModule = new IndicesModule();
             modules.add(indicesModule);
 
             IndexSearcher.setMaxClauseCount(SearchModule.INDICES_MAX_CLAUSE_COUNT_SETTING.get(settings));

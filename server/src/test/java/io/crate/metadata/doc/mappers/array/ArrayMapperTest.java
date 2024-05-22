@@ -56,7 +56,6 @@ import org.elasticsearch.index.mapper.NumberFieldMapper;
 import org.elasticsearch.index.mapper.ObjectArrayMapper;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.SourceToParse;
-import org.elasticsearch.indices.IndicesModule;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
@@ -72,11 +71,9 @@ public class ArrayMapperTest extends CrateDummyClusterServiceUnitTest {
      * create index with type and mapping and validate DocumentMapper serialization
      */
     public static DocumentMapper mapper(String indexName, String mapping) throws IOException {
-        IndicesModule indicesModule = new IndicesModule(List.of());
         MapperService mapperService = MapperTestUtils.newMapperService(
             createTempDir(),
             Settings.EMPTY,
-            indicesModule,
             indexName
         );
         DocumentMapperParser parser = mapperService.documentMapperParser();
