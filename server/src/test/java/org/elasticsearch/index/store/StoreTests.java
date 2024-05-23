@@ -544,7 +544,7 @@ public class StoreTests extends ESTestCase {
         for (StoreFileMetadata md : first) {
             assertThat(second.get(md.name())).isNotNull();
             // si files are different - containing timestamps etc
-            assertThat(second.get(md.name()).isSame(md)).isEqualTo(false);
+            assertThat(second.get(md.name()).isSame(md)).isFalse();
         }
         assertThat(diff.different).hasSize(first.size());
         assertThat(diff.identical).hasSize(0); // in lucene 5 nothing is identical - we use random ids in file headers

@@ -59,7 +59,7 @@ public class RelationNameTest extends ESTestCase {
     public void testFromIndexNameCreatesCorrectBlobRelationName() {
         RelationName relationName = new RelationName("blob", "foobar");
         String indexName = relationName.indexNameOrAlias();
-        assertThat(BlobIndex.isBlobIndex(indexName)).isEqualTo(true);
+        assertThat(BlobIndex.isBlobIndex(indexName)).isTrue();
         assertThat(RelationName.fromIndexName(indexName)).isEqualTo(relationName);
     }
 

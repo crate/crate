@@ -67,6 +67,6 @@ public class SysSnapshotRestoreTableInfoTest {
     @Test
     public void test_convert_null_restore_in_progress_returns_empty_iterator() {
         var restoreInProgressIt = SysSnapshotRestoreTableInfo.snapshotsRestoreInProgress(null).iterator();
-        assertThat(restoreInProgressIt.hasNext()).isEqualTo(false);
+        assertThat(restoreInProgressIt.hasNext()).isFalse();
     }
 }

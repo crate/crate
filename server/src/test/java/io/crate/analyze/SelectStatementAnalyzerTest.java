@@ -229,7 +229,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
         Function whereClause = (Function) relation.where();
         assertThat(whereClause.name()).isEqualTo(OrOperator.NAME);
-        assertThat(whereClause.signature().getKind() == FunctionType.AGGREGATE).isEqualTo(false);
+        assertThat(whereClause.signature().getKind() == FunctionType.AGGREGATE).isFalse();
 
         Function left = (Function) whereClause.arguments().getFirst();
         assertThat(left.name()).isEqualTo(EqOperator.NAME);
@@ -255,7 +255,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             "or load['1'] = ? or name = ?");
         Function whereClause = (Function) relation.where();
         assertThat(whereClause.name()).isEqualTo(OrOperator.NAME);
-        assertThat(whereClause.signature().getKind() == FunctionType.AGGREGATE).isEqualTo(false);
+        assertThat(whereClause.signature().getKind() == FunctionType.AGGREGATE).isFalse();
 
         Function function = (Function) whereClause.arguments().getFirst();
         assertThat(function.name()).isEqualTo(OrOperator.NAME);
@@ -564,7 +564,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         var executor = SQLExecutor.of(clusterService)
             .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         QueriedSelectRelation relation = executor.analyze("select distinct id + 1 from users");
-        assertThat(relation.isDistinct()).isEqualTo(true);
+        assertThat(relation.isDistinct()).isTrue();
         assertList(relation.outputs()).isSQL("(doc.users.id + 1::bigint)");
     }
 
@@ -592,7 +592,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         var executor = SQLExecutor.of(clusterService)
             .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         QueriedSelectRelation relation = executor.analyze("select distinct [1,2,3] from users");
-        assertThat(relation.isDistinct()).isEqualTo(true);
+        assertThat(relation.isDistinct()).isTrue();
         assertList(relation.outputs()).isSQL("[1, 2, 3]");
     }
 
@@ -601,7 +601,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         var executor = SQLExecutor.of(clusterService)
             .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         QueriedSelectRelation relation = executor.analyze("select distinct null from users");
-        assertThat(relation.isDistinct()).isEqualTo(true);
+        assertThat(relation.isDistinct()).isTrue();
         assertList(relation.outputs()).isSQL("NULL");
     }
 

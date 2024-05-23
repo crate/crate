@@ -43,52 +43,52 @@ public class CoordinationMetadataTests extends ESTestCase {
         VotingConfiguration config0 = new VotingConfiguration(Set.of());
         assertThat(config0).isEqualTo(VotingConfiguration.EMPTY_CONFIG);
         assertThat(config0.getNodeIds()).isEqualTo(Set.of());
-        assertThat(config0.isEmpty()).isEqualTo(true);
-        assertThat(config0.hasQuorum(Set.of())).isEqualTo(false);
-        assertThat(config0.hasQuorum(Set.of("id1"))).isEqualTo(false);
+        assertThat(config0.isEmpty()).isTrue();
+        assertThat(config0.hasQuorum(Set.of())).isFalse();
+        assertThat(config0.hasQuorum(Set.of("id1"))).isFalse();
 
         VotingConfiguration config1 = new VotingConfiguration(Set.of("id1"));
         assertThat(config1.getNodeIds()).isEqualTo(Set.of("id1"));
-        assertThat(config1.isEmpty()).isEqualTo(false);
-        assertThat(config1.hasQuorum(Set.of("id1"))).isEqualTo(true);
-        assertThat(config1.hasQuorum(Set.of("id1", "id2"))).isEqualTo(true);
-        assertThat(config1.hasQuorum(Set.of("id2"))).isEqualTo(false);
-        assertThat(config1.hasQuorum(Set.of())).isEqualTo(false);
+        assertThat(config1.isEmpty()).isFalse();
+        assertThat(config1.hasQuorum(Set.of("id1"))).isTrue();
+        assertThat(config1.hasQuorum(Set.of("id1", "id2"))).isTrue();
+        assertThat(config1.hasQuorum(Set.of("id2"))).isFalse();
+        assertThat(config1.hasQuorum(Set.of())).isFalse();
 
         VotingConfiguration config2 = new VotingConfiguration(Set.of("id1", "id2"));
         assertThat(config2.getNodeIds()).isEqualTo(Set.of("id1", "id2"));
-        assertThat(config2.isEmpty()).isEqualTo(false);
-        assertThat(config2.hasQuorum(Set.of("id1", "id2"))).isEqualTo(true);
-        assertThat(config2.hasQuorum(Set.of("id1", "id2", "id3"))).isEqualTo(true);
-        assertThat(config2.hasQuorum(Set.of("id1"))).isEqualTo(false);
-        assertThat(config2.hasQuorum(Set.of("id2"))).isEqualTo(false);
-        assertThat(config2.hasQuorum(Set.of("id3"))).isEqualTo(false);
-        assertThat(config2.hasQuorum(Set.of("id1", "id3"))).isEqualTo(false);
-        assertThat(config2.hasQuorum(Set.of())).isEqualTo(false);
+        assertThat(config2.isEmpty()).isFalse();
+        assertThat(config2.hasQuorum(Set.of("id1", "id2"))).isTrue();
+        assertThat(config2.hasQuorum(Set.of("id1", "id2", "id3"))).isTrue();
+        assertThat(config2.hasQuorum(Set.of("id1"))).isFalse();
+        assertThat(config2.hasQuorum(Set.of("id2"))).isFalse();
+        assertThat(config2.hasQuorum(Set.of("id3"))).isFalse();
+        assertThat(config2.hasQuorum(Set.of("id1", "id3"))).isFalse();
+        assertThat(config2.hasQuorum(Set.of())).isFalse();
 
         VotingConfiguration config3 = new VotingConfiguration(Set.of("id1", "id2", "id3"));
         assertThat(config3.getNodeIds()).isEqualTo(Set.of("id1", "id2", "id3"));
-        assertThat(config3.isEmpty()).isEqualTo(false);
-        assertThat(config3.hasQuorum(Set.of("id1", "id2"))).isEqualTo(true);
-        assertThat(config3.hasQuorum(Set.of("id2", "id3"))).isEqualTo(true);
-        assertThat(config3.hasQuorum(Set.of("id1", "id3"))).isEqualTo(true);
-        assertThat(config3.hasQuorum(Set.of("id1", "id2", "id3"))).isEqualTo(true);
-        assertThat(config3.hasQuorum(Set.of("id1", "id2", "id4"))).isEqualTo(true);
-        assertThat(config3.hasQuorum(Set.of("id1"))).isEqualTo(false);
-        assertThat(config3.hasQuorum(Set.of("id2"))).isEqualTo(false);
-        assertThat(config3.hasQuorum(Set.of("id3"))).isEqualTo(false);
-        assertThat(config3.hasQuorum(Set.of("id1", "id4"))).isEqualTo(false);
-        assertThat(config3.hasQuorum(Set.of("id1", "id4", "id5"))).isEqualTo(false);
-        assertThat(config3.hasQuorum(Set.of())).isEqualTo(false);
+        assertThat(config3.isEmpty()).isFalse();
+        assertThat(config3.hasQuorum(Set.of("id1", "id2"))).isTrue();
+        assertThat(config3.hasQuorum(Set.of("id2", "id3"))).isTrue();
+        assertThat(config3.hasQuorum(Set.of("id1", "id3"))).isTrue();
+        assertThat(config3.hasQuorum(Set.of("id1", "id2", "id3"))).isTrue();
+        assertThat(config3.hasQuorum(Set.of("id1", "id2", "id4"))).isTrue();
+        assertThat(config3.hasQuorum(Set.of("id1"))).isFalse();
+        assertThat(config3.hasQuorum(Set.of("id2"))).isFalse();
+        assertThat(config3.hasQuorum(Set.of("id3"))).isFalse();
+        assertThat(config3.hasQuorum(Set.of("id1", "id4"))).isFalse();
+        assertThat(config3.hasQuorum(Set.of("id1", "id4", "id5"))).isFalse();
+        assertThat(config3.hasQuorum(Set.of())).isFalse();
     }
 
     public void testVotingConfigurationSerializationEqualsHashCode() {
         VotingConfiguration initialConfig = randomVotingConfig();
         // Note: the explicit cast of the CopyFunction is needed for some IDE (specifically Eclipse 4.8.0) to infer the right type
-        EqualsHashCodeTestUtils.checkEqualsAndHashCode(initialConfig,
-                (CopyFunction<VotingConfiguration>) orig -> ESTestCase.copyWriteable(orig,
-                        new NamedWriteableRegistry(Collections.emptyList()), VotingConfiguration::new),
-                cfg -> randomlyChangeVotingConfiguration(cfg));
+        EqualsHashCodeTestUtils.checkEqualsAndHashCode(
+            initialConfig,
+            orig -> ESTestCase.copyWriteable(orig, new NamedWriteableRegistry(Collections.emptyList()), VotingConfiguration::new),
+            cfg -> randomlyChangeVotingConfiguration(cfg));
     }
 
     private static VotingConfiguration randomVotingConfig() {
@@ -98,10 +98,10 @@ public class CoordinationMetadataTests extends ESTestCase {
     public void testVotingTombstoneSerializationEqualsHashCode() {
         VotingConfigExclusion tombstone = new VotingConfigExclusion(randomAlphaOfLength(10), randomAlphaOfLength(10));
         // Note: the explicit cast of the CopyFunction is needed for some IDE (specifically Eclipse 4.8.0) to infer the right type
-        EqualsHashCodeTestUtils.checkEqualsAndHashCode(tombstone,
-                (CopyFunction<VotingConfigExclusion>) orig -> ESTestCase.copyWriteable(orig,
-                        new NamedWriteableRegistry(Collections.emptyList()), VotingConfigExclusion::new),
-                orig -> randomlyChangeVotingTombstone(orig));
+        EqualsHashCodeTestUtils.checkEqualsAndHashCode(
+            tombstone,
+            orig -> ESTestCase.copyWriteable(orig, new NamedWriteableRegistry(Collections.emptyList()), VotingConfigExclusion::new),
+            orig -> randomlyChangeVotingTombstone(orig));
     }
 
     public void testVotingTombstoneXContent() throws IOException {

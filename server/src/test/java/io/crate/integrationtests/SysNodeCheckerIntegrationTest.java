@@ -22,8 +22,6 @@
 package io.crate.integrationtests;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.junit.Assert.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
@@ -77,7 +75,7 @@ public class SysNodeCheckerIntegrationTest extends IntegTestCase {
     public void testUpdateAcknowledgedFromReference() throws Exception {
         execute("select count(*) from sys.node_checks where not passed");
         Long rc = (Long) response.rows()[0][0];
-        assertThat(rc, greaterThan(0L));
+        assertThat(rc).isGreaterThan(0L);
         execute("update sys.node_checks set acknowledged = not passed where passed = false");
         assertThat(response.rowCount()).isEqualTo(rc);
     }

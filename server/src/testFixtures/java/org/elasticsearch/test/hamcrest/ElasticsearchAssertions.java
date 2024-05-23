@@ -50,7 +50,7 @@ public class ElasticsearchAssertions {
     }
 
     public static void assertAcked(AcknowledgedResponse response) {
-        assertThat(response.isAcknowledged()).as(response.getClass().getSimpleName() + " failed - not acked").isEqualTo(true);
+        assertThat(response.isAcknowledged()).as(response.getClass().getSimpleName() + " failed - not acked").isTrue();
     }
 
     /**
@@ -58,7 +58,7 @@ public class ElasticsearchAssertions {
      * state update was successful and that the requisite number of shard copies were started before returning.
      */
     public static void assertAcked(CreateIndexResponse response) {
-        assertThat(response.isAcknowledged()).as(response.getClass().getSimpleName() + " failed - not acked").isEqualTo(true);
+        assertThat(response.isAcknowledged()).as(response.getClass().getSimpleName() + " failed - not acked").isTrue();
         assertThat(response.isShardsAcknowledged()).as(response.getClass().getSimpleName() + " failed - index creation acked but not all shards were started").isTrue();
     }
 

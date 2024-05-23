@@ -36,9 +36,8 @@ public class FulltextIntegrationTest extends IntegTestCase {
     @Test
     public void testSelectMatch() throws Exception {
         execute("create table quotes (quote string)");
-
         execute("insert into quotes values (?)", new Object[] {"don't panic"});
-        refresh();
+        execute("refresh table quotes");
 
         execute("select quote from quotes where match(quote, ?)", new Object[] {"don't panic"});
         assertThat(response).hasRows(
@@ -49,9 +48,8 @@ public class FulltextIntegrationTest extends IntegTestCase {
     @Test
     public void testSelectNotMatch() throws Exception {
         execute("create table quotes (quote string) with (number_of_replicas = 0)");
-
         execute("insert into quotes values (?), (?)", new Object[]{"don't panic", "hello"});
-        refresh();
+        execute("refresh table quotes");
 
         execute("select quote from quotes where not match(quote, ?)",
             new Object[]{"don't panic"});
@@ -79,7 +77,7 @@ public class FulltextIntegrationTest extends IntegTestCase {
         execute("insert into quotes values (?)",
             new Object[]{"Time is an illusion. Lunchtime doubly so"}
         );
-        refresh();
+        execute("refresh table quotes");
 
         execute("select quote from quotes where match(quote_ft, ?) " +
                 "order by \"_score\" desc",
@@ -116,7 +114,7 @@ public class FulltextIntegrationTest extends IntegTestCase {
             new Object[]{"Would it save you a lot of time if I just gave up and went mad now?",
                 "Time is an illusion. Lunchtime doubly so. Take your time."}
         );
-        refresh();
+        execute("refresh table quotes");
 
         execute("select quote, \"_score\" from quotes where match(quote_ft, 'time') " +
                 "and \"_score\" >= 1.12");
@@ -126,7 +124,7 @@ public class FulltextIntegrationTest extends IntegTestCase {
         execute("select quote, \"_score\" from quotes where match(quote_ft, 'time') " +
                 "and \"_score\" >= 1.12 order by quote");
         assertThat(response).hasRowCount(1L);
-        assertThat(Float.isNaN((Float) response.rows()[0][1])).isEqualTo(false);
+        assertThat(Float.isNaN((Float) response.rows()[0][1])).isFalse();
         assertThat((Float) response.rows()[0][1]).isGreaterThanOrEqualTo(1.12f);
     }
 
@@ -139,7 +137,8 @@ public class FulltextIntegrationTest extends IntegTestCase {
                 ")");
 
         execute("INSERT INTO t_string_array (id, keywords) VALUES (1, ['foo bar'])");
-        refresh();
+        execute("refresh table t_string_array");
+
         // matching a term must work
         execute("SELECT id, keywords FROM t_string_array WHERE match(keywords_ft, 'foo')");
         assertThat(response).hasRowCount(1L);

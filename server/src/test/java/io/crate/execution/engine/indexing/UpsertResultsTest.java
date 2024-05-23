@@ -52,11 +52,11 @@ public class UpsertResultsTest {
     @Test
     public void testContainsAnyErrorMethod() {
         UpsertResults upsertResults = new UpsertResults();
-        assertThat(upsertResults.containsErrors()).isEqualTo(false);
+        assertThat(upsertResults.containsErrors()).isFalse();
         upsertResults.addResult(1, null);
-        assertThat(upsertResults.containsErrors()).isEqualTo(false);
+        assertThat(upsertResults.containsErrors()).isFalse();
         upsertResults.addResult("dummyUri2", "failure test", 1);
-        assertThat(upsertResults.containsErrors()).isEqualTo(true);
+        assertThat(upsertResults.containsErrors()).isTrue();
     }
 
     @Test

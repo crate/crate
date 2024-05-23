@@ -46,6 +46,6 @@ public class FetchCollectorTest {
         nonSequential.add(10);
         nonSequential.add(2);
         nonSequential.add(48);
-        assertThat(FetchCollector.isSequential(nonSequential)).isEqualTo(false);
+        assertThat(FetchCollector.isSequential(nonSequential)).isFalse();
     }
 }
