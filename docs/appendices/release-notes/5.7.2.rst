@@ -46,8 +46,8 @@ See the :ref:`version_5.7.0` release notes for a full list of changes in the
 Security Fixes
 ==============
 
-- Fixed a security issue allowing clients using TLS v1.2 to do client-initiated
-  renegotiation which can lead to DoS.
+- Disabled client-initiated renegotiation for TLS by default.
+  This helps prevent Denial of Service (DoS) attacks.
 
 Fixes
 =====
