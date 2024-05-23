@@ -55,7 +55,7 @@ REM Enable aggressive optimizations in the JVM
 REM    - Disabled by default as it might cause the JVM to crash
 REM set JAVA_OPTS=%JAVA_OPTS% -XX:+AggressiveOpts
 
-set JAVA_OPTS=%JAVA_OPTS% -XX:+UseG1GC -XX:G1ReservePercent=25 -XX:InitiatingHeapOccupancyPercent=30 -Djdk.tls.rejectClientInitiatedRenegotiation=true
+set JAVA_OPTS=%JAVA_OPTS% -XX:+UseG1GC -XX:G1ReservePercent=25 -XX:InitiatingHeapOccupancyPercent=30
 
 REM GC logging default values
 SET GC_LOG_DIR=%CRATE_HOME%\logs
@@ -77,6 +77,9 @@ if NOT DEFINED CRATE_DISABLE_GC_LOGGING (
 
 REM Disables explicit GC
 set JAVA_OPTS=%JAVA_OPTS% -XX:+DisableExplicitGC
+
+REM Prevent denial of service attacks via SSL renegotiation
+set JAVA_OPTS=%JAVA_OPTS% -Djdk.tls.rejectClientInitiatedRenegotiation=true
 
 REM Use our provided JNA always versus the system one
 set JAVA_OPTS=%JAVA_OPTS% -Djna.nosys=true
