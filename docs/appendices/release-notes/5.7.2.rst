@@ -43,6 +43,12 @@ Version 5.7.2 - Unreleased
 See the :ref:`version_5.7.0` release notes for a full list of changes in the
 5.7 series.
 
+Security Fixes
+==============
+
+- Fixed a security issue allowing clients using TLS v1.2 to do client-initiated
+  renegotiation which can lead to DoS.
+
 Fixes
 =====
 
