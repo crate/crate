@@ -114,7 +114,7 @@ if [ "x$CRATE_USE_IPV4" != "x" ]; then
 fi
 
 ## GC configuration
-JAVA_OPTS="$JAVA_OPTS -XX:+UseG1GC -XX:G1ReservePercent=25 -XX:InitiatingHeapOccupancyPercent=30 -Djdk.tls.rejectClientInitiatedRenegotiation=true"
+JAVA_OPTS="$JAVA_OPTS -XX:+UseG1GC -XX:G1ReservePercent=25 -XX:InitiatingHeapOccupancyPercent=30"
 
 # GC logging options
 # Set CRATE_DISABLE_GC_LOGGING=1 to disable GC logging
@@ -145,6 +145,9 @@ fi
 
 # Disables explicit GC
 JAVA_OPTS="$JAVA_OPTS -XX:+DisableExplicitGC"
+
+# Prevent denial of service attacks via SSL renegotiation
+JAVA_OPTS="$JAVA_OPTS -Djdk.tls.rejectClientInitiatedRenegotiation=true"
 
 # Ensure UTF-8 encoding by default (e.g. filenames)
 JAVA_OPTS="$JAVA_OPTS -Dfile.encoding=UTF-8"
