@@ -246,4 +246,8 @@ public class PlannerContext {
     public BiFunction<LogicalPlan, PlannerContext, LogicalPlan> optimize() {
         return optimize;
     }
+
+    public DependencyCarrier dependencyCarrier() {
+        return dependencyCarrier;
+    }
 }

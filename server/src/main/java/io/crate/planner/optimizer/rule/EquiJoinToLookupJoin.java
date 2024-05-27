@@ -28,7 +28,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.UnaryOperator;
 
+import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
+
 import io.crate.analyze.relations.PlannedRelation;
+import io.crate.breaker.ConcurrentRamAccounting;
 import io.crate.expression.operator.any.AnyEqOperator;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.SelectSymbol;
@@ -133,7 +136,8 @@ public class EquiJoinToLookupJoin implements Rule<JoinPlan> {
             largerRelationColumn,
             nodeCtx,
             txnCtx,
-            planStats
+            planStats,
+            plannerContext
         );
 
         if (lookupJoin == null) {
@@ -182,7 +186,8 @@ public class EquiJoinToLookupJoin implements Rule<JoinPlan> {
                                             Symbol largerRelationColumn,
                                             NodeContext nodeCtx,
                                             TransactionContext txnCtx,
-                                            PlanStats planStats) {
+                                            PlanStats planStats,
+                                            PlannerContext plannerContext) {
         var lookUpQuery = new SelectSymbol(
             new PlannedRelation(smallerSide),
             new ArrayType<>(smallerRelationColumn.valueType()),
@@ -205,10 +210,12 @@ public class EquiJoinToLookupJoin implements Rule<JoinPlan> {
         var largerSideWithLookup = new Filter(largerSide, anyEqFunction);
         var smallerSidePruned = smallerSide.pruneOutputsExcept(List.of(smallerRelationColumn));
 
+        var circuitBreaker =  plannerContext.dependencyCarrier().circuitBreaker(HierarchyCircuitBreakerService.QUERY);
+
         var stats = planStats.get(smallerSidePruned);
         var columnStats = stats.statsByColumn().values().iterator().next();
         double estimatedMemoryForLookupInBytes = columnStats.averageSizeInBytes() * columnStats.approxDistinct();
-        int memoryLimitInBytes = txnCtx.sessionSettings().memoryLimitInBytes();
+        long memoryLimitInBytes = circuitBreaker.getFree();
         if (memoryLimitInBytes != 0 && estimatedMemoryForLookupInBytes > memoryLimitInBytes) {
             return null;
         }
