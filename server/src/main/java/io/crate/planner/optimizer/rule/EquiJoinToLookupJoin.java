@@ -31,7 +31,6 @@ import java.util.function.UnaryOperator;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 
 import io.crate.analyze.relations.PlannedRelation;
-import io.crate.breaker.ConcurrentRamAccounting;
 import io.crate.expression.operator.any.AnyEqOperator;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.SelectSymbol;
