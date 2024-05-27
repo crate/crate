@@ -39,6 +39,7 @@ import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.AbstractJoinPlan;
 import io.crate.planner.operators.Eval;
 import io.crate.planner.operators.Filter;
@@ -66,7 +67,8 @@ public class EliminateCrossJoin implements Rule<JoinPlan> {
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
-                             UnaryOperator<LogicalPlan> resolvePlan) {
+                             UnaryOperator<LogicalPlan> resolvePlan,
+                             PlannerContext plannerContext) {
         if (join.relationNames().size() >= 3) {
             var joinGraph = JoinGraph.create(join, resolvePlan);
             if (joinGraph.hasCrossJoin()) {

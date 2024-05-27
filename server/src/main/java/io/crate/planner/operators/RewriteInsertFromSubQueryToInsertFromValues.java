@@ -29,6 +29,7 @@ import java.util.function.UnaryOperator;
 import io.crate.expression.tablefunctions.ValuesFunction;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Capture;
@@ -57,7 +58,8 @@ public class RewriteInsertFromSubQueryToInsertFromValues implements Rule<Insert>
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
-                             UnaryOperator<LogicalPlan> resolvePlan) {
+                             UnaryOperator<LogicalPlan> resolvePlan,
+                             PlannerContext plannerContext) {
         TableFunction tableFunction = captures.get(this.capture);
         var relation = tableFunction.relation();
         if (relation.function().name().equals(ValuesFunction.NAME)) {

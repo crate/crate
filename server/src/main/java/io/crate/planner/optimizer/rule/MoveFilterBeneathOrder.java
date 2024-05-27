@@ -29,6 +29,7 @@ import java.util.function.UnaryOperator;
 
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.Order;
@@ -84,7 +85,8 @@ public final class MoveFilterBeneathOrder implements Rule<Filter> {
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
-                             UnaryOperator<LogicalPlan> resolvePlan) {
+                             UnaryOperator<LogicalPlan> resolvePlan,
+                             PlannerContext plannerContext) {
         return transpose(filter, captures.get(orderCapture));
     }
 }

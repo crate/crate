@@ -185,11 +185,12 @@ public final class CopyToPlan implements Plan {
         Match<Collect> match = rewriteCollectToGet.pattern().accept(collect, Captures.empty());
         if (match.isPresent()) {
             LogicalPlan plan = rewriteCollectToGet.apply(match.value(),
-                                                         match.captures(),
-                                                         planStats,
-                                                         context.transactionContext(),
-                                                         context.nodeContext(),
-                                                         UnaryOperator.identity());
+                match.captures(),
+                planStats,
+                context.transactionContext(),
+                context.nodeContext(),
+                UnaryOperator.identity(),
+                context);
             return plan == null ? collect : plan;
         }
         return collect;

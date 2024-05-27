@@ -27,6 +27,7 @@ import java.util.function.UnaryOperator;
 
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.Eval;
 import io.crate.planner.operators.HashJoin;
 import io.crate.planner.operators.LogicalPlan;
@@ -50,7 +51,8 @@ public class ReorderHashJoin implements Rule<HashJoin> {
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
-                             UnaryOperator<LogicalPlan> resolvePlan) {
+                             UnaryOperator<LogicalPlan> resolvePlan,
+                             PlannerContext plannerContext) {
         var lhStats = planStats.get(plan.lhs());
         var rhStats = planStats.get(plan.rhs());
         boolean expectedRowsAvailable = lhStats.numDocs() != -1 && rhStats.numDocs() != -1;

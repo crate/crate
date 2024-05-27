@@ -32,6 +32,7 @@ import java.util.function.UnaryOperator;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.Eval;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.Order;
@@ -63,7 +64,8 @@ public final class MoveOrderBeneathEval implements Rule<Order> {
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
-                             UnaryOperator<LogicalPlan> resolvePlan) {
+                             UnaryOperator<LogicalPlan> resolvePlan,
+                             PlannerContext plannerContext) {
         Eval eval = captures.get(evalCapture);
         List<Symbol> outputsOfSourceOfEval = eval.source().outputs();
         List<Symbol> orderBySymbols = plan.orderBy().orderBySymbols();

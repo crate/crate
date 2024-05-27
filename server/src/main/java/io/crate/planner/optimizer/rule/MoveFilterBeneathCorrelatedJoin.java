@@ -33,6 +33,7 @@ import io.crate.analyze.relations.QuerySplitter;
 import io.crate.expression.operator.AndOperator;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.CorrelatedJoin;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
@@ -64,7 +65,8 @@ public final class MoveFilterBeneathCorrelatedJoin implements Rule<Filter> {
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
-                             UnaryOperator<LogicalPlan> resolvePlan) {
+                             UnaryOperator<LogicalPlan> resolvePlan,
+                             PlannerContext plannerContext) {
         var join = captures.get(joinCapture);
         var splitQuery = QuerySplitter.split(filter.query());
         assert join.sources().size() == 1 : "CorrelatedJoin operator must have 1 children, the input plan";

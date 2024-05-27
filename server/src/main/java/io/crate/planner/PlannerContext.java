@@ -64,7 +64,8 @@ public class PlannerContext {
             context.transactionState,
             context.planStats,
             context.optimizerTracer,
-            context.optimize
+            context.optimize,
+            context.dependencyCarrier
         );
     }
 
@@ -84,6 +85,7 @@ public class PlannerContext {
     private final PlanStats planStats;
     private final OptimizerTracer optimizerTracer;
     private final BiFunction<LogicalPlan, PlannerContext, LogicalPlan> optimize;
+    private final DependencyCarrier dependencyCarrier;
 
     /**
      * @param params See {@link #params()}
@@ -98,7 +100,8 @@ public class PlannerContext {
                    Cursors cursors,
                    TransactionState transactionState,
                    PlanStats planStats,
-                   BiFunction<LogicalPlan, PlannerContext, LogicalPlan> optimize) {
+                   BiFunction<LogicalPlan, PlannerContext, LogicalPlan> optimize,
+                   DependencyCarrier dependencyCarrier) {
         this(
             clusterState,
             routingProvider,
@@ -112,7 +115,8 @@ public class PlannerContext {
             transactionState,
             planStats,
             LoggingOptimizerTracer.getInstance(),
-            optimize
+            optimize,
+            dependencyCarrier
         );
     }
 
@@ -128,7 +132,8 @@ public class PlannerContext {
                            TransactionState transactionState,
                            PlanStats planStats,
                            OptimizerTracer optimizerTracer,
-                           BiFunction<LogicalPlan, PlannerContext, LogicalPlan> optimize
+                           BiFunction<LogicalPlan, PlannerContext, LogicalPlan> optimize,
+                           DependencyCarrier dependencyCarrier
                            ) {
         this.routingProvider = routingProvider;
         this.nodeCtx = nodeCtx;
@@ -144,6 +149,7 @@ public class PlannerContext {
         this.planStats = planStats;
         this.optimizerTracer = optimizerTracer;
         this.optimize = optimize;
+        this.dependencyCarrier = dependencyCarrier;
     }
 
     public PlannerContext withOptimizerTracer(OptimizerTracer optimizerTracer) {
@@ -160,7 +166,8 @@ public class PlannerContext {
             transactionState,
             planStats,
             optimizerTracer,
-            optimize
+            optimize,
+            dependencyCarrier
         );
     }
 

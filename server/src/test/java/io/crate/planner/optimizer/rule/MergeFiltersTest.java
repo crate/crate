@@ -22,6 +22,7 @@
 package io.crate.planner.optimizer.rule;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.mockito.Mockito.mock;
 
 import java.util.Collections;
 import java.util.Map;
@@ -35,6 +36,7 @@ import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RelationName;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.optimizer.costs.PlanStats;
@@ -78,7 +80,8 @@ public class MergeFiltersTest extends CrateDummyClusterServiceUnitTest {
                                                  planStats,
                                                  CoordinatorTxnCtx.systemTransactionContext(),
                                                  e.nodeCtx,
-                                                 UnaryOperator.identity());
+                                                 UnaryOperator.identity(),
+                                                 mock(PlannerContext.class));
         assertThat(mergedFilter.query()).isSQL("((doc.t2.y > 10) AND (doc.t1.x > 10))");
     }
 }

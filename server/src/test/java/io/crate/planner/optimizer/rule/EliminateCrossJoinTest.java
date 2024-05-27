@@ -24,6 +24,7 @@ package io.crate.planner.optimizer.rule;
 import static io.crate.common.collections.Iterables.getOnlyElement;
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
 
 import java.util.List;
 import java.util.function.UnaryOperator;
@@ -43,6 +44,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.JoinPlan;
@@ -300,7 +302,8 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
                                 e.planStats(),
                                 CoordinatorTxnCtx.systemTransactionContext(),
                                 e.nodeCtx,
-                                UnaryOperator.identity());
+                                UnaryOperator.identity(),
+                                mock(PlannerContext.class));
 
         assertThat(result).hasOperators(
             "Eval[x, y, z]",
@@ -332,11 +335,13 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(match.value()).isEqualTo(join);
 
         var result = rule.apply(match.value(),
-                                match.captures(),
-                                e.planStats(),
-                                CoordinatorTxnCtx.systemTransactionContext(),
-                                e.nodeCtx,
-                                UnaryOperator.identity());
+            match.captures(),
+            e.planStats(),
+            CoordinatorTxnCtx.systemTransactionContext(),
+            e.nodeCtx,
+            UnaryOperator.identity(),
+            mock(PlannerContext.class));
+
 
         assertThat(result).isNull();
 
@@ -350,11 +355,13 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(match.value()).isEqualTo(join);
 
         result = rule.apply(match.value(),
-                            match.captures(),
-                            e.planStats(),
-                            CoordinatorTxnCtx.systemTransactionContext(),
-                            e.nodeCtx,
-                            UnaryOperator.identity());
+            match.captures(),
+            e.planStats(),
+            CoordinatorTxnCtx.systemTransactionContext(),
+            e.nodeCtx,
+            UnaryOperator.identity(),
+            mock(PlannerContext.class));
+
 
         assertThat(result).isNull();
     }
@@ -378,11 +385,13 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(match.value()).isEqualTo(secondJoin);
 
         var result = rule.apply(match.value(),
-                                match.captures(),
-                                e.planStats(),
-                                CoordinatorTxnCtx.systemTransactionContext(),
-                                e.nodeCtx,
-                                UnaryOperator.identity());
+            match.captures(),
+            e.planStats(),
+            CoordinatorTxnCtx.systemTransactionContext(),
+            e.nodeCtx,
+            UnaryOperator.identity(),
+            mock(PlannerContext.class));
+
 
         assertThat(result).isNull();
     }

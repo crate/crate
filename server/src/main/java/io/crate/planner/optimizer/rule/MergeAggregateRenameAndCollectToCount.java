@@ -32,6 +32,7 @@ import io.crate.expression.symbol.FieldReplacer;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Count;
 import io.crate.planner.operators.HashAggregate;
@@ -79,7 +80,8 @@ public class MergeAggregateRenameAndCollectToCount implements Rule<HashAggregate
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
-                             UnaryOperator<LogicalPlan> resolvePlan) {
+                             UnaryOperator<LogicalPlan> resolvePlan,
+                             PlannerContext plannerContext) {
         Collect collect = captures.get(collectCapture);
         Rename rename = captures.get(renameCapture);
         var countAggregate = Lists.getOnlyElement(aggregate.aggregates());

@@ -31,6 +31,7 @@ import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Count;
 import io.crate.planner.operators.HashAggregate;
@@ -67,7 +68,8 @@ public final class MergeAggregateAndCollectToCount implements Rule<HashAggregate
                        PlanStats planStats,
                        TransactionContext txnCtx,
                        NodeContext nodeCtx,
-                       UnaryOperator<LogicalPlan> resolvePlan) {
+                       UnaryOperator<LogicalPlan> resolvePlan,
+                       PlannerContext plannerContext) {
         Collect collect = captures.get(collectCapture);
         var countAggregate = Lists.getOnlyElement(aggregate.aggregates());
         if (countAggregate.filter() != null) {

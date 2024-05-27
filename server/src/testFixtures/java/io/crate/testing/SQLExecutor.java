@@ -431,7 +431,8 @@ public class SQLExecutor {
                         null,
                         roleManager,
                         foreignDataWrappers,
-                        sessionSettingRegistry
+                        sessionSettingRegistry,
+                        mock(DependencyCarrier.class)
                     ),
                 relationAnalyzer,
                 new CoordinatorSessionSettings(Role.CRATE_USER),

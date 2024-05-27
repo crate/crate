@@ -24,6 +24,7 @@ package io.crate.planner.optimizer.rule;
 
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 import java.util.List;
 import java.util.function.UnaryOperator;
@@ -34,6 +35,7 @@ import org.junit.Test;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.WindowAgg;
@@ -75,7 +77,8 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
             e.planStats(),
             CoordinatorTxnCtx.systemTransactionContext(),
             e.nodeCtx,
-            UnaryOperator.identity()
+            UnaryOperator.identity(),
+            mock(PlannerContext.class)
         );
 
         assertThat(newPlan).isNull();
@@ -103,7 +106,8 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
             e.planStats(),
             CoordinatorTxnCtx.systemTransactionContext(),
             e.nodeCtx,
-            UnaryOperator.identity()
+            UnaryOperator.identity(),
+            mock(PlannerContext.class)
         );
 
         assertThat(newPlan).isNull();
@@ -130,7 +134,8 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
             e.planStats(),
             CoordinatorTxnCtx.systemTransactionContext(),
             e.nodeCtx,
-            UnaryOperator.identity()
+            UnaryOperator.identity(),
+            mock(PlannerContext.class)
         );
         var expectedPlan =
             """
@@ -164,7 +169,8 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
             e.planStats(),
             CoordinatorTxnCtx.systemTransactionContext(),
             e.nodeCtx,
-            UnaryOperator.identity()
+            UnaryOperator.identity(),
+            mock(PlannerContext.class)
         );
         var expectedPlan =
             """
@@ -199,7 +205,8 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
             e.planStats(),
             CoordinatorTxnCtx.systemTransactionContext(),
             e.nodeCtx,
-            UnaryOperator.identity()
+            UnaryOperator.identity(),
+            mock(PlannerContext.class)
         );
         assertThat(newPlan).isNull();
     }

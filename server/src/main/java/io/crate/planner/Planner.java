@@ -183,6 +183,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     private final ForeignDataWrappers foreignDataWrappers;
     private final SessionSettingRegistry sessionSettingRegistry;
     private final NodeContext nodeCtx;
+    private final DependencyCarrier dependencyCarrier;
 
     private List<String> awarenessAttributes;
 
@@ -196,7 +197,8 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
                    TableCreator tableCreator,
                    RoleManager roleManager,
                    ForeignDataWrappers foreignDataWrappers,
-                   SessionSettingRegistry sessionSettingRegistry) {
+                   SessionSettingRegistry sessionSettingRegistry,
+                   DependencyCarrier dependencyCarrier) {
         this.clusterService = clusterService;
         this.nodeCtx = nodeCtx;
         this.tableStats = tableStats;
@@ -211,6 +213,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
         this.foreignDataWrappers = foreignDataWrappers;
         this.sessionSettingRegistry = sessionSettingRegistry;
         initAwarenessAttributes(settings);
+        this.dependencyCarrier = dependencyCarrier;
     }
 
     public PlannerContext createContext(RoutingProvider routingProvider,
@@ -231,7 +234,8 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
             cursors,
             transactionState,
             new PlanStats(nodeCtx, txnCtx, tableStats),
-            this.logicalPlanner::optimize
+            this.logicalPlanner::optimize,
+            this.dependencyCarrier
         );
     }
 
@@ -253,6 +257,10 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
 
     public ClusterState currentClusterState() {
         return clusterService.state();
+    }
+
+    public DependencyCarrier dependencyCarrier() {
+        return dependencyCarrier;
     }
 
     /**

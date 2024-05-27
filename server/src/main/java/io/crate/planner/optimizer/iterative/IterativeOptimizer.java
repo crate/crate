@@ -31,6 +31,7 @@ import org.elasticsearch.Version;
 
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.Optimizer;
 import io.crate.planner.optimizer.Rule;
@@ -53,7 +54,7 @@ public class IterativeOptimizer {
         this.nodeCtx = nodeCtx;
     }
 
-    public LogicalPlan optimize(LogicalPlan plan, PlanStats planStats, CoordinatorTxnCtx txnCtx, OptimizerTracer tracer) {
+    public LogicalPlan optimize(LogicalPlan plan, PlanStats planStats, CoordinatorTxnCtx txnCtx, OptimizerTracer tracer, PlannerContext plannerContext) {
         var memo = new Memo(plan);
         var planStatsWithMemo = planStats.withMemo(memo);
 
@@ -71,7 +72,7 @@ public class IterativeOptimizer {
         tracer.optimizationStarted(plan, planStatsWithMemo);
 
         var applicableRules = removeExcludedRules(rules, txnCtx.sessionSettings().excludedOptimizerRules());
-        exploreGroup(memo.getRootGroup(), new Context(memo, groupReferenceResolver, applicableRules, txnCtx, planStatsWithMemo, tracer));
+        exploreGroup(memo.getRootGroup(), new Context(memo, groupReferenceResolver, applicableRules, txnCtx, planStatsWithMemo, tracer, plannerContext));
         return memo.extract();
     }
 
@@ -127,7 +128,8 @@ public class IterativeOptimizer {
                     nodeCtx,
                     context.txnCtx,
                     resolvePlan,
-                    context.tracer
+                    context.tracer,
+                    context.plannerContext
                 );
                 if (transformed != null) {
                     // the plan changed, update memo to reference to the new plan
@@ -170,6 +172,7 @@ public class IterativeOptimizer {
         List<Rule<?>> rules,
         CoordinatorTxnCtx txnCtx,
         PlanStats planStats,
-        OptimizerTracer tracer
+        OptimizerTracer tracer,
+        PlannerContext plannerContext
     ) {}
 }

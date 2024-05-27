@@ -22,6 +22,7 @@
 package io.crate.planner.optimizer.rule;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
 
 import java.util.Collections;
 import java.util.Map;
@@ -35,6 +36,7 @@ import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RelationName;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.JoinPlan;
@@ -86,7 +88,9 @@ public class MoveConstantJoinConditionsBeneathJoinTest extends CrateDummyCluster
             planStats,
             CoordinatorTxnCtx.systemTransactionContext(),
             sqlExpressions.nodeCtx,
-            UnaryOperator.identity());
+            UnaryOperator.identity(),
+            mock(PlannerContext.class));
+
 
         assertThat(result.joinCondition()).isEqualTo(nonConstantPart);
         assertThat(result.lhs()).isEqualTo(c1);

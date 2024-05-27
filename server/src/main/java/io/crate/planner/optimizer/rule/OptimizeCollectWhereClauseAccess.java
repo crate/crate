@@ -35,6 +35,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.WhereClauseOptimizer;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Get;
@@ -68,7 +69,8 @@ public final class OptimizeCollectWhereClauseAccess implements Rule<Collect> {
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
-                             UnaryOperator<LogicalPlan> resolvePlan) {
+                             UnaryOperator<LogicalPlan> resolvePlan,
+                             PlannerContext plannerContext) {
         var relation = (DocTableRelation) collect.relation();
         var normalizer = new EvaluatingNormalizer(nodeCtx, RowGranularity.CLUSTER, null, relation);
         WhereClause where = collect.where();

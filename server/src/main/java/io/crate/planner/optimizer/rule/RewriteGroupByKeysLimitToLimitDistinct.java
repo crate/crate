@@ -31,6 +31,7 @@ import org.elasticsearch.Version;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.GroupHashAggregate;
 import io.crate.planner.operators.Limit;
 import io.crate.planner.operators.LimitDistinct;
@@ -171,7 +172,8 @@ public final class RewriteGroupByKeysLimitToLimitDistinct implements Rule<Limit>
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
-                             UnaryOperator<LogicalPlan> resolvePlan) {
+                             UnaryOperator<LogicalPlan> resolvePlan,
+                             PlannerContext plannerContext) {
         GroupHashAggregate groupBy = captures.get(groupCapture);
         if (!eagerTerminateIsLikely(limit, groupBy, planStats)) {
             return null;

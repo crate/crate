@@ -266,13 +266,15 @@ public class LogicalPlanner {
             plan,
             plannerContext.planStats(),
             plannerContext.transactionContext(),
-            plannerContext.optimizerTracer()
+            plannerContext.optimizerTracer(),
+            plannerContext
         );
         optimizedPlan = joinOrderOptimizer.optimize(
             optimizedPlan,
             plannerContext.planStats(),
             plannerContext.transactionContext(),
-            plannerContext.optimizerTracer()
+            plannerContext.optimizerTracer(),
+            plannerContext
         );
         return optimizedPlan;
     }
@@ -324,7 +326,8 @@ public class LogicalPlanner {
             prunedPlan,
             planStats,
             coordinatorTxnCtx,
-            tracer
+            tracer,
+            plannerContext
         );
         if (fetchOptimized != prunedPlan || avoidTopLevelFetch) {
             return fetchOptimized;
@@ -685,7 +688,8 @@ public class LogicalPlanner {
                     subqueryPlanner),
                 context.planStats(),
                 context.transactionContext(),
-                context.optimizerTracer()
+                context.optimizerTracer(),
+                context
             );
         }
     }

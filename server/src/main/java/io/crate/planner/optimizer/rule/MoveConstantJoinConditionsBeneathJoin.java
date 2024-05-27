@@ -35,6 +35,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.consumer.RelationNameCollector;
 import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.operators.LogicalPlan;
@@ -75,7 +76,8 @@ public class MoveConstantJoinConditionsBeneathJoin implements Rule<JoinPlan> {
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
-                             UnaryOperator<LogicalPlan> resolvePlan) {
+                             UnaryOperator<LogicalPlan> resolvePlan,
+                             PlannerContext plannerContext) {
         var conditions = joinPlan.joinCondition();
         var allConditions = QuerySplitter.split(conditions);
         var constantConditions = new HashMap<Set<RelationName>, Symbol>(allConditions.size());

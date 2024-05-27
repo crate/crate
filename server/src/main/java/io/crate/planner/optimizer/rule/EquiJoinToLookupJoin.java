@@ -36,6 +36,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.AbstractJoinPlan;
 import io.crate.planner.operators.EquiJoinDetector;
 import io.crate.planner.operators.Eval;
@@ -51,10 +52,7 @@ import io.crate.planner.optimizer.iterative.GroupReferenceResolver;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
 import io.crate.sql.tree.JoinType;
-import io.crate.statistics.ColumnStats;
-import io.crate.statistics.Stats;
 import io.crate.types.ArrayType;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 /**
@@ -96,7 +94,8 @@ public class EquiJoinToLookupJoin implements Rule<JoinPlan> {
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
-                             UnaryOperator<LogicalPlan> resolvePlan) {
+                             UnaryOperator<LogicalPlan> resolvePlan,
+                             PlannerContext plannerContext) {
 
         LogicalPlan lhs = plan.lhs();
         LogicalPlan rhs = plan.rhs();

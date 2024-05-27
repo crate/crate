@@ -29,6 +29,7 @@ import java.util.function.UnaryOperator;
 
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.Eval;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
@@ -60,7 +61,8 @@ public final class MoveFilterBeneathEval implements Rule<Filter> {
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
-                             UnaryOperator<LogicalPlan> resolvePlan) {
+                             UnaryOperator<LogicalPlan> resolvePlan,
+                             PlannerContext plannerContext) {
         // A filter can do full evaluation as well and "Eval" never adds columns, so this is safe.
         Eval eval = captures.get(evalCapture);
         return transpose(plan, eval);

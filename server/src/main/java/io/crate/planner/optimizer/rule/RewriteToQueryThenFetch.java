@@ -36,6 +36,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.node.fetch.FetchSource;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Eval;
@@ -80,7 +81,8 @@ public final class RewriteToQueryThenFetch implements Rule<Limit> {
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
-                             UnaryOperator<LogicalPlan> resolvePlan) {
+                             UnaryOperator<LogicalPlan> resolvePlan,
+                             PlannerContext plannerContext) {
         if (Symbols.containsColumn(limit.outputs(), DocSysColumns.FETCHID)) {
             return null;
         }

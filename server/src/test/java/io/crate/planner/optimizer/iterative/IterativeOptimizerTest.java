@@ -23,6 +23,7 @@ package io.crate.planner.optimizer.iterative;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.mockito.Mockito.mock;
 
 import java.util.List;
 
@@ -33,6 +34,7 @@ import io.crate.analyze.OrderBy;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.Order;
 import io.crate.planner.optimizer.costs.PlanStats;
@@ -58,7 +60,7 @@ public class IterativeOptimizerTest {
                                                               () -> Version.CURRENT,
                                                               List.of(new MergeFilters()));
 
-        var result = optimizer.optimize(filter2, planStats, ctx, OptimizerTracer.NOOP);
+        var result = optimizer.optimize(filter2, planStats, ctx, OptimizerTracer.NOOP, mock(PlannerContext.class));
         assertThat(result).isEqualTo("Filter[(true AND true)]\n" +
                                              "  └ TestPlan[]");
     }
@@ -75,7 +77,7 @@ public class IterativeOptimizerTest {
                                                               () -> Version.CURRENT,
                                                               List.of(new MergeFilters(), new DeduplicateOrder()));
 
-        var result = optimizer.optimize(order2, planStats, ctx, OptimizerTracer.NOOP);
+        var result = optimizer.optimize(order2, planStats, ctx, OptimizerTracer.NOOP, mock(PlannerContext.class));
         assertThat(result).isEqualTo(
             """
             OrderBy[]
@@ -110,7 +112,7 @@ public class IterativeOptimizerTest {
                                                               () -> Version.CURRENT,
                                                               List.of(new MoveFilterBeneathOrder(), new DeduplicateOrder()));
 
-        var result = optimizer.optimize(order2, planStats, ctx, OptimizerTracer.NOOP);
+        var result = optimizer.optimize(order2, planStats, ctx, OptimizerTracer.NOOP, mock(PlannerContext.class));
 
         assertThat(result).isEqualTo(
             """

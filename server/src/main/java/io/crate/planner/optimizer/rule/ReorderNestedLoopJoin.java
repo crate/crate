@@ -27,6 +27,7 @@ import java.util.function.UnaryOperator;
 
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
+import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.Eval;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.NestedLoopJoin;
@@ -52,7 +53,8 @@ public class ReorderNestedLoopJoin implements Rule<NestedLoopJoin> {
                              PlanStats planStats,
                              TransactionContext txnCtx,
                              NodeContext nodeCtx,
-                             UnaryOperator<LogicalPlan> resolvePlan) {
+                             UnaryOperator<LogicalPlan> resolvePlan,
+                             PlannerContext plannerContext) {
         // We move the smaller table to the right side since benchmarking
         // revealed that this improves performance in most cases.
         var lhStats = planStats.get(nestedLoop.lhs());
