@@ -155,6 +155,7 @@ import io.crate.execution.ddl.tables.TransportDropTableAction;
 import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
 import io.crate.execution.jobs.TasksService;
 import io.crate.metadata.RelationInfo.RelationType;
+import io.crate.metadata.SystemTable;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.testing.SQLTransportExecutor;
 
@@ -417,7 +418,7 @@ public final class TestCluster implements Closeable {
             InformationSchemaIterables infoSchema = getCurrentMasterNodeInstance(InformationSchemaIterables.class);
             List<CompletableFuture<AcknowledgedResponse>> futures = new ArrayList<>();
             for (var relation : infoSchema.relations()) {
-                if (relation.relationType() == RelationType.BASE_TABLE) {
+                if (relation.relationType() == RelationType.BASE_TABLE && relation instanceof SystemTable<?> == false) {
                     futures.add(client().execute(TransportDropTableAction.ACTION, new DropTableRequest(relation.ident())));
                 }
             }
