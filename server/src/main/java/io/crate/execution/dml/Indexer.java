@@ -681,8 +681,7 @@ public class Indexer {
     public List<Reference> collectSchemaUpdates(IndexItem item) throws IOException {
         ArrayList<Reference> newColumns = new ArrayList<>();
         Consumer<? super Reference> onDynamicColumn = ref -> {
-            ColumnIdent.validateColumnName(ref.column().name());
-            ref.column().path().forEach(ColumnIdent::validateObjectKey);
+            ref.column().validForCreate();
             newColumns.add(ref);
         };
 
