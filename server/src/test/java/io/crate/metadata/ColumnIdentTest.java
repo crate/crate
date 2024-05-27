@@ -107,33 +107,33 @@ public class ColumnIdentTest {
     @Test
     public void testValidColumnNameValidation() throws Exception {
         // Allowed.
-        ColumnIdent.validateColumnName("valid");
-        ColumnIdent.validateColumnName("field_name_");
-        ColumnIdent.validateColumnName("_Name");
-        ColumnIdent.validateColumnName("_name_");
-        ColumnIdent.validateColumnName("__name");
-        ColumnIdent.validateColumnName("____name");
-        ColumnIdent.validateColumnName("_name__");
-        ColumnIdent.validateColumnName("_name1");
-        ColumnIdent.validateColumnName("'index'");
-        ColumnIdent.validateColumnName("ident'index");
-        ColumnIdent.validateColumnName("1'");
+        ColumnIdent.fromNameSafe("valid", List.of());
+        ColumnIdent.fromNameSafe("field_name_", List.of());
+        ColumnIdent.fromNameSafe("_Name", List.of());
+        ColumnIdent.fromNameSafe("_name_", List.of());
+        ColumnIdent.fromNameSafe("__name", List.of());
+        ColumnIdent.fromNameSafe("____name", List.of());
+        ColumnIdent.fromNameSafe("_name__", List.of());
+        ColumnIdent.fromNameSafe("_name1", List.of());
+        ColumnIdent.fromNameSafe("'index'", List.of());
+        ColumnIdent.fromNameSafe("ident'index", List.of());
+        ColumnIdent.fromNameSafe("1'", List.of());
     }
 
     @Test
     public void testIllegalColumnNameValidation() throws Exception {
-        assertExceptionIsThrownOnValidation(".name", "contains a dot");
-        assertExceptionIsThrownOnValidation("column.name", "contains a dot");
-        assertExceptionIsThrownOnValidation(".", "contains a dot");
-        assertExceptionIsThrownOnValidation("_a", "system column");
-        assertExceptionIsThrownOnValidation("_name", "system column");
-        assertExceptionIsThrownOnValidation("_field_name", "system column");
-        assertExceptionIsThrownOnValidation("ident['index']", "subscript");
-        assertExceptionIsThrownOnValidation("ident['index]", "subscript");
-        assertExceptionIsThrownOnValidation("ident[0]", "subscript");
-        assertExceptionIsThrownOnValidation("\"a[1]\"", "subscript");
-        assertExceptionIsThrownOnValidation("\"fda_32$@%^nf[ffDA&^\"", "subscript");
-        assertExceptionIsThrownOnValidation("[", "subscript");
+        assertNameValidationThrows(".name", "\".name\" contains a dot");
+        assertNameValidationThrows("column.name", "\"column.name\" contains a dot");
+        assertNameValidationThrows(".", "\".\" contains a dot");
+        assertNameValidationThrows("_a", "\"_a\" conflicts with system column pattern");
+        assertNameValidationThrows("_name", "\"_name\" conflicts with system column pattern");
+        assertNameValidationThrows("_field_name", "\"_field_name\" conflicts with system column pattern");
+        assertNameValidationThrows("ident['index']", "\"ident['index']\" conflicts with subscript pattern, square brackets are not allowed");
+        assertNameValidationThrows("ident['index]", "\"ident['index]\" conflicts with subscript pattern, square brackets are not allowed");
+        assertNameValidationThrows("ident[0]", "\"ident[0]\" conflicts with subscript pattern, square brackets are not allowed");
+        assertNameValidationThrows("\"a[1]\"", "\"\"a[1]\"\" conflicts with subscript pattern, square brackets are not allowed");
+        assertNameValidationThrows("\"fda_32$@%^nf[ffDA&^\"", "\"\"fda_32$@%^nf[ffDA&^\"\" conflicts with subscript pattern, square brackets are not allowed");
+        assertNameValidationThrows("[", "\"[\" conflicts with subscript pattern, square brackets are not allowed");
     }
 
     /**
@@ -143,17 +143,10 @@ public class ColumnIdentTest {
      * @param columnName      the column name which causes an exception to be thrown
      * @param expectedMessage exception message that is expected
      */
-    private void assertExceptionIsThrownOnValidation(String columnName, String expectedMessage) {
-        boolean expecedExceptionIsThrown = false;
-        try {
-            ColumnIdent.validateColumnName(columnName);
-        } catch (InvalidColumnNameException e) {
-            if (expectedMessage == null || e.getMessage().contains(expectedMessage)) {
-                expecedExceptionIsThrown = true;
-            }
-        }
-
-        assertThat(expecedExceptionIsThrown).isTrue();
+    private void assertNameValidationThrows(String columnName, String expectedMessage) {
+        assertThatThrownBy(() -> ColumnIdent.fromNameSafe(columnName, List.of()))
+            .isExactlyInstanceOf(InvalidColumnNameException.class)
+            .hasMessage(expectedMessage);
     }
 
     @Test

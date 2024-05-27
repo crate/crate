@@ -95,11 +95,9 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
      * @return the validated ColumnIdent
      */
     public static ColumnIdent fromNameSafe(String name, List<String> path) {
-        validateColumnName(name);
-        for (String part : path) {
-            validateObjectKey(part);
-        }
-        return new ColumnIdent(name, path);
+        ColumnIdent columnIdent = new ColumnIdent(name, path);
+        columnIdent.validForCreate();
+        return columnIdent;
     }
 
     public static ColumnIdent fromNameSafe(QualifiedName qualifiedName, @Nullable List<String> path) {
@@ -112,11 +110,7 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
                 "A column must not have a schema or a table here.", qualifiedName));
         }
         String name = parts.get(0);
-        validateColumnName(name);
-        for (String part : path) {
-            validateObjectKey(part);
-        }
-        return new ColumnIdent(name, path);
+        return fromNameSafe(name, path);
     }
 
     /**
@@ -233,9 +227,8 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
      *
      * @param columnName column name to check for validity
      */
-    public static void validateColumnName(String columnName) {
-        validateDotInColumnName(columnName);
-        validateSubscriptPatternInColumnName(columnName);
+    private static void validateColumnName(String columnName) {
+        validateObjectKey(columnName);
         if (isSystemColumn(columnName)) {
             throw new InvalidColumnNameException(columnName, "conflicts with system column pattern");
         }
@@ -249,28 +242,10 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
      *
      * @param columnName column name to check for validity
      */
-    public static void validateObjectKey(String columnName) {
-        validateDotInColumnName(columnName);
-        validateSubscriptPatternInColumnName(columnName);
-    }
-
-    /**
-     * Checks if a column name contains a dot and throws an exception if it does.
-     *
-     * @param columnName column name to check for validity
-     */
-    private static void validateDotInColumnName(String columnName) {
+    private static void validateObjectKey(String columnName) {
         if (columnName.indexOf('.') != -1) {
             throw new InvalidColumnNameException(columnName, "contains a dot");
         }
-    }
-
-    /**
-     * Checks if a column name contains a subscript notation and throws an exception if it does.
-     *
-     * @param columnName column name to check for validity
-     */
-    private static void validateSubscriptPatternInColumnName(String columnName) {
         if (columnName.contains("[")) {
             throw new InvalidColumnNameException(
                 columnName, "conflicts with subscript pattern, square brackets are not allowed");
@@ -512,5 +487,10 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
                 return new ColumnIdent(name, path.subList(0, level));
             }
         };
+    }
+
+    public void validForCreate() {
+        validateColumnName(name);
+        path.forEach(x -> validateObjectKey(x));
     }
 }
