@@ -56,6 +56,11 @@ Fixes
   errors caused by sub-queries such as ''SELECT * FROM t1 WHERE id IN
   (SELECT id FROM t2)'' or lookup-joins with large intermediate results.
 
+- Fixed an issue that caused ``WHERE`` clause to fail to filter rows when
+  the clause contained ``CONCAT``, ``CURRENT_SETTING``,
+  ``PG_GET_FUNCTION_RESULT``, or ``PG_ENCODING_TO_CHAR`` scalar functions under
+  ``NOT`` operator.
+
 - Fixed an issue leading to restoring data into wrong tables when restoring a
   snapshot with partitioned tables using one of the renaming parameters
   ``schema_rename_pattern``, ``schema_rename_replacement``,
