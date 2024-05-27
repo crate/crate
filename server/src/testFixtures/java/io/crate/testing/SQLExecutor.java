@@ -249,7 +249,8 @@ public class SQLExecutor {
             -1,
             null,
             cursors,
-            transactionState
+            transactionState,
+            dependencyMock
         );
     }
 
@@ -431,8 +432,7 @@ public class SQLExecutor {
                         null,
                         roleManager,
                         foreignDataWrappers,
-                        sessionSettingRegistry,
-                        mock(DependencyCarrier.class)
+                        sessionSettingRegistry
                     ),
                 relationAnalyzer,
                 new CoordinatorSessionSettings(Role.CRATE_USER),
@@ -608,7 +608,8 @@ public class SQLExecutor {
             fetchSize,
             null,
             cursors,
-            transactionState
+            transactionState,
+            dependencyMock
         );
         Plan plan = planner.plan(analyzedStatement, plannerContext);
         if (plan instanceof LogicalPlan logicalPlan) {
@@ -1005,7 +1006,8 @@ public class SQLExecutor {
             0,
             null,
             cursors,
-            TransactionState.IDLE
+            TransactionState.IDLE,
+            dependencyMock
         );
         var request = CreateForeignTablePlan.toRequest(
             foreignDataWrappers,

@@ -1749,6 +1749,7 @@ public abstract class IntegTestCase extends ESTestCase {
         );
         CoordinatorTxnCtx coordinatorTxnCtx = new CoordinatorTxnCtx(sessionSettings);
         RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
+        DependencyCarrier dependencyCarrier = cluster().getInstance(DependencyCarrier.class, nodeName);
         PlannerContext plannerContext = planner.createContext(
             routingProvider,
             UUID.randomUUID(),
@@ -1756,7 +1757,8 @@ public abstract class IntegTestCase extends ESTestCase {
             0,
             null,
             Cursors.EMPTY,
-            TransactionState.IDLE
+            TransactionState.IDLE,
+            dependencyCarrier
         );
         Plan plan = planner.plan(
             analyzer.analyze(
