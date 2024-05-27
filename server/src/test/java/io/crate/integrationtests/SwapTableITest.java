@@ -30,6 +30,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
+
 import io.crate.testing.Asserts;
 import io.crate.testing.UseRandomizedOptimizerRules;
 
@@ -82,6 +84,7 @@ public class SwapTableITest extends IntegTestCase {
     }
 
     @Test
+    @Repeat(iterations = 1000)
     public void test_swap_source_partitioned_target_nonpartitioned() {
         execute("create table source (s int) partitioned by (s)");
         execute("create table target (t int)");
