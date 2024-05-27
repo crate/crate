@@ -18,11 +18,9 @@
  */
 package org.elasticsearch.common.util.concurrent;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.Assert.assertFalse;
 
 import java.io.IOException;
 import java.util.List;
@@ -90,7 +88,7 @@ public class AsyncIOProcessorTests extends ESTestCase {
             thread[i].join();
         }
         assertThat(semaphore.tryAcquire(Integer.MAX_VALUE, 10, TimeUnit.SECONDS)).isTrue();
-        assertEquals(count * thread.length, received.get());
+        assertThat(received.get()).isEqualTo(count * thread.length);
     }
 
     @Test
@@ -144,8 +142,8 @@ public class AsyncIOProcessorTests extends ESTestCase {
             thread[i].join();
         }
         assertThat(semaphore.tryAcquire(Integer.MAX_VALUE, 10, TimeUnit.SECONDS)).isTrue();
-        assertEquals(count * thread.length, received.get());
-        assertEquals(actualFailed.get(), failed.get());
+        assertThat(received.get()).isEqualTo(count * thread.length);
+        assertThat(failed.get()).isEqualTo(actualFailed.get());
     }
 
     @Test
@@ -167,8 +165,8 @@ public class AsyncIOProcessorTests extends ESTestCase {
             notified.incrementAndGet();
             throw new RuntimeException();
         });
-        assertEquals(2, notified.get());
-        assertEquals(2, received.get());
+        assertThat(notified.get()).isEqualTo(2);
+        assertThat(received.get()).isEqualTo(2);
     }
 
     @Test
@@ -230,8 +228,8 @@ public class AsyncIOProcessorTests extends ESTestCase {
                 throw new RuntimeException(e);
             }
         });
-        assertEquals(threadCount, notified.get());
-        assertEquals(threadCount, received.get());
+        assertThat(notified.get()).isEqualTo(threadCount);
+        assertThat(received.get()).isEqualTo(threadCount);
         threads.forEach(t -> assertFalse(t.isAlive()));
     }
 }

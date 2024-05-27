@@ -28,7 +28,6 @@ import static org.elasticsearch.discovery.PeerFinder.REQUEST_PEERS_ACTION_NAME;
 import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.emptyArray;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
@@ -159,7 +158,7 @@ public class PeerFinderTests extends ESTestCase {
         @Override
         protected void onActiveMasterFound(DiscoveryNode masterNode, long term) {
             assert holdsLock() == false : "PeerFinder lock held in error";
-            assertThat(discoveredMasterNode, nullValue());
+            assertThat(discoveredMasterNode).isNull();
             assertThat(discoveredMasterTerm.isPresent()).isFalse();
             discoveredMasterNode = masterNode;
             discoveredMasterTerm = OptionalLong.of(term);
@@ -573,7 +572,7 @@ public class PeerFinderTests extends ESTestCase {
         transportAddressConnector.addReachableNode(discoveredMaster);
         runAllRunnableTasks();
         assertFoundPeers(otherNode, discoveredMaster);
-        assertThat(peerFinder.discoveredMasterNode, nullValue());
+        assertThat(peerFinder.discoveredMasterNode).isNull();
         assertThat(peerFinder.discoveredMasterTerm.isPresent()).isFalse();
     }
 

@@ -25,8 +25,6 @@ import static io.crate.testing.TestingHelpers.createNodeContext;
 import static io.crate.testing.TestingHelpers.refInfo;
 import static io.crate.testing.TestingHelpers.resolveCanonicalString;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.doThrow;
@@ -173,21 +171,21 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
     public void testId() throws Exception {
         Reference refInfo = refInfo("sys.shards.id", DataTypes.INTEGER, RowGranularity.SHARD);
         NestableInput<Integer> shardExpression = (NestableInput<Integer>) resolver.getImplementation(refInfo);
-        assertEquals(Integer.valueOf(1), shardExpression.value());
+        assertThat(shardExpression.value()).isEqualTo(Integer.valueOf(1));
     }
 
     @Test
     public void testSize() throws Exception {
         Reference refInfo = refInfo("sys.shards.size", DataTypes.LONG, RowGranularity.SHARD);
         NestableInput<Long> shardExpression = (NestableInput<Long>) resolver.getImplementation(refInfo);
-        assertEquals(Long.valueOf(123456), shardExpression.value());
+        assertThat(shardExpression.value()).isEqualTo(Long.valueOf(123456));
     }
 
     @Test
     public void testNumDocs() throws Exception {
         Reference refInfo = refInfo("sys.shards.num_docs", DataTypes.LONG, RowGranularity.SHARD);
         NestableInput<Long> shardExpression = (NestableInput<Long>) resolver.getImplementation(refInfo);
-        assertEquals(Long.valueOf(654321), shardExpression.value());
+        assertThat(shardExpression.value()).isEqualTo(Long.valueOf(654321));
 
         // second call should throw Exception
         assertNull(shardExpression.value());
@@ -197,35 +195,35 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
     public void testState() throws Exception {
         Reference refInfo = refInfo("sys.shards.state", DataTypes.STRING, RowGranularity.SHARD);
         NestableInput<String> shardExpression = (NestableInput<String>) resolver.getImplementation(refInfo);
-        assertEquals("STARTED", shardExpression.value());
+        assertThat(shardExpression.value()).isEqualTo("STARTED");
     }
 
     @Test
     public void testRoutingState() throws Exception {
         Reference refInfo = refInfo("sys.shards.routing_state", DataTypes.STRING, RowGranularity.SHARD);
         NestableInput<String> shardExpression = (NestableInput<String>) resolver.getImplementation(refInfo);
-        assertEquals("RELOCATING", shardExpression.value());
+        assertThat(shardExpression.value()).isEqualTo("RELOCATING");
     }
 
     @Test
     public void testPrimary() throws Exception {
         Reference refInfo = refInfo("sys.shards.primary", DataTypes.BOOLEAN, RowGranularity.SHARD);
-        NestableInput<String> shardExpression = (NestableInput<String>) resolver.getImplementation(refInfo);
-        assertEquals(true, shardExpression.value());
+        NestableInput<Boolean> shardExpression = (NestableInput<Boolean>) resolver.getImplementation(refInfo);
+        assertThat(shardExpression.value()).isEqualTo(true);
     }
 
     @Test
     public void testRelocatingNode() throws Exception {
         Reference refInfo = refInfo("sys.shards.relocating_node", DataTypes.STRING, RowGranularity.CLUSTER);
         NestableInput<String> shardExpression = (NestableInput<String>) resolver.getImplementation(refInfo);
-        assertEquals("node_X", shardExpression.value());
+        assertThat(shardExpression.value()).isEqualTo("node_X");
     }
 
     @Test
     public void testTableName() throws Exception {
         Reference refInfo = refInfo("sys.shards.table_name", DataTypes.STRING, RowGranularity.SHARD);
         NestableInput<String> shardExpression = (NestableInput<String>) resolver.getImplementation(refInfo);
-        assertEquals("wikipedia_de", shardExpression.value());
+        assertThat(shardExpression.value()).isEqualTo("wikipedia_de");
     }
 
     @Test
@@ -233,11 +231,11 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
         Reference refInfo = refInfo("sys.shards.min_lucene_version", DataTypes.STRING, RowGranularity.SHARD);
         NestableInput<String> shardExpression =
             (NestableInput<String>) resolver.getImplementation(refInfo);
-        assertEquals(Version.LATEST.toString(), shardExpression.value());
+        assertThat(shardExpression.value()).isEqualTo(Version.LATEST.toString());
 
         doThrow(new AlreadyClosedException("Already closed")).when(indexShard).minimumCompatibleVersion();
         shardExpression = (NestableInput<String>) resolver.getImplementation(refInfo);
-        assertThat(shardExpression.value(), nullValue());
+        assertThat(shardExpression.value()).isNull();
     }
 
     @Test
@@ -247,7 +245,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
         prepare();
         Reference refInfo = refInfo("sys.shards.table_name", DataTypes.STRING, RowGranularity.SHARD);
         NestableInput<String> shardExpression = (NestableInput<String>) resolver.getImplementation(refInfo);
-        assertEquals("wikipedia_de", shardExpression.value());
+        assertThat(shardExpression.value()).isEqualTo("wikipedia_de");
 
         // reset indexName
         indexName = "wikipedia_de";
@@ -259,7 +257,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
         prepare();
         Reference refInfo = refInfo("sys.shards.partition_ident", DataTypes.STRING, RowGranularity.SHARD);
         NestableInput<String> shardExpression = (NestableInput<String>) resolver.getImplementation(refInfo);
-        assertEquals("foo", shardExpression.value());
+        assertThat(shardExpression.value()).isEqualTo("foo");
 
         // reset indexName
         indexName = "wikipedia_de";
@@ -270,7 +268,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
         // expression should return NULL on non partitioned tables
         Reference refInfo = refInfo("sys.shards.partition_ident", DataTypes.STRING, RowGranularity.SHARD);
         NestableInput<String> shardExpression = (NestableInput<String>) resolver.getImplementation(refInfo);
-        assertEquals("", shardExpression.value());
+        assertThat(shardExpression.value()).isEqualTo("");
     }
 
     @Test
@@ -279,7 +277,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
         prepare();
         Reference refInfo = refInfo("sys.shards.orphan_partition", DataTypes.STRING, RowGranularity.SHARD);
         NestableInput<Boolean> shardExpression = (NestableInput<Boolean>) resolver.getImplementation(refInfo);
-        assertEquals(true, shardExpression.value());
+        assertThat(shardExpression.value()).isEqualTo(true);
 
         // reset indexName
         indexName = "wikipedia_de";
@@ -289,7 +287,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
     public void testSchemaName() throws Exception {
         Reference refInfo = refInfo("sys.shards.schema_name", DataTypes.STRING, RowGranularity.SHARD);
         NestableInput<String> shardExpression = (NestableInput<String>) resolver.getImplementation(refInfo);
-        assertEquals("doc", shardExpression.value());
+        assertThat(shardExpression.value()).isEqualTo("doc");
     }
 
     @Test
@@ -298,7 +296,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
         prepare();
         Reference refInfo = refInfo("sys.shards.schema_name", DataTypes.STRING, RowGranularity.SHARD);
         NestableInput<String> shardExpression = (NestableInput<String>) resolver.getImplementation(refInfo);
-        assertEquals("my_schema", shardExpression.value());
+        assertThat(shardExpression.value()).isEqualTo("my_schema");
         // reset indexName
         indexName = "wikipedia_de";
     }
@@ -310,7 +308,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
         prepare();
         Reference refInfo = refInfo("sys.shards.table_name", DataTypes.STRING, RowGranularity.SHARD);
         NestableInput<String> shardExpression = (NestableInput<String>) resolver.getImplementation(refInfo);
-        assertEquals("wikipedia_de", shardExpression.value());
+        assertThat(shardExpression.value()).isEqualTo("wikipedia_de");
 
         // reset indexName
         indexName = "wikipedia_de";
@@ -322,22 +320,22 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
         NestableInput<Map<String, Object>> ref = (NestableInput<Map<String,Object>>) resolver.getImplementation(refInfo);
 
         Map<String, Object> recovery = ref.value();
-        assertEquals(RecoveryState.Stage.DONE.name(), recovery.get("stage"));
-        assertEquals(10_000L, recovery.get("total_time"));
+        assertThat(recovery.get("stage")).isEqualTo(RecoveryState.Stage.DONE.name());
+        assertThat(recovery.get("total_time")).isEqualTo(10_000L);
 
         Map<String, Object> expectedFiles = Map.of(
             "used", 2,
             "reused", 1,
             "recovered", 1,
             "percent", 0.0f);
-        assertEquals(expectedFiles, recovery.get("files"));
+        assertThat(recovery.get("files")).isEqualTo(expectedFiles);
 
         Map<String, Object> expectedBytes = Map.of(
             "used", 2_048L,
             "reused", 1_024L,
             "recovered", 1_024L,
             "percent", 0.0f);
-        assertEquals(expectedBytes, recovery.get("size"));
+        assertThat(recovery.get("size")).isEqualTo(expectedBytes);
     }
 
     @Test

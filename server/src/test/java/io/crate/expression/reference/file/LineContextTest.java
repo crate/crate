@@ -21,7 +21,7 @@
 
 package io.crate.expression.reference.file;
 
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertNull;
 
 import java.nio.charset.StandardCharsets;
@@ -42,6 +42,6 @@ public class LineContextTest extends ESTestCase {
 
         assertNull(context.get(new ColumnIdent("invalid", "column")));
         assertNull(context.get(new ColumnIdent("details", "invalid")));
-        assertEquals(43, context.get(new ColumnIdent("details", "age")));
+        assertThat(context.get(new ColumnIdent("details", "age"))).isEqualTo(43);
     }
 }

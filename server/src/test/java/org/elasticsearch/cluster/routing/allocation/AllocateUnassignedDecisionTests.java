@@ -21,17 +21,14 @@ package org.elasticsearch.cluster.routing.allocation;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
-import static org.assertj.core.api.Assertions.assertThat;
 import static java.util.Collections.emptySet;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.startsWith;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -77,11 +74,11 @@ public class AllocateUnassignedDecisionTests extends ESTestCase {
         );
         AllocateUnassignedDecision noDecision = AllocateUnassignedDecision.no(allocationStatus, null);
         assertThat(noDecision.isDecisionTaken()).isTrue();
-        assertEquals(AllocationDecision.fromAllocationStatus(allocationStatus), noDecision.getAllocationDecision());
-        assertEquals(allocationStatus, noDecision.getAllocationStatus());
+        assertThat(noDecision.getAllocationDecision()).isEqualTo(AllocationDecision.fromAllocationStatus(allocationStatus));
+        assertThat(noDecision.getAllocationStatus()).isEqualTo(allocationStatus);
         if (allocationStatus == AllocationStatus.FETCHING_SHARD_DATA) {
-            assertEquals("cannot allocate because information about existing shard data is still being retrieved from " +
-                         "some of the nodes", noDecision.getExplanation());
+            assertThat(noDecision.getExplanation()).isEqualTo("cannot allocate because information about existing shard data is still being retrieved from " +
+                         "some of the nodes");
         } else if (allocationStatus == AllocationStatus.DELAYED_ALLOCATION) {
             assertThat(noDecision.getExplanation(), startsWith("cannot allocate because the cluster is still waiting"));
         } else {
@@ -98,17 +95,16 @@ public class AllocateUnassignedDecisionTests extends ESTestCase {
         final boolean reuseStore = randomBoolean();
         noDecision = AllocateUnassignedDecision.no(AllocationStatus.DECIDERS_NO, nodeDecisions, reuseStore);
         assertThat(noDecision.isDecisionTaken()).isTrue();
-        assertEquals(AllocationDecision.NO, noDecision.getAllocationDecision());
-        assertEquals(AllocationStatus.DECIDERS_NO, noDecision.getAllocationStatus());
+        assertThat(noDecision.getAllocationDecision()).isEqualTo(AllocationDecision.NO);
+        assertThat(noDecision.getAllocationStatus()).isEqualTo(AllocationStatus.DECIDERS_NO);
         if (reuseStore) {
-            assertEquals("cannot allocate because allocation is not permitted to any of the nodes that hold an in-sync shard copy",
-                         noDecision.getExplanation());
+            assertThat(noDecision.getExplanation()).isEqualTo("cannot allocate because allocation is not permitted to any of the nodes that hold an in-sync shard copy");
         } else {
-            assertEquals("cannot allocate because allocation is not permitted to any of the nodes", noDecision.getExplanation());
+            assertThat(noDecision.getExplanation()).isEqualTo("cannot allocate because allocation is not permitted to any of the nodes");
         }
-        assertEquals(nodeDecisions.stream().sorted().collect(Collectors.toList()), noDecision.getNodeDecisions());
+        assertThat(noDecision.getNodeDecisions()).isEqualTo(nodeDecisions.stream().sorted().collect(Collectors.toList()));
         // node1 should be sorted first b/c of better weight ranking
-        assertEquals("node1", noDecision.getNodeDecisions().iterator().next().getNode().getId());
+        assertThat(noDecision.getNodeDecisions().iterator().next().getNode().getId()).isEqualTo("node1");
         assertNull(noDecision.getTargetNode());
         assertNull(noDecision.getAllocationId());
 
@@ -123,12 +119,12 @@ public class AllocateUnassignedDecisionTests extends ESTestCase {
         nodeDecisions.add(new NodeAllocationResult(node2, Decision.THROTTLE, 2));
         AllocateUnassignedDecision throttleDecision = AllocateUnassignedDecision.throttle(nodeDecisions);
         assertThat(throttleDecision.isDecisionTaken()).isTrue();
-        assertEquals(AllocationDecision.THROTTLED, throttleDecision.getAllocationDecision());
-        assertEquals(AllocationStatus.DECIDERS_THROTTLED, throttleDecision.getAllocationStatus());
+        assertThat(throttleDecision.getAllocationDecision()).isEqualTo(AllocationDecision.THROTTLED);
+        assertThat(throttleDecision.getAllocationStatus()).isEqualTo(AllocationStatus.DECIDERS_THROTTLED);
         assertThat(throttleDecision.getExplanation(), startsWith("allocation temporarily throttled"));
-        assertEquals(nodeDecisions.stream().sorted().collect(Collectors.toList()), throttleDecision.getNodeDecisions());
+        assertThat(throttleDecision.getNodeDecisions()).isEqualTo(nodeDecisions.stream().sorted().collect(Collectors.toList()));
         // node2 should be sorted first b/c a THROTTLE is higher than a NO decision
-        assertEquals("node2", throttleDecision.getNodeDecisions().iterator().next().getNode().getId());
+        assertThat(throttleDecision.getNodeDecisions().iterator().next().getNode().getId()).isEqualTo("node2");
         assertNull(throttleDecision.getTargetNode());
         assertNull(throttleDecision.getAllocationId());
     }
@@ -141,14 +137,14 @@ public class AllocateUnassignedDecisionTests extends ESTestCase {
         AllocateUnassignedDecision yesDecision = AllocateUnassignedDecision.yes(
             node2, allocId, nodeDecisions, randomBoolean());
         assertThat(yesDecision.isDecisionTaken()).isTrue();
-        assertEquals(AllocationDecision.YES, yesDecision.getAllocationDecision());
+        assertThat(yesDecision.getAllocationDecision()).isEqualTo(AllocationDecision.YES);
         assertNull(yesDecision.getAllocationStatus());
-        assertEquals("can allocate the shard", yesDecision.getExplanation());
-        assertEquals(nodeDecisions.stream().sorted().collect(Collectors.toList()), yesDecision.getNodeDecisions());
-        assertEquals("node2", yesDecision.getTargetNode().getId());
-        assertEquals(allocId, yesDecision.getAllocationId());
+        assertThat(yesDecision.getExplanation()).isEqualTo("can allocate the shard");
+        assertThat(yesDecision.getNodeDecisions()).isEqualTo(nodeDecisions.stream().sorted().collect(Collectors.toList()));
+        assertThat(yesDecision.getTargetNode().getId()).isEqualTo("node2");
+        assertThat(yesDecision.getAllocationId()).isEqualTo(allocId);
         // node1 should be sorted first b/c YES decisions are the highest
-        assertEquals("node2", yesDecision.getNodeDecisions().iterator().next().getNode().getId());
+        assertThat(yesDecision.getNodeDecisions().iterator().next().getNode().getId()).isEqualTo("node2");
     }
 
     public void testCachedDecisions() {
@@ -200,14 +196,14 @@ public class AllocateUnassignedDecisionTests extends ESTestCase {
         BytesStreamOutput output = new BytesStreamOutput();
         decision.writeTo(output);
         AllocateUnassignedDecision readDecision = new AllocateUnassignedDecision(output.bytes().streamInput());
-        assertEquals(decision.getTargetNode(), readDecision.getTargetNode());
-        assertEquals(decision.getAllocationStatus(), readDecision.getAllocationStatus());
-        assertEquals(decision.getExplanation(), readDecision.getExplanation());
-        assertEquals(decision.getNodeDecisions().size(), readDecision.getNodeDecisions().size());
-        assertEquals(decision.getAllocationId(), readDecision.getAllocationId());
-        assertEquals(decision.getAllocationDecision(), readDecision.getAllocationDecision());
+        assertThat(readDecision.getTargetNode()).isEqualTo(decision.getTargetNode());
+        assertThat(readDecision.getAllocationStatus()).isEqualTo(decision.getAllocationStatus());
+        assertThat(readDecision.getExplanation()).isEqualTo(decision.getExplanation());
+        assertThat(readDecision.getNodeDecisions().size()).isEqualTo(decision.getNodeDecisions().size());
+        assertThat(readDecision.getAllocationId()).isEqualTo(decision.getAllocationId());
+        assertThat(readDecision.getAllocationDecision()).isEqualTo(decision.getAllocationDecision());
         // node2 should have the highest sort order
-        assertEquals("node2", readDecision.getNodeDecisions().iterator().next().getNode().getId());
+        assertThat(readDecision.getNodeDecisions().iterator().next().getNode().getId()).isEqualTo("node2");
     }
 
 }

@@ -22,7 +22,6 @@
 package io.crate.execution.engine.aggregation.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -93,21 +92,21 @@ public class SumAggregationTest extends AggregationTestCase {
     public void testDouble() throws Exception {
         Object result = executeAggregation(DataTypes.DOUBLE, DataTypes.DOUBLE, new Object[][]{{0.7d}, {0.3d}});
 
-        assertEquals(1.0d, result);
+        assertThat(result).isEqualTo(1.0d);
     }
 
     @Test
     public void testDoubleSummationWithoutLosingPrecision() throws Exception {
         Object result = executeAggregation(DataTypes.DOUBLE, DataTypes.DOUBLE, new Object[][]{{0.1d}, {0.3d}, {0.2d}});
 
-        assertEquals(0.6d, result);
+        assertThat(result).isEqualTo(0.6d);
     }
 
     @Test
     public void testFloat() throws Exception {
         Object result = executeAggregation(DataTypes.FLOAT, DataTypes.FLOAT, new Object[][]{{0.7f}, {0.3f}});
 
-        assertEquals(1.0f, result);
+        assertThat(result).isEqualTo(1.0f);
     }
 
     @Test
@@ -133,7 +132,7 @@ public class SumAggregationTest extends AggregationTestCase {
     public void testLong() throws Exception {
         Object result = executeAggregation(DataTypes.LONG, DataTypes.LONG, new Object[][]{{7L}, {3L}});
 
-        assertEquals(10L, result);
+        assertThat(result).isEqualTo(10L);
     }
 
     @Test(expected = ArithmeticException.class)
@@ -150,28 +149,26 @@ public class SumAggregationTest extends AggregationTestCase {
     public void testInteger() throws Exception {
         Object result = executeAggregation(DataTypes.INTEGER, DataTypes.LONG, new Object[][]{{7}, {3}});
 
-        assertEquals(10L, result);
+        assertThat(result).isEqualTo(10L);
     }
 
     @Test
     public void testShort() throws Exception {
         Object result = executeAggregation(DataTypes.SHORT, DataTypes.LONG, new Object[][]{{(short) 7}, {(short) 3}});
 
-        assertEquals(10L, result);
+        assertThat(result).isEqualTo(10L);
     }
 
     @Test
     public void testByte() throws Exception {
         Object result = executeAggregation(DataTypes.BYTE, DataTypes.LONG, new Object[][]{{(byte) 7}, {(byte) 3}});
 
-        assertEquals(10L, result);
+        assertThat(result).isEqualTo(10L);
     }
 
     @Test
     public void testInterval() {
-        assertEquals(
-            Period.days(8).withHours(19).withMinutes(22).withSeconds(13).withMillis(667),
-            execPartialAggregationWithoutDocValues(
+        assertThat(execPartialAggregationWithoutDocValues(
                 (IntervalSumAggregation) nodeCtx.functions().getQualified(
                     Signature.aggregate(
                         IntervalSumAggregation.NAME,
@@ -187,7 +184,8 @@ public class SumAggregationTest extends AggregationTestCase {
                     {Period.days(2).withHours(4).withMillis(223)}},
                 true,
                 Version.CURRENT
-            ));
+            )).isEqualTo(
+            Period.days(8).withHours(19).withMinutes(22).withSeconds(13).withMillis(667));
     }
 
     @Test

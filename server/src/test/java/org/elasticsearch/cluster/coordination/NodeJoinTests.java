@@ -27,7 +27,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.monitor.StatusInfo.Status.HEALTHY;
 import static org.elasticsearch.transport.TransportService.HANDSHAKE_ACTION_NAME;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -288,7 +287,7 @@ public class NodeJoinTests extends ESTestCase {
         long newTerm = initialTerm + randomLongBetween(1, 10);
         SimpleFuture fut = joinNodeAsync(new JoinRequest(node1, newTerm,
             Optional.of(new Join(node1, node0, newTerm, initialTerm, initialVersion))));
-        assertEquals(Coordinator.Mode.LEADER, coordinator.getMode());
+        assertThat(coordinator.getMode()).isEqualTo(Coordinator.Mode.LEADER);
         assertNull(coordinator.getStateForMasterService().nodes().getMasterNodeId());
         deterministicTaskQueue.runAllRunnableTasks();
         assertThat(fut.isDone()).isTrue();

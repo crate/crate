@@ -20,7 +20,6 @@ package org.elasticsearch.cluster.coordination;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
 
@@ -92,7 +91,7 @@ public class VotingConfigurationIT extends IntegTestCase {
         assertThat(votingConfiguration, hasItem(clusterState.nodes().getMasterNodeId()));
         for (DiscoveryNode discoveryNode : clusterState.nodes()) {
             if (votingConfiguration.contains(discoveryNode.getId()) == false) {
-                assertThat(excludedNodeName, nullValue());
+                assertThat(excludedNodeName).isNull();
                 excludedNodeName = discoveryNode.getName();
             }
         }

@@ -21,7 +21,7 @@
 
 package io.crate.expression.scalar.timestamp;
 
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
 
@@ -35,9 +35,9 @@ public class AtTimezoneSyntaxFunctionTest {
     @Test
     public void test_at_time_zone_is_parsed_as_timezone_function_call() {
         FunctionCall func = (FunctionCall) SqlParser.createExpression("'1978-02-28T10:00:00+01:00' AT TIME ZONE 'Europe/Madrid'");
-        assertEquals(func.getName(), QualifiedName.of("timezone"));
-        assertEquals(func.getArguments().size(), 2);
-        assertEquals(func.getArguments().get(0), StringLiteral.fromObject("Europe/Madrid"));
-        assertEquals(func.getArguments().get(1), StringLiteral.fromObject("1978-02-28T10:00:00+01:00"));
+        assertThat(QualifiedName.of("timezone")).isEqualTo(func.getName());
+        assertThat(2).isEqualTo(func.getArguments().size());
+        assertThat(StringLiteral.fromObject("Europe/Madrid")).isEqualTo(func.getArguments().get(0));
+        assertThat(StringLiteral.fromObject("1978-02-28T10:00:00+01:00")).isEqualTo(func.getArguments().get(1));
     }
 }

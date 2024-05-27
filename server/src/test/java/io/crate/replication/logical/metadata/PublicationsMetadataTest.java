@@ -21,9 +21,7 @@
 
 package io.crate.replication.logical.metadata;
 
-import static org.hamcrest.core.IsNull.nullValue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -66,7 +64,7 @@ public class PublicationsMetadataTest extends ESTestCase {
 
         StreamInput in = out.bytes().streamInput();
         PublicationsMetadata pubs2 = new PublicationsMetadata(in);
-        assertEquals(pubs, pubs2);
+        assertThat(pubs2).isEqualTo(pubs);
 
     }
 
@@ -87,9 +85,9 @@ public class PublicationsMetadataTest extends ESTestCase {
             BytesReference.toBytes(BytesReference.bytes(builder)));
         parser.nextToken(); // start object
         PublicationsMetadata pubs2 = PublicationsMetadata.fromXContent(parser);
-        assertEquals(pubs, pubs2);
+        assertThat(pubs2).isEqualTo(pubs);
 
         // a metadata custom must consume the surrounded END_OBJECT token, no token must be left
-        assertThat(parser.nextToken(), nullValue());
+        assertThat(parser.nextToken()).isNull();
     }
 }

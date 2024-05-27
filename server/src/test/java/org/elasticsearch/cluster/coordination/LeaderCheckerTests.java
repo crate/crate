@@ -32,7 +32,6 @@ import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.matchesRegex;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -457,7 +456,7 @@ public class LeaderCheckerTests extends ESTestCase {
             deterministicTaskQueue.runAllTasks();
 
             assertThat(handler.successfulResponseReceived).isTrue();
-            assertThat(handler.transportException, nullValue());
+            assertThat(handler.transportException).isNull();
         }
 
         {

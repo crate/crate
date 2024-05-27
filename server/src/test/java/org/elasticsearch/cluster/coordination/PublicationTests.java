@@ -20,7 +20,6 @@
 package org.elasticsearch.cluster.coordination;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -205,7 +204,7 @@ public class PublicationTests extends ESTestCase {
             if (publishWithJoinResponse.getJoin().isPresent()) {
                 assertThat(publication.joins.containsKey(e.getKey())).isTrue();
                 assertThat(publication.missingJoins.contains(e.getKey())).isFalse();
-                assertEquals(publishWithJoinResponse.getJoin().get(), publication.joins.get(e.getKey()));
+                assertThat(publication.joins.get(e.getKey())).isEqualTo(publishWithJoinResponse.getJoin().get());
             } else {
                 assertThat(publication.joins.containsKey(e.getKey())).isFalse();
                 assertThat(publication.missingJoins.contains(e.getKey())).isTrue();
@@ -222,8 +221,8 @@ public class PublicationTests extends ESTestCase {
             assertThat(publication.pendingCommits.keySet()).isEqualTo(discoNodes);
         }
         assertNotNull(publication.applyCommit);
-        assertEquals(publication.applyCommit.getTerm(), publication.publishRequest.getAcceptedState().term());
-        assertEquals(publication.applyCommit.getVersion(), publication.publishRequest.getAcceptedState().version());
+        assertThat(publication.publishRequest.getAcceptedState().term()).isEqualTo(publication.applyCommit.getTerm());
+        assertThat(publication.publishRequest.getAcceptedState().version()).isEqualTo(publication.applyCommit.getVersion());
         publication.pendingCommits.entrySet().stream().collect(shuffle()).forEach(e -> {
             assertThat(publication.completed).isFalse();
             assertThat(publication.committed).isFalse();
@@ -400,7 +399,7 @@ public class PublicationTests extends ESTestCase {
         List<DiscoveryNode> publicationTargets = new ArrayList<>(publication.pendingPublications.keySet());
         List<DiscoveryNode> sortedPublicationTargets = new ArrayList<>(publicationTargets);
         sortedPublicationTargets.sort(Comparator.comparing(n -> n.isMasterEligibleNode() == false));
-        assertEquals(sortedPublicationTargets, publicationTargets);
+        assertThat(publicationTargets).isEqualTo(sortedPublicationTargets);
     }
 
     public void testClusterStatePublishingTimesOutAfterCommit() throws InterruptedException {
@@ -440,7 +439,7 @@ public class PublicationTests extends ESTestCase {
         publication.cancel("timed out");
         assertThat(publication.completed).isTrue();
         assertThat(publication.committed).isTrue();
-        assertEquals(committingNodes, ackListener.await(0L, TimeUnit.SECONDS));
+        assertThat(ackListener.await(0L, TimeUnit.SECONDS)).isEqualTo(committingNodes);
 
         // check that acking still works after publication completed
         if (publishedToN3 == false) {
@@ -448,14 +447,14 @@ public class PublicationTests extends ESTestCase {
                 new PublishWithJoinResponse(node3.coordinationState.handlePublishRequest(publication.publishRequest), Optional.empty()));
         }
 
-        assertEquals(discoNodes, publication.pendingCommits.keySet());
+        assertThat(publication.pendingCommits.keySet()).isEqualTo(discoNodes);
 
         Set<DiscoveryNode> nonCommittedNodes = Sets.difference(discoNodes, committingNodes);
         logger.info("Non-committed nodes: {}", nonCommittedNodes);
         nonCommittedNodes.stream().collect(shuffle()).forEach(n ->
             publication.pendingCommits.get(n).onResponse(TransportResponse.Empty.INSTANCE));
 
-        assertEquals(discoNodes, ackListener.await(0L, TimeUnit.SECONDS));
+        assertThat(ackListener.await(0L, TimeUnit.SECONDS)).isEqualTo(discoNodes);
     }
 
     private static List<DiscoveryNode> randomNodes(final int numNodes) {

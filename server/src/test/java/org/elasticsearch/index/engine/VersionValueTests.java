@@ -19,7 +19,8 @@
 
 package org.elasticsearch.index.engine;
 
-import static org.junit.Assert.assertEquals;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.apache.lucene.tests.util.RamUsageTester;
 import org.elasticsearch.index.translog.Translog;
@@ -33,12 +34,12 @@ public class VersionValueTests extends ESTestCase {
             translogLoc = new Translog.Location(randomNonNegativeLong(), randomNonNegativeLong(), randomInt());
         }
         IndexVersionValue versionValue = new IndexVersionValue(translogLoc, randomLong(), randomLong(), randomLong());
-        assertEquals(RamUsageTester.ramUsed(versionValue), versionValue.ramBytesUsed());
+        assertThat(versionValue.ramBytesUsed()).isEqualTo(RamUsageTester.ramUsed(versionValue));
     }
 
     public void testDeleteRamBytesUsed() {
         DeleteVersionValue versionValue = new DeleteVersionValue(randomLong(), randomLong(), randomLong(), randomLong());
-        assertEquals(RamUsageTester.ramUsed(versionValue), versionValue.ramBytesUsed());
+        assertThat(versionValue.ramBytesUsed()).isEqualTo(RamUsageTester.ramUsed(versionValue));
     }
 
 }

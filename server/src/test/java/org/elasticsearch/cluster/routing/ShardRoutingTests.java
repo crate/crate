@@ -19,10 +19,7 @@
 
 package org.elasticsearch.cluster.routing;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 
@@ -236,18 +233,18 @@ public class ShardRoutingTests extends ESTestCase {
                 routing = new ShardRouting(out.bytes().streamInput());
             }
             if (routing.initializing() || routing.relocating()) {
-                assertEquals(routing.toString(), byteSize, routing.getExpectedShardSize());
+                assertThat(routing.getExpectedShardSize()).as(routing.toString()).isEqualTo(byteSize);
                 if (byteSize >= 0) {
                     assertThat(routing.toString().contains("expected_shard_size[" + byteSize + "]")).as(routing.toString()).isTrue();
                 }
                 if (routing.initializing()) {
                     routing = routing.moveToStarted();
-                    assertEquals(-1, routing.getExpectedShardSize());
+                    assertThat(routing.getExpectedShardSize()).isEqualTo(-1);
                     assertThat(routing.toString().contains("expected_shard_size[" + byteSize + "]")).as(routing.toString()).isFalse();
                 }
             } else {
                 assertThat(routing.toString().contains("expected_shard_size [" + byteSize + "]")).as(routing.toString()).isFalse();
-                assertEquals(byteSize, routing.getExpectedShardSize());
+                assertThat(routing.getExpectedShardSize()).isEqualTo(byteSize);
             }
         }
     }

@@ -18,7 +18,7 @@
  */
 package org.elasticsearch.common.bytes;
 
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
@@ -46,7 +46,7 @@ public class CompositeBytesReferenceTests extends AbstractBytesReferenceTestCase
         // we know bytes stream output always creates a paged bytes reference, we use it to create randomized content
         List<BytesReference> referenceList = newRefList(length);
         BytesReference ref = CompositeBytesReference.of(referenceList.toArray(new BytesReference[0]));
-        assertEquals(length, ref.length());
+        assertThat(ref.length()).isEqualTo(length);
         return ref;
     }
 
@@ -59,7 +59,7 @@ public class CompositeBytesReferenceTests extends AbstractBytesReferenceTestCase
             for (int j = 0; j < sliceLength; j++) {
                 out.writeByte((byte) random().nextInt(1 << 8));
             }
-            assertEquals(sliceLength, out.size());
+            assertThat(out.size()).isEqualTo(sliceLength);
             referenceList.add(out.bytes());
             i+=sliceLength;
         }
@@ -78,7 +78,7 @@ public class CompositeBytesReferenceTests extends AbstractBytesReferenceTestCase
             while ((scratch = innerIter.next()) != null) {
                 BytesRef next = iterator.next();
                 assertNotNull(next);
-                assertEquals(next, scratch);
+                assertThat(scratch).isEqualTo(next);
                 builder.append(next);
             }
 
@@ -87,22 +87,22 @@ public class CompositeBytesReferenceTests extends AbstractBytesReferenceTestCase
 
         int offset = 0;
         for (BytesReference reference : referenceList) {
-            assertEquals(reference, ref.slice(offset, reference.length()));
+            assertThat(ref.slice(offset, reference.length())).isEqualTo(reference);
             int probes = randomIntBetween(Math.min(10, reference.length()), reference.length());
             for (int i = 0; i < probes; i++) {
                 int index = randomIntBetween(0, reference.length()-1);
-                assertEquals(ref.get(offset + index), reference.get(index));
+                assertThat(reference.get(index)).isEqualTo(ref.get(offset + index));
             }
             offset += reference.length();
         }
 
         BytesArray array = new BytesArray(builder.toBytesRef());
-        assertEquals(array, ref);
-        assertEquals(array.hashCode(), ref.hashCode());
+        assertThat(ref).isEqualTo(array);
+        assertThat(ref.hashCode()).isEqualTo(array.hashCode());
 
         BytesStreamOutput output = new BytesStreamOutput();
         ref.writeTo(output);
-        assertEquals(array, output.bytes());
+        assertThat(output.bytes()).isEqualTo(array);
     }
 
     @Override

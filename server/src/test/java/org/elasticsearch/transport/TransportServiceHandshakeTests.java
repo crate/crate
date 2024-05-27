@@ -23,8 +23,6 @@ import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 
 import java.io.IOException;
@@ -155,8 +153,8 @@ public class TransportServiceHandshakeTests extends ESTestCase {
             DiscoveryNode connectedNode = TestFutureUtils.get(fut -> handleA.transportService.handshake(connection, timeout, fut));
             assertNotNull(connectedNode);
             // the name and version should be updated
-            assertEquals(connectedNode.getName(), "TS_B");
-            assertEquals(connectedNode.getVersion(), handleB.discoveryNode.getVersion());
+            assertThat("TS_B").isEqualTo(connectedNode.getName());
+            assertThat(handleB.discoveryNode.getVersion()).isEqualTo(connectedNode.getVersion());
             assertThat(handleA.transportService.nodeConnected(discoveryNode)).isFalse();
         }
     }

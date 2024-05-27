@@ -19,7 +19,6 @@
 package org.elasticsearch.index.shard;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -96,7 +95,7 @@ public class PrimaryReplicaSyncerTests extends IndexShardTestCase {
             new IndexShardRoutingTable.Builder(shard.shardId()).addShard(shard.routingEntry()).build()
         );
         shard.updateLocalCheckpointForShard(allocationId, globalCheckPoint);
-        assertEquals(globalCheckPoint, shard.getLastKnownGlobalCheckpoint());
+        assertThat(shard.getLastKnownGlobalCheckpoint()).isEqualTo(globalCheckPoint);
 
         logger.info("Total ops: {}, global checkpoint: {}", numDocs, globalCheckPoint);
 

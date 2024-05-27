@@ -18,11 +18,9 @@
  */
 package org.elasticsearch.common.util.concurrent;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.fail;
 
 import java.util.concurrent.CountDownLatch;
@@ -99,17 +97,17 @@ public class AbstractAsyncTaskTests extends ESTestCase {
         barrier1.await();
         assertThat(task.isScheduled()).isTrue();
         barrier2.await();
-        assertEquals(1, count.get());
+        assertThat(count.get()).isEqualTo(1);
         barrier1.reset();
         barrier2.reset();
         barrier1.await();
         assertThat(task.isScheduled()).isTrue();
         task.close();
         barrier2.await();
-        assertEquals(2, count.get());
+        assertThat(count.get()).isEqualTo(2);
         assertThat(task.isClosed()).isTrue();
         assertThat(task.isScheduled()).isFalse();
-        assertEquals(2, count.get());
+        assertThat(count.get()).isEqualTo(2);
     }
 
     @Test
@@ -148,16 +146,16 @@ public class AbstractAsyncTaskTests extends ESTestCase {
         assertThat(task.isScheduled()).isFalse();
         task.rescheduleIfNecessary();
         barrier.await();
-        assertEquals(1, count.get());
+        assertThat(count.get()).isEqualTo(1);
         assertThat(task.isScheduled()).isFalse();
         barrier.reset();
         assertThatThrownBy(() -> barrier.await(10, TimeUnit.MILLISECONDS))
             .isExactlyInstanceOf(TimeoutException.class);
-        assertEquals(1, count.get());
+        assertThat(count.get()).isEqualTo(1);
         barrier.reset();
         task.rescheduleIfNecessary();
         barrier.await();
-        assertEquals(2, count.get());
+        assertThat(count.get()).isEqualTo(2);
         assertThat(task.isScheduled()).isFalse();
         assertThat(task.isClosed()).isFalse();
         task.close();

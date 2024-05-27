@@ -22,7 +22,6 @@ package org.elasticsearch.indices;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.coordination.ClusterBootstrapService.INITIAL_MASTER_NODES_SETTING;
 import static org.elasticsearch.discovery.SettingsBasedSeedHostsProvider.DISCOVERY_SEED_HOSTS_SETTING;
-import static org.junit.Assert.assertEquals;
 
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -86,10 +85,10 @@ public class IndicesServiceCloseTests extends ESTestCase {
     public void testCloseEmptyIndicesService() throws Exception {
         Node node = startNode();
         IndicesService indicesService = node.injector().getInstance(IndicesService.class);
-        assertEquals(1, indicesService.indicesRefCount.refCount());
+        assertThat(indicesService.indicesRefCount.refCount()).isEqualTo(1);
         assertThat(indicesService.awaitClose(0, TimeUnit.MILLISECONDS)).isFalse();
         node.close();
-        assertEquals(0, indicesService.indicesRefCount.refCount());
+        assertThat(indicesService.indicesRefCount.refCount()).isEqualTo(0);
         assertThat(indicesService.awaitClose(0, TimeUnit.MILLISECONDS)).isTrue();
     }
 
@@ -97,7 +96,7 @@ public class IndicesServiceCloseTests extends ESTestCase {
     public void testCloseNonEmptyIndicesService() throws Exception {
         Node node = startNode();
         IndicesService indicesService = node.injector().getInstance(IndicesService.class);
-        assertEquals(1, indicesService.indicesRefCount.refCount());
+        assertThat(indicesService.indicesRefCount.refCount()).isEqualTo(1);
 
         Sessions sessions = node.injector().getInstance(Sessions.class);
         try (Session session = sessions.newSession("doc", Role.CRATE_USER)) {
@@ -107,11 +106,11 @@ public class IndicesServiceCloseTests extends ESTestCase {
             assertThat(resultReceiver.completionFuture()).succeedsWithin(5, TimeUnit.SECONDS);
         }
 
-        assertEquals(2, indicesService.indicesRefCount.refCount());
+        assertThat(indicesService.indicesRefCount.refCount()).isEqualTo(2);
         assertThat(indicesService.awaitClose(0, TimeUnit.MILLISECONDS)).isFalse();
 
         node.close();
-        assertEquals(0, indicesService.indicesRefCount.refCount());
+        assertThat(indicesService.indicesRefCount.refCount()).isEqualTo(0);
         assertThat(indicesService.awaitClose(0, TimeUnit.MILLISECONDS)).isTrue();
     }
 
@@ -119,7 +118,7 @@ public class IndicesServiceCloseTests extends ESTestCase {
     public void testCloseWhileOngoingRequest() throws Exception {
         Node node = startNode();
         IndicesService indicesService = node.injector().getInstance(IndicesService.class);
-        assertEquals(1, indicesService.indicesRefCount.refCount());
+        assertThat(indicesService.indicesRefCount.refCount()).isEqualTo(1);
 
         Sessions sessions = node.injector().getInstance(Sessions.class);
         try (Session session = sessions.newSession("doc", Role.CRATE_USER)) {
@@ -128,16 +127,16 @@ public class IndicesServiceCloseTests extends ESTestCase {
             session.quickExec(stmt, resultReceiver, Row.EMPTY);
             assertThat(resultReceiver.completionFuture()).succeedsWithin(5, TimeUnit.SECONDS);
         }
-        assertEquals(2, indicesService.indicesRefCount.refCount());
+        assertThat(indicesService.indicesRefCount.refCount()).isEqualTo(2);
 
         IndexService indexService = indicesService.iterator().next();
         IndexShard shard = indexService.getShard(0);
         shard.store().incRef();
 
         node.close();
-        assertEquals(1, indicesService.indicesRefCount.refCount());
+        assertThat(indicesService.indicesRefCount.refCount()).isEqualTo(1);
 
         shard.store().decRef();
-        assertEquals(0, indicesService.indicesRefCount.refCount());
+        assertThat(indicesService.indicesRefCount.refCount()).isEqualTo(0);
     }
 }

@@ -19,9 +19,9 @@
 
 package org.elasticsearch.snapshots;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.greaterThan;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -111,8 +111,8 @@ public class BlobStoreFormatIT extends AbstractSnapshotIntegTestCase {
         checksumSMILE.write(new BlobObj("checksum smile compressed"), blobContainer, "check-smile-comp", true);
 
         // Assert that all checksum blobs can be read
-        assertEquals(checksumSMILE.read(blobContainer, "check-smile", xContentRegistry()).getText(), "checksum smile");
-        assertEquals(checksumSMILE.read(blobContainer, "check-smile-comp", xContentRegistry()).getText(), "checksum smile compressed");
+        assertThat("checksum smile").isEqualTo(checksumSMILE.read(blobContainer, "check-smile", xContentRegistry()).getText());
+        assertThat("checksum smile compressed").isEqualTo(checksumSMILE.read(blobContainer, "check-smile-comp", xContentRegistry()).getText());
     }
 
     public void testCompressionIsApplied() throws IOException {
@@ -127,7 +127,7 @@ public class BlobStoreFormatIT extends AbstractSnapshotIntegTestCase {
         checksumFormat.write(blobObj, blobContainer, "blob-comp", true);
         checksumFormat.write(blobObj, blobContainer, "blob-not-comp", false);
         Map<String, BlobMetadata> blobs = blobContainer.listBlobsByPrefix("blob-");
-        assertEquals(blobs.size(), 2);
+        assertThat(2).isEqualTo(blobs.size());
         assertThat(blobs.get("blob-not-comp").length(), greaterThan(blobs.get("blob-comp").length()));
     }
 
@@ -138,7 +138,7 @@ public class BlobStoreFormatIT extends AbstractSnapshotIntegTestCase {
         BlobObj blobObj = new BlobObj(testString);
         ChecksumBlobStoreFormat<BlobObj> checksumFormat = new ChecksumBlobStoreFormat<>(BLOB_CODEC, "%s", BlobObj::fromXContent);
         checksumFormat.write(blobObj, blobContainer, "test-path", randomBoolean());
-        assertEquals(checksumFormat.read(blobContainer, "test-path", xContentRegistry()).getText(), testString);
+        assertThat(testString).isEqualTo(checksumFormat.read(blobContainer, "test-path", xContentRegistry()).getText());
         randomCorruption(blobContainer, "test-path");
         try {
             checksumFormat.read(blobContainer, "test-path", xContentRegistry());

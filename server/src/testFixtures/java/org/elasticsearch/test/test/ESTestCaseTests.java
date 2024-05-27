@@ -20,7 +20,6 @@
 package org.elasticsearch.test.test;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 
@@ -54,7 +53,7 @@ public class ESTestCaseTests extends ESTestCase {
             Set<List<String>> distinctKeys = new HashSet<>();
             for (int i = 0; i < 10; i++) {
                 LinkedHashMap<String, Object> shuffledMap = shuffleMap(initialMap, Collections.emptySet());
-                assertEquals("both maps should contain the same mappings", initialMap, shuffledMap);
+                assertThat(shuffledMap).as("both maps should contain the same mappings").isEqualTo(initialMap);
                 List<String> shuffledKeys = new ArrayList<>(shuffledMap.keySet());
                 distinctKeys.add(shuffledKeys);
             }
@@ -105,13 +104,13 @@ public class ESTestCaseTests extends ESTestCase {
                     try (XContentBuilder shuffledBuilder = shuffleXContent(parser, randomBoolean(), "object1")) {
                         try (XContentParser shuffledParser = createParser(shuffledBuilder)) {
                             Map<String, Object> shuffledMap = shuffledParser.mapOrdered();
-                            assertEquals("both maps should contain the same mappings", initialMap, shuffledMap);
+                            assertThat(shuffledMap).as("both maps should contain the same mappings").isEqualTo(initialMap);
                             List<String> shuffledKeys = new ArrayList<>(shuffledMap.keySet());
                             distinctTopLevelKeys.add(shuffledKeys);
                             @SuppressWarnings("unchecked")
                             Map<String, Object> innerMap1 = (Map<String, Object>)shuffledMap.get("object1");
                             List<String> actualInnerKeys1 = new ArrayList<>(innerMap1.keySet());
-                            assertEquals("object1 should have been left untouched", expectedInnerKeys1, actualInnerKeys1);
+                            assertThat(actualInnerKeys1).as("object1 should have been left untouched").isEqualTo(expectedInnerKeys1);
                             @SuppressWarnings("unchecked")
                             Map<String, Object> innerMap2 = (Map<String, Object>)shuffledMap.get("object2");
                             List<String> actualInnerKeys2 = new ArrayList<>(innerMap2.keySet());
@@ -174,6 +173,6 @@ public class ESTestCaseTests extends ESTestCase {
         assumeTrue(
             "requires running tests without maven/forkCount",
             System.getProperty(ESTestCase.TEST_WORKER_SYS_PROPERTY) == null);
-        assertEquals(10300, ESTestCase.getBasePort());
+        assertThat(ESTestCase.getBasePort()).isEqualTo(10300);
     }
 }

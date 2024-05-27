@@ -23,8 +23,6 @@ package org.elasticsearch.action.admin.cluster.state;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.action.admin.cluster.state.TransportClusterStateAction.buildResponse;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
 
 import java.util.List;
 
@@ -89,7 +87,7 @@ public class TransportClusterStateActionTests extends ESTestCase {
         var response = buildResponse(request, clusterState, logger);
         assertThat(response.getState().metadata().templates().get("template1")).isNotNull();
         assertThat(response.getState().metadata().hasIndex("index1")).isFalse();
-        assertThat(response.getState().metadata().persistentSettings().get("setting1"), nullValue());
+        assertThat(response.getState().metadata().persistentSettings().get("setting1")).isNull();
     }
 
     @Test
@@ -99,9 +97,9 @@ public class TransportClusterStateActionTests extends ESTestCase {
         request.indices("index1");
 
         var response = buildResponse(request, clusterState, logger);
-        assertThat(response.getState().metadata().templates().get("template1"), nullValue());
+        assertThat(response.getState().metadata().templates().get("template1")).isNull();
         assertThat(response.getState().metadata().hasIndex("index1")).isTrue();
-        assertThat(response.getState().metadata().persistentSettings().get("setting1"), nullValue());
+        assertThat(response.getState().metadata().persistentSettings().get("setting1")).isNull();
     }
 
     @Test
@@ -114,6 +112,6 @@ public class TransportClusterStateActionTests extends ESTestCase {
         var response = buildResponse(request, clusterState, logger);
         assertThat(response.getState().metadata().templates().get("template1")).isNotNull();
         assertThat(response.getState().metadata().hasIndex("index1")).isTrue();
-        assertThat(response.getState().metadata().persistentSettings().get("setting1"), nullValue());
+        assertThat(response.getState().metadata().persistentSettings().get("setting1")).isNull();
     }
 }

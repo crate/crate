@@ -22,8 +22,6 @@
 package io.crate.replication.logical.metadata;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.core.IsNull.nullValue;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -105,6 +103,6 @@ public class SubscriptionsMetadataTest extends ESTestCase {
         assertThat(subs2).isEqualTo(subs);
 
         // a metadata custom must consume the surrounded END_OBJECT token, no token must be left
-        assertThat(parser.nextToken(), nullValue());
+        assertThat(parser.nextToken()).isNull();
     }
 }

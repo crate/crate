@@ -22,11 +22,10 @@
 package org.elasticsearch.common.settings;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasEntry;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
@@ -109,7 +108,7 @@ public class SettingsTests extends ESTestCase {
 
         Settings fooSettings = settings.getAsSettings("foo");
         assertThat(fooSettings.isEmpty()).isFalse();
-        assertEquals(2, fooSettings.size());
+        assertThat(fooSettings.size()).isEqualTo(2);
         assertThat(fooSettings.get("bar")).isEqualTo("def");
         assertThat(fooSettings.get("baz")).isEqualTo("ghi");
     }
@@ -124,13 +123,13 @@ public class SettingsTests extends ESTestCase {
 
         Settings firstLevelSettings = settings.getByPrefix("1.");
         assertThat(firstLevelSettings.isEmpty()).isFalse();
-        assertEquals(2, firstLevelSettings.size());
+        assertThat(firstLevelSettings.size()).isEqualTo(2);
         assertThat(firstLevelSettings.get("2.3.4")).isEqualTo("abc");
         assertThat(firstLevelSettings.get("2.3")).isEqualTo("hello world");
 
         Settings secondLevelSetting = firstLevelSettings.getByPrefix("2.");
         assertThat(secondLevelSetting.isEmpty()).isFalse();
-        assertEquals(2, secondLevelSetting.size());
+        assertThat(secondLevelSetting.size()).isEqualTo(2);
         assertNull(secondLevelSetting.get("2.3.4"));
         assertNull(secondLevelSetting.get("1.2.3.4"));
         assertNull(secondLevelSetting.get("1.2.3"));
@@ -139,7 +138,7 @@ public class SettingsTests extends ESTestCase {
 
         Settings thirdLevelSetting = secondLevelSetting.getByPrefix("3.");
         assertThat(thirdLevelSetting.isEmpty()).isFalse();
-        assertEquals(1, thirdLevelSetting.size());
+        assertThat(thirdLevelSetting.size()).isEqualTo(1);
         assertNull(thirdLevelSetting.get("2.3.4"));
         assertNull(thirdLevelSetting.get("3.4"));
         assertNull(thirdLevelSetting.get("1.2.3"));
@@ -281,7 +280,7 @@ public class SettingsTests extends ESTestCase {
             .build();
 
         assertThat(settings).hasSize(1);
-        assertThat(settings.get("bar"), nullValue());
+        assertThat(settings.get("bar")).isNull();
         assertThat(settings.get("foo.bar")).isEqualTo("baz");
 
 
@@ -292,7 +291,7 @@ public class SettingsTests extends ESTestCase {
             .build();
 
         assertThat(settings).hasSize(2);
-        assertThat(settings.get("bar"), nullValue());
+        assertThat(settings.get("bar")).isNull();
         assertThat(settings.get("foo.bar")).isEqualTo("baz");
         assertThat(settings.get("foo.test")).isEqualTo("test");
 
@@ -317,14 +316,14 @@ public class SettingsTests extends ESTestCase {
 
 
         Settings filteredSettings = builder.build().filter((k) -> k.startsWith("a.b"));
-        assertEquals(3, filteredSettings.size());
+        assertThat(filteredSettings.size()).isEqualTo(3);
         int numKeys = 0;
         for (String k : filteredSettings.keySet()) {
             numKeys++;
             assertThat(k.startsWith("a.b")).isTrue();
         }
 
-        assertEquals(3, numKeys);
+        assertThat(numKeys).isEqualTo(3);
         assertThat(filteredSettings.keySet().contains("a.c")).isFalse();
         assertThat(filteredSettings.keySet().contains("a")).isFalse();
         assertThat(filteredSettings.keySet().contains("a.b")).isTrue();
@@ -332,23 +331,23 @@ public class SettingsTests extends ESTestCase {
         assertThat(filteredSettings.keySet().contains("a.b.c.d")).isTrue();
         assertThatThrownBy(() -> filteredSettings.keySet().remove("a.b"))
             .isExactlyInstanceOf(UnsupportedOperationException.class);
-        assertEquals("ab1", filteredSettings.get("a.b"));
-        assertEquals("ab2", filteredSettings.get("a.b.c"));
-        assertEquals("ab3", filteredSettings.get("a.b.c.d"));
+        assertThat(filteredSettings.get("a.b")).isEqualTo("ab1");
+        assertThat(filteredSettings.get("a.b.c")).isEqualTo("ab2");
+        assertThat(filteredSettings.get("a.b.c.d")).isEqualTo("ab3");
 
         Iterator<String> iterator = filteredSettings.keySet().iterator();
         for (int i = 0; i < 10; i++) {
             assertThat(iterator.hasNext()).isTrue();
         }
-        assertEquals("a.b", iterator.next());
+        assertThat(iterator.next()).isEqualTo("a.b");
         if (randomBoolean()) {
             assertThat(iterator.hasNext()).isTrue();
         }
-        assertEquals("a.b.c", iterator.next());
+        assertThat(iterator.next()).isEqualTo("a.b.c");
         if (randomBoolean()) {
             assertThat(iterator.hasNext()).isTrue();
         }
-        assertEquals("a.b.c.d", iterator.next());
+        assertThat(iterator.next()).isEqualTo("a.b.c.d");
         assertThat(iterator.hasNext()).isFalse();
         assertThatThrownBy(() -> iterator.next())
             .isExactlyInstanceOf(NoSuchElementException.class);
@@ -365,14 +364,14 @@ public class SettingsTests extends ESTestCase {
         builder.put("a.b.c.d", "ab3");
 
         Settings prefixMap = builder.build().getByPrefix("a.");
-        assertEquals(4, prefixMap.size());
+        assertThat(prefixMap.size()).isEqualTo(4);
         int numKeys = 0;
         for (String k : prefixMap.keySet()) {
             numKeys++;
             assertThat(k.startsWith("b") || k.startsWith("c")).as(k).isTrue();
         }
 
-        assertEquals(4, numKeys);
+        assertThat(numKeys).isEqualTo(4);
 
         assertThat(prefixMap.keySet().contains("a")).isFalse();
         assertThat(prefixMap.keySet().contains("c")).isTrue();
@@ -381,26 +380,26 @@ public class SettingsTests extends ESTestCase {
         assertThat(prefixMap.keySet().contains("b.c.d")).isTrue();
         assertThatThrownBy(() -> prefixMap.keySet().remove("a.b"))
             .isExactlyInstanceOf(UnsupportedOperationException.class);
-        assertEquals("ab1", prefixMap.get("b"));
-        assertEquals("ab2", prefixMap.get("b.c"));
-        assertEquals("ab3", prefixMap.get("b.c.d"));
+        assertThat(prefixMap.get("b")).isEqualTo("ab1");
+        assertThat(prefixMap.get("b.c")).isEqualTo("ab2");
+        assertThat(prefixMap.get("b.c.d")).isEqualTo("ab3");
         Iterator<String> prefixIterator = prefixMap.keySet().iterator();
         for (int i = 0; i < 10; i++) {
             assertThat(prefixIterator.hasNext()).isTrue();
         }
-        assertEquals("b", prefixIterator.next());
+        assertThat(prefixIterator.next()).isEqualTo("b");
         if (randomBoolean()) {
             assertThat(prefixIterator.hasNext()).isTrue();
         }
-        assertEquals("b.c", prefixIterator.next());
+        assertThat(prefixIterator.next()).isEqualTo("b.c");
         if (randomBoolean()) {
             assertThat(prefixIterator.hasNext()).isTrue();
         }
-        assertEquals("b.c.d", prefixIterator.next());
+        assertThat(prefixIterator.next()).isEqualTo("b.c.d");
         if (randomBoolean()) {
             assertThat(prefixIterator.hasNext()).isTrue();
         }
-        assertEquals("c", prefixIterator.next());
+        assertThat(prefixIterator.next()).isEqualTo("c");
         assertThat(prefixIterator.hasNext()).isFalse();
         assertThatThrownBy(() -> prefixIterator.next())
             .isExactlyInstanceOf(NoSuchElementException.class);
@@ -415,7 +414,7 @@ public class SettingsTests extends ESTestCase {
         builder.put("test.key2.else", "blah4");
         Settings settings = builder.build();
         Map<String, Settings> groups = settings.getGroups("test");
-        assertEquals(2, groups.size());
+        assertThat(groups.size()).isEqualTo(2);
         Settings key1 = groups.get("key1");
         assertNotNull(key1);
         assertThat(key1.names(), containsInAnyOrder("baz", "other"));
@@ -434,7 +433,7 @@ public class SettingsTests extends ESTestCase {
         builder.put("a.b.c.d", "ab3");
 
         Settings filteredSettings = builder.build().filter((k) -> false);
-        assertEquals(0, filteredSettings.size());
+        assertThat(filteredSettings.size()).isEqualTo(0);
 
         assertThat(filteredSettings.keySet().contains("a.c")).isFalse();
         assertThat(filteredSettings.keySet().contains("a")).isFalse();
@@ -467,15 +466,15 @@ public class SettingsTests extends ESTestCase {
         builder.put("test.key1.baz", "blah1");
         builder.putNull("test.key3.bar");
         builder.putList("test.key4.foo", "1", "2");
-        assertEquals(3, builder.build().size());
+        assertThat(builder.build().size()).isEqualTo(3);
         Settings.writeSettingsToStream(out, builder.build());
         StreamInput in = StreamInput.wrap(out.bytes().toBytesRef().bytes);
         Settings settings = Settings.readSettingsFromStream(in);
-        assertEquals(3, settings.size());
-        assertEquals("blah1", settings.get("test.key1.baz"));
+        assertThat(settings.size()).isEqualTo(3);
+        assertThat(settings.get("test.key1.baz")).isEqualTo("blah1");
         assertNull(settings.get("test.key3.bar"));
         assertThat(settings.keySet().contains("test.key3.bar")).isTrue();
-        assertEquals(Arrays.asList("1", "2"), settings.getAsList("test.key4.foo"));
+        assertThat(settings.getAsList("test.key4.foo")).isEqualTo(Arrays.asList("1", "2"));
     }
 
     @Test
@@ -506,11 +505,11 @@ public class SettingsTests extends ESTestCase {
         builder.endObject();
         XContentParser parser = createParser(builder);
         Settings build = Settings.fromXContent(parser);
-        assertEquals(5, build.size());
-        assertEquals(Arrays.asList("1", "2", "3"), build.getAsList("foo.bar.baz"));
-        assertEquals(2, build.getAsInt("foo.foobar", 0).intValue());
-        assertEquals("test", build.get("rootfoo"));
-        assertEquals("1,2,3,4", build.get("foo.baz"));
+        assertThat(build.size()).isEqualTo(5);
+        assertThat(build.getAsList("foo.bar.baz")).isEqualTo(Arrays.asList("1", "2", "3"));
+        assertThat(build.getAsInt("foo.foobar", 0).intValue()).isEqualTo(2);
+        assertThat(build.get("rootfoo")).isEqualTo("test");
+        assertThat(build.get("foo.baz")).isEqualTo("1,2,3,4");
         assertNull(build.get("foo.null.baz"));
     }
 
@@ -541,20 +540,20 @@ public class SettingsTests extends ESTestCase {
         builder.startObject();
         test.toXContent(builder, new ToXContent.MapParams(Collections.emptyMap()));
         builder.endObject();
-        assertEquals("{\"foo\":{\"bar.baz\":\"test\",\"bar\":[\"1\",\"2\",\"3\"]}}", Strings.toString(builder));
+        assertThat(Strings.toString(builder)).isEqualTo("{\"foo\":{\"bar.baz\":\"test\",\"bar\":[\"1\",\"2\",\"3\"]}}");
 
         test = Settings.builder().putList("foo.bar", "1", "2", "3").build();
         builder = XContentBuilder.builder(XContentType.JSON.xContent());
         builder.startObject();
         test.toXContent(builder, new ToXContent.MapParams(Collections.emptyMap()));
         builder.endObject();
-        assertEquals("{\"foo\":{\"bar\":[\"1\",\"2\",\"3\"]}}", Strings.toString(builder));
+        assertThat(Strings.toString(builder)).isEqualTo("{\"foo\":{\"bar\":[\"1\",\"2\",\"3\"]}}");
 
         builder = XContentBuilder.builder(XContentType.JSON.xContent());
         builder.startObject();
         test.toXContent(builder, new ToXContent.MapParams(Collections.singletonMap("flat_settings", "true")));
         builder.endObject();
-        assertEquals("{\"foo.bar\":[\"1\",\"2\",\"3\"]}", Strings.toString(builder));
+        assertThat(Strings.toString(builder)).isEqualTo("{\"foo.bar\":[\"1\",\"2\",\"3\"]}");
     }
 
     @Test
@@ -563,7 +562,7 @@ public class SettingsTests extends ESTestCase {
                                                           new ByteArrayInputStream(new byte[0]),
                                                           false)
             .build();
-        assertEquals(0, test.size());
+        assertThat(test.size()).isEqualTo(0);
     }
 
     @Test
@@ -575,18 +574,17 @@ public class SettingsTests extends ESTestCase {
         Settings.writeSettingsToStream(output, settings);
         StreamInput in = StreamInput.wrap(BytesReference.toBytes(output.bytes()));
         Settings build = Settings.readSettingsFromStream(in);
-        assertEquals(2, build.size());
-        assertEquals(build.getAsList("foo.bar"), Arrays.asList("0", "1", "2", "3"));
-        assertEquals(build.get("foo.bar.baz"), "baz");
+        assertThat(build.size()).isEqualTo(2);
+        assertThat(Arrays.asList("0", "1", "2", "3")).isEqualTo(build.getAsList("foo.bar"));
+        assertThat("baz").isEqualTo(build.get("foo.bar.baz"));
     }
 
     @Test
     public void testCopy() {
         Settings settings = Settings.builder().putList("foo.bar", "0", "1", "2", "3").put("foo.bar.baz", "baz").putNull(
             "test").build();
-        assertEquals(Arrays.asList("0", "1", "2", "3"),
-                     Settings.builder().copy("foo.bar", settings).build().getAsList("foo.bar"));
-        assertEquals("baz", Settings.builder().copy("foo.bar.baz", settings).build().get("foo.bar.baz"));
+        assertThat(Settings.builder().copy("foo.bar", settings).build().getAsList("foo.bar")).isEqualTo(Arrays.asList("0", "1", "2", "3"));
+        assertThat(Settings.builder().copy("foo.bar.baz", settings).build().get("foo.bar.baz")).isEqualTo("baz");
         assertNull(Settings.builder().copy("foo.bar.baz", settings).build().get("test"));
         assertThat(Settings.builder().copy("test", settings).build().keySet().contains("test")).isTrue();
         assertThatThrownBy(() -> Settings.builder().copy("not_there", settings))

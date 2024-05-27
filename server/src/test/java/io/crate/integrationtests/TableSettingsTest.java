@@ -27,7 +27,6 @@ import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
 import java.util.Locale;
@@ -98,31 +97,31 @@ public class TableSettingsTest extends IntegTestCase {
     public void testFilterOnNull() throws Exception {
         execute("select * from information_schema.tables " +
                 "where settings IS NULL");
-        assertEquals(66L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(66L);
         execute("select * from information_schema.tables " +
                 "where table_name = 'settings_table' and settings['blocks']['read'] IS NULL");
-        assertEquals(0, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(0);
     }
 
     @Test
     public void testFilterOnTimeValue() throws Exception {
         execute("select * from information_schema.tables " +
                 "where settings['translog']['sync_interval'] <= 1000");
-        assertEquals(0, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(0);
     }
 
     @Test
     public void testFilterOnBoolean() throws Exception {
         execute("select * from information_schema.tables " +
                 "where settings['blocks']['metadata'] = false");
-        assertEquals(1, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1);
     }
 
     @Test
     public void testFilterOnInteger() throws Exception {
         execute("select * from information_schema.tables " +
                 "where settings['routing']['allocation']['total_shards_per_node'] >= 10");
-        assertEquals(1, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1);
     }
 
     @Test
@@ -146,29 +145,29 @@ public class TableSettingsTest extends IntegTestCase {
     public void testFilterOnByteSizeValue() throws Exception {
         execute("select * from information_schema.tables " +
                 "where settings['translog']['flush_threshold_size'] < 2000000");
-        assertEquals(1, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1);
     }
 
     @Test
     public void testFilterOnString() throws Exception {
         execute("select * from information_schema.tables " +
                 "where settings['routing']['allocation']['enable'] = 'primaries'");
-        assertEquals(1, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1);
     }
 
     @Test
     public void testDefaultRefreshIntervalSettings() {
         execute("select * from information_schema.tables " +
                 "where settings['refresh_interval'] = 1000");
-        assertEquals(1, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1);
     }
 
     @Test
     public void testDefaultWaitForActiveShardsSettings() {
         execute("select settings['write']['wait_for_active_shards'] from information_schema.tables " +
                 "where table_name = 'settings_table'");
-        assertEquals(1, response.rowCount());
-        assertEquals("1", response.rows()[0][0]);
+        assertThat(response.rowCount()).isEqualTo(1);
+        assertThat(response.rows()[0][0]).isEqualTo("1");
     }
 
     @Test

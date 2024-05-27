@@ -26,7 +26,6 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasKey;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -372,7 +371,7 @@ public class StoreTests extends ESTestCase {
         }
 
         try (IndexInput indexInput = dir.openInput("lucene_checksum.bin", IOContext.DEFAULT)) {
-            assertEquals(luceneFileLength, indexInput.length());
+            assertThat(indexInput.length()).isEqualTo(luceneFileLength);
         }
 
         dir.close();
@@ -418,7 +417,7 @@ public class StoreTests extends ESTestCase {
         BytesRef ref = new BytesRef(scaledRandomIntBetween(1, 1024));
         long pos = 0;
         while (pos < indexInput.length()) {
-            assertEquals(pos, indexInput.getFilePointer());
+            assertThat(indexInput.getFilePointer()).isEqualTo(pos);
             int op = random().nextInt(5);
             if (op == 0) {
                 int shift = 100 - randomIntBetween(0, 200);
@@ -715,18 +714,18 @@ public class StoreTests extends ESTestCase {
         final ShardLock lock = new DummyShardLock(shardId);
 
         Store store = new Store(shardId, INDEX_SETTINGS, StoreTests.newDirectory(random()), lock, theLock -> {
-            assertEquals(shardId, theLock.getShardId());
-            assertEquals(lock, theLock);
+            assertThat(theLock.getShardId()).isEqualTo(shardId);
+            assertThat(theLock).isEqualTo(lock);
             count.incrementAndGet();
         });
-        assertEquals(count.get(), 0);
+        assertThat(0).isEqualTo(count.get());
 
         final int iters = randomIntBetween(1, 10);
         for (int i = 0; i < iters; i++) {
             store.close();
         }
 
-        assertEquals(count.get(), 1);
+        assertThat(1).isEqualTo(count.get());
     }
 
     public void testStoreStats() throws IOException {
@@ -743,18 +742,18 @@ public class StoreTests extends ESTestCase {
         }
         final long reservedBytes =  randomBoolean() ? StoreStats.UNKNOWN_RESERVED_BYTES :randomLongBetween(0L, Integer.MAX_VALUE);
         StoreStats stats = store.stats(reservedBytes);
-        assertEquals(initialStoreSize, stats.getSize().getBytes());
-        assertEquals(reservedBytes, stats.getReservedSize().getBytes());
+        assertThat(stats.getSize().getBytes()).isEqualTo(initialStoreSize);
+        assertThat(stats.getReservedSize().getBytes()).isEqualTo(reservedBytes);
 
         stats.add(null);
-        assertEquals(initialStoreSize, stats.getSize().getBytes());
-        assertEquals(reservedBytes, stats.getReservedSize().getBytes());
+        assertThat(stats.getSize().getBytes()).isEqualTo(initialStoreSize);
+        assertThat(stats.getReservedSize().getBytes()).isEqualTo(reservedBytes);
 
         final long otherStatsBytes = randomLongBetween(0L, Integer.MAX_VALUE);
         final long otherStatsReservedBytes = randomBoolean() ? StoreStats.UNKNOWN_RESERVED_BYTES :randomLongBetween(0L, Integer.MAX_VALUE);
         stats.add(new StoreStats(otherStatsBytes, otherStatsReservedBytes));
-        assertEquals(initialStoreSize + otherStatsBytes, stats.getSize().getBytes());
-        assertEquals(Math.max(reservedBytes, 0L) + Math.max(otherStatsReservedBytes, 0L), stats.getReservedSize().getBytes());
+        assertThat(stats.getSize().getBytes()).isEqualTo(initialStoreSize + otherStatsBytes);
+        assertThat(stats.getReservedSize().getBytes()).isEqualTo(Math.max(reservedBytes, 0L) + Math.max(otherStatsReservedBytes, 0L));
 
         Directory dir = store.directory();
         final long length;
@@ -769,7 +768,7 @@ public class StoreTests extends ESTestCase {
 
         assertThat(numNonExtraFiles(store) > 0).isTrue();
         stats = store.stats(0L);
-        assertEquals(stats.getSizeInBytes(), length + initialStoreSize);
+        assertThat(length + initialStoreSize).isEqualTo(stats.getSizeInBytes());
 
         deleteContent(store.directory());
         IOUtils.close(store);
@@ -961,8 +960,8 @@ public class StoreTests extends ESTestCase {
             store.failIfCorrupted();
             fail("should be corrupted");
         } catch (CorruptIndexException e) {
-            assertEquals(ex.getMessage(), e.getMessage());
-            assertEquals(ex.toString(), e.toString());
+            assertThat(e.getMessage()).isEqualTo(ex.getMessage());
+            assertThat(e.toString()).isEqualTo(ex.toString());
             assertStacktraceArrayEquals(ex.getStackTrace(), e.getStackTrace());
         }
 
@@ -974,7 +973,7 @@ public class StoreTests extends ESTestCase {
             store.failIfCorrupted();
             fail("should be corrupted");
         } catch (CorruptIndexException e) {
-            assertEquals("foobar (resource=preexisting_corruption)", e.getMessage());
+            assertThat(e.getMessage()).isEqualTo("foobar (resource=preexisting_corruption)");
             assertStacktraceArrayEquals(ioe.getStackTrace(), e.getCause().getStackTrace());
         }
         store.close();
@@ -1021,7 +1020,7 @@ public class StoreTests extends ESTestCase {
             store.directory().createOutput(testfile, IOContext.DEFAULT).close();
             try (IndexInput input = store.directory().openInput(testfile, IOContext.DEFAULT)) {
                 store.directory().deleteFile(testfile);
-                assertEquals(FilterDirectory.unwrap(store.directory()).getPendingDeletions(), store.directory().getPendingDeletions());
+                assertThat(store.directory().getPendingDeletions()).isEqualTo(FilterDirectory.unwrap(store.directory()).getPendingDeletions());
             }
         }
     }

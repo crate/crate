@@ -22,7 +22,6 @@
 package io.crate.execution.engine.distribution;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
 
 import java.util.List;
 import java.util.UUID;
@@ -62,7 +61,7 @@ public class DistributedResultRequestTest extends ESTestCase {
         StreamInput in = out.bytes().streamInput();
         DistributedResultRequest r2 = new DistributedResultRequest(in);
 
-        assertEquals(r1.readRows(streamers).size(), r2.readRows(streamers).size());
+        assertThat(r2.readRows(streamers).size()).isEqualTo(r1.readRows(streamers).size());
         assertThat(r1.isLast()).isEqualTo(r2.isLast());
         assertThat(r1.executionPhaseInputId()).isEqualTo(r2.executionPhaseInputId());
 

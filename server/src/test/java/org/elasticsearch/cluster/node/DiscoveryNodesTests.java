@@ -23,7 +23,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -159,11 +158,11 @@ public class DiscoveryNodesTests extends ESTestCase {
         final DiscoveryNodes.Builder discoBuilder = DiscoveryNodes.builder();
         inputNodes.forEach(discoBuilder::add);
         final List<DiscoveryNode> returnedNodes = discoBuilder.build().mastersFirstStream().collect(Collectors.toList());
-        assertEquals(returnedNodes.size(), inputNodes.size());
-        assertEquals(new HashSet<>(returnedNodes), new HashSet<>(inputNodes));
+        assertThat(inputNodes.size()).isEqualTo(returnedNodes.size());
+        assertThat(new HashSet<>(inputNodes)).isEqualTo(new HashSet<>(returnedNodes));
         final List<DiscoveryNode> sortedNodes = new ArrayList<>(returnedNodes);
         Collections.sort(sortedNodes, Comparator.comparing(n -> n.isMasterEligibleNode() == false));
-        assertEquals(sortedNodes, returnedNodes);
+        assertThat(returnedNodes).isEqualTo(sortedNodes);
     }
 
     public void testDeltas() {
@@ -355,7 +354,7 @@ public class DiscoveryNodesTests extends ESTestCase {
         discoBuilder.localNodeId("name_1");
         discoBuilder.masterNodeId("name_2");
         DiscoveryNodes build = discoBuilder.build();
-        assertEquals( Version.V_4_4_0, build.getMaxNodeVersion());
-        assertEquals( Version.V_4_0_0, build.getMinNodeVersion());
+        assertThat(build.getMaxNodeVersion()).isEqualTo( Version.V_4_4_0);
+        assertThat(build.getMinNodeVersion()).isEqualTo( Version.V_4_0_0);
     }
 }

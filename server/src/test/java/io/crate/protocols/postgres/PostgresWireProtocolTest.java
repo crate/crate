@@ -24,7 +24,6 @@ package io.crate.protocols.postgres;
 import static io.crate.protocols.postgres.PostgresWireProtocol.PG_SERVER_VERSION;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.isOneOf;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -435,7 +434,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         ByteBuf responseBuffer = channel.readOutbound();
         try {
             byte response = responseBuffer.readByte();
-            assertEquals(response, 'N');
+            assertThat('N').isEqualTo((char) response);
         } finally {
             responseBuffer.release();
         }
@@ -477,7 +476,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         ByteBuf responseBuffer = channel.readOutbound();
         try {
             byte response = responseBuffer.readByte();
-            assertEquals(response, 'S');
+            assertThat('S').isEqualTo((char) response);
         } finally {
             responseBuffer.release();
         }

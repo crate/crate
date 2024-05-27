@@ -133,7 +133,7 @@ public class BlobStoreRepositoryTest extends IntegTestCase {
         } else {
             assertThat(foundBlobs).containsOnlyKeys(blobs.keySet().toArray(Strings.EMPTY_ARRAY));
             for (Map.Entry<String, BlobMetadata> entry : foundBlobs.entrySet()) {
-                assertThat(entry.getValue().length()).isEqualTo(blobs.get(entry.getKey()).length());
+                assertThat(blobs.get(entry.getKey()).length()).isEqualTo(entry.getValue().length());
             }
         }
     }

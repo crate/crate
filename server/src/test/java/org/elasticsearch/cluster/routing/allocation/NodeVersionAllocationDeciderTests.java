@@ -27,7 +27,6 @@ import static org.elasticsearch.cluster.routing.ShardRoutingState.STARTED;
 import static org.elasticsearch.cluster.routing.ShardRoutingState.UNASSIGNED;
 import static org.elasticsearch.cluster.routing.UnassignedInfo.INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING;
 import static org.elasticsearch.test.VersionUtils.randomVersion;
-import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -409,7 +408,7 @@ public class NodeVersionAllocationDeciderTests extends ESAllocationTestCase {
 
         // Make sure that primary shards are only allocated on the new node
         for (int i = 0; i < numberOfShards; i++) {
-            assertEquals("newNode", state.routingTable().index("test").getShards().get(i).primaryShard().currentNodeId());
+            assertThat(state.routingTable().index("test").getShards().get(i).primaryShard().currentNodeId()).isEqualTo("newNode");
         }
     }
 

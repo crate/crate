@@ -22,10 +22,7 @@
 package org.elasticsearch.transport;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
@@ -100,7 +97,7 @@ public class TransportActionProxyTests extends ESTestCase {
     public void testSendMessage() throws InterruptedException {
         serviceA.registerRequestHandler("internal:test", ThreadPool.Names.SAME, SimpleTestRequest::new,
                                         (request, channel) -> {
-                                            assertEquals(request.sourceNode, "TS_A");
+                                            assertThat("TS_A").isEqualTo(request.sourceNode);
                                             SimpleTestResponse response = new SimpleTestResponse("TS_A");
                                             channel.sendResponse(response);
                                         });
@@ -109,7 +106,7 @@ public class TransportActionProxyTests extends ESTestCase {
 
         serviceB.registerRequestHandler("internal:test", ThreadPool.Names.SAME, SimpleTestRequest::new,
                                         (request, channel) -> {
-                                            assertEquals(request.sourceNode, "TS_A");
+                                            assertThat("TS_A").isEqualTo(request.sourceNode);
                                             SimpleTestResponse response = new SimpleTestResponse("TS_B");
                                             channel.sendResponse(response);
                                         });
@@ -117,7 +114,7 @@ public class TransportActionProxyTests extends ESTestCase {
         AbstractSimpleTransportTestCase.connectToNode(serviceB, nodeC);
         serviceC.registerRequestHandler("internal:test", ThreadPool.Names.SAME, SimpleTestRequest::new,
                                         (request, channel) -> {
-                                            assertEquals(request.sourceNode, "TS_A");
+                                            assertThat("TS_A").isEqualTo(request.sourceNode);
                                             SimpleTestResponse response = new SimpleTestResponse("TS_C");
                                             channel.sendResponse(response);
                                         });
@@ -134,7 +131,7 @@ public class TransportActionProxyTests extends ESTestCase {
             @Override
             public void handleResponse(SimpleTestResponse response) {
                 try {
-                    assertEquals("TS_C", response.targetNode);
+                    assertThat(response.targetNode).isEqualTo("TS_C");
                 } finally {
                     latch.countDown();
                 }
@@ -160,7 +157,7 @@ public class TransportActionProxyTests extends ESTestCase {
     public void testException() throws InterruptedException {
         serviceA.registerRequestHandler("internal:test", ThreadPool.Names.SAME, SimpleTestRequest::new,
                                         (request, channel) -> {
-                                            assertEquals(request.sourceNode, "TS_A");
+                                            assertThat("TS_A").isEqualTo(request.sourceNode);
                                             SimpleTestResponse response = new SimpleTestResponse("TS_A");
                                             channel.sendResponse(response);
                                         });
@@ -169,7 +166,7 @@ public class TransportActionProxyTests extends ESTestCase {
 
         serviceB.registerRequestHandler("internal:test", ThreadPool.Names.SAME, SimpleTestRequest::new,
                                         (request, channel) -> {
-                                            assertEquals(request.sourceNode, "TS_A");
+                                            assertThat("TS_A").isEqualTo(request.sourceNode);
                                             SimpleTestResponse response = new SimpleTestResponse("TS_B");
                                             channel.sendResponse(response);
                                         });
@@ -202,7 +199,7 @@ public class TransportActionProxyTests extends ESTestCase {
             public void handleException(TransportException exp) {
                 try {
                     Throwable cause = Exceptions.firstCause(exp);
-                    assertEquals("greetings from TS_C", cause.getMessage());
+                    assertThat(cause.getMessage()).isEqualTo("greetings from TS_C");
                 } finally {
                     latch.countDown();
                 }
@@ -257,7 +254,7 @@ public class TransportActionProxyTests extends ESTestCase {
         String action = "foo/bar";
         String proxyAction = TransportActionProxy.getProxyAction(action);
         assertThat(proxyAction.endsWith(action)).isTrue();
-        assertEquals("internal:transport/proxy/foo/bar", proxyAction);
+        assertThat(proxyAction).isEqualTo("internal:transport/proxy/foo/bar");
     }
 
     public void testUnwrap() {

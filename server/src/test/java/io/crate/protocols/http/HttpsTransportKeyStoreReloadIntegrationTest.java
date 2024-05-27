@@ -21,10 +21,8 @@
 
 package io.crate.protocols.http;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -147,8 +145,8 @@ public class HttpsTransportKeyStoreReloadIntegrationTest extends SQLHttpIntegrat
 
         assertBusy(() -> {
             try (CloseableHttpResponse response = post("{\"stmt\": \"select 'sslWorks'\"}")) {
-                assertThat(response, not(nullValue()));
-                assertEquals(200, response.getStatusLine().getStatusCode());
+                assertThat(response).isNotNull();
+                assertThat(response.getStatusLine().getStatusCode()).isEqualTo(200);
                 String result = EntityUtils.toString(response.getEntity());
                 assertThat(result, containsString("\"rowcount\":1"));
                 assertThat(result, containsString("sslWorks"));

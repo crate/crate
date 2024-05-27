@@ -26,7 +26,7 @@ import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.rtsp.RtspResponseStatuses.BAD_REQUEST;
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -209,12 +209,12 @@ public class OpenCloseTableIntegrationTest extends IntegTestCase {
     @Test
     public void testOpenCloseTable() throws Exception {
         execute("select closed from information_schema.tables where table_name = 't'");
-        assertEquals(1, response.rowCount());
-        assertEquals(true, response.rows()[0][0]);
+        assertThat(response.rowCount()).isEqualTo(1);
+        assertThat(response.rows()[0][0]).isEqualTo(true);
 
         IndexMetadata indexMetadata = client().admin().cluster().state(new ClusterStateRequest()).get().getState().metadata()
             .indices().get(getFqn("t"));
-        assertEquals(IndexMetadata.State.CLOSE, indexMetadata.getState());
+        assertThat(indexMetadata.getState()).isEqualTo(IndexMetadata.State.CLOSE);
 
         execute("alter table t open");
 
@@ -222,9 +222,9 @@ public class OpenCloseTableIntegrationTest extends IntegTestCase {
             .indices().get(getFqn("t"));
 
         execute("select closed from information_schema.tables where table_name = 't'");
-        assertEquals(1, response.rowCount());
-        assertEquals(false, response.rows()[0][0]);
-        assertEquals(IndexMetadata.State.OPEN, indexMetadata.getState());
+        assertThat(response.rowCount()).isEqualTo(1);
+        assertThat(response.rows()[0][0]).isEqualTo(false);
+        assertThat(indexMetadata.getState()).isEqualTo(IndexMetadata.State.OPEN);
     }
 
     @Test
@@ -289,9 +289,9 @@ public class OpenCloseTableIntegrationTest extends IntegTestCase {
         ensureGreen(); // index must be active to be included in close
         execute("alter table partitioned_table partition (i=1) close");
         execute("select i from partitioned_table");
-        assertEquals(4, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(4);
         execute("select i from partitioned_table where i = 1");
-        assertEquals(0, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(0);
     }
 
     @Test

@@ -31,6 +31,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.rtsp.RtspResponseStatuses.BAD_REQUEST;
 import static io.netty.handler.codec.rtsp.RtspResponseStatuses.INTERNAL_SERVER_ERROR;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.both;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
@@ -38,7 +39,6 @@ import static org.hamcrest.Matchers.isOneOf;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
@@ -116,10 +116,10 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("copy quotes partition (date=1400507539938) from ?", new Object[]{
             copyFilePath + "test_copy_from.json"});
-        assertEquals(3L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(3L);
         refresh();
         execute("select id, date, quote from quotes order by id asc");
-        assertEquals(3L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(3L);
         assertThat(response.rows()[0][0]).isEqualTo(1);
         assertThat(response.rows()[0][1]).isEqualTo(1400507539938L);
         assertThat(response.rows()[0][2]).isEqualTo("Don't pa\u00f1ic.");
@@ -148,7 +148,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         ensureYellow();
 
         execute("copy quotes from ?", new Object[]{copyFilePath + "test_copy_from.json"});
-        assertEquals(3L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(3L);
         refresh();
         ensureYellow();
 
@@ -163,7 +163,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         }
 
         execute("select * from quotes");
-        assertEquals(3L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(3L);
         assertThat(response.rows()[0].length).isEqualTo(2);
     }
 
@@ -178,12 +178,12 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         ensureYellow();
 
         execute("copy quotes from ?", new Object[]{copyFilePath + "test_copy_from.json"});
-        assertEquals(3L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(3L);
         refresh();
         ensureYellow();
 
         execute("select * from quotes");
-        assertEquals(3L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(3L);
         assertThat(response.rows()[0].length).isEqualTo(3);
     }
 
@@ -203,7 +203,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("insert into t (a, b) values (1, 'bar')");
         assertThat(response.rowCount()).isEqualTo(0L);
         execute("select count(*) from t");
-        assertEquals(0L, response.rows()[0][0]);
+        assertThat(response.rows()[0][0]).isEqualTo(0L);
     }
 
     @Test
@@ -218,7 +218,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
                 .hasRows($(true));
         });
         execute("select count(*) from t");
-        assertEquals(0L, response.rows()[0][0]);
+        assertThat(response.rows()[0][0]).isEqualTo(0L);
     }
 
     @Test
@@ -240,7 +240,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         String uriPath = Paths.get(copyFromFile.toURI()).toUri().toString();
 
         execute("copy my_schema.parted from ? with (shared=true)", new Object[]{uriPath});
-        assertEquals(2L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(2L);
         refresh();
 
         ensureGreen();
@@ -489,7 +489,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("select id, quote from quotes where (timestamp = 1395961200000 or timestamp = 1395874800000) and id = 1");
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
     }
 
     @Test
@@ -505,11 +505,11 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("select count(*) from quotes where (timestamp = 1395961200000 or timestamp = 1395874800000)");
-        assertEquals(1L, response.rowCount());
-        assertEquals(2L, response.rows()[0][0]);
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows()[0][0]).isEqualTo(2L);
 
         execute("select count(*) from quotes where timestamp = 1");
-        assertEquals(0L, response.rows()[0][0]);
+        assertThat(response.rows()[0][0]).isEqualTo(0L);
     }
 
     @Test
@@ -580,22 +580,22 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
 
         execute("update quotes set quote = ? where timestamp = ?",
             new Object[]{"I'd far rather be happy than right any day.", 1395874800000L});
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
         refresh();
 
         execute("select id, quote from quotes where timestamp = 1395874800000");
-        assertEquals(1L, response.rowCount());
-        assertEquals(1, response.rows()[0][0]);
-        assertEquals("I'd far rather be happy than right any day.", response.rows()[0][1]);
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows()[0][0]).isEqualTo(1);
+        assertThat(response.rows()[0][1]).isEqualTo("I'd far rather be happy than right any day.");
 
         execute("update quotes set quote = ?",
             new Object[]{"Don't panic"});
-        assertEquals(2L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(2L);
         refresh();
 
         execute("select id, quote from quotes where quote = ?",
             new Object[]{"Don't panic"});
-        assertEquals(2L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(2L);
     }
 
     @Test
@@ -715,21 +715,21 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("delete from quotes where timestamp = 1395874800000 and id = 1");
-        assertEquals(1, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1);
         refresh();
 
         execute("select id, quote from quotes where timestamp = 1395874800000");
-        assertEquals(0L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(0L);
 
         execute("select id, quote from quotes");
-        assertEquals(2L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(2L);
 
         execute("delete from quotes");
         assertThat(response.rowCount(), anyOf(is(0L), is(-1L)));
         refresh();
 
         execute("select id, quote from quotes");
-        assertEquals(0L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(0L);
     }
 
     @Test
@@ -1109,7 +1109,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("select * from information_schema.columns where table_name = 'quotes'");
-        assertEquals(5L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(5L);
 
         execute("insert into quotes (id, quote, date, author) values(?, ?, ?, ?)",
             new Object[]{3, "I'd far rather be happy than right any day", 1395874800000L,
@@ -1122,13 +1122,13 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("select * from information_schema.columns where table_name = 'quotes'");
-        assertEquals(6L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(6L);
 
         execute("select author['surname'] from quotes order by id");
-        assertEquals(3L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(3L);
         assertNull(response.rows()[0][0]);
         assertNull(response.rows()[1][0]);
-        assertEquals("Adams", response.rows()[2][0]);
+        assertThat(response.rows()[2][0]).isEqualTo("Adams");
     }
 
     @Test
@@ -1139,33 +1139,33 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("insert into quotes (id, quote, date, user_id) values(?, ?, ?, ?)",
             new Object[]{1, "Don't panic", 1395874800000L, "Arthur"});
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
         execute("insert into quotes (id, quote, date, user_id) values(?, ?, ?, ?)",
             new Object[]{2, "Time is an illusion. Lunchtime doubly so", 1395961200000L, "Ford"});
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
         ensureYellow();
         refresh();
 
         execute("select id, quote from quotes where user_id = 'Arthur'");
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
 
         execute("update quotes set quote = ? where user_id = ?",
             new Object[]{"I'd far rather be happy than right any day", "Arthur"});
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
         refresh();
 
         execute("delete from quotes where user_id = 'Arthur' and id = 1 and date = 1395874800000");
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
         refresh();
 
         execute("select * from quotes");
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
 
         execute("delete from quotes"); // this will delete all partitions
         execute("delete from quotes"); // this should still work even though only the template exists
 
         execute("drop table quotes");
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
     }
 
     @Test
@@ -1176,33 +1176,33 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("insert into my_schema.quotes (id, quote, date, user_id) values(?, ?, ?, ?)",
             new Object[]{1, "Don't panic", 1395874800000L, "Arthur"});
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
         execute("insert into my_schema.quotes (id, quote, date, user_id) values(?, ?, ?, ?)",
             new Object[]{2, "Time is an illusion. Lunchtime doubly so", 1395961200000L, "Ford"});
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
         ensureYellow();
         refresh();
 
         execute("select id, quote from my_schema.quotes where user_id = 'Arthur'");
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
 
         execute("update my_schema.quotes set quote = ? where user_id = ?",
             new Object[]{"I'd far rather be happy than right any day", "Arthur"});
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
         refresh();
 
         execute("delete from my_schema.quotes where user_id = 'Arthur' and id = 1 and date = 1395874800000");
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
         refresh();
 
         execute("select * from my_schema.quotes");
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
 
         execute("delete from my_schema.quotes"); // this will delete all partitions
         execute("delete from my_schema.quotes"); // this should still work even though only the template exists
 
         execute("drop table my_schema.quotes");
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
     }
 
     @Test
@@ -1242,20 +1242,20 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("insert into quotes (id, quote, created) values(?, ?, ?)",
             new Object[]{1, "Don't panic", Map.of("date", 1395874800000L, "user_id", "Arthur")});
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
         execute("insert into quotes (id, quote, created) values(?, ?, ?)",
             new Object[]{2, "Time is an illusion. Lunchtime doubly so", Map.of("date", 1395961200000L, "user_id", "Ford")});
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
         ensureYellow();
         refresh();
 
         execute("select id, quote, created['date'] from quotes where created['user_id'] = 'Arthur'");
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
         assertThat((Long) response.rows()[0][2]).isEqualTo(1395874800000L);
 
         execute("update quotes set quote = ? where created['date'] = ?",
             new Object[]{"I'd far rather be happy than right any day", 1395874800000L});
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
 
         execute("refresh table quotes");
 
@@ -1263,14 +1263,14 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         assertThat((Long) response.rows()[0][0]).isEqualTo(1L);
 
         execute("delete from quotes where created['user_id'] = 'Arthur' and id = 1 and created['date'] = 1395874800000");
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
         refresh();
 
         execute("select * from quotes");
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
 
         execute("drop table quotes");
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
     }
 
     @Test
@@ -1406,8 +1406,8 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             Map.entry("require", Map.of()),
             Map.entry("exclude", Map.of())
         );
-        assertEquals(routingAllocation, response.rows()[0][0]);
-        assertEquals(routingAllocation, response.rows()[1][0]);
+        assertThat(response.rows()[0][0]).isEqualTo(routingAllocation);
+        assertThat(response.rows()[1][0]).isEqualTo(routingAllocation);
 
         execute("alter table attrs set (\"routing.allocation.total_shards_per_node\"=1)");
         execute("alter table attrs PARTITION (name = 'foo') set (\"routing.allocation.exclude.foo\" = 'dummy')");
@@ -1427,7 +1427,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             Map.entry("require", Map.of()),
             Map.entry("exclude", Map.of())
         );
-        assertEquals(routingAllocation, response.rows()[0][0]);
+        assertThat(response.rows()[0][0]).isEqualTo(routingAllocation);
         routingAllocation = Map.ofEntries(
             Map.entry("enable", "all"),
             Map.entry("total_shards_per_node", 1),
@@ -1435,7 +1435,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             Map.entry("require", Map.of()),
             Map.entry("exclude", Map.of("foo", "dummy"))
         );
-        assertEquals(routingAllocation, response.rows()[1][0]);
+        assertThat(response.rows()[1][0]).isEqualTo(routingAllocation);
     }
 
     @Test
@@ -1713,7 +1713,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("select o['i'], o['name'] from t");
         assertThat(response.rows()[0][0], Matchers.is(1));
         execute("select distinct table_name, partition_ident from sys.shards where table_name = 't'");
-        assertEquals("t| 04132\n", printedTable(response.rows()));
+        assertThat(printedTable(response.rows())).isEqualTo("t| 04132\n");
     }
 
 

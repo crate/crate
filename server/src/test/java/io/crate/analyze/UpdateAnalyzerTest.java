@@ -33,7 +33,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
@@ -41,7 +40,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -209,7 +207,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         Reference ref = update.assignmentByTargetCol().keySet().iterator().next();
         assertThat(ref).isExactlyInstanceOf(DynamicReference.class);
-        Assert.assertEquals(DataTypes.INTEGER, ref.valueType());
+        assertThat(ref.valueType()).isEqualTo(DataTypes.INTEGER);
         assertThat(ref.column().isRoot()).isFalse();
         assertThat(ref.column().fqn()).isEqualTo("details.arms");
     }
@@ -225,7 +223,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedUpdateStatement update = analyze("update users set other_id=9.9");
         Reference ref = update.assignmentByTargetCol().keySet().iterator().next();
         assertThat(ref, not(instanceOf(DynamicReference.class)));
-        assertEquals(DataTypes.LONG, ref.valueType());
+        assertThat(ref.valueType()).isEqualTo(DataTypes.LONG);
 
         Assignments assignments = Assignments.convert(update.assignmentByTargetCol(), e.nodeCtx);
         Symbol[] sources = assignments.bindSources(

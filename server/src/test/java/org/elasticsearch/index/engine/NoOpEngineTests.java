@@ -21,7 +21,6 @@ package org.elasticsearch.index.engine;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -154,10 +153,10 @@ public class NoOpEngineTests extends EngineTestCase {
             }
 
             try (NoOpEngine noOpEngine = new NoOpEngine(config)) {
-                assertEquals(expectedDocStats.getCount(), noOpEngine.docStats().getCount());
-                assertEquals(expectedDocStats.getDeleted(), noOpEngine.docStats().getDeleted());
-                assertEquals(expectedDocStats.getTotalSizeInBytes(), noOpEngine.docStats().getTotalSizeInBytes());
-                assertEquals(expectedDocStats.getAverageSizeInBytes(), noOpEngine.docStats().getAverageSizeInBytes());
+                assertThat(noOpEngine.docStats().getCount()).isEqualTo(expectedDocStats.getCount());
+                assertThat(noOpEngine.docStats().getDeleted()).isEqualTo(expectedDocStats.getDeleted());
+                assertThat(noOpEngine.docStats().getTotalSizeInBytes()).isEqualTo(expectedDocStats.getTotalSizeInBytes());
+                assertThat(noOpEngine.docStats().getAverageSizeInBytes()).isEqualTo(expectedDocStats.getAverageSizeInBytes());
             } catch (AssertionError e) {
                 logger.error(config.getMergePolicy());
                 throw e;

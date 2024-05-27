@@ -19,14 +19,12 @@
 
 package org.elasticsearch.repositories.blobstore;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasKey;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
@@ -142,7 +140,7 @@ public final class BlobStoreTestUtil {
         final long[] indexGenerations = repoRoot.listBlobsByPrefix(BlobStoreRepository.INDEX_FILE_PREFIX).keySet().stream()
             .map(s -> s.replace(BlobStoreRepository.INDEX_FILE_PREFIX, ""))
             .mapToLong(Long::parseLong).sorted().toArray();
-        assertEquals(latestGen, indexGenerations[indexGenerations.length - 1]);
+        assertThat(indexGenerations[indexGenerations.length - 1]).isEqualTo(latestGen);
         assertThat(indexGenerations.length <= 2).isTrue();
     }
 

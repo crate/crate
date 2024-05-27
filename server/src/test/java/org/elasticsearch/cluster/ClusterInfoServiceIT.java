@@ -22,7 +22,6 @@ package org.elasticsearch.cluster;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 
@@ -103,7 +102,7 @@ public class ClusterInfoServiceIT extends IntegTestCase {
             IndicesService indicesService = internalTestCluster.getInstance(IndicesService.class, discoveryNode.getName());
             IndexService indexService = indicesService.indexService(shard.index());
             IndexShard indexShard = indexService.getShardOrNull(shard.id());
-            assertEquals(indexShard.shardPath().getRootDataPath().toString(), dataPath);
+            assertThat(dataPath).isEqualTo(indexShard.shardPath().getRootDataPath().toString());
         }
     }
 }

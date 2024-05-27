@@ -21,7 +21,7 @@
 
 package io.crate.execution.dsl.projection;
 
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
@@ -59,7 +59,7 @@ public class WriterProjectionTest extends ESTestCase {
         StreamInput in = out.bytes().streamInput();
         WriterProjection p2 = (WriterProjection) Projection.fromStream(in);
 
-        assertEquals(p, p2);
+        assertThat(p2).isEqualTo(p);
     }
 
 
@@ -95,6 +95,6 @@ public class WriterProjectionTest extends ESTestCase {
         in.setVersion(Version.V_4_7_0);
         WriterProjection actual = (WriterProjection) Projection.fromStream(in);
 
-        assertEquals(expected, actual);
+        assertThat(actual).isEqualTo(expected);
     }
 }

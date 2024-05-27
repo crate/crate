@@ -29,7 +29,6 @@ import static org.elasticsearch.index.engine.Engine.Operation.Origin.REPLICA;
 import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
 import static org.elasticsearch.index.translog.TranslogDeletionPolicies.createTranslogDeletionPolicy;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
@@ -187,8 +186,8 @@ public abstract class EngineTestCase extends ESTestCase {
         engine = createEngine(store, primaryTranslogDir);
         LiveIndexWriterConfig currentIndexWriterConfig = engine.getCurrentIndexWriterConfig();
 
-        assertEquals(engine.config().getCodec().getName(), codecService.codec(codecName).getName());
-        assertEquals(currentIndexWriterConfig.getCodec().getName(), codecService.codec(codecName).getName());
+        assertThat(codecService.codec(codecName).getName()).isEqualTo(engine.config().getCodec().getName());
+        assertThat(codecService.codec(codecName).getName()).isEqualTo(currentIndexWriterConfig.getCodec().getName());
         if (randomBoolean()) {
             engine.config().setEnableGcDeletes(false);
         }
@@ -196,8 +195,8 @@ public abstract class EngineTestCase extends ESTestCase {
         replicaEngine = createEngine(storeReplica, replicaTranslogDir);
         currentIndexWriterConfig = replicaEngine.getCurrentIndexWriterConfig();
 
-        assertEquals(replicaEngine.config().getCodec().getName(), codecService.codec(codecName).getName());
-        assertEquals(currentIndexWriterConfig.getCodec().getName(), codecService.codec(codecName).getName());
+        assertThat(codecService.codec(codecName).getName()).isEqualTo(replicaEngine.config().getCodec().getName());
+        assertThat(codecService.codec(codecName).getName()).isEqualTo(currentIndexWriterConfig.getCodec().getName());
         if (randomBoolean()) {
             engine.config().setEnableGcDeletes(false);
         }
