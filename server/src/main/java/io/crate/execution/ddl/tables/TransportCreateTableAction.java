@@ -26,12 +26,9 @@ import static org.elasticsearch.cluster.metadata.MetadataCreateIndexService.setI
 import static org.elasticsearch.cluster.metadata.MetadataCreateIndexService.validateSoftDeletesSetting;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.HashSet;
-import java.util.Set;
 
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.create.CreateIndexClusterStateUpdateRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
@@ -40,7 +37,6 @@ import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
 import org.elasticsearch.cluster.metadata.MetadataIndexTemplateService;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -53,7 +49,6 @@ import org.elasticsearch.transport.TransportService;
 
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 
 /**
@@ -137,7 +132,7 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
         if (createTableRequest.partitionedBy().isEmpty()) {
             createIndex(createTableRequest, listener);
         } else {
-            createTemplate(createTableRequest, listener);
+            indexTemplateService.putTemplate(createTableRequest, listener);
         }
     }
 
@@ -172,33 +167,6 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
                 new CreateIndexResponse(response.isAcknowledged(), response.isShardsAcknowledged(), indexName))
         );
 
-    }
-
-    /**
-     * Similar to {@link TransportPutIndexTemplateAction#masterOperation}
-     * but also can pass on CrateDB specific objects to build mapping only at the latest stage.
-     *
-     * @param mapping is NOT NULL if passed mapping without OID-s can be used directly (for Pre 5.4 code)
-     * or NULL if we have to build it and assign OID out of references.
-     */
-    private void createTemplate(CreateTableRequest createTableRequest, ActionListener<CreateTableResponse> listener) {
-        RelationName relationName = createTableRequest.getTableName(); // getTableName call is BWC.
-        final Settings.Builder templateSettingsBuilder = Settings.builder();
-        templateSettingsBuilder.put(createTableRequest.settings()).normalizePrefix(IndexMetadata.INDEX_SETTING_PREFIX);
-        indexScopedSettings.validate(templateSettingsBuilder.build(), true); // templates must be consistent with regards to dependencies
-        String name = PartitionName.templateName(relationName.schema(), relationName.name());
-        indexTemplateService.putTemplate(new MetadataIndexTemplateService.PutRequest("api", name)
-                .patterns(Collections.singletonList(PartitionName.templatePrefix(
-                    relationName.schema(),
-                    relationName.name())))
-                .settings(templateSettingsBuilder.build())
-                .aliases(Set.of(new Alias(relationName.indexNameOrAlias()))) // We used PutIndexTemplateRequest which creates a single alias
-                .create(true) // We used PutIndexTemplateRequest with explicit 'true'
-                .masterTimeout(createTableRequest.masterNodeTimeout())
-                .version(null),
-            createTableRequest,
-            listener
-        );
     }
 
     private static void validateSettings(Settings settings, ClusterState state) {
