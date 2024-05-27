@@ -31,6 +31,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.data.Offset.offset;
 
@@ -1743,8 +1744,8 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("CREATE TABLE new_lines (obj OBJECT);");
         assertSQLError(() -> execute("INSERT INTO new_lines (obj) VALUES ('{\"a\\nb\":1}');"))
                 .hasPGError(INTERNAL_ERROR)
-                .hasHTTPError(BAD_REQUEST, 4003)
-                .hasMessageContaining("Column name 'a\nb' contains illegal whitespace character");
+                .hasHTTPError(BAD_REQUEST, 4008)
+                .hasMessageContaining("\"a\nb\" contains illegal whitespace character");
     }
 
 

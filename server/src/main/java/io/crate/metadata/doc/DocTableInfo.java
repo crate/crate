@@ -1052,6 +1052,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                                    List<Reference> newColumns,
                                    IntArrayList pKeyIndices,
                                    Map<String, String> newCheckConstraints) {
+        newColumns.forEach(ref -> ref.column().validForCreate());
         HashMap<ColumnIdent, Reference> newReferences = new HashMap<>(references);
         droppedColumns.forEach(ref -> newReferences.put(ref.column(), ref));
         int maxPosition = maxPosition();
