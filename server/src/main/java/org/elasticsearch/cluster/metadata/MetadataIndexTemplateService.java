@@ -31,6 +31,7 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.support.master.MasterNodeRequest;
 import org.elasticsearch.cluster.ClusterState;
@@ -58,6 +59,7 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.Constants;
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.ddl.tables.CreateTableRequest;
+import io.crate.execution.ddl.tables.CreateTableResponse;
 import io.crate.execution.ddl.tables.MappingUtil;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.Reference;
@@ -88,7 +90,9 @@ public class MetadataIndexTemplateService {
         this.xContentRegistry = xContentRegistry;
     }
 
-    public void putTemplate(final PutRequest request, @Nullable final CreateTableRequest createTableRequest, final PutListener listener) {
+    public void putTemplate(final PutRequest request,
+                            @Nullable final CreateTableRequest createTableRequest,
+                            ActionListener<CreateTableResponse> listener) {
         Settings.Builder updatedSettingsBuilder = Settings.builder();
         updatedSettingsBuilder.put(request.settings).normalizePrefix(IndexMetadata.INDEX_SETTING_PREFIX);
         request.settings(updatedSettingsBuilder.build());
@@ -147,7 +151,7 @@ public class MetadataIndexTemplateService {
 
                 @Override
                 public void clusterStateProcessed(String source, ClusterState oldState, ClusterState newState) {
-                    listener.onResponse(new PutResponse(true, templateBuilder.build()));
+                    listener.onResponse(new CreateTableResponse(true));
                 }
             }
         );
@@ -282,13 +286,6 @@ public class MetadataIndexTemplateService {
         }
     }
 
-    public interface PutListener {
-
-        void onResponse(PutResponse response);
-
-        void onFailure(Exception e);
-    }
-
     public static class PutRequest {
         final String name;
         final String cause;
@@ -339,24 +336,6 @@ public class MetadataIndexTemplateService {
         public PutRequest version(Integer version) {
             this.version = version;
             return this;
-        }
-    }
-
-    public static class PutResponse {
-        private final boolean acknowledged;
-        private final IndexTemplateMetadata template;
-
-        public PutResponse(boolean acknowledged, IndexTemplateMetadata template) {
-            this.acknowledged = acknowledged;
-            this.template = template;
-        }
-
-        public boolean acknowledged() {
-            return acknowledged;
-        }
-
-        public IndexTemplateMetadata template() {
-            return template;
         }
     }
 }

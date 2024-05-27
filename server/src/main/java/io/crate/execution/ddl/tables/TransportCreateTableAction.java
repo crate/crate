@@ -30,14 +30,12 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.create.CreateIndexClusterStateUpdateRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
 import org.elasticsearch.action.support.ActiveShardCount;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
@@ -184,11 +182,6 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
      * or NULL if we have to build it and assign OID out of references.
      */
     private void createTemplate(CreateTableRequest createTableRequest, ActionListener<CreateTableResponse> listener) {
-        ActionListener<AcknowledgedResponse> wrappedListener = ActionListener.wrap(
-            response -> listener.onResponse(new CreateTableResponse(response.isAcknowledged())),
-            listener::onFailure
-        );
-
         RelationName relationName = createTableRequest.getTableName(); // getTableName call is BWC.
         final Settings.Builder templateSettingsBuilder = Settings.builder();
         templateSettingsBuilder.put(createTableRequest.settings()).normalizePrefix(IndexMetadata.INDEX_SETTING_PREFIX);
@@ -203,21 +196,9 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
                 .create(true) // We used PutIndexTemplateRequest with explicit 'true'
                 .masterTimeout(createTableRequest.masterNodeTimeout())
                 .version(null),
-            // We used PutIndexTemplateRequest with default version value
-
             createTableRequest,
-            new MetadataIndexTemplateService.PutListener() {
-                @Override
-                public void onResponse(MetadataIndexTemplateService.PutResponse response) {
-                    wrappedListener.onResponse(new AcknowledgedResponse(response.acknowledged()));
-                }
-
-                @Override
-                public void onFailure(Exception e) {
-                    logger.debug(() -> new ParameterizedMessage("failed to put template [{}]", name), e);
-                    wrappedListener.onFailure(e);
-                }
-            });
+            listener
+        );
     }
 
     private static void validateSettings(Settings settings, ClusterState state) {
