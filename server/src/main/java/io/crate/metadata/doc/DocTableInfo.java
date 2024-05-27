@@ -54,7 +54,6 @@ import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.MapperService;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -68,7 +67,6 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.TableReferenceResolver;
-import io.crate.common.CheckedFunction;
 import io.crate.common.collections.Lists;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.RelationUnknown;
@@ -928,8 +926,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         );
     }
 
-    public Metadata.Builder writeTo(CheckedFunction<IndexMetadata, MapperService, IOException> createMapperService,
-                                    Metadata metadata,
+    public Metadata.Builder writeTo(Metadata metadata,
                                     Metadata.Builder metadataBuilder) throws IOException {
         List<Reference> allColumns = Stream.concat(
                 Stream.concat(
@@ -968,11 +965,14 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             if (indexMetadata == null) {
                 throw new UnsupportedOperationException("Cannot create index via DocTableInfo.writeTo");
             }
-            MapperService mapperService = createMapperService.apply(indexMetadata);
-            DocumentMapper mapper = mapperService.merge(mapping, MapperService.MergeReason.MAPPING_UPDATE);
+
+            long allowedTotalColumns = MapperService.INDEX_MAPPING_TOTAL_FIELDS_LIMIT_SETTING.get(indexMetadata.getSettings());
+            if (allColumns.size() > allowedTotalColumns) {
+                throw new IllegalArgumentException("Limit of total columns [" + allowedTotalColumns + "] in table [" + ident + "] exceeded");
+            }
             metadataBuilder.put(
                 IndexMetadata.builder(indexMetadata)
-                    .putMapping(new MappingMetadata(mapper.mappingSource()))
+                    .putMapping(new MappingMetadata(mapping))
                     .numberOfShards(numberOfShards)
                     .mappingVersion(indexMetadata.getMappingVersion() + 1)
             );
@@ -1052,6 +1052,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                                    List<Reference> newColumns,
                                    IntArrayList pKeyIndices,
                                    Map<String, String> newCheckConstraints) {
+        newColumns.forEach(ref -> ref.column().validForCreate());
         HashMap<ColumnIdent, Reference> newReferences = new HashMap<>(references);
         droppedColumns.forEach(ref -> newReferences.put(ref.column(), ref));
         int maxPosition = maxPosition();

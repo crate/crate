@@ -59,7 +59,6 @@ import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.IndexEnv;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -349,32 +348,24 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             );
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         ClusterState state = clusterService.state();
-        try (IndexEnv indexEnv = new IndexEnv(
-            THREAD_POOL,
-            tbl,
-            state,
-            Version.V_5_4_0
-        )) {
+        Metadata metadata = state.metadata();
+        Metadata.Builder builder = new Metadata.Builder(metadata);
+        tbl.writeTo(metadata, builder);
 
-            Metadata metadata = state.metadata();
-            Metadata.Builder builder = new Metadata.Builder(metadata);
-            tbl.writeTo(imd -> indexEnv.mapperService(), metadata, builder);
+        DocTableInfoFactory docTableInfoFactory = new DocTableInfoFactory(e.nodeCtx);
+        DocTableInfo tbl2 = docTableInfoFactory.create(tbl.ident(), builder.build());
 
-            DocTableInfoFactory docTableInfoFactory = new DocTableInfoFactory(e.nodeCtx);
-            DocTableInfo tbl2 = docTableInfoFactory.create(tbl.ident(), builder.build());
+        Reference description = tbl2.getReference(new ColumnIdent("description"));
+        assertThat(description).isIndexReference()
+            .hasName("description")
+            .hasAnalyzer("simple");
 
-            Reference description = tbl2.getReference(new ColumnIdent("description"));
-            assertThat(description).isIndexReference()
-                .hasName("description")
-                .hasAnalyzer("simple");
-
-            IndexReference indexColumn = tbl2.indexColumn(new ColumnIdent("name_ft"));
-            assertThat(indexColumn).isNotNull();
-            assertThat(indexColumn.analyzer()).isEqualTo("standard");
-            assertThat(indexColumn.columns()).satisfiesExactly(
-                x -> assertThat(x).isReference().hasName("name")
-            );
-        }
+        IndexReference indexColumn = tbl2.indexColumn(new ColumnIdent("name_ft"));
+        assertThat(indexColumn).isNotNull();
+        assertThat(indexColumn.analyzer()).isEqualTo("standard");
+        assertThat(indexColumn.columns()).satisfiesExactly(
+            x -> assertThat(x).isReference().hasName("name")
+        );
     }
 
     @Test

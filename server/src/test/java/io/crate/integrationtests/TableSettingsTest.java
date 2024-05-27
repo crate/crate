@@ -134,7 +134,7 @@ public class TableSettingsTest extends IntegTestCase {
 
         // One more column exceeds the limit
         var msg = String.format(Locale.ENGLISH,
-            "Limit of total fields [%d] in index [%s.test] has been exceeded", totalFields + 1, sqlExecutor.getCurrentSchema());
+            "Limit of total columns [%d] in table [%s.test] exceeded", totalFields + 1, sqlExecutor.getCurrentSchema());
         Asserts.assertSQLError(() -> execute("alter table test add column new_column2 int"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)

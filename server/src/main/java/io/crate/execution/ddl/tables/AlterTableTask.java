@@ -21,14 +21,9 @@
 
 package io.crate.execution.ddl.tables;
 
-import java.io.IOException;
-
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.index.mapper.MapperService;
 
-import io.crate.common.CheckedFunction;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.cluster.DDLClusterStateTaskExecutor;
@@ -38,16 +33,13 @@ import io.crate.metadata.doc.DocTableInfoFactory;
 public class AlterTableTask<T> extends DDLClusterStateTaskExecutor<T> {
 
     private final NodeContext nodeContext;
-    private final CheckedFunction<IndexMetadata, MapperService, IOException> createMapperService;
     private final RelationName relationName;
     private final AlterTableOperator<T> alterTableOperator;
 
     public AlterTableTask(NodeContext nodeContext,
-                          CheckedFunction<IndexMetadata, MapperService, IOException> createMapperService,
                           RelationName relationName,
                           AlterTableOperator<T> alterTableOperator) {
         this.nodeContext = nodeContext;
-        this.createMapperService = createMapperService;
         this.relationName = relationName;
         this.alterTableOperator = alterTableOperator;
     }
@@ -62,7 +54,7 @@ public class AlterTableTask<T> extends DDLClusterStateTaskExecutor<T> {
         if (newTable == currentTable) {
             return currentState;
         }
-        newTable.writeTo(createMapperService, metadata, metadataBuilder);
+        newTable.writeTo(metadata, metadataBuilder);
         Metadata newMetadata = metadataBuilder.build();
         // Ensure new table can still be parsed
         docTableInfoFactory.create(relationName, newMetadata);
