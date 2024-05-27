@@ -140,8 +140,12 @@ public class PartitionName {
     }
 
     public static String templateName(String indexName) {
-        RelationName relationName = PartitionName.fromIndexOrTemplate(indexName).relationName;
-        return templateName(relationName.schema(), relationName.name());
+        IndexParts indexParts = new IndexParts(indexName);
+        if (!indexParts.isPartitioned()) {
+            throw new IllegalArgumentException(
+                "Cannot convert non-partitioned index name to templateName: " + indexName);
+        }
+        return templateName(indexParts.getSchema(), indexParts.getTable());
     }
 
     /**
