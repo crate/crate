@@ -24,7 +24,6 @@ import static org.elasticsearch.indices.cluster.IndicesClusterStateService.Alloc
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -43,7 +42,6 @@ import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.ValidationException;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
@@ -53,12 +51,9 @@ import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.MapperService.MergeReason;
-import org.elasticsearch.indices.IndexTemplateMissingException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.InvalidIndexTemplateException;
 import org.jetbrains.annotations.Nullable;
-
-import com.carrotsearch.hppc.cursors.ObjectCursor;
 
 import io.crate.Constants;
 import io.crate.common.unit.TimeValue;
@@ -91,51 +86,6 @@ public class MetadataIndexTemplateService {
         this.metadataCreateIndexService = metadataCreateIndexService;
         this.indexScopedSettings = indexScopedSettings;
         this.xContentRegistry = xContentRegistry;
-    }
-
-    public void removeTemplates(final RemoveRequest request, final RemoveListener listener) {
-        clusterService.submitStateUpdateTask("remove-index-template [" + request.name + "]", new ClusterStateUpdateTask(Priority.URGENT) {
-
-            @Override
-            public TimeValue timeout() {
-                return request.masterTimeout;
-            }
-
-            @Override
-            public void onFailure(String source, Exception e) {
-                listener.onFailure(e);
-            }
-
-            @Override
-            public ClusterState execute(ClusterState currentState) {
-                Set<String> templateNames = new HashSet<>();
-                for (ObjectCursor<String> cursor : currentState.metadata().templates().keys()) {
-                    String templateName = cursor.value;
-                    if (Regex.simpleMatch(request.name, templateName)) {
-                        templateNames.add(templateName);
-                    }
-                }
-                if (templateNames.isEmpty()) {
-                    // if its a match all pattern, and no templates are found (we have none), don't
-                    // fail with index missing...
-                    if (Regex.isMatchAllPattern(request.name)) {
-                        return currentState;
-                    }
-                    throw new IndexTemplateMissingException(request.name);
-                }
-                Metadata.Builder metadata = Metadata.builder(currentState.metadata());
-                for (String templateName : templateNames) {
-                    LOGGER.info("removing template [{}]", templateName);
-                    metadata.removeTemplate(templateName);
-                }
-                return ClusterState.builder(currentState).metadata(metadata).build();
-            }
-
-            @Override
-            public void clusterStateProcessed(String source, ClusterState oldState, ClusterState newState) {
-                listener.onResponse(new RemoveResponse(true));
-            }
-        });
     }
 
     public void putTemplate(final PutRequest request, @Nullable final CreateTableRequest createTableRequest, final PutListener listener) {
@@ -408,38 +358,5 @@ public class MetadataIndexTemplateService {
         public IndexTemplateMetadata template() {
             return template;
         }
-    }
-
-    public static class RemoveRequest {
-        final String name;
-        TimeValue masterTimeout = MasterNodeRequest.DEFAULT_MASTER_NODE_TIMEOUT;
-
-        public RemoveRequest(String name) {
-            this.name = name;
-        }
-
-        public RemoveRequest masterTimeout(TimeValue masterTimeout) {
-            this.masterTimeout = masterTimeout;
-            return this;
-        }
-    }
-
-    public static class RemoveResponse {
-        private final boolean acknowledged;
-
-        public RemoveResponse(boolean acknowledged) {
-            this.acknowledged = acknowledged;
-        }
-
-        public boolean acknowledged() {
-            return acknowledged;
-        }
-    }
-
-    public interface RemoveListener {
-
-        void onResponse(RemoveResponse response);
-
-        void onFailure(Exception e);
     }
 }
