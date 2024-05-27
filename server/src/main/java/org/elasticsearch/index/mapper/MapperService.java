@@ -53,6 +53,7 @@ import org.elasticsearch.indices.mapper.MapperRegistry;
 
 import io.crate.Constants;
 import io.crate.server.xcontent.LoggingDeprecationHandler;
+import io.crate.server.xcontent.XContentHelper;
 
 public class MapperService extends AbstractIndexComponent implements Closeable {
 
@@ -197,8 +198,10 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
                     assert currentSource.equals(newSource) :
                         "expected current mapping [" + currentSource + "] for type [" + Constants.DEFAULT_MAPPING_TYPE + "] "
                             + "to be the same as new mapping [" + newSource + "]";
-                    final CompressedXContent mapperSource = new CompressedXContent(Strings.toString(mapper));
-                    assert currentSource.equals(mapperSource) :
+
+                    Map<String, Object> currentMapping = XContentHelper.toMap(currentSource.uncompressed(), XContentType.JSON);
+                    Map<String, Object> mapperSource = XContentHelper.toMap(mapping.source().uncompressed(), XContentType.JSON);
+                    assert currentMapping.equals(mapperSource) :
                         "expected current mapping [" + currentSource + "] for type [" + Constants.DEFAULT_MAPPING_TYPE + "] "
                             + "to be the same as new mapping [" + mapperSource + "]";
                 }
