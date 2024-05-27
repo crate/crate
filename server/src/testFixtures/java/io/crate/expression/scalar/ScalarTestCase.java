@@ -23,7 +23,6 @@ package io.crate.expression.scalar;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isNull;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -257,6 +256,9 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
 
         actualValue = scalar.evaluate(txnCtx, sqlExpressions.nodeCtx, arguments);
         assertThat((T) actualValue).satisfies(expectedValue);
+        if (scalar.signature().hasFeature(Scalar.Feature.NON_NULLABLE)) {
+            assertThat(actualValue).isNotNull();
+        }
     }
 
     @SuppressWarnings("rawtypes")
