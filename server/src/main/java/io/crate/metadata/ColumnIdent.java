@@ -250,6 +250,15 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
             throw new InvalidColumnNameException(
                 columnName, "conflicts with subscript pattern, square brackets are not allowed");
         }
+        for (int i = 0; i < columnName.length(); i++) {
+            switch (columnName.charAt(i)) {
+                case '\t':
+                case '\n':
+                case '\r':
+                    throw new InvalidColumnNameException(columnName, "contains illegal whitespace character");
+                default:
+            }
+        }
     }
 
     /**

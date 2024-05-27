@@ -23,6 +23,7 @@ package io.crate.execution.dml;
 
 import static io.crate.metadata.doc.mappers.array.ArrayMapperTest.mapper;
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 import static org.elasticsearch.index.mapper.GeoShapeFieldMapper.Names.TREE_BKD;
@@ -117,23 +118,16 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private DocTableInfo addColumns(SQLExecutor e, DocTableInfo table, List<Reference> newColumns) throws Exception {
-        try (IndexEnv indexEnv = new IndexEnv(
-                THREAD_POOL,
-                table,
-                clusterService.state(),
-                Version.CURRENT
-        )) {
-            var addColumnTask = new AlterTableTask<>(
-                e.nodeCtx, imd -> indexEnv.mapperService(), table.ident(), TransportAddColumnAction.ADD_COLUMN_OPERATOR);
-            AddColumnRequest request = new AddColumnRequest(
-                    table.ident(),
-                    newColumns,
-                    Map.of(),
-                    new IntArrayList(0)
-            );
-            ClusterState newState = addColumnTask.execute(clusterService.state(), request);
-            return new DocTableInfoFactory(e.nodeCtx).create(table.ident(), newState.metadata());
-        }
+        var addColumnTask = new AlterTableTask<>(
+            e.nodeCtx, table.ident(), TransportAddColumnAction.ADD_COLUMN_OPERATOR);
+        AddColumnRequest request = new AddColumnRequest(
+                table.ident(),
+                newColumns,
+                Map.of(),
+                new IntArrayList(0)
+        );
+        ClusterState newState = addColumnTask.execute(clusterService.state(), request);
+        return new DocTableInfoFactory(e.nodeCtx).create(table.ident(), newState.metadata());
     }
 
     static Map<String, Object> sourceMap(ParsedDocument parsedDocument, DocTableInfo tableInfo) throws Exception {

@@ -134,6 +134,7 @@ public class ColumnIdentTest {
         assertNameValidationThrows("\"a[1]\"", "\"\"a[1]\"\" conflicts with subscript pattern, square brackets are not allowed");
         assertNameValidationThrows("\"fda_32$@%^nf[ffDA&^\"", "\"\"fda_32$@%^nf[ffDA&^\"\" conflicts with subscript pattern, square brackets are not allowed");
         assertNameValidationThrows("[", "\"[\" conflicts with subscript pattern, square brackets are not allowed");
+        assertNameValidationThrows("no\tpe", "\"no\tpe\" contains illegal whitespace character");
     }
 
     /**
