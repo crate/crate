@@ -91,4 +91,22 @@ public class ThreeValuedLogicQueryBuilderTest extends LuceneQueryBuilderTest {
         assertThat(convert("NOT (x OR y) > true")).hasToString(
             "+(+*:* -((x OR y) > true)) #(NOT ((x OR y) > true))");
     }
+
+    @Test
+    public void test_not_on_pg_encoding_to_char() {
+        assertThat(convert("NOT (PG_ENCODING_TO_CHAR(x))"))
+            .hasToString("+(+*:* -pg_catalog.pg_encoding_to_char(x)) #(NOT pg_catalog.pg_encoding_to_char(x))");
+    }
+
+    @Test
+    public void test_not_on_pg_get_function_result() {
+        assertThat(convert("NOT (PG_GET_FUNCTION_RESULT(x))"))
+            .hasToString("+(+*:* -pg_get_function_result(x)) #(NOT pg_get_function_result(x))");
+    }
+
+    @Test
+    public void test_not_on_current_setting() {
+        assertThat(convert("NOT (CURRENT_SETTING(name))"))
+            .hasToString("+(+*:* -pg_catalog.current_setting(name)) #(NOT pg_catalog.current_setting(name))");
+    }
 }

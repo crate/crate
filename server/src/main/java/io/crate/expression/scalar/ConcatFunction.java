@@ -83,8 +83,7 @@ public abstract class ConcatFunction extends Scalar<String, String> {
                 DataTypes.UNTYPED_OBJECT.getTypeSignature(),
                 DataTypes.UNTYPED_OBJECT.getTypeSignature(),
                 DataTypes.UNTYPED_OBJECT.getTypeSignature()
-            )
-            .withFeature(Feature.NON_NULLABLE),
+            ),
             ObjectMergeFunction::new
         );
     }
