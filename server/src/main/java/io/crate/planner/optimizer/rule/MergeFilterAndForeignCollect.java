@@ -74,7 +74,8 @@ public class MergeFilterAndForeignCollect implements Rule<Filter> {
                 collect.fdw(),
                 collect.relation(),
                 collect.outputs(),
-                collect.where().add(filter.query())
+                collect.where().add(filter.query()),
+                collect.executeAs()
             );
         }
         return null;
