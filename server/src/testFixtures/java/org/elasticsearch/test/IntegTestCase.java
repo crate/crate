@@ -113,8 +113,6 @@ import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.TestEnvironment;
 import org.elasticsearch.http.HttpTransportSettings;
@@ -1907,41 +1905,6 @@ public abstract class IntegTestCase extends ESTestCase {
 
             }
         }, 20L, TimeUnit.SECONDS);
-    }
-
-    /**
-     * Get the IndexSettings as JSON String
-     *
-     * @param index the name of the index
-     * @return the IndexSettings as JSON String
-     * @throws IOException
-     */
-    protected String getIndexSettings(String index) throws IOException {
-        ClusterStateRequest request = new ClusterStateRequest()
-            .routingTable(false)
-            .nodes(false)
-            .metadata(true)
-            .indices(index);
-        ClusterStateResponse response = FutureUtils.get(client().admin().cluster().state(request));
-
-        Metadata metadata = response.getState().metadata();
-        XContentBuilder builder = JsonXContent.builder().startObject();
-
-        for (IndexMetadata indexMetadata : metadata) {
-            builder.startObject(indexMetadata.getIndex().getName());
-            builder.startObject("settings");
-            Settings settings = indexMetadata.getSettings();
-            for (String settingName : settings.keySet()) {
-                builder.field(settingName, settings.get(settingName));
-            }
-            builder.endObject();
-
-            builder.endObject();
-        }
-
-        builder.endObject();
-
-        return Strings.toString(builder);
     }
 
     /**

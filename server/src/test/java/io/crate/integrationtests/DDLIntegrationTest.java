@@ -40,8 +40,6 @@ import java.util.Map;
 import org.elasticsearch.Version;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
-import org.skyscreamer.jsonassert.JSONAssert;
-import org.skyscreamer.jsonassert.JSONCompareMode;
 
 import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.testing.Asserts;
@@ -61,12 +59,6 @@ public class DDLIntegrationTest extends IntegTestCase {
     public void testCreateTable() throws Exception {
         execute("create table test (col1 integer primary key, col2 string) " +
                 "clustered into 5 shards with (number_of_replicas = 1, \"write.wait_for_active_shards\"=1)");
-        String expectedSettings = "{\"test\":{" +
-                                  "\"settings\":{" +
-                                  "\"index.number_of_replicas\":\"1\"," +
-                                  "\"index.number_of_shards\":\"5\"," +
-                                  "\"index.version.created\":\"" + Version.CURRENT.internalId + "\"" +
-                                  "}}}";
         Map<String, Object> expectedMapping = Map.of(
             "dynamic", "strict",
             "_meta", Map.of("primary_keys", List.of("col1")),
@@ -76,12 +68,16 @@ public class DDLIntegrationTest extends IntegTestCase {
             )
         );
         assertThat(getIndexMapping("test")).isEqualTo(expectedMapping);
-        JSONAssert.assertEquals(expectedSettings, getIndexSettings("test"), false);
+
+        execute("select number_of_replicas, number_of_shards, version from information_schema.tables where table_name = 'test'");
+        assertThat(response).hasRows(
+            "1| 5| {created=" + Version.CURRENT + ", upgraded=NULL}"
+        );
 
         // test index usage
         execute("insert into test (col1, col2) values (1, 'foo')");
         assertEquals(1, response.rowCount());
-        refresh();
+        execute("refresh table test");
         execute("SELECT * FROM test");
         assertEquals(1L, response.rowCount());
     }
@@ -91,34 +87,25 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("create table test (id int primary key, content string) " +
                 "clustered into 5 shards " +
                 "with (refresh_interval=0, number_of_replicas = 0)");
-        String expectedSettings = "{\"test\":{" +
-                                  "\"settings\":{" +
-                                  "\"index.number_of_replicas\":\"0\"," +
-                                  "\"index.number_of_shards\":\"5\"," +
-                                  "\"index.refresh_interval\":\"0s\"," +
-                                  "\"index.version.created\":\"" + Version.CURRENT.internalId + "\"" +
-                                  "}}}";
-        JSONAssert.assertEquals(expectedSettings, getIndexSettings("test"), false);
+        execute("select number_of_replicas, number_of_shards, version, settings['refresh_interval'] "
+                + "from information_schema.tables where table_name = 'test'");
+        assertThat(response).hasRows(
+            "0| 5| {created=" + Version.CURRENT + ", upgraded=NULL}| 0"
+        );
 
         execute("ALTER TABLE test SET (refresh_interval = '5000ms')");
-        String expectedSetSettings = "{\"test\":{" +
-                                     "\"settings\":{" +
-                                     "\"index.number_of_replicas\":\"0\"," +
-                                     "\"index.number_of_shards\":\"5\"," +
-                                     "\"index.refresh_interval\":\"5s\"," +
-                                     "\"index.version.created\":\"" + Version.CURRENT.internalId + "\"" +
-                                     "}}}";
-        JSONAssert.assertEquals(expectedSetSettings, getIndexSettings("test"), false);
+        execute("select number_of_replicas, number_of_shards, version, settings['refresh_interval'] "
+                + "from information_schema.tables where table_name = 'test'");
+        assertThat(response).hasRows(
+            "0| 5| {created=" + Version.CURRENT + ", upgraded=NULL}| 5000"
+        );
 
         execute("ALTER TABLE test RESET (refresh_interval)");
-        String expectedResetSettings = "{\"test\":{" +
-                                       "\"settings\":{" +
-                                       "\"index.number_of_replicas\":\"0\"," +
-                                       "\"index.number_of_shards\":\"5\"," +
-                                       "\"index.refresh_interval\":\"1s\"," +
-                                       "\"index.version.created\":\"" + Version.CURRENT.internalId + "\"" +
-                                       "}}}";
-        JSONAssert.assertEquals(expectedResetSettings, getIndexSettings("test"), false);
+        execute("select number_of_replicas, number_of_shards, version, settings['refresh_interval'] "
+                + "from information_schema.tables where table_name = 'test'");
+        assertThat(response).hasRows(
+            "0| 5| {created=" + Version.CURRENT + ", upgraded=NULL}| 1000"
+        );
     }
 
 
@@ -144,15 +131,13 @@ public class DDLIntegrationTest extends IntegTestCase {
                 "col2", Map.of("type", "keyword", "position", 2, "oid", 2)
             )
         );
-
-        String expectedSettings = "{\"test\":{" +
-                                  "\"settings\":{" +
-                                  "\"index.number_of_replicas\":\"2\"," +
-                                  "\"index.number_of_shards\":\"10\"," +
-                                  "\"index.version.created\":\"" + Version.CURRENT.internalId + "\"" +
-                                  "}}}";
         assertThat(getIndexMapping("test")).isEqualTo(expectedMapping);
-        JSONAssert.assertEquals(expectedSettings, getIndexSettings("test"), JSONCompareMode.LENIENT);
+
+        execute("select number_of_replicas, number_of_shards, version "
+                + "from information_schema.tables where table_name = 'test'");
+        assertThat(response).hasRows(
+            "2| 10| {created=" + Version.CURRENT + ", upgraded=NULL}"
+        );
     }
 
     @Test
@@ -178,16 +163,13 @@ public class DDLIntegrationTest extends IntegTestCase {
                 )
             )
         );
-        String expectedSettings = "{\"test\":{" +
-                                  "\"settings\":{" +
-                                  "\"index.number_of_replicas\":\"0\"," +
-                                  "\"index.number_of_shards\":\"5\"," +
-                                  "\"index.version.created\":\"" + Version.CURRENT.internalId + "\"" +
-                                  "}}}";
-
-
         assertThat(getIndexMapping("test")).isEqualTo(expectedMapping);
-        JSONAssert.assertEquals(expectedSettings, getIndexSettings("test"), false);
+
+        execute("select number_of_replicas, number_of_shards, version "
+                + "from information_schema.tables where table_name = 'test'");
+        assertThat(response).hasRows(
+            "0| 5| {created=" + Version.CURRENT + ", upgraded=NULL}"
+        );
     }
 
     @Test
@@ -284,7 +266,7 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("create table quotes (quote string index using plain) with (number_of_replicas = 0)");
         String quote = "Would it save you a lot of time if I just gave up and went mad now?";
         execute("insert into quotes values (?)", new Object[]{quote});
-        refresh();
+        execute("refresh table quotes");
 
         // matching does not work on plain indexes
         execute("select quote from quotes where match(quote, 'time')");
@@ -371,7 +353,7 @@ public class DDLIntegrationTest extends IntegTestCase {
                              "the oceans.";
         execute("insert into novels (title, description) values(?, ?)",
             new Object[]{title, description});
-        refresh();
+        execute("refresh table novels");
 
         // match token existing at field `title`
         execute("select title, description from novels where match(title_desc_fulltext, 'fish')");
@@ -394,7 +376,7 @@ public class DDLIntegrationTest extends IntegTestCase {
     public void test_create_table_with_check_fail_on_insert() {
         execute("create table t (id integer primary key, qty integer, constraint check_1 check (qty > 0))");
         execute("insert into t(id, qty) values(0, null), (1, 1)");
-        refresh();
+        execute("refresh table t");
         execute("select id, qty from t order by id");
         assertEquals(printedTable(response.rows()),
                      "0| NULL\n" +
@@ -409,7 +391,7 @@ public class DDLIntegrationTest extends IntegTestCase {
     public void test_create_table_with_check_fail_on_update() {
         execute("create table t (id integer primary key, qty integer constraint check_1 check (qty > 0))");
         execute("insert into t(id, qty) values(0, 1)");
-        refresh();
+        execute("refresh table t");
         execute("select id, qty from t order by id");
         assertEquals(printedTable(response.rows()), "0| 1\n");
         execute("update t set qty = 1 where id = 0 returning id, qty");
@@ -482,7 +464,7 @@ public class DDLIntegrationTest extends IntegTestCase {
         );
 
         execute("insert into t(id) values(-1)");
-        refresh();
+        execute("refresh table t");
         execute("select id from t");
         assertThat(response).hasRows("-1");
     }
@@ -544,7 +526,7 @@ public class DDLIntegrationTest extends IntegTestCase {
                 "clustered into 1 shards " +
                 "with (number_of_replicas=0)");
         execute("insert into t (id) values(1)");
-        refresh();
+        execute("refresh table t");
 
         Asserts.assertSQLError(() -> execute("alter table t add column name string primary key"))
             .hasPGError(INTERNAL_ERROR)
@@ -559,7 +541,7 @@ public class DDLIntegrationTest extends IntegTestCase {
                 "with (number_of_replicas=0)");
         execute("alter table t add column id_generated as (id + 1)");
         execute("insert into t (id) values(1)");
-        refresh();
+        execute("refresh table t");
         execute("select id, id_generated from t");
         assertThat(response.rows()[0][0]).isEqualTo(1);
         assertThat(response.rows()[0][1]).isEqualTo(2);
@@ -571,7 +553,7 @@ public class DDLIntegrationTest extends IntegTestCase {
                 "clustered into 1 shards " +
                 "with (number_of_replicas=0)");
         execute("insert into t (id) values(1)");
-        refresh();
+        execute("refresh table t");
 
         Asserts.assertSQLError(() -> execute("alter table t add column id_generated as (id + 1)"))
             .hasPGError(INTERNAL_ERROR)
@@ -736,7 +718,7 @@ public class DDLIntegrationTest extends IntegTestCase {
                 ")");
         execute("ALTER TABLE t ADD column attributes['is_nice'] BOOLEAN");
         execute("INSERT INTO t (attributes) values ([{name='Trillian', is_nice=True}])");
-        refresh();
+        execute("refresh table t");
         execute("select attributes from t");
         assertThat(response).hasRows("[{name=Trillian, is_nice=true}]");
     }
@@ -853,7 +835,7 @@ public class DDLIntegrationTest extends IntegTestCase {
 
         execute("insert into a.t (name) values ('Ford')");
         assertThat(response).hasRowCount(1);
-        refresh();
+        execute("refresh table a.t");
 
         execute("select name from a.t");
         assertThat(response).hasRowCount(1);
