@@ -123,7 +123,7 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
                                                              List<Symbol> collect,
                                                              Symbol query) {
         SessionSettings sessionSettings = txnCtx.sessionSettings();
-        Settings userOptions = server.users().get(sessionSettings.userName());
+        Settings userOptions = server.users().get(currentUser.name());
         if (userOptions == null) {
             userOptions = Settings.EMPTY;
         }

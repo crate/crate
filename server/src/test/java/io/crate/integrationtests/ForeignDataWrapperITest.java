@@ -376,4 +376,54 @@ public class ForeignDataWrapperITest extends IntegTestCase {
         execute("drop user mapping for trillian server pg");
         assertThat(execute("select * from information_schema.user_mapping_options where option_name = 'password'")).isEmpty();
     }
+
+    @Test
+    public void test_users_with_dql_on_view_can_access_foreign_table_via_view_with_view_owners_user_mapping() {
+        PostgresNetty postgresNetty = cluster().getInstance(PostgresNetty.class);
+        int port = postgresNetty.boundAddress().publishAddress().getPort();
+        String url = "jdbc:postgresql://127.0.0.1:" + port + '/';
+
+        execute("create user user_a with (password = 'fooa')");
+        execute("grant al to user_a");
+        execute("grant ddl, dql on schema doc to user_a"); // required for the create-view stmt
+        var roles = cluster().getInstance(Roles.class);
+        Role user_a = roles.getUser("user_a");
+        sqlExecutor.executeAs(
+            String.format("CREATE SERVER pg FOREIGN DATA WRAPPER jdbc OPTIONS (url '%s')", url),
+            user_a);
+        sqlExecutor.executeAs("""
+            CREATE FOREIGN TABLE doc.remote_documents (name text)
+            SERVER pg
+            OPTIONS (schema_name 'public', table_name 'documents');
+            """, user_a);
+        sqlExecutor.executeAs("""
+            CREATE USER MAPPING FOR user_a
+            SERVER pg
+            OPTIONS ("user" 'foreign-user-a', password 'foreign-pw');
+            """, user_a);
+        sqlExecutor.executeAs(
+            "CREATE VIEW doc.remote_documents_view AS SELECT * FROM doc.remote_documents",
+            user_a);
+
+        execute("create user user_b with (password = 'foob')");
+        execute("grant dql on view doc.remote_documents_view to user_b");
+        Role user_b = roles.getUser("user_b");
+        assertThatThrownBy(
+            () -> sqlExecutor.executeAs("SELECT * FROM doc.remote_documents_view", user_b))
+            .isExactlyInstanceOf(RuntimeException.class)
+            // Notice that when 'user_b' accesses the foreign table implicitly via the view,
+            // 'foreign-user-a' is used which is mapped to 'user_a'(the view owner)
+            .hasMessageContaining("FATAL: trust authentication failed for user \"foreign-user-a\"");
+
+        // even when 'user-b' has its own mapping to the foreign server, 'foreign-user-a' is used
+        sqlExecutor.executeAs("""
+            CREATE USER MAPPING FOR user_b
+            SERVER pg
+            OPTIONS ("user" 'foreign-user-b', password 'foreign-pw');
+            """, user_a);
+        assertThatThrownBy(
+            () -> sqlExecutor.executeAs("SELECT * FROM doc.remote_documents_view", user_b))
+            .isExactlyInstanceOf(RuntimeException.class)
+            .hasMessageContaining("FATAL: trust authentication failed for user \"foreign-user-a\"");
+    }
 }
