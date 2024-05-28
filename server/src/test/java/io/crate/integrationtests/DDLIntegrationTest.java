@@ -38,14 +38,12 @@ import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
 
 import io.crate.protocols.postgres.PGErrorStatus;
-import io.crate.server.xcontent.XContentHelper;
 import io.crate.testing.Asserts;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseNewCluster;
@@ -63,23 +61,21 @@ public class DDLIntegrationTest extends IntegTestCase {
     public void testCreateTable() throws Exception {
         execute("create table test (col1 integer primary key, col2 string) " +
                 "clustered into 5 shards with (number_of_replicas = 1, \"write.wait_for_active_shards\"=1)");
-        String expectedMapping = "{\"default\":{" +
-                                 "\"dynamic\":\"strict\",\"_meta\":{" +
-                                 "\"primary_keys\":[\"col1\"]}," +
-                                 "\"properties\":{" +
-                                 // doc_values: true is default and not included
-                                 "\"col1\":{\"type\":\"integer\",\"position\":1,\"oid\":1}," +
-                                 "\"col2\":{\"type\":\"keyword\",\"position\":2,\"oid\":2}" +
-                                 "}}}";
-
         String expectedSettings = "{\"test\":{" +
                                   "\"settings\":{" +
                                   "\"index.number_of_replicas\":\"1\"," +
                                   "\"index.number_of_shards\":\"5\"," +
                                   "\"index.version.created\":\"" + Version.CURRENT.internalId + "\"" +
                                   "}}}";
-
-        assertEquals(expectedMapping, getIndexMapping("test"));
+        Map<String, Object> expectedMapping = Map.of(
+            "dynamic", "strict",
+            "_meta", Map.of("primary_keys", List.of("col1")),
+            "properties", Map.of(
+                "col1", Map.of("type", "integer", "position", 1, "oid", 1),
+                "col2", Map.of("type", "keyword", "position", 2, "oid", 2)
+            )
+        );
+        assertThat(getIndexMapping("test")).isEqualTo(expectedMapping);
         JSONAssert.assertEquals(expectedSettings, getIndexSettings("test"), false);
 
         // test index usage
@@ -140,15 +136,14 @@ public class DDLIntegrationTest extends IntegTestCase {
     public void testCreateTableWithReplicasAndShards() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)" +
                 "clustered by (col1) into 10 shards with (number_of_replicas=2, \"write.wait_for_active_shards\"=1)");
-        String expectedMapping = "{\"default\":{" +
-                                 "\"dynamic\":\"strict\"," +
-                                 "\"_meta\":{" +
-                                 "\"routing\":\"col1\"," +
-                                 "\"primary_keys\":[\"col1\"]}," +
-                                 "\"properties\":{" +
-                                 "\"col1\":{\"type\":\"integer\",\"position\":1,\"oid\":1}," +
-                                 "\"col2\":{\"type\":\"keyword\",\"position\":2,\"oid\":2}" +
-                                 "}}}";
+        Map<String, Object> expectedMapping = Map.of(
+            "dynamic", "strict",
+            "_meta", Map.of("routing", "col1", "primary_keys", List.of("col1")),
+            "properties", Map.of(
+                "col1", Map.of("type", "integer", "position", 1, "oid", 1),
+                "col2", Map.of("type", "keyword", "position", 2, "oid", 2)
+            )
+        );
 
         String expectedSettings = "{\"test\":{" +
                                   "\"settings\":{" +
@@ -156,8 +151,7 @@ public class DDLIntegrationTest extends IntegTestCase {
                                   "\"index.number_of_shards\":\"10\"," +
                                   "\"index.version.created\":\"" + Version.CURRENT.internalId + "\"" +
                                   "}}}";
-
-        JSONAssert.assertEquals(expectedMapping, getIndexMapping("test"), JSONCompareMode.LENIENT);
+        assertThat(getIndexMapping("test")).isEqualTo(expectedMapping);
         JSONAssert.assertEquals(expectedSettings, getIndexSettings("test"), JSONCompareMode.LENIENT);
     }
 
@@ -167,13 +161,23 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("create table test (col1 integer primary key, col2 string) " +
                 "clustered into 5 shards " +
                 "with (column_policy='strict', number_of_replicas = 0)");
-        String expectedMapping = "{\"default\":{" +
-            "\"dynamic\":\"strict\"," +
-            "\"_meta\":{\"primary_keys\":[\"col1\"]}," +
-            "\"properties\":{" +
-            "\"col1\":{\"type\":\"integer\",\"position\":1,\"oid\":1}," +
-            "\"col2\":{\"type\":\"keyword\",\"position\":2,\"oid\":2}}}}";
 
+        Map<String, Object> expectedMapping = Map.of(
+            "dynamic", "strict",
+            "_meta", Map.of("primary_keys", List.of("col1")),
+            "properties", Map.of(
+                "col1", Map.of(
+                    "type", "integer",
+                    "position", 1,
+                    "oid", 1
+                ),
+                "col2", Map.of(
+                    "type", "keyword",
+                    "position", 2,
+                    "oid", 2
+                )
+            )
+        );
         String expectedSettings = "{\"test\":{" +
                                   "\"settings\":{" +
                                   "\"index.number_of_replicas\":\"0\"," +
@@ -182,7 +186,7 @@ public class DDLIntegrationTest extends IntegTestCase {
                                   "}}}";
 
 
-        assertEquals(expectedMapping, getIndexMapping("test"));
+        assertThat(getIndexMapping("test")).isEqualTo(expectedMapping);
         JSONAssert.assertEquals(expectedSettings, getIndexSettings("test"), false);
     }
 
@@ -190,26 +194,41 @@ public class DDLIntegrationTest extends IntegTestCase {
     @UseNewCluster
     public void testCreateGeoShapeExplicitIndex() throws Exception {
         execute("create table test (col1 geo_shape INDEX using QUADTREE with (precision='1m', distance_error_pct='0.25'))");
-        ensureYellow();
-        String expectedMapping = "{\"default\":{" +
-                                 "\"dynamic\":\"strict\",\"_meta\":{}," +
-                                 "\"properties\":{" +
-                                 "\"col1\":{\"type\":\"geo_shape\",\"tree\":\"quadtree\",\"position\":1,\"oid\":1,\"precision\":\"1.0m\",\"distance_error_pct\":0.25}}}}";
-        assertEquals(expectedMapping, getIndexMapping("test"));
+        Map<String, Object> expectedMapping = Map.of(
+            "dynamic", "strict",
+            "_meta", Map.of(),
+            "properties", Map.of(
+                "col1", Map.of(
+                    "type", "geo_shape",
+                    "tree", "quadtree",
+                    "position", 1,
+                    "oid", 1,
+                    "precision", "1.0m",
+                    "distance_error_pct", 0.25
+                )
+            )
+        );
+        assertThat(getIndexMapping("test")).isEqualTo(expectedMapping);
     }
 
     @Test
     @UseNewCluster
     public void testCreateColumnWithDefaultExpression() throws Exception {
         execute("create table test (id int, col1 text default 'foo', col2 int[] default [1,2])");
-        String expectedMapping = "{\"default\":{" +
-            "\"dynamic\":\"strict\"," +
-            "\"_meta\":{}," +
-            "\"properties\":{" +
-            "\"id\":{\"type\":\"integer\",\"position\":1,\"oid\":1}," +
-            "\"col1\":{\"type\":\"keyword\",\"position\":2,\"default_expr\":\"'foo'\",\"oid\":2}," +
-            "\"col2\":{\"type\":\"array\",\"inner\":{\"type\":\"integer\",\"position\":3,\"default_expr\":\"[1, 2]\",\"oid\":3}}" +
-            "}}}";
+        Map<String, Object> expectedMapping = Map.of(
+            "dynamic", "strict",
+            "_meta", Map.of(),
+            "properties", Map.of(
+                "id", Map.of("type", "integer", "position", 1, "oid", 1),
+                "col1", Map.of("type", "keyword", "position", 2, "default_expr", "'foo'", "oid", 2),
+                "col2", Map.of(
+                    "type", "array",
+                    "inner", Map.of(
+                        "type", "integer", "position", 3, "default_expr", "[1, 2]", "oid", 3
+                    )
+                )
+            )
+        );
         assertThat(getIndexMapping("test")).isEqualTo(expectedMapping);
         execute("insert into test(id) values(1)");
         execute("refresh table test");
@@ -221,12 +240,18 @@ public class DDLIntegrationTest extends IntegTestCase {
     @UseNewCluster
     public void testCreateGeoShape() throws Exception {
         execute("create table test (col1 geo_shape)");
-        ensureYellow();
-        String expectedMapping = "{\"default\":{" +
-                                 "\"dynamic\":\"strict\",\"_meta\":{}," +
-                                 "\"properties\":{\"col1\":{\"type\":\"geo_shape\",\"position\":1,\"oid\":1}}}}";
-        assertEquals(expectedMapping, getIndexMapping("test"));
-
+        Map<String, Object> expectedMapping = Map.of(
+            "dynamic", "strict",
+            "_meta", Map.of(),
+            "properties", Map.of(
+                "col1", Map.of(
+                    "type", "geo_shape",
+                    "position", 1,
+                    "oid", 1
+                )
+            )
+        );
+        assertThat(getIndexMapping("test")).isEqualTo(expectedMapping);
     }
 
     @Test
@@ -322,14 +347,22 @@ public class DDLIntegrationTest extends IntegTestCase {
                 "index title_desc_fulltext using fulltext(title, description) " +
                 "with(analyzer='stop')) with (number_of_replicas = 0)");
 
-        String expectedMapping = "{\"default\":{" +
-            "\"dynamic\":\"strict\",\"" +
-            "_meta\":{\"indices\":{\"3\":{}}}," +
-            "\"properties\":{" +
-            "\"title\":{\"type\":\"keyword\",\"position\":1,\"oid\":1}," +
-            "\"description\":{\"type\":\"keyword\",\"position\":2,\"oid\":2}," +
-            "\"title_desc_fulltext\":{\"type\":\"text\",\"position\":3,\"oid\":3,\"analyzer\":\"stop\",\"sources\":[\"1\",\"2\"]}}}}";
-        assertEquals(expectedMapping, getIndexMapping("novels"));
+        Map<String, Object> expectedMapping = Map.of(
+            "dynamic", "strict",
+            "_meta", Map.of("indices", Map.of("3", Map.of())),
+            "properties", Map.of(
+                "title", Map.of("type", "keyword", "position", 1, "oid", 1),
+                "description", Map.of("type", "keyword", "position", 2, "oid", 2),
+                "title_desc_fulltext", Map.of(
+                    "type", "text",
+                    "position", 3,
+                    "oid", 3,
+                    "analyzer", "stop",
+                    "sources", List.of("1", "2")
+                )
+            )
+        );
+        assertThat(getIndexMapping("novels")).isEqualTo(expectedMapping);
 
         String title = "So Long, and Thanks for All the Fish";
         String description = "Many were increasingly of the opinion that they'd all made a big " +
@@ -595,26 +628,19 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("alter table t add o['y'] int");
 
         // Verify that ADD COLUMN gets advanced OID.
-        Map<String, Object> actualMapping = XContentHelper.convertToMap(
-            JsonXContent.JSON_XCONTENT,
-            getIndexMapping("t"),
-            false
-        );
-        assertThat(actualMapping).isEqualTo(Map.of(
-            "default", Map.of(
-                "_meta", Map.of(),
-                "dynamic", "strict",
-                "properties", Map.of(
-                    "o",
-                    Map.of(
-                        "dynamic", "true",
-                        "position", 1,
-                        "oid", 1,
-                        "type", "object",
-                        "properties", Map.of(
-                            "x", Map.of("position", 2, "oid", 2, "type", "keyword"),
-                            "y", Map.of("position", 3, "oid", 3, "type", "integer")
-                        )
+        assertThat(getIndexMapping("t")).isEqualTo(Map.of(
+            "_meta", Map.of(),
+            "dynamic", "strict",
+            "properties", Map.of(
+                "o",
+                Map.of(
+                    "dynamic", "true",
+                    "position", 1,
+                    "oid", 1,
+                    "type", "object",
+                    "properties", Map.of(
+                        "x", Map.of("position", 2, "oid", 2, "type", "keyword"),
+                        "y", Map.of("position", 3, "oid", 3, "type", "integer")
                     )
                 )
             )
@@ -865,17 +891,29 @@ public class DDLIntegrationTest extends IntegTestCase {
             "create table test (" +
             "   ts timestamp with time zone," +
             "   day as date_trunc('day', ts)) with (number_of_replicas=0)");
-        ensureYellow();
-        String expectedMapping = "{\"default\":" +
-                                 "{\"dynamic\":\"strict\"," +
-                                 "\"_meta\":{" +
-                                 "\"generated_columns\":{\"day\":\"date_trunc('day', ts)\"}}," +
-                                 "\"properties\":{" +
-                                 "\"ts\":{\"type\":\"date\",\"position\":1,\"oid\":1,\"format\":\"epoch_millis||strict_date_optional_time\"}," +
-                                 "\"day\":{\"type\":\"date\",\"position\":2,\"oid\":2,\"format\":\"epoch_millis||strict_date_optional_time\"}" +
-                                 "}}}";
-
-        assertEquals(expectedMapping, getIndexMapping("test"));
+        Map<String, Object> expectedMapping = Map.of(
+            "dynamic", "strict",
+            "_meta", Map.of(
+                "generated_columns", Map.of(
+                    "day", "date_trunc('day', ts)"
+                )
+            ),
+            "properties", Map.of(
+                "ts", Map.of(
+                    "type", "date",
+                    "position", 1,
+                    "oid", 1,
+                    "format", "epoch_millis||strict_date_optional_time"
+                ),
+                "day", Map.of(
+                    "type", "date",
+                    "position", 2,
+                    "oid", 2,
+                    "format", "epoch_millis||strict_date_optional_time"
+                )
+            )
+        );
+        assertThat(getIndexMapping("test")).isEqualTo(expectedMapping);
     }
 
     @Test
@@ -886,19 +924,36 @@ public class DDLIntegrationTest extends IntegTestCase {
             "   ts timestamp with time zone," +
             "   day as date_trunc('day', ts)) with (number_of_replicas=0)");
         execute("alter table test add column added timestamp with time zone generated always as date_trunc('day', ts)");
-        String expectedMapping = "{\"default\":" +
-                                 "{\"dynamic\":\"strict\"," +
-                                 "\"_meta\":{" +
-                                 "\"generated_columns\":{" +
-                                 "\"day\":\"date_trunc('day', ts)\"," +
-                                 "\"added\":\"date_trunc('day', ts)\"}}," +
-                                 "\"properties\":{" +
-                                 "\"ts\":{\"type\":\"date\",\"position\":1,\"oid\":1,\"format\":\"epoch_millis||strict_date_optional_time\"}," +
-                                 "\"day\":{\"type\":\"date\",\"position\":2,\"oid\":2,\"format\":\"epoch_millis||strict_date_optional_time\"}," +
-                                 "\"added\":{\"type\":\"date\",\"position\":3,\"oid\":3,\"format\":\"epoch_millis||strict_date_optional_time\"}" +
-                                 "}}}";
-
-        JSONAssert.assertEquals(getIndexMapping("test"), expectedMapping, JSONCompareMode.LENIENT);
+        Map<String, Object> expectedMapping = Map.of(
+            "dynamic", "strict",
+            "_meta", Map.of(
+                "generated_columns", Map.of(
+                    "day", "date_trunc('day', ts)",
+                    "added", "date_trunc('day', ts)"
+                )
+            ),
+            "properties", Map.of(
+                "ts", Map.of(
+                    "type", "date",
+                    "position", 1,
+                    "oid", 1,
+                    "format", "epoch_millis||strict_date_optional_time"
+                ),
+                "day", Map.of(
+                    "type", "date",
+                    "position", 2,
+                    "oid", 2,
+                    "format", "epoch_millis||strict_date_optional_time"
+                ),
+                "added", Map.of(
+                    "type", "date",
+                    "position", 3,
+                    "oid", 3,
+                    "format", "epoch_millis||strict_date_optional_time"
+                )
+            )
+        );
+        assertThat(getIndexMapping("test")).isEqualTo(expectedMapping);
     }
 
 

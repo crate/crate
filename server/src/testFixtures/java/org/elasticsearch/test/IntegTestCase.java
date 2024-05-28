@@ -154,7 +154,6 @@ import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 import com.carrotsearch.randomizedtesting.generators.RandomStrings;
 
-import io.crate.Constants;
 import io.crate.action.sql.Cursors;
 import io.crate.action.sql.Session;
 import io.crate.action.sql.Sessions;
@@ -1859,7 +1858,7 @@ public abstract class IntegTestCase extends ESTestCase {
      * @return the index mapping as String
      * @throws IOException
      */
-    protected String getIndexMapping(String index) throws IOException {
+    protected Map<String, Object> getIndexMapping(String index) throws IOException {
         ClusterStateRequest request = new ClusterStateRequest()
             .routingTable(false)
             .nodes(false)
@@ -1868,14 +1867,8 @@ public abstract class IntegTestCase extends ESTestCase {
         ClusterStateResponse response = FutureUtils.get(client().admin().cluster().state(request));
 
         Metadata metadata = response.getState().metadata();
-        XContentBuilder builder = JsonXContent.builder().startObject();
-
         IndexMetadata indexMetadata = metadata.iterator().next();
-        builder.field(Constants.DEFAULT_MAPPING_TYPE);
-        builder.map(indexMetadata.mapping().sourceAsMap());
-        builder.endObject();
-
-        return Strings.toString(builder);
+        return indexMetadata.mapping().sourceAsMap();
     }
 
     public void assertFunctionIsCreatedOnAll(String schema, String name, List<DataType<?>> argTypes) throws Exception {
