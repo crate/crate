@@ -85,7 +85,6 @@ public class TransportCreateIndexAction extends TransportMasterNodeAction<Create
                 .ackTimeout(request.timeout())
                 .masterNodeTimeout(request.masterNodeTimeout())
                 .settings(request.settings())
-                .mapping(request.mapping())
                 .aliases(request.aliases())
                 .waitForActiveShards(request.waitForActiveShards());
 

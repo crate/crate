@@ -25,25 +25,18 @@ import static org.elasticsearch.common.settings.Settings.Builder.EMPTY_SETTINGS;
 
 import java.io.IOException;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
-import org.elasticsearch.ElasticsearchGenerationException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
-import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.ParseField;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
-
-import io.crate.Constants;
 
 /**
  * A request to create an index.
@@ -64,8 +57,6 @@ public class CreateIndexRequest extends AcknowledgedRequest<CreateIndexRequest> 
     private String index;
 
     private Settings settings = EMPTY_SETTINGS;
-
-    private String mapping = null;
 
     private final Set<Alias> aliases = new HashSet<>();
 
@@ -134,19 +125,6 @@ public class CreateIndexRequest extends AcknowledgedRequest<CreateIndexRequest> 
     }
 
     /**
-     * Sets the mapping that will be used when the index gets created.
-     *
-     * @param source The mapping source
-     */
-    public CreateIndexRequest mapping(String source) {
-        if (this.mapping != null) {
-            throw new IllegalStateException("mapping already defined");
-        }
-        mapping = source;
-        return this;
-    }
-
-    /**
      * The cause for this index creation.
      */
     public CreateIndexRequest cause(String cause) {
@@ -155,35 +133,11 @@ public class CreateIndexRequest extends AcknowledgedRequest<CreateIndexRequest> 
     }
 
     /**
-     * Sets the mapping that will be used when the index gets created.
-     *
-     * @param source The mapping source
-     */
-    public CreateIndexRequest mapping(Map<String, Object> source) {
-        if (this.mapping != null) {
-            throw new IllegalStateException("mapping already defined");
-        }
-        try {
-            XContentBuilder builder = JsonXContent.builder();
-            builder.map(source);
-            mapping = BytesReference.bytes(builder).utf8ToString();
-            return this;
-        } catch (IOException e) {
-            throw new ElasticsearchGenerationException("Failed to generate [" + source + "]", e);
-        }
-    }
-
-
-    /**
      * Adds an alias that will be associated with the index when it gets created
      */
     public CreateIndexRequest alias(Alias alias) {
         this.aliases.add(alias);
         return this;
-    }
-
-    public String mapping() {
-        return this.mapping;
     }
 
     public Set<Alias> aliases() {
@@ -218,21 +172,23 @@ public class CreateIndexRequest extends AcknowledgedRequest<CreateIndexRequest> 
         cause = in.readString();
         index = in.readString();
         settings = readSettingsFromStream(in);
-        if (in.getVersion().onOrAfter(Version.V_5_0_0)) {
-            mapping = in.readOptionalString();
+        Version version = in.getVersion();
+        if (version.onOrAfter(Version.V_5_8_0)) {
+            // no mapping anymore
+        } else if (version.onOrAfter(Version.V_5_0_0)) {
+            in.readOptionalString(); // maping
         } else {
             int size = in.readVInt();
             for (int i = 0; i < size; i++) {
                 in.readString(); // type, was always "default"
-                String source = in.readString();
-                mapping = source;
+                in.readString(); // mapping
             }
         }
         int aliasesSize = in.readVInt();
         for (int i = 0; i < aliasesSize; i++) {
             aliases.add(new Alias(in));
         }
-        if (in.getVersion().before(Version.V_4_3_0)) {
+        if (version.before(Version.V_4_3_0)) {
             in.readBoolean(); // updateAllTypes
         }
         waitForActiveShards = ActiveShardCount.readFrom(in);
@@ -244,22 +200,20 @@ public class CreateIndexRequest extends AcknowledgedRequest<CreateIndexRequest> 
         out.writeString(cause);
         out.writeString(index);
         writeSettingsToStream(out, settings);
-        if (out.getVersion().onOrAfter(Version.V_5_0_0)) {
-            out.writeOptionalString(mapping);
+        Version version = out.getVersion();
+        if (version.onOrAfter(Version.V_5_8_0)) {
+            // no mapping anymore
+        } else if (version.onOrAfter(Version.V_5_0_0)) {
+            out.writeOptionalString(null);
         } else {
-            if (mapping == null) {
-                out.writeVInt(0);
-            } else {
-                out.writeVInt(1);
-                out.writeString(Constants.DEFAULT_MAPPING_TYPE);
-                out.writeString(mapping);
-            }
+            // used to be a dict for mapping by type
+            out.writeVInt(0);
         }
         out.writeVInt(aliases.size());
         for (Alias alias : aliases) {
             alias.writeTo(out);
         }
-        if (out.getVersion().before(Version.V_4_3_0)) {
+        if (version.before(Version.V_4_3_0)) {
             out.writeBoolean(true); // updateAllTypes
         }
         waitForActiveShards.writeTo(out);
