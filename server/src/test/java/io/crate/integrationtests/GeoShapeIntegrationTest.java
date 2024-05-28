@@ -121,7 +121,7 @@ public class GeoShapeIntegrationTest extends IntegTestCase {
         String expected = "CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
                           "   \"col1\" GEO_SHAPE INDEX USING QUADTREE WITH (\n" +
                           "      distance_error_pct = 0.25,\n" +
-                          "      precision = '1.0m'\n" +
+                          "      precision = '1m'\n" +
                           "   )\n" +
                           ")\n" +
                           "CLUSTERED INTO 1 SHARDS\n" +

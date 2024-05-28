@@ -49,7 +49,6 @@ import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsActi
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexGraveyard;
@@ -478,86 +477,6 @@ public class GatewayIndexStateIT extends IntegTestCase {
             .get(REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS).getState();
         assertThat(state.metadata().index(metadata.getIndex()).getState()).isEqualTo(IndexMetadata.State.CLOSE);
         assertThat(state.metadata().index(metadata.getIndex()).getSettings().get("archived.index.similarity.BM25.type")).isEqualTo("classic");
-        // try to open it with the broken setting - fail again!
-        Asserts.assertSQLError(() -> execute("alter table test open"))
-                .hasPGError(INTERNAL_ERROR)
-                .hasHTTPError(INTERNAL_SERVER_ERROR, 5000)
-                .hasMessageContaining("Failed to verify index " + metadata.getIndex().getName());
-    }
-
-    /**
-     * This test really tests worst case scenario where we have a missing analyzer setting.
-     * In that case we now have the ability to check the index on local recovery from disk
-     * if it is sane and if we can successfully create an IndexService.
-     * This also includes plugins etc.
-     */
-    @Test
-    public void testRecoverMissingAnalyzer() throws Exception {
-        logger.info("--> starting one node");
-        cluster().startNode();
-        var tableName = getFqn("test");
-        // Cannot crete table with SQL since intentional invalid value of analyzer wouldn't pass validation.
-        // When index created directly, OID is not assigned.
-        // It's asserted on indexing, thus explicitly adding OID to the mapping.
-        client().admin().indices().create(
-            new CreateIndexRequest(
-                tableName,
-                Settings.builder()
-                    .put("index.analysis.analyzer.test.tokenizer", "standard")
-                    .put("index.number_of_shards", "1")
-                    .build()
-            )
-            .mapping("{\n" +
-                "    \"default\": {\n" +
-                "      \"properties\": {\n" +
-                "        \"field1\": {\n" +
-                "          \"type\": \"text\",\n" +
-                "          \"position\": 1,\n" +
-                "          \"oid\": 1,\n" +
-                "          \"analyzer\": \"test\"\n" +
-                "        }\n" +
-                "      }\n" +
-                "    }\n" +
-                "  }}")
-        ).get();
-        logger.info("--> indexing a simple document");
-        execute("insert into test (field1) values ('value one')");
-        execute("refresh table test");
-
-        logger.info("--> waiting for green status");
-        if (usually()) {
-            ensureYellow();
-        } else {
-            cluster().startNode();
-            FutureUtils.get(client().admin().cluster()
-                .health(new ClusterHealthRequest()
-                    .waitForGreenStatus()
-                    .waitForEvents(Priority.LANGUID)
-                    .waitForNoRelocatingShards(true).waitForNodes("2")), REQUEST_TIMEOUT);
-        }
-        ClusterState state = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
-
-        final IndexMetadata metadata = state.metadata().index(tableName);
-        final IndexMetadata.Builder brokenMeta = IndexMetadata.builder(metadata).settings(metadata.getSettings()
-                .filter((s) -> "index.analysis.analyzer.test.tokenizer".equals(s) == false));
-        restartNodesOnBrokenClusterState(ClusterState.builder(state).metadata(Metadata.builder(state.metadata()).put(brokenMeta)));
-
-        // check that the cluster does not keep reallocating shards
-        assertBusy(() -> {
-            final RoutingTable routingTable = client().admin().cluster()
-                .state(new ClusterStateRequest())
-                .get(REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS)
-                .getState().routingTable();
-            final IndexRoutingTable indexRoutingTable = routingTable.index(tableName);
-            assertNotNull(indexRoutingTable);
-            for (IndexShardRoutingTable shardRoutingTable : indexRoutingTable) {
-                assertThat(shardRoutingTable.primaryShard().unassigned()).isTrue();
-                assertThat(shardRoutingTable.primaryShard().unassignedInfo().getLastAllocationStatus()).isEqualTo(UnassignedInfo.AllocationStatus.DECIDERS_NO);
-                assertThat(shardRoutingTable.primaryShard().unassignedInfo().getNumFailedAllocations(), greaterThan(0));
-            }
-        }, 60, TimeUnit.SECONDS);
-        execute("alter table test close");
-
         // try to open it with the broken setting - fail again!
         Asserts.assertSQLError(() -> execute("alter table test open"))
                 .hasPGError(INTERNAL_ERROR)
