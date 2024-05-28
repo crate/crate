@@ -474,13 +474,14 @@ does always return ``NULL`` when comparing ``NULL``.
 
 ::
 
-    cr> select name from locations where inhabitants['interests'] is not null;
+    cr> select name from locations where inhabitants['interests'] is not null
+    ... order by name;
     +-------------------+
     | name              |
     +-------------------+
+    | Argabuthon        |
     | Arkintoofle Minor |
     | Bartledan         |
-    | Argabuthon        |
     +-------------------+
     SELECT 3 rows in set (... sec)
 
@@ -658,12 +659,12 @@ The following query negates ``ANY`` using ``!=`` to return all rows where
 element that is not ``netball``::
 
     cr> select inhabitants['name'], inhabitants['interests'] from locations
-    ... where 'netball' != ANY(inhabitants['interests']);
+    ... where 'netball' != ANY(inhabitants['interests']) order by 1;
     +---------------------+------------------------------+
     | inhabitants['name'] | inhabitants['interests']     |
     +---------------------+------------------------------+
-    | Minories            | ["netball", "short stories"] |
     | Argabuthonians      | ["science", "reason"]        |
+    | Minories            | ["netball", "short stories"] |
     +---------------------+------------------------------+
     SELECT 2 rows in set (... sec)
 

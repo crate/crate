@@ -55,12 +55,12 @@ relevant the row::
 
     cr> select name, _score from locations
     ... where match(name_description_ft, 'time') order by _score desc;
-    +-----------+------------+
-    | name      |     _score |
-    +-----------+------------+
-    | Bartledan | 0.75782394 |
-    | Altair    | 0.63013375 |
-    +-----------+------------+
+    +-----------+-----------+
+    | name      |    _score |
+    +-----------+-----------+
+    | Altair    | 0.6570115 |
+    | Bartledan | 0.6416173 |
+    +-----------+-----------+
     SELECT 2 rows in set (... sec)
 
 The MATCH predicate in its simplest form performs a fulltext search against a
@@ -302,8 +302,8 @@ A fulltext search is done using the :ref:`predicates_match` predicate::
     +-----------+
     | name      |
     +-----------+
-    | Bartledan |
     | Altair    |
+    | Bartledan |
     +-----------+
     SELECT 2 rows in set (... sec)
 
@@ -313,12 +313,12 @@ the :ref:`_score <sql_administration_system_column_score>` can be selected::
 
     cr> select name, _score
     ... from locations where match(name_description_ft, 'time') order by _score desc;
-    +-----------+------------+
-    | name      |     _score |
-    +-----------+------------+
-    | Bartledan | 0.75782394 |
-    | Altair    | 0.63013375 |
-    +-----------+------------+
+    +-----------+-----------+
+    | name      |    _score |
+    +-----------+-----------+
+    | Altair    | 0.6570115 |
+    | Bartledan | 0.6416173 |
+    +-----------+-----------+
     SELECT 2 rows in set (... sec)
 
 .. NOTE::
@@ -361,11 +361,11 @@ For searching of matching phrases (tokens are in the exact same order) use
     +-------------------+------------+
     | name              |     _score |
     +-------------------+------------+
-    | NULL              | 1.5614427  |
-    | Altair            | 0.63013375 |
-    | Aldebaran         | 0.55650693 |
-    | Outer Eastern Rim | 0.38915473 |
-    | North West Ripple | 0.37936807 |
+    | NULL              | 1.2599468  |
+    | Altair            | 0.49754602 |
+    | Outer Eastern Rim | 0.47476405 |
+    | North West Ripple | 0.46413797 |
+    | Aldebaran         | 0.23530701 |
     +-------------------+------------+
     SELECT 5 rows in set (... sec)
 
@@ -378,7 +378,7 @@ For searching of matching phrases (tokens are in the exact same order) use
     +------+-------------------------+-----------+
     | name | description             |    _score |
     +------+-------------------------+-----------+
-    | NULL | The end of the Galaxy.% | 1.5614427 |
+    | NULL | The end of the Galaxy.% | 1.2599468 |
     +------+-------------------------+-----------+
     SELECT 1 row in set (... sec)
 
@@ -432,8 +432,8 @@ Anyway let's do it here for demonstration purpose::
     +-----------+-----------+
     | name      |    _score |
     +-----------+-----------+
-    | Altair    | 1.6301337 |
-    | Bartledan | 1.757824  |
+    | Bartledan | 1.6416173 |
+    | Altair    | 1.6570115 |
     +-----------+-----------+
     SELECT 2 rows in set (... sec)
 

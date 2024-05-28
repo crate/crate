@@ -22,7 +22,10 @@
 package io.crate.integrationtests;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertSQLError;
 import static io.crate.testing.Asserts.assertThat;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -171,6 +174,56 @@ public class ResizeShardsITest extends IntegTestCase {
         assertThat(response).hasRows("2");
         execute("select x from t1");
         assertThat(response).hasRowCount(2L);
+    }
+
+    @Test
+    public void test_number_of_shards_of_a_table_can_be_increased_without_explicitly_setting_number_of_routing_shards() {
+        execute("create table t1 (x int, p int) clustered into 3 shards " +
+            "with (number_of_replicas = 1)");
+        execute("insert into t1 (x, p) select g, g from generate_series(1, 12, 1) as g");
+        execute("refresh table t1");
+
+        execute("alter table t1 set (\"blocks.write\" = true)");
+
+        execute("alter table t1 set (number_of_shards = 12)");
+        ensureYellow();
+
+        execute("select number_of_shards from information_schema.tables where table_name = 't1'");
+        assertThat(response).hasRows("12");
+        execute("select x from t1");
+        assertThat(response).hasRowCount(12L);
+    }
+
+    @Test
+    public void test_number_of_shards_on_a_one_sharded_table_can_be_increased_without_explicitly_setting_number_of_routing_shards() {
+        execute("create table t1 (x int, p int) clustered into 1 shards " +
+            "with (number_of_replicas = 1)");
+        execute("insert into t1 (x, p) select g, g from generate_series(1, 12, 1) as g");
+        execute("refresh table t1");
+
+        execute("alter table t1 set (\"blocks.write\" = true)");
+
+        execute("alter table t1 set (number_of_shards = 3)");
+        ensureYellow();
+
+        execute("select number_of_shards from information_schema.tables where table_name = 't1'");
+        assertThat(response).hasRows("3");
+        execute("select x from t1");
+        assertThat(response).hasRowCount(12L);
+
+        // number_of_routing_shards is calculated based on 3 shards (after the first increase) and set implicitly
+        assertSQLError(() -> execute("alter table t1 set (number_of_shards = 8)"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining("the number of source shards [3] must be a must be a factor of [8]");
+
+        execute("alter table t1 set (number_of_shards = 12)");
+        ensureYellow();
+
+        execute("select number_of_shards from information_schema.tables where table_name = 't1'");
+        assertThat(response).hasRows("12");
+        execute("select x from t1");
+        assertThat(response).hasRowCount(12L);
     }
 
     @Test
