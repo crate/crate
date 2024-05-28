@@ -26,8 +26,11 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
@@ -40,6 +43,8 @@ public class ForeignCollectPhase extends AbstractProjectionsPhase implements Col
     private final RelationName relationName;
     private final List<Symbol> toCollect;
     private final Symbol query;
+    @Nullable
+    private final String executeAs;
 
     private DistributionInfo distributionInfo = DistributionInfo.DEFAULT_BROADCAST;
 
@@ -48,13 +53,15 @@ public class ForeignCollectPhase extends AbstractProjectionsPhase implements Col
                                String handlerNode,
                                RelationName relationName,
                                List<Symbol> toCollect,
-                               Symbol query) {
+                               Symbol query,
+                               @NotNull String executeAs) {
         super(jobId, phaseId, relationName.fqn(), null);
         this.handlerNode = handlerNode;
         this.relationName = relationName;
         this.toCollect = toCollect;
         this.outputTypes = Symbols.typeView(toCollect);
         this.query = query;
+        this.executeAs = executeAs;
     }
 
     public ForeignCollectPhase(StreamInput in) throws IOException {
@@ -65,6 +72,11 @@ public class ForeignCollectPhase extends AbstractProjectionsPhase implements Col
         this.outputTypes = extractOutputTypes(toCollect, projections);
         this.distributionInfo = new DistributionInfo(in);
         this.query = Symbols.fromStream(in);
+        if (in.getVersion().onOrAfter(Version.V_5_8_0)) {
+            this.executeAs = in.readOptionalString();
+        } else {
+            this.executeAs = null;
+        }
     }
 
     @Override
@@ -75,6 +87,9 @@ public class ForeignCollectPhase extends AbstractProjectionsPhase implements Col
         Symbols.toStream(toCollect, out);
         distributionInfo.writeTo(out);
         Symbols.toStream(query, out);
+        if (out.getVersion().onOrAfter(Version.V_5_8_0)) {
+            out.writeOptionalString(executeAs);
+        }
     }
 
     @Override
@@ -113,5 +128,10 @@ public class ForeignCollectPhase extends AbstractProjectionsPhase implements Col
 
     public Symbol query() {
         return query;
+    }
+
+    @Nullable
+    public String executeAs() {
+        return executeAs;
     }
 }
