@@ -193,6 +193,7 @@ import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.planner.optimizer.LoadedRules;
 import io.crate.planner.optimizer.rule.MergeFilterAndCollect;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.protocols.postgres.TransactionState;
@@ -1737,6 +1738,8 @@ public abstract class IntegTestCase extends ESTestCase {
 
         CoordinatorSessionSettings sessionSettings = new CoordinatorSessionSettings(
             Role.CRATE_USER,
+            Role.CRATE_USER,
+            LoadedRules.INSTANCE.disabledRules(),
             sqlExecutor.getCurrentSchema()
         );
         CoordinatorTxnCtx coordinatorTxnCtx = new CoordinatorTxnCtx(sessionSettings);

@@ -73,14 +73,12 @@ public class OptimizerRuleSessionSettingProviderTest {
 
         assertThat(sessionSetting.getValue(mergefilterSettings)).isEqualTo("false");
 
-        var sessionSettings = new CoordinatorSessionSettings(RolesHelper.userOf("user"));
-
         // Disable MergeFilters 'SET SESSION optimizer_merge_filters = false'
-        sessionSetting.apply(sessionSettings, List.of(Literal.of(false)), eval);
-        assertThat(sessionSettings.excludedOptimizerRules(), containsInAnyOrder(MergeFilters.class));
+        sessionSetting.apply(mergefilterSettings, List.of(Literal.of(false)), eval);
+        assertThat(mergefilterSettings.excludedOptimizerRules(), containsInAnyOrder(MergeFilters.class));
 
         // Enable MergeFilters 'SET SESSION optimizer_merge_filters = true'
-        sessionSetting.apply(sessionSettings, List.of(Literal.of(true)), eval);
-        assertThat(sessionSettings.excludedOptimizerRules()).isEmpty();
+        sessionSetting.apply(mergefilterSettings, List.of(Literal.of(true)), eval);
+        assertThat(mergefilterSettings.excludedOptimizerRules()).isEmpty();
     }
 }

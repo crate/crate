@@ -28,6 +28,7 @@ import java.util.Set;
 
 import io.crate.common.unit.TimeValue;
 import io.crate.metadata.SearchPath;
+import io.crate.planner.optimizer.LoadedRules;
 import io.crate.planner.optimizer.Rule;
 import io.crate.role.Role;
 
@@ -49,16 +50,28 @@ public class CoordinatorSessionSettings extends SessionSettings {
     private TimeValue statementTimeout;
 
     public CoordinatorSessionSettings(Role authenticatedUser, String ... searchPath) {
-        this(authenticatedUser, authenticatedUser, searchPath);
+        this(authenticatedUser, authenticatedUser, Set.of(), searchPath);
     }
 
     public CoordinatorSessionSettings(Role authenticatedUser, Role sessionUser, String ... searchPath) {
         this(
             authenticatedUser,
             sessionUser,
+            Set.of(),
+            searchPath
+        );
+    }
+
+    public CoordinatorSessionSettings(Role authenticatedUser,
+                                      Role sessionUser,
+                                      Set<Class<? extends Rule<?>>> excludedOptimizerRules,
+                                      String ... searchPath) {
+        this(
+            authenticatedUser,
+            sessionUser,
             SearchPath.createSearchPathFrom(searchPath),
             true,
-            Set.of(),
+            excludedOptimizerRules,
             true,
             0
         );
@@ -100,7 +113,7 @@ public class CoordinatorSessionSettings extends SessionSettings {
     }
 
     public static CoordinatorSessionSettings systemDefaults() {
-        return new CoordinatorSessionSettings(Role.CRATE_USER);
+        return new CoordinatorSessionSettings(Role.CRATE_USER, Role.CRATE_USER, LoadedRules.INSTANCE.disabledRules());
     }
 
     public void setErrorOnUnknownObjectKey(boolean newValue) {

@@ -83,6 +83,11 @@ public class EquiJoinToLookupJoin implements Rule<JoinPlan> {
     );
 
     @Override
+    public boolean defaultEnabled() {
+        return false;
+    }
+
+    @Override
     public Pattern<JoinPlan> pattern() {
         return pattern;
     }

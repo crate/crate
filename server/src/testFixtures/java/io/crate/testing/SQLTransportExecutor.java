@@ -213,7 +213,7 @@ public class SQLTransportExecutor {
             sessionList.addAll(buildRandomizedRuleSessionSettings(
                 random,
                 config.amountOfRulesToDisable(),
-                LoadedRules.RULES,
+                LoadedRules.INSTANCE.rules(),
                 config.rulesToKeep()));
         }
 

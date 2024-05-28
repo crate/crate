@@ -118,10 +118,11 @@ Performance and Resilience Improvements
 
 - Extended the lookup-join optimization to make it applicable to more complex
   queries when they include sub-queries, an inner-equi-join and if there is a
-  large imbalance in size between the joined tables. This optimization can be
-  disabled with the session setting::
+  large imbalance in size between the joined tables. This optimization is
+  experimental and can lead to large memory consumptions and is therefore
+  disabled by default. It can be activated with the session setting::
 
-     SET optimizer_equi_join_to_lookup_join = false
+     SET optimizer_equi_join_to_lookup_join = true
 
   Note that this setting is experimental, and may change in the future.
 
