@@ -38,12 +38,14 @@ import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 import org.skyscreamer.jsonassert.JSONAssert;
 import org.skyscreamer.jsonassert.JSONCompareMode;
 
 import io.crate.protocols.postgres.PGErrorStatus;
+import io.crate.server.xcontent.XContentHelper;
 import io.crate.testing.Asserts;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseNewCluster;
@@ -593,13 +595,30 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("alter table t add o['y'] int");
 
         // Verify that ADD COLUMN gets advanced OID.
-        String expectedMapping = "{\"default\":" +
-            "{\"dynamic\":\"strict\",\"_meta\":{}," +
-            "\"properties\":{\"o\":{\"position\":1,\"oid\":1,\"dynamic\":\"true\"," +
-            "\"properties\":" +
-            "{\"x\":{\"type\":\"keyword\",\"position\":2,\"oid\":2}," +
-            "\"y\":{\"type\":\"integer\",\"position\":3,\"oid\":3}}}}}}";
-        assertThat(getIndexMapping("t")).isEqualTo(expectedMapping);
+        Map<String, Object> actualMapping = XContentHelper.convertToMap(
+            JsonXContent.JSON_XCONTENT,
+            getIndexMapping("t"),
+            false
+        );
+        assertThat(actualMapping).isEqualTo(Map.of(
+            "default", Map.of(
+                "_meta", Map.of(),
+                "dynamic", "strict",
+                "properties", Map.of(
+                    "o",
+                    Map.of(
+                        "dynamic", "true",
+                        "position", 1,
+                        "oid", 1,
+                        "type", "object",
+                        "properties", Map.of(
+                            "x", Map.of("position", 2, "oid", 2, "type", "keyword"),
+                            "y", Map.of("position", 3, "oid", 3, "type", "integer")
+                        )
+                    )
+                )
+            )
+        ));
 
         // column o exists already
         Asserts.assertSQLError(() -> execute("alter table t add o object as (z string)"))
@@ -1005,7 +1024,7 @@ public class DDLIntegrationTest extends IntegTestCase {
                    "id" INTEGER,
                    "g" GEO_SHAPE GENERATED ALWAYS AS 'POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))' INDEX USING QUADTREE WITH (
                       distance_error_pct = 0.123,
-                      precision = '123.0m'
+                      precision = '123m'
                    )
                 )""".stripIndent()
         );

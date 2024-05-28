@@ -29,7 +29,6 @@ import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -44,14 +43,12 @@ public class TransportDropConstraintAction extends AbstractDDLTransportAction<Dr
         (req, docTableInfo, metadataBuilder, nodeCtx) -> docTableInfo.dropConstraint(req.constraintName());
 
     private final NodeContext nodeContext;
-    private final IndicesService indicesService;
 
     @Inject
     public TransportDropConstraintAction(TransportService transportService,
-                                    ClusterService clusterService,
-                                    IndicesService indicesService,
-                                    ThreadPool threadPool,
-                                    NodeContext nodeContext) {
+                                         ClusterService clusterService,
+                                         ThreadPool threadPool,
+                                         NodeContext nodeContext) {
         super(ACTION_NAME,
             transportService,
             clusterService,
@@ -61,18 +58,12 @@ public class TransportDropConstraintAction extends AbstractDDLTransportAction<Dr
             AcknowledgedResponse::new,
             "drop-constraint");
         this.nodeContext = nodeContext;
-        this.indicesService = indicesService;
     }
 
 
     @Override
     public ClusterStateTaskExecutor<DropConstraintRequest> clusterStateTaskExecutor(DropConstraintRequest request) {
-        return new AlterTableTask<>(
-            nodeContext,
-            indicesService::createIndexMapperService,
-            request.relationName(),
-            DROP_CONSTRAINT_OPERATOR
-        );
+        return new AlterTableTask<>(nodeContext, request.relationName(), DROP_CONSTRAINT_OPERATOR);
     }
 
     @Override
