@@ -44,18 +44,20 @@ public class LookupJoinIntegrationTest extends IntegTestCase {
         execute("refresh table doc.t2");
         execute("analyze");
         waitNoPendingTasksOnAll();
-        var query = "select t1.id, t2.id from doc.t1 join doc.t2 on t1.id = t2.id";
-        execute("explain (costs false)" + query);
-        assertThat(response).hasLines(
-            "HashJoin[(id = id)]",
-            "  ├ MultiPhase",
-            "  │  └ Collect[doc.t1 | [id] | (id = ANY((doc.t2)))]",
-            "  │  └ Collect[doc.t2 | [id] | true]",
-            "  └ Collect[doc.t2 | [id] | true]"
-        );
-        execute(query);
-        assertThat(response).hasRowCount(100);
-
+        try (var session = sqlExecutor.newSession()) {
+            execute("SET optimizer_equi_join_to_lookup_join = true", session);
+            var query = "select t1.id, t2.id from doc.t1 join doc.t2 on t1.id = t2.id";
+            execute("explain (costs false)" + query, session);
+            assertThat(response).hasLines(
+                "HashJoin[(id = id)]",
+                "  ├ MultiPhase",
+                "  │  └ Collect[doc.t1 | [id] | (id = ANY((doc.t2)))]",
+                "  │  └ Collect[doc.t2 | [id] | true]",
+                "  └ Collect[doc.t2 | [id] | true]"
+            );
+            execute(query, session);
+            assertThat(response).hasRowCount(100);
+        }
     }
 
     @UseRandomizedOptimizerRules(0)
@@ -69,25 +71,28 @@ public class LookupJoinIntegrationTest extends IntegTestCase {
         execute("refresh table doc.t2");
         execute("analyze");
         waitNoPendingTasksOnAll();
-        var query = "select t1.id from doc.t1 join doc.t2 on t1.id = t2.id";
-        execute("explain (costs false)" + query);
-        assertThat(response).hasLines(
-            "MultiPhase",
-            "  └ Collect[doc.t1 | [id] | (id = ANY((doc.t2)))]",
-            "  └ Collect[doc.t2 | [id] | true]"
-        );
-        execute(query);
-        assertThat(response).hasRowCount(100);
+        try (var session = sqlExecutor.newSession()) {
+            execute("SET optimizer_equi_join_to_lookup_join = true", session);
+            var query = "select t1.id from doc.t1 join doc.t2 on t1.id = t2.id";
+            execute("explain (costs false)" + query, session);
+            assertThat(response).hasLines(
+                "MultiPhase",
+                "  └ Collect[doc.t1 | [id] | (id = ANY((doc.t2)))]",
+                "  └ Collect[doc.t2 | [id] | true]"
+            );
+            execute(query, session);
+            assertThat(response).hasRowCount(100);
 
-        execute("SET enable_hashjoin=false");
-        execute("explain (costs false)" + query);
-        assertThat(response).hasLines(
-            "MultiPhase",
-            "  └ Collect[doc.t1 | [id] | (id = ANY((doc.t2)))]",
-            "  └ Collect[doc.t2 | [id] | true]"
-        );
-        execute(query);
-        assertThat(response).hasRowCount(100);
+            execute("SET enable_hashjoin=false");
+            execute("explain (costs false)" + query, session);
+            assertThat(response).hasLines(
+                "MultiPhase",
+                "  └ Collect[doc.t1 | [id] | (id = ANY((doc.t2)))]",
+                "  └ Collect[doc.t2 | [id] | true]"
+            );
+            execute(query, session);
+            assertThat(response).hasRowCount(100);
+        }
     }
 
     @UseRandomizedOptimizerRules(0)
@@ -102,21 +107,24 @@ public class LookupJoinIntegrationTest extends IntegTestCase {
         execute("refresh table doc.t2");
         execute("analyze");
         waitNoPendingTasksOnAll();
-        var query = "select count(name) from doc.t1 join (select name, id from doc.t2 where doc.t2.id > 0) x on t1.id = x.id";
-        execute("explain (costs false)" + query);
-        assertThat(response).hasLines(
-            "HashAggregate[count(name)]",
-            "  └ HashJoin[(id = id)]",
-            "    ├ MultiPhase",
-            "    │  └ Collect[doc.t1 | [id] | (id = ANY((x)))]",
-            "    │  └ Rename[id] AS x",
-            "    │    └ Filter[(id > 0)]",
-            "    │      └ Collect[doc.t2 | [id] | true]",
-            "    └ Rename[name, id] AS x",
-            "      └ Collect[doc.t2 | [name, id] | (id > 0)]"
-        );
-        execute(query);
-        assertThat(response).hasRows("100");
+        try (var session = sqlExecutor.newSession()) {
+            execute("SET optimizer_equi_join_to_lookup_join = true", session);
+            var query = "select count(name) from doc.t1 join (select name, id from doc.t2 where doc.t2.id > 0) x on t1.id = x.id";
+            execute("explain (costs false)" + query, session);
+            assertThat(response).hasLines(
+                "HashAggregate[count(name)]",
+                "  └ HashJoin[(id = id)]",
+                "    ├ MultiPhase",
+                "    │  └ Collect[doc.t1 | [id] | (id = ANY((x)))]",
+                "    │  └ Rename[id] AS x",
+                "    │    └ Filter[(id > 0)]",
+                "    │      └ Collect[doc.t2 | [id] | true]",
+                "    └ Rename[name, id] AS x",
+                "      └ Collect[doc.t2 | [name, id] | (id > 0)]"
+            );
+            execute(query, session);
+            assertThat(response).hasRows("100");
+        }
     }
 
     @UseRandomizedOptimizerRules(0)
@@ -131,21 +139,24 @@ public class LookupJoinIntegrationTest extends IntegTestCase {
         execute("refresh table doc.t2");
         execute("analyze");
         waitNoPendingTasksOnAll();
-        var query = "select count(name) from (select name, id from doc.t2 where doc.t2.name = '1') x join doc.t1 on t1.id = x.id";
-        execute("explain (costs false)" + query);
-        assertThat(response).hasLines(
-            "HashAggregate[count(name)]",
-            "  └ Eval[name, id, id]",
-            "    └ HashJoin[(id = id)]",
-            "      ├ MultiPhase",
-            "      │  └ Collect[doc.t1 | [id] | (id = ANY((x)))]",
-            "      │  └ Eval[id]",
-            "      │    └ Rename[name, id] AS x",
-            "      │      └ Filter[(name = '1')]",
-            "      │        └ Collect[doc.t2 | [name, id] | true]",
-            "      └ Rename[name, id] AS x",
-            "        └ Collect[doc.t2 | [name, id] | (name = '1')]");
-        execute(query);
-        assertThat(response).hasRows("25");
+        try (var session = sqlExecutor.newSession()) {
+            execute("SET optimizer_equi_join_to_lookup_join = true", session);
+            var query = "select count(name) from (select name, id from doc.t2 where doc.t2.name = '1') x join doc.t1 on t1.id = x.id";
+            execute("explain (costs false)" + query, session);
+            assertThat(response).hasLines(
+                "HashAggregate[count(name)]",
+                "  └ Eval[name, id, id]",
+                "    └ HashJoin[(id = id)]",
+                "      ├ MultiPhase",
+                "      │  └ Collect[doc.t1 | [id] | (id = ANY((x)))]",
+                "      │  └ Eval[id]",
+                "      │    └ Rename[name, id] AS x",
+                "      │      └ Filter[(name = '1')]",
+                "      │        └ Collect[doc.t2 | [name, id] | true]",
+                "      └ Rename[name, id] AS x",
+                "        └ Collect[doc.t2 | [name, id] | (name = '1')]");
+            execute(query, session);
+            assertThat(response).hasRows("25");
+        }
     }
 }

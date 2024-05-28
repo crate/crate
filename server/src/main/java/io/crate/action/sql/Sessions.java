@@ -48,6 +48,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Planner;
+import io.crate.planner.optimizer.LoadedRules;
 import io.crate.protocols.postgres.KeyData;
 import io.crate.role.Permission;
 import io.crate.role.Role;
@@ -139,9 +140,18 @@ public class Sessions {
     public Session newSession(@Nullable String defaultSchema, Role authenticatedUser) {
         CoordinatorSessionSettings sessionSettings;
         if (defaultSchema == null) {
-            sessionSettings = new CoordinatorSessionSettings(authenticatedUser);
+            sessionSettings = new CoordinatorSessionSettings(
+                authenticatedUser,
+                authenticatedUser,
+                LoadedRules.INSTANCE.disabledRules()
+            );
         } else {
-            sessionSettings = new CoordinatorSessionSettings(authenticatedUser, defaultSchema);
+            sessionSettings = new CoordinatorSessionSettings(
+                authenticatedUser,
+                authenticatedUser,
+                LoadedRules.INSTANCE.disabledRules(),
+                defaultSchema
+            );
         }
         sessionSettings.statementTimeout(defaultStatementTimeout);
         sessionSettings.memoryLimit(memoryLimit);

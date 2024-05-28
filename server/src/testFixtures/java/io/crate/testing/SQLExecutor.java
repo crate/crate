@@ -434,7 +434,7 @@ public class SQLExecutor {
                         sessionSettingRegistry
                     ),
                 relationAnalyzer,
-                new CoordinatorSessionSettings(Role.CRATE_USER),
+                new CoordinatorSessionSettings(Role.CRATE_USER, Role.CRATE_USER, LoadedRules.INSTANCE.disabledRules()),
                 nodeCtx.schemas(),
                 Randomness.get(),
                 fulltextAnalyzerResolver,
