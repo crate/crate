@@ -21,6 +21,8 @@
 
 package io.crate.planner.operators;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -80,6 +82,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
@@ -123,6 +126,7 @@ import io.crate.planner.optimizer.rule.RewriteGroupByKeysLimitToLimitDistinct;
 import io.crate.planner.optimizer.rule.RewriteJoinPlan;
 import io.crate.planner.optimizer.rule.RewriteToQueryThenFetch;
 import io.crate.planner.optimizer.tracer.OptimizerTracer;
+import io.crate.role.Role;
 import io.crate.types.DataTypes;
 
 /**
@@ -252,7 +256,9 @@ public class LogicalPlanner {
             subqueryPlanner,
             foreignDataWrappers,
             plannerContext.planStats(),
-            plannerContext.clusterState()
+            plannerContext.clusterState(),
+            plannerContext.transactionContext(),
+            plannerContext.nodeContext()
         );
         LogicalPlan plan = relation.accept(planBuilder, relation.outputs());
 
@@ -300,7 +306,9 @@ public class LogicalPlanner {
             subqueryPlanner,
             foreignDataWrappers,
             planStats,
-            plannerContext.clusterState()
+            plannerContext.clusterState(),
+            coordinatorTxnCtx,
+            plannerContext.nodeContext()
         );
         LogicalPlan logicalPlan = relation.accept(planBuilder, relation.outputs());
         LogicalPlan optimizedPlan = optimizer.optimize(logicalPlan, planStats, coordinatorTxnCtx, tracer);
@@ -333,15 +341,21 @@ public class LogicalPlanner {
         private final PlanStats planStats;
         private final ForeignDataWrappers foreignDataWrappers;
         private final ClusterState clusterState;
+        private final CoordinatorTxnCtx coordinatorTxnCtx;
+        private final NodeContext nodeContext;
 
         private PlanBuilder(SubqueryPlanner subqueryPlanner,
                             ForeignDataWrappers foreignDataWrappers,
                             PlanStats planStats,
-                            ClusterState clusterState) {
+                            ClusterState clusterState,
+                            CoordinatorTxnCtx coordinatorTxnCtx,
+                            NodeContext nodeContext) {
             this.subqueryPlanner = subqueryPlanner;
             this.foreignDataWrappers = foreignDataWrappers;
             this.planStats = planStats;
             this.clusterState = clusterState;
+            this.coordinatorTxnCtx = coordinatorTxnCtx;
+            this.nodeContext = nodeContext;
         }
 
         @Override
@@ -382,7 +396,8 @@ public class LogicalPlanner {
                 foreignDataWrapper,
                 relation,
                 outputs,
-                WhereClause.MATCH_ALL
+                WhereClause.MATCH_ALL,
+                coordinatorTxnCtx.sessionSettings().userName()
             );
         }
 
@@ -403,8 +418,12 @@ public class LogicalPlanner {
 
         @Override
         public LogicalPlan visitView(AnalyzedView view, List<Symbol> outputs) {
+            CoordinatorSessionSettings sessionSettings = coordinatorTxnCtx.sessionSettings();
+            Role sessionUser = sessionSettings.sessionUser();
+            sessionSettings.setSessionUser(requireNonNull(nodeContext.roles().findUser(view.owner()), "view owner must exist"));
             var child = view.relation();
             var source = child.accept(this, child.outputs());
+            sessionSettings.setSessionUser(sessionUser);
             return new Rename(view.outputs(), view.relationName(), view, source);
         }
 
