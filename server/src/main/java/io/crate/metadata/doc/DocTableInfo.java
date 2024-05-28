@@ -926,6 +926,23 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         );
     }
 
+    public static void checkColumnLimits(RelationName name,
+                                         Settings indexSettings,
+                                         List<Reference> columns) {
+        long allowedTotalColumns = MapperService.INDEX_MAPPING_TOTAL_FIELDS_LIMIT_SETTING.get(indexSettings);
+        if (columns.size() > allowedTotalColumns) {
+            throw new IllegalArgumentException("Limit of total columns [" + allowedTotalColumns + "] in table [" + name + "] exceeded");
+        }
+        int maxDepth = columns.stream()
+            .mapToInt(ref -> ref.column().path().size())
+            .max()
+            .orElse(0);
+        long allowedMaxDepth = MapperService.INDEX_MAPPING_DEPTH_LIMIT_SETTING.get(indexSettings);
+        if (maxDepth > allowedMaxDepth) {
+            throw new IllegalArgumentException("Limit of max column depth [" + allowedMaxDepth + "] in table [" + name + "] exceeded");
+        }
+    }
+
     public Metadata.Builder writeTo(Metadata metadata,
                                     Metadata.Builder metadataBuilder) throws IOException {
         List<Reference> allColumns = Stream.concat(
@@ -966,10 +983,8 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 throw new UnsupportedOperationException("Cannot create index via DocTableInfo.writeTo");
             }
 
-            long allowedTotalColumns = MapperService.INDEX_MAPPING_TOTAL_FIELDS_LIMIT_SETTING.get(indexMetadata.getSettings());
-            if (allColumns.size() > allowedTotalColumns) {
-                throw new IllegalArgumentException("Limit of total columns [" + allowedTotalColumns + "] in table [" + ident + "] exceeded");
-            }
+            Settings indexSettings = indexMetadata.getSettings();
+            checkColumnLimits(ident, indexSettings, allColumns);
             metadataBuilder.put(
                 IndexMetadata.builder(indexMetadata)
                     .putMapping(new MappingMetadata(mapping))

@@ -30,6 +30,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
@@ -1130,5 +1131,25 @@ public class DDLIntegrationTest extends IntegTestCase {
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
             .hasMessageContaining("Failed CONSTRAINT leaf_check CHECK (\"o1\"['a1']['c1'] > 10)");
+    }
+
+    @Test
+    public void test_cannot_exceed_max_depth_limit() throws Exception {
+        StringBuilder sb = new StringBuilder("create table doc.tbl (a int, b int, c int,\n");
+        int depth = 40;
+        for (int i = 0; i < depth; i++) {
+            sb.append("  ".repeat(i))
+                .append(randomAlphaOfLength(4))
+                .append(i)
+                .append(" object as (\n");
+        }
+        sb.append("  ".repeat(depth)).append("x int, y int, z int");
+        for (int i = depth; i >= 0; i--) {
+            sb.append("  ".repeat(i)).append(")\n");
+        }
+        String stmt = sb.toString();
+        assertThatThrownBy(() -> execute(stmt))
+            .hasMessageEndingWith("Limit of max column depth [20] in table [doc.tbl] exceeded");
+
     }
 }

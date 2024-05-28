@@ -50,6 +50,7 @@ import org.elasticsearch.transport.TransportService;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.doc.DocTableInfo;
 
 /**
  * Action to perform creation of tables on the master but avoid race conditions with creating views.
@@ -128,6 +129,16 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
         }
 
         validateSettings(createTableRequest.settings(), state);
+        try {
+            DocTableInfo.checkColumnLimits(
+                relationName,
+                createTableRequest.settings(),
+                createTableRequest.references()
+            );
+        } catch (Exception e) {
+            listener.onFailure(e);
+            return;
+        }
 
         if (createTableRequest.partitionedBy().isEmpty()) {
             createIndex(createTableRequest, listener);
