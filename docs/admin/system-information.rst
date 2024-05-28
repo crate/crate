@@ -1128,7 +1128,7 @@ For example, you can query shards like this::
   +--------+-----------+----+-----+------+---------+------+---------+---------+-------+
   | schema | t         | id | p_i | docs | primary | r_n  | r_state |  state  | o_p   |
   +--------+-----------+----+-----+------+---------+------+---------+---------+-------+
-  | doc    | locations |  1 |     |    8 | TRUE    | NULL | STARTED | STARTED | FALSE |
+  | doc    | locations |  1 |     |    4 | TRUE    | NULL | STARTED | STARTED | FALSE |
   +--------+-----------+----+-----+------+---------+------+---------+---------+-------+
   SELECT 1 row in set (... sec)
 

@@ -40,6 +40,7 @@ Version 5.8.0 - Unreleased
 .. contents::
    :local:
 
+.. _version_5.8.0_breaking_changes:
 
 Breaking Changes
 ================
@@ -50,8 +51,22 @@ Breaking Changes
   CrateDB 4.2.0.
 
 - Removed ``network`` column from :ref:`sys.nodes <sys-nodes>` table. The column
-  was deprecated since `version_2.3.0_` and all of the sub-columns where
+  was deprecated since :ref:`version_2.3.0` and all of the sub-columns where
   returning 0.
+
+- Tables created with version :ref:`version_5.8.0` onwards will have an
+  automatic
+  :ref:`number_of_routing_shards <sql-create-table-number-of-routing-shards>`
+  value set. As a result, documents maybe distributed across the shards
+  differently, compare with older versions. To maintain the same distribution,
+  as before :ref:`version_5.8.0` the
+  :ref:`number_of_routing_shards <sql-create-table-number-of-routing-shards>`
+  must be set to the same value as the number of shards in the
+  :ref:`CLUSTERED BY <sql-create-table-clustered>` clause of
+  :ref:`sql-create-table`.
+
+  .. NOTE:: If the number of routing shards equals the number of shard,
+            increasing the number of shards will not be supported.
 
 Deprecations
 ============
@@ -68,6 +83,12 @@ SQL Statements
 - `dshunter107 <https://github.com/dshunter107>`_ added support for the
   ``IF NOT EXISTS`` clause to :ref:`CREATE TABLE AS <ref-create-table-as>`
   statement.
+
+- Added a calculated default value for
+  :ref:`number_of_routing_shards <sql-create-table-number-of-routing-shards>` is
+  now set during :ref:`table creation <sql-create-table>`, which allows to
+  :ref:`increase the number of shards <alter-shard-number-increase>` for a
+  table. For more details see also :ref`version_5.8.0_breaking_changes`.
 
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------

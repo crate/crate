@@ -409,8 +409,12 @@ This number specifies the hashing space that is used internally to distribute
 documents across shards.
 
 This is an optional setting that enables users to later on increase the number
-of shards using :ref:`sql-alter-table`. It's not possible to update this
-setting after table creation.
+of shards using :ref:`sql-alter-table`. If it's not set explicitly, it's
+automatically set to a default value based on the number of shards defined in
+the :ref:`sql-create-table-clustered`, which allows to increase the shards by
+a factor of `2` each time, up until the maximum of `1024` shards per table.
+
+.. NOTE:: It's not possible to update this setting after table creation.
 
 
 .. _sql-create-table-refresh-interval:
