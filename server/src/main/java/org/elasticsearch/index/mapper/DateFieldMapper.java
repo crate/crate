@@ -26,24 +26,16 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Consumer;
-
-import org.apache.lucene.document.Field;
-import org.apache.lucene.document.LongField;
-import org.jetbrains.annotations.Nullable;
-
-import io.crate.common.time.IsoLocale;
 
 import org.apache.lucene.document.FieldType;
-import org.apache.lucene.document.LongPoint;
-import org.apache.lucene.document.SortedNumericDocValuesField;
-import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexOptions;
-import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.Explicit;
 import org.elasticsearch.common.joda.FormatDateTimeFormatter;
 import org.elasticsearch.common.joda.Joda;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.common.time.IsoLocale;
 
 /** A {@link FieldMapper} for ip addresses. */
 public class DateFieldMapper extends FieldMapper {
@@ -186,34 +178,6 @@ public class DateFieldMapper extends FieldMapper {
     @Override
     protected DateFieldMapper clone() {
         return (DateFieldMapper) super.clone();
-    }
-
-    @Override
-    protected void parseCreateField(ParseContext context, Consumer<IndexableField> onField) throws IOException {
-        String dateAsString = context.parser().textOrNull();
-
-        long timestamp;
-        if (dateAsString == null) {
-            return;
-        } else {
-            timestamp = fieldType().parse(dateAsString);
-        }
-
-        if (mappedFieldType.isSearchable() && mappedFieldType.hasDocValues()) {
-            onField.accept(new LongField(fieldType().name(), timestamp, Field.Store.NO));
-        } else {
-            if (mappedFieldType.isSearchable()) {
-                onField.accept(new LongPoint(fieldType().name(), timestamp));
-            }
-            if (mappedFieldType.hasDocValues()) {
-                onField.accept(new SortedNumericDocValuesField(fieldType().name(), timestamp));
-            } else if (fieldType.stored() || mappedFieldType.isSearchable()) {
-                createFieldNamesField(context, onField);
-            }
-        }
-        if (fieldType.stored()) {
-            onField.accept(new StoredField(fieldType().name(), timestamp));
-        }
     }
 
     @Override

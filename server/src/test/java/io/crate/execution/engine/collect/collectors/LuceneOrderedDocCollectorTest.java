@@ -39,6 +39,7 @@ import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
+import org.apache.lucene.document.LongField;
 import org.apache.lucene.document.SortedDocValuesField;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
@@ -68,7 +69,6 @@ import org.elasticsearch.index.mapper.NumberFieldMapper;
 import org.elasticsearch.index.shard.ShardId;
 import org.hamcrest.Matchers;
 import org.jetbrains.annotations.Nullable;
-import org.junit.Before;
 import org.junit.Test;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
@@ -100,7 +100,6 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         null
     );
     private final NumberFieldMapper.NumberType fieldType = NumberFieldMapper.NumberType.LONG;
-    private NumberFieldMapper.NumberFieldType valueFieldType;
 
     private Directory createLuceneIndex() throws IOException {
         Path tmpDir = newTempDir();
@@ -123,7 +122,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
     private void addDocToLucene(IndexWriter w, Long value) throws IOException {
         Document doc = new Document();
         if (value != null) {
-            fieldType.createFields(doc::add, "value", value, true, true, false);
+            doc.add(new LongField("value", value, Field.Store.NO));
         } else {
             // Create a placeholder field
             doc.add(new SortedDocValuesField("null_value", new BytesRef("null")));
@@ -167,10 +166,6 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         return results;
     }
 
-    @Before
-    public void setUp() {
-        valueFieldType = new NumberFieldMapper.NumberFieldType("value", fieldType);
-    }
 
     @Test
     public void testNextPageQueryWithLastCollectedNullValue() {

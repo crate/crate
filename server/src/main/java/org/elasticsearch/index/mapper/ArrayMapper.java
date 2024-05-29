@@ -25,10 +25,8 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 
 import org.apache.lucene.document.FieldType;
-import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
@@ -210,49 +208,11 @@ public class ArrayMapper extends FieldMapper implements ArrayValueMapperParser {
     }
 
     @Override
-    public void parse(ParseContext context) throws IOException {
-        XContentParser parser = context.parser();
-        XContentParser.Token token = parser.currentToken();
-        if (token == XContentParser.Token.VALUE_NULL) {
-            parseInner(context);
-            return;
-        }
-        if (token == XContentParser.Token.START_ARRAY) {
-            token = parser.nextToken();
-        }
-        Mapper newInnerMapper = innerMapper;
-        while (token != XContentParser.Token.END_ARRAY) {
-            // we only get here for non-empty arrays
-            parseInner(context);
-            token = parser.nextToken();
-        }
-        if (newInnerMapper == innerMapper) {
-            return;
-        }
-        innerMapper = newInnerMapper;
-    }
-
-    private void parseInner(ParseContext context) throws IOException {
-        assert innerMapper instanceof FieldMapper : "InnerMapper must be a FieldMapper";
-        FieldMapper innerFieldMapper = (FieldMapper) innerMapper;
-        innerFieldMapper.parse(context);
-        DocumentParser.addIndexColumnSources(context, innerFieldMapper);
-    }
-
-    @Override
     public CopyTo copyTo() {
         if (innerMapper instanceof FieldMapper) {
             return ((FieldMapper) innerMapper).copyTo();
         }
         return null;
-    }
-
-    @Override
-    protected void parseCreateField(ParseContext context, Consumer<IndexableField> onField) throws IOException {
-        // parseCreateField is called in the original FieldMapper parse method.
-        // Since parse is overwritten parseCreateField is never called
-        throw new UnsupportedOperationException("parseCreateField not supported for " +
-                                                ArrayMapper.class.getSimpleName());
     }
 
     @Override

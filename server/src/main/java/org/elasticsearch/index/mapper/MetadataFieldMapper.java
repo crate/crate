@@ -19,13 +19,12 @@
 
 package org.elasticsearch.index.mapper;
 
-import java.io.IOException;
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+
 import java.util.List;
 import java.util.Map;
 
 import org.apache.lucene.document.FieldType;
-
-import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 
 /**
@@ -71,18 +70,6 @@ public abstract class MetadataFieldMapper extends FieldMapper {
             mappedFieldType,
             CopyTo.empty()
         );
-    }
-
-    /**
-     * Called before {@link FieldMapper#parse(ParseContext)} on the {@link RootObjectMapper}.
-     */
-    public abstract void preParse(ParseContext context) throws IOException;
-
-    /**
-     * Called after {@link FieldMapper#parse(ParseContext)} on the {@link RootObjectMapper}.
-     */
-    public void postParse(ParseContext context) throws IOException {
-        // do nothing
     }
 
     @Override

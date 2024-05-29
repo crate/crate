@@ -21,7 +21,6 @@
 
 package io.crate.execution.dml;
 
-import static io.crate.metadata.doc.mappers.array.ArrayMapperTest.mapper;
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -52,11 +51,8 @@ import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.ParsedDocument;
-import org.elasticsearch.index.mapper.SourceToParse;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -1009,32 +1005,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
             Indexer indexer = getIndexer(e, tableName, "x");
             ParsedDocument doc = indexer.index(item(1));
-            IndexableField[] fields = doc.doc().getFields("x");
-
-            // @formatter: off
-            String mapping = Strings.toString(JsonXContent.builder()
-                .startObject()
-                    .startObject("properties")
-                        .startObject("x")
-                            .field("type", DataTypes.esMappingNameFrom(dt.id()))
-                            .field("index", false)
-                        .endObject()
-                    .endObject()
-                .endObject());
-
-            var indexName = e.resolveTableInfo(tableName).ident().indexNameOrAlias();
-            DocumentMapper mapper = mapper(indexName, mapping);
-            ParsedDocument docFromSource = mapper.parse(
-                    new SourceToParse(indexName, "dummy-id-1", doc.source(), XContentType.JSON)
-            );
-            IndexableField[] fieldsFromSource = docFromSource.doc().getFields("x");
-
-            assertThat(fields.length).isEqualTo(fieldsFromSource.length);
-            for (int i = 0; i < fields.length; i++) {
-                assertThat(fields[i].toString()).isEqualTo(fieldsFromSource[i].toString());
-            }
-
-            assertTranslogParses(doc, e.resolveTableInfo(tableName));
+            DocTableInfo tableInfo = e.resolveTableInfo(tableName);
+            assertTranslogParses(doc, tableInfo);
         }
     }
 
@@ -1046,33 +1018,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 .addTable("create table " + tableName + " (x " + dt.getName() + " INDEX OFF)");
 
         Indexer indexer = getIndexer(e, tableName, "x");
-
         ParsedDocument doc = indexer.index(item("127.0.0.1"));
-        IndexableField[] fields = doc.doc().getFields("x");
-
-        // @formatter: off
-        String mapping = Strings.toString(JsonXContent.builder()
-            .startObject()
-                .startObject("properties")
-                    .startObject("x")
-                        .field("type", DataTypes.esMappingNameFrom(dt.id()))
-                        .field("index", false)
-                    .endObject()
-                .endObject()
-            .endObject());
-
-        var indexName = e.resolveTableInfo(tableName).ident().indexNameOrAlias();
-        DocumentMapper mapper = mapper(indexName, mapping);
-        ParsedDocument docFromSource = mapper.parse(
-                new SourceToParse(indexName, "dummy-id-1", doc.source(), XContentType.JSON)
-        );
-        IndexableField[] fieldsFromSource = docFromSource.doc().getFields("x");
-
-        assertThat(fields.length).isEqualTo(fieldsFromSource.length);
-        for (int i = 0; i < fields.length; i++) {
-            assertThat(fields[i].toString()).isEqualTo(fieldsFromSource[i].toString());
-        }
-
         assertTranslogParses(doc, e.resolveTableInfo(tableName));
     }
 
@@ -1086,32 +1032,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         Indexer indexer = getIndexer(e, tableName, "x");
 
         ParsedDocument doc = indexer.index(item(BitString.ofRawBits("1")));
-        IndexableField[] fields = doc.doc().getFields("x");
-
-        // @formatter: off
-        String mapping = Strings.toString(JsonXContent.builder()
-            .startObject()
-                .startObject("properties")
-                    .startObject("x")
-                        .field("type", DataTypes.esMappingNameFrom(dt.id()))
-                        .field("index", false)
-                        .field("length", 1)
-                    .endObject()
-                .endObject()
-            .endObject());
-
-        var indexName = e.resolveTableInfo(tableName).ident().indexNameOrAlias();
-        DocumentMapper mapper = mapper(indexName, mapping);
-        ParsedDocument docFromSource = mapper.parse(
-                new SourceToParse(indexName, "dummy-id-1", doc.source(), XContentType.JSON)
-        );
-        IndexableField[] fieldsFromSource = docFromSource.doc().getFields("x");
-
-        assertThat(fields.length).isEqualTo(fieldsFromSource.length);
-        for (int i = 0; i < fields.length; i++) {
-            assertThat(fields[i].toString()).isEqualTo(fieldsFromSource[i].toString());
-        }
-
         assertTranslogParses(doc, e.resolveTableInfo(tableName));
     }
 
@@ -1125,31 +1045,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         Indexer indexer = getIndexer(e, tableName, "x");
 
         ParsedDocument doc = indexer.index(item(true));
-        IndexableField[] fields = doc.doc().getFields("x");
-
-        // @formatter: off
-        String mapping = Strings.toString(JsonXContent.builder()
-            .startObject()
-                .startObject("properties")
-                    .startObject("x")
-                        .field("type", DataTypes.esMappingNameFrom(dt.id()))
-                        .field("index", false)
-                    .endObject()
-                .endObject()
-            .endObject());
-
-        var indexName = e.resolveTableInfo(tableName).ident().indexNameOrAlias();
-        DocumentMapper mapper = mapper(indexName, mapping);
-        ParsedDocument docFromSource = mapper.parse(
-                new SourceToParse(indexName, "dummy-id-1", doc.source(), XContentType.JSON)
-        );
-        IndexableField[] fieldsFromSource = docFromSource.doc().getFields("x");
-
-        assertThat(fields.length).isEqualTo(fieldsFromSource.length);
-        for (int i = 0; i < fields.length; i++) {
-            assertThat(fields[i].toString()).isEqualTo(fieldsFromSource[i].toString());
-        }
-
         assertTranslogParses(doc, e.resolveTableInfo(tableName));
     }
 

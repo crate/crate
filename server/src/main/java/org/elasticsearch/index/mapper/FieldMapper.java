@@ -27,15 +27,10 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Consumer;
 
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexOptions;
-import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.index.mapper.FieldNamesFieldMapper.FieldNamesFieldType;
 import org.jetbrains.annotations.Nullable;
 
 public abstract class FieldMapper extends Mapper implements Cloneable {
@@ -153,35 +148,6 @@ public abstract class FieldMapper extends Mapper implements Cloneable {
         return copyTo;
     }
 
-    /**
-     * Parse the field value using the provided {@link ParseContext}.
-     */
-    public void parse(ParseContext context) throws IOException {
-        Document doc = context.doc();
-        Consumer<IndexableField> addField = field -> doc.add(field);
-        try {
-            parseCreateField(context, addField);
-        } catch (Exception e) {
-            throw new MapperParsingException("failed to parse field [{}] of type [{}]", e, fieldType().name(),
-                    fieldType().typeName());
-        }
-    }
-
-    /**
-     * Parse the field value and populate <code>fields</code>.
-     */
-    protected abstract void parseCreateField(ParseContext context, Consumer<IndexableField> onField) throws IOException;
-
-    protected void createFieldNamesField(ParseContext context, Consumer<IndexableField> onField) {
-        FieldNamesFieldType fieldNamesFieldType = context.docMapper()
-            .metadataMapper(FieldNamesFieldMapper.class)
-            .fieldType();
-        if (fieldNamesFieldType != null && fieldNamesFieldType.isEnabled()) {
-            for (String fieldName : FieldNamesFieldMapper.extractFieldNames(fieldType().name())) {
-                onField.accept(new Field(FieldNamesFieldMapper.NAME, fieldName, FieldNamesFieldMapper.Defaults.FIELD_TYPE));
-            }
-        }
-    }
 
     @Override
     public Iterator<Mapper> iterator() {

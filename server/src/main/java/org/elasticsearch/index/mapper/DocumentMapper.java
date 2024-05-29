@@ -21,16 +21,16 @@ package org.elasticsearch.index.mapper;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Stream;
 
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchGenerationException;
@@ -40,7 +40,6 @@ import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.mapper.MetadataFieldMapper.TypeParser;
 
 import io.crate.metadata.doc.DocSysColumns;
@@ -107,20 +106,13 @@ public class DocumentMapper implements ToXContentFragment {
 
     private final Mapping mapping;
 
-    private final DocumentParser documentParser;
-
     private final DocumentFieldMappers fieldMappers;
 
     private final Map<String, ObjectMapper> objectMappers;
 
-    private final MetadataFieldMapper[] deleteTombstoneMetadataFieldMappers;
-    private final MetadataFieldMapper[] noopTombstoneMetadataFieldMappers;
-
     public DocumentMapper(MapperService mapperService, Mapping mapping) {
         this.mapperService = mapperService;
-        final IndexSettings indexSettings = mapperService.getIndexSettings();
         this.mapping = mapping;
-        this.documentParser = new DocumentParser(indexSettings, mapperService.documentMapperParser(), this);
 
         // collect all the mappers for this type
         List<ObjectMapper> newObjectMappers = new ArrayList<>();
@@ -148,15 +140,6 @@ public class DocumentMapper implements ToXContentFragment {
         } catch (Exception e) {
             throw new ElasticsearchGenerationException("failed to serialize source", e);
         }
-
-        final Collection<String> deleteTombstoneMetadataFields = Arrays.asList(DocSysColumns.VERSION.name(), IdFieldMapper.NAME,
-            DocSysColumns.Names.SEQ_NO, DocSysColumns.Names.PRIMARY_TERM, DocSysColumns.Names.TOMBSTONE);
-        this.deleteTombstoneMetadataFieldMappers = Stream.of(mapping.metadataMappers)
-            .filter(field -> deleteTombstoneMetadataFields.contains(field.name())).toArray(MetadataFieldMapper[]::new);
-        final Collection<String> noopTombstoneMetadataFields = Arrays.asList(
-            DocSysColumns.VERSION.name(), DocSysColumns.Names.SEQ_NO, DocSysColumns.Names.PRIMARY_TERM, DocSysColumns.Names.TOMBSTONE);
-        this.noopTombstoneMetadataFieldMappers = Stream.of(mapping.metadataMappers)
-            .filter(field -> noopTombstoneMetadataFields.contains(field.name())).toArray(MetadataFieldMapper[]::new);
     }
 
     public Mapping mapping() {
@@ -183,25 +166,54 @@ public class DocumentMapper implements ToXContentFragment {
         return this.objectMappers;
     }
 
-    public ParsedDocument parse(SourceToParse source) throws MapperParsingException {
-        return documentParser.parseDocument(source, mapping.metadataMappers);
+    public static ParsedDocument createDeleteTombstoneDoc(String index, String id) throws MapperParsingException {
+        Document doc = new Document();
+
+        BytesRef idBytes = Uid.encodeId(id);
+        doc.add(new Field(DocSysColumns.Names.ID, idBytes, IdFieldMapper.Defaults.FIELD_TYPE));
+
+        NumericDocValuesField version = new NumericDocValuesField(DocSysColumns.VERSION.name(), -1L);
+        doc.add(version);
+
+        SequenceIDFields seqID = SequenceIDFields.emptySeqID();
+        doc.add(seqID.seqNo);
+        doc.add(seqID.seqNoDocValue);
+        doc.add(seqID.primaryTerm);
+        return new ParsedDocument(
+            version,
+            seqID,
+            id,
+            doc,
+            new BytesArray("{}"),
+            null
+        ).toTombstone();
     }
 
-    public ParsedDocument createDeleteTombstoneDoc(String index, String id) throws MapperParsingException {
-        final SourceToParse emptySource = new SourceToParse(index, id, new BytesArray("{}"), XContentType.JSON);
-        return documentParser.parseDocument(emptySource, deleteTombstoneMetadataFieldMappers).toTombstone();
-    }
+    public static ParsedDocument createNoopTombstoneDoc(String index, String reason) throws MapperParsingException {
+        Document doc = new Document();
 
-    public ParsedDocument createNoopTombstoneDoc(String index, String reason) throws MapperParsingException {
         final String id = ""; // _id won't be used.
-        final SourceToParse sourceToParse = new SourceToParse(index, id, new BytesArray("{}"), XContentType.JSON);
-        final ParsedDocument parsedDoc = documentParser.parseDocument(sourceToParse, noopTombstoneMetadataFieldMappers).toTombstone();
+
+        NumericDocValuesField version = new NumericDocValuesField(DocSysColumns.VERSION.name(), -1L);
+        doc.add(version);
+
+        SequenceIDFields seqID = SequenceIDFields.emptySeqID();
+        doc.add(seqID.seqNo);
+        doc.add(seqID.seqNoDocValue);
+        doc.add(seqID.primaryTerm);
+        ParsedDocument parsedDoc = new ParsedDocument(
+            version,
+            seqID,
+            id,
+            doc,
+            new BytesArray("{}"),
+            null
+        ).toTombstone();
         // Store the reason of a noop as a raw string in the _source field
         final BytesRef byteRef = new BytesRef(reason);
-        parsedDoc.doc().add(new StoredField(SourceFieldMapper.NAME, byteRef.bytes, byteRef.offset, byteRef.length));
+        doc.add(new StoredField(SourceFieldMapper.NAME, byteRef.bytes, byteRef.offset, byteRef.length));
         return parsedDoc;
     }
-
 
     public DocumentMapper merge(Mapping mapping) {
         Mapping merged = this.mapping.merge(mapping);

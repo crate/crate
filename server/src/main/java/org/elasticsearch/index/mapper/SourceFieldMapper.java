@@ -22,15 +22,9 @@ package org.elasticsearch.index.mapper;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 
 import org.apache.lucene.document.FieldType;
-import org.apache.lucene.document.NumericDocValuesField;
-import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexOptions;
-import org.apache.lucene.index.IndexableField;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
 public class SourceFieldMapper extends MetadataFieldMapper {
@@ -97,37 +91,6 @@ public class SourceFieldMapper extends MetadataFieldMapper {
 
     private SourceFieldMapper() {
         super(Defaults.FIELD_TYPE, SourceFieldType.INSTANCE); // Only stored.
-    }
-
-    @Override
-    public void preParse(ParseContext context) throws IOException {
-        super.parse(context);
-    }
-
-    @Override
-    public void parse(ParseContext context) throws IOException {
-        // nothing to do here, we will call it in pre parse
-    }
-
-    @Override
-    protected void parseCreateField(ParseContext context, Consumer<IndexableField> addField) throws IOException {
-        BytesReference originalSource = context.sourceToParse().source();
-        BytesReference source = originalSource;
-        if (fieldType.stored() && source != null) {
-            // Percolate and tv APIs may not set the source and that is ok, because these APIs will not index any data
-            BytesRef ref = source.toBytesRef();
-            addField.accept(new StoredField(fieldType().name(), ref.bytes, ref.offset, ref.length));
-        } else {
-            source = null;
-        }
-
-        if (originalSource != null && source != originalSource && context.indexSettings().isSoftDeleteEnabled()) {
-            // if we omitted source or modified it we add the _recovery_source to ensure we
-            // have it for ops based recovery
-            BytesRef ref = originalSource.toBytesRef();
-            addField.accept(new StoredField(RECOVERY_SOURCE_NAME, ref.bytes, ref.offset, ref.length));
-            addField.accept(new NumericDocValuesField(RECOVERY_SOURCE_NAME, 1));
-        }
     }
 
     @Override
