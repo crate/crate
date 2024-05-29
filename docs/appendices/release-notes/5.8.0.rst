@@ -50,7 +50,7 @@ Breaking Changes
   CrateDB 4.2.0.
 
 - Removed ``network`` column from :ref:`sys.nodes <sys-nodes>` table. The column
-  was deprecated since `version_2.3.0_` and all of the sub-columns where
+  was deprecated since `version_2.3.0`_ and all of the sub-columns where
   returning 0.
 
 Deprecations
