@@ -24,15 +24,15 @@ package io.crate.window;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 
 import java.util.List;
+import java.util.function.LongConsumer;
 
 import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntObjectHashMap;
-import com.carrotsearch.hppc.IntObjectMap;
 
 import io.crate.data.Input;
 import io.crate.data.Row;
-import io.crate.data.RowN;
+import io.crate.data.UnsafeArrayRow;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.window.WindowFrameState;
 import io.crate.execution.engine.window.WindowFunction;
@@ -51,34 +51,37 @@ import io.crate.types.TypeSignature;
  */
 public class OffsetValueFunctions implements WindowFunction {
 
-    private Object getValueAtOffsetIgnoringNulls(int idxInPartition,
+    private Object getValueAtOffsetIgnoringNulls(LongConsumer allocateBytes,
+                                                 int idxInPartition,
                                                  int offset,
                                                  WindowFrameState currentFrame,
                                                  List<? extends CollectExpression<Row, ?>> expressions,
                                                  Input<?> ... args) {
         if (cachedNonNullIndex == -1) {
-            cachedNonNullIndex = findNonNullOffsetFromCurrentIndex(idxInPartition,
+            cachedNonNullIndex = findNonNullOffsetFromCurrentIndex(allocateBytes,
+                                                                   idxInPartition,
                                                                    offset,
                                                                    currentFrame,
                                                                    expressions,
                                                                    args);
         } else {
             if (resolvedDirection > 0) {
-                var curValue = getValueAtTargetIndex(idxInPartition, currentFrame, expressions, args);
+                var curValue = getValueAtTargetIndex(allocateBytes, idxInPartition, currentFrame, expressions, args);
                 if (curValue != null) {
-                    moveCacheToNextNonNull(currentFrame, expressions, args);
+                    moveCacheToNextNonNull(allocateBytes, currentFrame, expressions, args);
                 }
             } else {
-                var prevValue = getValueAtTargetIndex(idxInPartition - 1, currentFrame, expressions, args);
+                var prevValue = getValueAtTargetIndex(allocateBytes, idxInPartition - 1, currentFrame, expressions, args);
                 if (prevValue != null) {
-                    moveCacheToNextNonNull(currentFrame, expressions, args);
+                    moveCacheToNextNonNull(allocateBytes, currentFrame, expressions, args);
                 }
             }
         }
-        return getValueAtTargetIndex(cachedNonNullIndex, currentFrame, expressions, args);
+        return getValueAtTargetIndex(allocateBytes, cachedNonNullIndex, currentFrame, expressions, args);
     }
 
-    private void moveCacheToNextNonNull(WindowFrameState currentFrame,
+    private void moveCacheToNextNonNull(LongConsumer allocateBytes,
+                                        WindowFrameState currentFrame,
                                         List<? extends CollectExpression<Row, ?>> expressions,
                                         Input<?> ... args) {
         if (cachedNonNullIndex == -1) {
@@ -92,7 +95,7 @@ public class OffsetValueFunctions implements WindowFunction {
                 cachedNonNullIndex = -1;
                 break;
             }
-            Object value = getValueAtTargetIndex(i, currentFrame, expressions, args);
+            Object value = getValueAtTargetIndex(allocateBytes, i, currentFrame, expressions, args);
             if (value != null) {
                 cachedNonNullIndex = i;
                 break;
@@ -100,15 +103,16 @@ public class OffsetValueFunctions implements WindowFunction {
         }
     }
 
-    private int findNonNullOffsetFromCurrentIndex(int idxInPartition,
-                                                      int offset,
-                                                      WindowFrameState currentFrame,
-                                                      List<? extends CollectExpression<Row, ?>> expressions,
-                                                      Input<?> ... args) {
+    private int findNonNullOffsetFromCurrentIndex(LongConsumer allocateBytes,
+                                                  int idxInPartition,
+                                                  int offset,
+                                                  WindowFrameState currentFrame,
+                                                  List<? extends CollectExpression<Row, ?>> expressions,
+                                                  Input<?> ... args) {
         /* Search for 'offset' number of non-null elements in 'resolvedDirection' and return the index if found.
            If index goes out of bound, an exception will be thrown and eventually invoke getDefaultOrNull(...) */
         for (int i = 1, counter = 0; ; i++) {
-            Object value = getValueAtTargetIndex(getTargetIndex(idxInPartition, i), currentFrame, expressions, args);
+            Object value = getValueAtTargetIndex(allocateBytes, getTargetIndex(idxInPartition, i), currentFrame, expressions, args);
             if (value != null) {
                 counter++;
                 if (counter == offset) {
@@ -118,7 +122,8 @@ public class OffsetValueFunctions implements WindowFunction {
         }
     }
 
-    private Object getValueAtOffset(int idxAtPartition,
+    private Object getValueAtOffset(LongConsumer allocateBytes,
+                                    int idxAtPartition,
                                     int offset,
                                     WindowFrameState currentFrame,
                                     List<? extends CollectExpression<Row, ?>> expressions,
@@ -126,38 +131,41 @@ public class OffsetValueFunctions implements WindowFunction {
                                     Input<?> ... args) {
         if (ignoreNulls == false) {
             var targetIndex = getTargetIndex(idxAtPartition, offset);
-            return getValueAtTargetIndex(targetIndex, currentFrame, expressions, args);
+            return getValueAtTargetIndex(allocateBytes, targetIndex, currentFrame, expressions, args);
         } else {
             if (offset == 0) {
                 throw new IllegalArgumentException("offset 0 is not a valid argument if ignore nulls flag is set");
             }
-            return getValueAtOffsetIgnoringNulls(idxAtPartition, offset, currentFrame, expressions, args);
+            return getValueAtOffsetIgnoringNulls(allocateBytes, idxAtPartition, offset, currentFrame, expressions, args);
         }
     }
 
-    private Object getValueAtTargetIndex(int targetIndex,
+    private Object getValueAtTargetIndex(LongConsumer allocateBytes,
+                                         int targetIndex,
                                          WindowFrameState currentFrame,
                                          List<? extends CollectExpression<Row, ?>> expressions,
                                          Input<?> ... args) {
         if (targetIndex == -1) {
             throw new IndexOutOfBoundsException();
         }
-        Row row;
-        if (indexToRow.containsKey(targetIndex)) {
-            row = indexToRow.get(targetIndex);
-        } else {
-            Object[] rowCells = currentFrame.getRowInPartitionAtIndexOrNull(targetIndex);
-            if (rowCells == null) {
+        Object[] row = indexToRow.get(targetIndex);
+        if (row == null) {
+            row = currentFrame.getRowInPartitionAtIndexOrNull(targetIndex);
+            if (row == null) {
                 throw new IndexOutOfBoundsException();
             }
-            row = indexToRow.get(targetIndex);
-            if (row == null) {
-                row = new RowN(rowCells);
-                indexToRow.put(targetIndex, row);
+            // cells + data within are owned by the WindowFunctionBatchIterator/WindowFrameState and do not need accounting.
+            // But the indexToRow map overhead needs to be accounted for.
+            long ramBytesPrev = indexToRow.ramBytesUsed();
+            indexToRow.put(targetIndex, row);
+            long deltaUsed = indexToRow.ramBytesUsed() - ramBytesPrev;
+            if (deltaUsed > 0) {
+                allocateBytes.accept(deltaUsed);
             }
         }
+        sharedRow.cells(row);
         for (CollectExpression<Row, ?> expression : expressions) {
-            expression.setNextRow(row);
+            expression.setNextRow(sharedRow);
         }
         return args[0].value();
     }
@@ -180,7 +188,8 @@ public class OffsetValueFunctions implements WindowFunction {
        The main perf. benefits will be seen when series of nulls are present.
        In the cases where idxInPartition is near the bounds that the cache cannot point to the valid index, it will hold a null. */
     private int cachedNonNullIndex;
-    private IntObjectMap<Row> indexToRow;
+    private IntObjectHashMap<Object[]> indexToRow;
+    private final UnsafeArrayRow sharedRow = new UnsafeArrayRow();
 
     private OffsetValueFunctions(Signature signature, BoundSignature boundSignature, int directionMultiplier) {
         this.signature = signature;
@@ -199,7 +208,8 @@ public class OffsetValueFunctions implements WindowFunction {
     }
 
     @Override
-    public Object execute(int idxInPartition,
+    public Object execute(LongConsumer allocateBytes,
+                          int idxInPartition,
                           WindowFrameState currentFrame,
                           List<? extends CollectExpression<Row, ?>> expressions,
                           @Nullable Boolean ignoreNulls,
@@ -218,6 +228,7 @@ public class OffsetValueFunctions implements WindowFunction {
         }
         if (idxInPartition == 0) {
             indexToRow = new IntObjectHashMap<>(currentFrame.size());
+            allocateBytes.accept(indexToRow.ramBytesAllocated());
         }
         // if the offset is changed compared to the previous iteration, cache will be cleared
         if (idxInPartition == 0 || (cachedOffset != null && cachedOffset != offset)) {
@@ -229,7 +240,8 @@ public class OffsetValueFunctions implements WindowFunction {
         cachedOffset = offset;
         final int cachedOffsetMagnitude = Math.abs(cachedOffset);
         try {
-            return getValueAtOffset(idxInPartition,
+            return getValueAtOffset(allocateBytes,
+                                    idxInPartition,
                                     cachedOffsetMagnitude,
                                     currentFrame,
                                     expressions,

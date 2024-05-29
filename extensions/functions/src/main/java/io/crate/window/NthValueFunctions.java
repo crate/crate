@@ -25,6 +25,7 @@ import static io.crate.execution.engine.window.WindowFrameState.isLowerBoundIncr
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 
 import java.util.List;
+import java.util.function.LongConsumer;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -233,7 +234,8 @@ public class NthValueFunctions implements WindowFunction {
     }
 
     @Override
-    public Object execute(int idxInPartition,
+    public Object execute(LongConsumer allocateBytes,
+                          int idxInPartition,
                           WindowFrameState currentFrame,
                           List<? extends CollectExpression<Row, ?>> expressions,
                           @Nullable Boolean ignoreNulls,
