@@ -424,7 +424,7 @@ public final class TestCluster implements Closeable {
             }
             CompletableFuture<List<AcknowledgedResponse>> allResponses = CompletableFutures.allAsList(futures);
             try {
-                List<AcknowledgedResponse> responses = allResponses.get();
+                List<AcknowledgedResponse> responses = allResponses.get(5, TimeUnit.SECONDS);
                 responses.forEach(r -> assertAcked(r));
             } catch (Exception ignore) {
             }
