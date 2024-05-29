@@ -23,11 +23,12 @@ package io.crate.window;
 
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.jetbrains.annotations.Nullable;
+
+import com.carrotsearch.hppc.IntObjectHashMap;
+import com.carrotsearch.hppc.IntObjectMap;
 
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -55,7 +56,7 @@ public class OffsetValueFunctions implements WindowFunction {
                                                  WindowFrameState currentFrame,
                                                  List<? extends CollectExpression<Row, ?>> expressions,
                                                  Input<?> ... args) {
-        if (cachedNonNullIndex == null) {
+        if (cachedNonNullIndex == -1) {
             cachedNonNullIndex = findNonNullOffsetFromCurrentIndex(idxInPartition,
                                                                    offset,
                                                                    currentFrame,
@@ -80,7 +81,7 @@ public class OffsetValueFunctions implements WindowFunction {
     private void moveCacheToNextNonNull(WindowFrameState currentFrame,
                                         List<? extends CollectExpression<Row, ?>> expressions,
                                         Input<?> ... args) {
-        if (cachedNonNullIndex == null) {
+        if (cachedNonNullIndex == -1) {
             return;
         }
         /* from cached index, search from left to right for a non-null element.
@@ -88,7 +89,7 @@ public class OffsetValueFunctions implements WindowFunction {
            for 'lead', cache index may reach partitionEnd. */
         for (int i = cachedNonNullIndex + 1; i <= currentFrame.partitionEnd(); i++) {
             if (i == currentFrame.partitionEnd()) {
-                cachedNonNullIndex = null;
+                cachedNonNullIndex = -1;
                 break;
             }
             Object value = getValueAtTargetIndex(i, currentFrame, expressions, args);
@@ -99,7 +100,7 @@ public class OffsetValueFunctions implements WindowFunction {
         }
     }
 
-    private Integer findNonNullOffsetFromCurrentIndex(int idxInPartition,
+    private int findNonNullOffsetFromCurrentIndex(int idxInPartition,
                                                       int offset,
                                                       WindowFrameState currentFrame,
                                                       List<? extends CollectExpression<Row, ?>> expressions,
@@ -134,11 +135,11 @@ public class OffsetValueFunctions implements WindowFunction {
         }
     }
 
-    private Object getValueAtTargetIndex(@Nullable Integer targetIndex,
+    private Object getValueAtTargetIndex(int targetIndex,
                                          WindowFrameState currentFrame,
                                          List<? extends CollectExpression<Row, ?>> expressions,
                                          Input<?> ... args) {
-        if (targetIndex == null) {
+        if (targetIndex == -1) {
             throw new IndexOutOfBoundsException();
         }
         Row row;
@@ -149,8 +150,11 @@ public class OffsetValueFunctions implements WindowFunction {
             if (rowCells == null) {
                 throw new IndexOutOfBoundsException();
             }
-            row = new RowN(rowCells);
-            indexToRow.putIfAbsent(targetIndex, row);
+            row = indexToRow.get(targetIndex);
+            if (row == null) {
+                row = new RowN(rowCells);
+                indexToRow.put(targetIndex, row);
+            }
         }
         for (CollectExpression<Row, ?> expression : expressions) {
             expression.setNextRow(row);
@@ -175,8 +179,8 @@ public class OffsetValueFunctions implements WindowFunction {
     /* cachedNonNullIndex and idxInPartition forms an offset window containing 'offset' number of non-null elements and any number of nulls.
        The main perf. benefits will be seen when series of nulls are present.
        In the cases where idxInPartition is near the bounds that the cache cannot point to the valid index, it will hold a null. */
-    private Integer cachedNonNullIndex;
-    private Map<Integer, Row> indexToRow;
+    private int cachedNonNullIndex;
+    private IntObjectMap<Row> indexToRow;
 
     private OffsetValueFunctions(Signature signature, BoundSignature boundSignature, int directionMultiplier) {
         this.signature = signature;
@@ -213,14 +217,14 @@ public class OffsetValueFunctions implements WindowFunction {
             offset = 1;
         }
         if (idxInPartition == 0) {
-            indexToRow = new HashMap<>(currentFrame.size());
+            indexToRow = new IntObjectHashMap<>(currentFrame.size());
         }
         // if the offset is changed compared to the previous iteration, cache will be cleared
         if (idxInPartition == 0 || (cachedOffset != null && cachedOffset != offset)) {
             if (offset != 0) {
                 resolvedDirection = offset / Math.abs(offset) * directionMultiplier;
             }
-            cachedNonNullIndex = null;
+            cachedNonNullIndex = -1;
         }
         cachedOffset = offset;
         final int cachedOffsetMagnitude = Math.abs(cachedOffset);
