@@ -185,7 +185,7 @@ public class DDLIntegrationTest extends IntegTestCase {
                     "tree", "quadtree",
                     "position", 1,
                     "oid", 1,
-                    "precision", "1.0m",
+                    "precision", "1m",
                     "distance_error_pct", 0.25
                 )
             )
@@ -228,6 +228,7 @@ public class DDLIntegrationTest extends IntegTestCase {
             "properties", Map.of(
                 "col1", Map.of(
                     "type", "geo_shape",
+                    "tree", "geohash",
                     "position", 1,
                     "oid", 1
                 )
@@ -985,7 +986,7 @@ public class DDLIntegrationTest extends IntegTestCase {
                 CREATE TABLE IF NOT EXISTS "doc"."t" (
                    "col" GEO_SHAPE NOT NULL INDEX USING QUADTREE WITH (
                       distance_error_pct = 0.25,
-                      precision = '1.0m'
+                      precision = '1m'
                    )
                 )
                 """.stripIndent()

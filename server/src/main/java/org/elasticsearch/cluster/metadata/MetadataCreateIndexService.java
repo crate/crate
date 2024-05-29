@@ -72,14 +72,12 @@ import org.elasticsearch.common.logging.DeprecationLogger;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.mapper.DocumentMapper;
-import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.mapper.MapperService.MergeReason;
+import org.elasticsearch.index.analysis.IndexAnalyzers;
+import org.elasticsearch.index.analysis.NamedAnalyzer;
 import org.elasticsearch.indices.IndexCreationException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.InvalidIndexNameException;
@@ -91,6 +89,7 @@ import io.crate.execution.ddl.tables.CreateTableRequest;
 import io.crate.execution.ddl.tables.MappingUtil;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.IndexParts;
+import io.crate.metadata.IndexReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
@@ -114,7 +113,6 @@ public class MetadataCreateIndexService {
     private final Environment env;
     private final IndexScopedSettings indexScopedSettings;
     private final ActiveShardsObserver activeShardsObserver;
-    private final NamedXContentRegistry xContentRegistry;
     private final boolean forbidPrivateIndexSettings;
     private final Settings settings;
     private final ShardLimitValidator shardLimitValidator;
@@ -128,7 +126,6 @@ public class MetadataCreateIndexService {
             final Environment env,
             final IndexScopedSettings indexScopedSettings,
             final ThreadPool threadPool,
-            final NamedXContentRegistry xContentRegistry,
             final boolean forbidPrivateIndexSettings) {
         this.settings = settings;
         this.clusterService = clusterService;
@@ -137,7 +134,6 @@ public class MetadataCreateIndexService {
         this.env = env;
         this.indexScopedSettings = indexScopedSettings;
         this.activeShardsObserver = new ActiveShardsObserver(clusterService);
-        this.xContentRegistry = xContentRegistry;
         this.forbidPrivateIndexSettings = forbidPrivateIndexSettings;
         this.shardLimitValidator = shardLimitValidator;
     }
@@ -246,7 +242,6 @@ public class MetadataCreateIndexService {
                     createTableRequest,
                     listener,
                     indicesService,
-                    xContentRegistry,
                     settings,
                     this::validate,
                     indexScopedSettings,
@@ -260,7 +255,6 @@ public class MetadataCreateIndexService {
     static class IndexCreationTask extends AckedClusterStateUpdateTask<ClusterStateUpdateResponse> {
 
         private final IndicesService indicesService;
-        private final NamedXContentRegistry xContentRegistry;
         private final CreateIndexClusterStateUpdateRequest request;
         private final CreateTableRequest createTableRequest;
         private final Logger logger;
@@ -276,7 +270,6 @@ public class MetadataCreateIndexService {
                           @Nullable CreateTableRequest createTableRequest,
                           ActionListener<ClusterStateUpdateResponse> listener,
                           IndicesService indicesService,
-                          NamedXContentRegistry xContentRegistry,
                           Settings settings,
                           IndexValidator validator,
                           IndexScopedSettings indexScopedSettings,
@@ -287,7 +280,6 @@ public class MetadataCreateIndexService {
             this.logger = logger;
             this.allocationService = allocationService;
             this.indicesService = indicesService;
-            this.xContentRegistry = xContentRegistry;
             this.settings = settings;
             this.validator = validator;
             this.indexScopedSettings = indexScopedSettings;
@@ -325,37 +317,30 @@ public class MetadataCreateIndexService {
 
             Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
             final Index recoverFromIndex = request.recoverFrom();
-            Map<String, Object> mapping;
-            String mappingStr = request.mapping();
-            if (mappingStr == null) {
-                // Can be null on resize.
-                if (createTableRequest == null) {
-                    if (recoverFromIndex == null) {
-                        mapping = new HashMap<>();
-                    } else {
-                        IndexMetadata sourceMetadata = currentState.metadata().getIndexSafe(recoverFromIndex);
-                        mapping = sourceMetadata.mapping().sourceAsMap();
-                    }
+            MappingMetadata mapping;
+            if (createTableRequest == null) {
+                if (recoverFromIndex == null) {
+                    mapping = new MappingMetadata(Map.of());
                 } else {
-                    List<Reference> references = DocReferences.applyOid(
-                            createTableRequest.references(),
-                            metadataBuilder.columnOidSupplier()
-                    );
-
-                    mapping = MappingUtil.createMapping(
-                        MappingUtil.AllocPosition.forNewTable(),
-                        createTableRequest.pkConstraintName(),
-                        references,
-                        createTableRequest.pKeyIndices(),
-                        createTableRequest.checkConstraints(),
-                        createTableRequest.partitionedBy(),
-                        createTableRequest.tableColumnPolicy(),
-                        createTableRequest.routingColumn()
-                    );
+                    IndexMetadata sourceMetadata = currentState.metadata().getIndexSafe(recoverFromIndex);
+                    mapping = sourceMetadata.mapping();
                 }
             } else {
-                // BWC code path. Do not remove in 5.5 or later since it's used on direct CreateIndexRequest creation.
-                mapping = MapperService.parseMapping(xContentRegistry, mappingStr);
+                List<Reference> references = DocReferences.applyOid(
+                        createTableRequest.references(),
+                        metadataBuilder.columnOidSupplier()
+                );
+
+                mapping = new MappingMetadata(Map.of("default", MappingUtil.createMapping(
+                    MappingUtil.AllocPosition.forNewTable(),
+                    createTableRequest.pkConstraintName(),
+                    references,
+                    createTableRequest.pKeyIndices(),
+                    createTableRequest.checkConstraints(),
+                    createTableRequest.partitionedBy(),
+                    createTableRequest.tableColumnPolicy(),
+                    createTableRequest.routingColumn()
+                )));
             }
 
             Settings.Builder indexSettingsBuilder = Settings.builder();
@@ -448,32 +433,23 @@ public class MetadataCreateIndexService {
             }
             // create the index here (on the master) to validate it can be created, as well as adding the mapping
             return indicesService.withTempIndexService(tmpImd, indexService -> {
-                MapperService mapperService = indexService.mapperService();
-                try {
-                    mapperService.merge(mapping, MergeReason.MAPPING_UPDATE);
-                } catch (Exception e) {
-                    throw e;
-                }
-
-                // now, update the mappings with the actual source
                 final IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(request.index())
                     .settings(actualIndexSettings)
-                    .setRoutingNumShards(routingNumShards);
+                    .setRoutingNumShards(routingNumShards)
+                    .state(State.OPEN)
+                    .putMapping(mapping);
 
+                if (createTableRequest != null) {
+                    IndexAnalyzers indexAnalyzers = indexService.mapperService().getIndexAnalyzers();
+                    ensureUsedAnalyzersExist(indexAnalyzers, createTableRequest.references());
+                }
                 for (int shardId = 0; shardId < tmpImd.getNumberOfShards(); shardId++) {
                     indexMetadataBuilder.primaryTerm(shardId, tmpImd.primaryTerm(shardId));
-                }
-
-                DocumentMapper mapper = mapperService.documentMapper();
-                if (mapper != null) {
-                    indexMetadataBuilder.putMapping(new MappingMetadata(mapper));
                 }
                 for (Alias alias : request.aliases()) {
                     AliasMetadata aliasMetadata = new AliasMetadata(alias.name());
                     indexMetadataBuilder.putAlias(aliasMetadata);
                 }
-
-                indexMetadataBuilder.state(State.OPEN);
 
                 final IndexMetadata indexMetadata;
                 try {
@@ -507,6 +483,22 @@ public class MetadataCreateIndexService {
                 ensureTableInfoCanBeCreated(request.index(), updatedState);
                 return updatedState;
             });
+        }
+
+        private void ensureUsedAnalyzersExist(IndexAnalyzers indexAnalyzers, List<Reference> references) {
+            for (var ref : references) {
+                if (ref instanceof IndexReference indexRef) {
+                    NamedAnalyzer namedAnalyzer = indexAnalyzers.get(indexRef.analyzer());
+                    if (namedAnalyzer == null) {
+                        throw new IllegalArgumentException(String.format(
+                            Locale.ENGLISH,
+                            "Analyzer \"%s\" not found for column \"%s\"",
+                            indexRef.analyzer(),
+                            indexRef.column()
+                        ));
+                    }
+                }
+            }
         }
 
         private void ensureTableInfoCanBeCreated(String index, ClusterState updatedState) {

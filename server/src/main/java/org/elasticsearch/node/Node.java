@@ -563,7 +563,6 @@ public class Node implements Closeable {
                 environment,
                 settingsModule.getIndexScopedSettings(),
                 threadPool,
-                xContentRegistry,
                 forbidPrivateIndexSettings
             );
 

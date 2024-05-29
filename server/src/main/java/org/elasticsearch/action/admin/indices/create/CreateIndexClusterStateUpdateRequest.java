@@ -44,8 +44,6 @@ public class CreateIndexClusterStateUpdateRequest extends ClusterStateUpdateRequ
 
     private Settings settings = Settings.Builder.EMPTY_SETTINGS;
 
-    private String mapping = null;
-
     private final Set<Alias> aliases = new HashSet<>();
 
     private ActiveShardCount waitForActiveShards = ActiveShardCount.DEFAULT;
@@ -58,11 +56,6 @@ public class CreateIndexClusterStateUpdateRequest extends ClusterStateUpdateRequ
 
     public CreateIndexClusterStateUpdateRequest settings(Settings settings) {
         this.settings = settings;
-        return this;
-    }
-
-    public CreateIndexClusterStateUpdateRequest mapping(String mapping) {
-        this.mapping = mapping;
         return this;
     }
 
@@ -101,10 +94,6 @@ public class CreateIndexClusterStateUpdateRequest extends ClusterStateUpdateRequ
 
     public Settings settings() {
         return settings;
-    }
-
-    public String mapping() {
-        return mapping;
     }
 
     public Set<Alias> aliases() {
