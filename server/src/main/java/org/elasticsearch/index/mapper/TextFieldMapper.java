@@ -25,12 +25,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 
-import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexOptions;
-import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
 import org.jetbrains.annotations.NotNull;
@@ -214,23 +211,6 @@ public class TextFieldMapper extends FieldMapper {
     @Override
     protected TextFieldMapper clone() {
         return (TextFieldMapper) super.clone();
-    }
-
-    @Override
-    protected void parseCreateField(ParseContext context, Consumer<IndexableField> onField) throws IOException {
-        final String value = context.parser().textOrNull();
-
-        if (value == null) {
-            return;
-        }
-
-        if (fieldType.indexOptions() != IndexOptions.NONE || fieldType.stored()) {
-            Field field = new Field(fieldType().name(), value, fieldType);
-            onField.accept(field);
-            if (fieldType.omitNorms()) {
-                createFieldNamesField(context, onField);
-            }
-        }
     }
 
     @Override

@@ -24,17 +24,10 @@ package org.elasticsearch.index.mapper;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 
-import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
-import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.index.IndexOptions;
-import org.apache.lucene.index.IndexableField;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.XContentParser.Token;
 
 
 public class BitStringFieldMapper extends FieldMapper {
@@ -146,24 +139,6 @@ public class BitStringFieldMapper extends FieldMapper {
     @Override
     public BitStringFieldType fieldType() {
         return (BitStringFieldType) super.fieldType();
-    }
-
-    @Override
-    protected void parseCreateField(ParseContext context, Consumer<IndexableField> onField) throws IOException {
-        XContentParser parser = context.parser();
-        if (parser.currentToken() == Token.VALUE_NULL) {
-            return;
-        }
-        byte[] bytes = parser.binaryValue();
-        BytesRef binaryValue = new BytesRef(bytes);
-        if (fieldType().isSearchable()) {
-            onField.accept(new Field(fieldType().name(), binaryValue, fieldType));
-        }
-        if (fieldType().hasDocValues()) {
-            onField.accept(new SortedSetDocValuesField(fieldType().name(), binaryValue));
-        } else {
-            createFieldNamesField(context, onField);
-        }
     }
 
     @Override

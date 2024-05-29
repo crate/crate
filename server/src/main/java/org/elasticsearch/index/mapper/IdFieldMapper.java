@@ -21,13 +21,9 @@ package org.elasticsearch.index.mapper;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.function.Consumer;
 
-import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexOptions;
-import org.apache.lucene.index.IndexableField;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
@@ -93,19 +89,6 @@ public class IdFieldMapper extends MetadataFieldMapper {
 
     private IdFieldMapper(FieldType fieldType) {
         super(fieldType, new IdFieldType());
-    }
-
-    @Override
-    public void preParse(ParseContext context) throws IOException {
-        super.parse(context);
-    }
-
-    @Override
-    protected void parseCreateField(ParseContext context, Consumer<IndexableField> onField) throws IOException {
-        if (fieldType.indexOptions() != IndexOptions.NONE || fieldType.stored()) {
-            BytesRef id = Uid.encodeId(context.sourceToParse().id());
-            onField.accept(new Field(NAME, id, fieldType));
-        }
     }
 
     @Override

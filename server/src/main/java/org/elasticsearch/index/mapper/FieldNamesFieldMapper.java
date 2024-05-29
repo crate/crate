@@ -20,18 +20,11 @@
 package org.elasticsearch.index.mapper;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexOptions;
-import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
 /**
@@ -124,85 +117,6 @@ public class FieldNamesFieldMapper extends MetadataFieldMapper {
     @Override
     public FieldNamesFieldType fieldType() {
         return (FieldNamesFieldType) super.fieldType();
-    }
-
-    @Override
-    public void preParse(ParseContext context) {
-    }
-
-    @Override
-    public void postParse(ParseContext context) throws IOException {
-    }
-
-    @Override
-    public void parse(ParseContext context) throws IOException {
-        // Adding values to the _field_names field is handled by the mappers for each field type
-    }
-
-    static Iterable<String> extractFieldNames(final String fullPath) {
-        return new Iterable<String>() {
-            @Override
-            public Iterator<String> iterator() {
-                return new Iterator<String>() {
-
-                    int endIndex = nextEndIndex(0);
-
-                    private int nextEndIndex(int index) {
-                        while (index < fullPath.length() && fullPath.charAt(index) != '.') {
-                            index += 1;
-                        }
-                        return index;
-                    }
-
-                    @Override
-                    public boolean hasNext() {
-                        return endIndex <= fullPath.length();
-                    }
-
-                    @Override
-                    public String next() {
-                        final String result = fullPath.substring(0, endIndex);
-                        endIndex = nextEndIndex(endIndex + 1);
-                        return result;
-                    }
-
-                    @Override
-                    public void remove() {
-                        throw new UnsupportedOperationException();
-                    }
-
-                };
-            }
-        };
-    }
-
-    @Override
-    protected void parseCreateField(ParseContext context, Consumer<IndexableField> onField) throws IOException {
-        if (fieldType().isEnabled() == false) {
-            return;
-        }
-        Document document = context.doc();
-        final List<String> paths = new ArrayList<>(document.getFields().size());
-        String previousPath = ""; // used as a sentinel - field names can't be empty
-        for (IndexableField field : document.getFields()) {
-            final String path = field.name();
-            if (path.equals(previousPath)) {
-                // Sometimes mappers create multiple Lucene fields, eg. one for indexing,
-                // one for doc values and one for storing. Deduplicating is not required
-                // for correctness but this simple check helps save utf-8 conversions and
-                // gives Lucene fewer values to deal with.
-                continue;
-            }
-            paths.add(path);
-            previousPath = path;
-        }
-        for (String path : paths) {
-            for (String fieldName : extractFieldNames(path)) {
-                if (fieldType.indexOptions() != IndexOptions.NONE || fieldType.stored()) {
-                    document.add(new Field(fieldType().name(), fieldName, fieldType));
-                }
-            }
-        }
     }
 
     @Override

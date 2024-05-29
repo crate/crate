@@ -24,20 +24,13 @@ package org.elasticsearch.index.mapper;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexOptions;
-import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.VectorEncoding;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.XContentParser.Token;
 import org.jetbrains.annotations.Nullable;
 
-import com.carrotsearch.hppc.FloatArrayList;
-
-import io.crate.execution.dml.FloatVectorIndexer;
 import io.crate.types.FloatVectorType;
 
 public class FloatVectorFieldMapper extends FieldMapper implements ArrayValueMapperParser {
@@ -123,31 +116,6 @@ public class FloatVectorFieldMapper extends FieldMapper implements ArrayValueMap
                                      MappedFieldType mappedFieldType,
                                      CopyTo copyTo) {
         super(simpleName, position, columnOID, isDropped, defaultExpression, fieldType, mappedFieldType, copyTo);
-    }
-
-    @Override
-    protected void parseCreateField(ParseContext context, Consumer<IndexableField> onField) throws IOException {
-        XContentParser.Token token = context.parser().currentToken();
-        if (token == Token.VALUE_NULL) {
-            return;
-        }
-        FloatArrayList vector = new FloatArrayList();
-        if (token == XContentParser.Token.START_ARRAY) {
-            token = context.parser().nextToken();
-            while (token != XContentParser.Token.END_ARRAY) {
-                float value = context.parser().floatValue();
-                vector.add(value);
-                token = context.parser().nextToken();
-            }
-        }
-        FloatVectorIndexer.createFields(
-            fieldType().name(),
-            fieldType,
-            fieldType().isSearchable(),
-            fieldType().hasDocValues(),
-            vector.toArray(),
-            onField
-        );
     }
 
     @Override
