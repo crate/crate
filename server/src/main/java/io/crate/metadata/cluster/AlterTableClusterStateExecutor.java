@@ -51,13 +51,11 @@ import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
-import org.elasticsearch.index.mapper.DocumentMapper;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.InvalidIndexTemplateException;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.TableParameters;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.execution.ddl.tables.AlterTableRequest;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
@@ -159,15 +157,8 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
                 return currentState;
             }
             indexMapping.put(ColumnPolicy.MAPPING_KEY, mappingDelta.get(ColumnPolicy.MAPPING_KEY));
-
-
-            MapperService mapperService = indicesService.createIndexMapperService(indexMetadata);
-
-            mapperService.merge(indexMapping, MapperService.MergeReason.MAPPING_UPDATE);
-            DocumentMapper mapper = mapperService.documentMapper();
-
             IndexMetadata.Builder imBuilder = IndexMetadata.builder(indexMetadata);
-            imBuilder.putMapping(new MappingMetadata(mapper.mappingSource())).mappingVersion(1 + imBuilder.mappingVersion());
+            imBuilder.putMapping(new MappingMetadata(indexMapping)).mappingVersion(1 + imBuilder.mappingVersion());
             metadataBuilder.put(imBuilder); // implicitly increments metadata version.
         }
 
