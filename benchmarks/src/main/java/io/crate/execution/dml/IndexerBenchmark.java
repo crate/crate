@@ -56,6 +56,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
 
 @BenchmarkMode(Mode.AverageTime)
@@ -94,8 +95,8 @@ public class IndexerBenchmark {
         session.quickExec(statement, resultReceiver, Row.EMPTY);
         resultReceiver.completionFuture().get(5, TimeUnit.SECONDS);
 
-        NodeContext nodeContext = injector.getInstance(NodeContext.class);
-        DocTableInfo table = nodeContext.schemas().getTableInfo(new RelationName("doc", "tbl"));
+        Schemas schemas = injector.getInstance(Schemas.class);
+        DocTableInfo table = schemas.getTableInfo(new RelationName("doc", "tbl"));
 
         indexer = new Indexer(
             table.concreteIndices(Metadata.EMPTY_METADATA)[0],

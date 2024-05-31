@@ -82,7 +82,6 @@ import org.junit.rules.TemporaryFolder;
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexMappings;
-import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
@@ -1746,7 +1745,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("alter table t add name string");
 
         // Verify that ADD COLUMN gets advanced OID.
-        Schemas schemas = cluster().getMasterNodeInstance(NodeContext.class).schemas();
+        Schemas schemas = cluster().getMasterNodeInstance(Schemas.class);
         DocTableInfo table = schemas.getTableInfo(RelationName.fromIndexName("t"));
         var dateRef = table.getReference(new ColumnIdent("date"));
         var nameRef = table.getReference(new ColumnIdent("name"));

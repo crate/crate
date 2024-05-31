@@ -52,10 +52,12 @@ import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.reference.sys.shard.ShardRowContext;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.shard.ShardReferenceResolver;
 
 public abstract class ShardCollectorProvider {
 
+    protected final Schemas schemas;
     private final ProjectorFactory projectorFactory;
     private final ShardRowContext shardRowContext;
     protected final IndexShard indexShard;
@@ -64,6 +66,7 @@ public abstract class ShardCollectorProvider {
 
     ShardCollectorProvider(ClusterService clusterService,
                            CircuitBreakerService circuitBreakerService,
+                           Schemas schemas,
                            NodeLimits nodeJobsCounter,
                            NodeContext nodeCtx,
                            ThreadPool threadPool,
@@ -72,16 +75,18 @@ public abstract class ShardCollectorProvider {
                            IndexShard indexShard,
                            ShardRowContext shardRowContext,
                            Map<String, FileOutputFactory> fileOutputFactoryMap) {
+        this.schemas = schemas;
         this.indexShard = indexShard;
         this.shardRowContext = shardRowContext;
         shardNormalizer = new EvaluatingNormalizer(
             nodeCtx,
             RowGranularity.SHARD,
-            new ShardReferenceResolver(nodeCtx.schemas(), shardRowContext),
+            new ShardReferenceResolver(schemas, shardRowContext),
             null
         );
         projectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
+            schemas,
             nodeJobsCounter,
             circuitBreakerService,
             nodeCtx,

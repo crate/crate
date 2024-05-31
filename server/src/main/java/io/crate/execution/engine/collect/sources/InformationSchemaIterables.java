@@ -94,6 +94,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
         BlobSchemaInfo.NAME,
         PgCatalogSchemaInfo.NAME);
 
+    private final Schemas schemas;
     private final Iterable<RelationInfo> relations;
     private final Iterable<TableInfo> tables;
     private final Iterable<ViewInfo> views;
@@ -115,12 +116,13 @@ public class InformationSchemaIterables implements ClusterStateListener {
     private boolean initialClusterStateReceived = false;
 
     @Inject
-    public InformationSchemaIterables(NodeContext nodeCtx,
+    public InformationSchemaIterables(final Schemas schemas,
+                                      NodeContext nodeCtx,
                                       FulltextAnalyzerResolver fulltextAnalyzerResolver,
                                       ClusterService clusterService) {
         this.clusterService = clusterService;
+        this.schemas = schemas;
         this.nodeCtx = nodeCtx;
-        Schemas schemas = nodeCtx.schemas();
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
         views = () -> viewsStream(schemas).iterator();
         tables = () -> tablesStream(schemas).iterator();
@@ -280,7 +282,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
     }
 
     public Iterable<SchemaInfo> schemas() {
-        return nodeCtx.schemas();
+        return schemas;
     }
 
     public Iterable<RelationInfo> relations() {

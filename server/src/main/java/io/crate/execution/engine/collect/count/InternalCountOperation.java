@@ -57,7 +57,6 @@ import io.crate.execution.support.ThreadPools;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.IndexParts;
-import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
@@ -75,12 +74,12 @@ public class InternalCountOperation implements CountOperation {
 
     @Inject
     public InternalCountOperation(Settings settings,
-                                  NodeContext nodeContext,
+                                  Schemas schemas,
                                   LuceneQueryBuilder queryBuilder,
                                   ClusterService clusterService,
                                   ThreadPool threadPool,
                                   IndicesService indicesService) {
-        this.schemas = nodeContext.schemas();
+        this.schemas = schemas;
         this.queryBuilder = queryBuilder;
         this.clusterService = clusterService;
         executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.SEARCH);

@@ -39,7 +39,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
@@ -165,7 +164,6 @@ import org.elasticsearch.transport.TransportService;
 import org.elasticsearch.transport.netty4.Netty4Transport;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.auth.AlwaysOKAuthentication;
 import io.crate.auth.AuthSettings;
 import io.crate.auth.Authentication;
@@ -189,27 +187,19 @@ import io.crate.execution.jobs.transport.NodeDisconnectJobMonitorService;
 import io.crate.expression.reference.sys.check.SysChecksModule;
 import io.crate.expression.reference.sys.check.node.SysNodeChecksModule;
 import io.crate.lucene.ArrayMapperService;
-import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.CustomMetadataUpgraderLoader;
 import io.crate.metadata.DanglingArtifactsService;
 import io.crate.metadata.Functions;
 import io.crate.metadata.MetadataModule;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.blob.BlobSchemaInfo;
-import io.crate.metadata.blob.BlobTableInfoFactory;
-import io.crate.metadata.doc.DocSchemaInfoFactory;
-import io.crate.metadata.doc.DocTableInfoFactory;
-import io.crate.metadata.information.InformationSchemaInfo;
+import io.crate.metadata.blob.MetadataBlobModule;
 import io.crate.metadata.information.MetadataInformationModule;
-import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
+import io.crate.metadata.pgcatalog.PgCatalogModule;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.metadata.sys.MetadataSysModule;
-import io.crate.metadata.sys.SysSchemaInfo;
-import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.upgrade.IndexTemplateUpgrader;
 import io.crate.metadata.upgrade.MetadataIndexUpgrader;
-import io.crate.metadata.view.ViewInfoFactory;
 import io.crate.module.CrateCommonModule;
 import io.crate.monitor.MonitorModule;
 import io.crate.netty.NettyBootstrap;
@@ -225,7 +215,6 @@ import io.crate.replication.logical.ShardReplicationService;
 import io.crate.role.RoleManagementModule;
 import io.crate.role.Roles;
 import io.crate.role.RolesService;
-import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
 
 /**
@@ -394,38 +383,7 @@ public class Node implements Closeable {
             resourcesToClose.add(clusterService);
 
             final Roles roles = new RolesService(clusterService);
-            final TableStats tableStats = new TableStats();
-            AtomicReference<RelationAnalyzer> relationAnalyzerRef = new AtomicReference<>(null);
-            final var viewInfoFactory = new ViewInfoFactory(() -> {
-                var relationAnalyzer = relationAnalyzerRef.get();
-                assert relationAnalyzer != null : "RelationAnalyzer must be set";
-                return relationAnalyzer;
-            });
-            UserDefinedFunctionService[] udfServiceRef = new UserDefinedFunctionService[1];
-            Map<String, SchemaInfo> schemaInfoByName = new HashMap<>();
-            final NodeContext nodeContext = new NodeContext(functions, roles, nodeCtx -> {
-                var tableInfoFactory = new DocTableInfoFactory(nodeCtx);
-                udfServiceRef[0] = new UserDefinedFunctionService(clusterService, tableInfoFactory, nodeCtx);
-                schemaInfoByName.put(SysSchemaInfo.NAME, new SysSchemaInfo(clusterService, nodeCtx.roles()));
-                schemaInfoByName.put(InformationSchemaInfo.NAME, new InformationSchemaInfo());
-                schemaInfoByName.put(PgCatalogSchemaInfo.NAME, new PgCatalogSchemaInfo(udfServiceRef[0], tableStats, nodeCtx.roles()));
-                schemaInfoByName.put(
-                    BlobSchemaInfo.NAME,
-                    new BlobSchemaInfo(
-                        clusterService,
-                        new BlobTableInfoFactory(clusterService.getSettings(), environment)));
-
-                Schemas schemas = new Schemas(
-                    schemaInfoByName,
-                    clusterService,
-                    new DocSchemaInfoFactory(tableInfoFactory, viewInfoFactory, nodeCtx, udfServiceRef[0]),
-                    nodeCtx.roles()
-                );
-                schemas.start();
-                return schemas;
-            });
-            var relationAnalyzer = new RelationAnalyzer(nodeContext);
-            relationAnalyzerRef.set(relationAnalyzer);
+            final NodeContext nodeContext = new NodeContext(functions, roles);
 
             SetOnce<RerouteService> rerouteServiceReference = new SetOnce<>();
             final DiskThresholdMonitor diskThresholdMonitor = new DiskThresholdMonitor(
@@ -462,6 +420,8 @@ public class Node implements Closeable {
             modules.add(new CollectOperationModule());
             modules.add(new MetadataModule());
             modules.add(new MetadataSysModule());
+            modules.add(new MetadataBlobModule());
+            modules.add(new PgCatalogModule());
             modules.add(new MetadataInformationModule());
             modules.add(new MonitorModule());
             modules.add(new SysChecksModule());
@@ -769,8 +729,6 @@ public class Node implements Closeable {
 
             modules.add(b -> {
                     b.bind(Node.class).toInstance(this);
-                    b.bind(NodeContext.class).toInstance(nodeContext);
-                    b.bind(TableStats.class).toInstance(tableStats);
                     b.bind(NodeService.class).toInstance(nodeService);
                     b.bind(NamedXContentRegistry.class).toInstance(xContentRegistry);
                     b.bind(PluginsService.class).toInstance(pluginsService);
@@ -835,11 +793,6 @@ public class Node implements Closeable {
                     b.bind(FsHealthService.class).toInstance(fsHealthService);
                     b.bind(SessionSettingRegistry.class).toInstance(sessionSettingRegistry);
                     b.bind(Functions.class).toInstance(functions);
-                    b.bind(UserDefinedFunctionService.class).toInstance(udfServiceRef[0]);
-                    b.bind(SysSchemaInfo.class).toInstance((SysSchemaInfo) schemaInfoByName.get(SysSchemaInfo.NAME));
-                    b.bind(PgCatalogSchemaInfo.class).toInstance((PgCatalogSchemaInfo) schemaInfoByName.get(PgCatalogSchemaInfo.NAME));
-                    b.bind(InformationSchemaInfo.class).toInstance((InformationSchemaInfo) schemaInfoByName.get(InformationSchemaInfo.NAME));
-                    b.bind(BlobSchemaInfo.class).toInstance((BlobSchemaInfo) schemaInfoByName.get(BlobSchemaInfo.NAME));
                 }
             );
             injector = modules.createInjector();
@@ -974,9 +927,11 @@ public class Node implements Closeable {
         injector.getInstance(JobsLogService.class).start();
         injector.getInstance(PostgresNetty.class).start();
         injector.getInstance(TasksService.class).start();
+        injector.getInstance(Schemas.class).start();
         injector.getInstance(ArrayMapperService.class).start();
         injector.getInstance(DanglingArtifactsService.class).start();
         injector.getInstance(SslContextProviderService.class).start();
+
         injector.getInstance(IndicesService.class).start();
         injector.getInstance(IndicesClusterStateService.class).start();
         injector.getInstance(SnapshotsService.class).start();
@@ -1136,6 +1091,7 @@ public class Node implements Closeable {
         injector.getInstance(JobsLogService.class).stop();
         injector.getInstance(PostgresNetty.class).stop();
         injector.getInstance(TasksService.class).stop();
+        injector.getInstance(Schemas.class).stop();
         injector.getInstance(ArrayMapperService.class).stop();
         injector.getInstance(DanglingArtifactsService.class).stop();
         injector.getInstance(SslContextProviderService.class).stop();
@@ -1228,6 +1184,8 @@ public class Node implements Closeable {
         toClose.add(injector.getInstance(PostgresNetty.class));
         toClose.add(() -> stopWatch.stop().start("tasks_service"));
         toClose.add(injector.getInstance(TasksService.class));
+        toClose.add(() -> stopWatch.stop().start("schemas"));
+        toClose.add(injector.getInstance(Schemas.class));
         toClose.add(() -> stopWatch.stop().start("array_mapper_service"));
         toClose.add(injector.getInstance(ArrayMapperService.class));
         toClose.add(() -> stopWatch.stop().start("dangling_artifacts_service"));

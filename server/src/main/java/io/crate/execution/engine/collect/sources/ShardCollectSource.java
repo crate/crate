@@ -98,6 +98,7 @@ import io.crate.metadata.IndexParts;
 import io.crate.metadata.MapBackedRefResolver;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
@@ -158,6 +159,7 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
     public ShardCollectSource(Settings settings,
                               IndicesService indicesService,
                               NodeContext nodeCtx,
+                              Schemas schemas,
                               ClusterService clusterService,
                               NodeLimits nodeJobsCounter,
                               ThreadPool threadPool,
@@ -185,6 +187,7 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
 
         sharedProjectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
+            schemas,
             nodeJobsCounter,
             circuitBreakerService,
             nodeCtx,

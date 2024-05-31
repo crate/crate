@@ -71,7 +71,6 @@ import io.crate.analyze.validator.SemanticSortValidator;
 import io.crate.common.collections.Lists;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.expression.reference.doc.lucene.SourceParser;
-import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
@@ -1480,7 +1479,7 @@ public class TransportSQLActionTest extends IntegTestCase {
 
         execute("select _raw, id from locations where id in (2,3) order by id");
 
-        Schemas schemas = cluster().getInstance(NodeContext.class).schemas();
+        Schemas schemas = cluster().getInstance(Schemas.class);
         DocTableInfo tableInfo = schemas.getTableInfo(new RelationName(sqlExecutor.getCurrentSchema(), "locations"));
         var sourceParser = new SourceParser(tableInfo.droppedColumns(), tableInfo.lookupNameBySourceKey());
         Map<String, Object> firstRaw = sourceParser.parse(new BytesArray((String) response.rows()[0][0]));

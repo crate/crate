@@ -21,7 +21,6 @@
 
 package io.crate.fdw;
 
-import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
@@ -35,6 +34,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.fdw.ServersMetadata.Server;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
@@ -42,6 +42,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
 import io.crate.role.Role;
+import io.crate.role.Roles;
 import io.crate.role.metadata.RolesHelper;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
@@ -50,8 +51,10 @@ public class JdbcForeignDataWrapperTest extends CrateDummyClusterServiceUnitTest
 
     @Test
     public void test_cannot_access_localhost_as_regular_user() throws Exception {
+        Functions functions = new Functions(Map.of());
         Role arthur = RolesHelper.userOf("arthur");
-        NodeContext nodeCtx = createNodeContext(List.of(arthur));
+        Roles roles = () -> List.of(arthur);
+        NodeContext nodeCtx = new NodeContext(functions, roles);
         var fdw = new JdbcForeignDataWrapper(Settings.EMPTY, new InputFactory(nodeCtx));
         Settings options = Settings.builder()
             .put("url", "jdbc:postgresql://localhost:5432/")
@@ -74,8 +77,10 @@ public class JdbcForeignDataWrapperTest extends CrateDummyClusterServiceUnitTest
 
     @Test
     public void test_can_access_remote_as_regular_user() throws Exception {
+        Functions functions = new Functions(Map.of());
         Role arthur = RolesHelper.userOf("arthur");
-        NodeContext nodeCtx = createNodeContext(List.of(arthur));
+        Roles roles = () -> List.of(arthur);
+        NodeContext nodeCtx = new NodeContext(functions, roles);
         var fdw = new JdbcForeignDataWrapper(Settings.EMPTY, new InputFactory(nodeCtx));
         Settings options = Settings.builder()
             .put("url", "jdbc:postgresql://192.0.2.0:5432/postgres")

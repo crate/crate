@@ -57,7 +57,7 @@ public class SchemasITest extends IntegTestCase {
 
     @Before
     public void setUpService() {
-        schemas = cluster().getInstance(NodeContext.class).schemas();
+        schemas = cluster().getInstance(Schemas.class);
     }
 
     @Test
