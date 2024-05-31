@@ -52,6 +52,15 @@ Security Fixes
 Fixes
 =====
 
+- Fixed an issue leading to a ``ArrayIndexOutOfBoundsException``  instead of a
+  user friendly error message when the ``WHERE``` clause of a query contains
+  all columns of a :ref:`PRIMARY KEY <constraints-primary-key>`, uses
+  parameters for them, and binds less actual values than the required, e.g.::
+
+      SELECT * FROM t WHERE pk_col1 = ? AND pk_col2 = ? AND pk_col3 = ?
+
+  and less than 3 values are provided.
+
 - Added memory accounting for multi-phase execution to prevent out-of-memory
   errors caused by sub-queries such as ''SELECT * FROM t1 WHERE id IN
   (SELECT id FROM t2)'' or lookup-joins with large intermediate results.

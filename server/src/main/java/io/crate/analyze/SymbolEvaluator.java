@@ -72,7 +72,7 @@ public final class SymbolEvaluator extends BaseImplementationSymbolVisitor<Row> 
     @Override
     public Input<?> visitParameterSymbol(ParameterSymbol parameterSymbol, Row params) {
         return () -> {
-            Object value = params.get(parameterSymbol.index());
+            Object value = parameterSymbol.bind(params);
             try {
                 return parameterSymbol.valueType().implicitCast(value);
             } catch (ConversionException e) {
