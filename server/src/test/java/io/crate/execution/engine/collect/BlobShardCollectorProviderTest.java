@@ -51,7 +51,6 @@ import io.crate.data.Row;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.integrationtests.SQLHttpIntegrationTest;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.NodeContext;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
@@ -118,9 +117,10 @@ public class BlobShardCollectorProviderTest extends SQLHttpIntegrationTest {
                 collectorProvider = new BlobShardCollectorProvider(
                     blobShard,
                     clusterService,
+                    schemas,
                     null,
                     new NoneCircuitBreakerService(),
-                    mock(NodeContext.class),
+                    null,
                     null,
                     Settings.EMPTY,
                     mock(ElasticsearchClient.class),

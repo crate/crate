@@ -70,8 +70,8 @@ import org.junit.rules.TemporaryFolder;
 
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
@@ -116,7 +116,7 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
         new Setup(sqlExecutor).groupBySetup();
         SQLResponse response = execute("select _raw from characters order by name desc limit 1");
 
-        var schemas = cluster().getDataNodeInstance(NodeContext.class).schemas();
+        var schemas = cluster().getDataNodeInstance(Schemas.class);
         DocTableInfo table = schemas.getTableInfo(new RelationName(sqlExecutor.getCurrentSchema(), "characters"));
         UnaryOperator<String> mapName = s -> {
             var ref = table.getReference(ColumnIdent.fromPath(s));
@@ -139,7 +139,7 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
         SQLResponse response = execute("select name, _raw from characters " +
                                        "group by _raw, name order by name desc limit 1");
 
-        var schemas = cluster().getDataNodeInstance(NodeContext.class).schemas();
+        var schemas = cluster().getDataNodeInstance(Schemas.class);
         DocTableInfo table = schemas.getTableInfo(new RelationName(sqlExecutor.getCurrentSchema(), "characters"));
         UnaryOperator<String> mapName = s -> {
             var ref = table.getReference(ColumnIdent.fromPath(s));

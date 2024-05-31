@@ -25,7 +25,10 @@ import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.view.ViewInfoFactory;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 
+@Singleton
 public class DocSchemaInfoFactory {
 
     private final DocTableInfoFactory docTableInfoFactory;
@@ -33,6 +36,7 @@ public class DocSchemaInfoFactory {
     private final NodeContext nodeCtx;
     private final UserDefinedFunctionService udfService;
 
+    @Inject
     public DocSchemaInfoFactory(DocTableInfoFactory docTableInfoFactory,
                                 ViewInfoFactory viewInfoFactory,
                                 NodeContext nodeCtx,

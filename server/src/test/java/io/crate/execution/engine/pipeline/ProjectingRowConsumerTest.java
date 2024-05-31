@@ -89,6 +89,7 @@ public class ProjectingRowConsumerTest extends CrateDummyClusterServiceUnitTest 
         memoryManager = new OnHeapMemoryManager(usedBytes -> {});
         projectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
+            null,
             new NodeLimits(new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS)),
             new NoneCircuitBreakerService(),
             nodeCtx,

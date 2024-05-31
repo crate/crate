@@ -329,46 +329,40 @@ public class SQLExecutor {
             final Settings settings = Settings.EMPTY;
             var tableStats = new TableStats();
             var sessionSettingRegistry = new SessionSettingRegistry(Set.of(LoadedRules.INSTANCE));
-            AtomicReference<RelationAnalyzer> relationAnalyzerRef = new AtomicReference<>(null);
+            var nodeCtx = new NodeContext(
+                Functions.load(settings, sessionSettingRegistry),
+                roleManager
+            );
+            var tableInfoFactory = new DocTableInfoFactory(nodeCtx);
+            var udfService = new UserDefinedFunctionService(clusterService, tableInfoFactory, nodeCtx);
+            Map<String, SchemaInfo> schemaInfoByName = new HashMap<>();
             Path homeDir = CrateLuceneTestCase.createTempDir();
             Environment environment = new Environment(
                 Settings.builder().put(PATH_HOME_SETTING.getKey(), homeDir.toAbsolutePath()).build(),
                 homeDir.resolve("config")
             );
-            UserDefinedFunctionService[] udfServiceRef = new UserDefinedFunctionService[1];
-            var nodeCtx = new NodeContext(
-                Functions.load(settings, sessionSettingRegistry),
-                roleManager,
-                nodeContext -> {
-                    var tableInfoFactory = new DocTableInfoFactory(nodeContext);
-                    var udfService = new UserDefinedFunctionService(clusterService, tableInfoFactory, nodeContext);
-                    udfServiceRef[0] = udfService;
-                    Map<String, SchemaInfo> schemaInfoByName = new HashMap<>();
-                    schemaInfoByName.put(SysSchemaInfo.NAME, new SysSchemaInfo(clusterService, roleManager));
-                    schemaInfoByName.put(InformationSchemaInfo.NAME, new InformationSchemaInfo());
-                    schemaInfoByName.put(PgCatalogSchemaInfo.NAME, new PgCatalogSchemaInfo(udfService, tableStats, roleManager));
-                    schemaInfoByName.put(
-                        BlobSchemaInfo.NAME,
-                        new BlobSchemaInfo(
-                            clusterService,
-                            new BlobTableInfoFactory(clusterService.getSettings(), environment)));
-                    var viewInfoFactory = new ViewInfoFactory(() -> {
-                        var relationAnalyzer = relationAnalyzerRef.get();
-                        assert relationAnalyzer != null : "RelationAnalyzer must be set";
-                        return relationAnalyzer;
-                    });
-                    var schemas = new Schemas(
-                        schemaInfoByName,
-                        clusterService,
-                        new DocSchemaInfoFactory(tableInfoFactory, viewInfoFactory, nodeContext, udfService),
-                        roleManager
-                    );
-                    schemas.start();  // start listen to cluster state changes
-                    return schemas;
-                }
+            schemaInfoByName.put("sys", new SysSchemaInfo(clusterService, nodeCtx.roles()));
+            schemaInfoByName.put("information_schema", new InformationSchemaInfo());
+            schemaInfoByName.put(PgCatalogSchemaInfo.NAME, new PgCatalogSchemaInfo(udfService, tableStats, nodeCtx.roles()));
+            schemaInfoByName.put(
+                BlobSchemaInfo.NAME,
+                new BlobSchemaInfo(
+                    clusterService,
+                    new BlobTableInfoFactory(clusterService.getSettings(), environment)));
+            AtomicReference<RelationAnalyzer> relationAnalyzerRef = new AtomicReference<>(null);
+            var viewInfoFactory = new ViewInfoFactory(() -> {
+                var relationAnalyzer = relationAnalyzerRef.get();
+                assert relationAnalyzer != null : "RelationAnalyzer must be set";
+                return relationAnalyzer;
+            });
+            var schemas = new Schemas(
+                schemaInfoByName,
+                clusterService,
+                new DocSchemaInfoFactory(tableInfoFactory, viewInfoFactory, nodeCtx, udfService),
+                nodeCtx.roles()
             );
-
-            var relationAnalyzer = new RelationAnalyzer(nodeCtx);
+            schemas.start();  // start listen to cluster state changes
+            var relationAnalyzer = new RelationAnalyzer(nodeCtx, schemas);
             relationAnalyzerRef.set(relationAnalyzer);
             AnalysisRegistry analysisRegistry;
             try {
@@ -410,6 +404,7 @@ public class SQLExecutor {
                 allocationService,
                 nodeCtx,
                 new Analyzer(
+                    schemas,
                     nodeCtx,
                     relationAnalyzer,
                     clusterService,
@@ -438,10 +433,10 @@ public class SQLExecutor {
                     ),
                 relationAnalyzer,
                 new CoordinatorSessionSettings(Role.CRATE_USER),
-                nodeCtx.schemas(),
+                schemas,
                 Randomness.get(),
                 fulltextAnalyzerResolver,
-                udfServiceRef[0],
+                udfService,
                 tableStats,
                 foreignDataWrappers
             );

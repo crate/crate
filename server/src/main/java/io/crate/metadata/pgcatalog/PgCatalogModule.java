@@ -19,20 +19,18 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.metadata.information;
+package io.crate.metadata.pgcatalog;
 
 import io.crate.metadata.table.SchemaInfo;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 
-public class MetadataInformationModule extends AbstractModule {
-
-    protected MapBinder<String, SchemaInfo> schemaBinder;
+public final class PgCatalogModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        schemaBinder = MapBinder.newMapBinder(binder(), String.class, SchemaInfo.class);
-        schemaBinder.addBinding(InformationSchemaInfo.NAME).to(InformationSchemaInfo.class).asEagerSingleton();
-        bind(InformationSchemaTableDefinitions.class).asEagerSingleton();
+        var schemaBinder = MapBinder.newMapBinder(binder(), String.class, SchemaInfo.class);
+        schemaBinder.addBinding(PgCatalogSchemaInfo.NAME).to(PgCatalogSchemaInfo.class).asEagerSingleton();
+        bind(PgCatalogTableDefinitions.class).asEagerSingleton();
     }
 }

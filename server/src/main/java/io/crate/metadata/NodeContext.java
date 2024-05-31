@@ -22,20 +22,21 @@
 package io.crate.metadata;
 
 import io.crate.role.Roles;
-import java.util.function.Function;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 
+@Singleton
 public class NodeContext {
 
     private final Functions functions;
     private final long serverStartTimeInMs;
     private final Roles roles;
-    private final Schemas schemas;
 
-    public NodeContext(Functions functions, Roles roles, Function<NodeContext, Schemas> createSchemas) {
+    @Inject
+    public NodeContext(Functions functions, Roles roles) {
         this.functions = functions;
-        this.serverStartTimeInMs = SystemClock.currentInstant().toEpochMilli();
+        this.serverStartTimeInMs = SystemClock.currentInstant().toEpochMilli();;
         this.roles = roles;
-        this.schemas = createSchemas.apply(this);
     }
 
     public Functions functions() {
@@ -48,13 +49,5 @@ public class NodeContext {
 
     public Roles roles() {
         return roles;
-    }
-
-    public Schemas schemas() {
-        return schemas;
-    }
-
-    public NodeContext copy() {
-        return new NodeContext(functions.copyOf(), roles, (nodeContext) -> schemas);
     }
 }

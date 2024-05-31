@@ -94,6 +94,7 @@ import io.crate.metadata.doc.DocTableInfo;
 public class TransportShardUpsertAction extends TransportShardAction<ShardUpsertRequest, ShardUpsertRequest.Item> {
 
     private static final int MAX_RETRY_LIMIT = 100_000; // upper bound to prevent unlimited retries on unexpected states
+
     private final Schemas schemas;
     private final NodeContext nodeCtx;
     private final TransportAddColumnAction addColumnAction;
@@ -108,7 +109,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                       TasksService tasksService,
                                       IndicesService indicesService,
                                       ShardStateAction shardStateAction,
-                                      NodeContext nodeCtx) {
+                                      NodeContext nodeCtx,
+                                      Schemas schemas) {
         super(
             settings,
             ShardUpsertAction.NAME,
@@ -120,8 +122,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             shardStateAction,
             ShardUpsertRequest::new
         );
+        this.schemas = schemas;
         this.nodeCtx = nodeCtx;
-        this.schemas = nodeCtx.schemas();
         this.addColumnAction = addColumnAction;
         tasksService.addListener(this);
     }
