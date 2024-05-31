@@ -23,6 +23,7 @@ package io.crate.analyze.where;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 import java.util.Optional;
@@ -31,11 +32,14 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.data.Row;
+import io.crate.data.Row1;
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.types.DataTypes;
 
 public class DocKeysTest extends ESTestCase {
 
@@ -69,5 +73,22 @@ public class DocKeysTest extends ESTestCase {
         Optional<Long> primaryTerm = key.primaryTerm(txnCtx, nodeCtx, Row.EMPTY, SubQueryResults.EMPTY);
         assertThat(primaryTerm.isPresent()).isTrue();
         assertThat(primaryTerm.get()).isEqualTo(5L);
+    }
+
+    @Test
+    public void test_with_less_params_bound() {
+        DocKeys docKeys = new DocKeys(
+            List.of(List.of(
+                new ParameterSymbol(1, DataTypes.INTEGER),
+                new ParameterSymbol(2, DataTypes.INTEGER))),
+            false,
+            true,
+            1,
+            null);
+        DocKeys.DocKey key = docKeys.getOnlyKey();
+        CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
+        assertThatThrownBy(() -> key.sequenceNo(txnCtx, nodeCtx, new Row1(1), SubQueryResults.EMPTY))
+            .isInstanceOf(IllegalArgumentException.class)
+            .hasMessage("The query contains a parameter placeholder $2, but there are only 1 parameter values");
     }
 }
