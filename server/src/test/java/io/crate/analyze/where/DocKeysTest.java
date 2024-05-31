@@ -43,12 +43,12 @@ import io.crate.types.DataTypes;
 
 public class DocKeysTest extends ESTestCase {
 
-    private NodeContext nodeCtx = createNodeContext();
+    private final NodeContext nodeCtx = createNodeContext();
 
     @Test
-    public void testClusteredIsFirstInId() throws Exception {
+    public void testClusteredIsFirstInId() {
         // if a the table is clustered and has a pk, the clustering value is put in front in the id computation
-        List<List<Symbol>> pks = List.<List<Symbol>>of(
+        List<List<Symbol>> pks = List.of(
             List.<Symbol>of(Literal.of(1), Literal.of("Ford"))
         );
         DocKeys docKeys = new DocKeys(pks, false, false, 1, null);
