@@ -41,7 +41,7 @@ public class SubQueryAndParamBinder extends FunctionCopyVisitor<Void> implements
 
     /**
      * Returns a bound symbol with ParameterSymbols or SelectSymbols replaced as literals using the provided arguments.
-     *
+     * <p>
      * If multiple calls with the same params and subQueryResults are made it's better to instantiate the class
      * once using {@link #SubQueryAndParamBinder(Row, SubQueryResults)}
      */
