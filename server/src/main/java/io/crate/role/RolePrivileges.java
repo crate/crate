@@ -127,9 +127,13 @@ public class RolePrivileges implements Iterable<Privilege> {
                     foundPrivilege = privilegeByIdent.get(new Subject(permission, Securable.CLUSTER, null));
                     break;
                 case TABLE, VIEW:
-                    String schemaIdent = new IndexParts(ident).getSchema();
-                    foundPrivilege = privilegeByIdent.get(new Subject(permission, Securable.SCHEMA, schemaIdent));
-                    if (foundPrivilege == null) {
+                    if (ident != null) {
+                        String schemaIdent = new IndexParts(ident).getSchema();
+                        foundPrivilege = privilegeByIdent.get(new Subject(permission, Securable.SCHEMA, schemaIdent));
+                        if (foundPrivilege == null) {
+                            foundPrivilege = privilegeByIdent.get(new Subject(permission, Securable.CLUSTER, null));
+                        }
+                    } else {
                         foundPrivilege = privilegeByIdent.get(new Subject(permission, Securable.CLUSTER, null));
                     }
                     break;
