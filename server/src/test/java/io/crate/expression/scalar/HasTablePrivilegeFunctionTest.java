@@ -22,6 +22,7 @@
 package io.crate.expression.scalar;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -120,5 +121,54 @@ public class HasTablePrivilegeFunctionTest extends ScalarTestCase {
         assertThatThrownBy(() -> assertEvaluate("has_table_privilege('sys.summits', 'SELECT, TRUNCATE')", true))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Unrecognized permission: truncate");
+    }
+
+    @Test
+    public void test_unknown_tables_with_different_privilege_classes() {
+        Schemas schemas = mock(Schemas.class);
+        when(schemas.getRelation(anyInt())).thenReturn(null);
+
+        int tableOid = OidHash.relationOid(OidHash.Type.TABLE, new RelationName("my_schema", "unknown_table"));
+
+        // super user
+        sqlExpressions = new SqlExpressions(tableSources, null, Role.CRATE_USER, List.of(), schemas);
+        assertEvaluate("has_table_privilege('my_schema.unknown_table', 'SELECT')", true);
+        assertEvaluate("has_table_privilege(" + tableOid + ", 'SELECT')", true);
+
+        // a user with cluster dql
+        Privilege create = new Privilege(Policy.GRANT, Permission.DQL, Securable.CLUSTER, null, "crate");
+        var user = RolesHelper.userOf("test", Set.of(create), null);
+        sqlExpressions = new SqlExpressions(tableSources, null, user, List.of(), schemas);
+        assertEvaluate("has_table_privilege('my_schema.unknown_table', 'SELECT')", true);
+        assertEvaluate("has_table_privilege(" + tableOid + ", 'SELECT')", true);
+
+        // a user with cluster ddl(NOT dql)
+        Privilege create2 = new Privilege(Policy.GRANT, Permission.DDL, Securable.CLUSTER, null, "crate");
+        var user2 = RolesHelper.userOf("test", Set.of(create2), null);
+        sqlExpressions = new SqlExpressions(tableSources, null, user2, List.of(), schemas);
+        assertEvaluate("has_table_privilege('my_schema.unknown_table', 'SELECT')", false);
+        assertEvaluate("has_table_privilege(" + tableOid + ", 'SELECT')", false);
+
+        // a user with 'my_schema' dql
+        Privilege create3 = new Privilege(Policy.GRANT, Permission.DQL, Securable.SCHEMA, "my_schema", "crate");
+        var user3 = RolesHelper.userOf("test", Set.of(create3), null);
+        sqlExpressions = new SqlExpressions(tableSources, null, user3, List.of(), schemas);
+        assertEvaluate("has_table_privilege('my_schema.unknown_table', 'SELECT')", true);
+        // NOTE: this returns false because cannot retrieve 'my_schema' from the tableOid
+        assertEvaluate("has_table_privilege(" + tableOid + ", 'SELECT')", false);
+
+        // a user with 'my_schema' ddl(NOT dql)
+        Privilege create4 = new Privilege(Policy.GRANT, Permission.DDL, Securable.SCHEMA, "my_schema", "crate");
+        var user4 = RolesHelper.userOf("test", Set.of(create4), null);
+        sqlExpressions = new SqlExpressions(tableSources, null, user4, List.of(), schemas);
+        assertEvaluate("has_table_privilege('my_schema.unknown_table', 'SELECT')", false);
+        assertEvaluate("has_table_privilege(" + tableOid + ", 'SELECT')", false);
+
+        // returns false otherwise
+        sqlExpressions = new SqlExpressions(tableSources, null, TEST_USER_WITH_DOC_USERS_TABLE_DQL, List.of(), schemas);
+        assertEvaluate("has_table_privilege('my_schema.unknown_table', 'SELECT')", false);
+        assertEvaluate("has_table_privilege(" + tableOid + ", 'SELECT')", false);
+        assertEvaluate("has_table_privilege('my_schema.unknown_table', 'INSERT')", false);
+        assertEvaluate("has_table_privilege(" + tableOid + ", 'INSERT')", false);
     }
 }
