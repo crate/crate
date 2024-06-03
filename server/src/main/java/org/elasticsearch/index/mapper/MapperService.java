@@ -248,65 +248,62 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         } catch (Exception e) {
             throw new MapperParsingException("Failed to parse mapping: {}", e, e.getMessage());
         }
-        return internalMerge(documentMapper, reason);
-    }
+        synchronized (this) {
+            assert documentMapper != null;
 
-    private synchronized DocumentMapper internalMerge(DocumentMapper mapper, MergeReason reason) {
-
-        assert mapper != null;
-
-        // compute the merged DocumentMapper
-        DocumentMapper oldMapper = this.mapper;
-        DocumentMapper newMapper;
-        if (oldMapper != null) {
-            newMapper = oldMapper.merge(mapper.mapping());
-        } else {
-            newMapper = mapper;
-        }
-
-        // check basic sanity of the new mapping
-        List<ObjectMapper> objectMappers = new ArrayList<>();
-        List<FieldMapper> fieldMappers = new ArrayList<>();
-        MetadataFieldMapper[] metadataMappers = newMapper.mapping().metadataMappers;
-        Collections.addAll(fieldMappers, metadataMappers);
-        MapperUtils.collect(newMapper.mapping().root(), objectMappers, fieldMappers);
-
-        MapperMergeValidator.validateNewMappers(objectMappers, fieldMappers);
-
-        this.fieldTypes = new FieldTypeLookup(fieldMappers);
-
-        Map<String, ObjectMapper> fullPathObjectMappers = this.fullPathObjectMappers;
-        for (ObjectMapper objectMapper : objectMappers) {
-            if (fullPathObjectMappers == this.fullPathObjectMappers) {
-                // first time through the loops
-                fullPathObjectMappers = new HashMap<>(this.fullPathObjectMappers);
+            // compute the merged DocumentMapper
+            DocumentMapper oldMapper = this.mapper;
+            DocumentMapper newMapper;
+            if (oldMapper != null) {
+                newMapper = oldMapper.merge(documentMapper.mapping());
+            } else {
+                newMapper = documentMapper;
             }
-            var path = objectMapper.columnOID() == COLUMN_OID_UNASSIGNED ? objectMapper.fullPath() : Long.toString(objectMapper.columnOID());
-            fullPathObjectMappers.put(path, objectMapper);
+
+            // check basic sanity of the new mapping
+            List<ObjectMapper> objectMappers = new ArrayList<>();
+            List<FieldMapper> fieldMappers = new ArrayList<>();
+            MetadataFieldMapper[] metadataMappers = newMapper.mapping().metadataMappers;
+            Collections.addAll(fieldMappers, metadataMappers);
+            MapperUtils.collect(newMapper.mapping().root(), objectMappers, fieldMappers);
+
+            MapperMergeValidator.validateNewMappers(objectMappers, fieldMappers);
+
+            this.fieldTypes = new FieldTypeLookup(fieldMappers);
+
+            Map<String, ObjectMapper> fullPathObjectMappers = this.fullPathObjectMappers;
+            for (ObjectMapper objectMapper : objectMappers) {
+                if (fullPathObjectMappers == this.fullPathObjectMappers) {
+                    // first time through the loops
+                    fullPathObjectMappers = new HashMap<>(this.fullPathObjectMappers);
+                }
+                var path = objectMapper.columnOID() == COLUMN_OID_UNASSIGNED ? objectMapper.fullPath() : Long.toString(objectMapper.columnOID());
+                fullPathObjectMappers.put(path, objectMapper);
+            }
+
+            if (reason == MergeReason.MAPPING_UPDATE) {
+                // this check will only be performed on the master node when there is
+                // a call to the update mapping API. For all other cases like
+                // the master node restoring mappings from disk or data nodes
+                // deserializing cluster state that was sent by the master node,
+                // this check will be skipped.
+                checkTotalFieldsLimit(
+                    objectMappers.size() + fieldMappers.size() - metadataMappers.length);
+                checkDepthLimit(fullPathObjectMappers.keySet());
+            }
+
+            // only need to immutably rewrap these if the previous reference was changed.
+            // if not then they are already implicitly immutable.
+            if (fullPathObjectMappers != this.fullPathObjectMappers) {
+                fullPathObjectMappers = Collections.unmodifiableMap(fullPathObjectMappers);
+            }
+
+            this.mapper = newMapper;
+            this.fullPathObjectMappers = fullPathObjectMappers;
+
+            assert assertSerialization(newMapper);
+            return newMapper;
         }
-
-        if (reason == MergeReason.MAPPING_UPDATE) {
-            // this check will only be performed on the master node when there is
-            // a call to the update mapping API. For all other cases like
-            // the master node restoring mappings from disk or data nodes
-            // deserializing cluster state that was sent by the master node,
-            // this check will be skipped.
-            checkTotalFieldsLimit(
-                objectMappers.size() + fieldMappers.size() - metadataMappers.length);
-            checkDepthLimit(fullPathObjectMappers.keySet());
-        }
-
-        // only need to immutably rewrap these if the previous reference was changed.
-        // if not then they are already implicitly immutable.
-        if (fullPathObjectMappers != this.fullPathObjectMappers) {
-            fullPathObjectMappers = Collections.unmodifiableMap(fullPathObjectMappers);
-        }
-
-        this.mapper = newMapper;
-        this.fullPathObjectMappers = fullPathObjectMappers;
-
-        assert assertSerialization(newMapper);
-        return newMapper;
     }
 
     private boolean assertSerialization(DocumentMapper mapper) {
