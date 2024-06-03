@@ -184,8 +184,7 @@ public class DocumentMapper implements ToXContentFragment {
             seqID,
             id,
             doc,
-            new BytesArray("{}"),
-            null
+            new BytesArray("{}")
         ).toTombstone();
     }
 
@@ -206,8 +205,7 @@ public class DocumentMapper implements ToXContentFragment {
             seqID,
             id,
             doc,
-            new BytesArray("{}"),
-            null
+            new BytesArray("{}")
         ).toTombstone();
         // Store the reason of a noop as a raw string in the _source field
         final BytesRef byteRef = new BytesRef(reason);

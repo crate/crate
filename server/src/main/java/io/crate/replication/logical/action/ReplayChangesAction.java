@@ -229,7 +229,7 @@ public class ReplayChangesAction extends ActionType<ReplicationResponse> {
                 var result = replica.applyTranslogOperation(op, Engine.Operation.Origin.REPLICA);
                 if (result.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
                     throw new TransportReplicationAction.RetryOnReplicaException(
-                        replica.shardId(), "Mappings are not available on the replica yet, triggered update: " + result.getRequiredMappingUpdate());
+                        replica.shardId(), "Mappings are not available on the replica yet, triggered update");
                 }
                 location = syncOperationResultOrThrow(result, location);
             }
