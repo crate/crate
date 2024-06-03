@@ -25,6 +25,7 @@ import static io.crate.lucene.LuceneQueryBuilder.genericFunctionFilter;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static org.elasticsearch.common.lucene.search.Queries.newUnmappedFieldQuery;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -143,17 +144,18 @@ public final class EqOperator extends Operator<Object> {
     @Nullable
     @SuppressWarnings("unchecked")
     public static Query termsQuery(String column, DataType<?> type, Collection<?> values, boolean hasDocValues, IndexType indexType) {
+        if (column.equals(DocSysColumns.ID.name())) {
+            ArrayList<BytesRef> bytesRefs = new ArrayList<>(values.size());
+            for (Object value : values) {
+                if (value != null) {
+                    bytesRefs.add(Uid.encodeId(value.toString()));
+                }
+            }
+            return bytesRefs.isEmpty() ? null : new TermInSetQuery(column, bytesRefs);
+        }
         List<?> nonNullValues = values.stream().filter(Objects::nonNull).toList();
         if (nonNullValues.isEmpty()) {
             return null;
-        }
-        if (column.equals(DocSysColumns.ID.name())) {
-            BytesRef[] bytesRefs = new BytesRef[nonNullValues.size()];
-            for (int i = 0; i < bytesRefs.length; i++) {
-                Object idObject = nonNullValues.get(i);
-                bytesRefs[i] = Uid.encodeId(idObject.toString());
-            }
-            return new TermInSetQuery(column, bytesRefs);
         }
         StorageSupport<?> storageSupport = type.storageSupport();
         EqQuery<?> eqQuery = storageSupport == null ? null : storageSupport.eqQuery();

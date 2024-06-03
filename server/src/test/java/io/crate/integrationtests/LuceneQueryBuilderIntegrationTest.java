@@ -26,6 +26,7 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.DataTypeTesting.randomType;
 import static io.crate.testing.TestingHelpers.printedTable;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.function.Supplier;
@@ -70,7 +71,8 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
         execute("insert into t (a) values (?)", new Object[][]{
             new Object[]{new Object[]{10, 10, 20}},
             new Object[]{new Object[]{40, 50, 60}},
-            new Object[]{new Object[]{null, null}}
+            new Object[]{new Object[]{null, null}},
+            new Object[]{new Object[]{null, 1}}
         });
         execute("refresh table t");
 
@@ -79,6 +81,9 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
 
         execute("select * from t where a = [10, 20]");
         assertThat(response).hasRowCount(0L);
+
+        execute("select * from t where a = [null, 1]");
+        assertThat(response).hasRowCount(1L);
 
         execute("select * from t where a = [null, null]");
         assertThat(response).hasRowCount(1L);
