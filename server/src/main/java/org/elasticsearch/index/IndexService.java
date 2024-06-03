@@ -59,9 +59,9 @@ import org.elasticsearch.env.ShardLock;
 import org.elasticsearch.gateway.MetadataStateFormat;
 import org.elasticsearch.gateway.WriteStateException;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
+import org.elasticsearch.index.analysis.IndexAnalyzers;
 import org.elasticsearch.index.engine.EngineFactory;
 import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.seqno.RetentionLeaseSyncer;
 import org.elasticsearch.index.shard.IndexEventListener;
 import org.elasticsearch.index.shard.IndexShard;
@@ -111,6 +111,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
     private final ThreadPool threadPool;
     private final BigArrays bigArrays;
     private final CircuitBreakerService circuitBreakerService;
+    private final IndexAnalyzers indexAnalyzers;
 
     public IndexService(
             IndexSettings indexSettings,
@@ -134,11 +135,13 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         if (indexSettings.getIndexMetadata().getState() == IndexMetadata.State.CLOSE &&
                 indexCreationContext == IndexCreationContext.CREATE_INDEX) { // metadata verification needs a mapper service
             this.mapperService = null;
+            this.indexAnalyzers = null;
             this.queryCache = null;
         } else {
+            this.indexAnalyzers = registry.build(indexSettings);
             this.mapperService = new MapperService(
                 indexSettings,
-                registry.build(indexSettings),
+                indexAnalyzers,
                 mapperRegistry
             );
             this.queryCache = queryCache;
@@ -209,6 +212,10 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
 
     public MapperService mapperService() {
         return mapperService;
+    }
+
+    public IndexAnalyzers indexAnalyzers() {
+        return indexAnalyzers;
     }
 
     public synchronized void close(final String reason, boolean delete) throws IOException {
@@ -461,13 +468,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
     @Override
     public IndexSettings getIndexSettings() {
         return indexSettings;
-    }
-
-    /**
-     * Creates a new QueryShardContext
-     */
-    public QueryShardContext newQueryShardContext() {
-        return new QueryShardContext(mapperService());
     }
 
     @Override

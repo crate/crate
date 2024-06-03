@@ -155,7 +155,7 @@ public class InternalCountOperation implements CountOperation {
                 filter,
                 txnCtx,
                 indexName,
-                indexService.newQueryShardContext(),
+                indexService.indexAnalyzers(),
                 table,
                 indexService.cache()
             );

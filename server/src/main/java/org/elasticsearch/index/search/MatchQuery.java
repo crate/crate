@@ -57,11 +57,15 @@ import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.lucene.search.MultiPhrasePrefixQuery;
 import org.elasticsearch.common.unit.Fuzziness;
 import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.index.query.QueryShardContext;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.lucene.DisableGraphAttribute;
 import io.crate.lucene.ExtendedCommonTermsQuery;
+import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.lucene.match.ParsedOptions;
+import io.crate.metadata.IndexReference;
+import io.crate.metadata.IndexType;
+import io.crate.metadata.Reference;
 
 public class MatchQuery {
 
@@ -104,49 +108,45 @@ public class MatchQuery {
      */
     public static final ZeroTermsQuery DEFAULT_ZERO_TERMS_QUERY = ZeroTermsQuery.NONE;
 
-    protected final QueryShardContext context;
+    protected final LuceneQueryBuilder.Context context;
     protected final ParsedOptions parsedOptions;
     protected final Analyzer analyzer;
 
 
-    public MatchQuery(QueryShardContext context, ParsedOptions parsedOptions) {
+    public MatchQuery(LuceneQueryBuilder.Context context, ParsedOptions parsedOptions) {
         this.context = context;
         this.parsedOptions = parsedOptions;
         this.analyzer = getAnalyzer(parsedOptions.analyzer());
     }
 
-    private Analyzer getAnalyzer(String analyzerName) {
+    private Analyzer getAnalyzer(@Nullable String analyzerName) {
         if (analyzerName == null) {
-            return null;
+            return Lucene.KEYWORD_ANALYZER;
         }
-        Analyzer analyzer = context.getMapperService().getIndexAnalyzers().get(analyzerName);
-        if (analyzer == null) {
-            throw new IllegalArgumentException("No analyzer found for [" + analyzerName + "]");
-        }
-        return analyzer;
+        return context.getAnalyzer(analyzerName);
     }
 
     public Query parse(Type type, String fieldName, Object value) {
-        MappedFieldType fieldType = context.fieldMapper(fieldName);
-        if (fieldType == null) {
+        Reference ref = context.getRef(fieldName);
+        if (ref == null) {
             return newUnmappedFieldQuery(fieldName);
         }
-        final String field = fieldType.name();
-
-        Analyzer analyzer = fieldType.indexAnalyzer();
-        assert analyzer != null;
+        final String field = ref.storageIdent();
+        Analyzer analyzer = ref instanceof IndexReference indexRef
+            ? getAnalyzer(indexRef.analyzer())
+            : this.analyzer;
 
         /*
          * If a keyword analyzer is used, we know that further analysis isn't
          * needed and can immediately return a term query.
          */
         if (analyzer == Lucene.KEYWORD_ANALYZER) {
-            return blendTermQuery(new Term(fieldName, value.toString()), fieldType);
+            return blendTermQuery(new Term(fieldName, value.toString()), ref);
         }
 
-        MatchQueryBuilder builder = new MatchQueryBuilder(analyzer, fieldType);
+        MatchQueryBuilder builder = new MatchQueryBuilder(analyzer, ref);
         builder.setEnablePositionIncrements(true);
-        builder.setAutoGenerateMultiTermSynonymsPhraseQuery(fieldType.hasPositions());
+        builder.setAutoGenerateMultiTermSynonymsPhraseQuery(ref.indexType() == IndexType.FULLTEXT);
 
         int phraseSlop = parsedOptions.phraseSlop();
 
@@ -183,8 +183,8 @@ public class MatchQuery {
         }
     }
 
-    protected final Query termQuery(MappedFieldType fieldType, BytesRef value) {
-        return new TermQuery(new Term(fieldType.name(), value));
+    protected final Query termQuery(Reference ref, BytesRef value) {
+        return new TermQuery(new Term(ref.storageIdent(), value));
     }
 
     protected Query zeroTermsQuery() {
@@ -203,19 +203,19 @@ public class MatchQuery {
 
     private class MatchQueryBuilder extends QueryBuilder {
 
-        private final MappedFieldType mapper;
+        private final Reference reference;
 
         /**
          * Creates a new QueryBuilder using the given analyzer.
          */
-        MatchQueryBuilder(Analyzer analyzer, MappedFieldType mapper) {
+        MatchQueryBuilder(Analyzer analyzer, Reference reference) {
             super(analyzer);
-            this.mapper = mapper;
+            this.reference = reference;
         }
 
         @Override
         protected Query newTermQuery(Term term, float boost) {
-            return blendTermQuery(term, mapper);
+            return blendTermQuery(term, reference);
         }
 
         @Override
@@ -225,7 +225,7 @@ public class MatchQuery {
                 Query query = phraseQuery(field, stream, slop, enablePositionIncrements);
                 if (query instanceof PhraseQuery) {
                     // synonyms that expand to multiple terms can return a phrase query.
-                    return blendPhraseQuery((PhraseQuery) query, mapper);
+                    return blendPhraseQuery((PhraseQuery) query, reference);
                 }
                 return query;
             } catch (IllegalArgumentException e) {
@@ -246,7 +246,7 @@ public class MatchQuery {
         }
 
         private void checkForPositions(String field) {
-            if (mapper.hasPositions() == false) {
+            if (reference.indexType() != IndexType.FULLTEXT) {
                 throw new IllegalStateException("field:[" + field + "] was indexed without position data; cannot run PhraseQuery");
             }
         }
@@ -375,24 +375,26 @@ public class MatchQuery {
      * Called when a phrase query is built with {@link QueryBuilder#analyzePhrase(String, TokenStream, int)}
      * Subclass can override this function to blend this query to multiple fields.
      */
-    protected Query blendPhraseQuery(PhraseQuery query, MappedFieldType fieldType) {
+    protected Query blendPhraseQuery(PhraseQuery query, Reference reference) {
         return query;
     }
 
-    protected Query blendTermsQuery(Term[] terms, MappedFieldType fieldType) {
-        var builder = new SynonymQuery.Builder(fieldType.name());
+    protected Query blendTermsQuery(Term[] terms, Reference ref) {
+        var builder = new SynonymQuery.Builder(ref.storageIdent());
         for (var term : terms) {
             builder.addTerm(term);
         }
         return builder.build();
     }
 
-    protected Query blendTermQuery(Term term, MappedFieldType fieldType) {
+    protected Query blendTermQuery(Term term, Reference ref) {
         Fuzziness fuzziness = parsedOptions.fuzziness();
         if (fuzziness == null) {
-            return termQuery(fieldType, term.bytes());
+            return termQuery(ref, term.bytes());
         }
-        fieldType.failIfNotIndexed();
+        if (ref.indexType() == IndexType.NONE) {
+            throw new IllegalArgumentException("Cannot search on field [" + ref.column() + "] since it is not indexed.");
+        }
         int distance = fuzziness.asDistance(term.text());
         var fuzzyRewriteMethod = parsedOptions.rewriteMethod();
         int maxExpansions = parsedOptions.maxExpansions();

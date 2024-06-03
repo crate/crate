@@ -204,7 +204,7 @@ public final class QueryTester implements AutoCloseable {
                     Optimizer.optimizeCasts(symbol,plannerContext),
                     systemTxnCtx,
                     indexEnv.indexService().index().getName(),
-                    indexEnv.queryShardContext(),
+                    indexEnv.indexService().indexAnalyzers(),
                     table,
                     indexEnv.queryCache()
                 ).query(),

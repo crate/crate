@@ -51,7 +51,6 @@ import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.common.unit.DistanceUnit;
 import org.elasticsearch.index.mapper.GeoShapeFieldMapper.Defaults;
 import org.elasticsearch.index.query.MultiMatchQueryType;
-import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.search.MatchQuery;
 import org.elasticsearch.index.search.MultiMatchQuery;
 import org.jetbrains.annotations.Nullable;
@@ -68,7 +67,6 @@ import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.lucene.LuceneQueryBuilder.Context;
 import io.crate.lucene.match.OptionParser;
 import io.crate.lucene.match.ParsedOptions;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.GeoReference;
@@ -215,13 +213,7 @@ public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
         Map<String, Object> fields = (Map<String, Object>) ((Literal<?>) arguments.get(0)).value();
         String fieldName = fields.keySet().iterator().next();
 
-        Reference ref;
-        try {
-            long oid = Long.parseLong(fieldName);
-            ref = context.getRef(oid);
-        } catch (NumberFormatException ex) {
-            ref = context.getRef(ColumnIdent.fromPath(fieldName));
-        }
+        Reference ref = context.getRef(fieldName);
         if (ref == null || !(ref instanceof GeoReference geoRef)) {
             return Queries.newUnmappedFieldQuery(fieldName);
         }
@@ -351,7 +343,7 @@ public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
 
         if (fields.size() == 1) {
             return singleMatchQuery(
-                context.queryShardContext(),
+                context,
                 fields.entrySet().iterator().next(),
                 queryString,
                 matchType,
@@ -365,7 +357,7 @@ public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
                 return null;
             });
             return multiMatch(
-                context.queryShardContext(),
+                context,
                 matchType,
                 (Map) fields,
                 queryString,
@@ -374,7 +366,7 @@ public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
         }
     }
 
-    private static Query singleMatchQuery(QueryShardContext queryShardContext,
+    private static Query singleMatchQuery(LuceneQueryBuilder.Context context,
                                           Map.Entry<String, Object> entry,
                                           String queryString,
                                           String matchType,
@@ -382,7 +374,7 @@ public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
         MultiMatchQueryType type = getType(matchType);
         ParsedOptions parsedOptions = OptionParser.parse(type, options);
 
-        MatchQuery matchQuery = new MatchQuery(queryShardContext, parsedOptions);
+        MatchQuery matchQuery = new MatchQuery(context, parsedOptions);
         MatchQuery.Type matchQueryType = type.matchQueryType();
         String fieldName = entry.getKey();
         Query query = matchQuery.parse(matchQueryType, fieldName, queryString);
@@ -393,14 +385,14 @@ public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
         return query;
     }
 
-    private static Query multiMatch(QueryShardContext queryShardContext,
+    private static Query multiMatch(LuceneQueryBuilder.Context context,
                                     @Nullable String matchType,
                                     Map<String, Float> fieldNames,
                                     String queryString,
                                     Map<String, Object> options) {
         MultiMatchQueryType type = getType(matchType);
         ParsedOptions parsedOptions = OptionParser.parse(type, options);
-        MultiMatchQuery multiMatchQuery = new MultiMatchQuery(queryShardContext, parsedOptions);
+        MultiMatchQuery multiMatchQuery = new MultiMatchQuery(context, parsedOptions);
         return multiMatchQuery.parse(type, fieldNames, queryString, parsedOptions.minimumShouldMatch());
     }
 

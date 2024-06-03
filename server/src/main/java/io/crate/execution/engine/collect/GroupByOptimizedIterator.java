@@ -51,9 +51,9 @@ import org.elasticsearch.Version;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.ObjectArray;
+import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.jetbrains.annotations.Nullable;
@@ -151,7 +151,7 @@ final class GroupByOptimizedIterator {
         var searcher = sharedShardContext.acquireSearcher("group-by-ordinals:" + formatSource(collectPhase));
         collectTask.addSearcher(sharedShardContext.readerId(), searcher);
 
-        final QueryShardContext queryShardContext = sharedShardContext.indexService().newQueryShardContext();
+        IndexService indexService = sharedShardContext.indexService();
 
         InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx = docInputFactory.getCtx(collectTask.txnCtx());
         docCtx.add(collectPhase.toCollect().stream()::iterator);
@@ -172,9 +172,9 @@ final class GroupByOptimizedIterator {
             collectPhase.where(),
             collectTask.txnCtx(),
             indexShard.shardId().getIndexName(),
-            queryShardContext,
+            indexService.indexAnalyzers(),
             table,
-            sharedShardContext.indexService().cache()
+            indexService.cache()
         );
 
         return getIterator(
