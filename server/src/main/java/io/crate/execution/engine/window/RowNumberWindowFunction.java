@@ -22,6 +22,7 @@
 package io.crate.execution.engine.window;
 
 import java.util.List;
+import java.util.function.LongConsumer;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -56,7 +57,8 @@ public class RowNumberWindowFunction implements WindowFunction {
     }
 
     @Override
-    public Object execute(int idxInPartition,
+    public Object execute(LongConsumer allocateBytes,
+                          int idxInPartition,
                           WindowFrameState currentFrame,
                           List<? extends CollectExpression<Row, ?>> expressions,
                           @Nullable Boolean ignoreNulls,

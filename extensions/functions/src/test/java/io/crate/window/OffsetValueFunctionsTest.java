@@ -21,15 +21,25 @@
 
 package io.crate.window;
 
+import static io.crate.testing.Asserts.assertThat;
+
 import java.util.List;
 
 import org.assertj.core.api.Assertions;
 import org.junit.Test;
 
+import com.carrotsearch.hppc.RamUsageEstimator;
+
+import io.crate.data.RowN;
+import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.window.AbstractWindowFunctionTest;
 import io.crate.metadata.ColumnIdent;
+import io.crate.testing.PlainRamAccounting;
 
 public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
+
+    private static long SHALLOW_ROW_N_SIZE = RamUsageEstimator.shallowSizeOfInstance(RowN.class);
+
 
     @Test
     public void testLagWithSingleArgumentAndEmptyOver() throws Throwable {
@@ -559,4 +569,21 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
             INTERVAL_DATA
         );
     }
+
+    @Test
+    public void test_row_cache_memory_is_accounted() throws Throwable {
+        RamAccounting accounting = new PlainRamAccounting();
+
+        assertEvaluate(
+            "lag(x) over(order by x)",
+            new Object[]{null, 1},
+            List.of(new ColumnIdent("x")),
+            accounting::addBytes,
+            new Object[]{1},
+            new Object[]{2}
+        );
+
+        assertThat(accounting.totalBytes()).isEqualTo(149L);
+    }
+
 }
