@@ -38,7 +38,6 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.QueryCache;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.jetbrains.annotations.Nullable;
@@ -90,7 +89,6 @@ public class LuceneQueryBuilder {
 
     public Context convert(Symbol query,
                            TransactionContext txnCtx,
-                           MapperService mapperService,
                            String indexName,
                            QueryShardContext queryShardContext,
                            DocTableInfo table,
@@ -104,7 +102,6 @@ public class LuceneQueryBuilder {
             table,
             txnCtx,
             nodeCtx,
-            mapperService,
             queryCache,
             queryShardContext,
             indexName,
@@ -128,7 +125,6 @@ public class LuceneQueryBuilder {
 
         private final DocTableInfo table;
         final DocInputFactory docInputFactory;
-        final MapperService mapperService;
         final QueryCache queryCache;
         private final TransactionContext txnCtx;
         final QueryShardContext queryShardContext;
@@ -139,7 +135,6 @@ public class LuceneQueryBuilder {
         Context(DocTableInfo table,
                 TransactionContext txnCtx,
                 NodeContext nodeCtx,
-                MapperService mapperService,
                 QueryCache queryCache,
                 QueryShardContext queryShardContext,
                 String indexName,
@@ -155,7 +150,6 @@ public class LuceneQueryBuilder {
                     partitionColumns
                 )
             );
-            this.mapperService = mapperService;
             this.queryCache = queryCache;
         }
 
@@ -196,11 +190,6 @@ public class LuceneQueryBuilder {
             "_seq_no", VersioningValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG,
             "_primary_term", VersioningValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG
         );
-
-        @Nullable
-        public MappedFieldType getFieldTypeOrNull(String fqColumnName) {
-            return mapperService.fieldType(fqColumnName);
-        }
 
         public QueryShardContext queryShardContext() {
             return queryShardContext;
