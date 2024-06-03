@@ -44,12 +44,12 @@ import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.Bits;
 import org.elasticsearch.Version;
-import org.elasticsearch.index.query.QueryShardContext;
+import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.jetbrains.annotations.Nullable;
-
 import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.common.collections.Lists;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.data.BatchIterator;
@@ -135,7 +135,7 @@ final class DocValuesGroupByOptimizedIterator {
         SharedShardContext sharedShardContext = collectTask.sharedShardContexts().getOrCreateContext(shardId);
         var searcher = sharedShardContext.acquireSearcher("group-by-doc-value-aggregates: " + formatSource(collectPhase));
         collectTask.addSearcher(sharedShardContext.readerId(), searcher);
-        QueryShardContext queryShardContext = sharedShardContext.indexService().newQueryShardContext();
+        IndexService indexService = sharedShardContext.indexService();
 
         InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx
             = docInputFactory.getCtx(collectTask.txnCtx());
@@ -147,9 +147,9 @@ final class DocValuesGroupByOptimizedIterator {
             collectPhase.where(),
             collectTask.txnCtx(),
             indexShard.shardId().getIndexName(),
-            queryShardContext,
+            indexService.indexAnalyzers(),
             table,
-            sharedShardContext.indexService().cache()
+            indexService.cache()
         );
 
         if (columnKeyRefs.size() == 1) {

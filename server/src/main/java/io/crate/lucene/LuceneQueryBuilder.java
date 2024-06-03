@@ -38,7 +38,8 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.QueryCache;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.index.query.QueryShardContext;
+import org.elasticsearch.index.analysis.IndexAnalyzers;
+import org.elasticsearch.index.analysis.NamedAnalyzer;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
@@ -89,7 +90,7 @@ public class LuceneQueryBuilder {
     public Context convert(Symbol query,
                            TransactionContext txnCtx,
                            String indexName,
-                           QueryShardContext queryShardContext,
+                           IndexAnalyzers indexAnalyzers,
                            DocTableInfo table,
                            QueryCache queryCache) throws UnsupportedFeatureException {
         var refResolver = new LuceneReferenceResolver(
@@ -102,7 +103,7 @@ public class LuceneQueryBuilder {
             txnCtx,
             nodeCtx,
             queryCache,
-            queryShardContext,
+            indexAnalyzers,
             indexName,
             table.partitionedByColumns()
         );
@@ -126,22 +127,21 @@ public class LuceneQueryBuilder {
         final DocInputFactory docInputFactory;
         final QueryCache queryCache;
         private final TransactionContext txnCtx;
-        final QueryShardContext queryShardContext;
+        private final IndexAnalyzers indexAnalyzers;
 
         final NodeContext nodeContext;
-
 
         Context(DocTableInfo table,
                 TransactionContext txnCtx,
                 NodeContext nodeCtx,
                 QueryCache queryCache,
-                QueryShardContext queryShardContext,
+                IndexAnalyzers indexAnalyzers,
                 String indexName,
                 List<Reference> partitionColumns) {
             this.table = table;
             this.nodeContext = nodeCtx;
             this.txnCtx = txnCtx;
-            this.queryShardContext = queryShardContext;
+            this.indexAnalyzers = indexAnalyzers;
             this.docInputFactory = new DocInputFactory(
                 nodeCtx,
                 new LuceneReferenceResolver(
@@ -190,8 +190,12 @@ public class LuceneQueryBuilder {
             "_primary_term", VersioningValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG
         );
 
-        public QueryShardContext queryShardContext() {
-            return queryShardContext;
+        public NamedAnalyzer getAnalyzer(String analyzerName) {
+            NamedAnalyzer namedAnalyzer = indexAnalyzers.get(analyzerName);
+            if (namedAnalyzer == null) {
+                throw new IllegalArgumentException("No analyzer found for [" + analyzerName + "]");
+            }
+            return namedAnalyzer;
         }
 
         public SymbolVisitor<Context, Query> visitor() {
@@ -199,13 +203,18 @@ public class LuceneQueryBuilder {
         }
 
         @Nullable
-        public Reference getRef(ColumnIdent column) {
-            return table.getReadReference(column);
+        public Reference getRef(String field) {
+            try {
+                long oid = Long.parseLong(field);
+                return table.getReference(oid);
+            } catch (NumberFormatException ex) {
+                return getRef(ColumnIdent.fromPath(field));
+            }
         }
 
         @Nullable
-        public Reference getRef(long oid) {
-            return table.getReference(oid);
+        public Reference getRef(ColumnIdent column) {
+            return table.getReadReference(column);
         }
     }
 

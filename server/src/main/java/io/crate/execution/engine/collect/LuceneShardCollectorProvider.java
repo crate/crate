@@ -31,7 +31,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
@@ -135,15 +134,15 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         if (isClosed) {
             return InMemoryBatchIterator.empty(SentinelRow.SENTINEL);
         }
-        QueryShardContext queryShardContext = sharedShardContext.indexService().newQueryShardContext();
+        IndexService indexService = sharedShardContext.indexService();
         DocTableInfo table = nodeCtx.schemas().getTableInfo(relationName);
         LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(
             collectPhase.where(),
             collectTask.txnCtx(),
             sharedShardContextShard.shardId().getIndexName(),
-            queryShardContext,
+            indexService.indexAnalyzers(),
             table,
-            sharedShardContext.indexService().cache()
+            indexService.cache()
         );
         InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx =
             docInputFactory.extractImplementations(collectTask.txnCtx(), collectPhase);
@@ -214,13 +213,12 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         var searcher = sharedShardContext.acquireSearcher("ordered-collector: " + formatSource(phase));
         collectTask.addSearcher(sharedShardContext.readerId(), searcher);
         IndexService indexService = sharedShardContext.indexService();
-        QueryShardContext queryShardContext = indexService.newQueryShardContext();
         DocTableInfo table = nodeCtx.schemas().getTableInfo(relationName);
         final var queryContext = luceneQueryBuilder.convert(
             collectPhase.where(),
             collectTask.txnCtx(),
             indexShard.shardId().getIndexName(),
-            queryShardContext,
+            indexService.indexAnalyzers(),
             table,
             indexService.cache()
         );

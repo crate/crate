@@ -47,10 +47,7 @@ import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.IndexService.IndexCreationContext;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
-import org.elasticsearch.index.analysis.IndexAnalyzers;
 import org.elasticsearch.index.cache.query.DisabledQueryCache;
-import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesModule;
 import org.elasticsearch.indices.IndicesQueryCache;
@@ -66,7 +63,6 @@ import io.crate.metadata.doc.DocTableInfo;
 
 public final class IndexEnv implements AutoCloseable {
 
-    private final QueryShardContext queryShardContext;
     private final LuceneReferenceResolver luceneReferenceResolver;
     private final NodeEnvironment nodeEnvironment;
     private final QueryCache queryCache;
@@ -89,19 +85,8 @@ public final class IndexEnv implements AutoCloseable {
         Environment env = new Environment(nodeSettings, tempDir.resolve("config"));
         IndexSettings idxSettings = IndexSettingsModule.newIndexSettings(index, nodeSettings);
         AnalysisRegistry analysisRegistry = new AnalysisModule(env, Collections.emptyList()).getAnalysisRegistry();
-        IndexAnalyzers indexAnalyzers = analysisRegistry.build(idxSettings);
         MapperRegistry mapperRegistry = new IndicesModule().getMapperRegistry();
 
-        MapperService mapperService = new MapperService(
-            idxSettings,
-            indexAnalyzers,
-            mapperRegistry
-        );
-        IndexMetadata indexMetadata = clusterState.metadata().index(indexName);
-        mapperService.merge(
-            indexMetadata.mapping().source(),
-            MapperService.MergeReason.MAPPING_UPDATE
-        );
         queryCache = DisabledQueryCache.instance();
         IndexModule indexModule = new IndexModule(idxSettings, analysisRegistry, List.of(), Collections.emptyMap());
         nodeEnvironment = new NodeEnvironment(Settings.EMPTY, env);
@@ -132,7 +117,6 @@ public final class IndexEnv implements AutoCloseable {
         );
         IndexWriterConfig conf = new IndexWriterConfig(new StandardAnalyzer());
         writer = new IndexWriter(new ByteBuffersDirectory(), conf);
-        queryShardContext = new QueryShardContext(mapperService);
     }
 
     @Override
@@ -140,10 +124,6 @@ public final class IndexEnv implements AutoCloseable {
         indexService.close("stopping", true);
         writer.close();
         nodeEnvironment.close();
-    }
-
-    public QueryShardContext queryShardContext() {
-        return queryShardContext;
     }
 
     public QueryCache queryCache() {
