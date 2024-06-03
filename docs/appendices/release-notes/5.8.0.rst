@@ -113,6 +113,8 @@ Scalar and Aggregation Functions
 
 - Added a :ref:`has_table_privilege <scalar-has-table-priv>` scalar.
 
+- Added a :ref:`pg_table_is_visible <scalar-pg_table_is_visible>` scalar.
+
 Performance and Resilience Improvements
 ---------------------------------------
 
