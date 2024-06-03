@@ -120,7 +120,6 @@ import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.Mapping;
 import org.elasticsearch.index.mapper.ParsedDocument;
-import org.elasticsearch.index.mapper.RootObjectMapper;
 import org.elasticsearch.index.mapper.SourceToParse;
 import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.recovery.RecoveryStats;
@@ -3333,20 +3332,16 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     }
 
     private EngineConfig.TombstoneDocSupplier tombstoneDocSupplier() {
-        final RootObjectMapper.Builder noopRootMapper = new RootObjectMapper.Builder("default");
-        final DocumentMapper noopDocumentMapper = mapperService == null
-            ? null
-            : new DocumentMapper.Builder(noopRootMapper, mapperService).build(mapperService);
         return new EngineConfig.TombstoneDocSupplier() {
 
             @Override
             public ParsedDocument newDeleteTombstoneDoc(String id) {
-                return mapperService.documentMapper().createDeleteTombstoneDoc(shardId.getIndexName(), id);
+                return DocumentMapper.createDeleteTombstoneDoc(shardId.getIndexName(), id);
             }
 
             @Override
             public ParsedDocument newNoopTombstoneDoc(String reason) {
-                return noopDocumentMapper.createNoopTombstoneDoc(shardId.getIndexName(), reason);
+                return DocumentMapper.createNoopTombstoneDoc(shardId.getIndexName(), reason);
             }
         };
     }

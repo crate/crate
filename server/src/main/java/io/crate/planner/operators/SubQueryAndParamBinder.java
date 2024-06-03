@@ -21,7 +21,6 @@
 
 package io.crate.planner.operators;
 
-import java.util.Locale;
 import java.util.function.UnaryOperator;
 
 import io.crate.data.Row;
@@ -42,7 +41,7 @@ public class SubQueryAndParamBinder extends FunctionCopyVisitor<Void> implements
 
     /**
      * Returns a bound symbol with ParameterSymbols or SelectSymbols replaced as literals using the provided arguments.
-     *
+     * <p>
      * If multiple calls with the same params and subQueryResults are made it's better to instantiate the class
      * once using {@link #SubQueryAndParamBinder(Row, SubQueryResults)}
      */
@@ -85,18 +84,9 @@ public class SubQueryAndParamBinder extends FunctionCopyVisitor<Void> implements
     }
 
     private static Symbol convert(ParameterSymbol parameterSymbol, Row params) {
+        Object value = parameterSymbol.bind(params);
         DataType<?> type = parameterSymbol.valueType();
-        Object value;
-        try {
-            value = params.get(parameterSymbol.index());
-        } catch (IndexOutOfBoundsException e) {
-            throw new IllegalArgumentException(String.format(
-                Locale.ENGLISH,
-                "The query contains a parameter placeholder $%d, but there are only %d parameter values",
-                (parameterSymbol.index() + 1),
-                params.numColumns()
-            ));
-        }
+
         if (type.equals(DataTypes.UNDEFINED)) {
             type = DataTypes.guessType(value);
         }

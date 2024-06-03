@@ -24,7 +24,6 @@ package io.crate.metadata;
 import static io.crate.common.collections.Lists.getOnlyElement;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -43,8 +42,8 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.CompositeClassLoader;
 import org.jetbrains.annotations.Nullable;
-
 import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.common.collections.Lists;
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.symbol.Symbol;
@@ -69,14 +68,14 @@ public class Functions {
     private final Map<FunctionName, List<FunctionProvider>> functionImplementations;
 
     public Functions copyOf() {
-        var functions = new Functions(Map.copyOf(functionImplementations));
+        var functions = new Functions(functionImplementations);
         functions.udfFunctionImplementations.putAll(udfFunctionImplementations);
         return functions;
     }
 
     public static class Builder {
 
-        private HashMap<FunctionName, List<FunctionProvider>> providersByName = new HashMap<>();
+        private HashMap<FunctionName, ArrayList<FunctionProvider>> providersByName = new HashMap<>();
 
         public void add(Signature signature, FunctionFactory factory) {
             List<FunctionProvider> functionProviders = providersByName.computeIfAbsent(
@@ -87,7 +86,10 @@ public class Functions {
         }
 
         public Functions build() {
-            return new Functions(Collections.unmodifiableMap(providersByName));
+            for (ArrayList<FunctionProvider> providers : providersByName.values()) {
+                providers.trimToSize();
+            }
+            return new Functions(Map.copyOf(providersByName));
         }
     }
 
@@ -105,7 +107,7 @@ public class Functions {
         return builder.build();
     }
 
-    public Functions(Map<FunctionName, List<FunctionProvider>> functionProvidersByName) {
+    private Functions(Map<FunctionName, List<FunctionProvider>> functionProvidersByName) {
         this.functionImplementations = functionProvidersByName;
     }
 

@@ -23,10 +23,9 @@ package io.crate.metadata;
 
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -38,7 +37,6 @@ import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.FunctionProvider.FunctionFactory;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
@@ -46,22 +44,11 @@ import io.crate.types.TypeSignature;
 
 public class FunctionsTest extends ESTestCase {
 
-    private Map<FunctionName, List<FunctionProvider>> implementations = new HashMap<>();
-
-    private void register(Signature signature, FunctionFactory factory) {
-        List<FunctionProvider> functions = implementations.computeIfAbsent(
-            signature.getName(),
-            k -> new ArrayList<>());
-        functions.add(new FunctionProvider(signature, factory));
-    }
-
-    private Functions createFunctions() {
-        return new Functions(implementations);
-    }
+    private final Functions.Builder functionsBuilder = new Functions.Builder();
 
     private FunctionImplementation resolve(String functionName,
                                            List<Symbol> arguments) {
-        return createFunctions().get(null, functionName, arguments, SearchPath.pathWithPGCatalogAndDoc());
+        return functionsBuilder.build().get(null, functionName, arguments, SearchPath.pathWithPGCatalogAndDoc());
     }
 
     private static class DummyFunction implements FunctionImplementation {
@@ -85,63 +72,55 @@ public class FunctionsTest extends ESTestCase {
 
     @Test
     public void test_function_name_doesnt_exists() {
-        var functions = createFunctions();
-
-        expectedException.expect(UnsupportedFunctionException.class);
-        expectedException.expectMessage("Unknown function: does_not_exists()");
-        functions.get(null, "does_not_exists", Collections.emptyList(), SearchPath.pathWithPGCatalogAndDoc());
+        var functions = functionsBuilder.build();
+        assertThatThrownBy(()
+            -> functions.get(null, "does_not_exists", Collections.emptyList(), SearchPath.pathWithPGCatalogAndDoc())
+        ).isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessage("Unknown function: does_not_exists()");
     }
 
     @Test
     public void test_signature_matches_exact() {
-        register(
+        functionsBuilder.add(
             Signature.scalar(
                 "foo",
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
             ),
-            (signature, args) ->
-                new DummyFunction(signature)
-        );
+            (signature, args) -> new DummyFunction(signature));
         var impl = resolve("foo", List.of(Literal.of("hoschi")));
         assertThat(impl.boundSignature().argTypes()).containsExactly(DataTypes.STRING);
     }
 
     @Test
     public void test_signature_matches_with_coercion() {
-        register(
+        functionsBuilder.add(
             Signature.scalar(
                 "foo",
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
             ),
-            (signature, args) ->
-                new DummyFunction(signature)
-        );
+            (signature, args) -> new DummyFunction(signature));
         var impl = resolve("foo", List.of(Literal.of(1L)));
         assertThat(impl.boundSignature().argTypes()).containsExactly(DataTypes.INTEGER);
     }
 
     @Test
     public void test_signature_matches_with_coercion_and_precedence() {
-        register(
+        functionsBuilder.add(
             Signature.scalar(
                 "foo",
                 DataTypes.DOUBLE.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()
             ),
-            (signature, args) ->
-                new DummyFunction(signature)
-        );
-        register(
+            (signature, args) -> new DummyFunction(signature));
+        functionsBuilder.add(
             Signature.scalar(
                 "foo",
                 DataTypes.FLOAT.getTypeSignature(),
                 DataTypes.FLOAT.getTypeSignature()
             ),
-            (signature, args) ->
-                new DummyFunction(signature)
-        );
+            (signature, args) -> new DummyFunction(signature));
 
         var impl = resolve("foo", List.of(Literal.of(1L)));
 
@@ -151,24 +130,20 @@ public class FunctionsTest extends ESTestCase {
 
     @Test
     public void test_multiple_signature_matches_with_same_return_type_results_in_first_selected() {
-        register(
+        functionsBuilder.add(
             Signature.scalar(
                 "foo",
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature()
             ),
-            (signature, args) ->
-                new DummyFunction(signature)
-        );
-        register(
+            (signature, args) -> new DummyFunction(signature));
+        functionsBuilder.add(
             Signature.scalar(
                 "foo",
                 TypeSignature.parse("array(E)"),
                 DataTypes.INTEGER.getTypeSignature()
             ).withTypeVariableConstraints(typeVariable("E")),
-            (signature, args) ->
-                new DummyFunction(signature)
-        );
+            (signature, args) -> new DummyFunction(signature));
 
         var impl = resolve("foo", List.of(Literal.of(DataTypes.UNDEFINED, null)));
         assertThat(impl.boundSignature().argTypes()).containsExactly(DataTypes.STRING);
@@ -176,16 +151,14 @@ public class FunctionsTest extends ESTestCase {
 
     @Test
     public void test_checks_built_in_and_udf_per_search_path_schema() throws Exception {
-        register(
+        functionsBuilder.add(
             Signature.scalar(
                 new FunctionName("schema1", "foo"),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature()
             ),
-            (signature, args) ->
-                new DummyFunction(signature)
-        );
-        Functions functions = createFunctions();
+            (signature, args) -> new DummyFunction(signature));
+        Functions functions = functionsBuilder.build();
         Signature signature = Signature.scalar(
             new FunctionName("schema2", "foo"),
             DataTypes.STRING.getTypeSignature(),
@@ -206,24 +179,19 @@ public class FunctionsTest extends ESTestCase {
 
     @Test
     public void test_multiple_signature_matches_with_undefined_arguments_only_result_in_first_selected() {
-        register(
+        functionsBuilder.add(
             Signature.scalar(
                 "foo",
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature()
-            ),
-            (signature, args) ->
-                new DummyFunction(signature)
-        );
-        register(
+            ), (signature, args) -> new DummyFunction(signature));
+        functionsBuilder.add(
             Signature.scalar(
                 "foo",
                 TypeSignature.parse("array(E)"),
                 TypeSignature.parse("array(E)")
             ).withTypeVariableConstraints(typeVariable("E")),
-            (signature, args) ->
-                new DummyFunction(signature)
-        );
+            (signature, args) -> new DummyFunction(signature));
 
         var impl = resolve("foo", List.of(Literal.of(DataTypes.UNDEFINED, null)));
         assertThat(impl.boundSignature().argTypes()).containsExactly(DataTypes.STRING);
@@ -233,36 +201,30 @@ public class FunctionsTest extends ESTestCase {
     public void test_signature_with_more_exact_argument_matches_is_more_specific() {
         // We had a regression where this worked for 2 signatures (1 matching, 1 not matching)
         // but not with multiple not matching signatures. So lets use at least 2 not matching.
-        register(
+        functionsBuilder.add(
             Signature.scalar(
                 "foo",
                 DataTypes.BOOLEAN.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature()
             ),
-            (signature, args) ->
-                new DummyFunction(signature)
-        );
-        register(
+            (signature, args) -> new DummyFunction(signature));
+        functionsBuilder.add(
             Signature.scalar(
                 "foo",
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.SHORT.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature()
             ),
-            (signature, args) ->
-                new DummyFunction(signature)
-        );
-        register(
+            (signature, args) -> new DummyFunction(signature));
+        functionsBuilder.add(
             Signature.scalar(
                 "foo",
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature()
             ),
-            (signature, args) ->
-                new DummyFunction(signature)
-        );
+            (signature, args) -> new DummyFunction(signature));
 
         var impl = resolve("foo", List.of(Literal.of(1), Literal.of(1L)));
         assertThat(impl.boundSignature().argTypes()).containsExactly(DataTypes.INTEGER, DataTypes.INTEGER);
@@ -277,14 +239,10 @@ public class FunctionsTest extends ESTestCase {
         );
         var dummyFunction = new DummyFunction(signature);
 
-        register(
-            signature,
-            (s, args) ->
-                dummyFunction
-        );
+        functionsBuilder.add(signature, (s, args) -> dummyFunction);
 
         var func = new Function(dummyFunction.signature(), List.of(Literal.of("hoschi")), DataTypes.INTEGER);
-        var funcImpl = createFunctions().getQualified(func);
+        var funcImpl = functionsBuilder.build().getQualified(func);
 
         assertThat(funcImpl).isEqualTo(dummyFunction);
     }
@@ -298,78 +256,79 @@ public class FunctionsTest extends ESTestCase {
         );
         var dummyFunction = new DummyFunction(signature);
 
-        register(
-            signature,
-            (s, args) ->
-                dummyFunction
-        );
+        functionsBuilder.add(signature, (s, args) -> dummyFunction);
 
         var agg = new Aggregation(dummyFunction.signature, DataTypes.STRING, List.of(Literal.of("hoschi")));
-        var funcImpl = createFunctions().getQualified(agg);
+        var funcImpl = functionsBuilder.build().getQualified(agg);
 
         assertThat(funcImpl).isEqualTo(dummyFunction);
     }
 
     @Test
     public void test_unknown_function_with_no_arguments_and_candidates() {
-        expectedException.expectMessage("Unknown function: foo.bar()");
-        Functions.raiseUnknownFunction("foo", "bar", List.of(), List.of());
+        assertThatThrownBy(() -> Functions.raiseUnknownFunction("foo", "bar", List.of(), List.of()))
+            .hasMessage("Unknown function: foo.bar()");
     }
 
     @Test
     public void test_unknown_function_with_arguments_no_candidates() {
-        expectedException.expectMessage("Unknown function: foo.bar(1, 2)");
-        Functions.raiseUnknownFunction("foo", "bar", List.of(Literal.of(1), Literal.of(2)), List.of());
+        assertThatThrownBy(() ->
+            Functions.raiseUnknownFunction("foo", "bar", List.of(Literal.of(1), Literal.of(2)), List.of())
+        ).hasMessage("Unknown function: foo.bar(1, 2)");
     }
 
     @Test
     public void test_unknown_function_no_arguments_but_candidates() {
-        expectedException.expectMessage("Unknown function: foo.bar()." +
-                                        " Possible candidates: foo.bar(text):text, foo.bar(double precision):double precision");
-        Functions.raiseUnknownFunction(
-            "foo",
-            "bar",
-            List.of(),
-            List.of(
-                new FunctionProvider(
-                    Signature.scalar(new FunctionName("foo", "bar"),
-                                     DataTypes.STRING.getTypeSignature(),
-                                     DataTypes.STRING.getTypeSignature()),
-                    ((signature, dataTypes) -> null)
-                ),
-                new FunctionProvider(
-                    Signature.scalar(new FunctionName("foo", "bar"),
-                                     DataTypes.DOUBLE.getTypeSignature(),
-                                     DataTypes.DOUBLE.getTypeSignature()),
-                    ((signature, dataTypes) -> null)
+        assertThatThrownBy(() ->
+            Functions.raiseUnknownFunction(
+                "foo",
+                "bar",
+                List.of(),
+                List.of(
+                    new FunctionProvider(
+                        Signature.scalar(new FunctionName("foo", "bar"),
+                                        DataTypes.STRING.getTypeSignature(),
+                                        DataTypes.STRING.getTypeSignature()),
+                        ((signature, dataTypes) -> null)
+                    ),
+                    new FunctionProvider(
+                        Signature.scalar(new FunctionName("foo", "bar"),
+                                        DataTypes.DOUBLE.getTypeSignature(),
+                                        DataTypes.DOUBLE.getTypeSignature()),
+                        ((signature, dataTypes) -> null)
+                    )
                 )
             )
-        );
+        ).hasMessage(
+            "Unknown function: foo.bar()." +
+            " Possible candidates: foo.bar(text):text, foo.bar(double precision):double precision");
     }
 
     @Test
     public void test_unknown_function_with_arguments_and_candidates() {
-        expectedException.expectMessage("Unknown function: foo.bar(1, 2)," +
-                                        " no overload found for matching argument types: (integer, integer)." +
-                                        " Possible candidates: foo.bar(text):text, foo.bar(double precision):double precision");
-        Functions.raiseUnknownFunction(
-            "foo",
-            "bar",
-            List.of(Literal.of(1), Literal.of(2)),
-            List.of(
-                new FunctionProvider(
-                    Signature.scalar(new FunctionName("foo", "bar"),
-                                     DataTypes.STRING.getTypeSignature(),
-                                     DataTypes.STRING.getTypeSignature()),
-                    ((signature, dataTypes) -> null)
-                ),
-                new FunctionProvider(
-                    Signature.scalar(new FunctionName("foo", "bar"),
-                                     DataTypes.DOUBLE.getTypeSignature(),
-                                     DataTypes.DOUBLE.getTypeSignature()),
-                    ((signature, dataTypes) -> null)
+        assertThatThrownBy(() ->
+            Functions.raiseUnknownFunction(
+                "foo",
+                "bar",
+                List.of(Literal.of(1), Literal.of(2)),
+                List.of(
+                    new FunctionProvider(
+                        Signature.scalar(new FunctionName("foo", "bar"),
+                                        DataTypes.STRING.getTypeSignature(),
+                                        DataTypes.STRING.getTypeSignature()),
+                        ((signature, dataTypes) -> null)
+                    ),
+                    new FunctionProvider(
+                        Signature.scalar(new FunctionName("foo", "bar"),
+                                        DataTypes.DOUBLE.getTypeSignature(),
+                                        DataTypes.DOUBLE.getTypeSignature()),
+                        ((signature, dataTypes) -> null)
+                    )
                 )
             )
-        );
+        ).hasMessage(
+            "Unknown function: foo.bar(1, 2)," +
+            " no overload found for matching argument types: (integer, integer)." +
+            " Possible candidates: foo.bar(text):text, foo.bar(double precision):double precision");
     }
 }

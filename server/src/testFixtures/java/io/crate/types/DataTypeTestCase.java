@@ -24,6 +24,7 @@ package io.crate.types;
 import static io.crate.execution.dml.IndexerTest.getIndexer;
 import static io.crate.execution.dml.IndexerTest.item;
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -42,14 +43,12 @@ import org.apache.lucene.search.Weight;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.ParsedDocument;
-import org.elasticsearch.index.mapper.SourceToParse;
 import org.junit.Test;
 
 import io.crate.Streamer;
 import io.crate.execution.dml.Indexer;
+import io.crate.execution.dml.IndexerTest;
 import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
@@ -157,20 +156,9 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
             clusterService.state(),
             Version.CURRENT)) {
             T value = dataGenerator.get();
-
-            MapperService mapperService = indexEnv.mapperService();
-
             Indexer indexer = getIndexer(sqlExecutor, table.ident().name(), "x");
             ParsedDocument doc = indexer.index(item(value));
-
-            // going through the document mapper must create the same fields
-            ParsedDocument parsedDocument = mapperService.documentMapper().parse(new SourceToParse(
-                table.ident().indexNameOrAlias(),
-                doc.id(),
-                doc.source(),
-                XContentType.JSON
-            ));
-            assertThat(parsedDocument).hasSameFieldsWithNameAs(doc, reference.storageIdent());
+            IndexerTest.assertTranslogParses(doc, table);
         }
     }
 

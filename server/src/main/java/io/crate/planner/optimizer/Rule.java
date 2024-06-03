@@ -68,6 +68,14 @@ public interface Rule<T> {
         return false;
     }
 
+    /**
+     * Every rule is enabled by default, but rules can be disabled by default when they are
+     * not suited for general usage because they are experimental.
+     */
+    default boolean defaultEnabled() {
+        return true;
+    }
+
     default String sessionSettingName() {
         return sessionSettingName(getClass());
     }

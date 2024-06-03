@@ -311,11 +311,11 @@
     <versions.plugin.forbiddenapis>3.7</versions.plugin.forbiddenapis>
     <versions.plugin.jlink>3.1.0</versions.plugin.jlink>
     <versions.plugin.assembly>3.7.1</versions.plugin.assembly>
-    <versions.plugin.download>1.8.1</versions.plugin.download>
+    <versions.plugin.download>1.9.0</versions.plugin.download>
     <versions.plugin.git-commit>8.0.2</versions.plugin.git-commit>
-    <versions.plugin.shade>3.5.2</versions.plugin.shade>
-    <versions.plugin.jar>3.3.0</versions.plugin.jar>
-    <versions.plugin.build-helper>3.5.0</versions.plugin.build-helper>
+    <versions.plugin.shade>3.6.0</versions.plugin.shade>
+    <versions.plugin.jar>3.4.1</versions.plugin.jar>
+    <versions.plugin.build-helper>3.6.0</versions.plugin.build-helper>
     <versions.plugin.antlr>4.13.1</versions.plugin.antlr>
   </properties>
 

@@ -24,21 +24,10 @@ import static org.elasticsearch.index.mapper.TypeParsers.parseField;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 
-import org.jetbrains.annotations.Nullable;
-
-import org.apache.lucene.document.Document;
 import org.apache.lucene.document.FieldType;
-import org.apache.lucene.document.LatLonDocValuesField;
-import org.apache.lucene.document.LatLonPoint;
-import org.apache.lucene.document.StoredField;
-import org.apache.lucene.index.IndexableField;
-import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.common.geo.GeoPoint;
-import org.elasticsearch.common.geo.GeoUtils;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentParser;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Field Mapper for geo_point types.
@@ -112,11 +101,6 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
         return CONTENT_TYPE;
     }
 
-    @Override
-    protected void parseCreateField(ParseContext context, Consumer<IndexableField> onField) throws IOException {
-        throw new UnsupportedOperationException("Parsing is implemented in parse(), this method should NEVER be called");
-    }
-
     public static class GeoPointFieldType extends MappedFieldType {
 
         public GeoPointFieldType(String name, boolean indexed, boolean hasDocValues) {
@@ -128,91 +112,6 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
             return CONTENT_TYPE;
         }
 
-    }
-
-    protected void parse(ParseContext context, GeoPoint point) {
-
-        if (point.lat() > 90.0 || point.lat() < -90.0) {
-            throw new IllegalArgumentException("illegal latitude value [" + point.lat() + "] for " + name());
-        }
-        if (point.lon() > 180.0 || point.lon() < -180) {
-            throw new IllegalArgumentException("illegal longitude value [" + point.lon() + "] for " + name());
-        }
-        Document doc = context.doc();
-        if (fieldType().isSearchable()) {
-            doc.add(new LatLonPoint(fieldType().name(), point.lat(), point.lon()));
-        }
-        if (fieldType.stored()) {
-            doc.add(new StoredField(fieldType().name(), point.toString()));
-        }
-        if (fieldType().hasDocValues()) {
-            doc.add(new LatLonDocValuesField(fieldType().name(), point.lat(), point.lon()));
-        } else if (fieldType.stored() || fieldType().isSearchable()) {
-            createFieldNamesField(context, doc::add);
-        }
-    }
-
-    @Override
-    public void parse(ParseContext context) throws IOException {
-        context.path().add(simpleName());
-
-        GeoPoint sparse = new GeoPoint();
-        XContentParser.Token token = context.parser().currentToken();
-        if (token == XContentParser.Token.START_ARRAY) {
-            token = context.parser().nextToken();
-            if (token == XContentParser.Token.START_ARRAY) {
-                // its an array of array of lon/lat [ [1.2, 1.3], [1.4, 1.5] ]
-                while (token != XContentParser.Token.END_ARRAY) {
-                    parseGeoPointIgnoringMalformed(context, sparse);
-                    token = context.parser().nextToken();
-                }
-            } else {
-                // its an array of other possible values
-                if (token == XContentParser.Token.VALUE_NUMBER) {
-                    final double lon = context.parser().doubleValue();
-                    token = context.parser().nextToken();
-                    final double lat = context.parser().doubleValue();
-                    token = context.parser().nextToken();
-                    if (token == XContentParser.Token.VALUE_NUMBER) {
-                        GeoPoint.assertZValue(context.parser().doubleValue());
-                    } else if (token != XContentParser.Token.END_ARRAY) {
-                        throw new ElasticsearchParseException("[{}] field type does not accept > 3 dimensions", CONTENT_TYPE);
-                    }
-                    parse(context, sparse.reset(lat, lon));
-                } else {
-                    while (token != XContentParser.Token.END_ARRAY) {
-                        if (token == XContentParser.Token.VALUE_STRING) {
-                            parseGeoPointStringIgnoringMalformed(context, sparse);
-                        } else {
-                            parseGeoPointIgnoringMalformed(context, sparse);
-                        }
-                        token = context.parser().nextToken();
-                    }
-                }
-            }
-        } else if (token == XContentParser.Token.VALUE_STRING) {
-            parseGeoPointStringIgnoringMalformed(context, sparse);
-        } else if (token == XContentParser.Token.VALUE_NULL) {
-            // ignore
-        } else {
-            parseGeoPointIgnoringMalformed(context, sparse);
-        }
-
-        context.path().remove();
-    }
-
-    /**
-     * Parses geopoint represented as an object or an array, ignores malformed geopoints if needed
-     */
-    private void parseGeoPointIgnoringMalformed(ParseContext context, GeoPoint sparse) throws IOException {
-        parse(context, GeoUtils.parseGeoPoint(context.parser(), sparse));
-    }
-
-    /**
-     * Parses geopoint represented as a string and ignores malformed geopoints if needed
-     */
-    private void parseGeoPointStringIgnoringMalformed(ParseContext context, GeoPoint sparse) throws IOException {
-        parse(context, sparse.resetFromString(context.parser().text()));
     }
 
     @Override

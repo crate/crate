@@ -21,20 +21,13 @@ package org.elasticsearch.index.mapper;
 
 import static org.elasticsearch.index.mapper.TypeParsers.parseField;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 
-import org.jetbrains.annotations.Nullable;
-
-import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
-import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.index.IndexOptions;
-import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.xcontent.XContentParser;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A field mapper for boolean fields.
@@ -125,33 +118,6 @@ public class BooleanFieldMapper extends FieldMapper {
     @Override
     public BooleanFieldType fieldType() {
         return (BooleanFieldType) super.fieldType();
-    }
-
-    @Override
-    protected void parseCreateField(ParseContext context, Consumer<IndexableField> onField) throws IOException {
-        if (fieldType().isSearchable() == false && !fieldType.stored() && !fieldType().hasDocValues()) {
-            return;
-        }
-
-        XContentParser.Token token = context.parser().currentToken();
-        final Boolean value;
-        if (token == XContentParser.Token.VALUE_NULL) {
-            value = null;
-        } else {
-            value = context.parser().booleanValue();
-        }
-
-        if (value == null) {
-            return;
-        }
-        if (fieldType().isSearchable() || fieldType.stored()) {
-            onField.accept(new Field(fieldType().name(), value ? "T" : "F", fieldType));
-        }
-        if (fieldType().hasDocValues()) {
-            onField.accept(new SortedNumericDocValuesField(fieldType().name(), value ? 1 : 0));
-        } else {
-            createFieldNamesField(context, onField);
-        }
     }
 
     @Override

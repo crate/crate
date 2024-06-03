@@ -20,20 +20,11 @@
 package org.elasticsearch.index.mapper;
 
 
-import java.io.IOException;
-import java.net.InetAddress;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 
 import org.apache.lucene.document.FieldType;
-import org.apache.lucene.document.InetAddressPoint;
-import org.apache.lucene.document.SortedSetDocValuesField;
-import org.apache.lucene.document.StoredField;
-import org.apache.lucene.index.IndexableField;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.Explicit;
-import org.elasticsearch.common.network.InetAddresses;
 
 
 /** A {@link FieldMapper} for ip addresses. */
@@ -130,26 +121,6 @@ public class IpFieldMapper extends FieldMapper {
     @Override
     protected IpFieldMapper clone() {
         return (IpFieldMapper) super.clone();
-    }
-
-    @Override
-    protected void parseCreateField(ParseContext context, Consumer<IndexableField> onField) throws IOException {
-        String addressAsString = context.parser().textOrNull();
-        if (addressAsString == null) {
-            return;
-        }
-        InetAddress address = InetAddresses.forString(addressAsString);
-        if (fieldType().isSearchable()) {
-            onField.accept(new InetAddressPoint(fieldType().name(), address));
-        }
-        if (fieldType().hasDocValues()) {
-            onField.accept(new SortedSetDocValuesField(fieldType().name(), new BytesRef(InetAddressPoint.encode(address))));
-        } else if (fieldType.stored() || fieldType().isSearchable()) {
-            createFieldNamesField(context, onField);
-        }
-        if (fieldType.stored()) {
-            onField.accept(new StoredField(fieldType().name(), new BytesRef(InetAddressPoint.encode(address))));
-        }
     }
 
     @Override

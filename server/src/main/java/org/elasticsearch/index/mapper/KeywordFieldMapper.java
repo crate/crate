@@ -26,17 +26,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Consumer;
 
-import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
-import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.index.IndexOptions;
-import org.apache.lucene.index.IndexableField;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentParser;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.server.xcontent.XContentMapValues;
@@ -171,7 +165,6 @@ public final class KeywordFieldMapper extends FieldMapper {
     }
 
     private final Integer lengthLimit;
-    private final String nullValue;
     private final boolean blankPadding;
 
 
@@ -190,7 +183,6 @@ public final class KeywordFieldMapper extends FieldMapper {
         assert fieldType.indexOptions().compareTo(IndexOptions.DOCS_AND_FREQS) <= 0;
         this.lengthLimit = lengthLimit;
         this.blankPadding = blankPadding;
-        this.nullValue = nullValue;
     }
 
     @Override
@@ -201,36 +193,6 @@ public final class KeywordFieldMapper extends FieldMapper {
     @Override
     public KeywordFieldType fieldType() {
         return (KeywordFieldType) super.fieldType();
-    }
-
-    @Override
-    protected void parseCreateField(ParseContext context, Consumer<IndexableField> onField) throws IOException {
-        String value;
-        XContentParser parser = context.parser();
-        if (parser.currentToken() == XContentParser.Token.VALUE_NULL) {
-            value = nullValue;
-        } else {
-            value = parser.textOrNull();
-        }
-
-        if (value == null) {
-            return;
-        }
-
-        // convert to utf8 only once before feeding postings/dv/stored fields
-        final BytesRef binaryValue = new BytesRef(value);
-        if (fieldType.indexOptions() != IndexOptions.NONE || fieldType.stored()) {
-            Field field = new Field(fieldType().name(), binaryValue, fieldType);
-            onField.accept(field);
-
-            if (fieldType().hasDocValues() == false && fieldType.omitNorms()) {
-                createFieldNamesField(context, onField);
-            }
-        }
-
-        if (fieldType().hasDocValues()) {
-            onField.accept(new SortedSetDocValuesField(fieldType().name(), binaryValue));
-        }
     }
 
     @Override

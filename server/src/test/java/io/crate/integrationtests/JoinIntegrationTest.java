@@ -1529,7 +1529,7 @@ public class JoinIntegrationTest extends IntegTestCase {
     @UseRandomizedSchema(random = false)
     @UseRandomizedOptimizerRules(0)
     @Test
-    public void test_ensure_hash_symbols_match_after_hash_join_is_reordered() {
+    public void test_ensure_hash_symbols_match_after_hash_join_is_reordered() throws Exception {
         execute("create table doc.t1(a int, b int)");
         execute("create table doc.t2(c int, d int)");
         execute("create table doc.t3(e int, f int)");
@@ -1537,8 +1537,13 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("insert into doc.t1(a,b) values(1,2)");
         execute("insert into doc.t2(c,d) values (1,3),(5,6)");
         execute("insert into doc.t3(e,f) values (3,2)");
-        refresh();
+
+        execute("refresh table doc.t1");
+        execute("refresh table doc.t2");
+        execute("refresh table doc.t3");
+
         execute("analyze");
+        waitNoPendingTasksOnAll();
 
         var stmt = "SELECT t3.e FROM t1 JOIN t3 ON t1.b = t3.f JOIN t2 ON t1.a = t2.c WHERE t2.d =t3.e";
         assertThat(execute("explain " + stmt)).hasLines(

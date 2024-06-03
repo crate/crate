@@ -28,13 +28,9 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 
-import org.apache.lucene.document.Document;
-import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexOptions;
-import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.spatial.prefix.PrefixTreeStrategy;
 import org.apache.lucene.spatial.prefix.RecursivePrefixTreeStrategy;
 import org.apache.lucene.spatial.prefix.tree.GeohashPrefixTree;
@@ -44,13 +40,9 @@ import org.apache.lucene.spatial.prefix.tree.SpatialPrefixTree;
 import org.elasticsearch.common.geo.GeoUtils;
 import org.elasticsearch.common.geo.builders.ShapeBuilder;
 import org.elasticsearch.common.geo.builders.ShapeBuilder.Orientation;
-import org.elasticsearch.common.geo.parsers.ShapeParser;
 import org.elasticsearch.common.unit.DistanceUnit;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.jetbrains.annotations.Nullable;
-import org.locationtech.spatial4j.shape.Shape;
-
-import io.crate.geo.LatLonShapeUtils;
 
 /**
  * FieldMapper for indexing {@link org.locationtech.spatial4j.shape.Shape}s.
@@ -325,46 +317,6 @@ public class GeoShapeFieldMapper extends FieldMapper {
     @Override
     public GeoShapeFieldType fieldType() {
         return (GeoShapeFieldType) super.fieldType();
-    }
-
-    @Override
-    @SuppressWarnings("rawtypes")
-    public void parse(ParseContext context) throws IOException {
-        try {
-            ShapeBuilder shapeBuilder = ShapeParser.parse(context.parser(), this);
-            if (shapeBuilder == null) {
-                return;
-            }
-            indexShape(context, shapeBuilder);
-        } catch (Exception e) {
-            throw new MapperParsingException("failed to parse field [{}] of type [{}]", e, fieldType().name(),
-                    fieldType().typeName());
-        }
-    }
-
-    private void indexShape(ParseContext context, ShapeBuilder<?, ?> shapeBuilder) {
-        Document doc = context.doc();
-        Consumer<IndexableField> addField = doc::add;
-        createIndexableFields(shapeBuilder, addField);
-        createFieldNamesField(context, addField);
-    }
-
-    private void createIndexableFields(ShapeBuilder<?, ?> shapeBuilder, Consumer<IndexableField> addField) {
-        GeoShapeFieldType geoShapeFieldType = fieldType();
-        if (Names.TREE_BKD.equals(geoShapeFieldType.tree())) {
-            Object shape = shapeBuilder.buildLucene();
-            LatLonShapeUtils.createIndexableFields(name(), shape, addField);
-        } else {
-            Shape shape = shapeBuilder.buildS4J();
-            Field[] indexableFields = geoShapeFieldType.defaultStrategy().createIndexableFields(shape);
-            for (var field : indexableFields) {
-                addField.accept(field);
-            }
-        }
-    }
-
-    @Override
-    protected void parseCreateField(ParseContext context, Consumer<IndexableField> fields) throws IOException {
     }
 
     @Override

@@ -45,15 +45,16 @@ import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.Expression;
 import io.crate.types.DataType;
-import io.crate.types.TypeSignature;
 
-public class Symbols {
+public final class Symbols {
 
     private static final HasColumnVisitor HAS_COLUMN_VISITOR = new HasColumnVisitor();
 
     public static final Predicate<Symbol> IS_COLUMN = s -> s instanceof ScopedSymbol || s instanceof Reference;
-    public static final Predicate<Symbol> IS_GENERATED_COLUMN = input -> input instanceof GeneratedReference;
+    public static final Predicate<Symbol> IS_GENERATED_COLUMN = s -> s instanceof GeneratedReference;
     public static final Predicate<Symbol> IS_CORRELATED_SUBQUERY = Symbols::isCorrelatedSubQuery;
+
+    private Symbols() {}
 
     public static boolean isCorrelatedSubQuery(Symbol symbol) {
         return symbol instanceof SelectSymbol selectSymbol && selectSymbol.isCorrelated();
@@ -73,10 +74,6 @@ public class Symbols {
 
     public static List<DataType<?>> typeView(List<? extends Symbol> symbols) {
         return Lists.mapLazy(symbols, Symbol::valueType);
-    }
-
-    public static List<TypeSignature> typeSignatureView(List<? extends Symbol> symbols) {
-        return Lists.mapLazy(symbols, s -> s.valueType().getTypeSignature());
     }
 
     public static Streamer<?>[] streamerArray(Symbol[] symbols) {
@@ -224,7 +221,7 @@ public class Symbols {
 
     public static Symbol unwrapReferenceFromCast(Symbol symbol) {
         if (symbol instanceof Function fn && fn.isCast()) {
-            return fn.arguments().get(0);
+            return fn.arguments().getFirst();
         }
         return symbol;
     }

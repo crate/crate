@@ -48,6 +48,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.Operation;
+import io.crate.planner.optimizer.LoadedRules;
 import io.crate.role.Role;
 import io.crate.sql.parser.SqlParser;
 
@@ -81,7 +82,8 @@ public class SqlExpressions {
                           Schemas schemas) {
         this.nodeCtx = createNodeContext(schemas, Lists.concat(additionalUsers, sessionUser));
         // In test_throws_error_when_user_is_not_found we explicitly inject null user but SessionContext user cannot be not null.
-        var sessionSettings = new CoordinatorSessionSettings(sessionUser == null ? Role.CRATE_USER : sessionUser);
+        Role role = sessionUser == null ? Role.CRATE_USER : sessionUser;
+        var sessionSettings = new CoordinatorSessionSettings(role, role, LoadedRules.INSTANCE.disabledRules());
         coordinatorTxnCtx = new CoordinatorTxnCtx(sessionSettings);
         expressionAnalyzer = new ExpressionAnalyzer(
             coordinatorTxnCtx,
