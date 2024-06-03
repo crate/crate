@@ -291,6 +291,14 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         return reference;
     }
 
+    @Nullable
+    public Reference getReference(long oid) {
+        return references.values().stream()
+            .filter(x -> x.oid() == oid)
+            .findFirst()
+            .orElse(null);
+    }
+
     @Override
     public List<Reference> columns() {
         return columns;

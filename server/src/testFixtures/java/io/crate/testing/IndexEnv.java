@@ -67,7 +67,6 @@ import io.crate.metadata.doc.DocTableInfo;
 public final class IndexEnv implements AutoCloseable {
 
     private final QueryShardContext queryShardContext;
-    private final MapperService mapperService;
     private final LuceneReferenceResolver luceneReferenceResolver;
     private final NodeEnvironment nodeEnvironment;
     private final QueryCache queryCache;
@@ -93,7 +92,7 @@ public final class IndexEnv implements AutoCloseable {
         IndexAnalyzers indexAnalyzers = analysisRegistry.build(idxSettings);
         MapperRegistry mapperRegistry = new IndicesModule().getMapperRegistry();
 
-        mapperService = new MapperService(
+        MapperService mapperService = new MapperService(
             idxSettings,
             indexAnalyzers,
             mapperRegistry
@@ -141,10 +140,6 @@ public final class IndexEnv implements AutoCloseable {
         indexService.close("stopping", true);
         writer.close();
         nodeEnvironment.close();
-    }
-
-    public MapperService mapperService() {
-        return mapperService;
     }
 
     public QueryShardContext queryShardContext() {
