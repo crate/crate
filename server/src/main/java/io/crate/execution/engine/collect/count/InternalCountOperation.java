@@ -154,7 +154,6 @@ public class InternalCountOperation implements CountOperation {
             LuceneQueryBuilder.Context queryCtx = queryBuilder.convert(
                 filter,
                 txnCtx,
-                indexService.mapperService(),
                 indexName,
                 indexService.newQueryShardContext(),
                 table,
