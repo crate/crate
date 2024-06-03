@@ -108,5 +108,9 @@ public class ThreeValuedLogicQueryBuilderTest extends LuceneQueryBuilderTest {
     public void test_not_on_current_setting() {
         assertThat(convert("NOT (CURRENT_SETTING(name))"))
             .hasToString("+(+*:* -pg_catalog.current_setting(name)) #(NOT pg_catalog.current_setting(name))");
+
+        // overload with 2 arguments
+        assertThat(convert("NOT (CURRENT_SETTING(name, true))"))
+            .hasToString("+(+*:* -pg_catalog.current_setting(name, true)) #(NOT pg_catalog.current_setting(name, true))");
     }
 }
