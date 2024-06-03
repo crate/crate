@@ -21,14 +21,11 @@
 
 package io.crate.expression.operator.any;
 
-import static org.elasticsearch.common.lucene.search.Queries.newUnmappedFieldQuery;
-
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.common.lucene.search.Queries;
-import org.elasticsearch.index.mapper.MappedFieldType;
 
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.predicate.IsNullPredicate;
@@ -60,11 +57,6 @@ public final class AnyNeqOperator extends AnyOperator {
     protected Query refMatchesAnyArrayLiteral(Function any, Reference probe, Literal<?> candidates, Context context) {
         //  col != ANY ([1,2,3]) --> not(col=1 and col=2 and col=3)
         String columnName = probe.storageIdent();
-        MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
-        if (fieldType == null) {
-            return newUnmappedFieldQuery(columnName);
-        }
-
         BooleanQuery.Builder andBuilder = new BooleanQuery.Builder();
         for (Object value : (Iterable<?>) candidates.value()) {
             if (value == null) {
@@ -93,11 +85,6 @@ public final class AnyNeqOperator extends AnyOperator {
     protected Query literalMatchesAnyArrayRef(Function any, Literal<?> probe, Reference candidates, Context context) {
         // 1 != any ( col ) -->  gt 1 or lt 1
         String columnName = candidates.storageIdent();
-
-        MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
-        if (fieldType == null) {
-            return newUnmappedFieldQuery(columnName);
-        }
         StorageSupport<?> storageSupport = probe.valueType().storageSupport();
         if (storageSupport == null) {
             return null;

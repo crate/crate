@@ -140,7 +140,6 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(
             collectPhase.where(),
             collectTask.txnCtx(),
-            sharedShardContextShard.mapperService(),
             sharedShardContextShard.shardId().getIndexName(),
             queryShardContext,
             table,
@@ -220,7 +219,6 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         final var queryContext = luceneQueryBuilder.convert(
             collectPhase.where(),
             collectTask.txnCtx(),
-            indexService.mapperService(),
             indexShard.shardId().getIndexName(),
             queryShardContext,
             table,

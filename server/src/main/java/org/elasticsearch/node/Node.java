@@ -548,7 +548,6 @@ public class Node implements Closeable {
                 settingsModule.getIndexScopedSettings(),
                 circuitBreakerService,
                 bigArrays,
-                client,
                 metaStateService,
                 engineFactoryProviders,
                 indexStoreFactories,
