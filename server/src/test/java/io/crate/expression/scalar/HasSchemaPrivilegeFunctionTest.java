@@ -195,4 +195,31 @@ public class HasSchemaPrivilegeFunctionTest extends ScalarTestCase {
         assertEvaluate("has_schema_privilege('doc', 'USAGE')", false);
         assertEvaluate("has_schema_privilege(" + schemaOid + ", 'USAGE')", false);
     }
+
+    @Test
+    public void test_unknown_schemas_with_different_privilege_classes() {
+        // super user sees true for unknown schemas
+        sqlExpressions = new SqlExpressions(tableSources, null, Role.CRATE_USER);
+        assertEvaluate("has_schema_privilege('unknown_schema', 'USAGE')", true);
+        assertEvaluate("has_schema_privilege(" + -1 + ", 'USAGE')", true);
+
+        // a user with cluster dql sees true for unknown schemas
+        Privilege create = new Privilege(Policy.GRANT, Permission.DQL, Securable.CLUSTER, null, "crate");
+        var user = RolesHelper.userOf("test", Set.of(create), null);
+        sqlExpressions = new SqlExpressions(tableSources, null, user);
+        assertEvaluate("has_schema_privilege('unknown_schema', 'USAGE')", true);
+        assertEvaluate("has_schema_privilege(" + -1 + ", 'USAGE')", true);
+
+        // a user with cluster ddl(NOT dql) sees false for unknown schemas
+        Privilege create2 = new Privilege(Policy.GRANT, Permission.DDL, Securable.CLUSTER, null, "crate");
+        var user2 = RolesHelper.userOf("test", Set.of(create2), null);
+        sqlExpressions = new SqlExpressions(tableSources, null, user2);
+        assertEvaluate("has_schema_privilege('unknown_schema', 'USAGE')", false);
+        assertEvaluate("has_schema_privilege(" + -1 + ", 'USAGE')", false);
+
+        // sees a false otherwise
+        sqlExpressions = new SqlExpressions(tableSources, null, TEST_USER);
+        assertEvaluate("has_schema_privilege('unknown_schema', 'USAGE')", false);
+        assertEvaluate("has_schema_privilege(" + -1 + ", 'USAGE')", false);
+    }
 }
