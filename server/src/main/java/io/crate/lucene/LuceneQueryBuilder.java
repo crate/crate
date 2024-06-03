@@ -38,7 +38,6 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.QueryCache;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.query.QueryShardContext;
 import org.jetbrains.annotations.Nullable;
 
