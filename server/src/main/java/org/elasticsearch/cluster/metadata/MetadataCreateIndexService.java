@@ -440,7 +440,7 @@ public class MetadataCreateIndexService {
                     .putMapping(mapping);
 
                 if (createTableRequest != null) {
-                    IndexAnalyzers indexAnalyzers = indexService.mapperService().getIndexAnalyzers();
+                    IndexAnalyzers indexAnalyzers = indexService.indexAnalyzers();
                     ensureUsedAnalyzersExist(indexAnalyzers, createTableRequest.references());
                 }
                 for (int shardId = 0; shardId < tmpImd.getNumberOfShards(); shardId++) {

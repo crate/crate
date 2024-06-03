@@ -56,7 +56,6 @@ import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.reference.sys.shard.ShardRowContext;
 import io.crate.expression.symbol.Symbols;
-import io.crate.lucene.FieldTypeLookup;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
@@ -72,7 +71,6 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
     private final NodeContext nodeCtx;
     private final DocInputFactory docInputFactory;
     private final BigArrays bigArrays;
-    private final FieldTypeLookup fieldTypeLookup;
     private final RelationName relationName;
 
     private final LuceneReferenceResolver referenceResolver;
@@ -103,12 +101,6 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         this.luceneQueryBuilder = luceneQueryBuilder;
         this.nodeCtx = nodeCtx;
         this.localNodeId = () -> clusterService.localNode().getId();
-        var mapperService = indexShard.mapperService();
-        if (mapperService == null) {
-            fieldTypeLookup = name -> null;
-        } else {
-            fieldTypeLookup = mapperService::fieldType;
-        }
         this.relationName = RelationName.fromIndexName(indexShard.shardId().getIndexName());
         DocTableInfo table = nodeCtx.schemas().getTableInfo(relationName);
         this.referenceResolver = new LuceneReferenceResolver(
@@ -166,7 +158,6 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             indexShard,
             table,
             luceneQueryBuilder,
-            fieldTypeLookup,
             bigArrays,
             new InputFactory(nodeCtx),
             docInputFactory,
@@ -182,7 +173,6 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             indexShard,
             table,
             luceneQueryBuilder,
-            fieldTypeLookup,
             docInputFactory,
             normalizedPhase,
             collectTask
@@ -242,7 +232,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             collectTask.getRamAccounting(),
             collectorContext,
             optimizeQueryForSearchAfter,
-            LuceneSortGenerator.generateLuceneSort(collectTask.txnCtx(), collectorContext, collectPhase.orderBy(), docInputFactory, fieldTypeLookup),
+            LuceneSortGenerator.generateLuceneSort(collectTask.txnCtx(), collectorContext, collectPhase.orderBy(), docInputFactory),
             ctx.topLevelInputs(),
             ctx.expressions()
         );

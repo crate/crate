@@ -72,7 +72,6 @@ import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
-import io.crate.lucene.FieldTypeLookup;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.DocReferences;
@@ -90,7 +89,6 @@ final class DocValuesGroupByOptimizedIterator {
                                           IndexShard indexShard,
                                           DocTableInfo table,
                                           LuceneQueryBuilder luceneQueryBuilder,
-                                          FieldTypeLookup fieldTypeLookup,
                                           DocInputFactory docInputFactory,
                                           RoutedCollectPhase collectPhase,
                                           CollectTask collectTask) {
@@ -112,8 +110,7 @@ final class DocValuesGroupByOptimizedIterator {
                 return null; // group by on non-reference
             }
             var columnKeyRef = (Reference) DocReferences.inverseSourceLookup(docKeyRef);
-            var keyFieldType = fieldTypeLookup.get(columnKeyRef.storageIdent());
-            if (keyFieldType == null || !keyFieldType.hasDocValues()) {
+            if (!columnKeyRef.hasDocValues()) {
                 return null;
             } else {
                 columnKeyRefs.add(columnKeyRef);

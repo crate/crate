@@ -368,10 +368,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         return fieldTypes.get(fullName);
     }
 
-    public ObjectMapper getObjectMapper(String name) {
-        return fullPathObjectMappers.get(name);
-    }
-
     public Analyzer indexAnalyzer() {
         return this.indexAnalyzer;
     }
