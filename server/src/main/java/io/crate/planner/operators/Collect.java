@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.SequencedCollection;
@@ -331,16 +332,14 @@ public class Collect implements LogicalPlan {
 
     @Override
     public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
-        ArrayList<Symbol> newOutputs = new ArrayList<>();
-        for (Symbol output : outputs) {
-            if (outputsToKeep.contains(output)) {
-                newOutputs.add(output);
-            }
+        LinkedHashSet<Symbol> newOutputs = new LinkedHashSet<>();
+        for (Symbol outputToKeep : outputsToKeep) {
+            SymbolVisitors.intersection(outputToKeep, outputs, newOutputs::add);
         }
-        if (newOutputs.equals(outputs)) {
+        if (newOutputs.size() == outputs.size() && newOutputs.containsAll(outputs)) {
             return this;
         }
-        return new Collect(relation, newOutputs, immutableWhere);
+        return new Collect(relation, List.copyOf(newOutputs), immutableWhere);
     }
 
     @Nullable
