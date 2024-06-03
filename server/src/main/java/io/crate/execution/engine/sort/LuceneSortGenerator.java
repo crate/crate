@@ -21,15 +21,14 @@
 
 package io.crate.execution.engine.sort;
 
+import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.SortField;
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.analyze.OrderBy;
 import io.crate.execution.engine.collect.DocInputFactory;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
-import io.crate.lucene.FieldTypeLookup;
 import io.crate.metadata.TransactionContext;
-import org.apache.lucene.search.Sort;
-import org.apache.lucene.search.SortField;
-
-import org.jetbrains.annotations.Nullable;
 
 public class LuceneSortGenerator {
 
@@ -37,12 +36,11 @@ public class LuceneSortGenerator {
     public static Sort generateLuceneSort(TransactionContext txnCtx,
                                           CollectorContext context,
                                           OrderBy orderBy,
-                                          DocInputFactory docInputFactory,
-                                          FieldTypeLookup fieldTypeLookup) {
+                                          DocInputFactory docInputFactory) {
         if (orderBy.orderBySymbols().isEmpty()) {
             return null;
         }
-        SortSymbolVisitor sortSymbolVisitor = new SortSymbolVisitor(docInputFactory, fieldTypeLookup);
+        SortSymbolVisitor sortSymbolVisitor = new SortSymbolVisitor(docInputFactory);
         SortField[] sortFields = sortSymbolVisitor.generateSortFields(
             orderBy.orderBySymbols(),
             txnCtx,

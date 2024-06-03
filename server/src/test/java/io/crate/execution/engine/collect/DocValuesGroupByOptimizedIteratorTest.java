@@ -25,8 +25,8 @@ import static io.crate.operation.aggregation.AggregationTestCase.closeShard;
 import static io.crate.operation.aggregation.AggregationTestCase.createCollectPhase;
 import static io.crate.operation.aggregation.AggregationTestCase.createCollectTask;
 import static io.crate.operation.aggregation.AggregationTestCase.newStartedPrimaryShard;
-import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 import static org.mockito.Mockito.mock;
 
@@ -69,7 +69,6 @@ import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.InputColumn;
-import io.crate.lucene.FieldTypeLookup;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexType;
@@ -279,7 +278,6 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
         var collectPhase = createCollectPhase(List.of(reference), List.of(groupProjection));
         var collectTask = createCollectTask(shard, collectPhase, Version.CURRENT);
         var nodeCtx = createNodeContext();
-        FieldTypeLookup fieldTypeLookup = shard.mapperService()::fieldType;
         var referenceResolver = new LuceneReferenceResolver(shard.shardId().getIndexName(), List.of());
 
         var it = DocValuesGroupByOptimizedIterator.tryOptimize(
@@ -288,7 +286,6 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
             shard,
             mock(DocTableInfo.class),
             new LuceneQueryBuilder(nodeCtx),
-            fieldTypeLookup,
             new DocInputFactory(
                 nodeCtx,
                 referenceResolver

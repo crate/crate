@@ -65,7 +65,7 @@ public class IsNullPredicateTest extends ScalarTestCase {
                 query,
                 txnCtx,
                 indexEnv.indexService().index().getName(),
-                indexEnv.queryShardContext(),
+                indexEnv.indexService().indexAnalyzers(),
                 table,
                 indexEnv.queryCache()
             );
@@ -95,7 +95,7 @@ public class IsNullPredicateTest extends ScalarTestCase {
                 sqlExpressions.asSymbol("obj_ignored['x'] is NULL"),
                 txnCtx,
                 indexEnv.indexService().index().getName(),
-                indexEnv.queryShardContext(),
+                indexEnv.indexService().indexAnalyzers(),
                 table,
                 indexEnv.queryCache()
             ).query();
