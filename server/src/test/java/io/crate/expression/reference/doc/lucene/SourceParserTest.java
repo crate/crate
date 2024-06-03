@@ -33,6 +33,7 @@ import java.util.function.UnaryOperator;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
+import org.locationtech.spatial4j.shape.Point;
 
 import io.crate.common.collections.Maps;
 import io.crate.metadata.ColumnIdent;
@@ -40,6 +41,7 @@ import io.crate.sql.tree.BitString;
 import io.crate.types.ArrayType;
 import io.crate.types.BitStringType;
 import io.crate.types.DataTypes;
+import io.crate.types.GeoPointType;
 import io.crate.types.ObjectType;
 import io.crate.types.UndefinedType;
 
@@ -256,6 +258,20 @@ public class SourceParserTest extends ESTestCase {
                    )
             )
         );
+    }
+
+    @Test
+    public void test_nested_array_of_geotype() {
+        SourceParser sourceParser = new SourceParser(Set.of(), UnaryOperator.identity());
+        ArrayType<?> type = new ArrayType<>(new ArrayType<>(GeoPointType.INSTANCE));
+        sourceParser.register(new ColumnIdent("_doc", List.of("a")), type);
+        var result = sourceParser.parse(new BytesArray("""
+            { "a" : [ [ [1, 2], [1, 2], [3, 4] ], [ [5, 6], [7, 8] ] ] }
+            """));
+        assertThat(result.get("a")).isInstanceOf(List.class);
+        List<?> first = (List<?>) ((List<?>)result.get("a")).getFirst();
+        assertThat(first.getFirst()).isInstanceOf(Point.class);
+
     }
 
     // https://github.com/crate/crate/issues/13990
