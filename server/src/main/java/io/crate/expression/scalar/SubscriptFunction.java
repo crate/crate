@@ -23,7 +23,6 @@ package io.crate.expression.scalar;
 
 import static io.crate.expression.scalar.SubscriptObjectFunction.tryToInferReturnTypeFromObjectTypeAndArguments;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static org.elasticsearch.common.lucene.search.Queries.newUnmappedFieldQuery;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,7 +31,6 @@ import java.util.Map;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
-import org.elasticsearch.index.mapper.MappedFieldType;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
@@ -256,14 +254,7 @@ public class SubscriptFunction extends Scalar<Object, Object> {
             if (preFilterQueryBuilder == null) {
                 return null;
             }
-            MappedFieldType fieldType = context.getFieldTypeOrNull(ref.storageIdent());
             DataType<?> innerType = ArrayType.unnest(ref.valueType());
-            if (fieldType == null) {
-                if (innerType.id() == ObjectType.ID) {
-                    return null; // fallback to generic query to enable objects[1] = {x=10}
-                }
-                return newUnmappedFieldQuery(ref.storageIdent());
-            }
             StorageSupport<?> storageSupport = innerType.storageSupport();
             //noinspection unchecked
             EqQuery<Object> eqQuery = storageSupport == null ? null : (EqQuery<Object>) storageSupport.eqQuery();
