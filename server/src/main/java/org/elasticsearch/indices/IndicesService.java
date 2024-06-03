@@ -58,7 +58,6 @@ import org.apache.lucene.search.QueryCache;
 import org.apache.lucene.util.CollectionUtil;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ResourceAlreadyExistsException;
-import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -141,13 +140,12 @@ public class IndicesService extends AbstractLifecycleComponent
     private final ThreadPool threadPool;
     private final CircuitBreakerService circuitBreakerService;
     private final BigArrays bigArrays;
-    private final Client client;
     private final Settings settings;
     private volatile Map<String, IndexService> indices = emptyMap();
     private final Map<Index, List<PendingDelete>> pendingDeletes = new HashMap<>();
     private final AtomicInteger numUncompletedDeletes = new AtomicInteger();
     private final MapperRegistry mapperRegistry;
-    private Schemas schemas;    // not final as needs to be set after start
+    private final Schemas schemas;
     private final IndexingMemoryController indexingMemoryController;
     private final QueryCache indicesQueryCache;
     private final MetaStateService metaStateService;
@@ -166,8 +164,6 @@ public class IndicesService extends AbstractLifecycleComponent
 
     @Override
     protected void doStart() {
-
-
     }
 
     public IndicesService(Settings settings,
@@ -180,7 +176,6 @@ public class IndicesService extends AbstractLifecycleComponent
                           IndexScopedSettings indexScopedSettings,
                           CircuitBreakerService circuitBreakerService,
                           BigArrays bigArrays,
-                          Client client,
                           MetaStateService metaStateService,
                           Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders,
                           Map<String, IndexStorePlugin.DirectoryFactory> directoryFactories,
@@ -203,7 +198,6 @@ public class IndicesService extends AbstractLifecycleComponent
         this.indexScopedSettings = indexScopedSettings;
         this.circuitBreakerService = circuitBreakerService;
         this.bigArrays = bigArrays;
-        this.client = client;
         this.metaStateService = metaStateService;
         this.engineFactoryProviders = engineFactoryProviders;
         this.schemas = schemas;
