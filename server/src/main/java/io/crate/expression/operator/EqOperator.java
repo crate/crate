@@ -23,7 +23,6 @@ package io.crate.expression.operator;
 
 import static io.crate.lucene.LuceneQueryBuilder.genericFunctionFilter;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static org.elasticsearch.common.lucene.search.Queries.newUnmappedFieldQuery;
 
 import java.util.Collection;
 import java.util.List;
@@ -40,7 +39,6 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermInSetQuery;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.Uid;
 import org.jetbrains.annotations.Nullable;
 
@@ -130,7 +128,7 @@ public final class EqOperator extends Operator<Object> {
             );
             case ArrayType.ID -> termsAndGenericFilter(
                 function,
-                storageIdentifier,
+                ref,
                 ArrayType.unnest(dataType),
                 (Collection<?>) value,
                 context,
@@ -185,33 +183,33 @@ public final class EqOperator extends Operator<Object> {
     }
 
     private static Query termsAndGenericFilter(Function function,
-                                               String column,
+                                               @Nullable Reference ref,
                                                DataType<?> elementType,
                                                Collection<?> values,
                                                Context context,
                                                boolean hasDocValues,
                                                IndexType indexType) {
-        MappedFieldType fieldType = context.getFieldTypeOrNull(column);
-        if (fieldType == null) {
+        if (ref == null) {
             if (elementType.id() == ObjectType.ID) {
                 return null; // Fallback to generic filter on ARRAY(OBJECT)
             }
             // field doesn't exist, can't match
-            return newUnmappedFieldQuery(column);
+            return new MatchNoDocsQuery();
         }
 
         BooleanQuery.Builder filterClauses = new BooleanQuery.Builder();
         Query genericFunctionFilter = genericFunctionFilter(function, context);
+        String storageIdent = ref.storageIdent();
         if (values.isEmpty()) {
             // `arrayRef = []` - termsQuery would be null
 
-            if (fieldType.hasDocValues() == false) {
+            if (ref.hasDocValues() == false) {
                 //  Cannot use NumTermsPerDocQuery if column store is disabled, for example, ARRAY(GEO_SHAPE).
                 return genericFunctionFilter;
             }
 
             filterClauses.add(
-                NumTermsPerDocQuery.forColumn(column, elementType, numDocs -> numDocs == 0),
+                NumTermsPerDocQuery.forColumn(storageIdent, elementType, numDocs -> numDocs == 0),
                 BooleanClause.Occur.MUST
             );
             // Still need the genericFunctionFilter to avoid a match where the array contains NULL values.
@@ -221,7 +219,7 @@ public final class EqOperator extends Operator<Object> {
             // wrap boolTermsFilter and genericFunction filter in an additional BooleanFilter to control the ordering of the filters
             // termsFilter is applied first
             // afterwards the more expensive genericFunctionFilter
-            Query termsQuery = termsQuery(column, elementType, values, hasDocValues, indexType);
+            Query termsQuery = termsQuery(storageIdent, elementType, values, hasDocValues, indexType);
             if (termsQuery == null) {
                 return genericFunctionFilter;
             }
@@ -280,7 +278,7 @@ public final class EqOperator extends Operator<Object> {
             Query innerQuery;
             if (DataTypes.isArray(innerType)) {
                 innerQuery = termsAndGenericFilter(
-                    eq, nestedStorageIdentifier, innerType, (Collection<?>) entry.getValue(), context, childRef.hasDocValues(), childRef.indexType());
+                    eq, childRef, innerType, (Collection<?>) entry.getValue(), context, childRef.hasDocValues(), childRef.indexType());
             } else {
                 innerQuery = fromPrimitive(innerType, nestedStorageIdentifier, entry.getValue(), childRef.hasDocValues(), childRef.indexType());
             }

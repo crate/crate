@@ -37,8 +37,6 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
-import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.index.mapper.MapperService;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
@@ -48,6 +46,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder.Context;
 import io.crate.metadata.Functions;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
@@ -119,10 +118,8 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
     @Nullable
     public static Query refExistsQuery(Reference ref, Context context, boolean countEmptyArrays) {
         String field = ref.storageIdent();
-        MapperService mapperService = context.queryShardContext().getMapperService();
-        MappedFieldType mappedFieldType = mapperService.fieldType(field);
         DataType<?> valueType = ref.valueType();
-        boolean canUseFieldsExist = ref.hasDocValues() || (mappedFieldType != null && mappedFieldType.hasNorms());
+        boolean canUseFieldsExist = ref.hasDocValues() || ref.indexType() == IndexType.FULLTEXT;
         if (valueType instanceof ArrayType<?>) {
             if (countEmptyArrays) {
                 if (canUseFieldsExist) {
@@ -176,7 +173,7 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
                     .add(Queries.not(isNullFuncToQuery(ref, context)), Occur.SHOULD)
                     .build();
             }
-            if (mappedFieldType == null || !mappedFieldType.isSearchable()) {
+            if (ref instanceof DynamicReference || ref.indexType() == IndexType.NONE) {
                 return null;
             } else {
                 return new ConstantScoreQuery(new TermQuery(new Term(FieldNamesFieldMapper.NAME, field)));

@@ -32,7 +32,6 @@ import java.util.Map;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
-import org.elasticsearch.index.mapper.MappedFieldType;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
@@ -42,6 +41,7 @@ import io.crate.expression.operator.GtOperator;
 import io.crate.expression.operator.GteOperator;
 import io.crate.expression.operator.LtOperator;
 import io.crate.expression.operator.LteOperator;
+import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -256,12 +256,11 @@ public class SubscriptFunction extends Scalar<Object, Object> {
             if (preFilterQueryBuilder == null) {
                 return null;
             }
-            MappedFieldType fieldType = context.getFieldTypeOrNull(ref.storageIdent());
             DataType<?> innerType = ArrayType.unnest(ref.valueType());
-            if (fieldType == null) {
-                if (innerType.id() == ObjectType.ID) {
-                    return null; // fallback to generic query to enable objects[1] = {x=10}
-                }
+            if (innerType.id() == ObjectType.ID) {
+                return null; // fallback to generic query to enable objects[1] = {x=10}
+            }
+            if (ref instanceof DynamicReference) {
                 return newUnmappedFieldQuery(ref.storageIdent());
             }
             StorageSupport<?> storageSupport = innerType.storageSupport();

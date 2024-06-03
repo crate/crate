@@ -48,8 +48,8 @@ import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.jetbrains.annotations.Nullable;
-
 import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.common.collections.Lists;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.data.BatchIterator;
@@ -146,7 +146,6 @@ final class DocValuesGroupByOptimizedIterator {
         LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(
             collectPhase.where(),
             collectTask.txnCtx(),
-            indexShard.mapperService(),
             indexShard.shardId().getIndexName(),
             queryShardContext,
             table,

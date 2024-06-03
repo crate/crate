@@ -31,9 +31,9 @@ import java.util.function.Consumer;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
-import org.elasticsearch.index.mapper.MappedFieldType;
 
 import io.crate.expression.operator.EqOperator;
+import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.lucene.LuceneQueryBuilder;
@@ -64,8 +64,7 @@ public final class AnyEqOperator extends AnyOperator {
     protected Query refMatchesAnyArrayLiteral(Function any, Reference probe, Literal<?> candidates, Context context) {
         String columnName = probe.storageIdent();
         List<?> values = (List<?>) candidates.value();
-        MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
-        if (fieldType == null) {
+        if (probe instanceof DynamicReference) {
             return newUnmappedFieldQuery(columnName);
         }
         DataType<?> innerType = ArrayType.unnest(probe.valueType());
@@ -74,13 +73,12 @@ public final class AnyEqOperator extends AnyOperator {
 
     @Override
     protected Query literalMatchesAnyArrayRef(Function any, Literal<?> probe, Reference candidates, Context context) {
-        MappedFieldType fieldType = context.getFieldTypeOrNull(candidates.storageIdent());
-        if (fieldType == null) {
-            if (ArrayType.unnest(candidates.valueType()).id() == ObjectType.ID) {
-                // {x=10} = any(objects)
-                return null;
-            }
-            return newUnmappedFieldQuery(candidates.storageIdent());
+        if (ArrayType.unnest(candidates.valueType()).id() == ObjectType.ID) {
+            // {x=10} = any(objects)
+            return null;
+        }
+        if (candidates instanceof DynamicReference) {
+            return newUnmappedFieldQuery(candidates.column().fqn());
         }
         if (DataTypes.isArray(probe.valueType())) {
             // [1, 2] = any(nested_array_ref)
