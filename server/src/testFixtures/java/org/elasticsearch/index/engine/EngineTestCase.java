@@ -98,7 +98,6 @@ import org.elasticsearch.index.codec.CodecService;
 import org.elasticsearch.index.fieldvisitor.IDVisitor;
 import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.KeywordFieldMapper;
-import org.elasticsearch.index.mapper.Mapping;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.SequenceIDFields;
 import org.elasticsearch.index.mapper.SourceFieldMapper;
@@ -321,21 +320,21 @@ public abstract class EngineTestCase extends ESTestCase {
     }
 
     public static ParsedDocument createParsedDoc(String id) {
-        return testParsedDocument(id, testDocumentWithKeywordField("test"), new BytesArray("{ \"value\" : \"test\" }"), null);
+        return testParsedDocument(id, testDocumentWithKeywordField("test"), new BytesArray("{ \"value\" : \"test\" }"));
     }
 
     public static ParsedDocument createParsedDoc(String id, boolean recoverySource) {
-        return testParsedDocument(id, testDocumentWithTextField(), new BytesArray("{ \"value\" : \"test\" }"), null,
+        return testParsedDocument(id, testDocumentWithTextField(), new BytesArray("{ \"value\" : \"test\" }"),
             recoverySource);
     }
 
     protected static ParsedDocument testParsedDocument(
-        String id, Document document, BytesReference source, Mapping mappingUpdate) {
-        return testParsedDocument(id, document, source, mappingUpdate, false);
+        String id, Document document, BytesReference source) {
+        return testParsedDocument(id, document, source, false);
     }
 
-    protected static ParsedDocument testParsedDocument(String id, Document document, BytesReference source, Mapping mappingUpdate,
-        boolean recoverySource) {
+    protected static ParsedDocument testParsedDocument(String id, Document document, BytesReference source,
+                                                       boolean recoverySource) {
         Field uidField = new Field("_id", Uid.encodeId(id), IdFieldMapper.Defaults.FIELD_TYPE);
         Field versionField = new NumericDocValuesField("_version", 0);
         SequenceIDFields seqID = SequenceIDFields.emptySeqID();
@@ -351,7 +350,7 @@ public abstract class EngineTestCase extends ESTestCase {
         } else {
             document.add(new StoredField(SourceFieldMapper.NAME, ref.bytes, ref.offset, ref.length));
         }
-        return new ParsedDocument(versionField, seqID, id, document, source, mappingUpdate);
+        return new ParsedDocument(versionField, seqID, id, document, source);
     }
 
     /**
@@ -373,7 +372,7 @@ public abstract class EngineTestCase extends ESTestCase {
                 seqID.tombstoneField.setLongValue(1);
                 doc.add(seqID.tombstoneField);
                 return new ParsedDocument(
-                    versionField, seqID, id, doc, new BytesArray("{}"), null);
+                    versionField, seqID, id, doc, new BytesArray("{}"));
             }
 
             @Override
@@ -390,7 +389,7 @@ public abstract class EngineTestCase extends ESTestCase {
                 BytesRef byteRef = new BytesRef(reason);
                 doc.add(new StoredField(SourceFieldMapper.NAME, byteRef.bytes, byteRef.offset, byteRef.length));
                 return new ParsedDocument(
-                    versionField, seqID, null, doc, null, null);
+                    versionField, seqID, null, doc, null);
             }
         };
     }
@@ -870,7 +869,7 @@ public abstract class EngineTestCase extends ESTestCase {
             if (randomBoolean()) {
                 op = new Engine.Index(
                     id,
-                    testParsedDocument(docId, testDocumentWithTextField(valuePrefix + i), SOURCE, null),
+                    testParsedDocument(docId, testDocumentWithTextField(valuePrefix + i), SOURCE),
                     forReplica && i >= startWithSeqNo ? i * 2 : UNASSIGNED_SEQ_NO,
                     forReplica && i >= startWithSeqNo && incrementTermWhenIntroducingSeqNo ? primaryTerm + 1 : primaryTerm,
                     version,

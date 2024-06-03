@@ -39,7 +39,6 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.MapperParsingException;
-import org.elasticsearch.index.mapper.Mapping;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.SequenceIDFields;
 import org.elasticsearch.index.mapper.TextFieldMapper;
@@ -98,14 +97,7 @@ public class TranslogIndexer {
         var stream = new BytesStreamOutput();
         try (XContentBuilder xContentBuilder = XContentFactory.json(stream)) {
 
-            Mapping dynamicUpdate = null;
-
-            try {
-                populateLuceneFields(source, doc, xContentBuilder);
-            } catch (MapperParsingException e) {
-                // TODO Can we throw a MappingUpdateRequired exception here instead?
-                dynamicUpdate = Mapping.EMPTY;
-            }
+            populateLuceneFields(source, doc, xContentBuilder);
 
             NumericDocValuesField version = new NumericDocValuesField(DocSysColumns.Names.VERSION, -1L);
             doc.add(version);
@@ -126,8 +118,7 @@ public class TranslogIndexer {
                 seqID,
                 id,
                 doc,
-                source,
-                dynamicUpdate
+                source
             );
 
         } catch (IOException | UncheckedIOException e) {
@@ -143,7 +134,10 @@ public class TranslogIndexer {
             var column = entry.getKey();
             var indexer = indexers.get(column);
             if (indexer == null) {
-                throw new MapperParsingException("Translog replay requires mapping update for column " + column);
+                if (isEmpty(entry.getValue())) {
+                    continue;
+                }
+                throw new TranslogMappingUpdateException();
             }
 
             Object castValue = valueForInsert(indexer.dataType, entry.getValue());
@@ -152,6 +146,30 @@ public class TranslogIndexer {
                 if (tableIndexSources.containsKey(column)) {
                     addIndexField(doc, tableIndexSources.get(column), castValue);
                 }
+            }
+        }
+    }
+
+    private static boolean isEmpty(Object value) {
+        switch (value) {
+            case null -> {
+                return true;
+            }
+            case List<?> l -> {
+                if (l.isEmpty())
+                    return true;
+                return l.stream().allMatch(TranslogIndexer::isEmpty);
+            }
+            case Map<?, ?> m -> {
+                for (var entry : m.entrySet()) {
+                    if (isEmpty(entry.getValue()) == false) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+            default -> {
+                return false;
             }
         }
     }

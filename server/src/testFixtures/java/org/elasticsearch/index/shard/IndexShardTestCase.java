@@ -219,18 +219,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
                 0,
                 UNSET_AUTO_GENERATED_TIMESTAMP,
                 false);
-            if (result.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
-                updateMappings(shard, IndexMetadata.builder(shard.indexSettings().getIndexMetadata())
-                    .putMapping(result.getRequiredMappingUpdate().toString()).build());
-                result = shard.applyIndexOperationOnPrimary(
-                    Versions.MATCH_ANY,
-                    VersionType.INTERNAL,
-                    sourceToParse,
-                    SequenceNumbers.UNASSIGNED_SEQ_NO,
-                    0,
-                    UNSET_AUTO_GENERATED_TIMESTAMP,
-                    false);
-            }
+            assert result.getResultType() != Engine.Result.Type.MAPPING_UPDATE_REQUIRED;
             shard.sync(); // advance local checkpoint
             shard.updateLocalCheckpointForShard(shard.routingEntry().allocationId().getId(),
                                                 shard.getLocalCheckpoint());
@@ -242,8 +231,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
             if (result.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
                 throw new TransportReplicationAction.RetryOnReplicaException(
                     shard.shardId,
-                    "Mappings are not available on the replica yet, triggered update: " +
-                    result.getRequiredMappingUpdate());
+                    "Mappings are not available on the replica yet, triggered update");
             }
         }
         return result;

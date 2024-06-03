@@ -22,7 +22,6 @@ package org.elasticsearch.index.mapper;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * The result of parsing a document.
@@ -38,20 +37,16 @@ public class ParsedDocument {
 
     private final BytesReference source;
 
-    private final Mapping dynamicMappingsUpdate;
-
     public ParsedDocument(Field version,
                           SequenceIDFields seqID,
                           String id,
                           Document document,
-                          BytesReference source,
-                          @Nullable Mapping dynamicMappingsUpdate) {
+                          BytesReference source) {
         this.version = version;
         this.seqID = seqID;
         this.id = id;
         this.document = document;
         this.source = source;
-        this.dynamicMappingsUpdate = dynamicMappingsUpdate;
     }
 
     public String id() {
@@ -84,14 +79,6 @@ public class ParsedDocument {
 
     public BytesReference source() {
         return this.source;
-    }
-
-    /**
-     * Return dynamic updates to mappings or {@code null} if there were no
-     * updates to the mappings.
-     */
-    public Mapping dynamicMappingsUpdate() {
-        return dynamicMappingsUpdate;
     }
 
     @Override
