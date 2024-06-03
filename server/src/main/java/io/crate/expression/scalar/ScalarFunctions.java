@@ -65,6 +65,7 @@ import io.crate.expression.scalar.postgres.PgBackendPidFunction;
 import io.crate.expression.scalar.postgres.PgEncodingToCharFunction;
 import io.crate.expression.scalar.postgres.PgGetUserByIdFunction;
 import io.crate.expression.scalar.postgres.PgPostmasterStartTime;
+import io.crate.expression.scalar.postgres.PgTableIsVisibleFunction;
 import io.crate.expression.scalar.regex.RegexpReplaceFunction;
 import io.crate.expression.scalar.string.AsciiFunction;
 import io.crate.expression.scalar.string.ChrFunction;
@@ -236,6 +237,7 @@ public class ScalarFunctions implements FunctionsProvider {
         ObjDescriptionFunction.register(builder);
         FormatTypeFunction.register(builder);
         PgFunctionIsVisibleFunction.register(builder);
+        PgTableIsVisibleFunction.register(builder);
         PgGetFunctionResultFunction.register(builder);
         PgPostmasterStartTime.register(builder);
         PgGetSerialSequenceFunction.register(builder);
