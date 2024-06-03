@@ -122,8 +122,12 @@ public class ForeignDataWrappers implements CollectSource {
                 foreignTable.server()
             ));
         }
+        String executeAs = phase.executeAs();
+        if (executeAs == null) {
+            executeAs = txnCtx.sessionSettings().userName();
+        }
         return fdw.getIterator(
-            requireNonNull(roles.findUser(txnCtx.sessionSettings().userName()), "current user must exit"),
+            requireNonNull(roles.findUser(executeAs), "current user must exist"),
             server,
             foreignTable,
             txnCtx,

@@ -106,7 +106,6 @@ public final class DocValuesAggregates {
         LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(
             phase.where(),
             collectTask.txnCtx(),
-            indexShard.mapperService(),
             indexShard.shardId().getIndexName(),
             queryShardContext,
             table,

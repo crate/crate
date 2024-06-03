@@ -171,7 +171,6 @@ final class GroupByOptimizedIterator {
         LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(
             collectPhase.where(),
             collectTask.txnCtx(),
-            indexShard.mapperService(),
             indexShard.shardId().getIndexName(),
             queryShardContext,
             table,

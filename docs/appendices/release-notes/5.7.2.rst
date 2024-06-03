@@ -76,6 +76,12 @@ Fixes
   ``table_rename_pattern`` or ``table_rename_replacement``. Renamed table was
   created but used to be empty.
 
+- Fixed an issue that prevented users with ``DQL`` privilege on a view to be
+  able to query the view when foreign tables are referenced by the view.
+
 - Fixed an issue leading to a ``ArrayIndexOutOfBoundsException`` when using a
   correlated sub-query where some of its outputs weren't used in a parent
   query.
+
+- Fixed an issue that could lead to out-of-memory errors when executing
+  ``lead`` or ``lag`` window functions on a large table.

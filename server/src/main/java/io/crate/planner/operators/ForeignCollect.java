@@ -50,15 +50,18 @@ public class ForeignCollect implements LogicalPlan {
     private final ForeignTableRelation relation;
     private final List<Symbol> toCollect;
     private final WhereClause where;
+    private final String executeAs;
 
     public ForeignCollect(ForeignDataWrapper fdw,
                           ForeignTableRelation relation,
                           List<Symbol> toCollect,
-                          WhereClause where) {
+                          WhereClause where,
+                          String executeAs) {
         this.fdw = fdw;
         this.relation = relation;
         this.toCollect = toCollect;
         this.where = where;
+        this.executeAs = executeAs;
     }
 
     @Override
@@ -80,7 +83,8 @@ public class ForeignCollect implements LogicalPlan {
             plannerContext.handlerNode(),
             relation.relationName(),
             Lists.map(toCollect, binder),
-            where.map(binder).queryOrFallback()
+            where.map(binder).queryOrFallback(),
+            executeAs
         );
         return new io.crate.planner.node.dql.Collect(
             phase,
@@ -125,7 +129,11 @@ public class ForeignCollect implements LogicalPlan {
         if (outputsToKeep.containsAll(toCollect)) {
             return this;
         }
-        return new ForeignCollect(fdw, relation, List.copyOf(outputsToKeep), where);
+        return new ForeignCollect(fdw, relation, List.copyOf(outputsToKeep), where, executeAs);
+    }
+
+    public String executeAs() {
+        return executeAs;
     }
 
     @Override

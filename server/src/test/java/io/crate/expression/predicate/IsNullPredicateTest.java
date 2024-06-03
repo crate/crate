@@ -64,7 +64,6 @@ public class IsNullPredicateTest extends ScalarTestCase {
             Context context = luceneQueryBuilder.convert(
                 query,
                 txnCtx,
-                indexEnv.mapperService(),
                 indexEnv.indexService().index().getName(),
                 indexEnv.queryShardContext(),
                 table,
@@ -95,7 +94,6 @@ public class IsNullPredicateTest extends ScalarTestCase {
             Query query = luceneQueryBuilder.convert(
                 sqlExpressions.asSymbol("obj_ignored['x'] is NULL"),
                 txnCtx,
-                indexEnv.mapperService(),
                 indexEnv.indexService().index().getName(),
                 indexEnv.queryShardContext(),
                 table,

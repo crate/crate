@@ -146,7 +146,6 @@ public final class KeywordFieldMapper extends FieldMapper {
                                 boolean hasNorms) {
             super(name, isSearchable, hasDocValues, hasNorms);
             setIndexAnalyzer(Lucene.KEYWORD_ANALYZER);
-            setSearchAnalyzer(Lucene.KEYWORD_ANALYZER);
         }
 
         public KeywordFieldType(String name, boolean isSearchable, boolean hasDocValues) {
@@ -213,7 +212,6 @@ public final class KeywordFieldMapper extends FieldMapper {
                 "mapper [" + name() + "] has different blank_padding settings, current ["
                 + this.blankPadding + "], merged [" + k.blankPadding + "]");
         }
-        this.fieldType().setSearchAnalyzer(k.fieldType().searchAnalyzer());
     }
 
     @Override

@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,41 +19,50 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package org.elasticsearch.index.mapper;
+package io.crate.testing;
 
-import org.elasticsearch.index.analysis.NamedAnalyzer;
+import io.crate.data.breaker.RamAccounting;
 
-class ArrayFieldType extends MappedFieldType {
+public class PlainRamAccounting implements RamAccounting {
 
-    private final MappedFieldType innerFieldType;
+    long total;
+    long breakingThreshold;
+    boolean closed;
 
-    ArrayFieldType(MappedFieldType innerFieldType) {
-        super(innerFieldType.name(), innerFieldType.isSearchable(), innerFieldType.hasDocValues());
-        this.innerFieldType = innerFieldType;
+    public PlainRamAccounting() {
+        this.breakingThreshold = -1;
+    }
+
+    public PlainRamAccounting(long breakingThreshold) {
+        this.breakingThreshold = breakingThreshold;
     }
 
     @Override
-    public String name() {
-        return innerFieldType.name();
+    public void addBytes(long bytes) {
+        total += bytes;
+        if (breakingThreshold != -1 && total > breakingThreshold) {
+            // break when more than two block sizes have been added to the Sketch
+            throw new RuntimeException("Circuit break! " + total);
+        }
+
     }
 
     @Override
-    public String typeName() {
-        return ArrayMapper.CONTENT_TYPE;
+    public long totalBytes() {
+        return total;
     }
 
     @Override
-    public boolean hasDocValues() {
-        return innerFieldType.hasDocValues();
+    public void release() {
+        total = 0;
     }
 
     @Override
-    public NamedAnalyzer indexAnalyzer() {
-        return innerFieldType.indexAnalyzer();
+    public void close() {
+        closed = true;
     }
 
-    @Override
-    public void setIndexAnalyzer(NamedAnalyzer analyzer) {
-        innerFieldType.setIndexAnalyzer(analyzer);
+    public boolean closed() {
+        return closed;
     }
 }

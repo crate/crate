@@ -23,8 +23,8 @@ package io.crate.expression.operator;
 
 import static io.crate.lucene.LuceneQueryBuilder.genericFunctionFilter;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-import static org.elasticsearch.common.lucene.search.Queries.newUnmappedFieldQuery;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -40,7 +40,6 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermInSetQuery;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.Uid;
 import org.jetbrains.annotations.Nullable;
 
@@ -143,17 +142,18 @@ public final class EqOperator extends Operator<Object> {
     @Nullable
     @SuppressWarnings("unchecked")
     public static Query termsQuery(String column, DataType<?> type, Collection<?> values, boolean hasDocValues, IndexType indexType) {
+        if (column.equals(DocSysColumns.ID.name())) {
+            ArrayList<BytesRef> bytesRefs = new ArrayList<>(values.size());
+            for (Object value : values) {
+                if (value != null) {
+                    bytesRefs.add(Uid.encodeId(value.toString()));
+                }
+            }
+            return bytesRefs.isEmpty() ? null : new TermInSetQuery(column, bytesRefs);
+        }
         List<?> nonNullValues = values.stream().filter(Objects::nonNull).toList();
         if (nonNullValues.isEmpty()) {
             return null;
-        }
-        if (column.equals(DocSysColumns.ID.name())) {
-            BytesRef[] bytesRefs = new BytesRef[nonNullValues.size()];
-            for (int i = 0; i < bytesRefs.length; i++) {
-                Object idObject = nonNullValues.get(i);
-                bytesRefs[i] = Uid.encodeId(idObject.toString());
-            }
-            return new TermInSetQuery(column, bytesRefs);
         }
         StorageSupport<?> storageSupport = type.storageSupport();
         EqQuery<?> eqQuery = storageSupport == null ? null : storageSupport.eqQuery();
@@ -191,21 +191,13 @@ public final class EqOperator extends Operator<Object> {
                                                Context context,
                                                boolean hasDocValues,
                                                IndexType indexType) {
-        MappedFieldType fieldType = context.getFieldTypeOrNull(column);
-        if (fieldType == null) {
-            if (elementType.id() == ObjectType.ID) {
-                return null; // Fallback to generic filter on ARRAY(OBJECT)
-            }
-            // field doesn't exist, can't match
-            return newUnmappedFieldQuery(column);
-        }
 
         BooleanQuery.Builder filterClauses = new BooleanQuery.Builder();
         Query genericFunctionFilter = genericFunctionFilter(function, context);
         if (values.isEmpty()) {
             // `arrayRef = []` - termsQuery would be null
 
-            if (fieldType.hasDocValues() == false) {
+            if (hasDocValues == false) {
                 //  Cannot use NumTermsPerDocQuery if column store is disabled, for example, ARRAY(GEO_SHAPE).
                 return genericFunctionFilter;
             }
