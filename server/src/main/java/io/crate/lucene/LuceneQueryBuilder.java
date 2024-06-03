@@ -202,6 +202,11 @@ public class LuceneQueryBuilder {
         public Reference getRef(ColumnIdent column) {
             return table.getReadReference(column);
         }
+
+        @Nullable
+        public Reference getRef(long oid) {
+            return table.getReference(oid);
+        }
     }
 
 

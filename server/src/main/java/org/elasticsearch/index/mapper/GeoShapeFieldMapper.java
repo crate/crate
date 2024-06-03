@@ -31,12 +31,6 @@ import java.util.Map;
 
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexOptions;
-import org.apache.lucene.spatial.prefix.PrefixTreeStrategy;
-import org.apache.lucene.spatial.prefix.RecursivePrefixTreeStrategy;
-import org.apache.lucene.spatial.prefix.tree.GeohashPrefixTree;
-import org.apache.lucene.spatial.prefix.tree.PackedQuadPrefixTree;
-import org.apache.lucene.spatial.prefix.tree.QuadPrefixTree;
-import org.apache.lucene.spatial.prefix.tree.SpatialPrefixTree;
 import org.elasticsearch.common.geo.GeoUtils;
 import org.elasticsearch.common.geo.builders.ShapeBuilder;
 import org.elasticsearch.common.geo.builders.ShapeBuilder.Orientation;
@@ -235,13 +229,6 @@ public class GeoShapeFieldMapper extends FieldMapper {
             return CONTENT_TYPE;
         }
 
-        private static int getLevels(int treeLevels, double precisionInMeters, int defaultLevels, boolean geoHash) {
-            if (treeLevels > 0 || precisionInMeters >= 0) {
-                return Math.max(treeLevels, precisionInMeters >= 0 ? (geoHash ? GeoUtils.geoHashLevelsForPrecision(precisionInMeters)
-                    : GeoUtils.quadTreeLevelsForPrecision(precisionInMeters)) : 0);
-            }
-            return defaultLevels;
-        }
 
         public String tree() {
             return tree;
@@ -273,33 +260,6 @@ public class GeoShapeFieldMapper extends FieldMapper {
             return this.orientation;
         }
 
-        public PrefixTreeStrategy defaultStrategy() {
-            var recursiveStrategy = new RecursivePrefixTreeStrategy(prefixTree(), name());
-            recursiveStrategy.setDistErrPct(distanceErrorPct());
-            recursiveStrategy.setPruneLeafyBranches(false);
-            return recursiveStrategy;
-        }
-
-        private SpatialPrefixTree prefixTree() {
-            return switch (tree) {
-                case "geohash" -> new GeohashPrefixTree(
-                    ShapeBuilder.SPATIAL_CONTEXT,
-                    getLevels(treeLevels, precisionInMeters, Defaults.GEOHASH_LEVELS, true)
-                );
-
-                case "legacyquadtree" -> new QuadPrefixTree(
-                    ShapeBuilder.SPATIAL_CONTEXT,
-                    getLevels(treeLevels, precisionInMeters, Defaults.QUADTREE_LEVELS, false)
-                );
-
-                case "quadtree" -> new PackedQuadPrefixTree(
-                    ShapeBuilder.SPATIAL_CONTEXT,
-                    getLevels(treeLevels, precisionInMeters, Defaults.QUADTREE_LEVELS, false)
-                );
-
-                default -> throw new IllegalArgumentException("Unknown prefix tree type: " + tree);
-            };
-        }
 
     }
 
