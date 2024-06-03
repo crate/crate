@@ -203,7 +203,6 @@ public final class QueryTester implements AutoCloseable {
                 symbol -> queryBuilder.convert(
                     Optimizer.optimizeCasts(symbol,plannerContext),
                     systemTxnCtx,
-                    indexEnv.mapperService(),
                     indexEnv.indexService().index().getName(),
                     indexEnv.queryShardContext(),
                     table,
