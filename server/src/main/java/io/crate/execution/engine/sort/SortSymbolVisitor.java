@@ -33,10 +33,9 @@ import org.apache.lucene.search.SortedNumericSortField;
 import org.apache.lucene.search.SortedSetSelector;
 import org.apache.lucene.search.SortedSetSortField;
 import org.elasticsearch.index.fielddata.NullValueOrder;
-import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.search.MultiValueMode;
-
 import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.data.Input;
 import io.crate.execution.engine.collect.DocInputFactory;
 import io.crate.expression.InputFactory;
@@ -48,7 +47,6 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.Symbols;
-import io.crate.lucene.FieldTypeLookup;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.Reference;
@@ -94,12 +92,10 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
     }
 
     private final DocInputFactory docInputFactory;
-    private final FieldTypeLookup fieldTypeLookup;
 
-    SortSymbolVisitor(DocInputFactory docInputFactory, FieldTypeLookup fieldTypeLookup) {
+    SortSymbolVisitor(DocInputFactory docInputFactory) {
         super();
         this.docInputFactory = docInputFactory;
-        this.fieldTypeLookup = fieldTypeLookup;
     }
 
     SortField[] generateSortFields(List<Symbol> sortSymbols,
@@ -145,27 +141,13 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
             return customSortField(ref.toString(), ref, context);
         }
 
-        MappedFieldType fieldType = fieldTypeLookup.get(ref.storageIdent());
-        if (fieldType == null) {
-            FieldComparatorSource fieldComparatorSource = new NullFieldComparatorSource(NullSentinelValues.nullSentinelForScoreDoc(
-                ref.valueType(),
-                context.reverseFlag,
-                context.nullFirst
-            ));
-            return new SortField(
-                ref.storageIdent(),
-                fieldComparatorSource,
-                context.reverseFlag);
-        } else if (ref.valueType().equals(DataTypes.IP)
+        if (ref.valueType().equals(DataTypes.IP)
                 || ref.valueType().id() == BitStringType.ID
                 || ref.valueType().id() == FloatVectorType.ID) {
             return customSortField(ref.toString(), ref, context);
         } else {
-            return mappedSortField(
-                ref,
-                context.reverseFlag,
-                NullValueOrder.fromFlag(context.nullFirst)
-            );
+            NullValueOrder nullValueOrder = NullValueOrder.fromFlag(context.nullFirst);
+            return mappedSortField(ref, context.reverseFlag, nullValueOrder);
         }
     }
 

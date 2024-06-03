@@ -75,7 +75,6 @@ import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.InputColumn;
-import io.crate.lucene.FieldTypeLookup;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.IndexType;
@@ -232,13 +231,11 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
         var collectPhase = createCollectPhase(List.of(reference), List.of(groupProjection));
         var collectTask = createCollectTask(shard, collectPhase, Version.CURRENT);
         var nodeCtx = createNodeContext();
-        FieldTypeLookup fieldTypeLookup = shard.mapperService()::fieldType;
 
         var it = GroupByOptimizedIterator.tryOptimizeSingleStringKey(
             shard,
             mock(DocTableInfo.class),
             new LuceneQueryBuilder(nodeCtx),
-            fieldTypeLookup,
             mock(BigArrays.class),
             new InputFactory(nodeCtx),
             new DocInputFactory(
