@@ -118,7 +118,6 @@ import org.elasticsearch.index.engine.Segment;
 import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.mapper.Mapping;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.SourceToParse;
 import org.elasticsearch.index.mapper.Uid;
@@ -161,6 +160,7 @@ import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.dml.TranslogIndexer;
+import io.crate.execution.dml.TranslogMappingUpdateException;
 
 public class IndexShard extends AbstractIndexShardComponent implements IndicesClusterStateService.Shard {
 
@@ -742,10 +742,8 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                 ifSeqNo,
                 ifPrimaryTerm
             );
-            Mapping update = operation.parsedDoc().dynamicMappingsUpdate();
-            if (update != null) {
-                return new Engine.IndexResult(update);
-            }
+        } catch (TranslogMappingUpdateException e) {
+            return new Engine.IndexResult();
         } catch (Exception e) {
             // We treat any exception during parsing and or mapping update as a document level failure
             // with the exception side effects of closing the shard. Since we don't have the shard, we
@@ -1437,7 +1435,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                     case FAILURE:
                         throw result.getFailure();
                     case MAPPING_UPDATE_REQUIRED:
-                        throw new IllegalArgumentException("unexpected mapping update: " + result.getRequiredMappingUpdate());
+                        throw new IllegalArgumentException("unexpected mapping update");
                     case SUCCESS:
                         break;
                     default:

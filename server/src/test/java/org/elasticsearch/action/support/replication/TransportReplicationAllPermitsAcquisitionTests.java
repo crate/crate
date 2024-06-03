@@ -153,16 +153,18 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
             .build();
 
         primary = newStartedShard(p -> newShard(shardRouting, indexSettings, List.of()), true);
-        for (int i = 0; i < 10; i++) {
-            final String id = Integer.toString(i);
-            indexDoc(primary, id, "{\"value\":" + id + "}");
-        }
-
         IndexMetadata indexMetadata = IndexMetadata.builder(shardId.getIndexName())
             .settings(indexSettings)
             .primaryTerm(shardId.id(), primary.getOperationPrimaryTerm())
             .putMapping("{ \"properties\": { \"value\":  { \"type\": \"short\", \"position\": 1}}}")
             .build();
+        updateMappings(primary, indexMetadata);
+
+        for (int i = 0; i < 10; i++) {
+            final String id = Integer.toString(i);
+            indexDoc(primary, id, "{\"value\":" + id + "}");
+        }
+
         state.metadata(Metadata.builder().put(indexMetadata, false).generateClusterUuidIfNeeded());
 
         replica = newShard(primary.shardId(), false, node2.getId(), indexMetadata, null);

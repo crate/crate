@@ -837,8 +837,7 @@ public class Indexer {
                 seqID,
                 item.id(),
                 doc,
-                source,
-                null
+                source
             );
         }
     }

@@ -75,7 +75,6 @@ import org.elasticsearch.common.lucene.uid.VersionsAndSeqNoResolver.DocIdAndVers
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.concurrent.ReleasableLock;
 import org.elasticsearch.index.VersionType;
-import org.elasticsearch.index.mapper.Mapping;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.seqno.SeqNoStats;
 import org.elasticsearch.index.seqno.SequenceNumbers;
@@ -308,7 +307,6 @@ public abstract class Engine implements Closeable {
         private final long seqNo;
         private final Exception failure;
         private final SetOnce<Boolean> freeze = new SetOnce<>();
-        private final Mapping requiredMappingUpdate;
         private Translog.Location translogLocation;
 
         protected Result(Exception failure, long version, long term, long seqNo) {
@@ -316,7 +314,6 @@ public abstract class Engine implements Closeable {
             this.version = version;
             this.term = term;
             this.seqNo = seqNo;
-            this.requiredMappingUpdate = null;
             this.resultType = Type.FAILURE;
         }
 
@@ -325,16 +322,14 @@ public abstract class Engine implements Closeable {
             this.seqNo = seqNo;
             this.term = term;
             this.failure = null;
-            this.requiredMappingUpdate = null;
             this.resultType = Type.SUCCESS;
         }
 
-        protected Result(Mapping requiredMappingUpdate) {
+        protected Result() {
             this.version = Versions.NOT_FOUND;
             this.seqNo = SequenceNumbers.UNASSIGNED_SEQ_NO;
             this.term = 0L;
             this.failure = null;
-            this.requiredMappingUpdate = requiredMappingUpdate;
             this.resultType = Type.MAPPING_UPDATE_REQUIRED;
         }
 
@@ -359,14 +354,6 @@ public abstract class Engine implements Closeable {
 
         public long getTerm() {
             return term;
-        }
-
-        /**
-         * If the operation was aborted due to missing mappings, this method will return the mappings
-         * that are required to complete the operation.
-         */
-        public Mapping getRequiredMappingUpdate() {
-            return requiredMappingUpdate;
         }
 
         /** get the translog location after executing the operation */
@@ -419,8 +406,8 @@ public abstract class Engine implements Closeable {
             this.created = false;
         }
 
-        public IndexResult(Mapping requiredMappingUpdate) {
-            super(requiredMappingUpdate);
+        public IndexResult() {
+            super();
             this.created = false;
         }
 
