@@ -85,8 +85,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
     private final DocumentMapperParser documentParser;
 
     private final MapperAnalyzerWrapper indexAnalyzer;
-    private final MapperAnalyzerWrapper searchAnalyzer;
-    private final MapperAnalyzerWrapper searchQuoteAnalyzer;
 
     final MapperRegistry mapperRegistry;
 
@@ -101,8 +99,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
             mapperRegistry
         );
         this.indexAnalyzer = new MapperAnalyzerWrapper(indexAnalyzers.getDefaultIndexAnalyzer(), MappedFieldType::indexAnalyzer);
-        this.searchAnalyzer = new MapperAnalyzerWrapper(indexAnalyzers.getDefaultSearchAnalyzer(), MappedFieldType::searchAnalyzer);
-        this.searchQuoteAnalyzer = new MapperAnalyzerWrapper(indexAnalyzers.getDefaultSearchQuoteAnalyzer(), MappedFieldType::searchQuoteAnalyzer);
         this.mapperRegistry = mapperRegistry;
     }
 
@@ -378,14 +374,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
 
     public Analyzer indexAnalyzer() {
         return this.indexAnalyzer;
-    }
-
-    public Analyzer searchAnalyzer() {
-        return this.searchAnalyzer;
-    }
-
-    public Analyzer searchQuoteAnalyzer() {
-        return this.searchQuoteAnalyzer;
     }
 
     @Override

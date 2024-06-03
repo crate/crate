@@ -62,8 +62,6 @@ public class TextFieldMapper extends FieldMapper {
     public static class Builder extends FieldMapper.Builder {
 
         protected NamedAnalyzer indexAnalyzer;
-        protected NamedAnalyzer searchAnalyzer;
-        protected NamedAnalyzer searchQuoteAnalyzer;
         protected boolean omitNormsSet = false;
         private List<String> sources = new ArrayList<>();
 
@@ -80,14 +78,6 @@ public class TextFieldMapper extends FieldMapper {
 
         public void indexAnalyzer(NamedAnalyzer indexAnalyzer) {
             this.indexAnalyzer = indexAnalyzer;
-        }
-
-        public void searchAnalyzer(NamedAnalyzer searchAnalyzer) {
-            this.searchAnalyzer = searchAnalyzer;
-        }
-
-        public void searchQuoteAnalyzer(NamedAnalyzer searchQuoteAnalyzer) {
-            this.searchQuoteAnalyzer = searchQuoteAnalyzer;
         }
 
         public void omitNorms(boolean omitNorms) {
@@ -132,8 +122,6 @@ public class TextFieldMapper extends FieldMapper {
                 indexed,
                 fieldType.indexOptions().compareTo(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS) >= 0);
             ft.setIndexAnalyzer(indexAnalyzer);
-            ft.setSearchAnalyzer(searchAnalyzer);
-            ft.setSearchQuoteAnalyzer(searchQuoteAnalyzer);
             return ft;
         }
 
@@ -163,8 +151,6 @@ public class TextFieldMapper extends FieldMapper {
         public Mapper.Builder parse(String fieldName, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
             TextFieldMapper.Builder builder = new TextFieldMapper.Builder(fieldName);
             builder.indexAnalyzer(parserContext.getIndexAnalyzers().getDefaultIndexAnalyzer());
-            builder.searchAnalyzer(parserContext.getIndexAnalyzers().getDefaultSearchAnalyzer());
-            builder.searchQuoteAnalyzer(parserContext.getIndexAnalyzers().getDefaultSearchQuoteAnalyzer());
             parseTextField(builder, fieldName, node, parserContext);
             return builder;
         }
