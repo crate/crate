@@ -33,8 +33,6 @@ public abstract class MappedFieldType {
     private final boolean isIndexed;
     private final boolean hasNorms;
     private NamedAnalyzer indexAnalyzer;
-    private NamedAnalyzer searchAnalyzer;
-    private NamedAnalyzer searchQuoteAnalyzer;
     protected boolean hasPositions;
 
     public MappedFieldType(String name, boolean isIndexed, boolean hasDocValues) {
@@ -73,22 +71,6 @@ public abstract class MappedFieldType {
 
     public void setIndexAnalyzer(NamedAnalyzer analyzer) {
         this.indexAnalyzer = analyzer;
-    }
-
-    public NamedAnalyzer searchAnalyzer() {
-        return searchAnalyzer;
-    }
-
-    public void setSearchAnalyzer(NamedAnalyzer analyzer) {
-        this.searchAnalyzer = analyzer;
-    }
-
-    public NamedAnalyzer searchQuoteAnalyzer() {
-        return searchQuoteAnalyzer == null ? searchAnalyzer : searchQuoteAnalyzer;
-    }
-
-    public void setSearchQuoteAnalyzer(NamedAnalyzer analyzer) {
-        this.searchQuoteAnalyzer = analyzer;
     }
 
     /**

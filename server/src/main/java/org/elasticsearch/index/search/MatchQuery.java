@@ -126,14 +126,6 @@ public class MatchQuery {
         return analyzer;
     }
 
-    protected Analyzer getAnalyzer(MappedFieldType fieldType, boolean quoted) {
-        if (analyzer == null) {
-            return quoted ? context.getSearchQuoteAnalyzer(fieldType) : context.getSearchAnalyzer(fieldType);
-        } else {
-            return analyzer;
-        }
-    }
-
     public Query parse(Type type, String fieldName, Object value) {
         MappedFieldType fieldType = context.fieldMapper(fieldName);
         if (fieldType == null) {
@@ -141,7 +133,7 @@ public class MatchQuery {
         }
         final String field = fieldType.name();
 
-        Analyzer analyzer = getAnalyzer(fieldType, type == Type.PHRASE);
+        Analyzer analyzer = fieldType.indexAnalyzer();
         assert analyzer != null;
 
         /*

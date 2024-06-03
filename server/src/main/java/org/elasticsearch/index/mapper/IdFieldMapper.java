@@ -71,7 +71,6 @@ public class IdFieldMapper extends MetadataFieldMapper {
         private IdFieldType() {
             super(NAME, true, false);
             setIndexAnalyzer(Lucene.KEYWORD_ANALYZER);
-            setSearchAnalyzer(Lucene.KEYWORD_ANALYZER);
         }
 
         @Override
