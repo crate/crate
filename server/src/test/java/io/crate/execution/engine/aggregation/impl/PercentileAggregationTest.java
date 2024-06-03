@@ -38,6 +38,7 @@ import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.functions.Signature;
 import io.crate.operation.aggregation.AggregationTestCase;
+import io.crate.testing.PlainRamAccounting;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -261,30 +262,7 @@ public class PercentileAggregationTest extends AggregationTestCase {
             List.of(DataTypes.LONG, DataTypes.DOUBLE_ARRAY),
             DataTypes.DOUBLE_ARRAY
         );
-        RamAccounting ramAccounting = new RamAccounting() {
-
-            long total = 0;
-
-            @Override
-            public void addBytes(long bytes) {
-                total += bytes;
-            }
-
-            @Override
-            public long totalBytes() {
-                return total;
-            }
-
-            @Override
-            public void release() {
-                total = 0;
-            }
-
-            @Override
-            public void close() {
-                release();
-            }
-        };
+        RamAccounting ramAccounting = new PlainRamAccounting();
         Object state = impl.newState(ramAccounting, Version.CURRENT, Version.CURRENT, memoryManager);
         assertThat(ramAccounting.totalBytes()).isEqualTo(72L);
         Literal<List<Double>> fractions = Literal.of(Collections.singletonList(0.95D), DataTypes.DOUBLE_ARRAY);
