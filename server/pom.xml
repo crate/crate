@@ -21,6 +21,7 @@
     <plugins>
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
+        <version>${versions.plugin.surefire}</version>
         <configuration>
           <!-- override setting from parent pom -->
           <skip>false</skip>
