@@ -23,6 +23,7 @@ import static io.crate.server.xcontent.XContentMapValues.nodeBooleanValue;
 import static io.crate.server.xcontent.XContentMapValues.nodeIntegerValue;
 import static io.crate.server.xcontent.XContentMapValues.nodeLongValue;
 import static io.crate.server.xcontent.XContentMapValues.nodeStringValue;
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -32,8 +33,6 @@ import java.util.Map;
 import org.apache.lucene.index.IndexOptions;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
-
-import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import io.crate.server.xcontent.XContentMapValues;
 
@@ -50,9 +49,6 @@ public class TypeParsers {
                                                      Map<String, Object> fieldNode,
                                                      Mapper.TypeParser.ParserContext parserContext) {
         NamedAnalyzer indexAnalyzer = null;
-        NamedAnalyzer searchAnalyzer = null;
-        NamedAnalyzer searchQuoteAnalyzer = null;
-
         for (Iterator<Map.Entry<String, Object>> iterator = fieldNode.entrySet().iterator(); iterator.hasNext();) {
             Map.Entry<String, Object> entry = iterator.next();
             final String propName = entry.getKey();
@@ -79,48 +75,10 @@ public class TypeParsers {
                 }
                 indexAnalyzer = analyzer;
                 iterator.remove();
-            } else if (propName.equals("search_analyzer")) {
-                NamedAnalyzer analyzer = parserContext.getIndexAnalyzers().get(propNode.toString());
-                if (analyzer == null) {
-                    throw new MapperParsingException("analyzer [" + propNode.toString() + "] not found for field [" + name + "]");
-                }
-                searchAnalyzer = analyzer;
-                iterator.remove();
-            } else if (propName.equals("search_quote_analyzer")) {
-                NamedAnalyzer analyzer = parserContext.getIndexAnalyzers().get(propNode.toString());
-                if (analyzer == null) {
-                    throw new MapperParsingException("analyzer [" + propNode.toString() + "] not found for field [" + name + "]");
-                }
-                searchQuoteAnalyzer = analyzer;
-                iterator.remove();
             }
         }
-
-        if (indexAnalyzer == null && searchAnalyzer != null) {
-            throw new MapperParsingException("analyzer on field [" + name + "] must be set when search_analyzer is set");
-        }
-
-        if (searchAnalyzer == null && searchQuoteAnalyzer != null) {
-            throw new MapperParsingException("analyzer and search_analyzer on field [" + name +
-                "] must be set when search_quote_analyzer is set");
-        }
-
-        if (searchAnalyzer == null) {
-            searchAnalyzer = indexAnalyzer;
-        }
-
-        if (searchQuoteAnalyzer == null) {
-            searchQuoteAnalyzer = searchAnalyzer;
-        }
-
         if (indexAnalyzer != null) {
             builder.indexAnalyzer(indexAnalyzer);
-        }
-        if (searchAnalyzer != null) {
-            builder.searchAnalyzer(searchAnalyzer);
-        }
-        if (searchQuoteAnalyzer != null) {
-            builder.searchQuoteAnalyzer(searchQuoteAnalyzer);
         }
     }
 

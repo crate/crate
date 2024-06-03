@@ -56,24 +56,4 @@ class ArrayFieldType extends MappedFieldType {
     public void setIndexAnalyzer(NamedAnalyzer analyzer) {
         innerFieldType.setIndexAnalyzer(analyzer);
     }
-
-    @Override
-    public NamedAnalyzer searchAnalyzer() {
-        return innerFieldType.searchAnalyzer();
-    }
-
-    @Override
-    public void setSearchAnalyzer(NamedAnalyzer analyzer) {
-        innerFieldType.setSearchAnalyzer(analyzer);
-    }
-
-    @Override
-    public NamedAnalyzer searchQuoteAnalyzer() {
-        return innerFieldType.searchQuoteAnalyzer();
-    }
-
-    @Override
-    public void setSearchQuoteAnalyzer(NamedAnalyzer analyzer) {
-        innerFieldType.setSearchQuoteAnalyzer(analyzer);
-    }
 }
