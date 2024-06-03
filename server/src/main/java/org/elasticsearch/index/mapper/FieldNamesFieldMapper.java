@@ -55,29 +55,21 @@ public class FieldNamesFieldMapper extends MetadataFieldMapper {
     }
 
     static class Builder extends MetadataFieldMapper.Builder {
-        private boolean enabled = Defaults.ENABLED;
 
         public Builder(MappedFieldType existing) {
             super(Defaults.NAME, Defaults.FIELD_TYPE);
         }
 
-        Builder enabled(boolean enabled) {
-            this.enabled = enabled;
-            return this;
-        }
-
         @Override
         public FieldNamesFieldMapper build(BuilderContext context) {
-            FieldNamesFieldType fieldNamesFieldType = new FieldNamesFieldType();
-            fieldNamesFieldType.setEnabled(enabled);
-            return new FieldNamesFieldMapper(fieldType, fieldNamesFieldType);
+            return new FieldNamesFieldMapper(fieldType, FieldNamesFieldType.INSTANCE);
         }
     }
 
     public static class TypeParser implements MetadataFieldMapper.TypeParser {
         @Override
         public MetadataFieldMapper.Builder parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
-            return new Builder(parserContext.mapperService().fieldType(NAME));
+            return new Builder(FieldNamesFieldType.INSTANCE);
         }
 
         @Override
@@ -89,9 +81,9 @@ public class FieldNamesFieldMapper extends MetadataFieldMapper {
 
     public static final class FieldNamesFieldType extends MappedFieldType {
 
-        private boolean enabled = Defaults.ENABLED;
+        public static final FieldNamesFieldType INSTANCE = new FieldNamesFieldType();
 
-        public FieldNamesFieldType() {
+        private FieldNamesFieldType() {
             super(Defaults.NAME, true, false);
         }
 
@@ -99,15 +91,6 @@ public class FieldNamesFieldMapper extends MetadataFieldMapper {
         public String typeName() {
             return CONTENT_TYPE;
         }
-
-        public void setEnabled(boolean enabled) {
-            this.enabled = enabled;
-        }
-
-        public boolean isEnabled() {
-            return enabled;
-        }
-
     }
 
     private FieldNamesFieldMapper(FieldType fieldType, MappedFieldType mappedFieldType) {
@@ -128,15 +111,11 @@ public class FieldNamesFieldMapper extends MetadataFieldMapper {
     public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
         boolean includeDefaults = params.paramAsBoolean("include_defaults", false);
 
-        if (includeDefaults == false && fieldType().isEnabled() == Defaults.ENABLED) {
+        if (includeDefaults == false) {
             return builder;
         }
-
         builder.startObject(NAME);
-        if (includeDefaults || fieldType().isEnabled() != Defaults.ENABLED) {
-            builder.field("enabled", fieldType().isEnabled());
-        }
-
+        builder.field("enabled", Defaults.ENABLED);
         builder.endObject();
         return builder;
     }
