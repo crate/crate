@@ -59,6 +59,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.lucene.CrateLuceneTestCase;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.doc.DocTableInfo;
 
 public final class IndexEnv implements AutoCloseable {
@@ -69,10 +70,10 @@ public final class IndexEnv implements AutoCloseable {
     private final IndexService indexService;
     private final IndexWriter writer;
 
-    public IndexEnv(ThreadPool threadPool,
+    public IndexEnv(NodeContext nodeContext,
+                    ThreadPool threadPool,
                     DocTableInfo table,
-                    ClusterState clusterState,
-                    Version indexVersion) throws IOException {
+                    ClusterState clusterState, Version indexVersion) throws IOException {
         String indexName = table.ident().indexNameOrAlias();
         assert clusterState.metadata().hasIndex(indexName) : "ClusterState must contain the index: " + indexName;
 
@@ -95,6 +96,7 @@ public final class IndexEnv implements AutoCloseable {
             table.partitionedByColumns()
         );
         indexService = indexModule.newIndexService(
+            nodeContext,
             IndexCreationContext.CREATE_INDEX,
             nodeEnvironment,
             new IndexService.ShardStoreDeleter() {

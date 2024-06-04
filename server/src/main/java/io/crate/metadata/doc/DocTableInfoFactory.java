@@ -34,8 +34,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -93,8 +91,6 @@ import io.crate.types.StringType;
 
 public class DocTableInfoFactory {
 
-    private static final Logger LOGGER = LogManager.getLogger(DocTableInfoFactory.class);
-
     private final NodeContext nodeCtx;
     private final ExpressionAnalyzer expressionAnalyzer;
     private final CoordinatorTxnCtx systemTransactionContext;
@@ -108,6 +104,89 @@ public class DocTableInfoFactory {
             ParamTypeHints.EMPTY,
             FieldProvider.UNSUPPORTED,
             null
+        );
+    }
+
+    public void validateSchema(IndexMetadata index) {
+        RelationName relationName = RelationName.fromIndexName(index.getIndex().getName());
+        Settings tableParameters = index.getSettings();
+        Version versionCreated = IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(tableParameters);
+        Version versionUpgraded = tableParameters.getAsVersion(IndexMetadata.SETTING_VERSION_UPGRADED, null);
+        MappingMetadata mapping = index.mapping();
+        Map<String, Object> mappingSource = mapping == null ? Map.of() : mapping.sourceAsMap();
+        final Map<String, Object> metaMap = Maps.getOrDefault(mappingSource, "_meta", Map.of());
+        final List<ColumnIdent> partitionedBy = parsePartitionedByStringsList(
+            Maps.getOrDefault(metaMap, "partitioned_by", List.of())
+        );
+        List<ColumnIdent> primaryKeys = getPrimaryKeys(metaMap);
+        Set<ColumnIdent> notNullColumns = getNotNullColumns(metaMap);
+
+        Map<String, Object> indicesMap = Maps.getOrDefault(metaMap, "indices", Map.of());
+        Map<String, Object> properties = Maps.getOrDefault(mappingSource, "properties", Map.of());
+        Map<ColumnIdent, Reference> references = new HashMap<>();
+        Map<ColumnIdent, IndexReference.Builder> indexColumns = new HashMap<>();
+        Map<ColumnIdent, String> analyzers = new HashMap<>();
+
+        parseColumns(
+            expressionAnalyzer,
+            relationName,
+            null,
+            indicesMap,
+            notNullColumns,
+            primaryKeys,
+            partitionedBy,
+            properties,
+            indexColumns,
+            analyzers,
+            references
+        );
+        var refExpressionAnalyzer = new ExpressionAnalyzer(
+            systemTransactionContext,
+            nodeCtx,
+            ParamTypeHints.EMPTY,
+            new TableReferenceResolver(references, relationName),
+            null
+        );
+        var expressionAnalysisContext = new ExpressionAnalysisContext(systemTransactionContext.sessionSettings());
+        Map<String, String> generatedColumns = Maps.getOrDefault(metaMap, "generated_columns", Map.of());
+        for (Entry<String,String> entry : generatedColumns.entrySet()) {
+            ColumnIdent column = ColumnIdent.fromPath(entry.getKey());
+            String generatedExpressionStr = entry.getValue();
+            Reference reference = references.get(column);
+            Symbol generatedExpression = refExpressionAnalyzer.convert(
+                SqlParser.createExpression(generatedExpressionStr),
+                expressionAnalysisContext
+            ).cast(reference.valueType());
+            assert reference != null : "Column present in generatedColumns must exist";
+            GeneratedReference generatedRef = new GeneratedReference(
+                reference,
+                generatedExpression
+            );
+            references.put(column, generatedRef);
+        }
+        List<CheckConstraint<Symbol>> checkConstraints = getCheckConstraints(
+            refExpressionAnalyzer,
+            expressionAnalysisContext,
+            metaMap
+        );
+        ColumnIdent clusteredBy = getClusteredBy(primaryKeys, Maps.get(metaMap, "routing"));
+        new DocTableInfo(
+            relationName,
+            references,
+            indexColumns.entrySet().stream()
+                .collect(Collectors.toMap(Entry::getKey, e -> e.getValue().build(references))),
+            analyzers,
+            Maps.get(metaMap, "pk_constraint_name"),
+            primaryKeys,
+            checkConstraints,
+            clusteredBy,
+            tableParameters,
+            partitionedBy,
+            ColumnPolicy.fromMappingValue(mappingSource.get("dynamic")),
+            versionCreated,
+            versionUpgraded,
+            index.getState() == IndexMetadata.State.CLOSE,
+            Operation.CLOSED_OPERATIONS
         );
     }
 

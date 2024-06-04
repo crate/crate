@@ -121,8 +121,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         collectTask.addSearcher(sharedShardContext.readerId(), searcher);
         // A closed shard has no mapper service and cannot be queried with lucene,
         // therefore skip it
-        boolean isClosed = indexShard.mapperService() == null;
-        if (isClosed) {
+        if (indexShard.isClosed()) {
             return InMemoryBatchIterator.empty(SentinelRow.SENTINEL);
         }
         IndexService indexService = sharedShardContext.indexService();

@@ -66,17 +66,16 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.MapperTestUtils;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.cache.query.DisabledQueryCache;
 import org.elasticsearch.index.engine.DocIdSeqNoAndSource;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.EngineFactory;
 import org.elasticsearch.index.engine.EngineTestCase;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.SourceToParse;
 import org.elasticsearch.index.seqno.ReplicationTracker;
 import org.elasticsearch.index.seqno.RetentionLeaseSyncer;
@@ -104,6 +103,7 @@ import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jetbrains.annotations.Nullable;
+import org.mockito.Mockito;
 
 import io.crate.action.FutureActionListener;
 import io.crate.common.CheckedFunction;
@@ -239,7 +239,6 @@ public abstract class IndexShardTestCase extends ESTestCase {
 
     protected void updateMappings(IndexShard shard, IndexMetadata indexMetadata) {
         shard.indexSettings().updateIndexMetadata(indexMetadata);
-        shard.mapperService().merge(indexMetadata, MapperService.MergeReason.MAPPING_UPDATE);
     }
 
     protected DocTableInfo getDocTable(Supplier<IndexMetadata> getIndexMetadata) {
@@ -502,7 +501,10 @@ public abstract class IndexShardTestCase extends ESTestCase {
                                   RetentionLeaseSyncer retentionLeaseSyncer,
                                   IndexEventListener indexEventListener,
                                   IndexingOperationListener... listeners) throws IOException {
-        final Settings nodeSettings = Settings.builder().put("node.name", routing.currentNodeId()).build();
+        final Settings nodeSettings = Settings.builder()
+            .put("node.name", routing.currentNodeId())
+            .put(Environment.PATH_HOME_SETTING.getKey(), createTempDir())
+            .build();
         final IndexSettings indexSettings = new IndexSettings(indexMetadata, nodeSettings);
         final IndexShard indexShard;
         if (storeProvider == null) {
@@ -512,21 +514,17 @@ public abstract class IndexShardTestCase extends ESTestCase {
         boolean success = false;
         try {
             var queryCache = DisabledQueryCache.instance();
-            MapperService mapperService = MapperTestUtils.newMapperService(
-                createTempDir(),
-                indexSettings.getSettings(),
-                "index"
-            );
-            mapperService.merge(indexMetadata, MapperService.MergeReason.MAPPING_RECOVERY);
+            TestAnalysis testAnalysis = createTestAnalysis(indexSettings, indexSettings.getSettings());
             ClusterSettings clusterSettings = new ClusterSettings(nodeSettings, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
             CircuitBreakerService breakerService = new HierarchyCircuitBreakerService(nodeSettings, clusterSettings);
             indexShard = new IndexShard(
+                Mockito.mock(NodeContext.class),
                 routing,
                 indexSettings,
                 shardPath,
                 store,
                 queryCache,
-                mapperService,
+                testAnalysis.indexAnalyzers,
                 () -> getDocTable(() -> indexSettings.getIndexMetadata()),
                 engineFactoryProviders,
                 indexEventListener,
@@ -534,8 +532,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
                 BigArrays.NON_RECYCLING_INSTANCE,
                 Arrays.asList(listeners),
                 globalCheckpointSyncer,
-                retentionLeaseSyncer,
-                breakerService
+                retentionLeaseSyncer, breakerService
             );
             indexShard.addShardFailureCallback(DEFAULT_SHARD_FAILURE_HANDLER);
             success = true;
