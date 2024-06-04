@@ -22,12 +22,13 @@
 package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_OBJECT;
+import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.After;
 import org.junit.Before;
@@ -40,6 +41,7 @@ import io.crate.role.Role;
 import io.crate.role.Roles;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
+import io.crate.testing.UseRandomizedSchema;
 
 public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
 
@@ -91,7 +93,7 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
 
     @Test
     public void testNormalUserGrantsPrivilegeThrowsException() {
-        Asserts.assertSQLError(() -> executeAsNormalUser("grant DQL to " + TEST_USERNAME))
+        Asserts.assertSQLError(() -> executeAs("grant DQL to " + TEST_USERNAME, NORMAL_USER))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(UNAUTHORIZED, 4011)
             .hasMessageContaining("Missing 'AL' privilege for user 'normal'");
@@ -145,7 +147,7 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
     @Test
     public void testApplyPrivilegesToUnknownUserThrowsException() {
         Asserts.assertSQLError(() -> executeAsSuperuser("grant DQL to unknown_user"))
-            .hasPGError(INTERNAL_ERROR)
+            .hasPGError(UNDEFINED_OBJECT)
             .hasHTTPError(NOT_FOUND, 40410)
             .hasMessageContaining("Role 'unknown_user' does not exist");
     }
@@ -153,12 +155,13 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
     @Test
     public void testApplyPrivilegesToMultipleUnknownUsersThrowsException() {
         Asserts.assertSQLError(() -> executeAsSuperuser("grant DQL to unknown_user, also_unknown"))
-            .hasPGError(INTERNAL_ERROR)
+            .hasPGError(UNDEFINED_OBJECT)
             .hasHTTPError(NOT_FOUND, 40410)
             .hasMessageContaining("Roles 'unknown_user, also_unknown' do not exist");
     }
 
     @Test
+    @UseRandomizedSchema(random = false)
     public void testQuerySysShardsReturnsOnlyRowsRegardingTablesUserHasAccessOn() {
         executeAsSuperuser("create table t1 (x int) partitioned by (x) clustered into 1 shards with (number_of_replicas = 0)");
         executeAsSuperuser("insert into t1 values (1)");
@@ -310,6 +313,7 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
     }
 
     @Test
+    @UseRandomizedSchema(random = false)
     public void testRenameTableTransfersPrivilegesToNewTable() {
         executeAsSuperuser("create table doc.t1 (x int) clustered into 1 shards with (number_of_replicas = 0)");
         executeAsSuperuser("grant dql on table t1 to " + TEST_USERNAME);
@@ -337,6 +341,7 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
     }
 
     @Test
+    @UseRandomizedSchema(random = false)
     public void testRenamePartitionedTableTransfersPrivilegesToNewTable() {
         executeAsSuperuser("create table t1 (x int) partitioned by (x) clustered into 1 shards with (number_of_replicas = 0)");
         executeAsSuperuser("insert into t1 values (1)");
@@ -352,6 +357,7 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
     }
 
     @Test
+    @UseRandomizedSchema(random = false)
     public void testDropTableRemovesPrivileges() {
         executeAsSuperuser("create table doc.t1 (x int) clustered into 1 shards with (number_of_replicas = 0)");
         executeAsSuperuser("grant dql on table t1 to " + TEST_USERNAME);
@@ -372,6 +378,7 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
     }
 
     @Test
+    @UseRandomizedSchema(random = false)
     public void testDropViewRemovesPrivileges() {
         executeAsSuperuser("create view doc.v1 as select 1");
         executeAsSuperuser("grant dql on view v1 to " + TEST_USERNAME);
@@ -391,6 +398,7 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
     }
 
     @Test
+    @UseRandomizedSchema(random = false)
     public void testDropEmptyPartitionedTableRemovesPrivileges() {
         executeAsSuperuser(
             "create table doc.t1 (x int) partitioned by (x) clustered into 1 shards with (number_of_replicas = 0)");
@@ -425,7 +433,7 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
         assertThat(response).hasRowCount(1L);
 
         Asserts.assertSQLError(() -> executeAsSuperuser("grant dql on table t1 to " + TEST_USERNAME))
-            .hasPGError(INTERNAL_ERROR)
+            .hasPGError(UNDEFINED_TABLE)
             .hasHTTPError(NOT_FOUND, 4041)
             .hasMessageContaining("Relation 't1' unknown");
     }
@@ -435,7 +443,7 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
         executeAsSuperuser("alter cluster reroute retry failed");
         assertThat(response).hasRowCount(0L);
 
-        Asserts.assertSQLError(() -> executeAsNormalUser("alter cluster reroute retry failed"))
+        Asserts.assertSQLError(() -> executeAs("alter cluster reroute retry failed", NORMAL_USER))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(UNAUTHORIZED, 4011)
             .hasMessageContaining("Missing 'AL' privilege for user 'normal'");
