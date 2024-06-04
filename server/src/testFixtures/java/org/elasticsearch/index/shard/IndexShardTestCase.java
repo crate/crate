@@ -40,6 +40,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.lucene.store.Directory;
@@ -107,7 +108,6 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.action.FutureActionListener;
 import io.crate.common.CheckedFunction;
 import io.crate.common.io.IOUtils;
-import io.crate.execution.dml.TranslogIndexer;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
@@ -242,13 +242,13 @@ public abstract class IndexShardTestCase extends ESTestCase {
         shard.mapperService().merge(indexMetadata, MapperService.MergeReason.MAPPING_UPDATE);
     }
 
-    protected TranslogIndexer getTranslogIndexer(IndexShard shard) {
+    protected DocTableInfo getDocTable(Supplier<IndexMetadata> getIndexMetadata) {
         NodeContext nodeCtx = createNodeContext();
         DocTableInfoFactory tableFactory = new DocTableInfoFactory(nodeCtx);
-        IndexMetadata indexMetadata = IndexMetadata.builder(shard.indexSettings.getIndexMetadata()).build();
+        IndexMetadata indexMetadata = getIndexMetadata.get();
         Metadata metadata = new Metadata.Builder().put(indexMetadata, false).build();
-        DocTableInfo table = tableFactory.create(RelationName.fromIndexName(indexMetadata.getIndex().getName()), metadata);
-        return new TranslogIndexer(table);
+        RelationName relationName = RelationName.fromIndexName(indexMetadata.getIndex().getName());
+        return tableFactory.create(relationName, metadata);
     }
 
     protected void assertDocCount(IndexShard shard, int docDount) throws IOException {
@@ -527,7 +527,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
                 store,
                 queryCache,
                 mapperService,
-                this::getTranslogIndexer,
+                () -> getDocTable(() -> indexSettings.getIndexMetadata()),
                 engineFactoryProviders,
                 indexEventListener,
                 threadPool,

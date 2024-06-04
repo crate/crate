@@ -524,7 +524,7 @@ public abstract class AggregationTestCase extends ESTestCase {
                 store,
                 queryCache,
                 mapperService,
-                _ -> null,
+                () -> null,
                 List.of(),
                 EMPTY_EVENT_LISTENER,
                 threadPool,
