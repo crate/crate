@@ -32,6 +32,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.apache.lucene.search.QueryCache;
 import org.apache.lucene.store.MMapDirectory;
@@ -53,8 +54,7 @@ import org.elasticsearch.indices.mapper.MapperRegistry;
 import org.elasticsearch.plugins.IndexStorePlugin;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import io.crate.execution.dml.TranslogIndexer;
-import io.crate.metadata.RelationName;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.types.DataTypes;
 
 /**
@@ -276,7 +276,7 @@ public final class IndexModule {
             BigArrays bigArrays,
             ThreadPool threadPool,
             QueryCache indicesQueryCache,
-            Function<RelationName, TranslogIndexer> translogIndexer,
+            Supplier<DocTableInfo> getDocTable,
             MapperRegistry mapperRegistry) throws IOException {
 
         final IndexEventListener eventListener = freeze();
@@ -302,7 +302,7 @@ public final class IndexModule {
             directoryFactory,
             eventListener,
             mapperRegistry,
-            translogIndexer,
+            getDocTable,
             indexOperationListeners
         );
     }
