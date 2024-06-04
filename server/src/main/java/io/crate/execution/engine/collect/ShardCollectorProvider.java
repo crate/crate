@@ -24,14 +24,13 @@ package io.crate.execution.engine.collect;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.WhereClause;
 import io.crate.data.BatchIterator;
@@ -109,7 +108,7 @@ public abstract class ShardCollectorProvider {
             assert collectPhase.maxRowGranularity() == RowGranularity.DOC :
                 "granularity must be DOC";
 
-            boolean isOpenIndex = indexShard.mapperService() != null;
+            boolean isOpenIndex = !indexShard.isClosed();
             RoutedCollectPhase normalizedCollectNode = collectPhase.normalize(shardNormalizer, collectTask.txnCtx());
             if (isOpenIndex) {
                 BatchIterator<Row> fusedIterator = getProjectionFusedIterator(normalizedCollectNode, collectTask);

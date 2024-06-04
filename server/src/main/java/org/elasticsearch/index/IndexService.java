@@ -82,7 +82,8 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
-import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.table.TableInfo;
 
 public class IndexService extends AbstractIndexComponent implements IndicesClusterStateService.AllocatedIndex<IndexShard> {
 
@@ -92,7 +93,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
     private final QueryCache queryCache;
     private final IndexStorePlugin.DirectoryFactory directoryFactory;
     private final MapperService mapperService;
-    private final Supplier<DocTableInfo> getDocTable;
+    private final Supplier<TableInfo> getTable;
     private final Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders;
     private volatile Map<Integer, IndexShard> shards = emptyMap();
     private final AtomicBoolean closed = new AtomicBoolean(false);
@@ -112,8 +113,10 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
     private final BigArrays bigArrays;
     private final CircuitBreakerService circuitBreakerService;
     private final IndexAnalyzers indexAnalyzers;
+    private final NodeContext nodeContext;
 
     public IndexService(
+            NodeContext nodeContext,
             IndexSettings indexSettings,
             IndexCreationContext indexCreationContext,
             NodeEnvironment nodeEnv,
@@ -127,9 +130,10 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
             IndexStorePlugin.DirectoryFactory directoryFactory,
             IndexEventListener eventListener,
             MapperRegistry mapperRegistry,
-            Supplier<DocTableInfo> getDocTable,
+            Supplier<TableInfo> getTableInfo,
             List<IndexingOperationListener> indexingOperationListeners) throws IOException {
         super(indexSettings);
+        this.nodeContext = nodeContext;
         this.indexSettings = indexSettings;
         this.circuitBreakerService = circuitBreakerService;
         if (indexSettings.getIndexMetadata().getState() == IndexMetadata.State.CLOSE &&
@@ -146,7 +150,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
             );
             this.queryCache = queryCache;
         }
-        this.getDocTable = getDocTable;
+        this.getTable = getTableInfo;
         this.shardStoreDeleter = shardStoreDeleter;
         this.bigArrays = bigArrays;
         this.threadPool = threadPool;
@@ -210,10 +214,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         return queryCache;
     }
 
-    public MapperService mapperService() {
-        return mapperService;
-    }
-
     public IndexAnalyzers indexAnalyzers() {
         return indexAnalyzers;
     }
@@ -232,7 +232,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
                 }
             } finally {
                 IOUtils.close(
-                    mapperService,
                     refreshTask,
                     fsyncTask,
                     trimTranslogTask,
@@ -360,21 +359,21 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
             );
             eventListener.onStoreCreated(shardId);
             indexShard = new IndexShard(
+                nodeContext,
                 routing,
                 this.indexSettings,
                 path,
                 store,
                 queryCache,
-                mapperService,
-                getDocTable,
+                indexAnalyzers,
+                getTable,
                 engineFactoryProviders,
                 eventListener,
                 threadPool,
                 bigArrays,
                 indexingOperationListeners,
                 () -> globalCheckpointSyncer.accept(shardId),
-                retentionLeaseSyncer,
-                circuitBreakerService
+                retentionLeaseSyncer, circuitBreakerService
             );
             eventListener.indexShardStateChanged(indexShard, null, indexShard.state(), "shard created");
             eventListener.afterIndexShardCreated(indexShard);

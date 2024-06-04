@@ -122,7 +122,6 @@ import org.elasticsearch.index.engine.SafeCommitInfo;
 import org.elasticsearch.index.engine.Segment;
 import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.IdFieldMapper;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.SourceToParse;
 import org.elasticsearch.index.mapper.Uid;
@@ -167,16 +166,19 @@ import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.dml.TranslogIndexer;
 import io.crate.execution.dml.TranslogMappingUpdateException;
 import io.crate.metadata.IndexReference;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.doc.DocTableInfoFactory;
+import io.crate.metadata.table.ShardedTable;
+import io.crate.metadata.table.TableInfo;
 
 public class IndexShard extends AbstractIndexShardComponent implements IndicesClusterStateService.Shard {
 
     public static final long RETAIN_ALL = -1;
 
     private final ThreadPool threadPool;
-    private final MapperService mapperService;
-    private final Supplier<DocTableInfo> getDocTable;
+    private final Supplier<TableInfo> getTable;
     private final QueryCache queryCache;
     private final Store store;
     private final Object mutex = new Object();
@@ -254,22 +256,24 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
 
     private final Analyzer indexAnalyzer;
 
+    private final DocTableInfoFactory tableFactory;
+
     public IndexShard(
+            NodeContext nodeContext,
             ShardRouting shardRouting,
             IndexSettings indexSettings,
             ShardPath path,
             Store store,
             QueryCache queryCache,
-            MapperService mapperService,
-            Supplier<DocTableInfo> getDocTable,
+            IndexAnalyzers indexAnalyzers,
+            Supplier<TableInfo> getTable,
             Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders,
             IndexEventListener indexEventListener,
             ThreadPool threadPool,
             BigArrays bigArrays,
             List<IndexingOperationListener> listeners,
             Runnable globalCheckpointSyncer,
-            RetentionLeaseSyncer retentionLeaseSyncer,
-            CircuitBreakerService circuitBreakerService) throws IOException {
+            RetentionLeaseSyncer retentionLeaseSyncer, CircuitBreakerService circuitBreakerService) throws IOException {
         super(shardRouting.shardId(), indexSettings);
         assert shardRouting.initializing();
         this.shardRouting = shardRouting;
@@ -281,8 +285,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         this.store = store;
         this.indexEventListener = indexEventListener;
         this.threadPool = threadPool;
-        this.mapperService = mapperService;
-        this.getDocTable = getDocTable;
+        this.getTable = getTable;
         this.queryCache = queryCache;
         this.indexingOperationListeners = new IndexingOperationListener.CompositeListener(listeners, logger);
         this.globalCheckpointSyncer = globalCheckpointSyncer;
@@ -290,6 +293,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         state = IndexShardState.CREATED;
         this.path = path;
         this.circuitBreakerService = circuitBreakerService;
+        this.tableFactory = new DocTableInfoFactory(nodeContext);
         /* create engine config */
         logger.debug("state: [CREATED]");
 
@@ -344,14 +348,14 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
 
             @Override
             protected Analyzer getWrappedAnalyzer(String storageIdent) {
-                DocTableInfo docTableInfo = getDocTable.get();
-                Reference reference = docTableInfo.getReference(storageIdent);
-                IndexAnalyzers indexAnalyzers = mapperService.getIndexAnalyzers();
-                if (reference instanceof IndexReference indexRef) {
-                    NamedAnalyzer namedAnalyzer = indexAnalyzers.get(indexRef.analyzer());
-                    return namedAnalyzer == null
-                        ? indexAnalyzers.getDefaultIndexAnalyzer()
-                        : namedAnalyzer;
+                if (getTable.get() instanceof DocTableInfo docTable) {
+                    Reference reference = docTable.getReference(storageIdent);
+                    if (reference instanceof IndexReference indexRef) {
+                        NamedAnalyzer namedAnalyzer = indexAnalyzers.get(indexRef.analyzer());
+                        return namedAnalyzer == null
+                            ? indexAnalyzers.getDefaultIndexAnalyzer()
+                            : namedAnalyzer;
+                    }
                 }
                 return indexAnalyzers.getDefaultIndexAnalyzer();
             }
@@ -366,8 +370,11 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         return this.store;
     }
 
-    public MapperService mapperService() {
-        return mapperService;
+    public boolean isClosed() {
+        TableInfo tableInfo = getTable.get();
+        return tableInfo instanceof ShardedTable shardedTable
+            ? shardedTable.isClosed()
+            : false;
     }
 
     /**
@@ -749,7 +756,10 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         assert opPrimaryTerm <= getOperationPrimaryTerm()
                 : "op term [ " + opPrimaryTerm + " ] > shard term [" + getOperationPrimaryTerm() + "]";
         ensureWriteAllowed(origin);
-        TranslogIndexer ti = getDocTable.get().getTranslogIndexer();
+        TableInfo tableInfo = getTable.get();
+        assert tableInfo instanceof DocTableInfo
+            : "Table used in indexShard must be a DocTableInfo for index operations";
+        TranslogIndexer ti = ((DocTableInfo) tableInfo).getTranslogIndexer();
         if (ti == null) {
             throw new IllegalIndexShardStateException(shardId, state, "DocTableInfo unavailable for shard " + shardId);
         }
@@ -1764,7 +1774,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             // we are the first primary, recover from the gateway
             // if its post api allocation, the index should exists
             assert shardRouting.primary() : "recover from local shards only makes sense if the shard is a primary shard";
-            StoreRecovery storeRecovery = new StoreRecovery(shardId, logger);
+            StoreRecovery storeRecovery = new StoreRecovery(shardId, logger, tableFactory::validateSchema);
             storeRecovery.recoverFromLocalShards(this, snapshots, recoveryListener);
             success = true;
         } finally {
@@ -1779,7 +1789,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         // if its post api allocation, the index should exists
         assert shardRouting.primary() : "recover from store only makes sense if the shard is a primary shard";
         assert shardRouting.initializing() : "can only start recovery on initializing shard";
-        StoreRecovery storeRecovery = new StoreRecovery(shardId, logger);
+        StoreRecovery storeRecovery = new StoreRecovery(shardId, logger, tableFactory::validateSchema);
         storeRecovery.recoverFromStore(this, listener);
     }
 
@@ -1788,7 +1798,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             assert shardRouting.primary() : "recover from store only makes sense if the shard is a primary shard";
             assert recoveryState.getRecoverySource().getType() == RecoverySource.Type.SNAPSHOT : "invalid recovery type: " +
                 recoveryState.getRecoverySource();
-            StoreRecovery storeRecovery = new StoreRecovery(shardId, logger);
+            StoreRecovery storeRecovery = new StoreRecovery(shardId, logger, tableFactory::validateSchema);
             storeRecovery.recoverFromRepository(this, repository, listener);
         } catch (Exception e) {
             listener.onFailure(e);

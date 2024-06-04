@@ -207,46 +207,28 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         }
     }
 
-    public void merge(IndexMetadata indexMetadata, MergeReason reason) {
-        internalMerge(indexMetadata, reason);
-    }
-
-    public DocumentMapper merge(CompressedXContent mappingSource, MergeReason reason) {
-        return internalMerge(mappingSource, reason);
-    }
 
     private synchronized DocumentMapper internalMerge(IndexMetadata indexMetadata,
                                                       MergeReason reason) {
         MappingMetadata mappingMetadata = indexMetadata.mapping();
-        if (mappingMetadata != null) {
-            return internalMerge(mappingMetadata.source(), reason);
+        if (mappingMetadata == null) {
+            return null;
         }
-        return null;
-    }
-
-    private synchronized DocumentMapper internalMerge(CompressedXContent mappings, MergeReason reason) {
-
         DocumentMapper documentMapper;
-
         try {
-            documentMapper = documentParser.parse(mappings);
+            documentMapper = documentParser.parse(mappingMetadata.source());
         } catch (Exception e) {
             throw new MapperParsingException("Failed to parse mapping: {}", e, e.getMessage());
         }
-        return internalMerge(documentMapper, reason);
-    }
-
-    private synchronized DocumentMapper internalMerge(DocumentMapper mapper, MergeReason reason) {
-
-        assert mapper != null;
+        assert documentMapper != null;
 
         // compute the merged DocumentMapper
         DocumentMapper oldMapper = this.mapper;
         DocumentMapper newMapper;
         if (oldMapper != null) {
-            newMapper = oldMapper.merge(mapper.mapping());
+            newMapper = oldMapper.merge(documentMapper.mapping());
         } else {
-            newMapper = mapper;
+            newMapper = documentMapper;
         }
 
         // check basic sanity of the new mapping

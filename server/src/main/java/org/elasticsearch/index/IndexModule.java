@@ -54,7 +54,8 @@ import org.elasticsearch.indices.mapper.MapperRegistry;
 import org.elasticsearch.plugins.IndexStorePlugin;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.table.TableInfo;
 import io.crate.types.DataTypes;
 
 /**
@@ -269,6 +270,7 @@ public final class IndexModule {
     }
 
     public IndexService newIndexService(
+            NodeContext nodeContext,
             IndexService.IndexCreationContext indexCreationContext,
             NodeEnvironment environment,
             IndexService.ShardStoreDeleter shardStoreDeleter,
@@ -276,7 +278,7 @@ public final class IndexModule {
             BigArrays bigArrays,
             ThreadPool threadPool,
             QueryCache indicesQueryCache,
-            Supplier<DocTableInfo> getDocTable,
+            Supplier<TableInfo> getTable,
             MapperRegistry mapperRegistry) throws IOException {
 
         final IndexEventListener eventListener = freeze();
@@ -289,6 +291,7 @@ public final class IndexModule {
             queryCache = DisabledQueryCache.instance();
         }
         return new IndexService(
+            nodeContext,
             indexSettings,
             indexCreationContext,
             environment,
@@ -302,7 +305,7 @@ public final class IndexModule {
             directoryFactory,
             eventListener,
             mapperRegistry,
-            getDocTable,
+            getTable,
             indexOperationListeners
         );
     }
