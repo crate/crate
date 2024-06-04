@@ -28,19 +28,23 @@ import java.util.concurrent.CompletableFuture;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.auth.AccessControl;
+import io.crate.auth.AccessControlImpl;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 
 public class StubRoleManager implements RoleManager {
 
     private final Collection<Role> roles;
+    private final boolean accessControl;
 
     public StubRoleManager() {
         this.roles = List.of(Role.CRATE_USER);
+        this.accessControl = false;
     }
 
-    public StubRoleManager(Collection<Role> roles) {
+    public StubRoleManager(Collection<Role> roles, boolean accessControl) {
         this.roles = roles;
+        this.accessControl = accessControl;
     }
 
     @Override
@@ -80,6 +84,9 @@ public class StubRoleManager implements RoleManager {
 
     @Override
     public AccessControl getAccessControl(CoordinatorSessionSettings sessionSettings) {
+        if (accessControl) {
+            return new AccessControlImpl(this, sessionSettings);
+        }
         return AccessControl.DISABLED;
     }
 }
