@@ -116,6 +116,7 @@ import io.crate.common.collections.Iterables;
 import io.crate.common.collections.Sets;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 
 public class IndicesService extends AbstractLifecycleComponent
@@ -449,6 +450,7 @@ public class IndicesService extends AbstractLifecycleComponent
         for (IndexEventListener listener : builtInListeners) {
             indexModule.addIndexEventListener(listener);
         }
+        String indexName = indexMetadata.getIndex().getName();
         return indexModule.newIndexService(
             indexCreationContext,
             nodeEnv,
@@ -457,7 +459,7 @@ public class IndicesService extends AbstractLifecycleComponent
             bigArrays,
             threadPool,
             indicesQueryCache,
-            n -> schemas.getTranslogIndexer(n),
+            () -> schemas.getTableInfo(RelationName.fromIndexName(indexName)),
             mapperRegistry
         );
     }

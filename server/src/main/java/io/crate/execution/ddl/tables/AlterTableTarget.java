@@ -21,14 +21,13 @@
 
 package io.crate.execution.ddl.tables;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.index.Index;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
@@ -40,66 +39,29 @@ import io.crate.metadata.RelationName;
  *  - ALTER TABLE tbl       -- On a partitioned table
  *  - ALTER TABLE tbl PARTITION (pcol = ?)
  */
-public final class AlterTableTarget {
+public final record AlterTableTarget(RelationName table,
+                                     Index[] indices,
+                                     @Nullable String partition,
+                                     @Nullable IndexTemplateMetadata templateMetadata) {
 
-    public static AlterTableTarget resolve(ClusterState state,
-                                           RelationName table,
-                                           @Nullable String partition) {
+    public static AlterTableTarget of(ClusterState state, RelationName table, @Nullable String partition) {
         Metadata metadata = state.metadata();
         if (partition == null) {
             Index[] indices = IndexNameExpressionResolver.concreteIndices(metadata, IndicesOptions.lenientExpandOpen(), table.indexNameOrAlias());
             String templateName = PartitionName.templateName(table.schema(), table.name());
             IndexTemplateMetadata indexTemplateMetadata = metadata.templates().get(templateName);
-            return new AlterTableTarget(table, partition, indices, indexTemplateMetadata);
+            return new AlterTableTarget(table, indices, partition, indexTemplateMetadata);
         } else {
             Index[] indices = IndexNameExpressionResolver.concreteIndices(metadata, IndicesOptions.lenientExpandOpen(), partition);
-            return new AlterTableTarget(table, partition, indices);
+            return new AlterTableTarget(table, indices, partition, null);
         }
-    }
-
-    private final Index[] indices;
-
-    @Nullable
-    private final IndexTemplateMetadata indexTemplateMetadata;
-
-    private final RelationName table;
-    private final String partition;
-
-
-    public AlterTableTarget(RelationName table, @Nullable String partition, Index[] indices, @Nullable IndexTemplateMetadata indexTemplateMetadata) {
-        this.table = table;
-        this.partition = partition;
-        this.indices = indices;
-        this.indexTemplateMetadata = indexTemplateMetadata;
-    }
-
-    public AlterTableTarget(RelationName table, @Nullable String partition, Index[] indices) {
-        this(table, partition, indices, null);
     }
 
     public boolean targetsIndividualPartition() {
         return partition != null;
     }
 
-    public RelationName table() {
-        return table;
-    }
-
-    @Nullable
-    public String partition() {
-        return partition;
-    }
-
     public boolean isEmpty() {
-        return indices.length == 0 && indexTemplateMetadata == null;
-    }
-
-    public Index[] indices() {
-        return indices;
-    }
-
-    @Nullable
-    public IndexTemplateMetadata templateMetadata() {
-        return indexTemplateMetadata;
+        return indices.length == 0 && templateMetadata == null;
     }
 }

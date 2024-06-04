@@ -50,6 +50,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.LongSupplier;
+import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -161,6 +162,7 @@ import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.dml.TranslogIndexer;
 import io.crate.execution.dml.TranslogMappingUpdateException;
+import io.crate.metadata.doc.DocTableInfo;
 
 public class IndexShard extends AbstractIndexShardComponent implements IndicesClusterStateService.Shard {
 
@@ -168,7 +170,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
 
     private final ThreadPool threadPool;
     private final MapperService mapperService;
-    private final Function<IndexShard, TranslogIndexer> translogIndexer;
+    private final Supplier<DocTableInfo> getDocTable;
     private final QueryCache queryCache;
     private final Store store;
     private final Object mutex = new Object();
@@ -251,7 +253,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             Store store,
             QueryCache queryCache,
             MapperService mapperService,
-            Function<IndexShard, TranslogIndexer> translogIndexer,
+            Supplier<DocTableInfo> getDocTable,
             Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders,
             IndexEventListener indexEventListener,
             ThreadPool threadPool,
@@ -272,7 +274,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         this.indexEventListener = indexEventListener;
         this.threadPool = threadPool;
         this.mapperService = mapperService;
-        this.translogIndexer = translogIndexer;
+        this.getDocTable = getDocTable;
         this.queryCache = queryCache;
         this.indexingOperationListeners = new IndexingOperationListener.CompositeListener(listeners, logger);
         this.globalCheckpointSyncer = globalCheckpointSyncer;
@@ -723,7 +725,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         assert opPrimaryTerm <= getOperationPrimaryTerm()
                 : "op term [ " + opPrimaryTerm + " ] > shard term [" + getOperationPrimaryTerm() + "]";
         ensureWriteAllowed(origin);
-        TranslogIndexer ti = translogIndexer.apply(this);
+        TranslogIndexer ti = getDocTable.get().getTranslogIndexer();
         if (ti == null) {
             throw new IllegalIndexShardStateException(shardId, state, "DocTableInfo unavailable for shard " + shardId);
         }

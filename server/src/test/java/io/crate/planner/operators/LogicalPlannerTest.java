@@ -577,22 +577,21 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             UNION
             SELECT a::int ai, avg(x), i::long FROM t1 WHERE a='3' GROUP BY 1,3
             """);
-        assertThat(plan).isEqualTo(
-            """
-            GroupHashAggregate[ai, "avg(x)", "cast(i AS bigint)"]
-              └ Union[ai, "avg(x)", "cast(i AS bigint)"]
-                ├ GroupHashAggregate[ai, "avg(x)", "cast(i AS bigint)"]
-                │  └ Union[ai, "avg(x)", "cast(i AS bigint)"]
-                │    ├ Eval[cast(a AS integer) AS ai, avg(x), cast(i AS bigint)]
-                │    │  └ GroupHashAggregate[cast(a AS integer) AS ai, cast(i AS bigint) | avg(x)]
-                │    │    └ Collect[doc.t1 | [x, cast(a AS integer) AS ai, cast(i AS bigint)] | (a = '1')]
-                │    └ Eval[cast(a AS integer) AS ai, avg(x), cast(i AS bigint)]
-                │      └ GroupHashAggregate[cast(a AS integer) AS ai, cast(i AS bigint) | avg(x)]
-                │        └ Collect[doc.t1 | [x, cast(a AS integer) AS ai, cast(i AS bigint)] | (a = '2')]
-                └ Eval[cast(a AS integer) AS ai, avg(x), cast(i AS bigint)]
-                  └ GroupHashAggregate[cast(a AS integer) AS ai, cast(i AS bigint) | avg(x)]
-                    └ Collect[doc.t1 | [x, cast(a AS integer) AS ai, cast(i AS bigint)] | (a = '3')]
-            """);
+        assertThat(plan).hasOperators(
+            "GroupHashAggregate[ai, \"avg(x)\", \"cast(i AS bigint)\"]",
+            "  └ Union[ai, \"avg(x)\", \"cast(i AS bigint)\"]",
+            "    ├ GroupHashAggregate[ai, \"avg(x)\", \"cast(i AS bigint)\"]",
+            "    │  └ Union[ai, \"avg(x)\", \"cast(i AS bigint)\"]",
+            "    │    ├ Eval[cast(a AS integer) AS ai, avg(x), cast(i AS bigint)]",
+            "    │    │  └ GroupHashAggregate[cast(a AS integer) AS ai, cast(i AS bigint) | avg(x)]",
+            "    │    │    └ Collect[doc.t1 | [cast(a AS integer) AS ai, cast(i AS bigint), x] | (a = '1')]",
+            "    │    └ Eval[cast(a AS integer) AS ai, avg(x), cast(i AS bigint)]",
+            "    │      └ GroupHashAggregate[cast(a AS integer) AS ai, cast(i AS bigint) | avg(x)]",
+            "    │        └ Collect[doc.t1 | [cast(a AS integer) AS ai, cast(i AS bigint), x] | (a = '2')]",
+            "    └ Eval[cast(a AS integer) AS ai, avg(x), cast(i AS bigint)]",
+            "      └ GroupHashAggregate[cast(a AS integer) AS ai, cast(i AS bigint) | avg(x)]",
+            "        └ Collect[doc.t1 | [cast(a AS integer) AS ai, cast(i AS bigint), x] | (a = '3')]"
+        );
     }
 
     // tracks a bug: https://github.com/crate/crate/issues/14330
@@ -606,21 +605,21 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             SELECT a::int ai, avg(x), i::long FROM t1 WHERE a='3' GROUP BY 1,3
             LIMIT 10
             """);
-        assertThat(plan).isEqualTo(
-            """
-                LimitDistinct[10::bigint;0 | [ai, "avg(x)", "cast(i AS bigint)"]]
-                  └ Union[ai, "avg(x)", "cast(i AS bigint)"]
-                    ├ GroupHashAggregate[ai, "avg(x)", "cast(i AS bigint)"]
-                    │  └ Union[ai, "avg(x)", "cast(i AS bigint)"]
-                    │    ├ Eval[cast(a AS integer) AS ai, avg(x), cast(i AS bigint)]
-                    │    │  └ GroupHashAggregate[cast(a AS integer) AS ai, cast(i AS bigint) | avg(x)]
-                    │    │    └ Collect[doc.t1 | [x, cast(a AS integer) AS ai, cast(i AS bigint)] | (a = '1')]
-                    │    └ Eval[cast(a AS integer) AS ai, avg(x), cast(i AS bigint)]
-                    │      └ GroupHashAggregate[cast(a AS integer) AS ai, cast(i AS bigint) | avg(x)]
-                    │        └ Collect[doc.t1 | [x, cast(a AS integer) AS ai, cast(i AS bigint)] | (a = '2')]
-                    └ Eval[cast(a AS integer) AS ai, avg(x), cast(i AS bigint)]
-                      └ GroupHashAggregate[cast(a AS integer) AS ai, cast(i AS bigint) | avg(x)]
-                        └ Collect[doc.t1 | [x, cast(a AS integer) AS ai, cast(i AS bigint)] | (a = '3')]""");
+        assertThat(plan).hasOperators(
+            "LimitDistinct[10::bigint;0 | [ai, \"avg(x)\", \"cast(i AS bigint)\"]]",
+            "  └ Union[ai, \"avg(x)\", \"cast(i AS bigint)\"]",
+            "    ├ GroupHashAggregate[ai, \"avg(x)\", \"cast(i AS bigint)\"]",
+            "    │  └ Union[ai, \"avg(x)\", \"cast(i AS bigint)\"]",
+            "    │    ├ Eval[cast(a AS integer) AS ai, avg(x), cast(i AS bigint)]",
+            "    │    │  └ GroupHashAggregate[cast(a AS integer) AS ai, cast(i AS bigint) | avg(x)]",
+            "    │    │    └ Collect[doc.t1 | [cast(a AS integer) AS ai, cast(i AS bigint), x] | (a = '1')]",
+            "    │    └ Eval[cast(a AS integer) AS ai, avg(x), cast(i AS bigint)]",
+            "    │      └ GroupHashAggregate[cast(a AS integer) AS ai, cast(i AS bigint) | avg(x)]",
+            "    │        └ Collect[doc.t1 | [cast(a AS integer) AS ai, cast(i AS bigint), x] | (a = '2')]",
+            "    └ Eval[cast(a AS integer) AS ai, avg(x), cast(i AS bigint)]",
+            "      └ GroupHashAggregate[cast(a AS integer) AS ai, cast(i AS bigint) | avg(x)]",
+            "        └ Collect[doc.t1 | [cast(a AS integer) AS ai, cast(i AS bigint), x] | (a = '3')]"
+        );
     }
 
     @Test
@@ -628,12 +627,12 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan plan = sqlExecutor.logicalPlan("""
             SELECT i, avgx FROM (SELECT a, avg(x) OVER(ORDER BY i) as avgx, i FROM t1) as vt
             """);
-        assertThat(plan).isEqualTo(
-            """
-                Rename[i, avgx] AS vt
-                  └ Eval[i, avg(x) OVER (ORDER BY i ASC) AS avgx]
-                    └ WindowAgg[x, i, avg(x) OVER (ORDER BY i ASC)]
-                      └ Collect[doc.t1 | [x, i] | true]""");
+        assertThat(plan).hasOperators(
+            "Rename[i, avgx] AS vt",
+            "  └ Eval[i, avg(x) OVER (ORDER BY i ASC) AS avgx]",
+            "    └ WindowAgg[i, x, avg(x) OVER (ORDER BY i ASC)]",
+            "      └ Collect[doc.t1 | [i, x] | true]"
+        );
     }
 
     @Test
