@@ -30,11 +30,8 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
 import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.DelegatingAnalyzerWrapper;
 import org.elasticsearch.Assertions;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
@@ -79,12 +76,9 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
     private final IndexAnalyzers indexAnalyzers;
 
     private volatile DocumentMapper mapper;
-    private volatile FieldTypeLookup fieldTypes;
     private volatile Map<String, ObjectMapper> fullPathObjectMappers = emptyMap();
 
     private final DocumentMapperParser documentParser;
-
-    private final MapperAnalyzerWrapper indexAnalyzer;
 
     final MapperRegistry mapperRegistry;
 
@@ -93,12 +87,7 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
                          MapperRegistry mapperRegistry) {
         super(indexSettings);
         this.indexAnalyzers = indexAnalyzers;
-        this.fieldTypes = new FieldTypeLookup();
-        this.documentParser = new DocumentMapperParser(
-            this,
-            mapperRegistry
-        );
-        this.indexAnalyzer = new MapperAnalyzerWrapper(indexAnalyzers.getDefaultIndexAnalyzer(), MappedFieldType::indexAnalyzer);
+        this.documentParser = new DocumentMapperParser(this, mapperRegistry);
         this.mapperRegistry = mapperRegistry;
     }
 
@@ -269,8 +258,6 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
 
         MapperMergeValidator.validateNewMappers(objectMappers, fieldMappers);
 
-        this.fieldTypes = new FieldTypeLookup(fieldMappers);
-
         Map<String, ObjectMapper> fullPathObjectMappers = this.fullPathObjectMappers;
         for (ObjectMapper objectMapper : objectMappers) {
             if (fullPathObjectMappers == this.fullPathObjectMappers) {
@@ -359,47 +346,8 @@ public class MapperService extends AbstractIndexComponent implements Closeable {
         return mapper;
     }
 
-    /**
-     * Returns the {@link MappedFieldType} for the give fullName.
-     *
-     * If multiple types have fields with the same full name, the first is returned.
-     */
-    public MappedFieldType fieldType(String fullName) {
-        return fieldTypes.get(fullName);
-    }
-
-    public Analyzer indexAnalyzer() {
-        return this.indexAnalyzer;
-    }
-
     @Override
     public void close() throws IOException {
         indexAnalyzers.close();
     }
-
-    /** An analyzer wrapper that can lookup fields within the index mappings */
-    final class MapperAnalyzerWrapper extends DelegatingAnalyzerWrapper {
-
-        private final Analyzer defaultAnalyzer;
-        private final Function<MappedFieldType, Analyzer> extractAnalyzer;
-
-        MapperAnalyzerWrapper(Analyzer defaultAnalyzer, Function<MappedFieldType, Analyzer> extractAnalyzer) {
-            super(Analyzer.PER_FIELD_REUSE_STRATEGY);
-            this.defaultAnalyzer = defaultAnalyzer;
-            this.extractAnalyzer = extractAnalyzer;
-        }
-
-        @Override
-        protected Analyzer getWrappedAnalyzer(String fieldName) {
-            MappedFieldType fieldType = fieldType(fieldName);
-            if (fieldType != null) {
-                Analyzer analyzer = extractAnalyzer.apply(fieldType);
-                if (analyzer != null) {
-                    return analyzer;
-                }
-            }
-            return defaultAnalyzer;
-        }
-    }
-
 }
