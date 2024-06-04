@@ -45,8 +45,9 @@ import io.crate.testing.T3;
  */
 public abstract class EqualityExtractorBaseTest extends CrateDummyClusterServiceUnitTest {
 
-    private final CoordinatorTxnCtx coordinatorTxnCtx = new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults());
+    protected final CoordinatorTxnCtx coordinatorTxnCtx = new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults());
     private SqlExpressions expressions;
+    protected EvaluatingNormalizer normalizer;
     private EqualityExtractor ee;
 
     @Before
@@ -55,7 +56,7 @@ public abstract class EqualityExtractorBaseTest extends CrateDummyClusterService
 
         DocTableRelation tr1 = (DocTableRelation) sources.get(T3.T1);
         expressions = new SqlExpressions(sources, tr1);
-        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(expressions.nodeCtx);
+        normalizer = EvaluatingNormalizer.functionOnlyNormalizer(expressions.nodeCtx);
         ee = new EqualityExtractor(normalizer);
     }
 
