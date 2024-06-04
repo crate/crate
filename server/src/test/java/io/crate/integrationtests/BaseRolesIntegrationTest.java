@@ -31,34 +31,15 @@ import io.crate.action.sql.Session;
 import io.crate.action.sql.Sessions;
 import io.crate.role.Role;
 import io.crate.role.Roles;
-import io.crate.role.metadata.RolesHelper;
 import io.crate.testing.SQLResponse;
 
 public abstract class BaseRolesIntegrationTest extends IntegTestCase {
 
-    private Session superUserSession;
-    private Session normalUserSession;
-
-    protected Session createSuperUserSession() {
-        Sessions sqlOperations = cluster().getInstance(Sessions.class);
-        return sqlOperations.newSession(null, Role.CRATE_USER);
-    }
-
-    private Session createUserSession() {
-        Sessions sqlOperations = cluster().getInstance(Sessions.class);
-        return sqlOperations.newSession(null, RolesHelper.userOf("normal"));
-    }
+    protected static final String NORMAL_USER = "normal";
 
     @Before
-    public void setUpSessions() {
-        superUserSession = createSuperUserSession();
-        normalUserSession = createUserSession();
-    }
-
-    @After
-    public void closeSessions() {
-        superUserSession.close();
-        normalUserSession.close();
+    public void setUpNormalUser() {
+        execute("create user " + NORMAL_USER);
     }
 
     @After
@@ -82,11 +63,7 @@ public abstract class BaseRolesIntegrationTest extends IntegTestCase {
     }
 
     public SQLResponse executeAsSuperuser(String stmt, Object[] args) {
-        return execute(stmt, args, superUserSession);
-    }
-
-    public SQLResponse executeAsNormalUser(String stmt) {
-        return execute(stmt, null, normalUserSession);
+        return execute(stmt, args);
     }
 
     public SQLResponse executeAs(String stmt, String userName) {
