@@ -51,10 +51,11 @@ import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.index.mapper.MapperService;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -162,6 +163,11 @@ import io.crate.types.ObjectType;
  *
  */
 public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
+
+    public static final Setting<Long> TOTAL_COLUMNS_LIMIT =
+        Setting.longSetting("index.mapping.total_fields.limit", 1000L, 0, Property.Dynamic, Property.IndexScope);
+    public static final Setting<Long> DEPTH_LIMIT_SETTING =
+        Setting.longSetting("index.mapping.depth.limit", 20L, 1, Property.Dynamic, Property.IndexScope);
 
     private final List<Reference> columns;
     private final Set<Reference> droppedColumns;
@@ -986,7 +992,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 throw new UnsupportedOperationException("Cannot create index via DocTableInfo.writeTo");
             }
 
-            long allowedTotalColumns = MapperService.INDEX_MAPPING_TOTAL_FIELDS_LIMIT_SETTING.get(indexMetadata.getSettings());
+            long allowedTotalColumns = TOTAL_COLUMNS_LIMIT.get(indexMetadata.getSettings());
             if (allColumns.size() > allowedTotalColumns) {
                 throw new IllegalArgumentException("Limit of total columns [" + allowedTotalColumns + "] in table [" + ident + "] exceeded");
             }

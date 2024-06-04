@@ -37,12 +37,13 @@ import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.index.mapper.MapperService;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.metadata.PartitionName;
+import io.crate.server.xcontent.LoggingDeprecationHandler;
 import io.crate.server.xcontent.XContentHelper;
 
 public class IndexTemplateUpgraderTest {
@@ -393,6 +394,13 @@ public class IndexTemplateUpgraderTest {
         assertThat(c.get("position")).isEqualTo(3);
     }
 
+    private static Map<String, Object> parse(String json) throws Exception {
+        try (XContentParser parser = XContentType.JSON.xContent()
+            .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, json)) {
+            return parser.map();
+        }
+    }
+
     @Test
     public void test_copy_to_migrated_to_sources() throws Throwable {
         String templateName = PartitionName.templateName("doc", "events");
@@ -406,11 +414,10 @@ public class IndexTemplateUpgraderTest {
         Map<String, IndexTemplateMetadata> result = upgrader.apply(Map.of(templateName, template));
         IndexTemplateMetadata updatedTemplate = result.get(templateName);
 
-        Map actualMap = XContentHelper.toMap(updatedTemplate.mapping().uncompressed(), XContentType.JSON);
-        Map expectedMap = MapperService.parseMapping(NamedXContentRegistry.EMPTY, MappingConstants.FULLTEXT_MAPPING_EXPECTED_IN_5_4);
+        Map<String, Object> actualMap = XContentHelper.toMap(updatedTemplate.mapping().uncompressed(), XContentType.JSON);
+        Map<String, Object> expectedMap = parse(MappingConstants.FULLTEXT_MAPPING_EXPECTED_IN_5_4);
 
-        assertThat(actualMap)
-            .isEqualTo(expectedMap);
+        assertThat(actualMap).isEqualTo(expectedMap);
     }
 
     @Test
@@ -426,8 +433,8 @@ public class IndexTemplateUpgraderTest {
         Map<String, IndexTemplateMetadata> result = upgrader.apply(Map.of(templateName, template));
         IndexTemplateMetadata updatedTemplate = result.get(templateName);
 
-        Map actualMap = XContentHelper.toMap(updatedTemplate.mapping().uncompressed(), XContentType.JSON);
-        Map expectedMap = MapperService.parseMapping(NamedXContentRegistry.EMPTY, MappingConstants.DEEP_NESTED_MAPPING);
+        Map<String, Object> actualMap = XContentHelper.toMap(updatedTemplate.mapping().uncompressed(), XContentType.JSON);
+        Map<String, Object> expectedMap = parse(MappingConstants.DEEP_NESTED_MAPPING);
 
         assertThat(actualMap)
             .isEqualTo(expectedMap);

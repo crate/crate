@@ -23,7 +23,6 @@ package org.elasticsearch.index.mapper;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexOptions;
@@ -111,23 +110,6 @@ public class BitStringFieldMapper extends FieldMapper {
 
         public void length(Integer length) {
             this.length = length;
-        }
-    }
-
-    public static class TypeParser implements Mapper.TypeParser {
-
-        @Override
-        public org.elasticsearch.index.mapper.Mapper.Builder parse(
-                String name,
-                Map<String, Object> node,
-                ParserContext parserContext) throws MapperParsingException {
-
-            Builder builder = new Builder(name);
-            TypeParsers.parseField(builder, name, node);
-            Object length = node.remove("length");
-            assert length != null : "length property is required for `bit` type";
-            builder.length((Integer) length);
-            return builder;
         }
     }
 

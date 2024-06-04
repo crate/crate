@@ -21,7 +21,6 @@ package org.elasticsearch.index.mapper;
 
 
 import java.util.List;
-import java.util.Map;
 
 import org.apache.lucene.document.FieldType;
 import org.elasticsearch.common.Explicit;
@@ -64,19 +63,6 @@ public class IpFieldMapper extends FieldMapper {
                 copyTo);
             context.putPositionInfo(mapper, position);
             return mapper;
-        }
-    }
-
-    public static class TypeParser implements Mapper.TypeParser {
-
-        public TypeParser() {
-        }
-
-        @Override
-        public Mapper.Builder parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
-            Builder builder = new Builder(name);
-            TypeParsers.parseField(builder, name, node);
-            return builder;
         }
     }
 

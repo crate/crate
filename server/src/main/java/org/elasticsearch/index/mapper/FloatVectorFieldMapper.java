@@ -23,7 +23,6 @@ package org.elasticsearch.index.mapper;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexOptions;
@@ -91,19 +90,6 @@ public class FloatVectorFieldMapper extends FieldMapper implements ArrayValueMap
 
         public void dimensions(int dimensions) {
             this.dimensions = dimensions;
-        }
-    }
-
-    public static class TypeParser implements Mapper.TypeParser {
-
-        @Override
-        public Mapper.Builder parse(String name,
-                                       Map<String, Object> node,
-                                       ParserContext parserContext) throws MapperParsingException {
-            Builder builder = new Builder(name);
-            TypeParsers.parseField(builder, name, node);
-            builder.dimensions((Integer) node.remove("dimensions"));
-            return builder;
         }
     }
 

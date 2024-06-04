@@ -19,11 +19,8 @@
 
 package org.elasticsearch.index.mapper;
 
-import static org.elasticsearch.index.mapper.TypeParsers.parseField;
-
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.lucene.document.FieldType;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -67,17 +64,6 @@ public class GeoPointFieldMapper extends FieldMapper implements ArrayValueMapper
                 copyTo);
             context.putPositionInfo(mapper, position);
             return mapper;
-        }
-    }
-
-    public static class TypeParser implements Mapper.TypeParser {
-        @Override
-        public Mapper.Builder parse(String name,
-                                       Map<String, Object> node,
-                                       ParserContext parserContext) throws MapperParsingException {
-            Builder builder = new GeoPointFieldMapper.Builder(name);
-            parseField(builder, name, node);
-            return builder;
         }
     }
 

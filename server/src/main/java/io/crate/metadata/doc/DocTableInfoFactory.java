@@ -64,6 +64,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.GeoReference;
+import io.crate.metadata.IndexParts;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
@@ -107,12 +108,16 @@ public class DocTableInfoFactory {
         );
     }
 
-    public void validateSchema(IndexMetadata index) {
-        RelationName relationName = RelationName.fromIndexName(index.getIndex().getName());
-        Settings tableParameters = index.getSettings();
+    public void validateSchema(IndexMetadata indexMetadata) {
+        String indexName = indexMetadata.getIndex().getName();
+        if (IndexParts.isDangling(indexName)) {
+            return;
+        }
+        RelationName relationName = RelationName.fromIndexName(indexName);
+        Settings tableParameters = indexMetadata.getSettings();
         Version versionCreated = IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(tableParameters);
         Version versionUpgraded = tableParameters.getAsVersion(IndexMetadata.SETTING_VERSION_UPGRADED, null);
-        MappingMetadata mapping = index.mapping();
+        MappingMetadata mapping = indexMetadata.mapping();
         Map<String, Object> mappingSource = mapping == null ? Map.of() : mapping.sourceAsMap();
         final Map<String, Object> metaMap = Maps.getOrDefault(mappingSource, "_meta", Map.of());
         final List<ColumnIdent> partitionedBy = parsePartitionedByStringsList(
@@ -185,7 +190,7 @@ public class DocTableInfoFactory {
             ColumnPolicy.fromMappingValue(mappingSource.get("dynamic")),
             versionCreated,
             versionUpgraded,
-            index.getState() == IndexMetadata.State.CLOSE,
+            indexMetadata.getState() == IndexMetadata.State.CLOSE,
             Operation.CLOSED_OPERATIONS
         );
     }

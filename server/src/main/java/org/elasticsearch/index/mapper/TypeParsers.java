@@ -25,14 +25,12 @@ import static io.crate.server.xcontent.XContentMapValues.nodeLongValue;
 import static io.crate.server.xcontent.XContentMapValues.nodeStringValue;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
-import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.lucene.index.IndexOptions;
 import org.elasticsearch.ElasticsearchParseException;
-import org.elasticsearch.index.analysis.NamedAnalyzer;
 
 import io.crate.server.xcontent.XContentMapValues;
 
@@ -44,76 +42,8 @@ public class TypeParsers {
     public static final String INDEX_OPTIONS_POSITIONS = "positions";
     public static final String INDEX_OPTIONS_OFFSETS = "offsets";
 
-    private static void parseAnalyzersAndTermVectors(TextFieldMapper.Builder builder,
-                                                     String name,
-                                                     Map<String, Object> fieldNode,
-                                                     Mapper.TypeParser.ParserContext parserContext) {
-        NamedAnalyzer indexAnalyzer = null;
-        for (Iterator<Map.Entry<String, Object>> iterator = fieldNode.entrySet().iterator(); iterator.hasNext();) {
-            Map.Entry<String, Object> entry = iterator.next();
-            final String propName = entry.getKey();
-            final Object propNode = entry.getValue();
-            if (propName.equals("term_vector")) {
-                parseTermVector(name, propNode.toString(), builder);
-                iterator.remove();
-            } else if (propName.equals("store_term_vectors")) {
-                builder.storeTermVectors(nodeBooleanValue(propNode, name + ".store_term_vectors"));
-                iterator.remove();
-            } else if (propName.equals("store_term_vector_offsets")) {
-                builder.storeTermVectorOffsets(nodeBooleanValue(propNode, name + ".store_term_vector_offsets"));
-                iterator.remove();
-            } else if (propName.equals("store_term_vector_positions")) {
-                builder.storeTermVectorPositions(nodeBooleanValue(name + ".store_term_vector_positions"));
-                iterator.remove();
-            } else if (propName.equals("store_term_vector_payloads")) {
-                builder.storeTermVectorPayloads(nodeBooleanValue(name + ".store_term_vector_payloads"));
-                iterator.remove();
-            } else if (propName.equals("analyzer")) {
-                NamedAnalyzer analyzer = parserContext.getIndexAnalyzers().get(propNode.toString());
-                if (analyzer == null) {
-                    throw new MapperParsingException("analyzer [" + propNode.toString() + "] not found for field [" + name + "]");
-                }
-                indexAnalyzer = analyzer;
-                iterator.remove();
-            }
-        }
-        if (indexAnalyzer != null) {
-            builder.indexAnalyzer(indexAnalyzer);
-        }
-    }
-
     public static void parseNorms(TextFieldMapper.Builder builder, String fieldName, Object propNode) {
         builder.omitNorms(XContentMapValues.nodeBooleanValue(propNode, fieldName + ".norms") == false);
-    }
-
-    /**
-     * Parse text field attributes. In addition to {@link #parseField common attributes}
-     * this will parse analysis and term-vectors related settings.
-     */
-    public static void parseTextField(TextFieldMapper.Builder builder,
-                                      String name,
-                                      Map<String, Object> fieldNode,
-                                      Mapper.TypeParser.ParserContext parserContext) {
-        parseField(builder, name, fieldNode);
-        parseAnalyzersAndTermVectors(builder, name, fieldNode, parserContext);
-        for (Iterator<Map.Entry<String, Object>> iterator = fieldNode.entrySet().iterator(); iterator.hasNext(); ) {
-            Map.Entry<String, Object> entry = iterator.next();
-            final String propName = entry.getKey();
-            final Object propNode = entry.getValue();
-            if ("norms".equals(propName)) {
-                parseNorms(builder, name, propNode);
-                iterator.remove();
-            } else if (propName.equals("sources")) {
-                List<String> sources = new ArrayList<>();
-                assert propNode instanceof List<?> : "index sources must be a list";
-                List<?> nodes = (List<?>) propNode;
-                for (Object node : nodes) {
-                    sources.add(nodeStringValue(node, null));
-                }
-                builder.sources(sources);
-                iterator.remove();
-            }
-        }
     }
 
     /**

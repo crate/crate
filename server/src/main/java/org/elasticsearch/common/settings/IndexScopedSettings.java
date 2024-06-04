@@ -37,11 +37,11 @@ import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.MergePolicyConfig;
 import org.elasticsearch.index.MergeSchedulerConfig;
 import org.elasticsearch.index.engine.EngineConfig;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.store.FsDirectoryFactory;
 import org.elasticsearch.index.store.Store;
 
 import io.crate.blob.v2.BlobIndicesService;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.replication.logical.LogicalReplicationSettings;
 
 /**
@@ -107,8 +107,8 @@ public final class IndexScopedSettings extends AbstractScopedSettings {
         IndexSettings.INDEX_TRANSLOG_RETENTION_SIZE_SETTING,
         IndexSettings.INDEX_SEARCH_IDLE_AFTER,
         Store.INDEX_STORE_STATS_REFRESH_INTERVAL_SETTING,
-        MapperService.INDEX_MAPPING_TOTAL_FIELDS_LIMIT_SETTING,
-        MapperService.INDEX_MAPPING_DEPTH_LIMIT_SETTING,
+        DocTableInfo.TOTAL_COLUMNS_LIMIT,
+        DocTableInfo.DEPTH_LIMIT_SETTING,
         IndexModule.INDEX_STORE_TYPE_SETTING,
         IndexModule.INDEX_QUERY_CACHE_ENABLED_SETTING,
         FsDirectoryFactory.INDEX_LOCK_FACTOR_SETTING,
