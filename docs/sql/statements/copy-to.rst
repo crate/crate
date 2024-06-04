@@ -72,12 +72,7 @@ Parameters
 .. _sql-copy-to-table_ident:
 
 ``table_ident``
-  The name (optionally schema-qualified) of the table to be exported. E.g.
-
-  ::
-
-    cr> COPY quotes TO DIRECTORY '/tmp/';
-    COPY OK, 3 rows affected ...
+  The name (optionally schema-qualified) of the table to be exported.
 
 .. _sql-copy-to-column:
 
