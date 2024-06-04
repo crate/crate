@@ -36,6 +36,7 @@ import java.util.Set;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.common.collections.CartesianList;
 import io.crate.expression.eval.EvaluatingNormalizer;
@@ -64,6 +65,7 @@ import io.crate.types.DataTypes;
 
 public class EqualityExtractor {
 
+    private static final int MAX_ITERATIONS = 10_000;
     private static final Function NULL_MARKER = new Function(
         Signature.scalar("null_marker", DataTypes.UNDEFINED.getTypeSignature()),
         List.of(),
@@ -80,6 +82,11 @@ public class EqualityExtractor {
     public record EqMatches(@Nullable List<List<Symbol>> matches, Set<Symbol> unknowns) {
 
         public static final EqMatches NONE = new EqMatches(null, Set.of());
+    }
+
+    @VisibleForTesting
+    protected int maxIterations() {
+        return MAX_ITERATIONS;
     }
 
     public EqMatches extractParentMatches(List<ColumnIdent> columns, Symbol symbol, @Nullable TransactionContext coordinatorTxnCtx) {
@@ -136,7 +143,12 @@ public class EqualityExtractor {
         List<List<EqProxy>> cp = CartesianList.of(comparisons);
 
         List<List<Symbol>> result = new ArrayList<>();
+        int iterations = 0;
         for (List<EqProxy> proxies : cp) {
+            // Protect against large queries, where the number of combinations to check grows large
+            if (++iterations >= maxIterations()) {
+                break;
+            }
             boolean anyNull = false;
             for (EqProxy proxy : proxies) {
                 if (proxy != NULL_MARKER_PROXY) {
