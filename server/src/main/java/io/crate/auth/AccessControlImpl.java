@@ -147,6 +147,10 @@ public final class AccessControlImpl implements AccessControl {
     @Override
     public void ensureMayExecute(AnalyzedStatement statement) {
         if (!sessionUser.isSuperUser()) {
+            if (roles.findRole(sessionUser.name()) == null) {
+                // Check that user was not dropped in a meantime.
+                throw new IllegalStateException("User \"" + sessionUser.name() + "\" was dropped");
+            }
             statement.accept(
                 new StatementVisitor(
                     roles,
