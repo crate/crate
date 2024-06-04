@@ -4007,7 +4007,26 @@ Example::
     +----------+
     SELECT 1 row in set (... sec)
     
-    
+.. NOTE::
+
+    For unknown tables:
+
+    - Returns ``TRUE`` for superusers.
+
+    - For a user with ``DQL`` on cluster scope, returns ``TRUE`` if the
+      privilege type is ``SELECT``.
+
+    - For a user with ``DML`` on cluster scope, returns ``TRUE`` if the
+      privilege type is ``INSERT``, ``UPDATE`` or ``DELETE``.
+
+    - For a user with ``DQL`` on the schema, returns ``TRUE`` if the privilege
+      type is ``SELECT``.
+
+    - For a user with ``DML`` on the schema, returns ``TRUE`` if the privilege
+      type is ``INSERT``, ``UPDATE`` or ``DELETE``.
+
+    - Returns ``FALSE`` otherwise.
+
 .. _scalar-pg_backend_pid:
 
 ``pg_backend_pid()``

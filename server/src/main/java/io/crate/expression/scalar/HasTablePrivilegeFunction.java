@@ -51,10 +51,16 @@ public class HasTablePrivilegeFunction {
     public static boolean checkByTableOid(Roles roles, Role user, Object table, Collection<Permission> permissions, Schemas schemas) {
         int tableOid = (int) table;
         RelationName relationName = schemas.getRelation(tableOid);
+        String tableFqn;
         if (relationName == null) {
-            throw new IllegalArgumentException("Cannot find corresponding relation by the given oid");
+            // Proceed to checkPrivileges with tableFqn as 'null' which will return 'true' for a superuser or a
+            // user with appropriate cluster scope privileges.
+            // Note that a user with schema privileges will always get a 'false' since we cannot identify the schema
+            // name from the given table oid(since relationName is null, schema name is unknown).
+            tableFqn = null;
+        } else {
+            tableFqn = relationName.fqn();
         }
-        String tableFqn = relationName.fqn();
         return checkPrivileges(roles, user, tableFqn, permissions);
     }
 
