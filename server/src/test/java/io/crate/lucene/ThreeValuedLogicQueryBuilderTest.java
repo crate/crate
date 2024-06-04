@@ -113,4 +113,14 @@ public class ThreeValuedLogicQueryBuilderTest extends LuceneQueryBuilderTest {
         assertThat(convert("NOT (CURRENT_SETTING(name, true))"))
             .hasToString("+(+*:* -pg_catalog.current_setting(name, true)) #(NOT pg_catalog.current_setting(name, true))");
     }
+
+    @Test
+    public void test_not_on_has_privilege_functions() {
+        assertThat(convert("NOT (has_database_privilege(name, 'connect'))"))
+            .hasToString("+(+*:* -pg_catalog.has_database_privilege(name, 'connect')) +FieldExistsQuery [field=name]");
+        assertThat(convert("NOT (has_schema_privilege(name, 'usage'))"))
+            .hasToString("+(+*:* -pg_catalog.has_schema_privilege(name, 'usage')) +FieldExistsQuery [field=name]");
+        assertThat(convert("NOT (has_table_privilege(name, 'select'))"))
+            .hasToString("+(+*:* -pg_catalog.has_table_privilege(name, 'select')) +FieldExistsQuery [field=name]");
+    }
 }
