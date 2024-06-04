@@ -101,3 +101,6 @@ Fixes
 
 - Fixed an issue that could lead to errors when loading data from geo_point
   fields inside nested arrays.
+
+- Fixed an issue that allowed dropped users to run queries if active user was
+  set by ``SET SESSION AUTHORIZATION`` and then dropped.
