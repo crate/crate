@@ -66,6 +66,7 @@ import io.crate.role.RoleManager;
 import io.crate.role.RoleManagerService;
 import io.crate.role.Roles;
 import io.crate.role.Securable;
+import io.crate.role.StubRoleManager;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -756,6 +757,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
             .setUser(normalUser)
             .addSubscription("sub1", "pub1");
         analyze("ALTER SUBSCRIPTION sub1 DISABLE", normalUser);
+
         assertAskedForCluster(Permission.AL);
     }
 
@@ -822,6 +824,22 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     public void test_drop_user_mapping_requires_al() throws Exception {
         analyze("drop user mapping for current_user server pg", normalUser);
         assertAskedForCluster(Permission.AL);
+    }
+
+    @Test
+    public void test_checks_user_existence() {
+        var e = SQLExecutor.builder(clusterService)
+            // Make sure normalUser won't be found and AC is enabled
+            .setRoleManager(new StubRoleManager(List.of(Role.CRATE_USER), true))
+            .build();
+        e.setUser(normalUser);
+
+        // Runs on behalf of "normalUser" but we imitate via StubRoleManager that user was dropped.
+        assertThatThrownBy(
+            () -> e.analyze("SELECT current_user"))
+            .isExactlyInstanceOf(IllegalStateException.class)
+            .hasMessage("User \"normal\" was dropped");
+        ;
     }
 
 }
