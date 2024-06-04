@@ -43,7 +43,7 @@ public class SysPrivilegesIntegrationTest extends BaseRolesIntegrationTest {
     private static final Set<Privilege> PRIVILEGES = new HashSet<>(Arrays.asList(
         new Privilege(Policy.GRANT, Permission.DQL, Securable.CLUSTER, null, "crate"),
         new Privilege(Policy.GRANT, Permission.DML, Securable.CLUSTER, null, "crate")));
-    private static final List<String> USERNAMES = Arrays.asList("ford", "arthur", "normal");
+    private static final List<String> USERNAMES = Arrays.asList("ford", "arthur");
 
 
     @Before
@@ -54,7 +54,7 @@ public class SysPrivilegesIntegrationTest extends BaseRolesIntegrationTest {
 
         RoleManager roleManager = cluster().getInstance(RoleManager.class);
         Long rowCount = roleManager.applyPrivileges(USERNAMES, PRIVILEGES, null).get(5, TimeUnit.SECONDS);
-        assertThat(rowCount).isEqualTo(6);
+        assertThat(rowCount).isEqualTo(4);
     }
 
     @Test
@@ -77,9 +77,7 @@ public class SysPrivilegesIntegrationTest extends BaseRolesIntegrationTest {
             "CLUSTER| arthur| crate| NULL| GRANT| DML",
             "CLUSTER| arthur| crate| NULL| GRANT| DQL",
             "CLUSTER| ford| crate| NULL| GRANT| DML",
-            "CLUSTER| ford| crate| NULL| GRANT| DQL",
-            "CLUSTER| normal| crate| NULL| GRANT| DML",
-            "CLUSTER| normal| crate| NULL| GRANT| DQL");
+            "CLUSTER| ford| crate| NULL| GRANT| DQL");
     }
 
     @Test
@@ -89,8 +87,6 @@ public class SysPrivilegesIntegrationTest extends BaseRolesIntegrationTest {
             "CLUSTER| arthur| crate| NULL| GRANT| DML",
             "CLUSTER| arthur| crate| NULL| GRANT| DQL",
             "CLUSTER| ford| crate| NULL| GRANT| DML",
-            "CLUSTER| ford| crate| NULL| GRANT| DQL",
-            "CLUSTER| normal| crate| NULL| GRANT| DML",
-            "CLUSTER| normal| crate| NULL| GRANT| DQL");
+            "CLUSTER| ford| crate| NULL| GRANT| DQL");
     }
 }

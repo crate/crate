@@ -22,54 +22,34 @@
 package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_OBJECT;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-
-import java.util.Set;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.action.sql.Session;
-import io.crate.action.sql.Sessions;
-import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.role.Permission;
-import io.crate.role.Policy;
-import io.crate.role.Privilege;
-import io.crate.role.Securable;
-import io.crate.role.metadata.RolesHelper;
 import io.crate.testing.Asserts;
 
 @IntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class RoleManagementIntegrationTest extends BaseRolesIntegrationTest {
 
-    private Session grantorUserSession;
-
-    private Session createGrantorUserSession() {
-        Sessions sqlOperations = cluster().getInstance(Sessions.class);
-        var alPriv = new Privilege(
-            Policy.GRANT,
-            Permission.AL,
-            Securable.CLUSTER,
-            null,
-            "crate");
-        return sqlOperations.newSession(null, RolesHelper.userOf("the_grantor", Set.of(alPriv), null));
-    }
+    private static final String GRANTOR_USER = "the_grantor";
 
     @Before
-    public void setUpAdditionalSessions() {
-        grantorUserSession = createGrantorUserSession();
+    public void createGrantorUser() {
+        execute("CREATE USER " + GRANTOR_USER);
+        execute("GRANT AL TO " + GRANTOR_USER);
     }
 
     @After
-    public void closeAdditionalSessions() {
-        grantorUserSession.close();
+    public void cleanUp() {
+        execute("DROP USER " + GRANTOR_USER);
     }
 
     @Test
@@ -88,9 +68,10 @@ public class RoleManagementIntegrationTest extends BaseRolesIntegrationTest {
 
     @Test
     public void test_create_role_with_password_is_not_allowed() {
-        assertThatThrownBy(() -> executeAsSuperuser("create role dummy with (password='pwd')"))
-            .isExactlyInstanceOf(UnsupportedFeatureException.class)
-            .hasMessage("Creating a ROLE with a password is not allowed, use CREATE USER instead");
+        Asserts.assertSQLError(() -> executeAsSuperuser("create role dummy with (password='pwd')"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4004)
+            .hasMessageContaining("Creating a ROLE with a password is not allowed, use CREATE USER instead");
     }
 
     @Test
@@ -126,14 +107,17 @@ public class RoleManagementIntegrationTest extends BaseRolesIntegrationTest {
         assertUserIsCreated("ford");
         executeAsSuperuser("CREATE ROLE a_role");
         assertRoleIsCreated("a_role");
-        execute("GRANT a_role to arthur", null, grantorUserSession);
+        executeAs("GRANT a_role to arthur", GRANTOR_USER);
         executeAsSuperuser(
             "SELECT name, granted_roles, password, superuser FROM sys.users " +
             "WHERE superuser = FALSE ORDER BY name");
         // Every created user is not a superuser
         assertThat(response).hasRows(
             "arthur| [{role=a_role, grantor=the_grantor}]| NULL| false",
-            "ford| []| ********| false");
+            "ford| []| ********| false",
+            "normal| []| NULL| false",
+            "the_grantor| []| NULL| false"
+        );
     }
 
     @Test
@@ -154,7 +138,7 @@ public class RoleManagementIntegrationTest extends BaseRolesIntegrationTest {
         assertRoleIsCreated("role2");
         executeAsSuperuser("CREATE ROLE role3");
         assertRoleIsCreated("role3");
-        execute("GRANT role3, role2 TO role1", null, grantorUserSession);
+        executeAs("GRANT role3, role2 TO role1", GRANTOR_USER);
         executeAsSuperuser("SELECT name, granted_roles FROM sys.roles ORDER BY name");
         assertThat(response).hasRows(
             "role1| [{role=role2, grantor=the_grantor}, {role=role3, grantor=the_grantor}]",
@@ -180,15 +164,19 @@ public class RoleManagementIntegrationTest extends BaseRolesIntegrationTest {
         executeAsSuperuser("SELECT name, password, superuser FROM sys.users WHERE superuser = FALSE ORDER BY name");
         assertThat(response).hasRows(
             "arthur| ********| false",
-            "ford| ********| false");
+            "ford| ********| false",
+            "normal| NULL| false",
+            "the_grantor| NULL| false"
+        );
     }
 
     @Test
     public void testAlterRolePassword() {
         executeAsSuperuser("CREATE ROLE dummy");
-        assertThatThrownBy(() -> executeAsSuperuser("ALTER ROLE dummy SET (password = ?)", new Object[]{"pass"}))
-            .isExactlyInstanceOf(UnsupportedFeatureException.class)
-            .hasMessage("Setting a password to a ROLE is not allowed");
+        Asserts.assertSQLError(() -> executeAsSuperuser("ALTER ROLE dummy SET (password = ?)", new Object[]{"pass"}))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4004)
+            .hasMessageContaining("Setting a password to a ROLE is not allowed");
     }
 
     @Test
@@ -197,13 +185,13 @@ public class RoleManagementIntegrationTest extends BaseRolesIntegrationTest {
         assertUserIsCreated("arthur");
         executeAsSuperuser("ALTER USER arthur SET (password = null)");
         executeAsSuperuser("SELECT name, password, superuser FROM sys.users WHERE superuser = FALSE ORDER BY name");
-        assertThat(response).hasRows("arthur| NULL| false");
+        assertThat(response).hasRows("arthur| NULL| false", "normal| NULL| false", "the_grantor| NULL| false");
     }
 
     @Test
     public void testAlterNonExistingUserThrowsException() {
         Asserts.assertSQLError(() -> executeAsSuperuser("alter user unknown_user set (password = 'unknown')"))
-            .hasPGError(INTERNAL_ERROR)
+            .hasPGError(UNDEFINED_OBJECT)
             .hasHTTPError(NOT_FOUND, 40410)
             .hasMessageContaining("Role 'unknown_user' does not exist");
     }
@@ -224,7 +212,7 @@ public class RoleManagementIntegrationTest extends BaseRolesIntegrationTest {
 
     @Test
     public void testDropUserUnAuthorized() {
-        Asserts.assertSQLError(() -> executeAsNormalUser("drop user ford"))
+        Asserts.assertSQLError(() -> executeAs("drop user ford", NORMAL_USER))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(UNAUTHORIZED, 4011)
             .hasMessageContaining("Missing 'AL' privilege for user 'normal'");
@@ -232,7 +220,7 @@ public class RoleManagementIntegrationTest extends BaseRolesIntegrationTest {
 
     @Test
     public void testCreateUserUnAuthorized() {
-        Asserts.assertSQLError(() -> executeAsNormalUser("create user ford"))
+        Asserts.assertSQLError(() -> executeAs("create user ford", NORMAL_USER))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(UNAUTHORIZED, 4011)
             .hasMessageContaining("Missing 'AL' privilege for user 'normal'");
@@ -240,7 +228,7 @@ public class RoleManagementIntegrationTest extends BaseRolesIntegrationTest {
 
     @Test
     public void testCreateNormalUserUnAuthorized() {
-        Asserts.assertSQLError(() -> executeAsNormalUser("create user ford"))
+        Asserts.assertSQLError(() -> executeAs("create user ford", NORMAL_USER))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(UNAUTHORIZED, 4011)
             .hasMessageContaining("Missing 'AL' privilege for user 'normal'");
@@ -270,7 +258,7 @@ public class RoleManagementIntegrationTest extends BaseRolesIntegrationTest {
     @Test
     public void testDropNonExistingUserThrowsException() {
         Asserts.assertSQLError(() -> executeAsSuperuser("drop user not_exists"))
-            .hasPGError(INTERNAL_ERROR)
+            .hasPGError(UNDEFINED_OBJECT)
             .hasHTTPError(NOT_FOUND, 40410)
             .hasMessageContaining("Role 'not_exists' does not exist");
     }
