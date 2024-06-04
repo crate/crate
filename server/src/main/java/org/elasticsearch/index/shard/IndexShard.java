@@ -57,6 +57,8 @@ import java.util.stream.StreamSupport;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.DelegatingAnalyzerWrapper;
 import org.apache.lucene.index.CheckIndex;
 import org.apache.lucene.index.IndexCommit;
 import org.apache.lucene.index.SegmentInfos;
@@ -104,6 +106,8 @@ import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.VersionType;
+import org.elasticsearch.index.analysis.IndexAnalyzers;
+import org.elasticsearch.index.analysis.NamedAnalyzer;
 import org.elasticsearch.index.codec.CodecService;
 import org.elasticsearch.index.engine.CommitStats;
 import org.elasticsearch.index.engine.Engine;
@@ -162,6 +166,8 @@ import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.dml.TranslogIndexer;
 import io.crate.execution.dml.TranslogMappingUpdateException;
+import io.crate.metadata.IndexReference;
+import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 
 public class IndexShard extends AbstractIndexShardComponent implements IndicesClusterStateService.Shard {
@@ -245,6 +251,8 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     private final AtomicReference<Translog.Location> pendingRefreshLocation = new AtomicReference<>();
     private final RefreshPendingLocationListener refreshPendingLocationListener;
     private volatile boolean useRetentionLeasesInPeerRecovery;
+
+    private final Analyzer indexAnalyzer;
 
     public IndexShard(
             ShardRouting shardRouting,
@@ -332,6 +340,22 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         persistMetadata(path, indexSettings, shardRouting, null, logger);
         this.useRetentionLeasesInPeerRecovery = replicationTracker.hasAllPeerRecoveryRetentionLeases();
         this.refreshPendingLocationListener = new RefreshPendingLocationListener();
+        this.indexAnalyzer = new DelegatingAnalyzerWrapper(Analyzer.PER_FIELD_REUSE_STRATEGY) {
+
+            @Override
+            protected Analyzer getWrappedAnalyzer(String storageIdent) {
+                DocTableInfo docTableInfo = getDocTable.get();
+                Reference reference = docTableInfo.getReference(storageIdent);
+                IndexAnalyzers indexAnalyzers = mapperService.getIndexAnalyzers();
+                if (reference instanceof IndexReference indexRef) {
+                    NamedAnalyzer namedAnalyzer = indexAnalyzers.get(indexRef.analyzer());
+                    return namedAnalyzer == null
+                        ? indexAnalyzers.getDefaultIndexAnalyzer()
+                        : namedAnalyzer;
+                }
+                return indexAnalyzers.getDefaultIndexAnalyzer();
+            }
+        };
     }
 
     public ThreadPool getThreadPool() {
@@ -2663,7 +2687,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             indexSettings,
             store,
             indexSettings.getMergePolicy(),
-            mapperService == null ? null : mapperService.indexAnalyzer(),
+            indexAnalyzer,
             codecService,
             shardEventListener,
             queryCache,

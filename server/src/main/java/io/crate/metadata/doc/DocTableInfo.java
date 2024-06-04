@@ -292,18 +292,23 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     @Nullable
-    public Reference getReference(long oid) {
-        for (var ref : references.values()) {
-            if (ref.oid() == oid) {
-                return ref;
+    public Reference getReference(String storageIdent) {
+        try {
+            long oid = Long.parseLong(storageIdent);
+            for (var ref : references.values()) {
+                if (ref.oid() == oid) {
+                    return ref;
+                }
             }
-        }
-        for (var ref: indexColumns.values()) {
-            if (ref.oid() == oid) {
-                return ref;
+            for (var ref: indexColumns.values()) {
+                if (ref.oid() == oid) {
+                    return ref;
+                }
             }
+            return null;
+        } catch (NumberFormatException ex) {
+            return getReference(ColumnIdent.fromPath(storageIdent));
         }
-        return null;
     }
 
     @Override

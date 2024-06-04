@@ -40,23 +40,17 @@ import io.crate.common.io.IOUtils;
  */
 public final class IndexAnalyzers extends AbstractIndexComponent implements Closeable {
     private final NamedAnalyzer defaultIndexAnalyzer;
-    private final NamedAnalyzer defaultSearchAnalyzer;
-    private final NamedAnalyzer defaultSearchQuoteAnalyzer;
     private final Map<String, NamedAnalyzer> analyzers;
     private final Map<String, NamedAnalyzer> normalizers;
     private final Map<String, NamedAnalyzer> whitespaceNormalizers;
 
     public IndexAnalyzers(IndexSettings indexSettings,
                           NamedAnalyzer defaultIndexAnalyzer,
-                          NamedAnalyzer defaultSearchAnalyzer,
-                          NamedAnalyzer defaultSearchQuoteAnalyzer,
                           Map<String, NamedAnalyzer> analyzers,
                           Map<String, NamedAnalyzer> normalizers,
                           Map<String, NamedAnalyzer> whitespaceNormalizers) {
         super(indexSettings);
         this.defaultIndexAnalyzer = defaultIndexAnalyzer;
-        this.defaultSearchAnalyzer = defaultSearchAnalyzer;
-        this.defaultSearchQuoteAnalyzer = defaultSearchQuoteAnalyzer;
         this.analyzers = unmodifiableMap(analyzers);
         this.normalizers = unmodifiableMap(normalizers);
         this.whitespaceNormalizers = unmodifiableMap(whitespaceNormalizers);
@@ -88,20 +82,6 @@ public final class IndexAnalyzers extends AbstractIndexComponent implements Clos
      */
     public NamedAnalyzer getDefaultIndexAnalyzer() {
         return defaultIndexAnalyzer;
-    }
-
-    /**
-     * Returns the default search analyzer for this index
-     */
-    public NamedAnalyzer getDefaultSearchAnalyzer() {
-        return defaultSearchAnalyzer;
-    }
-
-    /**
-     * Returns the default search quote analyzer for this index
-     */
-    public NamedAnalyzer getDefaultSearchQuoteAnalyzer() {
-        return defaultSearchQuoteAnalyzer;
     }
 
     @Override

@@ -161,7 +161,7 @@ public class MetadataIndexUpgradeService {
                     return Collections.emptySet();
                 }
             };
-            try (IndexAnalyzers fakeIndexAnalzyers = new IndexAnalyzers(indexSettings, fakeDefault, fakeDefault, fakeDefault, analyzerMap, analyzerMap, analyzerMap)) {
+            try (IndexAnalyzers fakeIndexAnalzyers = new IndexAnalyzers(indexSettings, fakeDefault, analyzerMap, analyzerMap, analyzerMap)) {
                 try (var mapperService = new MapperService(
                         indexSettings,
                         fakeIndexAnalzyers,
