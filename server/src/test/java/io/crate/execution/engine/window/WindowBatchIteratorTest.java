@@ -34,6 +34,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.function.LongConsumer;
 import java.util.stream.IntStream;
 import java.util.stream.StreamSupport;
 
@@ -74,6 +75,7 @@ public class WindowBatchIteratorTest {
                 Comparator<Object[]> cmpOrderBy = OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 0, false, false);
                 return WindowFunctionBatchIterator.of(
                     TestingBatchIterators.range(0, 10),
+                    ignored -> {},
                     new IgnoreRowAccounting(),
                     getComputeFrameStart(cmpOrderBy, FrameBound.Type.UNBOUNDED_PRECEDING),
                     getComputeFrameEnd(cmpOrderBy, FrameBound.Type.CURRENT_ROW),
@@ -98,6 +100,7 @@ public class WindowBatchIteratorTest {
                 Comparator<Object[]> cmpOrderBy = OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 0, false, false);
                 return WindowFunctionBatchIterator.of(
                     new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 10), 4, 2, null),
+                    ignored -> {},
                     new IgnoreRowAccounting(),
                     getComputeFrameStart(cmpOrderBy, FrameBound.Type.UNBOUNDED_PRECEDING),
                     getComputeFrameEnd(cmpOrderBy, FrameBound.Type.CURRENT_ROW),
@@ -120,6 +123,7 @@ public class WindowBatchIteratorTest {
         var rows = IntStream.range(0, 10).mapToObj(i -> new Object[]{i, null}).collect(toList());
         var result = StreamSupport.stream(sortAndComputeWindowFunctions(
             new ArrayList<>(rows),
+            ignored -> {},
             getComputeFrameStart(null, FrameBound.Type.UNBOUNDED_PRECEDING),
             getComputeFrameEnd(null, FrameBound.Type.CURRENT_ROW),
             null,
@@ -142,6 +146,7 @@ public class WindowBatchIteratorTest {
         var rowsWithSpare = Lists.map(rows, i -> new Object[] { i, null });
         var result = sortAndComputeWindowFunctions(
             rowsWithSpare,
+            ignored -> {},
             getComputeFrameStart(null, FrameBound.Type.UNBOUNDED_PRECEDING),
             getComputeFrameEnd(null, FrameBound.Type.CURRENT_ROW),
             OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 0, false, false),
@@ -189,6 +194,7 @@ public class WindowBatchIteratorTest {
         Comparator<Object[]> cmpOrderBy = OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 1, false, false);
         var result = sortAndComputeWindowFunctions(
             rows,
+            ignored -> {},
             getComputeFrameStart(cmpOrderBy, FrameBound.Type.UNBOUNDED_PRECEDING),
             getComputeFrameEnd(cmpOrderBy, FrameBound.Type.CURRENT_ROW),
             OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 0, false, false),
@@ -237,6 +243,7 @@ public class WindowBatchIteratorTest {
         Comparator<Object[]> cmpOrderBy = OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 1, false, false);
         var result = sortAndComputeWindowFunctions(
             rows,
+            ignored -> {},
             getComputeFrameStart(cmpOrderBy, FrameBound.Type.CURRENT_ROW),
             getComputeFrameEnd(cmpOrderBy, FrameBound.Type.UNBOUNDED_FOLLOWING),
             OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 0, false, false),
@@ -310,6 +317,7 @@ public class WindowBatchIteratorTest {
         );
         var result = sortAndComputeWindowFunctions(
             rows,
+            ignored -> {},
             getComputeFrameStart(null, FrameBound.Type.CURRENT_ROW),
             getComputeFrameEnd(null, FrameBound.Type.UNBOUNDED_FOLLOWING),
             OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 0, false, false),
@@ -344,6 +352,7 @@ public class WindowBatchIteratorTest {
         RamAccounting ramAccounting = ConcurrentRamAccounting.forCircuitBreaker("test", new NoopCircuitBreaker("dummy"), 0);
         BatchIterator<Row> iterator = WindowFunctionBatchIterator.of(
             TestingBatchIterators.range(0, 10),
+            ignored -> {},
             new TypedRowAccounting(List.of(DataTypes.INTEGER), ramAccounting, 32),
             (partitionStart, partitionEnd, currentIndex, sortedRows) -> 0,
             (partitionStart, partitionEnd, currentIndex, sortedRows) -> currentIndex,
@@ -371,6 +380,7 @@ public class WindowBatchIteratorTest {
         );
         var result = sortAndComputeWindowFunctions(
             rows,
+            ignored -> {},
             (partitionStart, partitionEnd, currentIndex, sortedRows) -> 0,
             (partitionStart, partitionEnd, currentIndex, sortedRows) -> currentIndex,
             null,
@@ -395,7 +405,8 @@ public class WindowBatchIteratorTest {
     private static WindowFunction firstCellValue() {
         return new WindowFunction() {
             @Override
-            public Object execute(int idxInPartition,
+            public Object execute(LongConsumer allocateBytes,
+                                  int idxInPartition,
                                   WindowFrameState currentFrame,
                                   List<? extends CollectExpression<Row, ?>> expressions,
                                   Boolean ignoreNulls,
@@ -418,7 +429,8 @@ public class WindowBatchIteratorTest {
     private static WindowFunction frameBoundsWindowFunction() {
         return new WindowFunction() {
             @Override
-            public Object execute(int idxInPartition,
+            public Object execute(LongConsumer allocateBytes,
+                                  int idxInPartition,
                                   WindowFrameState currentFrame,
                                   List<? extends CollectExpression<Row, ?>> expressions,
                                   Boolean ignoreNulls,
@@ -441,7 +453,8 @@ public class WindowBatchIteratorTest {
     private static WindowFunction rowNumberWindowFunction() {
         return new WindowFunction() {
             @Override
-            public Object execute(int idxInPartition,
+            public Object execute(LongConsumer allocateBytes,
+                                  int idxInPartition,
                                   WindowFrameState currentFrame,
                                   List<? extends CollectExpression<Row, ?>> expressions,
                                   Boolean ignoreNulls,

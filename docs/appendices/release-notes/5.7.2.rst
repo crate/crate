@@ -82,3 +82,9 @@ Fixes
 - Fixed an issue leading to a ``ArrayIndexOutOfBoundsException`` when using a
   correlated sub-query where some of its outputs weren't used in a parent
   query.
+
+- Fixed an issue that could lead to out-of-memory errors when executing
+  ``lead`` or ``lag`` window functions on a large table.
+
+- Fixed an issue that could lead to errors when loading data from geo_point
+  fields inside nested arrays.

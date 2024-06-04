@@ -3914,6 +3914,20 @@ Example::
     +----------+
     SELECT 1 row in set (... sec)
 
+.. NOTE::
+
+    For unknown schemas:
+
+    - Returns ``TRUE`` for superusers.
+
+    - For a user with ``DQL`` on cluster scope, returns ``TRUE`` if the
+      privilege type is ``USAGE``.
+
+    - For a user with ``DML`` on cluster scope, returns ``TRUE`` if the
+      privilege type is ``CREATE``.
+
+    - Returns ``FALSE`` otherwise.
+
 .. _scalar-pg_backend_pid:
 
 ``pg_backend_pid()``

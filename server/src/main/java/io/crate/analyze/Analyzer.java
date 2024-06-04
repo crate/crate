@@ -179,7 +179,8 @@ public class Analyzer {
      *                         instance of the class
      */
     @Inject
-    public Analyzer(NodeContext nodeCtx,
+    public Analyzer(Schemas schemas,
+                    NodeContext nodeCtx,
                     RelationAnalyzer relationAnalyzer,
                     ClusterService clusterService,
                     AnalysisRegistry analysisRegistry,
@@ -189,7 +190,6 @@ public class Analyzer {
                     LogicalReplicationService logicalReplicationService
     ) {
         this.nodeCtx = nodeCtx;
-        Schemas schemas = nodeCtx.schemas();
         this.relationAnalyzer = relationAnalyzer;
         this.dropTableAnalyzer = new DropTableAnalyzer(clusterService, schemas);
         this.dropCheckConstraintAnalyzer = new DropCheckConstraintAnalyzer(schemas);

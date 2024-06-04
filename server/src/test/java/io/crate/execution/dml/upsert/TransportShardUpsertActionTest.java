@@ -124,9 +124,10 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                                                  TasksService tasksService,
                                                  IndicesService indicesService,
                                                  ShardStateAction shardStateAction,
-                                                 NodeContext nodeCtx) {
+                                                 NodeContext nodeCtx,
+                                                 Schemas schemas) {
             super(Settings.EMPTY, threadPool, clusterService, transportService, mock(TransportAddColumnAction.class),
-                tasksService, indicesService, shardStateAction, nodeCtx);
+                tasksService, indicesService, shardStateAction, nodeCtx, schemas);
         }
 
         @Override
@@ -195,7 +196,8 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             mock(TasksService.class),
             indicesService,
             mock(ShardStateAction.class),
-            createNodeContext(schemas, List.of())
+            createNodeContext(),
+            schemas
         );
     }
 

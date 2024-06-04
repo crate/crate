@@ -31,6 +31,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.function.LongConsumer;
 
 import org.elasticsearch.test.ESTestCase;
 import org.hamcrest.Matchers;
@@ -59,6 +60,7 @@ public class WindowFunctionBatchIteratorTest extends ESTestCase {
                 new Object[]{"a", 8, null},
                 new Object[]{"b", 2, null}
             ),
+            ignored -> {},
             (partitionStart, partitionEnd, currentIndex, sortedRows) -> 0,
             (partitionStart, partitionEnd, currentIndex, sortedRows) -> currentIndex,
             OrderingByPosition.arrayOrdering(DataTypes.STRING, 0, false, false),
@@ -68,7 +70,8 @@ public class WindowFunctionBatchIteratorTest extends ESTestCase {
             Runnable::run,
             List.of(new WindowFunction() {
                 @Override
-                public Object execute(int idxInPartition,
+                public Object execute(LongConsumer allocateBytes,
+                                      int idxInPartition,
                                       WindowFrameState currentFrame,
                                       List<? extends CollectExpression<Row, ?>> expressions,
                                       Boolean ignoreNulls,

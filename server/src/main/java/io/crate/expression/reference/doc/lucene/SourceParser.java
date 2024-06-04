@@ -175,7 +175,7 @@ public final class SourceParser {
             //   "s" string
             //   )))));
             //   SELECT a['b'] from test; -- resolves to array(array(object))
-            while (type instanceof ArrayType) {
+            if (type instanceof ArrayType) {
                 type = ((ArrayType<?>) type).innerType();
             }
             for (; token != null && token != XContentParser.Token.END_ARRAY; token = parser.nextToken()) {

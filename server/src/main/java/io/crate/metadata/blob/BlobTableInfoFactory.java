@@ -29,6 +29,7 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.Index;
@@ -51,6 +52,7 @@ public class BlobTableInfoFactory {
     private final Path[] dataFiles;
     private final Path globalBlobPath;
 
+    @Inject
     public BlobTableInfoFactory(Settings settings, Environment environment) {
         this.dataFiles = environment.dataFiles();
         this.globalBlobPath = BlobIndicesService.getGlobalBlobPath(settings);

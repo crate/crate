@@ -21,7 +21,6 @@
 
 package io.crate.execution.engine.collect.sources;
 
-import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
@@ -46,10 +45,13 @@ import io.crate.execution.engine.collect.CollectTask;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 import io.crate.role.Role;
+import io.crate.role.Roles;
 
 public class FileCollectSourceTest extends CrateDummyClusterServiceUnitTest {
 
@@ -85,8 +87,9 @@ public class FileCollectSourceTest extends CrateDummyClusterServiceUnitTest {
             Settings.EMPTY
         );
 
+        Roles roles = () -> List.of(Role.CRATE_USER);
         FileCollectSource fileCollectSource = new FileCollectSource(
-            createNodeContext(),
+            new NodeContext(new Functions(Map.of()), roles),
             clusterService,
             Map.of(),
             THREAD_POOL,

@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,35 +19,50 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.metadata;
+package io.crate.testing;
 
-import io.crate.role.Roles;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
+import io.crate.data.breaker.RamAccounting;
 
-@Singleton
-public class NodeContext {
+public class PlainRamAccounting implements RamAccounting {
 
-    private final Functions functions;
-    private final long serverStartTimeInMs;
-    private final Roles roles;
+    long total;
+    long breakingThreshold;
+    boolean closed;
 
-    @Inject
-    public NodeContext(Functions functions, Roles roles) {
-        this.functions = functions;
-        this.serverStartTimeInMs = SystemClock.currentInstant().toEpochMilli();;
-        this.roles = roles;
+    public PlainRamAccounting() {
+        this.breakingThreshold = -1;
     }
 
-    public Functions functions() {
-        return functions;
+    public PlainRamAccounting(long breakingThreshold) {
+        this.breakingThreshold = breakingThreshold;
     }
 
-    public long serverStartTimeInMs() {
-        return serverStartTimeInMs;
+    @Override
+    public void addBytes(long bytes) {
+        total += bytes;
+        if (breakingThreshold != -1 && total > breakingThreshold) {
+            // break when more than two block sizes have been added to the Sketch
+            throw new RuntimeException("Circuit break! " + total);
+        }
+
     }
 
-    public Roles roles() {
-        return roles;
+    @Override
+    public long totalBytes() {
+        return total;
+    }
+
+    @Override
+    public void release() {
+        total = 0;
+    }
+
+    @Override
+    public void close() {
+        closed = true;
+    }
+
+    public boolean closed() {
+        return closed;
     }
 }

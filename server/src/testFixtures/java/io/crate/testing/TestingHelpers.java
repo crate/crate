@@ -215,18 +215,13 @@ public class TestingHelpers {
     }
 
     public static NodeContext createNodeContext() {
-        return createNodeContext(null, List.of(Role.CRATE_USER));
+        return createNodeContext(List.of(Role.CRATE_USER));
     }
 
     public static NodeContext createNodeContext(List<Role> roles) {
-        return createNodeContext(null, roles);
-    }
-
-    public static NodeContext createNodeContext(Schemas schemas, List<Role> roles) {
         return new NodeContext(
             Functions.load(Settings.EMPTY, new SessionSettingRegistry(Set.of(LoadedRules.INSTANCE))),
-            () -> roles,
-            nodeContext -> schemas
+            () -> roles
         );
     }
 
