@@ -58,7 +58,7 @@ public class UserSessionIntegrationTest extends BaseRolesIntegrationTest {
 
     @Test
     public void test_set_session_user_from_auth_superuser_to_unprivileged_user_round_trip() {
-        try (var session = createSuperUserSession()) {
+        try (var session = sqlExecutor.newSession()) {
             execute("SELECT SESSION_USER", session);
             assertThat(response).hasRows("crate");
 
