@@ -544,7 +544,6 @@ public class Node implements Closeable {
                 pluginsService,
                 nodeEnvironment,
                 analysisModule.getAnalysisRegistry(),
-                indicesModule.getMapperRegistry(),
                 threadPool,
                 settingsModule.getIndexScopedSettings(),
                 circuitBreakerService,

@@ -19,12 +19,8 @@
 
 package org.elasticsearch.index.mapper;
 
-import static org.elasticsearch.index.mapper.TypeParsers.parseField;
-
 import java.io.IOException;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 import org.apache.lucene.document.FieldType;
@@ -32,8 +28,6 @@ import org.apache.lucene.index.IndexOptions;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.jetbrains.annotations.Nullable;
-
-import io.crate.server.xcontent.XContentMapValues;
 
 /**
  * A field mapper for keywords. This mapper accepts strings and indexes them as-is.
@@ -114,27 +108,6 @@ public final class KeywordFieldMapper extends FieldMapper {
             );
             context.putPositionInfo(mapper, position);
             return mapper;
-        }
-    }
-
-    public static class TypeParser implements Mapper.TypeParser {
-        @Override
-        public Mapper.Builder parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
-            KeywordFieldMapper.Builder builder = new KeywordFieldMapper.Builder(name);
-            parseField(builder, name, node);
-            for (Iterator<Map.Entry<String, Object>> iterator = node.entrySet().iterator(); iterator.hasNext();) {
-                Map.Entry<String, Object> entry = iterator.next();
-                String propName = entry.getKey();
-                Object propNode = entry.getValue();
-                if (propName.equals("length_limit")) {
-                    builder.lengthLimit(XContentMapValues.nodeIntegerValue(propNode, -1));
-                    iterator.remove();
-                } else if (propName.equals("blank_padding")) {
-                    builder.blankPadding(XContentMapValues.nodeBooleanValue(propNode));
-                    iterator.remove();
-                }
-            }
-            return builder;
         }
     }
 

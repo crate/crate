@@ -19,12 +19,10 @@
 
 package org.elasticsearch.index.mapper;
 
-import static org.elasticsearch.index.mapper.TypeParsers.parseTextField;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexOptions;
@@ -144,16 +142,6 @@ public class TextFieldMapper extends FieldMapper {
         }
 
 
-    }
-
-    public static class TypeParser implements Mapper.TypeParser {
-        @Override
-        public Mapper.Builder parse(String fieldName, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
-            TextFieldMapper.Builder builder = new TextFieldMapper.Builder(fieldName);
-            builder.indexAnalyzer(parserContext.getIndexAnalyzers().getDefaultIndexAnalyzer());
-            parseTextField(builder, fieldName, node, parserContext);
-            return builder;
-        }
     }
 
     @NotNull

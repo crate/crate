@@ -42,7 +42,6 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.translog.Translog;
 
 import io.crate.common.unit.TimeValue;
@@ -51,6 +50,7 @@ import io.crate.metadata.IndexMappings;
 import io.crate.metadata.PartitionInfo;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
+import io.crate.metadata.doc.DocTableInfo;
 
 public class InformationPartitionsTableInfo {
 
@@ -111,7 +111,7 @@ public class InformationPartitionsTableInfo {
 
                 .startObject("mapping")
                     .startObject("total_fields")
-                        .add("limit", INTEGER, fromSetting(MapperService.INDEX_MAPPING_TOTAL_FIELDS_LIMIT_SETTING, INTEGER::sanitizeValue))
+                        .add("limit", INTEGER, fromSetting(DocTableInfo.TOTAL_COLUMNS_LIMIT, INTEGER::sanitizeValue))
                     .endObject()
                 .endObject()
 

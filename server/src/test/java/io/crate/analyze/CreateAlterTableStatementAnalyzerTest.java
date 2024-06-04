@@ -26,6 +26,7 @@ import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.ANALYZER;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_ROUTING_EXCLUDE_GROUP_SETTING;
 import static org.elasticsearch.index.engine.EngineConfig.INDEX_CODEC_SETTING;
@@ -46,7 +47,6 @@ import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDeci
 import org.elasticsearch.cluster.routing.allocation.decider.MaxRetryAllocationDecider;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -72,6 +72,7 @@ import io.crate.metadata.IndexReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.node.ddl.AlterTablePlan;
 import io.crate.planner.node.ddl.CreateBlobTablePlan;
@@ -291,7 +292,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         BoundCreateTable analysis = analyze(
             "CREATE TABLE foo (id int primary key) " +
             "with (\"mapping.total_fields.limit\"=5000)");
-        assertThat(analysis.tableParameter().settings().get(MapperService.INDEX_MAPPING_TOTAL_FIELDS_LIMIT_SETTING.getKey()))
+        assertThat(analysis.tableParameter().settings().get(DocTableInfo.TOTAL_COLUMNS_LIMIT.getKey()))
             .isEqualTo("5000");
     }
 
@@ -343,14 +344,14 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         BoundAlterTable analysisSet = analyze(
             "ALTER TABLE users " +
             "SET (\"mapping.total_fields.limit\" = '5000')");
-        assertThat(analysisSet.tableParameter().settings().get(MapperService.INDEX_MAPPING_TOTAL_FIELDS_LIMIT_SETTING.getKey()))
+        assertThat(analysisSet.tableParameter().settings().get(DocTableInfo.TOTAL_COLUMNS_LIMIT.getKey()))
             .isEqualTo("5000");
 
         // Check if resetting total_fields results in default value
         BoundAlterTable analysisReset = analyze(
             "ALTER TABLE users " +
             "RESET (\"mapping.total_fields.limit\")");
-        assertThat(analysisReset.tableParameter().settings().get(MapperService.INDEX_MAPPING_TOTAL_FIELDS_LIMIT_SETTING.getKey()))
+        assertThat(analysisReset.tableParameter().settings().get(DocTableInfo.TOTAL_COLUMNS_LIMIT.getKey()))
             .isEqualTo("1000");
     }
 

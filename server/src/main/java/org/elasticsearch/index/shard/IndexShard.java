@@ -120,7 +120,6 @@ import org.elasticsearch.index.engine.ReadOnlyEngine;
 import org.elasticsearch.index.engine.RefreshFailedEngineException;
 import org.elasticsearch.index.engine.SafeCommitInfo;
 import org.elasticsearch.index.engine.Segment;
-import org.elasticsearch.index.mapper.DocumentMapper;
 import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.SourceToParse;
@@ -3370,12 +3369,12 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
 
             @Override
             public ParsedDocument newDeleteTombstoneDoc(String id) {
-                return DocumentMapper.createDeleteTombstoneDoc(shardId.getIndexName(), id);
+                return ParsedDocument.createDeleteTombstoneDoc(shardId.getIndexName(), id);
             }
 
             @Override
             public ParsedDocument newNoopTombstoneDoc(String reason) {
-                return DocumentMapper.createNoopTombstoneDoc(shardId.getIndexName(), reason);
+                return ParsedDocument.createNoopTombstoneDoc(shardId.getIndexName(), reason);
             }
         };
     }

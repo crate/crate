@@ -92,7 +92,6 @@ import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
 import org.elasticsearch.index.cache.query.DisabledQueryCache;
 import org.elasticsearch.index.engine.EngineFactory;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.seqno.RetentionLeaseSyncer;
 import org.elasticsearch.index.shard.IndexEventListener;
 import org.elasticsearch.index.shard.IndexShard;
@@ -100,7 +99,6 @@ import org.elasticsearch.index.shard.IndexingOperationListener;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.indices.cluster.IndicesClusterStateService;
-import org.elasticsearch.indices.mapper.MapperRegistry;
 import org.elasticsearch.indices.recovery.PeerRecoveryTargetService;
 import org.elasticsearch.indices.recovery.RecoveryState;
 import org.elasticsearch.node.Node;
@@ -147,7 +145,6 @@ public class IndicesService extends AbstractLifecycleComponent
     private volatile Map<String, IndexService> indices = emptyMap();
     private final Map<Index, List<PendingDelete>> pendingDeletes = new HashMap<>();
     private final AtomicInteger numUncompletedDeletes = new AtomicInteger();
-    private final MapperRegistry mapperRegistry;
     private final NodeContext nodeContext;
     private final IndexingMemoryController indexingMemoryController;
     private final QueryCache indicesQueryCache;
@@ -176,7 +173,6 @@ public class IndicesService extends AbstractLifecycleComponent
                           PluginsService pluginsService,
                           NodeEnvironment nodeEnv,
                           AnalysisRegistry analysisRegistry,
-                          MapperRegistry mapperRegistry,
                           ThreadPool threadPool,
                           IndexScopedSettings indexScopedSettings,
                           CircuitBreakerService circuitBreakerService,
@@ -192,7 +188,6 @@ public class IndicesService extends AbstractLifecycleComponent
         this.shardsClosedTimeout = settings.getAsTime(INDICES_SHARDS_CLOSED_TIMEOUT, new TimeValue(1, TimeUnit.DAYS));
         this.analysisRegistry = analysisRegistry;
         this.indicesQueryCache = IndicesQueryCache.createCache(settings);
-        this.mapperRegistry = mapperRegistry;
         indexingMemoryController = new IndexingMemoryController(
             settings,
             threadPool,
@@ -465,22 +460,8 @@ public class IndicesService extends AbstractLifecycleComponent
             bigArrays,
             threadPool,
             indicesQueryCache,
-            () -> schemas.getTableInfo(RelationName.fromIndexName(indexName)),
-            mapperRegistry
+            () -> schemas.getTableInfo(RelationName.fromIndexName(indexName))
         );
-    }
-
-    /**
-     * creates a new mapper service for the given index, in order to do administrative work like mapping updates.
-     * This *should not* be used for document parsing. Doing so will result in an exception.
-     *
-     * Note: the returned {@link MapperService} should be closed when unneeded.
-     */
-    public synchronized MapperService createIndexMapperService(IndexMetadata indexMetadata) throws IOException {
-        final IndexSettings idxSettings = new IndexSettings(indexMetadata, this.settings, indexScopedSettings);
-        final IndexModule indexModule = new IndexModule(idxSettings, analysisRegistry, engineFactoryProviders, directoryFactories);
-        pluginsService.onIndexModule(indexModule);
-        return indexModule.newIndexMapperService(mapperRegistry);
     }
 
     /**
@@ -1079,17 +1060,6 @@ public class IndicesService extends AbstractLifecycleComponent
         (Index index, IndexSettings indexSettings) -> canDeleteIndexContents(index, indexSettings);
     private final IndexDeletionAllowedPredicate ALWAYS_TRUE = (Index index, IndexSettings indexSettings) -> true;
 
-
-    /**
-     * Returns true if the provided field is a registered metadata field (including ones registered via plugins), false otherwise.
-     */
-    public boolean isMetadataField(String field) {
-        return mapperRegistry.isMetadataField(field);
-    }
-
-    public MapperRegistry getMapperRegistry() {
-        return mapperRegistry;
-    }
 
     private void updateDanglingIndicesInfo(Index index) {
         assert DiscoveryNode.isDataNode(settings) : "dangling indices information should only be persisted on data nodes";

@@ -20,7 +20,6 @@
 package org.elasticsearch.index.mapper;
 
 import java.io.IOException;
-import java.util.Map;
 
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexOptions;
@@ -49,18 +48,6 @@ public class IdFieldMapper extends MetadataFieldMapper {
             FIELD_TYPE.setStored(true);
             FIELD_TYPE.setOmitNorms(true);
             FIELD_TYPE.freeze();
-        }
-    }
-
-    public static class TypeParser implements MetadataFieldMapper.TypeParser {
-        @Override
-        public MetadataFieldMapper.Builder parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
-            throw new MapperParsingException(NAME + " is not configurable");
-        }
-
-        @Override
-        public MetadataFieldMapper getDefault(ParserContext context) {
-            return new IdFieldMapper(Defaults.FIELD_TYPE);
         }
     }
 
