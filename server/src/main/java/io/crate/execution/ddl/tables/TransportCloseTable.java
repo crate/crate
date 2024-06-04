@@ -449,14 +449,10 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
 
         @Override
         public ClusterState execute(final ClusterState currentState) throws Exception {
-            AlterTableTarget target = AlterTableTarget.resolve(
+            var alterTableTarget = AlterTableTarget.of(currentState, request.table(), request.partition());
+            var updatedState = closeRoutingTable(
                 currentState,
-                request.table(),
-                request.partition()
-            );
-            final ClusterState updatedState = closeRoutingTable(
-                currentState,
-                target,
+                alterTableTarget,
                 ddlClusterStateService,
                 blockedIndices,
                 results
