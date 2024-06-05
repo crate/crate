@@ -56,19 +56,22 @@ public class HostBasedAuthHandler extends ChannelInboundHandlerAdapter {
 
         Channel channel = ctx.channel();
         InetAddress remoteAddress = Netty4HttpServerTransport.getRemoteAddress(channel);
+        String userName = Role.CRATE_USER.name();
+        var credentials = new Credentials(userName, null);
         ConnectionProperties connectionProperties = new ConnectionProperties(
+            credentials,
             remoteAddress,
             Protocol.TRANSPORT,
             SSL.getSession(channel)
         );
-        String userName = Role.CRATE_USER.name();
+
         var authMethod = authentication.resolveAuthenticationType(userName, connectionProperties);
         if (authMethod == null) {
             authError = new AuthenticationException("No valid auth.host_based entry found for: " + remoteAddress);
             closeAndThrowException(ctx, msg, authError);
         }
         try {
-            authMethod.authenticate(new Credentials(userName, null), connectionProperties);
+            authMethod.authenticate(credentials, connectionProperties);
             ctx.pipeline().remove(this);
             super.channelRead(ctx, msg);
         } catch (Exception e) {
