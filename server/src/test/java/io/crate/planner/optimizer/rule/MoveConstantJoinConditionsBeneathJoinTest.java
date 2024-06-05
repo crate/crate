@@ -33,6 +33,7 @@ import org.junit.Test;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.expression.operator.AndOperator;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RelationName;
 import io.crate.planner.operators.Collect;
@@ -61,19 +62,19 @@ public class MoveConstantJoinConditionsBeneathJoinTest extends CrateDummyCluster
     }
 
     @Test
-    public void test_move_constant_join_condition_beneath_join_plan() {
+    public void test_move_constant_join_condition_beneath_inner_join() {
         var t1 = (AbstractTableRelation<?>) sources.get(T3.T1);
         var t2 = (AbstractTableRelation<?>) sources.get(T3.T2);
 
-        Collect c1 = new Collect(t1, Collections.emptyList(), WhereClause.MATCH_ALL);
-        Collect c2 = new Collect(t2, Collections.emptyList(), WhereClause.MATCH_ALL);
+        Collect lhs = new Collect(t1, Collections.emptyList(), WhereClause.MATCH_ALL);
+        Collect rhs = new Collect(t2, Collections.emptyList(), WhereClause.MATCH_ALL);
 
         // This condition has a non-constant part `doc.t1.x = doc.t2.y` and a constant part `doc.t2.b = 'abc'`
         var joinCondition = sqlExpressions.asSymbol("doc.t1.x = doc.t2.y and doc.t2.b = 'abc'");
         var nonConstantPart = sqlExpressions.asSymbol("doc.t1.x = doc.t2.y");
         var constantPart = sqlExpressions.asSymbol("doc.t2.b = 'abc'");
 
-        JoinPlan jp = new JoinPlan(c1, c2, JoinType.INNER, joinCondition);
+        JoinPlan jp = new JoinPlan(lhs, rhs, JoinType.INNER, joinCondition);
         var rule = new MoveConstantJoinConditionsBeneathJoin();
         Match<JoinPlan> match = rule.pattern().accept(jp, Captures.empty());
 
@@ -89,9 +90,77 @@ public class MoveConstantJoinConditionsBeneathJoinTest extends CrateDummyCluster
             UnaryOperator.identity());
 
         assertThat(result.joinCondition()).isEqualTo(nonConstantPart);
-        assertThat(result.lhs()).isEqualTo(c1);
+        assertThat(result.lhs()).isEqualTo(lhs);
         Filter filter = (Filter) result.rhs();
-        assertThat(filter.source()).isEqualTo(c2);
+        assertThat(filter.source()).isEqualTo(rhs);
+        assertThat(filter.query()).isEqualTo(constantPart);
+    }
+
+    @Test
+    public void test_move_constant_join_condition_beneath_left_join() {
+        var t1 = (AbstractTableRelation<?>) sources.get(T3.T1);
+        var t2 = (AbstractTableRelation<?>) sources.get(T3.T2);
+
+        Collect lhs = new Collect(t1, Collections.emptyList(), WhereClause.MATCH_ALL);
+        Collect rhs = new Collect(t2, Collections.emptyList(), WhereClause.MATCH_ALL);
+
+        // This condition has a non-constant part `doc.t1.x = doc.t2.y` and a constant part `doc.t2.b = 'abc'`
+        var nonConstantPart = sqlExpressions.asSymbol("doc.t1.x = doc.t2.y");
+        var constantPart = sqlExpressions.asSymbol("doc.t1.a = 'abc'");
+
+        JoinPlan jp = new JoinPlan(lhs, rhs, JoinType.LEFT, AndOperator.of(nonConstantPart,constantPart));
+        var rule = new MoveConstantJoinConditionsBeneathJoin();
+        Match<JoinPlan> match = rule.pattern().accept(jp, Captures.empty());
+
+        assertThat(match.isPresent()).isTrue();
+        assertThat(match.value()).isEqualTo(jp);
+
+        JoinPlan result = (JoinPlan) rule.apply(
+            match.value(),
+            match.captures(),
+            planStats,
+            CoordinatorTxnCtx.systemTransactionContext(),
+            sqlExpressions.nodeCtx,
+            UnaryOperator.identity());
+
+        assertThat(result.joinCondition()).isEqualTo(nonConstantPart);
+        assertThat(result.rhs()).isEqualTo(rhs);
+        Filter filter = (Filter) result.lhs();
+        assertThat(filter.source()).isEqualTo(lhs);
+        assertThat(filter.query()).isEqualTo(constantPart);
+    }
+
+    @Test
+    public void test_move_constant_join_condition_beneath_right_join() {
+        var t1 = (AbstractTableRelation<?>) sources.get(T3.T1);
+        var t2 = (AbstractTableRelation<?>) sources.get(T3.T2);
+
+        Collect lhs = new Collect(t1, Collections.emptyList(), WhereClause.MATCH_ALL);
+        Collect rhs = new Collect(t2, Collections.emptyList(), WhereClause.MATCH_ALL);
+
+        // This condition has a non-constant part `doc.t1.x = doc.t2.y` and a constant part `doc.t2.b = 'abc'`
+        var nonConstantPart = sqlExpressions.asSymbol("doc.t1.x = doc.t2.y");
+        var constantPart = sqlExpressions.asSymbol("doc.t2.b = 'abc'");
+
+        JoinPlan jp = new JoinPlan(lhs, rhs, JoinType.RIGHT, AndOperator.of(nonConstantPart,constantPart));
+        var rule = new MoveConstantJoinConditionsBeneathJoin();
+        Match<JoinPlan> match = rule.pattern().accept(jp, Captures.empty());
+
+        assertThat(match.isPresent()).isTrue();
+        assertThat(match.value()).isEqualTo(jp);
+
+        JoinPlan result = (JoinPlan) rule.apply(
+            match.value(),
+            match.captures(),
+            planStats,
+            CoordinatorTxnCtx.systemTransactionContext(),
+            sqlExpressions.nodeCtx,
+            UnaryOperator.identity());
+
+        assertThat(result.joinCondition()).isEqualTo(nonConstantPart);
+        assertThat(result.lhs()).isEqualTo(lhs);
+        Filter filter = (Filter) result.rhs();
+        assertThat(filter.source()).isEqualTo(rhs);
         assertThat(filter.query()).isEqualTo(constantPart);
     }
 }
