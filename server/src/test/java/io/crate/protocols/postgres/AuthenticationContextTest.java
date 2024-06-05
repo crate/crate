@@ -47,8 +47,13 @@ public class AuthenticationContextTest extends ESTestCase {
     public void testAuthenticationContextCycle() throws Exception {
         String userName = "crate";
         char[] passwd = "passwd".toCharArray();
+        var credentials = new Credentials(userName, passwd);
         ConnectionProperties connProperties = new ConnectionProperties(
-            InetAddress.getByName("127.0.0.1"), Protocol.POSTGRES, null);
+            credentials,
+            InetAddress.getByName("127.0.0.1"),
+            Protocol.POSTGRES,
+            null
+        );
         AuthenticationMethod authMethod = AUTHENTICATION.resolveAuthenticationType(userName, connProperties);
         AuthenticationContext authContext = new AuthenticationContext(
             authMethod, connProperties, new Credentials(userName, null), LogManager.getLogger(AuthenticationContextTest.class));

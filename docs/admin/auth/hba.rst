@@ -108,10 +108,11 @@ For example, a host based configuration can look like this:
 
    In the ``auth.host_based.config`` setting, the order of the entries is
    defined by the natural order of the group keys of the setting. The
-   authentication method of the first entry that matches the client user and
-   address will be used. If the authentication attempt fails, subsequent
-   entries will not be considered. The entry look-up order is determined by the
-   ``order`` identifier of each entry.
+   authentication method of the first entry that matches the client user,
+   address, protocol and connection properties will be used. If the
+   authentication attempt fails, subsequent entries will not be considered.
+   The entry look-up order is determined by the  ``order`` identifier of each
+   entry.
 
 In the example above:
 

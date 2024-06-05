@@ -104,3 +104,14 @@ Fixes
 
 - Fixed an issue that allowed dropped users to run queries if active user was
   set by ``SET SESSION AUTHORIZATION`` and then dropped.
+
+- Fixed an issue leading to authentication errors when
+  :ref:`Host-Based Authentication <admin_hba>` was enabled and had entries
+  matching multiple authentication methods simultaneously, e.g.::
+
+    auth.host_based.config.1.method=password
+    auth.host_based.config.2.method=jwt
+    auth.host_based.config.2.protocol=http
+
+  This example configuration were rejecting authentication via JWT as only
+  the first entry was checked.

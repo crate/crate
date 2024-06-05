@@ -24,6 +24,8 @@ package io.crate.auth;
 import java.security.cert.Certificate;
 import java.util.Objects;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.protocols.SSL;
@@ -32,6 +34,8 @@ import io.crate.role.Role;
 import io.crate.role.Roles;
 
 public class ClientCertAuth implements AuthenticationMethod {
+
+    private static final Logger LOGGER = LogManager.getLogger(ConnectionProperties.class);
 
     static final String NAME = "cert";
     private final Roles roles;
@@ -58,6 +62,7 @@ public class ClientCertAuth implements AuthenticationMethod {
                     "Common name \"" + commonName + "\" in client certificate doesn't match username \"" + username + "\"");
             }
         }
+        LOGGER.debug("Client certificate not available");
         throw new RuntimeException("Client certificate authentication failed for user \"" + username + "\"");
     }
 

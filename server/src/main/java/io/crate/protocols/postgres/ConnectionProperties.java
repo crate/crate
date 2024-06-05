@@ -21,32 +21,72 @@
 
 package io.crate.protocols.postgres;
 
+import io.crate.auth.Credentials;
 import io.crate.auth.Protocol;
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
 
 import org.jetbrains.annotations.Nullable;
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
 import java.net.InetAddress;
 import java.security.cert.Certificate;
+import java.util.ArrayList;
+import java.util.List;
 
 public class ConnectionProperties {
-
-    private static final Logger LOGGER = LogManager.getLogger(ConnectionProperties.class);
 
     private final InetAddress address;
     private final Protocol protocol;
     private final boolean hasSSL;
+    private final List<ClientMethod> clientMethods;
+    private final Certificate certificate;
 
-    @Nullable
-    private final SSLSession sslSession;
+    public enum ClientMethod {
+        CERT,
+        PASSWORD,
+        JWT,
+        TRUST
+    }
 
-    public ConnectionProperties(InetAddress address, Protocol protocol, @Nullable SSLSession sslSession) {
+    public ConnectionProperties(Credentials credentials,
+                                InetAddress address,
+                                Protocol protocol,
+                                @Nullable SSLSession sslSession) {
         this.address = address;
         this.protocol = protocol;
         this.hasSSL = sslSession != null;
-        this.sslSession = sslSession;
+        Certificate cert = null;
+        if (sslSession != null) {
+            try {
+                cert = sslSession.getPeerCertificates()[0];
+            } catch (ArrayIndexOutOfBoundsException | SSLPeerUnverifiedException e) {
+                cert = null;
+            }
+        }
+        this.certificate = cert;
+        this.clientMethods = new ArrayList<>();
+
+        // We never resolve this method from connection properties.
+        // It should be always added to match entries with explicit "trust" declaration
+        clientMethods.add(ClientMethod.TRUST);
+
+        if (certificate != null) {
+            clientMethods.add(ClientMethod.CERT);
+        }
+        if (credentials.password() != null || Protocol.POSTGRES.equals(protocol)) {
+            // The PG protocol will not give any hints at this stage if password will be used, so we always enable support for it.
+            clientMethods.add(ConnectionProperties.ClientMethod.PASSWORD);
+        }
+        if (credentials.decodedToken() != null) {
+            clientMethods.add(ConnectionProperties.ClientMethod.JWT);
+        }
+    }
+
+    /**
+     * Order of methods is not important.
+     * Only HBA order matters.
+     */
+    public List<ClientMethod> clientMethods() {
+        return clientMethods;
     }
 
     public boolean hasSSL() {
@@ -61,15 +101,8 @@ public class ConnectionProperties {
         return protocol;
     }
 
+    @Nullable
     public Certificate clientCert() {
-        // This logic isn't in the constructor to prevent logging in case of SSL without (expected) client-certificate auth
-        if (sslSession != null) {
-            try {
-                return sslSession.getPeerCertificates()[0];
-            } catch (ArrayIndexOutOfBoundsException | SSLPeerUnverifiedException e) {
-                LOGGER.debug("Client certificate not available", e);
-            }
-        }
-        return null;
+        return certificate;
     }
 }
