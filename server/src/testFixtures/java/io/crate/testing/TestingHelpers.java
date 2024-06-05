@@ -423,7 +423,9 @@ public class TestingHelpers {
             boundCreateTable.getCheckConstraints(),
             boundCreateTable.partitionedBy(),
             tableColumnPolicy,
-            boundCreateTable.routingColumn().equals(DocSysColumns.ID) ? null : boundCreateTable.routingColumn().fqn()
+            boundCreateTable.routingColumn().equals(DocSysColumns.ID.COLUMN)
+                ? null
+                : boundCreateTable.routingColumn().fqn()
         );
 
     }

@@ -142,7 +142,7 @@ public final class EqOperator extends Operator<Object> {
     @Nullable
     @SuppressWarnings("unchecked")
     public static Query termsQuery(String column, DataType<?> type, Collection<?> values, boolean hasDocValues, IndexType indexType) {
-        if (column.equals(DocSysColumns.ID.name())) {
+        if (column.equals(DocSysColumns.ID.COLUMN.name())) {
             ArrayList<BytesRef> bytesRefs = new ArrayList<>(values.size());
             for (Object value : values) {
                 if (value != null) {
@@ -226,7 +226,7 @@ public final class EqOperator extends Operator<Object> {
     @Nullable
     @SuppressWarnings("unchecked")
     public static Query fromPrimitive(DataType<?> type, String column, Object value, boolean hasDocValues, IndexType indexType) {
-        if (column.equals(DocSysColumns.ID.name())) {
+        if (column.equals(DocSysColumns.ID.COLUMN.name())) {
             return new TermQuery(new Term(column, Uid.encodeId((String) value)));
         }
         StorageSupport<?> storageSupport = type.storageSupport();

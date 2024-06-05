@@ -22,13 +22,13 @@
 package io.crate.execution.dml;
 
 import static io.crate.testing.Asserts.assertThat;
+import static io.crate.types.GeoShapeType.Names.TREE_BKD;
+import static io.crate.types.GeoShapeType.Names.TREE_GEOHASH;
+import static io.crate.types.GeoShapeType.Names.TREE_LEGACY_QUADTREE;
+import static io.crate.types.GeoShapeType.Names.TREE_QUADTREE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
-import static org.elasticsearch.index.mapper.GeoShapeFieldMapper.Names.TREE_BKD;
-import static org.elasticsearch.index.mapper.GeoShapeFieldMapper.Names.TREE_GEOHASH;
-import static org.elasticsearch.index.mapper.GeoShapeFieldMapper.Names.TREE_LEGACY_QUADTREE;
-import static org.elasticsearch.index.mapper.GeoShapeFieldMapper.Names.TREE_QUADTREE;
 
 import java.util.ArrayList;
 import java.util.Arrays;

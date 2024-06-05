@@ -94,9 +94,7 @@ import org.elasticsearch.common.util.concurrent.ReleasableLock;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.fieldvisitor.IDVisitor;
-import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.ParsedDocument;
-import org.elasticsearch.index.mapper.SourceFieldMapper;
 import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.merge.OnGoingMerge;
 import org.elasticsearch.index.seqno.LocalCheckpointTracker;
@@ -630,7 +628,7 @@ public class InternalEngine extends Engine {
 
     @Override
     public GetResult get(Get get, BiFunction<String, SearcherScope, Engine.Searcher> searcherFactory) throws EngineException {
-        assert Objects.equals(get.uid().field(), IdFieldMapper.NAME) : get.uid().field();
+        assert Objects.equals(get.uid().field(), DocSysColumns.Names.ID) : get.uid().field();
         try (ReleasableLock ignored = readLock.acquire()) {
             ensureOpen();
             VersionValue versionValue = null;
@@ -867,7 +865,7 @@ public class InternalEngine extends Engine {
 
     @Override
     public IndexResult index(Index index) throws IOException {
-        assert Objects.equals(index.uid().field(), IdFieldMapper.NAME) : index.uid().field();
+        assert Objects.equals(index.uid().field(), DocSysColumns.Names.ID) : index.uid().field();
         final boolean doThrottle = index.origin().isRecovery() == false;
         try (ReleasableLock releasableLock = readLock.acquire()) {
             ensureOpen();
@@ -1285,7 +1283,7 @@ public class InternalEngine extends Engine {
     @Override
     public DeleteResult delete(Delete delete) throws IOException {
         versionMap.enforceSafeAccess();
-        assert Objects.equals(delete.uid().field(), IdFieldMapper.NAME) : delete.uid().field();
+        assert Objects.equals(delete.uid().field(), DocSysColumns.Names.ID) : delete.uid().field();
         assert assertIncomingSequenceNumber(delete.origin(), delete.seqNo());
         final boolean doThrottle = delete.origin().isRecovery() == false;
         final DeleteResult deleteResult;
@@ -2289,12 +2287,12 @@ public class InternalEngine extends Engine {
         iwc.setSoftDeletesField(Lucene.SOFT_DELETES_FIELD);
         if (softDeleteEnabled) {
             mergePolicy = new RecoverySourcePruneMergePolicy(
-                SourceFieldMapper.RECOVERY_SOURCE_NAME,
+                DocSysColumns.Source.RECOVERY_NAME,
                 softDeletesPolicy::getRetentionQuery,
                 new SoftDeletesRetentionMergePolicy(
                     Lucene.SOFT_DELETES_FIELD,
                     softDeletesPolicy::getRetentionQuery,
-                    new PrunePostingsMergePolicy(mergePolicy, IdFieldMapper.NAME)
+                    new PrunePostingsMergePolicy(mergePolicy, DocSysColumns.Names.ID)
                 )
             );
         }
@@ -2866,7 +2864,7 @@ public class InternalEngine extends Engine {
             final LeafReader reader = leaf.reader();
             final StoredFields storedFields = reader.storedFields();
             final CombinedDocValues dv = new CombinedDocValues(reader);
-            final IDVisitor idFieldVisitor = new IDVisitor(IdFieldMapper.NAME);
+            final IDVisitor idFieldVisitor = new IDVisitor(DocSysColumns.Names.ID);
             final DocIdSetIterator iterator = scorer.iterator();
             int docId;
             while ((docId = iterator.nextDoc()) != DocIdSetIterator.NO_MORE_DOCS) {
@@ -2880,7 +2878,7 @@ public class InternalEngine extends Engine {
                     assert dv.isTombstone(docId);
                     continue;
                 }
-                final BytesRef uid = new Term(IdFieldMapper.NAME, Uid.encodeId(idFieldVisitor.getId())).bytes();
+                final BytesRef uid = new Term(DocSysColumns.Names.ID, Uid.encodeId(idFieldVisitor.getId())).bytes();
                 try (Releasable ignored = versionMap.acquireLock(uid)) {
                     final VersionValue curr = versionMap.getUnderLock(uid);
                     if (curr == null ||

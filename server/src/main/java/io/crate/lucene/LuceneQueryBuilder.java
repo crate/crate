@@ -287,7 +287,7 @@ public class LuceneQueryBuilder {
                     if (ref.column().equals(DocSysColumns.UID)) {
                         return new Function(
                             function.signature(),
-                            List.of(DocSysColumns.forTable(ref.ident().tableIdent(), DocSysColumns.ID), right),
+                            List.of(DocSysColumns.forTable(ref.ident().tableIdent(), DocSysColumns.ID.COLUMN), right),
                             function.valueType()
                         );
                     } else {

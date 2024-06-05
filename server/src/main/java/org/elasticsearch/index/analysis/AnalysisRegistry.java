@@ -38,12 +38,12 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.mapper.TextFieldMapper;
 import org.elasticsearch.indices.analysis.AnalysisModule;
 import org.elasticsearch.indices.analysis.AnalysisModule.AnalysisProvider;
 import org.elasticsearch.indices.analysis.PreBuiltAnalyzers;
 
 import io.crate.common.io.IOUtils;
+import io.crate.types.StringType;
 
 /**
  * An internal registry for tokenizer, token filter, char filter and analyzer.
@@ -525,7 +525,7 @@ public final class AnalysisRegistry implements Closeable {
          * and 100 afterwards so we override the positionIncrementGap if it
          * doesn't match here.
          */
-        int overridePositionIncrementGap = TextFieldMapper.Defaults.POSITION_INCREMENT_GAP;
+        int overridePositionIncrementGap = StringType.POSITION_INCREMENT_GAP;
         if (analyzerFactory instanceof CustomAnalyzerProvider customAnalyzerProvider) {
             customAnalyzerProvider.build(tokenizers, charFilters, tokenFilters);
             /*

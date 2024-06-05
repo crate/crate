@@ -64,8 +64,6 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.common.unit.Fuzziness;
-import org.elasticsearch.index.mapper.KeywordFieldMapper;
-import org.elasticsearch.index.mapper.NumberFieldMapper;
 import org.elasticsearch.index.shard.ShardId;
 import org.hamcrest.Matchers;
 import org.jetbrains.annotations.Nullable;
@@ -76,6 +74,7 @@ import com.carrotsearch.randomizedtesting.RandomizedTest;
 import io.crate.analyze.OrderBy;
 import io.crate.data.Row;
 import io.crate.data.breaker.RamAccounting;
+import io.crate.execution.dml.StringIndexer;
 import io.crate.execution.engine.distribution.merge.KeyIterable;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
@@ -99,7 +98,6 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         0,
         null
     );
-    private final NumberFieldMapper.NumberType fieldType = NumberFieldMapper.NumberType.LONG;
 
     private Directory createLuceneIndex() throws IOException {
         Path tmpDir = newTempDir();
@@ -278,8 +276,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
     @Test
     public void testSearchMoreAppliesMinScoreFilter() throws Exception {
         IndexWriter w = new IndexWriter(new ByteBuffersDirectory(), new IndexWriterConfig(new KeywordAnalyzer()));
-        var keywordFieldType = new KeywordFieldMapper.KeywordFieldType("x");
-        var fieldType = KeywordFieldMapper.Defaults.FIELD_TYPE;
+        var fieldType = StringIndexer.FIELD_TYPE;
 
         for (int i = 0; i < 3; i++) {
             addDoc(w, "x", fieldType, "Arthur");
@@ -320,8 +317,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
     public void testSearchNoScores() throws Exception {
         IndexWriter w = new IndexWriter(new ByteBuffersDirectory(), new IndexWriterConfig(new KeywordAnalyzer()));
         String name = "x";
-        var keywordFieldType = new KeywordFieldMapper.KeywordFieldType(name);
-        var fieldType = KeywordFieldMapper.Defaults.FIELD_TYPE;
+        var fieldType = StringIndexer.FIELD_TYPE;
 
         for (int i = 0; i < 3; i++) {
             addDoc(w, name, fieldType, "Arthur");
@@ -347,7 +343,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
     public void testSearchWithScores() throws Exception {
         IndexWriter w = new IndexWriter(new ByteBuffersDirectory(), new IndexWriterConfig(new KeywordAnalyzer()));
 
-        FieldType fieldType = KeywordFieldMapper.Defaults.FIELD_TYPE;
+        FieldType fieldType = StringIndexer.FIELD_TYPE;
         for (int i = 0; i < 3; i++) {
             addDoc(w, "x", fieldType, "Arthur");
         }
