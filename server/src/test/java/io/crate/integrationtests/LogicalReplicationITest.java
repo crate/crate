@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
@@ -69,8 +68,7 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         executeOnPublisher("DROP USER " + publicationOwner);
         assertThatThrownBy(() -> executeOnPublisherAsUser("CREATE PUBLICATION pub1 FOR TABLE doc.t1", user))
             .isExactlyInstanceOf(IllegalStateException.class)
-            .hasMessageContaining(
-                    "Publication 'pub1' cannot be created as the user 'publication_owner' owning the publication has been dropped.");
+            .hasMessage("User \"publication_owner\" was dropped");
     }
 
 
@@ -89,8 +87,7 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         executeOnSubscriber("DROP USER " + subscriptionOwner);
         assertThatThrownBy(() -> createSubscriptionAsUser("sub1", "pub1", user))
             .isExactlyInstanceOf(IllegalStateException.class)
-            .hasMessageContaining(
-                    "Subscription 'sub1' cannot be created as the user 'subscription_owner' owning the subscription has been dropped.");
+            .hasMessage("User \"subscription_owner\" was dropped");
     }
 
     @Test
