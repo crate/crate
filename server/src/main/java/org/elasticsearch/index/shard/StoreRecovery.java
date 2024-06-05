@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.Logger;
@@ -50,7 +51,6 @@ import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.EngineException;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.snapshots.IndexShardRestoreFailedException;
 import org.elasticsearch.index.store.Store;
@@ -70,10 +70,12 @@ final class StoreRecovery {
 
     private final Logger logger;
     private final ShardId shardId;
+    private final Consumer<IndexMetadata> validateSchema;
 
-    StoreRecovery(ShardId shardId, Logger logger) {
+    StoreRecovery(ShardId shardId, Logger logger, Consumer<IndexMetadata> validateSchema) {
         this.logger = logger;
         this.shardId = shardId;
+        this.validateSchema = validateSchema;
     }
 
     /**
@@ -118,8 +120,8 @@ final class StoreRecovery {
                 throw new IllegalArgumentException("can't add shards from more than one index");
             }
             IndexMetadata sourceMetadata = shards.get(0).getIndexMetadata();
-            indexShard.mapperService().merge(sourceMetadata, MapperService.MergeReason.MAPPING_RECOVERY);
-            // now that the mapping is merged we can validate the index sort configuration.
+            validateSchema.accept(sourceMetadata);
+
             final boolean isSplit = sourceMetadata.getNumberOfShards() < indexShard.indexSettings().getNumberOfShards();
             ActionListener.completeWith(recoveryListener(indexShard, listener), () -> {
                 logger.debug("starting recovery from local shards {}", shards);

@@ -505,7 +505,7 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
             AllocatedIndex<? extends Shard> indexService = null;
             try {
                 indexService = indicesService.createIndex(indexMetadata, buildInIndexListener, true);
-                indexService.updateMapping(null, indexMetadata);
+                indexService.validateMapping(indexMetadata);
             } catch (Exception e) {
                 final String failShardReason;
                 if (indexService == null) {
@@ -543,7 +543,7 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
                     }
 
                     reason = "mapping update failed";
-                    indexService.updateMapping(currentIndexMetadata, newIndexMetadata);
+                    indexService.validateMapping(newIndexMetadata);
                 } catch (Exception e) {
                     indicesService.removeIndex(indexService.index(), FAILURE, "removing index (" + reason + ")");
 
@@ -838,7 +838,7 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
         /**
          * Checks if index requires refresh from master.
          */
-        boolean updateMapping(IndexMetadata currentIndexMetadata, IndexMetadata newIndexMetadata) throws IOException;
+        void validateMapping(IndexMetadata newIndexMetadata) throws IOException;
 
         /**
          * Returns shard with given id.

@@ -32,7 +32,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.index.mapper.DocumentMapper;
 
 import io.crate.Constants;
 import io.crate.server.xcontent.XContentHelper;
@@ -43,10 +42,6 @@ import io.crate.server.xcontent.XContentHelper;
 public class MappingMetadata extends AbstractDiffable<MappingMetadata> {
 
     private final CompressedXContent source;
-
-    public MappingMetadata(DocumentMapper docMapper) {
-        this.source = docMapper.mappingSource();
-    }
 
     public MappingMetadata(CompressedXContent mapping) throws IOException {
         this.source = mapping;

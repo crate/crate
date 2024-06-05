@@ -19,13 +19,10 @@
 
 package org.elasticsearch.index.mapper;
 
-import java.util.Map;
 import java.util.Objects;
-import java.util.function.Function;
 
 import org.elasticsearch.cluster.metadata.ColumnPositionResolver;
 import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.index.analysis.IndexAnalyzers;
 
 public abstract class Mapper implements ToXContentFragment, Iterable<Mapper> {
 
@@ -53,10 +50,6 @@ public abstract class Mapper implements ToXContentFragment, Iterable<Mapper> {
                                                                   (m, p) -> m.position = p,
                                                                   contentPath.currentDepth());
             }
-        }
-
-        public void updateRootObjectMapperWithPositionInfo(RootObjectMapper rootObjectMapper) {
-            rootObjectMapper.updateColumnPositionResolver(this.columnPositionResolver);
         }
     }
 
@@ -92,37 +85,6 @@ public abstract class Mapper implements ToXContentFragment, Iterable<Mapper> {
         public void setDropped(boolean isDropped) {
             this.isDropped = isDropped;
         }
-    }
-
-    public interface TypeParser {
-
-        class ParserContext {
-
-            private final MapperService mapperService;
-
-            private final Function<String, TypeParser> typeParsers;
-
-            public ParserContext(MapperService mapperService,
-                                 Function<String, TypeParser> typeParsers) {
-                this.mapperService = mapperService;
-                this.typeParsers = typeParsers;
-            }
-
-            public IndexAnalyzers getIndexAnalyzers() {
-                return mapperService.getIndexAnalyzers();
-            }
-
-            public MapperService mapperService() {
-                return mapperService;
-            }
-
-            public TypeParser typeParser(String type) {
-                return typeParsers.apply(type);
-            }
-        }
-
-        Mapper.Builder parse(String name, Map<String, Object> node, ParserContext parserContext)
-            throws MapperParsingException;
     }
 
     private final String simpleName;

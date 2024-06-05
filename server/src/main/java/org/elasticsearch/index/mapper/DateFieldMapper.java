@@ -19,12 +19,8 @@
 
 package org.elasticsearch.index.mapper;
 
-import static io.crate.server.xcontent.XContentMapValues.nodeBooleanValue;
-
 import java.io.IOException;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 import org.apache.lucene.document.FieldType;
@@ -98,31 +94,6 @@ public class DateFieldMapper extends FieldMapper {
                 copyTo);
             context.putPositionInfo(mapper, position);
             return mapper;
-        }
-    }
-
-    public static class TypeParser implements Mapper.TypeParser {
-
-        public TypeParser() {
-        }
-
-        @Override
-        public Mapper.Builder parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
-            Builder builder = new Builder(name);
-            TypeParsers.parseField(builder, name, node);
-            for (Iterator<Map.Entry<String, Object>> iterator = node.entrySet().iterator(); iterator.hasNext();) {
-                Map.Entry<String, Object> entry = iterator.next();
-                String propName = entry.getKey();
-                Object propNode = entry.getValue();
-                if (propName.equals("format")) {
-                    builder.format(propNode.toString());
-                    iterator.remove();
-                } else if (propName.equals("ignore_timezone")) {
-                    builder.ignoreTimezone(nodeBooleanValue(propNode, "ignore_timezone"));
-                    iterator.remove();
-                }
-            }
-            return builder;
         }
     }
 

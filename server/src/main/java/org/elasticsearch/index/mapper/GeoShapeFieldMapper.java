@@ -19,20 +19,14 @@
 
 package org.elasticsearch.index.mapper;
 
-import static io.crate.server.xcontent.XContentMapValues.nodeBooleanValue;
-import static io.crate.server.xcontent.XContentMapValues.nodeIntegerValue;
-import static io.crate.server.xcontent.XContentMapValues.nodeLongValue;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.io.IOException;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexOptions;
 import org.elasticsearch.common.geo.GeoUtils;
-import org.elasticsearch.common.geo.builders.ShapeBuilder;
 import org.elasticsearch.common.geo.builders.ShapeBuilder.Orientation;
 import org.elasticsearch.common.unit.DistanceUnit;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -154,45 +148,6 @@ public class GeoShapeFieldMapper extends FieldMapper {
 
         public void setOrientation(Orientation orientation) {
             this.orientation = orientation;
-        }
-    }
-
-    public static class TypeParser implements Mapper.TypeParser {
-
-        @Override
-        public Mapper.Builder parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
-            Builder builder = new Builder(name);
-            for (Iterator<Map.Entry<String, Object>> iterator = node.entrySet().iterator(); iterator.hasNext();) {
-                Map.Entry<String, Object> entry = iterator.next();
-                String fieldName = entry.getKey();
-                Object fieldNode = entry.getValue();
-                if (Names.TREE.equals(fieldName)) {
-                    builder.setTree(fieldNode.toString());
-                    iterator.remove();
-                } else if (Names.TREE_LEVELS.equals(fieldName)) {
-                    builder.setTreeLevels(Integer.parseInt(fieldNode.toString()));
-                    iterator.remove();
-                } else if (Names.TREE_PRESISION.equals(fieldName)) {
-                    builder.setPrecisionInMeters(DistanceUnit.parse(fieldNode.toString(), DistanceUnit.DEFAULT, DistanceUnit.DEFAULT));
-                    iterator.remove();
-                } else if (Names.DISTANCE_ERROR_PCT.equals(fieldName)) {
-                    builder.setDistanceErrorPct(Double.parseDouble(fieldNode.toString()));
-                    iterator.remove();
-                } else if (Names.ORIENTATION.equals(fieldName)) {
-                    builder.setOrientation(ShapeBuilder.Orientation.fromString(fieldNode.toString()));
-                    iterator.remove();
-                } else if ("position".equals(fieldName)) {
-                    builder.position(nodeIntegerValue(fieldNode));
-                    iterator.remove();
-                } else if ("oid".equals(fieldName)) {
-                    builder.columnOID(nodeLongValue(fieldNode));
-                    iterator.remove();
-                } else if ("dropped".equals(fieldName)) {
-                    builder.setDropped(nodeBooleanValue(fieldNode));
-                    iterator.remove();
-                }
-            }
-            return builder;
         }
     }
 

@@ -26,7 +26,6 @@ import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
-import static org.elasticsearch.index.mapper.MapperService.MergeReason.MAPPING_RECOVERY;
 import static org.elasticsearch.index.shard.IndexShardTestCase.EMPTY_EVENT_LISTENER;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -61,10 +60,10 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.MapperTestUtils;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.cache.query.DisabledQueryCache;
 import org.elasticsearch.index.engine.Engine;
@@ -207,7 +206,7 @@ public abstract class AggregationTestCase extends ESTestCase {
             }
         }
         List<Reference> targetColumns = toReference(actualArgumentTypes);
-        var shard = newStartedPrimaryShard(targetColumns, threadPool);
+        var shard = newStartedPrimaryShard(nodeCtx, targetColumns, threadPool);
         var refResolver = new LuceneReferenceResolver(
             shard.shardId().getIndexName(),
             List.of()
@@ -425,10 +424,11 @@ public abstract class AggregationTestCase extends ESTestCase {
     /**
      * Creates a new empty primary shard and starts it.
      */
-    public static IndexShard newStartedPrimaryShard(List<Reference> targetColumns,
+    public static IndexShard newStartedPrimaryShard(NodeContext nodeCtx,
+                                                    List<Reference> targetColumns,
                                                     ThreadPool threadPool) throws Exception {
         var mapping = buildMapping(targetColumns);
-        IndexShard shard = newPrimaryShard(mapping, threadPool);
+        IndexShard shard = newPrimaryShard(nodeCtx, mapping, threadPool);
         shard.markAsRecovering(
             "store",
             new RecoveryState(
@@ -467,7 +467,7 @@ public abstract class AggregationTestCase extends ESTestCase {
      * Creates a new initializing primary shard.
      * The shard will have its own unique data path.
      */
-    private static IndexShard newPrimaryShard(XContentBuilder mapping, ThreadPool threadPool) throws IOException {
+    private static IndexShard newPrimaryShard(NodeContext nodeCtx, XContentBuilder mapping, ThreadPool threadPool) throws IOException {
         ShardRouting routing = TestShardRouting.newShardRouting(
             new ShardId("index", UUIDs.base64UUID(), 0),
             randomAlphaOfLength(10),
@@ -494,14 +494,18 @@ public abstract class AggregationTestCase extends ESTestCase {
             nodePath.resolve(shardId),
             shardId
         );
-        return newPrimaryShard(routing, shardPath, indexMetadata, threadPool);
+        return newPrimaryShard(nodeCtx, routing, shardPath, indexMetadata, threadPool);
     }
 
-    private static IndexShard newPrimaryShard(ShardRouting routing,
+    private static IndexShard newPrimaryShard(NodeContext nodeCtx,
+                                              ShardRouting routing,
                                               ShardPath shardPath,
                                               IndexMetadata indexMetadata,
                                               ThreadPool threadPool) throws IOException {
-        var indexSettings = new IndexSettings(indexMetadata, Settings.EMPTY);
+        Settings settings = Settings.builder()
+            .put(Environment.PATH_HOME_SETTING.getKey(), createTempDir())
+            .build();
+        var indexSettings = new IndexSettings(indexMetadata, settings);
         var queryCache = DisabledQueryCache.instance();
         var store = new Store(
             shardPath.getShardId(),
@@ -509,21 +513,17 @@ public abstract class AggregationTestCase extends ESTestCase {
             newFSDirectory(shardPath.resolveIndex()),
             new DummyShardLock(shardPath.getShardId())
         );
-        var mapperService = MapperTestUtils.newMapperService(
-            createTempDir(),
-            indexSettings.getSettings(),
-            routing.getIndexName()
-        );
-        mapperService.merge(indexMetadata, MAPPING_RECOVERY);
+        TestAnalysis testAnalysis = createTestAnalysis(indexSettings, indexSettings.getSettings());
         IndexShard shard = null;
         try {
             shard = new IndexShard(
+                nodeCtx,
                 routing,
                 indexSettings,
                 shardPath,
                 store,
                 queryCache,
-                mapperService,
+                testAnalysis.indexAnalyzers,
                 () -> null,
                 List.of(),
                 EMPTY_EVENT_LISTENER,
@@ -531,8 +531,7 @@ public abstract class AggregationTestCase extends ESTestCase {
                 BigArrays.NON_RECYCLING_INSTANCE,
                 List.of(),
                 () -> { },
-                RetentionLeaseSyncer.EMPTY,
-                new NoneCircuitBreakerService()
+                RetentionLeaseSyncer.EMPTY, new NoneCircuitBreakerService()
             );
         } catch (IOException e) {
             IOUtils.close(store);

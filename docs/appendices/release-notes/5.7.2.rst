@@ -52,6 +52,19 @@ Security Fixes
 Fixes
 =====
 
+- Fixed an issue leading to slow query processing during the analysis phase,
+  when the ``WHERE``` clause of a query contains columns of a
+  :ref:`PRIMARY KEY <constraints-primary-key>` and combines them using complex
+  logical expressions, e.g.::
+
+      SELECT * FROM t WHERE pk_col1 = ? AND pk_col2 = ? OR
+                            pk_col1 = ? AND pk_col2 = ? OR
+                            ...
+
+- Fixed an issue leading to a ``UnsupportedFeatureException`` when using a
+  correlated sub-query in a case function as part of a select statement where
+  some of its outputs weren't used in the outer-query.
+
 - Fixed an issue leading to a ``ArrayIndexOutOfBoundsException``  instead of a
   user friendly error message when the ``WHERE``` clause of a query contains
   all columns of a :ref:`PRIMARY KEY <constraints-primary-key>`, uses

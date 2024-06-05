@@ -22,7 +22,6 @@ package org.elasticsearch.index.mapper;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.util.List;
-import java.util.Map;
 
 import org.apache.lucene.document.FieldType;
 
@@ -31,18 +30,6 @@ import org.apache.lucene.document.FieldType;
  * A mapper for a builtin field containing metadata about a document.
  */
 public abstract class MetadataFieldMapper extends FieldMapper {
-
-    public interface TypeParser extends Mapper.TypeParser {
-
-        @Override
-        MetadataFieldMapper.Builder parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException;
-
-        /**
-         * Get the default {@link MetadataFieldMapper} to use, if nothing had to be parsed.
-         * @param parserContext context that may be useful to build the field like analyzers
-         */
-        MetadataFieldMapper getDefault(ParserContext parserContext);
-    }
 
     public abstract static class Builder extends FieldMapper.Builder {
         public Builder(String name, FieldType fieldType) {

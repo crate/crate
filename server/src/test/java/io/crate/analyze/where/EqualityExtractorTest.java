@@ -26,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Map;
+import java.util.StringJoiner;
 
 import org.junit.Test;
 
@@ -383,5 +384,34 @@ public class EqualityExtractorTest extends EqualityExtractorBaseTest {
         assertThat(matches).isNull();
         matches = analyzeExactX(query("x = 1 AND (x = 2 AND (NOT(x = 3) OR i = 1) AND x = 4)"));
         assertThat(matches).isNull();
+    }
+
+    @Test
+    public void test_pk_extraction_breaks_after_x_iterations() {
+        StringJoiner sj = new StringJoiner(" or ");
+        for (int j = 0; j < 50; j++) {
+            sj.add("x = ? AND i = ?");
+        }
+
+        EqualityExtractor extractor = new EqualityExtractor(normalizer) {
+            @Override
+            protected int maxIterations() {
+                return 1;
+            }
+        };
+
+        var matches = extractor.extractMatches(
+            List.of(x, i), query(sj.toString()), coordinatorTxnCtx).matches();
+        assertThat(matches).isNull();
+
+        extractor = new EqualityExtractor(normalizer) {
+            @Override
+            protected int maxIterations() {
+                return 100;
+            }
+        };
+        matches = extractor.extractMatches(
+            List.of(x, i), query(sj.toString()), coordinatorTxnCtx).matches();
+        assertThat(matches).isNotNull();
     }
 }

@@ -55,6 +55,7 @@ public abstract class DocLevelExpressionsTest extends CrateDummyClusterServiceUn
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable(createTableStatement);
         indexEnv = new IndexEnv(
+            e.nodeCtx,
             THREAD_POOL,
             (DocTableInfo) StreamSupport.stream(e.schemas().spliterator(), false)
                 .filter(x -> x instanceof DocSchemaInfo)
@@ -64,8 +65,7 @@ public abstract class DocLevelExpressionsTest extends CrateDummyClusterServiceUn
                 .getTables()
                 .iterator()
                 .next(),
-            clusterService.state(),
-            Version.CURRENT
+            clusterService.state(), Version.CURRENT
         );
         IndexWriter writer = indexEnv.writer();
         insertValues(writer);

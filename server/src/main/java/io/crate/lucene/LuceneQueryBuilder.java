@@ -203,13 +203,8 @@ public class LuceneQueryBuilder {
         }
 
         @Nullable
-        public Reference getRef(String field) {
-            try {
-                long oid = Long.parseLong(field);
-                return table.getReference(oid);
-            } catch (NumberFormatException ex) {
-                return getRef(ColumnIdent.fromPath(field));
-            }
+        public Reference getRef(String storageIdent) {
+            return table.getReference(storageIdent);
         }
 
         @Nullable
