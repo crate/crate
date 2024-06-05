@@ -538,20 +538,19 @@ public class Node implements Closeable {
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
             final IndicesService indicesService = new IndicesService(
+                nodeContext,
                 settings,
                 clusterService,
                 pluginsService,
                 nodeEnvironment,
                 analysisModule.getAnalysisRegistry(),
-                indicesModule.getMapperRegistry(),
                 threadPool,
                 settingsModule.getIndexScopedSettings(),
                 circuitBreakerService,
                 bigArrays,
                 metaStateService,
                 engineFactoryProviders,
-                indexStoreFactories,
-                nodeContext.schemas());
+                indexStoreFactories);
 
             final ShardLimitValidator shardLimitValidator = new ShardLimitValidator(settings, clusterService);
             final MetadataCreateIndexService metadataCreateIndexService = new MetadataCreateIndexService(
@@ -626,8 +625,7 @@ public class Node implements Closeable {
                 customMetadataUpgraders,
                 indexTemplateMetadataUpgraders);
             final MetadataIndexUpgradeService metadataIndexUpgradeService = new MetadataIndexUpgradeService(
-                settings,
-                indicesModule.getMapperRegistry(),
+                nodeContext,
                 settingsModule.getIndexScopedSettings(),
                 indexMetadataUpgraders);
             final Netty4Transport transport = new Netty4Transport(

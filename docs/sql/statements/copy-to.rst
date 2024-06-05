@@ -78,7 +78,13 @@ Parameters
 
 ``column``
   (optional) A list of column :ref:`expressions <gloss-expression>` that should
-  be exported.
+  be exported. E.g.
+
+  ::
+
+    cr> COPY quotes (quote, author) TO DIRECTORY '/tmp/';
+    COPY OK, 3 rows affected ...
+
 
   .. NOTE::
 
@@ -154,6 +160,15 @@ partition to export.
 
 The ``WHERE`` clauses use the same syntax as ``SELECT`` statements, allowing
 partial exports. (see :ref:`sql_dql_where_clause` for more information).
+
+
+Example of using ``WHERE`` clause with 
+:ref:`comparison operators <comparison-operators-where>` for partial export:
+
+::
+  
+  cr> COPY quotes WHERE category = 'philosophy' TO DIRECTORY '/tmp/';
+  COPY OK, 3 rows affected ...
 
 
 .. _sql-copy-to-to:

@@ -21,12 +21,65 @@ package org.elasticsearch.index.mapper;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
+import org.apache.lucene.document.NumericDocValuesField;
+import org.apache.lucene.document.StoredField;
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
+
+import io.crate.metadata.doc.DocSysColumns;
 
 /**
  * The result of parsing a document.
  */
 public class ParsedDocument {
+
+    public static ParsedDocument createDeleteTombstoneDoc(String index, String id) throws MapperParsingException {
+        Document doc = new Document();
+
+        BytesRef idBytes = Uid.encodeId(id);
+        doc.add(new Field(DocSysColumns.Names.ID, idBytes, IdFieldMapper.Defaults.FIELD_TYPE));
+
+        NumericDocValuesField version = new NumericDocValuesField(DocSysColumns.VERSION.name(), -1L);
+        doc.add(version);
+
+        SequenceIDFields seqID = SequenceIDFields.emptySeqID();
+        doc.add(seqID.seqNo);
+        doc.add(seqID.seqNoDocValue);
+        doc.add(seqID.primaryTerm);
+        return new ParsedDocument(
+            version,
+            seqID,
+            id,
+            doc,
+            new BytesArray("{}")
+        ).toTombstone();
+    }
+
+    public static ParsedDocument createNoopTombstoneDoc(String index, String reason) throws MapperParsingException {
+        Document doc = new Document();
+
+        final String id = ""; // _id won't be used.
+
+        NumericDocValuesField version = new NumericDocValuesField(DocSysColumns.VERSION.name(), -1L);
+        doc.add(version);
+
+        SequenceIDFields seqID = SequenceIDFields.emptySeqID();
+        doc.add(seqID.seqNo);
+        doc.add(seqID.seqNoDocValue);
+        doc.add(seqID.primaryTerm);
+        ParsedDocument parsedDoc = new ParsedDocument(
+            version,
+            seqID,
+            id,
+            doc,
+            new BytesArray("{}")
+        ).toTombstone();
+        // Store the reason of a noop as a raw string in the _source field
+        final BytesRef byteRef = new BytesRef(reason);
+        doc.add(new StoredField(SourceFieldMapper.NAME, byteRef.bytes, byteRef.offset, byteRef.length));
+        return parsedDoc;
+    }
 
     private final Field version;
 

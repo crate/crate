@@ -28,6 +28,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.resolveCanonicalString;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.arrayContaining;
 import static org.hamcrest.Matchers.containsString;
@@ -418,10 +419,10 @@ public class SysShardsTest extends IntegTestCase {
         logger.info("---> Closing table doc.tbl");
         execute("alter table doc.tbl close");
         execute("select id, closed from sys.shards where table_name = 'tbl' order by id asc");
-        assertThat(response.rows()[0][0]).isEqualTo(0);
-        assertThat(response.rows()[0][1]).isEqualTo(true);
-        assertThat(response.rows()[1][0]).isEqualTo(1);
-        assertThat(response.rows()[1][1]).isEqualTo(true);
+        assertThat(response).hasRows(
+            "0| true",
+            "1| true"
+        );
     }
 
     @UseJdbc(0)

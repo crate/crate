@@ -45,16 +45,15 @@ import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
 import org.elasticsearch.index.cache.query.DisabledQueryCache;
 import org.elasticsearch.index.engine.EngineFactory;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.shard.IndexEventListener;
 import org.elasticsearch.index.shard.IndexingOperationListener;
 import org.elasticsearch.index.store.FsDirectoryFactory;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.indices.mapper.MapperRegistry;
 import org.elasticsearch.plugins.IndexStorePlugin;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.table.TableInfo;
 import io.crate.types.DataTypes;
 
 /**
@@ -269,6 +268,7 @@ public final class IndexModule {
     }
 
     public IndexService newIndexService(
+            NodeContext nodeContext,
             IndexService.IndexCreationContext indexCreationContext,
             NodeEnvironment environment,
             IndexService.ShardStoreDeleter shardStoreDeleter,
@@ -276,8 +276,7 @@ public final class IndexModule {
             BigArrays bigArrays,
             ThreadPool threadPool,
             QueryCache indicesQueryCache,
-            Supplier<DocTableInfo> getDocTable,
-            MapperRegistry mapperRegistry) throws IOException {
+            Supplier<TableInfo> getTable) throws IOException {
 
         final IndexEventListener eventListener = freeze();
         eventListener.beforeIndexCreated(indexSettings.getIndex(), indexSettings.getSettings());
@@ -289,6 +288,7 @@ public final class IndexModule {
             queryCache = DisabledQueryCache.instance();
         }
         return new IndexService(
+            nodeContext,
             indexSettings,
             indexCreationContext,
             environment,
@@ -301,8 +301,7 @@ public final class IndexModule {
             queryCache,
             directoryFactory,
             eventListener,
-            mapperRegistry,
-            getDocTable,
+            getTable,
             indexOperationListeners
         );
     }
@@ -334,18 +333,6 @@ public final class IndexModule {
             }
         }
         return factory;
-    }
-
-    /**
-     * creates a new mapper service to do administrative work like mapping updates. This *should not* be used for document parsing.
-     * doing so will result in an exception.
-     */
-    public MapperService newIndexMapperService(MapperRegistry mapperRegistry) throws IOException {
-        return new MapperService(
-            indexSettings,
-            analysisRegistry.build(indexSettings),
-            mapperRegistry
-        );
     }
 
     private void ensureNotFrozen() {

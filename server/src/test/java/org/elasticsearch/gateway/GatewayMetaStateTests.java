@@ -45,6 +45,9 @@ import org.elasticsearch.plugins.MetadataUpgrader;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.TestCustomMetadata;
 import org.junit.Test;
+import org.mockito.Mockito;
+
+import io.crate.metadata.NodeContext;
 
 public class GatewayMetaStateTests extends ESTestCase {
 
@@ -205,7 +208,7 @@ public class GatewayMetaStateTests extends ESTestCase {
         private final boolean upgrade;
 
         public MockMetadataIndexUpgradeService(boolean upgrade) {
-            super(Settings.EMPTY, null, null, null);
+            super(Mockito.mock(NodeContext.class), null, null);
             this.upgrade = upgrade;
         }
 

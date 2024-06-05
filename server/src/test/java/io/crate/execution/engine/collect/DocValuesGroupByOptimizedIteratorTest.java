@@ -81,6 +81,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 
 public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTest {
@@ -274,7 +275,11 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
             false,
             null
         );
-        IndexShard shard = newStartedPrimaryShard(List.of(reference), THREAD_POOL);
+        IndexShard shard = newStartedPrimaryShard(
+            TestingHelpers.createNodeContext(),
+            List.of(reference),
+            THREAD_POOL
+        );
         var collectPhase = createCollectPhase(List.of(reference), List.of(groupProjection));
         var collectTask = createCollectTask(shard, collectPhase, Version.CURRENT);
         var nodeCtx = createNodeContext();

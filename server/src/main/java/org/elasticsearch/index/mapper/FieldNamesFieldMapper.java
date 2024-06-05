@@ -20,8 +20,6 @@
 package org.elasticsearch.index.mapper;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
 
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexOptions;
@@ -63,19 +61,6 @@ public class FieldNamesFieldMapper extends MetadataFieldMapper {
         @Override
         public FieldNamesFieldMapper build(BuilderContext context) {
             return new FieldNamesFieldMapper(fieldType, FieldNamesFieldType.INSTANCE);
-        }
-    }
-
-    public static class TypeParser implements MetadataFieldMapper.TypeParser {
-        @Override
-        public MetadataFieldMapper.Builder parse(String name, Map<String, Object> node, ParserContext parserContext) throws MapperParsingException {
-            return new Builder(FieldNamesFieldType.INSTANCE);
-        }
-
-        @Override
-        public MetadataFieldMapper getDefault(ParserContext context) {
-            return parse(NAME, Collections.emptyMap(), context)
-                    .build(new BuilderContext(new ContentPath(1)));
         }
     }
 

@@ -45,7 +45,6 @@ import org.elasticsearch.cluster.routing.allocation.decider.ShardsLimitAllocatio
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.translog.Translog;
 
 import io.crate.Constants;
@@ -208,7 +207,7 @@ public class InformationTablesTableInfo {
 
                 .startObject("mapping")
                     .startObject("total_fields")
-                        .add("limit", INTEGER, fromSetting(MapperService.INDEX_MAPPING_TOTAL_FIELDS_LIMIT_SETTING, INTEGER::sanitizeValue))
+                        .add("limit", INTEGER, fromSetting(DocTableInfo.TOTAL_COLUMNS_LIMIT, INTEGER::sanitizeValue))
                     .endObject()
                 .endObject()
 

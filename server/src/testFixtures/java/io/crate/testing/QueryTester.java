@@ -108,10 +108,10 @@ public final class QueryTester implements AutoCloseable {
             table = sqlExecutor.resolveTableInfo(tableName);
 
             indexEnv = new IndexEnv(
+                sqlExecutor.nodeCtx,
                 threadPool,
                 table,
-                clusterService.state(),
-                indexVersion
+                clusterService.state(), indexVersion
             );
             queryBuilder = new LuceneQueryBuilder(plannerContext.nodeContext());
             var docTableRelation = new DocTableRelation(table);

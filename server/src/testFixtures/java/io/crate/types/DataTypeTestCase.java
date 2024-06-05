@@ -24,6 +24,7 @@ package io.crate.types;
 import static io.crate.execution.dml.IndexerTest.getIndexer;
 import static io.crate.execution.dml.IndexerTest.item;
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -60,6 +61,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.DataTypeTesting;
 import io.crate.testing.IndexEnv;
 import io.crate.testing.SQLExecutor;
+import io.crate.testing.TestingHelpers;
 
 
 public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTest {
@@ -89,10 +91,10 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
         assertThat(reference).isNotNull();
 
         try (var indexEnv = new IndexEnv(
+                sqlExecutor.nodeCtx,
                 THREAD_POOL,
                 table,
-                clusterService.state(),
-                Version.CURRENT)) {
+                clusterService.state(), Version.CURRENT)) {
             T value = dataGenerator.get();
 
             Indexer indexer = getIndexer(sqlExecutor, table.ident().name(), "x");
@@ -150,10 +152,10 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
         assertThat(reference).isNotNull();
 
         try (var indexEnv = new IndexEnv(
+            TestingHelpers.createNodeContext(),
             THREAD_POOL,
             table,
-            clusterService.state(),
-            Version.CURRENT)) {
+            clusterService.state(), Version.CURRENT)) {
             T value = dataGenerator.get();
             Indexer indexer = getIndexer(sqlExecutor, table.ident().name(), "x");
             ParsedDocument doc = indexer.index(item(value));

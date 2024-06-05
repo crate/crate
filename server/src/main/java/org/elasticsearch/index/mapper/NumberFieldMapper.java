@@ -20,7 +20,6 @@
 package org.elasticsearch.index.mapper;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 import org.apache.lucene.document.FieldType;
@@ -66,24 +65,6 @@ public class NumberFieldMapper extends FieldMapper {
             );
             context.putPositionInfo(mapper, position);
             return mapper;
-        }
-    }
-
-    public static class TypeParser implements Mapper.TypeParser {
-
-        final NumberType type;
-
-        public TypeParser(NumberType type) {
-            this.type = type;
-        }
-
-        @Override
-        public Mapper.Builder parse(String name,
-                                       Map<String, Object> node,
-                                       ParserContext parserContext) throws MapperParsingException {
-            Builder builder = new Builder(name, type);
-            TypeParsers.parseField(builder, name, node);
-            return builder;
         }
     }
 
