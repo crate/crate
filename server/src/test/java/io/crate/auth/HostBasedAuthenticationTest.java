@@ -25,6 +25,7 @@ import static io.crate.auth.AuthenticationWithSSLIntegrationTest.getAbsoluteFile
 import static io.crate.auth.HostBasedAuthentication.Matchers.isValidAddress;
 import static io.crate.auth.HostBasedAuthentication.Matchers.isValidProtocol;
 import static io.crate.auth.HostBasedAuthentication.Matchers.isValidUser;
+import static io.crate.role.metadata.RolesHelper.JWT_TOKEN;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.not;
@@ -64,6 +65,8 @@ import io.netty.handler.ssl.util.SelfSignedCertificate;
 
 public class HostBasedAuthenticationTest extends ESTestCase {
 
+    private static final Credentials CRATE_USER_CREDENTIALS = new Credentials("crate", null);
+
     private static final String TEST_DNS_HOSTNAME = "node1.test-cluster.crate.io";
     private static final String TEST_DNS_IP = "192.168.10.20";
 
@@ -82,13 +85,13 @@ public class HostBasedAuthenticationTest extends ESTestCase {
     private static final Settings HBA_2 = Settings.builder()
         .put("auth.host_based.config.2.user", "crate")
         .put("auth.host_based.config.2.address", "0.0.0.0/0")
-        .put("auth.host_based.config.2.method", "fake")
+        .put("auth.host_based.config.2.method", "password")
         .put("auth.host_based.config.2.protocol", "pg")
         .build();
 
     private static final Settings HBA_3 = Settings.builder()
         .put("auth.host_based.config.3.address", "127.0.0.1")
-        .put("auth.host_based.config.3.method", "md5")
+        .put("auth.host_based.config.3.method", "password")
         .put("auth.host_based.config.3.protocol", "pg")
         .build();
 
@@ -147,9 +150,10 @@ public class HostBasedAuthenticationTest extends ESTestCase {
             () -> "dummy"
         );
         AuthenticationMethod method;
-        method = authService.resolveAuthenticationType(null, new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, null));
+        Credentials nullCredentials = new Credentials(null, null);
+        method = authService.resolveAuthenticationType(null, new ConnectionProperties(nullCredentials, LOCALHOST, Protocol.POSTGRES, null));
         assertNull(method);
-        method = authService.resolveAuthenticationType("crate", new ConnectionProperties(null, Protocol.POSTGRES, null));
+        method = authService.resolveAuthenticationType("crate", new ConnectionProperties(CRATE_USER_CREDENTIALS, null, Protocol.POSTGRES, null));
         assertNull(method);
     }
 
@@ -162,7 +166,7 @@ public class HostBasedAuthenticationTest extends ESTestCase {
             () -> "dummy"
         );
         AuthenticationMethod method =
-            authService.resolveAuthenticationType("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, null));
+            authService.resolveAuthenticationType("crate", new ConnectionProperties(CRATE_USER_CREDENTIALS, LOCALHOST, Protocol.POSTGRES, null));
         assertNull(method);
     }
 
@@ -175,7 +179,7 @@ public class HostBasedAuthenticationTest extends ESTestCase {
             () -> "dummy"
         );
         AuthenticationMethod method =
-            authService.resolveAuthenticationType("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, null));
+            authService.resolveAuthenticationType("crate", new ConnectionProperties(CRATE_USER_CREDENTIALS, LOCALHOST, Protocol.POSTGRES, null));
         assertThat(method).isExactlyInstanceOf(TrustAuthenticationMethod.class);
     }
 
@@ -187,8 +191,9 @@ public class HostBasedAuthenticationTest extends ESTestCase {
             SystemDefaultDnsResolver.INSTANCE,
             () -> "dummy"
         );
+        Credentials credentials = new Credentials(JWT_TOKEN);
         AuthenticationMethod method =
-            authService.resolveAuthenticationType("jwt_user", new ConnectionProperties(LOCALHOST, Protocol.HTTP, null));
+            authService.resolveAuthenticationType("jwt_user", new ConnectionProperties(credentials, LOCALHOST, Protocol.HTTP, null));
         assertThat(method).isExactlyInstanceOf(JWTAuthenticationMethod.class);
     }
 
@@ -236,14 +241,19 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         );
         Optional<Map.Entry<String, Map<String, String>>> entry;
 
-        entry = authService.getEntry("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, null));
+        entry = authService.getEntry("crate", new ConnectionProperties(CRATE_USER_CREDENTIALS, LOCALHOST, Protocol.POSTGRES, null));
         assertThat(entry.isPresent()).isTrue();
 
-        entry = authService.getEntry("cr8", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, null));
+        entry = authService.getEntry(
+            "cr8",
+            new ConnectionProperties(new Credentials("cr8", null), LOCALHOST, Protocol.POSTGRES, null)
+        );
         assertThat(entry.isPresent()).isFalse();
 
-        entry = authService.getEntry("crate",
-            new ConnectionProperties(InetAddresses.forString("10.0.0.1"), Protocol.POSTGRES, null));
+        entry = authService.getEntry(
+            "crate",
+            new ConnectionProperties(CRATE_USER_CREDENTIALS, InetAddresses.forString("10.0.0.1"), Protocol.POSTGRES, null)
+        );
         assertThat(entry.isPresent()).isFalse();
     }
 
@@ -260,17 +270,21 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         Optional<Map.Entry<String, Map<String, String>>> entry;
 
         entry = authService.getEntry("crate",
-            new ConnectionProperties(InetAddresses.forString("123.45.67.89"), Protocol.POSTGRES, null));
+            new ConnectionProperties(CRATE_USER_CREDENTIALS, InetAddresses.forString("123.45.67.89"), Protocol.POSTGRES, null));
         assertThat(entry.isPresent()).isTrue();
-        assertThat(entry.get().getValue().get("method")).isEqualTo("fake");
+        assertThat(entry.get().getValue().get("method")).isEqualTo("password");
 
-        entry = authService.getEntry("cr8",
-            new ConnectionProperties(InetAddresses.forString("127.0.0.1"), Protocol.POSTGRES, null));
+        entry = authService.getEntry(
+            "cr8",
+            new ConnectionProperties(new Credentials("cr8", null), InetAddresses.forString("127.0.0.1"), Protocol.POSTGRES, null)
+        );
         assertThat(entry.isPresent()).isTrue();
-        assertThat(entry.get().getValue().get("method")).isEqualTo("md5");
+        assertThat(entry.get().getValue().get("method")).isEqualTo("password");
 
-        entry = authService.getEntry("cr8",
-            new ConnectionProperties(InetAddresses.forString("123.45.67.89"), Protocol.POSTGRES, null));
+        entry = authService.getEntry(
+            "cr8",
+            new ConnectionProperties(new Credentials("cr8", null), InetAddresses.forString("123.45.67.89"), Protocol.POSTGRES, null)
+        );
         assertThat(entry.isPresent()).isFalse();
     }
 
@@ -285,10 +299,10 @@ public class HostBasedAuthenticationTest extends ESTestCase {
 
         Optional<Map.Entry<String, Map<String, String>>> entry;
         entry = authService.getEntry("crate",
-            new ConnectionProperties(InetAddresses.forString("127.0.0.1"), Protocol.POSTGRES, null));
+            new ConnectionProperties(CRATE_USER_CREDENTIALS, InetAddresses.forString("127.0.0.1"), Protocol.POSTGRES, null));
         assertThat(entry.isPresent()).isTrue();
         entry = authService.getEntry("crate",
-            new ConnectionProperties(InetAddresses.forString("::1"), Protocol.POSTGRES, null));
+            new ConnectionProperties(CRATE_USER_CREDENTIALS, InetAddresses.forString("::1"), Protocol.POSTGRES, null));
         assertThat(entry.isPresent()).isTrue();
     }
 
@@ -302,7 +316,7 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         );
 
         Optional entry = authService.getEntry("crate",
-            new ConnectionProperties(InetAddresses.forString(TEST_DNS_IP), Protocol.POSTGRES, null));
+            new ConnectionProperties(CRATE_USER_CREDENTIALS, InetAddresses.forString(TEST_DNS_IP), Protocol.POSTGRES, null));
 
         assertThat(entry.isPresent()).isTrue();
     }
@@ -400,10 +414,10 @@ public class HostBasedAuthenticationTest extends ESTestCase {
             () -> "dummy"
         );
         assertThat(
-            authService.getEntry("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, null)),
+            authService.getEntry("crate", new ConnectionProperties(CRATE_USER_CREDENTIALS, LOCALHOST, Protocol.POSTGRES, null)),
             not(Optional.empty()));
         assertThat(
-            authService.getEntry("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, sslSession)),
+            authService.getEntry("crate", new ConnectionProperties(CRATE_USER_CREDENTIALS, LOCALHOST, Protocol.POSTGRES, sslSession)),
             not(Optional.empty()));
 
         sslConfig = Settings.builder().put(HBA_1)
@@ -416,9 +430,9 @@ public class HostBasedAuthenticationTest extends ESTestCase {
             () -> "dummy"
         );
         assertThat(
-            authService.getEntry("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, null))).isEqualTo(Optional.empty());
+            authService.getEntry("crate", new ConnectionProperties(CRATE_USER_CREDENTIALS, LOCALHOST, Protocol.POSTGRES, null))).isEqualTo(Optional.empty());
         assertThat(
-            authService.getEntry("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, sslSession)),
+            authService.getEntry("crate", new ConnectionProperties(CRATE_USER_CREDENTIALS, LOCALHOST, Protocol.POSTGRES, sslSession)),
                 not(Optional.empty()));
 
         sslConfig = Settings.builder().put(HBA_1)
@@ -431,10 +445,10 @@ public class HostBasedAuthenticationTest extends ESTestCase {
             () -> "dummy"
         );
         assertThat(
-            authService.getEntry("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, null)),
+            authService.getEntry("crate", new ConnectionProperties(CRATE_USER_CREDENTIALS, LOCALHOST, Protocol.POSTGRES, null)),
             not(Optional.empty()));
         assertThat(
-            authService.getEntry("crate", new ConnectionProperties(LOCALHOST, Protocol.POSTGRES, sslSession))).isEqualTo(Optional.empty());
+            authService.getEntry("crate", new ConnectionProperties(CRATE_USER_CREDENTIALS, LOCALHOST, Protocol.POSTGRES, sslSession))).isEqualTo(Optional.empty());
     }
 
     @Test
@@ -446,9 +460,9 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         SSLSession sslSession = mock(SSLSession.class);
         when(sslSession.getPeerCertificates()).thenReturn(new Certificate[0]);
         ConnectionProperties sslConnProperties =
-            new ConnectionProperties(LOCALHOST, Protocol.HTTP, sslSession);
+            new ConnectionProperties(CRATE_USER_CREDENTIALS, LOCALHOST, Protocol.HTTP, sslSession);
         ConnectionProperties noSslConnProperties =
-            new ConnectionProperties(LOCALHOST, Protocol.HTTP, null);
+            new ConnectionProperties(CRATE_USER_CREDENTIALS, LOCALHOST, Protocol.HTTP, null);
 
         Settings sslConfig;
         HostBasedAuthentication authService;
@@ -490,7 +504,7 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         assertThat(authService.getEntry("crate", sslConnProperties)).isEqualTo(Optional.empty());
     }
 
-    public void testKeyOrderIsRespectedInHbaConfig() {
+    public void testKeyOrderIsRespectedInHbaConfig() throws Exception {
         Settings first = Settings.builder()
             .put("auth.host_based.config.1.method", "trust")
             .put("auth.host_based.config.1.protocol", "pg")
@@ -509,12 +523,15 @@ public class HostBasedAuthenticationTest extends ESTestCase {
             () -> "dummy"
         );
 
+        SSLSession sslSession = mock(SSLSession.class);
+        when(sslSession.getPeerCertificates()).thenReturn(new Certificate[]{mock(Certificate.class)});
+
         AuthenticationMethod authMethod = hba.resolveAuthenticationType("crate",
-            new ConnectionProperties(InetAddresses.forString("1.2.3.4"), Protocol.POSTGRES, null));
+            new ConnectionProperties(CRATE_USER_CREDENTIALS, InetAddresses.forString("1.2.3.4"), Protocol.POSTGRES, sslSession));
         assertThat(authMethod).isExactlyInstanceOf(TrustAuthenticationMethod.class);
 
         AuthenticationMethod authMethod2 = hba.resolveAuthenticationType("crate",
-            new ConnectionProperties(InetAddresses.forString("1.2.3.4"), Protocol.HTTP, null));
+            new ConnectionProperties(CRATE_USER_CREDENTIALS, InetAddresses.forString("1.2.3.4"), Protocol.HTTP, sslSession));
         assertThat(authMethod2).isExactlyInstanceOf(ClientCertAuth.class);
     }
 
@@ -545,12 +562,122 @@ public class HostBasedAuthenticationTest extends ESTestCase {
             SystemDefaultDnsResolver.INSTANCE,
             () -> "dummy"
         );
+        SSLSession sslSession = mock(SSLSession.class);
+        when(sslSession.getPeerCertificates()).thenReturn(new Certificate[]{mock(Certificate.class)});
+
         AuthenticationMethod authMethod = hba.resolveAuthenticationType("crate",
-            new ConnectionProperties(InetAddresses.forString("1.2.3.4"), Protocol.TRANSPORT, mock(SSLSession.class)));
+            new ConnectionProperties(CRATE_USER_CREDENTIALS, InetAddresses.forString("1.2.3.4"), Protocol.TRANSPORT, sslSession));
         assertThat(authMethod).isExactlyInstanceOf(ClientCertAuth.class);
 
         AuthenticationMethod authMethod2 = hba.resolveAuthenticationType("crate",
-            new ConnectionProperties(InetAddresses.forString("1.2.3.4"), Protocol.TRANSPORT, mock(SSLSession.class)));
+            new ConnectionProperties(CRATE_USER_CREDENTIALS, InetAddresses.forString("1.2.3.4"), Protocol.TRANSPORT, sslSession));
         assertThat(authMethod2).isExactlyInstanceOf(ClientCertAuth.class);
+    }
+
+    @Test
+    public void test_multiple_matches_method_uniquely_identified_by_properties() {
+        // Validating different declaration order as auth used to fail depending on order.
+        Settings pwdFirst = Settings.builder()
+            .put("auth.host_based.config.1.method", "password")
+            .put("auth.host_based.config.2.method", "jwt")
+            .put("auth.host_based.config.2.protocol", "http")
+            .build();
+        Settings jwtFirst = Settings.builder()
+            .put("auth.host_based.config.1.method", "jwt")
+            .put("auth.host_based.config.1.protocol", "http")
+            .put("auth.host_based.config.2.method", "password")
+            .build();
+        HostBasedAuthentication pwdFirstService = new HostBasedAuthentication(
+            pwdFirst,
+            null,
+            SystemDefaultDnsResolver.INSTANCE,
+            () -> "dummy"
+        );
+        HostBasedAuthentication jwtFirstService = new HostBasedAuthentication(
+            jwtFirst,
+            null,
+            SystemDefaultDnsResolver.INSTANCE,
+            () -> "dummy"
+        );
+        AuthenticationMethod authMethod;
+        ConnectionProperties jwtConnProps = new ConnectionProperties(new Credentials(JWT_TOKEN), LOCALHOST, Protocol.HTTP, sslSession);
+        ConnectionProperties pwdConnProps = new ConnectionProperties(new Credentials("dummy", new char[]{'a'}), LOCALHOST, Protocol.HTTP, sslSession);
+
+        // Password first config can handle connection with jwt property
+        authMethod = pwdFirstService.resolveAuthenticationType("dummy", jwtConnProps);
+        assertThat(authMethod).isExactlyInstanceOf(JWTAuthenticationMethod.class);
+
+        // Password first config can handle connection with password property
+        authMethod = pwdFirstService.resolveAuthenticationType("dummy", pwdConnProps);
+        assertThat(authMethod).isExactlyInstanceOf(PasswordAuthenticationMethod.class);
+
+        // JWT first config can handle connection with jwt property
+        authMethod = jwtFirstService.resolveAuthenticationType("dummy", jwtConnProps);
+        assertThat(authMethod).isExactlyInstanceOf(JWTAuthenticationMethod.class);
+
+        // JWT first config can handle connection with password property
+        authMethod = jwtFirstService.resolveAuthenticationType("dummy", pwdConnProps);
+        assertThat(authMethod).isExactlyInstanceOf(PasswordAuthenticationMethod.class);
+    }
+
+    @Test
+    public void test_multiple_matches_after_properties_check_pick_up_first() throws Exception {
+        // This test covers scenario when multiple client auth methods are available.
+        // First matching HBA entry wins in this case as well.
+        Settings certFirstSettings = Settings.builder()
+            .put("auth.host_based.config.1.method", "cert")
+            .put("auth.host_based.config.1.ssl", "on")
+            .put("auth.host_based.config.2.method", "jwt")
+            .put("auth.host_based.config.2.protocol", "http")
+            .build();
+        HostBasedAuthentication certFirstService = new HostBasedAuthentication(
+            certFirstSettings,
+            null,
+            SystemDefaultDnsResolver.INSTANCE,
+            () -> "dummy"
+        );
+
+        Settings jwtFirstSettings = Settings.builder()
+            .put("auth.host_based.config.1.method", "jwt")
+            .put("auth.host_based.config.1.protocol", "http")
+            .put("auth.host_based.config.2.method", "cert")
+            .put("auth.host_based.config.2.ssl", "on")
+            .build();
+        HostBasedAuthentication jwtFirstService = new HostBasedAuthentication(
+            jwtFirstSettings,
+            null,
+            SystemDefaultDnsResolver.INSTANCE,
+            () -> "dummy"
+        );
+
+        AuthenticationMethod authMethod;
+        SSLSession sslSession = mock(SSLSession.class);
+        when(sslSession.getPeerCertificates()).thenReturn(new Certificate[]{mock(Certificate.class)});
+        ConnectionProperties connProps = new ConnectionProperties(new Credentials(JWT_TOKEN), LOCALHOST, Protocol.HTTP, sslSession);
+
+        authMethod = certFirstService.resolveAuthenticationType("dummy", connProps);
+        assertThat(authMethod).isExactlyInstanceOf(ClientCertAuth.class);
+
+        authMethod = jwtFirstService.resolveAuthenticationType("dummy", connProps);
+        assertThat(authMethod).isExactlyInstanceOf(JWTAuthenticationMethod.class);
+    }
+
+    @Test
+    public void test_entry_without_method_resolves_to_trust() {
+        // Settings without method to ensure that method check doesn't throw an NPE.
+        Settings settings = Settings.builder()
+            .put("auth.host_based.config.1.protocol", "http")
+            .build();
+        HostBasedAuthentication authService = new HostBasedAuthentication(
+            settings,
+            null,
+            SystemDefaultDnsResolver.INSTANCE,
+            () -> "dummy"
+        );
+        AuthenticationMethod authMethod = authService.resolveAuthenticationType(
+            "dummy",
+            new ConnectionProperties(new Credentials("dummy", null), LOCALHOST, Protocol.HTTP, null)
+        );
+        assertThat(authMethod).isExactlyInstanceOf(TrustAuthenticationMethod.class);
     }
 }
