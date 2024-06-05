@@ -21,7 +21,6 @@
 
 package io.crate.metadata;
 
-import com.carrotsearch.hppc.cursors.ObjectCursor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterChangedEvent;
@@ -31,9 +30,7 @@ import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 
-import java.util.List;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
+import com.carrotsearch.hppc.cursors.ObjectCursor;
 
 @Singleton
 public class DanglingArtifactsService extends AbstractLifecycleComponent implements ClusterStateListener {
@@ -41,15 +38,10 @@ public class DanglingArtifactsService extends AbstractLifecycleComponent impleme
     private static final Logger LOGGER = LogManager.getLogger(DanglingArtifactsService.class);
 
     private final ClusterService clusterService;
-    private final List<Pattern> danglingPatterns;
 
     @Inject
     public DanglingArtifactsService(ClusterService clusterService) {
         this.clusterService = clusterService;
-        this.danglingPatterns = IndexParts.DANGLING_INDICES_PREFIX_PATTERNS
-            .stream()
-            .map(Pattern::compile)
-            .collect(Collectors.toList());
     }
 
     @Override
@@ -70,12 +62,11 @@ public class DanglingArtifactsService extends AbstractLifecycleComponent impleme
     public void clusterChanged(ClusterChangedEvent event) {
         if (LOGGER.isInfoEnabled() && event.isNewCluster()) {
             for (ObjectCursor<String> key : event.state().metadata().indices().keys()) {
-                for (Pattern pattern : danglingPatterns) {
-                    if (pattern.matcher(key.value).matches()) {
-                        LOGGER.info("Dangling artifacts exist in the cluster. Use 'alter cluster gc dangling artifacts;' to remove them");
-                        doStop();
-                        return;
-                    }
+                String indexName = key.value;
+                if (IndexParts.isDangling(indexName)) {
+                    LOGGER.info("Dangling artifacts like {} exist in the cluster. Use 'alter cluster gc dangling artifacts;' to remove them", indexName);
+                    doStop();
+                    return;
                 }
             }
         }
