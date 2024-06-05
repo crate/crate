@@ -30,16 +30,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.Version;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.AnalyzedUpdateStatement;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.TableRelation;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -211,7 +210,7 @@ public final class UpdatePlanner {
                                            SubQueryResults subQueryResults,
                                            @Nullable List<Symbol> returnValues) {
         TableInfo tableInfo = table.tableInfo();
-        Reference idReference = requireNonNull(tableInfo.getReference(DocSysColumns.ID), "Table must have a _id column");
+        Reference idReference = requireNonNull(tableInfo.getReference(DocSysColumns.ID.COLUMN), "Table must have a _id column");
         Symbol[] outputSymbols;
         if (returnValues == null) {
             outputSymbols = new Symbol[]{new InputColumn(0, DataTypes.LONG)};
@@ -258,7 +257,7 @@ public final class UpdatePlanner {
                                                SubQueryResults subQueryResults,
                                                @Nullable List<Symbol> returnValues) {
         DocTableInfo tableInfo = table.tableInfo();
-        Reference idReference = requireNonNull(tableInfo.getReference(DocSysColumns.ID),
+        Reference idReference = requireNonNull(tableInfo.getReference(DocSysColumns.ID.COLUMN),
                                                "Table must have a _id column");
         Assignments assignments = Assignments.convert(assignmentByTargetCol, plannerCtx.nodeContext());
         Symbol[] assignmentSources = assignments.bindSources(tableInfo, params, subQueryResults);

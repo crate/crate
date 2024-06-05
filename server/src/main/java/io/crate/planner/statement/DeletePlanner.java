@@ -184,7 +184,7 @@ public final class DeletePlanner {
 
     private static ExecutionPlan deleteByQuery(DocTableRelation table, PlannerContext context, WhereClause where) {
         DocTableInfo tableInfo = table.tableInfo();
-        Reference idReference = requireNonNull(tableInfo.getReference(DocSysColumns.ID), "Table has to have a _id reference");
+        Reference idReference = requireNonNull(tableInfo.getReference(DocSysColumns.ID.COLUMN), "Table has to have a _id reference");
         DeleteProjection deleteProjection = new DeleteProjection(new InputColumn(0, idReference.valueType()));
         var sessionSettings = context.transactionContext().sessionSettings();
         Routing routing = context.allocateRouting(

@@ -19,19 +19,16 @@
 
 package org.elasticsearch.common.geo.builders;
 
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.common.geo.GeoShapeType;
-import org.elasticsearch.common.geo.XShapeCollection;
-import org.elasticsearch.common.geo.parsers.GeoWKTParser;
-import org.elasticsearch.common.geo.parsers.ShapeParser;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.locationtech.spatial4j.shape.Shape;
-
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.common.geo.GeoShapeType;
+import org.elasticsearch.common.geo.XShapeCollection;
+import org.elasticsearch.common.geo.parsers.GeoWKTParser;
+import org.locationtech.spatial4j.shape.Shape;
 
 public class GeometryCollectionBuilder extends ShapeBuilder {
 
@@ -103,18 +100,6 @@ public class GeometryCollectionBuilder extends ShapeBuilder {
 
     public int numShapes() {
         return this.shapes.size();
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject();
-        builder.field(ShapeParser.FIELD_TYPE.getPreferredName(), TYPE.shapeName());
-        builder.startArray(ShapeParser.FIELD_GEOMETRIES.getPreferredName());
-        for (ShapeBuilder shape : shapes) {
-            shape.toXContent(builder, params);
-        }
-        builder.endArray();
-        return builder.endObject();
     }
 
     @Override

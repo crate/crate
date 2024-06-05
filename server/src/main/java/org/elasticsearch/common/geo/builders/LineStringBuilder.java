@@ -22,20 +22,17 @@ package org.elasticsearch.common.geo.builders;
 import static org.elasticsearch.common.geo.GeoUtils.normalizeLat;
 import static org.elasticsearch.common.geo.GeoUtils.normalizeLon;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
 import org.apache.lucene.geo.Line;
 import org.elasticsearch.common.geo.GeoShapeType;
-import org.elasticsearch.common.geo.parsers.ShapeParser;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.LineString;
 import org.locationtech.spatial4j.shape.jts.JtsGeometry;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
 public class LineStringBuilder extends ShapeBuilder<JtsGeometry, LineStringBuilder> {
     public static final GeoShapeType TYPE = GeoShapeType.LINESTRING;
@@ -57,16 +54,6 @@ public class LineStringBuilder extends ShapeBuilder<JtsGeometry, LineStringBuild
 
     public LineStringBuilder(CoordinatesBuilder coordinates) {
         this(coordinates.build());
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject();
-        builder.field(ShapeParser.FIELD_TYPE.getPreferredName(), TYPE.shapeName());
-        builder.field(ShapeParser.FIELD_COORDINATES.getPreferredName());
-        coordinatesToXcontent(builder, false);
-        builder.endObject();
-        return builder;
     }
 
     /**

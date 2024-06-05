@@ -63,6 +63,7 @@ public final class BitStringType extends DataType<BitString> implements Streamer
     public static final int DEFAULT_LENGTH = 1;
     private final int length;
 
+
     private static final StorageSupport<BitString> STORAGE = new StorageSupport<>(
         true,
         false,

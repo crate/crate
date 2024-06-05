@@ -19,15 +19,12 @@
 
 package org.elasticsearch.common.geo.builders;
 
+import java.util.Objects;
+
 import org.elasticsearch.common.geo.GeoShapeType;
 import org.elasticsearch.common.geo.parsers.GeoWKTParser;
-import org.elasticsearch.common.geo.parsers.ShapeParser;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.spatial4j.shape.Rectangle;
-
-import java.io.IOException;
-import java.util.Objects;
 
 public class EnvelopeBuilder extends ShapeBuilder<Rectangle, EnvelopeBuilder> {
 
@@ -77,17 +74,6 @@ public class EnvelopeBuilder extends ShapeBuilder<Rectangle, EnvelopeBuilder> {
         sb.append(GeoWKTParser.RPAREN);
 
         return sb;
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject();
-        builder.field(ShapeParser.FIELD_TYPE.getPreferredName(), TYPE.shapeName());
-        builder.startArray(ShapeParser.FIELD_COORDINATES.getPreferredName());
-        toXContent(builder, topLeft);
-        toXContent(builder, bottomRight);
-        builder.endArray();
-        return builder.endObject();
     }
 
     @Override

@@ -93,7 +93,7 @@ public class Id {
      */
     public static Function<List<String>, String> compileWithNullValidation(final List<ColumnIdent> pkColumns, final ColumnIdent clusteredBy) {
         final int numPks = pkColumns.size();
-        if (numPks == 1 && getOnlyElement(pkColumns).equals(DocSysColumns.ID)) {
+        if (numPks == 1 && getOnlyElement(pkColumns).equals(DocSysColumns.ID.COLUMN)) {
             return RANDOM_ID;
         }
         int idx = -1;

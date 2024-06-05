@@ -19,12 +19,14 @@
 
 package org.elasticsearch.common.geo.parsers;
 
-import org.locationtech.jts.geom.Coordinate;
+import java.io.IOException;
+import java.io.StreamTokenizer;
+import java.io.StringReader;
+import java.util.List;
+
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.geo.GeoPoint;
 import org.elasticsearch.common.geo.GeoShapeType;
-
-import java.io.StringReader;
 import org.elasticsearch.common.geo.builders.CoordinatesBuilder;
 import org.elasticsearch.common.geo.builders.EnvelopeBuilder;
 import org.elasticsearch.common.geo.builders.GeometryCollectionBuilder;
@@ -37,11 +39,7 @@ import org.elasticsearch.common.geo.builders.PolygonBuilder;
 import org.elasticsearch.common.geo.builders.ShapeBuilder;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.index.mapper.GeoShapeFieldMapper;
-
-import java.io.IOException;
-import java.io.StreamTokenizer;
-import java.util.List;
+import org.locationtech.jts.geom.Coordinate;
 
 /**
  * Parses shape geometry represented in WKT format
@@ -65,19 +63,13 @@ public class GeoWKTParser {
     private GeoWKTParser() {
     }
 
-    public static ShapeBuilder parse(XContentParser parser, final GeoShapeFieldMapper shapeMapper)
+    public static ShapeBuilder parse(XContentParser parser)
             throws IOException, ElasticsearchParseException {
-        return parseExpectedType(parser, null, shapeMapper);
-    }
-
-    public static ShapeBuilder parseExpectedType(XContentParser parser, final GeoShapeType shapeType)
-            throws IOException, ElasticsearchParseException {
-        return parseExpectedType(parser, shapeType, null);
+        return parseExpectedType(parser, null);
     }
 
     /** throws an exception if the parsed geometry type does not match the expected shape type */
-    public static ShapeBuilder parseExpectedType(XContentParser parser, final GeoShapeType shapeType,
-                                                 final GeoShapeFieldMapper shapeMapper)
+    public static ShapeBuilder parseExpectedType(XContentParser parser, final GeoShapeType shapeType)
             throws IOException, ElasticsearchParseException {
         StringReader reader = new StringReader(parser.text());
         try {

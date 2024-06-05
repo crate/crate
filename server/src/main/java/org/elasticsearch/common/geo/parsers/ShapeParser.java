@@ -19,14 +19,13 @@
 
 package org.elasticsearch.common.geo.parsers;
 
+import java.io.IOException;
+
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.geo.builders.ShapeBuilder;
 import org.elasticsearch.common.xcontent.ParseField;
 import org.elasticsearch.common.xcontent.XContent;
 import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.index.mapper.GeoShapeFieldMapper;
-
-import java.io.IOException;
 
 /**
  * first point of entry for a shape parser
@@ -47,26 +46,15 @@ public interface ShapeParser {
      *          if the parsers current token has been <code>null</code>
      * @throws IOException if the input could not be read
      */
-    static ShapeBuilder parse(XContentParser parser, GeoShapeFieldMapper shapeMapper) throws IOException {
+    static ShapeBuilder parse(XContentParser parser) throws IOException {
         if (parser.currentToken() == XContentParser.Token.VALUE_NULL) {
             return null;
         }
         if (parser.currentToken() == XContentParser.Token.START_OBJECT) {
-            return GeoJsonParser.parse(parser, shapeMapper);
+            return GeoJsonParser.parse(parser);
         } else if (parser.currentToken() == XContentParser.Token.VALUE_STRING) {
-            return GeoWKTParser.parse(parser, shapeMapper);
+            return GeoWKTParser.parse(parser);
         }
         throw new ElasticsearchParseException("shape must be an object consisting of type and coordinates");
-    }
-
-    /**
-     * Create a new {@link ShapeBuilder} from {@link XContent}
-     * @param parser parser to read the GeoShape from
-     * @return {@link ShapeBuilder} read from the parser or null
-     *          if the parsers current token has been <code>null</code>
-     * @throws IOException if the input could not be read
-     */
-    static ShapeBuilder parse(XContentParser parser) throws IOException {
-        return parse(parser, null);
     }
 }

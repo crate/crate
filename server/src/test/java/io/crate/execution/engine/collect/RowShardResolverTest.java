@@ -160,7 +160,7 @@ public class RowShardResolverTest extends ESTestCase {
         var rowShardResolver = new RowShardResolver(
             txnCtx,
             nodeCtx,
-            List.of(DocSysColumns.ID),
+            List.of(DocSysColumns.ID.COLUMN),
             primaryKeySymbols,
             null,
             null
@@ -191,7 +191,7 @@ public class RowShardResolverTest extends ESTestCase {
         var rowShardResolver = new RowShardResolver(
             txnCtx,
             nodeCtx,
-            List.of(DocSysColumns.ID, new ColumnIdent("my_pk")),
+            List.of(DocSysColumns.ID.COLUMN, new ColumnIdent("my_pk")),
             primaryKeySymbols,
             null,
             null

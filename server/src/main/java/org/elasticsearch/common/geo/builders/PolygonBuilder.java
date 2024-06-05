@@ -19,10 +19,21 @@
 
 package org.elasticsearch.common.geo.builders;
 
-import io.crate.common.collections.Tuple;
+import static org.apache.lucene.geo.GeoUtils.orient;
+import static org.elasticsearch.common.geo.GeoUtils.normalizeLat;
+import static org.elasticsearch.common.geo.GeoUtils.normalizeLon;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
+
 import org.elasticsearch.common.geo.GeoShapeType;
-import org.elasticsearch.common.geo.parsers.ShapeParser;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -32,21 +43,7 @@ import org.locationtech.jts.geom.Polygon;
 import org.locationtech.spatial4j.exception.InvalidShapeException;
 import org.locationtech.spatial4j.shape.jts.JtsGeometry;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Locale;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.atomic.AtomicBoolean;
-
-import static org.apache.lucene.geo.GeoUtils.orient;
-import static org.elasticsearch.common.geo.GeoUtils.normalizeLat;
-import static org.elasticsearch.common.geo.GeoUtils.normalizeLon;
+import io.crate.common.collections.Tuple;
 
 /**
  * The {@link PolygonBuilder} implements the groundwork to create polygons. This contains
@@ -130,14 +127,6 @@ public class PolygonBuilder extends ShapeBuilder<JtsGeometry, PolygonBuilder> {
         return this.shell;
     }
 
-    /**
-     * Close the shell of the polygon
-     */
-    public PolygonBuilder close() {
-        shell.close();
-        return this;
-    }
-
     private static void validateLinearRing(LineStringBuilder lineString) {
         /**
          * Per GeoJSON spec (http://geojson.org/geojson-spec.html#linestring)
@@ -219,26 +208,6 @@ public class PolygonBuilder extends ShapeBuilder<JtsGeometry, PolygonBuilder> {
         return toPolygonLucene();
     }
 
-    protected XContentBuilder coordinatesArray(XContentBuilder builder, Params params) throws IOException {
-        shell.coordinatesToXcontent(builder, true);
-        for (LineStringBuilder hole : holes) {
-            hole.coordinatesToXcontent(builder, true);
-        }
-        return builder;
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject();
-        builder.field(ShapeParser.FIELD_TYPE.getPreferredName(), TYPE.shapeName());
-        builder.field(ShapeParser.FIELD_ORIENTATION.getPreferredName(), orientation.name().toLowerCase(Locale.ROOT));
-        builder.startArray(ShapeParser.FIELD_COORDINATES.getPreferredName());
-        coordinatesArray(builder, params);
-        builder.endArray();
-        builder.endObject();
-        return builder;
-    }
-
     public Geometry buildS4JGeometry(GeometryFactory factory, boolean fixDateline) {
         if (fixDateline) {
             Coordinate[][][] polygons = coordinates();
@@ -246,10 +215,6 @@ public class PolygonBuilder extends ShapeBuilder<JtsGeometry, PolygonBuilder> {
         } else {
             return toPolygonS4J(factory);
         }
-    }
-
-    public Polygon toPolygonS4J() {
-        return toPolygonS4J(FACTORY);
     }
 
     protected Polygon toPolygonS4J(GeometryFactory factory) {
