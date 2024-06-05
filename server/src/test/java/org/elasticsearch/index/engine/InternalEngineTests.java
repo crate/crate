@@ -174,10 +174,8 @@ import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.codec.CodecService;
 import org.elasticsearch.index.engine.Engine.Searcher;
 import org.elasticsearch.index.fieldvisitor.FieldsVisitor;
-import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.SequenceIDFields;
-import org.elasticsearch.index.mapper.SourceFieldMapper;
 import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.seqno.LocalCheckpointTracker;
 import org.elasticsearch.index.seqno.ReplicationTracker;
@@ -908,7 +906,7 @@ public class InternalEngineTests extends EngineTestCase {
 
         // create a document
         Document document = testDocumentWithTextField();
-        document.add(new Field(SourceFieldMapper.NAME, BytesReference.toBytes(B_1), SourceFieldMapper.Defaults.FIELD_TYPE));
+        document.add(new Field(DocSysColumns.Source.NAME, BytesReference.toBytes(B_1), DocSysColumns.Source.FIELD_TYPE));
         ParsedDocument doc = testParsedDocument("1", document, B_1);
         engine.index(indexForDoc(doc));
 
@@ -938,7 +936,7 @@ public class InternalEngineTests extends EngineTestCase {
         // now do an update
         document = testDocument();
         document.add(new TextField("value", "test1", Field.Store.YES));
-        document.add(new Field(SourceFieldMapper.NAME, BytesReference.toBytes(B_2), SourceFieldMapper.Defaults.FIELD_TYPE));
+        document.add(new Field(DocSysColumns.Source.NAME, BytesReference.toBytes(B_2), DocSysColumns.Source.FIELD_TYPE));
         doc = testParsedDocument("1", document, B_2);
         engine.index(indexForDoc(doc));
 
@@ -1008,7 +1006,7 @@ public class InternalEngineTests extends EngineTestCase {
 
         // add it back
         document = testDocumentWithTextField();
-        document.add(new Field(SourceFieldMapper.NAME, BytesReference.toBytes(B_1), SourceFieldMapper.Defaults.FIELD_TYPE));
+        document.add(new Field(DocSysColumns.Source.NAME, BytesReference.toBytes(B_1), DocSysColumns.Source.FIELD_TYPE));
         doc = testParsedDocument("1", document, B_1);
         engine.index(new Engine.Index(
             newUid(doc), doc, UNASSIGNED_SEQ_NO, primaryTerm.get(),
@@ -1484,18 +1482,18 @@ public class InternalEngineTests extends EngineTestCase {
                                                       indexWriterConfig.setMergePolicy(new SoftDeletesRetentionMergePolicy(Lucene.SOFT_DELETES_FIELD,
                                                                                                                            MatchAllDocsQuery::new, new PrunePostingsMergePolicy(indexWriterConfig.getMergePolicy(), "_id"))))) {
                 org.apache.lucene.document.Document doc = new org.apache.lucene.document.Document();
-                doc.add(new Field(IdFieldMapper.NAME, "1", IdFieldMapper.Defaults.FIELD_TYPE));
+                doc.add(new Field(DocSysColumns.Names.ID, "1", DocSysColumns.ID.FIELD_TYPE));
                 doc.add(new NumericDocValuesField(DocSysColumns.VERSION.name(), -1));
                 doc.add(new NumericDocValuesField(DocSysColumns.Names.SEQ_NO, 1));
                 doc.add(new NumericDocValuesField(DocSysColumns.Names.PRIMARY_TERM, 1));
                 writer.addDocument(doc);
                 writer.flush();
-                writer.softUpdateDocument(new Term(IdFieldMapper.NAME, "1"), doc, new NumericDocValuesField(Lucene.SOFT_DELETES_FIELD, 1));
-                writer.updateNumericDocValue(new Term(IdFieldMapper.NAME, "1"), Lucene.SOFT_DELETES_FIELD, 1);
+                writer.softUpdateDocument(new Term(DocSysColumns.Names.ID, "1"), doc, new NumericDocValuesField(Lucene.SOFT_DELETES_FIELD, 1));
+                writer.updateNumericDocValue(new Term(DocSysColumns.Names.ID, "1"), Lucene.SOFT_DELETES_FIELD, 1);
                 writer.forceMerge(1);
                 try (DirectoryReader reader = DirectoryReader.open(writer)) {
                     assertThat(reader.leaves().size()).isEqualTo(1);
-                    assertNull(VersionsAndSeqNoResolver.loadDocIdAndVersion(reader, new Term(IdFieldMapper.NAME, "1"), false));
+                    assertNull(VersionsAndSeqNoResolver.loadDocIdAndVersion(reader, new Term(DocSysColumns.Names.ID, "1"), false));
                 }
             }
         }
@@ -4055,7 +4053,7 @@ public class InternalEngineTests extends EngineTestCase {
 
         // create a document
         Document document = testDocumentWithTextField();
-        document.add(new Field(SourceFieldMapper.NAME, BytesReference.toBytes(B_1), SourceFieldMapper.Defaults.FIELD_TYPE));
+        document.add(new Field(DocSysColumns.Source.NAME, BytesReference.toBytes(B_1), DocSysColumns.Source.FIELD_TYPE));
         ParsedDocument doc = testParsedDocument("1", document, B_1);
         engine.index(indexForDoc(doc));
         engine.refresh("test");
@@ -4067,7 +4065,7 @@ public class InternalEngineTests extends EngineTestCase {
 
         // Index the same document again
         document = testDocumentWithTextField();
-        document.add(new Field(SourceFieldMapper.NAME, BytesReference.toBytes(B_1), SourceFieldMapper.Defaults.FIELD_TYPE));
+        document.add(new Field(DocSysColumns.Source.NAME, BytesReference.toBytes(B_1), DocSysColumns.Source.FIELD_TYPE));
         doc = testParsedDocument("1", document, B_1);
         engine.index(indexForDoc(doc));
         engine.refresh("test");
@@ -4079,7 +4077,7 @@ public class InternalEngineTests extends EngineTestCase {
 
         // Index the same document for the third time, this time changing the primary term
         document = testDocumentWithTextField();
-        document.add(new Field(SourceFieldMapper.NAME, BytesReference.toBytes(B_1), SourceFieldMapper.Defaults.FIELD_TYPE));
+        document.add(new Field(DocSysColumns.Source.NAME, BytesReference.toBytes(B_1), DocSysColumns.Source.FIELD_TYPE));
         doc = testParsedDocument("1", document, B_1);
         engine.index(new Engine.Index(newUid(doc), doc, UNASSIGNED_SEQ_NO, 3,
                                       Versions.MATCH_ANY, VersionType.INTERNAL, Engine.Operation.Origin.PRIMARY,
@@ -4292,7 +4290,7 @@ public class InternalEngineTests extends EngineTestCase {
             origin == PRIMARY ? () -> UNASSIGNED_SEQ_NO : sequenceNumber::getAndIncrement;
         final Supplier<ParsedDocument> doc = () -> {
             final Document document = testDocumentWithTextField();
-            document.add(new Field(SourceFieldMapper.NAME, BytesReference.toBytes(B_1), SourceFieldMapper.Defaults.FIELD_TYPE));
+            document.add(new Field(DocSysColumns.Source.NAME, BytesReference.toBytes(B_1), DocSysColumns.Source.FIELD_TYPE));
             return testParsedDocument("1", document, B_1);
         };
         final Term uid = newUid("1");
@@ -4858,7 +4856,7 @@ public class InternalEngineTests extends EngineTestCase {
                                      newMergePolicy(), null, localCheckpointTrackerSupplier,
                                      null, (engine, operation) -> seqNoGenerator.getAndIncrement())) {
             final String id = "id";
-            final Field uidField = new Field("_id", id, IdFieldMapper.Defaults.FIELD_TYPE);
+            final Field uidField = new Field("_id", id, DocSysColumns.ID.FIELD_TYPE);
             final Field versionField = new NumericDocValuesField("_version", 0);
             final SequenceIDFields seqID = SequenceIDFields.emptySeqID();
             final Document document = new Document();
@@ -4947,7 +4945,7 @@ public class InternalEngineTests extends EngineTestCase {
             int numDocs = scaledRandomIntBetween(10, 100);
             for (int docId = 0; docId < numDocs; docId++) {
                 Document document = testDocumentWithTextField();
-                document.add(new Field(SourceFieldMapper.NAME, BytesReference.toBytes(B_1), SourceFieldMapper.Defaults.FIELD_TYPE));
+                document.add(new Field(DocSysColumns.Source.NAME, BytesReference.toBytes(B_1), DocSysColumns.Source.FIELD_TYPE));
                 engine.index(indexForDoc(testParsedDocument(Integer.toString(docId), document, B_1)));
                 if (frequently()) {
                     globalCheckpoint.set(randomLongBetween(globalCheckpoint.get(), engine.getPersistedLocalCheckpoint()));
@@ -5825,7 +5823,7 @@ public class InternalEngineTests extends EngineTestCase {
                 final Map<BytesRef, Engine.Operation> deletesAfterCheckpoint = new HashMap<>();
                 for (Engine.Operation op : operationsInSafeCommit) {
                     if (op instanceof Engine.NoOp == false && op.seqNo() > engine.getPersistedLocalCheckpoint()) {
-                        deletesAfterCheckpoint.put(new Term(IdFieldMapper.NAME, Uid.encodeId(op.id())).bytes(), op);
+                        deletesAfterCheckpoint.put(new Term(DocSysColumns.Names.ID, Uid.encodeId(op.id())).bytes(), op);
                     }
                 }
                 deletesAfterCheckpoint.values().removeIf(o -> o instanceof Engine.Delete == false);

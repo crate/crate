@@ -21,9 +21,9 @@
 
 package io.crate.metadata;
 
+import static io.crate.types.GeoShapeType.Names.TREE_BKD;
+import static io.crate.types.GeoShapeType.Names.TREE_GEOHASH;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
-import static org.elasticsearch.index.mapper.GeoShapeFieldMapper.Names.TREE_BKD;
-import static org.elasticsearch.index.mapper.GeoShapeFieldMapper.Names.TREE_GEOHASH;
 
 import java.io.IOException;
 import java.util.Map;

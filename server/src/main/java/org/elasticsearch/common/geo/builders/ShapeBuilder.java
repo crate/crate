@@ -19,26 +19,6 @@
 
 package org.elasticsearch.common.geo.builders;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.Assertions;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.geo.GeoShapeType;
-import org.elasticsearch.common.geo.parsers.GeoWKTParser;
-import org.elasticsearch.common.geo.parsers.ShapeParser;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.xcontent.ToXContentObject;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentParser;
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.Geometry;
-import org.locationtech.jts.geom.GeometryFactory;
-import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
-import org.locationtech.spatial4j.exception.InvalidShapeException;
-import org.locationtech.spatial4j.shape.Shape;
-import org.locationtech.spatial4j.shape.jts.JtsGeometry;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -48,10 +28,26 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.Assertions;
+import org.elasticsearch.common.geo.GeoShapeType;
+import org.elasticsearch.common.geo.parsers.GeoWKTParser;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
+import org.locationtech.spatial4j.exception.InvalidShapeException;
+import org.locationtech.spatial4j.shape.Shape;
+import org.locationtech.spatial4j.shape.jts.JtsGeometry;
+
 /**
  * Basic class for building GeoJSON shapes like Polygons, Linestrings, etc
  */
-public abstract class ShapeBuilder<T extends Shape, E extends ShapeBuilder<T,E>> implements ToXContentObject {
+public abstract class ShapeBuilder<T extends Shape, E extends ShapeBuilder<T,E>> {
 
     protected static final Logger LOGGER = LogManager.getLogger(ShapeBuilder.class);
 
@@ -437,12 +433,6 @@ public abstract class ShapeBuilder<T extends Shape, E extends ShapeBuilder<T,E>>
         return LOGGER.isDebugEnabled() || DEBUG;
     }
 
-    /** @deprecated this method will be removed in a future version; use ShapeParser.parse instead */
-    @Deprecated
-    public static ShapeBuilder parse(XContentParser parser) throws IOException {
-        return ShapeParser.parse(parser);
-    }
-
     protected static XContentBuilder toXContent(XContentBuilder builder, Coordinate coordinate) throws IOException {
         builder.startArray().value(coordinate.x).value(coordinate.y);
         if (Double.isNaN(coordinate.z) == false) {
@@ -487,10 +477,5 @@ public abstract class ShapeBuilder<T extends Shape, E extends ShapeBuilder<T,E>>
     @Override
     public int hashCode() {
         return Objects.hash(coordinates);
-    }
-
-    @Override
-    public String toString() {
-        return Strings.toString(this, true, true);
     }
 }

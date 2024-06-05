@@ -119,7 +119,6 @@ import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.Engine.Operation.Origin;
-import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.SequenceIDFields;
 import org.elasticsearch.index.mapper.Uid;
@@ -141,6 +140,7 @@ import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 import io.crate.common.collections.Sets;
 import io.crate.common.collections.Tuple;
 import io.crate.common.io.IOUtils;
+import io.crate.metadata.doc.DocSysColumns;
 
 @LuceneTestCase.SuppressFileSystems("ExtrasFS")
 public class TranslogTests extends ESTestCase {
@@ -2947,7 +2947,7 @@ public class TranslogTests extends ESTestCase {
         seqID.seqNo.setLongValue(randomSeqNum);
         seqID.seqNoDocValue.setLongValue(randomSeqNum);
         seqID.primaryTerm.setLongValue(randomPrimaryTerm);
-        Field idField = new Field("_id", Uid.encodeId("1"), IdFieldMapper.Defaults.FIELD_TYPE);
+        Field idField = new Field(DocSysColumns.ID.COLUMN.name(), Uid.encodeId("1"), DocSysColumns.ID.FIELD_TYPE);
         Field versionField = new NumericDocValuesField("_version", 1);
         Document document = new Document();
         document.add(new TextField("value", "test", Field.Store.YES));

@@ -30,7 +30,6 @@ import org.apache.lucene.document.LatLonDocValuesField;
 import org.apache.lucene.document.LatLonPoint;
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
 import org.locationtech.spatial4j.shape.Point;
 
 import io.crate.execution.dml.Indexer.ColumnConstraint;
@@ -38,6 +37,7 @@ import io.crate.execution.dml.Indexer.Synthetic;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
+import io.crate.metadata.doc.DocSysColumns;
 
 public class GeoPointIndexer implements ValueIndexer<Point> {
 
@@ -67,9 +67,9 @@ public class GeoPointIndexer implements ValueIndexer<Point> {
             addField.accept(new LatLonDocValuesField(name, point.getLat(), point.getLon()));
         } else {
             addField.accept(new Field(
-                FieldNamesFieldMapper.NAME,
+                DocSysColumns.FieldNames.NAME,
                 name,
-                FieldNamesFieldMapper.Defaults.FIELD_TYPE));
+                DocSysColumns.FieldNames.FIELD_TYPE));
         }
     }
 }

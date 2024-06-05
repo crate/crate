@@ -49,10 +49,8 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.SequenceIDFields;
-import org.elasticsearch.index.mapper.TextFieldMapper;
 import org.elasticsearch.index.mapper.Uid;
 import org.jetbrains.annotations.Nullable;
 
@@ -171,7 +169,7 @@ public class Indexer {
             //  - Can be a child column, where the root is part of the targetColumns / insertValues
 
             ColumnIdent column = ref.column();
-            if (column.equals(DocSysColumns.ID)) {
+            if (column.equals(DocSysColumns.ID.COLUMN)) {
                 return NestableCollectExpression.forFunction(IndexItem::id);
             } else if (column.equals(DocSysColumns.SEQ_NO)) {
                 return NestableCollectExpression.forFunction(IndexItem::seqNo);
@@ -803,11 +801,11 @@ public class Indexer {
                             if (val == null) {
                                 continue;
                             }
-                            Field field = new Field(fqn, val.toString(), TextFieldMapper.Defaults.FIELD_TYPE);
+                            Field field = new Field(fqn, val.toString(), FulltextIndexer.FIELD_TYPE);
                             doc.add(field);
                         }
                     } else {
-                        Field field = new Field(fqn, value.toString(), TextFieldMapper.Defaults.FIELD_TYPE);
+                        Field field = new Field(fqn, value.toString(), FulltextIndexer.FIELD_TYPE);
                         doc.add(field);
                     }
                 }
@@ -825,7 +823,7 @@ public class Indexer {
             doc.add(new StoredField("_source", sourceRef.bytes, sourceRef.offset, sourceRef.length));
 
             BytesRef idBytes = Uid.encodeId(item.id());
-            doc.add(new Field(DocSysColumns.Names.ID, idBytes, IdFieldMapper.Defaults.FIELD_TYPE));
+            doc.add(new Field(DocSysColumns.Names.ID, idBytes, DocSysColumns.ID.FIELD_TYPE));
 
             SequenceIDFields seqID = SequenceIDFields.emptySeqID();
             // Actual values are set via ParsedDocument.updateSeqID

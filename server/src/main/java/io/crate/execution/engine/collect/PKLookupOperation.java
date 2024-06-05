@@ -40,7 +40,6 @@ import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.engine.Engine;
-import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
@@ -64,6 +63,7 @@ import io.crate.expression.reference.doc.lucene.SourceFieldVisitor;
 import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.planner.operators.PKAndVersion;
 
 public final class PKLookupOperation {
@@ -84,7 +84,7 @@ public final class PKLookupOperation {
                                 long seqNo,
                                 long primaryTerm,
                                 @Nullable SourceParser sourceParser) {
-        Term uidTerm = new Term(IdFieldMapper.NAME, Uid.encodeId(id));
+        Term uidTerm = new Term(DocSysColumns.Names.ID, Uid.encodeId(id));
         Engine.Get get = new Engine.Get(id, uidTerm)
             .version(version)
             .versionType(versionType)

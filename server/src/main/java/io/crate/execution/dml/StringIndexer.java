@@ -26,18 +26,29 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 import org.apache.lucene.document.Field;
+import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.SortedSetDocValuesField;
+import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
-import org.elasticsearch.index.mapper.KeywordFieldMapper;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
+import io.crate.metadata.doc.DocSysColumns;
 
 public class StringIndexer implements ValueIndexer<String> {
+
+    public static final FieldType FIELD_TYPE = new FieldType();
+
+    static {
+        FIELD_TYPE.setTokenized(false);
+        FIELD_TYPE.setOmitNorms(true);
+        FIELD_TYPE.setIndexOptions(IndexOptions.DOCS);
+        FIELD_TYPE.freeze();
+
+    }
 
     private final Reference ref;
 
@@ -55,13 +66,13 @@ public class StringIndexer implements ValueIndexer<String> {
         String name = ref.storageIdent();
         BytesRef binaryValue = new BytesRef(value);
         if (ref.indexType() != IndexType.NONE) {
-            Field field = new Field(name, binaryValue, KeywordFieldMapper.Defaults.FIELD_TYPE);
+            Field field = new Field(name, binaryValue, FIELD_TYPE);
             addField.accept(field);
             if (ref.hasDocValues() == false) {
                 addField.accept(new Field(
-                    FieldNamesFieldMapper.NAME,
+                    DocSysColumns.FieldNames.NAME,
                     name,
-                    FieldNamesFieldMapper.Defaults.FIELD_TYPE));
+                    DocSysColumns.FieldNames.FIELD_TYPE));
             }
         }
         if (ref.hasDocValues()) {

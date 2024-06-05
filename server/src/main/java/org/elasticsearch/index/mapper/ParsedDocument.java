@@ -38,7 +38,7 @@ public class ParsedDocument {
         Document doc = new Document();
 
         BytesRef idBytes = Uid.encodeId(id);
-        doc.add(new Field(DocSysColumns.Names.ID, idBytes, IdFieldMapper.Defaults.FIELD_TYPE));
+        doc.add(new Field(DocSysColumns.Names.ID, idBytes, DocSysColumns.ID.FIELD_TYPE));
 
         NumericDocValuesField version = new NumericDocValuesField(DocSysColumns.VERSION.name(), -1L);
         doc.add(version);
@@ -77,7 +77,7 @@ public class ParsedDocument {
         ).toTombstone();
         // Store the reason of a noop as a raw string in the _source field
         final BytesRef byteRef = new BytesRef(reason);
-        doc.add(new StoredField(SourceFieldMapper.NAME, byteRef.bytes, byteRef.offset, byteRef.length));
+        doc.add(new StoredField(DocSysColumns.Source.NAME, byteRef.bytes, byteRef.offset, byteRef.length));
         return parsedDoc;
     }
 

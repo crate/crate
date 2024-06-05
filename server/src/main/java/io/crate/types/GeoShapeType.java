@@ -46,6 +46,16 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
 
     public static final int ID = 14;
     public static final GeoShapeType INSTANCE = new GeoShapeType();
+
+
+    public static class Names {
+        public static final String TREE_GEOHASH = "geohash";
+        public static final String TREE_QUADTREE = "quadtree";
+        public static final String TREE_LEGACY_QUADTREE = "legacyquadtree";
+        public static final String TREE_BKD = "bkdtree";
+    }
+
+
     private static final StorageSupport<Map<String, Object>> STORAGE = new StorageSupport<>(false, false, null) {
 
         @Override

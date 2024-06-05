@@ -25,17 +25,17 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 
-import org.elasticsearch.index.mapper.GeoShapeFieldMapper;
 import org.junit.Test;
 
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.testing.UseJdbc;
+import io.crate.types.GeoShapeType;
 
 public class BkdTreeGeoMatchIntegrationTest extends BaseGeoMatchIntegrationTest {
 
     @Override
     String indexType() {
-        return GeoShapeFieldMapper.Names.TREE_BKD;
+        return GeoShapeType.Names.TREE_BKD;
     }
 
     @UseJdbc(0)

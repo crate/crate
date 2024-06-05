@@ -32,13 +32,13 @@ import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
 
 import io.crate.execution.dml.Indexer.ColumnConstraint;
 import io.crate.execution.dml.Indexer.Synthetic;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
+import io.crate.metadata.doc.DocSysColumns;
 
 public class DoubleIndexer implements ValueIndexer<Number> {
 
@@ -70,9 +70,9 @@ public class DoubleIndexer implements ValueIndexer<Number> {
                 );
             } else {
                 addField.accept(new Field(
-                        FieldNamesFieldMapper.NAME,
+                        DocSysColumns.FieldNames.NAME,
                         name,
-                        FieldNamesFieldMapper.Defaults.FIELD_TYPE));
+                        DocSysColumns.FieldNames.FIELD_TYPE));
             }
         }
     }

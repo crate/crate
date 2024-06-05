@@ -21,10 +21,15 @@
 
 package io.crate.metadata.doc;
 
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
+
+import org.apache.lucene.document.FieldType;
+import org.apache.lucene.index.IndexOptions;
 
 import io.crate.execution.engine.fetch.FetchId;
 import io.crate.metadata.ColumnIdent;
@@ -37,8 +42,6 @@ import io.crate.metadata.SimpleReference;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-
-import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 public class DocSysColumns {
 
@@ -62,7 +65,46 @@ public class DocSysColumns {
         public static final String DOCID = "_docid";
     }
 
-    public static final ColumnIdent ID = new ColumnIdent(Names.ID);
+    public static class ID {
+        public static final ColumnIdent COLUMN = new ColumnIdent(Names.ID);
+        public static final FieldType FIELD_TYPE = new FieldType();
+
+        static {
+            FIELD_TYPE.setTokenized(false);
+            FIELD_TYPE.setIndexOptions(IndexOptions.DOCS);
+            FIELD_TYPE.setStored(true);
+            FIELD_TYPE.setOmitNorms(true);
+            FIELD_TYPE.freeze();
+        }
+    }
+
+    public static class Source {
+        public static final String NAME = "_source";
+        public static final String RECOVERY_NAME = "_recovery_source";
+
+        public static final FieldType FIELD_TYPE = new FieldType();
+
+        static {
+            FIELD_TYPE.setIndexOptions(IndexOptions.NONE); // not indexed
+            FIELD_TYPE.setStored(true);
+            FIELD_TYPE.setOmitNorms(true);
+            FIELD_TYPE.freeze();
+        }
+    }
+
+    public static class FieldNames {
+        public static final String NAME = "_field_names";
+        public static final FieldType FIELD_TYPE = new FieldType();
+
+        static {
+            FIELD_TYPE.setIndexOptions(IndexOptions.DOCS);
+            FIELD_TYPE.setTokenized(false);
+            FIELD_TYPE.setStored(false);
+            FIELD_TYPE.setOmitNorms(true);
+            FIELD_TYPE.freeze();
+        }
+    }
+
     public static final ColumnIdent VERSION = new ColumnIdent(Names.VERSION);
     public static final ColumnIdent SCORE = new ColumnIdent(Names.SCORE);
     public static final ColumnIdent UID = new ColumnIdent(Names.UID);
@@ -80,7 +122,7 @@ public class DocSysColumns {
     public static final Map<ColumnIdent, DataType<?>> COLUMN_IDENTS = Map.of(
         DOC, DataTypes.UNTYPED_OBJECT,
         FETCHID, DataTypes.LONG,
-        ID, DataTypes.STRING,
+        ID.COLUMN, DataTypes.STRING,
         RAW, DataTypes.STRING,
         SCORE, DataTypes.FLOAT,
         UID, DataTypes.STRING,
@@ -92,7 +134,7 @@ public class DocSysColumns {
 
     private static final Map<ColumnIdent, String> LUCENE_COLUMN_NAMES = Map.of(
         RAW, "_source",
-        ID, UID.name()
+        ID.COLUMN, UID.name()
     );
 
     /**

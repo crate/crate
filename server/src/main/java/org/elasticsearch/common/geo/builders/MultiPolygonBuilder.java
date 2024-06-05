@@ -19,20 +19,16 @@
 
 package org.elasticsearch.common.geo.builders;
 
-import org.elasticsearch.common.geo.GeoShapeType;
-import org.elasticsearch.common.geo.XShapeCollection;
-import org.elasticsearch.common.geo.parsers.GeoWKTParser;
-import org.elasticsearch.common.geo.parsers.ShapeParser;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.spatial4j.shape.Shape;
-
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
+
+import org.elasticsearch.common.geo.GeoShapeType;
+import org.elasticsearch.common.geo.XShapeCollection;
+import org.elasticsearch.common.geo.parsers.GeoWKTParser;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.spatial4j.shape.Shape;
 
 public class MultiPolygonBuilder extends ShapeBuilder {
 
@@ -109,21 +105,6 @@ public class MultiPolygonBuilder extends ShapeBuilder {
             sb.append(GeoWKTParser.RPAREN);
         }
         return sb;
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject();
-        builder.field(ShapeParser.FIELD_TYPE.getPreferredName(), TYPE.shapeName());
-        builder.field(ShapeParser.FIELD_ORIENTATION.getPreferredName(), orientation.name().toLowerCase(Locale.ROOT));
-        builder.startArray(ShapeParser.FIELD_COORDINATES.getPreferredName());
-        for (PolygonBuilder polygon : polygons) {
-            builder.startArray();
-            polygon.coordinatesArray(builder, params);
-            builder.endArray();
-        }
-        builder.endArray();
-        return builder.endObject();
     }
 
     @Override

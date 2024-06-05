@@ -45,10 +45,6 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.index.mapper.BitStringFieldMapper;
-import org.elasticsearch.index.mapper.DateFieldMapper;
-import org.elasticsearch.index.mapper.KeywordFieldMapper;
-import org.elasticsearch.index.mapper.TypeParsers;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.ParamTypeHints;
@@ -95,6 +91,13 @@ public class DocTableInfoFactory {
     private final NodeContext nodeCtx;
     private final ExpressionAnalyzer expressionAnalyzer;
     private final CoordinatorTxnCtx systemTransactionContext;
+
+    public static class MappingKeys {
+        public static final String DOC_VALUES = "doc_values";
+        public static final String DATE = "date";
+        public static final String KEYWORD = "keyword";
+        public static final String BITSTRING = "bit";
+    }
 
     public DocTableInfoFactory(NodeContext nodeCtx) {
         this.nodeCtx = nodeCtx;
@@ -330,7 +333,7 @@ public class DocTableInfoFactory {
         if (primaryKeys.size() == 1) {
             return primaryKeys.get(0);
         }
-        return DocSysColumns.ID;
+        return DocSysColumns.ID.COLUMN;
     }
 
     private static List<CheckConstraint<Symbol>> getCheckConstraints(
@@ -399,7 +402,7 @@ public class DocTableInfoFactory {
 
             StorageSupport<?> storageSupport = type.storageSupportSafe();
             boolean docValuesDefault = storageSupport.getComputedDocValuesDefault(indexType);
-            Object docValues = columnProperties.get(TypeParsers.DOC_VALUES);
+            Object docValues = columnProperties.get(MappingKeys.DOC_VALUES);
             boolean hasDocValues = docValues == null
                 ? docValuesDefault
                 : Booleans.parseBoolean(docValues.toString());
@@ -698,7 +701,7 @@ public class DocTableInfoFactory {
         }
 
         return switch (typeName.toLowerCase(Locale.ENGLISH)) {
-            case DateFieldMapper.CONTENT_TYPE -> {
+            case MappingKeys.DATE -> {
                 Boolean ignoreTimezone = (Boolean) columnProperties.get("ignore_timezone");
                 if (ignoreTimezone != null && ignoreTimezone) {
                     yield DataTypes.TIMESTAMP;
@@ -706,7 +709,7 @@ public class DocTableInfoFactory {
                     yield DataTypes.TIMESTAMPZ;
                 }
             }
-            case KeywordFieldMapper.CONTENT_TYPE -> {
+            case MappingKeys.KEYWORD -> {
                 Integer lengthLimit = (Integer) columnProperties.get("length_limit");
                 var blankPadding = columnProperties.get("blank_padding");
                 if (blankPadding != null && (Boolean) blankPadding) {
@@ -716,7 +719,7 @@ public class DocTableInfoFactory {
                     ? StringType.of(lengthLimit)
                     : DataTypes.STRING;
             }
-            case BitStringFieldMapper.CONTENT_TYPE -> {
+            case MappingKeys.BITSTRING -> {
                 Integer length = (Integer) columnProperties.get("length");
                 assert length != null : "Length is required for bit string type";
                 yield new BitStringType(length);

@@ -134,7 +134,7 @@ public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbo
         if (DocSysColumns.SCORE.equals(columnIdent)) {
             return !context.reverseFlag ? SORT_SCORE_REVERSE : SORT_SCORE;
         }
-        if (DocSysColumns.RAW.equals(columnIdent) || DocSysColumns.ID.equals(columnIdent)) {
+        if (DocSysColumns.RAW.equals(columnIdent) || DocSysColumns.ID.COLUMN.equals(columnIdent)) {
             return customSortField(DocSysColumns.nameForLucene(columnIdent), ref, context);
         }
         if (!ref.hasDocValues()) {

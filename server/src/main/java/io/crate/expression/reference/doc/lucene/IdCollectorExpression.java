@@ -21,16 +21,17 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import io.crate.execution.engine.fetch.ReaderContext;
-import io.crate.metadata.doc.DocSysColumns;
-import org.elasticsearch.index.fieldvisitor.IDVisitor;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
 
+import org.elasticsearch.index.fieldvisitor.IDVisitor;
+
+import io.crate.execution.engine.fetch.ReaderContext;
+import io.crate.metadata.doc.DocSysColumns;
+
 public final class IdCollectorExpression extends LuceneCollectorExpression<String> {
 
-    private final IDVisitor visitor = new IDVisitor(DocSysColumns.ID.name());
+    private final IDVisitor visitor = new IDVisitor(DocSysColumns.ID.COLUMN.name());
     private ReaderContext context;
     private int docId;
 

@@ -36,7 +36,6 @@ import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
 import org.elasticsearch.common.lucene.search.Queries;
-import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
@@ -51,6 +50,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.ColumnPolicy;
@@ -176,7 +176,7 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
             if (ref.indexType() == IndexType.NONE) {
                 return null;
             } else {
-                return new ConstantScoreQuery(new TermQuery(new Term(FieldNamesFieldMapper.NAME, field)));
+                return new ConstantScoreQuery(new TermQuery(new Term(DocSysColumns.FieldNames.NAME, field)));
             }
         } else {
             return null;

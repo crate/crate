@@ -96,7 +96,6 @@ import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.RecoveryEngineException;
-import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.SequenceIDFields;
 import org.elasticsearch.index.mapper.Uid;
@@ -128,6 +127,7 @@ import io.crate.common.exceptions.Exceptions;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.metadata.doc.DocSysColumns;
 
 public class RecoverySourceHandlerTests extends ESTestCase {
     private static final IndexSettings INDEX_SETTINGS = IndexSettingsModule.newIndexSettings(
@@ -401,7 +401,11 @@ public class RecoverySourceHandlerTests extends ESTestCase {
     private Engine.Index getIndex(final String id) {
         final Document document = new Document();
         document.add(new TextField("test", "test", Field.Store.YES));
-        final Field idField = new Field("_id", Uid.encodeId(id), IdFieldMapper.Defaults.FIELD_TYPE);
+        final Field idField = new Field(
+            DocSysColumns.ID.COLUMN.name(),
+            Uid.encodeId(id),
+            DocSysColumns.ID.FIELD_TYPE
+        );
         final Field versionField = new NumericDocValuesField("_version", Versions.MATCH_ANY);
         final SequenceIDFields seqID = SequenceIDFields.emptySeqID();
         document.add(idField);

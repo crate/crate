@@ -25,7 +25,8 @@ import java.util.Map;
 
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.mapper.TextFieldMapper;
+
+import io.crate.types.StringType;
 
 /**
  * A custom analyzer that is built out of a single {@link org.apache.lucene.analysis.Tokenizer} and a list
@@ -64,7 +65,7 @@ public class CustomAnalyzerProvider extends AbstractIndexAnalyzerProvider<Custom
             charFiltersList.add(charFilter);
         }
 
-        int positionIncrementGap = TextFieldMapper.Defaults.POSITION_INCREMENT_GAP;
+        int positionIncrementGap = StringType.POSITION_INCREMENT_GAP;
 
         positionIncrementGap = analyzerSettings.getAsInt("position_increment_gap", positionIncrementGap);
 

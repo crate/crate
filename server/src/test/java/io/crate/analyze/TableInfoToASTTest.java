@@ -22,7 +22,6 @@
 package io.crate.analyze;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.elasticsearch.index.mapper.GeoShapeFieldMapper.Names.TREE_QUADTREE;
 import static org.junit.Assert.assertThat;
 
 import org.assertj.core.api.Assertions;
@@ -38,6 +37,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
+import io.crate.types.GeoShapeType;
 
 public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
 
@@ -533,7 +533,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
         Reference reference = table.getReference(new ColumnIdent("geo_arr"));
         Assertions.assertThat(reference.valueType()).isEqualTo(new ArrayType<>(DataTypes.GEO_SHAPE));
         GeoReference geoRef = (GeoReference) reference;
-        Assertions.assertThat(geoRef.geoTree()).isEqualTo(TREE_QUADTREE);
+        Assertions.assertThat(geoRef.geoTree()).isEqualTo(GeoShapeType.Names.TREE_QUADTREE);
         Assertions.assertThat(geoRef.precision()).isEqualTo("1m");
         Assertions.assertThat(geoRef.distanceErrorPct()).isEqualTo(0.25);
 
