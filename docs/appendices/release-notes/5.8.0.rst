@@ -116,6 +116,19 @@ Scalar and Aggregation Functions
 Performance and Resilience Improvements
 ---------------------------------------
 
+- Extended push-down of constant join conditions to right, left and cross joins.
+  This optimization applies constant join conditions such as `x < 100` before the
+  join operation to reduce the number of rows to joins. This improves the performance
+  on queries such as::
+
+    select * from t1 right join t2 on t1.id = t2.id and t1.x < 100
+
+  This optimization can be disabled if desired, with the session setting::
+
+    SET optimizer_move_constant_join_conditions_beneath_join = false
+
+  Note that this setting is experimental, and may change in the future.
+
 - Extended the lookup-join optimization to make it applicable to more complex
   queries when they include sub-queries, an inner-equi-join and if there is a
   large imbalance in size between the joined tables. This optimization is

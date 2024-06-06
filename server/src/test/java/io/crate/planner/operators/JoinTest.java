@@ -1098,4 +1098,23 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(result.relationNames().get(1).toString()).isEqualTo("doc.t1");
         assertThat(result.relationNames().get(2).toString()).isEqualTo("doc.t3");
     }
+
+    @Test
+    public void test_push_constant_join_conditions_beneath_outer_joins() throws Exception {
+        var executor = SQLExecutor.builder(clusterService)
+            .build()
+            .addTable("CREATE TABLE doc.t1 (a INT)")
+            .addTable("CREATE TABLE doc.t2 (b INT)");
+
+        QueriedSelectRelation mss = e.analyze("SELECT * FROM t1 RIGHT JOIN t2 ON t1.a = t2.b AND t1.a > 1");
+
+        var plannerCtx = executor.getPlannerContext();
+        NestedLoopJoin result = (NestedLoopJoin) buildLogicalPlan(mss, plannerCtx);
+
+        assertThat(result).hasOperators(
+            "NestedLoopJoin[RIGHT | (a = b)]",
+            "  ├ Collect[doc.t1 | [a] | (a > 1)]",
+            "  └ Collect[doc.t2 | [b] | true]"
+        );
+    }
 }
