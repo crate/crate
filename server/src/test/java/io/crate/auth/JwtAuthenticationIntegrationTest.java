@@ -174,14 +174,15 @@ public class JwtAuthenticationIntegrationTest extends IntegTestCase {
         request.setHeader(HttpHeaderNames.AUTHORIZATION.toString(), "Bearer " + jwt);
         request.setHeader(HttpHeaderNames.ORIGIN.toString(), "http://example.com");
         request.setHeader(HttpHeaderNames.ACCESS_CONTROL_REQUEST_METHOD.toString(), "GET");
-        CloseableHttpClient httpClient = HttpClients.createDefault();
-        CloseableHttpResponse resp = httpClient.execute(request);
-        String bodyAsString = EntityUtils.toString(resp.getEntity(), StandardCharsets.UTF_8);
-        assertThat(bodyAsString).containsIgnoringWhitespaces("""
-                                                {
-                                                  "ok" : true,
-                                                  "status" : 200
-                                                  """);
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+            CloseableHttpResponse resp = httpClient.execute(request);
+            String bodyAsString = EntityUtils.toString(resp.getEntity(), StandardCharsets.UTF_8);
+            assertThat(bodyAsString).containsIgnoringWhitespaces("""
+                {
+                  "ok" : true,
+                  "status" : 200
+                  """);
+        }
 
     }
 
@@ -211,9 +212,10 @@ public class JwtAuthenticationIntegrationTest extends IntegTestCase {
         request.setHeader(HttpHeaderNames.AUTHORIZATION.toString(), "Bearer " + jwt);
         request.setHeader(HttpHeaderNames.ORIGIN.toString(), "http://example.com");
         request.setHeader(HttpHeaderNames.ACCESS_CONTROL_REQUEST_METHOD.toString(), "GET");
-        CloseableHttpClient httpClient = HttpClients.createDefault();
-        CloseableHttpResponse resp = httpClient.execute(request);
-        String bodyAsString = EntityUtils.toString(resp.getEntity(), StandardCharsets.UTF_8);
-        assertThat(bodyAsString).contains("jwt authentication failed for user John. Reason: Cannot obtain jwks from url");
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+            CloseableHttpResponse resp = httpClient.execute(request);
+            String bodyAsString = EntityUtils.toString(resp.getEntity(), StandardCharsets.UTF_8);
+            assertThat(bodyAsString).contains("jwt authentication failed for user John. Reason: Cannot obtain jwks from url");
+        }
     }
 }
