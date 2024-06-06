@@ -102,6 +102,9 @@ Fixes
 - Fixed an issue that could lead to errors when loading data from geo_point
   fields inside nested arrays.
 
+- Fixed an issue that caused ``SQLParseException`` when the results returned
+  from foreign tables could not be casted to CrateDB specific data types.
+
 - Fixed an issue that allowed dropped users to run queries if active user was
   set by ``SET SESSION AUTHORIZATION`` and then dropped.
 
