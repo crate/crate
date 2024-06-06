@@ -44,6 +44,11 @@ When a repository is de-registered, it is no longer available for use.
     repository using the same backend data storage, any existing snapshots will
     become available again.
 
+.. NOTE::
+
+    A repository can only be dropped when not in use, i.e. when there are no 
+    snapshots being taken.
+
 
 .. _sql-drop-repo-params:
 
