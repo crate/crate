@@ -93,6 +93,8 @@ public class MoveConstantJoinConditionsBeneathJoin implements Rule<JoinPlan> {
         if (!constantConditions.isEmpty() && !nonConstantConditions.isEmpty()) {
             var lhsRelations = new HashSet<>(joinPlan.lhs().relationNames());
             var rhsRelations = new HashSet<>(joinPlan.rhs().relationNames());
+            LogicalPlan newLhs = joinPlan.lhs();
+            LogicalPlan newRhs = joinPlan.rhs();
             if (joinPlan.joinType() == JoinType.INNER) {
                 // Inner-join will filter on both side
                 // therefore constant filters can be pushed down to the sources
@@ -100,59 +102,35 @@ public class MoveConstantJoinConditionsBeneathJoin implements Rule<JoinPlan> {
                 var rhs = resolvePlan.apply(joinPlan.rhs());
                 var queryForLhs = constantConditions.remove(lhsRelations);
                 var queryForRhs = constantConditions.remove(rhsRelations);
-                var newLhs = getNewSource(queryForLhs, lhs);
-                var newRhs = getNewSource(queryForRhs, rhs);
-                joinPlan = new JoinPlan(
-                    newLhs,
-                    newRhs,
-                    joinPlan.joinType(),
-                    AndOperator.join(nonConstantConditions),
-                    joinPlan.isFiltered(),
-                    joinPlan.isRewriteFilterOnOuterJoinToInnerJoinDone(),
-                    joinPlan.isLookUpJoinRuleApplied(),
-                    joinPlan.lookUpJoin()
-                );
-            } else  if (joinPlan.joinType() == JoinType.LEFT) {
+                newLhs = getNewSource(queryForLhs, lhs);
+                newRhs = getNewSource(queryForRhs, rhs);
+            } else if (joinPlan.joinType() == JoinType.LEFT) {
                 //  Left-join will only filter on the rhs
                 // therefore constant filters can be pushed down to the rhs
                 var lhs = resolvePlan.apply(joinPlan.lhs());
                 var queryForLhs = constantConditions.remove(lhsRelations);
-                var newLhs = getNewSource(queryForLhs, lhs);
-                var newJoinConditions = new LinkedHashSet<>(nonConstantConditions);
-                if (!constantConditions.isEmpty()) {
-                    newJoinConditions.addAll(constantConditions.values());
-                }
-                joinPlan = new JoinPlan(
-                    newLhs,
-                    joinPlan.rhs(),
-                    joinPlan.joinType(),
-                    AndOperator.join(newJoinConditions),
-                    joinPlan.isFiltered(),
-                    joinPlan.isRewriteFilterOnOuterJoinToInnerJoinDone(),
-                    joinPlan.isLookUpJoinRuleApplied(),
-                    joinPlan.lookUpJoin()
-                );
-            } else  if (joinPlan.joinType() == JoinType.RIGHT) {
+                newLhs = getNewSource(queryForLhs, lhs);
+            } else if (joinPlan.joinType() == JoinType.RIGHT) {
                 //  Right-join will only filter on the lhs
                 // therefore constant filters can be pushed down to the lhs
                 var rhs = resolvePlan.apply(joinPlan.rhs());
                 var queryForRhs = constantConditions.remove(rhsRelations);
-                var newRhs = getNewSource(queryForRhs, rhs);
-                var newJoinConditions = new LinkedHashSet<>(nonConstantConditions);
-                if (!constantConditions.isEmpty()) {
-                    newJoinConditions.addAll(constantConditions.values());
-                }
-                joinPlan = new JoinPlan(
-                    joinPlan.lhs(),
-                    newRhs,
-                    joinPlan.joinType(),
-                    AndOperator.join(newJoinConditions),
-                    joinPlan.isFiltered(),
-                    joinPlan.isRewriteFilterOnOuterJoinToInnerJoinDone(),
-                    joinPlan.isLookUpJoinRuleApplied(),
-                    joinPlan.lookUpJoin()
-                );
+                newRhs = getNewSource(queryForRhs, rhs);
             }
+            var newJoinConditions = new LinkedHashSet<>(nonConstantConditions);
+            if (!constantConditions.isEmpty()) {
+                newJoinConditions.addAll(constantConditions.values());
+            }
+            joinPlan = new JoinPlan(
+                newLhs,
+                newRhs,
+                joinPlan.joinType(),
+                AndOperator.join(newJoinConditions),
+                joinPlan.isFiltered(),
+                joinPlan.isRewriteFilterOnOuterJoinToInnerJoinDone(),
+                joinPlan.isLookUpJoinRuleApplied(),
+                joinPlan.lookUpJoin()
+            );
         }
         return joinPlan.withMoveConstantJoinConditionRuleApplied(true);
     }
