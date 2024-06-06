@@ -49,11 +49,9 @@ import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
 import org.elasticsearch.index.cache.query.DisabledQueryCache;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.indices.IndicesModule;
 import org.elasticsearch.indices.IndicesQueryCache;
 import org.elasticsearch.indices.analysis.AnalysisModule;
 import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
-import org.elasticsearch.indices.mapper.MapperRegistry;
 import org.elasticsearch.test.IndexSettingsModule;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -86,7 +84,6 @@ public final class IndexEnv implements AutoCloseable {
         Environment env = new Environment(nodeSettings, tempDir.resolve("config"));
         IndexSettings idxSettings = IndexSettingsModule.newIndexSettings(index, nodeSettings);
         AnalysisRegistry analysisRegistry = new AnalysisModule(env, Collections.emptyList()).getAnalysisRegistry();
-        MapperRegistry mapperRegistry = new IndicesModule().getMapperRegistry();
 
         queryCache = DisabledQueryCache.instance();
         IndexModule indexModule = new IndexModule(idxSettings, analysisRegistry, List.of(), Collections.emptyMap());
@@ -114,8 +111,7 @@ public final class IndexEnv implements AutoCloseable {
             BigArrays.NON_RECYCLING_INSTANCE,
             threadPool,
             IndicesQueryCache.createCache(Settings.EMPTY),
-            () -> table,
-            mapperRegistry
+            () -> table
         );
         IndexWriterConfig conf = new IndexWriterConfig(new StandardAnalyzer());
         writer = new IndexWriter(new ByteBuffersDirectory(), conf);

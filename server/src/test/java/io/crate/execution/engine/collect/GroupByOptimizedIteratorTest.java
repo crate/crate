@@ -54,7 +54,6 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.engine.Engine;
-import org.elasticsearch.index.mapper.KeywordFieldMapper;
 import org.elasticsearch.index.shard.IndexShard;
 import org.junit.Before;
 import org.junit.Test;
@@ -64,6 +63,7 @@ import io.crate.data.Row;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.data.testing.BatchIteratorTester;
 import io.crate.exceptions.JobKilledException;
+import io.crate.execution.dml.StringIndexer;
 import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.engine.aggregation.AggregationContext;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
@@ -158,7 +158,7 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
         for (int i = 0; i < 10; i++) {
             Document doc = new Document();
             BytesRef value = new BytesRef(Integer.toString(i));
-            doc.add(new Field(columnName, value, KeywordFieldMapper.Defaults.FIELD_TYPE));
+            doc.add(new Field(columnName, value, StringIndexer.FIELD_TYPE));
             iw.addDocument(doc);
         }
         iw.commit();
@@ -186,7 +186,7 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
         for (int i = 0; i < 10; i++) {
             Document doc = new Document();
             BytesRef value = new BytesRef("1");
-            doc.add(new Field(columnName, value, KeywordFieldMapper.Defaults.FIELD_TYPE));
+            doc.add(new Field(columnName, value, StringIndexer.FIELD_TYPE));
             iw.addDocument(doc);
         }
         iw.commit();

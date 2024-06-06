@@ -19,20 +19,17 @@
 
 package org.elasticsearch.common.geo.builders;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.Objects;
+
 import org.apache.lucene.geo.Line;
 import org.elasticsearch.common.geo.GeoShapeType;
 import org.elasticsearch.common.geo.parsers.GeoWKTParser;
-import org.elasticsearch.common.geo.parsers.ShapeParser;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.LineString;
 import org.locationtech.spatial4j.shape.jts.JtsGeometry;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.Objects;
 
 public class MultiLineStringBuilder extends ShapeBuilder<JtsGeometry, MultiLineStringBuilder> {
 
@@ -87,20 +84,6 @@ public class MultiLineStringBuilder extends ShapeBuilder<JtsGeometry, MultiLineS
                 "LineStrings have not yet been initialized");
         }
         return lines.get(0).numDimensions();
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject();
-        builder.field(ShapeParser.FIELD_TYPE.getPreferredName(), TYPE.shapeName());
-        builder.field(ShapeParser.FIELD_COORDINATES.getPreferredName());
-        builder.startArray();
-        for (LineStringBuilder line : lines) {
-            line.coordinatesToXcontent(builder, false);
-        }
-        builder.endArray();
-        builder.endObject();
-        return builder;
     }
 
     @Override

@@ -27,15 +27,27 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 import org.apache.lucene.document.Field;
+import org.apache.lucene.document.FieldType;
+import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.index.mapper.TextFieldMapper;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 
 public class FulltextIndexer implements ValueIndexer<String> {
+
+    public static final FieldType FIELD_TYPE = new FieldType();
+
+    static {
+        FIELD_TYPE.setTokenized(true);
+        FIELD_TYPE.setStored(false);
+        FIELD_TYPE.setStoreTermVectors(false);
+        FIELD_TYPE.setOmitNorms(false);
+        FIELD_TYPE.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS);
+        FIELD_TYPE.freeze();
+    }
 
     private final Reference ref;
 
@@ -55,7 +67,7 @@ public class FulltextIndexer implements ValueIndexer<String> {
         }
         String name = ref.storageIdent();
         if (ref.indexType() != IndexType.NONE) {
-            Field field = new Field(name, value, TextFieldMapper.Defaults.FIELD_TYPE);
+            Field field = new Field(name, value, FIELD_TYPE);
             addField.accept(field);
         }
     }

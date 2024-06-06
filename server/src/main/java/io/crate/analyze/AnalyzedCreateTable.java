@@ -155,7 +155,7 @@ public record AnalyzedCreateTable(
                     "Clustered by column `" + c + "` must be part of primary keys: " + Lists.map(primaryKeys, Reference::column));
             }
         });
-        ColumnIdent routingColumn = optClusteredBy.orElse(DocSysColumns.ID);
+        ColumnIdent routingColumn = optClusteredBy.orElse(DocSysColumns.ID.COLUMN);
 
         List<Symbol> partitionedByColumns = partitionedBy
             .map(PartitionedBy::columns)

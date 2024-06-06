@@ -45,10 +45,6 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.index.mapper.BitStringFieldMapper;
-import org.elasticsearch.index.mapper.DateFieldMapper;
-import org.elasticsearch.index.mapper.KeywordFieldMapper;
-import org.elasticsearch.index.mapper.TypeParsers;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.ParamTypeHints;
@@ -64,6 +60,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.GeoReference;
+import io.crate.metadata.IndexParts;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
@@ -95,6 +92,13 @@ public class DocTableInfoFactory {
     private final ExpressionAnalyzer expressionAnalyzer;
     private final CoordinatorTxnCtx systemTransactionContext;
 
+    public static class MappingKeys {
+        public static final String DOC_VALUES = "doc_values";
+        public static final String DATE = "date";
+        public static final String KEYWORD = "keyword";
+        public static final String BITSTRING = "bit";
+    }
+
     public DocTableInfoFactory(NodeContext nodeCtx) {
         this.nodeCtx = nodeCtx;
         this.systemTransactionContext = CoordinatorTxnCtx.systemTransactionContext();
@@ -107,12 +111,16 @@ public class DocTableInfoFactory {
         );
     }
 
-    public void validateSchema(IndexMetadata index) {
-        RelationName relationName = RelationName.fromIndexName(index.getIndex().getName());
-        Settings tableParameters = index.getSettings();
+    public void validateSchema(IndexMetadata indexMetadata) {
+        String indexName = indexMetadata.getIndex().getName();
+        if (IndexParts.isDangling(indexName)) {
+            return;
+        }
+        RelationName relationName = RelationName.fromIndexName(indexName);
+        Settings tableParameters = indexMetadata.getSettings();
         Version versionCreated = IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(tableParameters);
         Version versionUpgraded = tableParameters.getAsVersion(IndexMetadata.SETTING_VERSION_UPGRADED, null);
-        MappingMetadata mapping = index.mapping();
+        MappingMetadata mapping = indexMetadata.mapping();
         Map<String, Object> mappingSource = mapping == null ? Map.of() : mapping.sourceAsMap();
         final Map<String, Object> metaMap = Maps.getOrDefault(mappingSource, "_meta", Map.of());
         final List<ColumnIdent> partitionedBy = parsePartitionedByStringsList(
@@ -185,7 +193,7 @@ public class DocTableInfoFactory {
             ColumnPolicy.fromMappingValue(mappingSource.get("dynamic")),
             versionCreated,
             versionUpgraded,
-            index.getState() == IndexMetadata.State.CLOSE,
+            indexMetadata.getState() == IndexMetadata.State.CLOSE,
             Operation.CLOSED_OPERATIONS
         );
     }
@@ -325,7 +333,7 @@ public class DocTableInfoFactory {
         if (primaryKeys.size() == 1) {
             return primaryKeys.get(0);
         }
-        return DocSysColumns.ID;
+        return DocSysColumns.ID.COLUMN;
     }
 
     private static List<CheckConstraint<Symbol>> getCheckConstraints(
@@ -394,7 +402,7 @@ public class DocTableInfoFactory {
 
             StorageSupport<?> storageSupport = type.storageSupportSafe();
             boolean docValuesDefault = storageSupport.getComputedDocValuesDefault(indexType);
-            Object docValues = columnProperties.get(TypeParsers.DOC_VALUES);
+            Object docValues = columnProperties.get(MappingKeys.DOC_VALUES);
             boolean hasDocValues = docValues == null
                 ? docValuesDefault
                 : Booleans.parseBoolean(docValues.toString());
@@ -693,7 +701,7 @@ public class DocTableInfoFactory {
         }
 
         return switch (typeName.toLowerCase(Locale.ENGLISH)) {
-            case DateFieldMapper.CONTENT_TYPE -> {
+            case MappingKeys.DATE -> {
                 Boolean ignoreTimezone = (Boolean) columnProperties.get("ignore_timezone");
                 if (ignoreTimezone != null && ignoreTimezone) {
                     yield DataTypes.TIMESTAMP;
@@ -701,7 +709,7 @@ public class DocTableInfoFactory {
                     yield DataTypes.TIMESTAMPZ;
                 }
             }
-            case KeywordFieldMapper.CONTENT_TYPE -> {
+            case MappingKeys.KEYWORD -> {
                 Integer lengthLimit = (Integer) columnProperties.get("length_limit");
                 var blankPadding = columnProperties.get("blank_padding");
                 if (blankPadding != null && (Boolean) blankPadding) {
@@ -711,7 +719,7 @@ public class DocTableInfoFactory {
                     ? StringType.of(lengthLimit)
                     : DataTypes.STRING;
             }
-            case BitStringFieldMapper.CONTENT_TYPE -> {
+            case MappingKeys.BITSTRING -> {
                 Integer length = (Integer) columnProperties.get("length");
                 assert length != null : "Length is required for bit string type";
                 yield new BitStringType(length);

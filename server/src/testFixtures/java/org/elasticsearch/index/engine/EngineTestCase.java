@@ -96,11 +96,8 @@ import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.codec.CodecService;
 import org.elasticsearch.index.fieldvisitor.IDVisitor;
-import org.elasticsearch.index.mapper.IdFieldMapper;
-import org.elasticsearch.index.mapper.KeywordFieldMapper;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.SequenceIDFields;
-import org.elasticsearch.index.mapper.SourceFieldMapper;
 import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.seqno.LocalCheckpointTracker;
 import org.elasticsearch.index.seqno.ReplicationTracker;
@@ -122,6 +119,7 @@ import org.junit.Before;
 
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
+import io.crate.execution.dml.StringIndexer;
 import io.crate.metadata.doc.DocSysColumns;
 
 public abstract class EngineTestCase extends ESTestCase {
@@ -310,7 +308,7 @@ public abstract class EngineTestCase extends ESTestCase {
     protected static Document testDocumentWithKeywordField(String value) {
         Document document = testDocument();
         var binaryValue = new BytesRef(value);
-        document.add(new Field("value", binaryValue, KeywordFieldMapper.Defaults.FIELD_TYPE));
+        document.add(new Field("value", binaryValue, StringIndexer.FIELD_TYPE));
         document.add(new SortedSetDocValuesField("value", binaryValue));
         return document;
     }
@@ -335,7 +333,7 @@ public abstract class EngineTestCase extends ESTestCase {
 
     protected static ParsedDocument testParsedDocument(String id, Document document, BytesReference source,
                                                        boolean recoverySource) {
-        Field uidField = new Field("_id", Uid.encodeId(id), IdFieldMapper.Defaults.FIELD_TYPE);
+        Field uidField = new Field("_id", Uid.encodeId(id), DocSysColumns.ID.FIELD_TYPE);
         Field versionField = new NumericDocValuesField("_version", 0);
         SequenceIDFields seqID = SequenceIDFields.emptySeqID();
         document.add(uidField);
@@ -345,10 +343,10 @@ public abstract class EngineTestCase extends ESTestCase {
         document.add(seqID.primaryTerm);
         BytesRef ref = source.toBytesRef();
         if (recoverySource) {
-            document.add(new StoredField(SourceFieldMapper.RECOVERY_SOURCE_NAME, ref.bytes, ref.offset, ref.length));
-            document.add(new NumericDocValuesField(SourceFieldMapper.RECOVERY_SOURCE_NAME, 1));
+            document.add(new StoredField(DocSysColumns.Source.RECOVERY_NAME, ref.bytes, ref.offset, ref.length));
+            document.add(new NumericDocValuesField(DocSysColumns.Source.RECOVERY_NAME, 1));
         } else {
-            document.add(new StoredField(SourceFieldMapper.NAME, ref.bytes, ref.offset, ref.length));
+            document.add(new StoredField(DocSysColumns.Source.NAME, ref.bytes, ref.offset, ref.length));
         }
         return new ParsedDocument(versionField, seqID, id, document, source);
     }
@@ -361,7 +359,7 @@ public abstract class EngineTestCase extends ESTestCase {
             @Override
             public ParsedDocument newDeleteTombstoneDoc(String id) {
                 final Document doc = new Document();
-                Field uidField = new Field(IdFieldMapper.NAME, Uid.encodeId(id), IdFieldMapper.Defaults.FIELD_TYPE);
+                Field uidField = new Field(DocSysColumns.Names.ID, Uid.encodeId(id), DocSysColumns.ID.FIELD_TYPE);
                 doc.add(uidField);
                 Field versionField = new NumericDocValuesField(DocSysColumns.VERSION.name(), 0);
                 doc.add(versionField);
@@ -387,7 +385,7 @@ public abstract class EngineTestCase extends ESTestCase {
                 Field versionField = new NumericDocValuesField(DocSysColumns.VERSION.name(), 0);
                 doc.add(versionField);
                 BytesRef byteRef = new BytesRef(reason);
-                doc.add(new StoredField(SourceFieldMapper.NAME, byteRef.bytes, byteRef.offset, byteRef.length));
+                doc.add(new StoredField(DocSysColumns.Source.NAME, byteRef.bytes, byteRef.offset, byteRef.length));
                 return new ParsedDocument(
                     versionField, seqID, null, doc, null);
             }
@@ -1123,10 +1121,10 @@ public abstract class EngineTestCase extends ESTestCase {
                             continue;
                         }
                         final long primaryTerm = primaryTermDocValues.longValue();
-                        Document doc = reader.document(i, Set.of(IdFieldMapper.NAME, SourceFieldMapper.NAME));
-                        BytesRef binaryID = doc.getBinaryValue(IdFieldMapper.NAME);
+                        Document doc = reader.document(i, Set.of(DocSysColumns.Names.ID, DocSysColumns.Source.NAME));
+                        BytesRef binaryID = doc.getBinaryValue(DocSysColumns.Names.ID);
                         String id = Uid.decodeId(Arrays.copyOfRange(binaryID.bytes, binaryID.offset, binaryID.offset + binaryID.length));
-                        final BytesRef source = doc.getBinaryValue(SourceFieldMapper.NAME);
+                        final BytesRef source = doc.getBinaryValue(DocSysColumns.Source.NAME);
                         if (seqNoDocValues.advanceExact(i) == false) {
                             throw new AssertionError("seqNoDocValues not found for doc[" + i + "] id[" + id + "]");
                         }
@@ -1251,7 +1249,7 @@ public abstract class EngineTestCase extends ESTestCase {
                 assertThat(seqNo, greaterThanOrEqualTo(0L));
                 if (primaryTermDocValues.advanceExact(docId)) {
                     if (seqNos.add(seqNo) == false) {
-                        IDVisitor idFieldVisitor = new IDVisitor(IdFieldMapper.NAME);
+                        IDVisitor idFieldVisitor = new IDVisitor(DocSysColumns.Names.ID);
                         leaf.reader().document(docId, idFieldVisitor);
                         throw new AssertionError("found multiple documents for seq=" + seqNo + " id=" + idFieldVisitor.getId());
                     }

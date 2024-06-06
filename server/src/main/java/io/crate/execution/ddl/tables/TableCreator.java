@@ -65,7 +65,7 @@ public class TableCreator {
         var policy = createTable.tableParameter().mappings().get(ColumnPolicy.MAPPING_KEY);
         var tableColumnPolicy = policy != null ? ColumnPolicy.fromMappingValue(policy) : ColumnPolicy.STRICT;
 
-        String routingColumn = createTable.routingColumn().equals(DocSysColumns.ID) ? null : createTable.routingColumn().fqn();
+        String routingColumn = createTable.routingColumn().equals(DocSysColumns.ID.COLUMN) ? null : createTable.routingColumn().fqn();
         if (minNodeVersion.onOrAfter(Version.V_5_4_0)) {
             createTableRequest = new CreateTableRequest(
                 relationName,

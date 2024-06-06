@@ -19,7 +19,10 @@
 
 package org.elasticsearch.common.geo.parsers;
 
-import org.locationtech.jts.geom.Coordinate;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.geo.GeoPoint;
 import org.elasticsearch.common.geo.GeoShapeType;
@@ -28,11 +31,7 @@ import org.elasticsearch.common.geo.builders.GeometryCollectionBuilder;
 import org.elasticsearch.common.geo.builders.ShapeBuilder;
 import org.elasticsearch.common.unit.DistanceUnit;
 import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.index.mapper.GeoShapeFieldMapper;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import org.locationtech.jts.geom.Coordinate;
 
 /**
  * Parses shape geometry represented in geojson
@@ -41,15 +40,14 @@ import java.util.List;
  */
 abstract class GeoJsonParser {
 
-    protected static ShapeBuilder parse(XContentParser parser, GeoShapeFieldMapper shapeMapper)
+    protected static ShapeBuilder parse(XContentParser parser)
         throws IOException {
         GeoShapeType shapeType = null;
         DistanceUnit.Distance radius = null;
         CoordinateNode coordinateNode = null;
         GeometryCollectionBuilder geometryCollections = null;
 
-        ShapeBuilder.Orientation requestedOrientation =
-            (shapeMapper == null) ? ShapeBuilder.Orientation.RIGHT : shapeMapper.fieldType().orientation();
+        ShapeBuilder.Orientation requestedOrientation = ShapeBuilder.Orientation.RIGHT;
 
         String malformedException = null;
 
@@ -84,7 +82,7 @@ abstract class GeoJsonParser {
                                 + shapeType + "]";
                         }
                         parser.nextToken();
-                        geometryCollections = parseGeometries(parser, shapeMapper);
+                        geometryCollections = parseGeometries(parser);
                     } else if (CircleBuilder.FIELD_RADIUS.match(fieldName, parser.getDeprecationHandler())) {
                         if (shapeType == null) {
                             shapeType = GeoShapeType.CIRCLE;
@@ -207,7 +205,7 @@ abstract class GeoJsonParser {
      * @return Geometry[] geometries of the GeometryCollection
      * @throws IOException Thrown if an error occurs while reading from the XContentParser
      */
-    static GeometryCollectionBuilder parseGeometries(XContentParser parser, GeoShapeFieldMapper mapper) throws
+    static GeometryCollectionBuilder parseGeometries(XContentParser parser) throws
         IOException {
         if (parser.currentToken() != XContentParser.Token.START_ARRAY) {
             throw new ElasticsearchParseException("geometries must be an array of geojson objects");

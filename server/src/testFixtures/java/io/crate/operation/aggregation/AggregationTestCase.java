@@ -68,7 +68,6 @@ import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.cache.query.DisabledQueryCache;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.Engine.IndexResult;
-import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.seqno.RetentionLeaseSyncer;
@@ -129,6 +128,7 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.SimpleReference;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
@@ -387,7 +387,7 @@ public abstract class AggregationTestCase extends ESTestCase {
             }
             IndexItem.StaticItem item = new IndexItem.StaticItem(id, List.of(id), row, 1, 1);
             ParsedDocument parsedDoc = indexer.index(item);
-            Term uid = new Term(IdFieldMapper.NAME, Uid.encodeId(item.id()));
+            Term uid = new Term(DocSysColumns.Names.ID, Uid.encodeId(item.id()));
             Engine.Index index = new Engine.Index(
                 uid,
                 parsedDoc,

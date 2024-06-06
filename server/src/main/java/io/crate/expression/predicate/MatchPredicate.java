@@ -22,7 +22,7 @@
 package io.crate.expression.predicate;
 
 import static io.crate.geo.LatLonShapeUtils.newLatLonShapeQuery;
-import static org.elasticsearch.index.mapper.GeoShapeFieldMapper.Names.TREE_BKD;
+import static io.crate.types.GeoShapeType.Names.TREE_BKD;
 
 import java.util.List;
 import java.util.Locale;
@@ -49,7 +49,6 @@ import org.elasticsearch.common.geo.ShapeRelation;
 import org.elasticsearch.common.geo.builders.ShapeBuilder;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.common.unit.DistanceUnit;
-import org.elasticsearch.index.mapper.GeoShapeFieldMapper.Defaults;
 import org.elasticsearch.index.query.MultiMatchQueryType;
 import org.elasticsearch.index.search.MatchQuery;
 import org.elasticsearch.index.search.MultiMatchQuery;
@@ -58,6 +57,7 @@ import org.locationtech.spatial4j.shape.Shape;
 
 import io.crate.analyze.MatchOptionsAnalysis;
 import io.crate.data.Input;
+import io.crate.execution.dml.GeoShapeIndexer;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -266,8 +266,8 @@ public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
 
     public static double defaultDistanceErrorPct(int treeLevels, double precisionInMeters) {
         return treeLevels == 0 && precisionInMeters < 0
-            ? Defaults.LEGACY_DISTANCE_ERROR_PCT
-            : Defaults.DISTANCE_ERROR_PCT;
+            ? GeoShapeIndexer.Defaults.LEGACY_DISTANCE_ERROR_PCT
+            : GeoShapeIndexer.Defaults.DISTANCE_ERROR_PCT;
     }
 
 
@@ -283,17 +283,17 @@ public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
         SpatialPrefixTree prefixTree = switch (geoTree) {
             case "geohash" -> new GeohashPrefixTree(
                 ShapeBuilder.SPATIAL_CONTEXT,
-                getLevels(treeLevels, precisionInMeters, Defaults.GEOHASH_LEVELS, true)
+                getLevels(treeLevels, precisionInMeters, GeoShapeIndexer.Defaults.GEOHASH_LEVELS, true)
             );
 
             case "legacyquadtree" -> new QuadPrefixTree(
                 ShapeBuilder.SPATIAL_CONTEXT,
-                getLevels(treeLevels, precisionInMeters, Defaults.QUADTREE_LEVELS, false)
+                getLevels(treeLevels, precisionInMeters, GeoShapeIndexer.Defaults.QUADTREE_LEVELS, false)
             );
 
             case "quadtree" -> new PackedQuadPrefixTree(
                 ShapeBuilder.SPATIAL_CONTEXT,
-                getLevels(treeLevels, precisionInMeters, Defaults.QUADTREE_LEVELS, false)
+                getLevels(treeLevels, precisionInMeters, GeoShapeIndexer.Defaults.QUADTREE_LEVELS, false)
             );
 
             default -> throw new IllegalArgumentException("Unknown prefix tree type: " + geoTree);

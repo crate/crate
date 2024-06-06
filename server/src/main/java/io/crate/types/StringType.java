@@ -73,6 +73,12 @@ public class StringType extends DataType<String> implements Streamer<String> {
     public static final String T = "t";
     public static final String F = "f";
 
+    /**
+        * The default position_increment_gap is set to 100 so that phrase
+        * queries of reasonably high slop will not match across field values.
+        */
+    public static final int POSITION_INCREMENT_GAP = 100;
+
     private static final StorageSupport<Object> STORAGE = new StorageSupport<>(
         true,
         true,

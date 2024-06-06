@@ -141,13 +141,14 @@ public class EqOperatorTest extends ScalarTestCase {
 
     @Test
     public void test_terms_query_on__id_encodes_ids() throws Exception {
-        Query query = EqOperator.termsQuery(DocSysColumns.ID.name(), DataTypes.STRING, List.of("foo", "bar"), true, IndexType.PLAIN);
+        String idName = DocSysColumns.ID.COLUMN.name();
+        Query query = EqOperator.termsQuery(idName, DataTypes.STRING, List.of("foo", "bar"), true, IndexType.PLAIN);
         assertThat(query).hasToString("_id:([7e 8a] [ff 62 61 72])");
-        query = EqOperator.termsQuery(DocSysColumns.ID.name(), DataTypes.STRING, List.of("foo", "bar"), false, IndexType.PLAIN);
+        query = EqOperator.termsQuery(idName, DataTypes.STRING, List.of("foo", "bar"), false, IndexType.PLAIN);
         assertThat(query).hasToString("_id:([7e 8a] [ff 62 61 72])");
-        query = EqOperator.termsQuery(DocSysColumns.ID.name(), DataTypes.STRING, List.of("foo", "bar"), true, IndexType.NONE);
+        query = EqOperator.termsQuery(idName, DataTypes.STRING, List.of("foo", "bar"), true, IndexType.NONE);
         assertThat(query).hasToString("_id:([7e 8a] [ff 62 61 72])");
-        query = EqOperator.termsQuery(DocSysColumns.ID.name(), DataTypes.STRING, List.of("foo", "bar"), false, IndexType.NONE);
+        query = EqOperator.termsQuery(idName, DataTypes.STRING, List.of("foo", "bar"), false, IndexType.NONE);
         assertThat(query).hasToString("_id:([7e 8a] [ff 62 61 72])");
     }
 

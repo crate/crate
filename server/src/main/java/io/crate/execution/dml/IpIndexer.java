@@ -33,13 +33,13 @@ import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
 
 import io.crate.execution.dml.Indexer.ColumnConstraint;
 import io.crate.execution.dml.Indexer.Synthetic;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
+import io.crate.metadata.doc.DocSysColumns;
 
 public class IpIndexer implements ValueIndexer<String> {
 
@@ -66,9 +66,9 @@ public class IpIndexer implements ValueIndexer<String> {
             addField.accept(new SortedSetDocValuesField(name, new BytesRef(InetAddressPoint.encode(address))));
         } else {
             addField.accept(new Field(
-                FieldNamesFieldMapper.NAME,
+                DocSysColumns.FieldNames.NAME,
                 name,
-                FieldNamesFieldMapper.Defaults.FIELD_TYPE));
+                DocSysColumns.FieldNames.FIELD_TYPE));
         }
     }
 }

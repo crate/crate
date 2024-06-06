@@ -19,14 +19,7 @@
 
 package org.elasticsearch.index.fieldvisitor;
 
-import org.apache.lucene.index.FieldInfo;
-import org.apache.lucene.index.StoredFieldVisitor;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.bytes.BytesArray;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.index.mapper.IdFieldMapper;
-import org.elasticsearch.index.mapper.SourceFieldMapper;
-import org.elasticsearch.index.mapper.Uid;
+import static java.util.Collections.emptyMap;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -36,13 +29,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static java.util.Collections.emptyMap;
+import org.apache.lucene.index.FieldInfo;
+import org.apache.lucene.index.StoredFieldVisitor;
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.bytes.BytesArray;
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.index.mapper.Uid;
+
+import io.crate.metadata.doc.DocSysColumns;
 
 /**
  * Base {@link StoredFieldVisitor} that retrieves all non-redundant metadata.
  */
 public class FieldsVisitor extends StoredFieldVisitor {
-    private static final Set<String> BASE_REQUIRED_FIELDS = Set.of(IdFieldMapper.NAME);
+    private static final Set<String> BASE_REQUIRED_FIELDS = Set.of(DocSysColumns.Names.ID);
 
     private final boolean loadSource;
     private final String sourceFieldName;
@@ -52,7 +52,7 @@ public class FieldsVisitor extends StoredFieldVisitor {
     protected Map<String, List<Object>> fieldsValues;
 
     public FieldsVisitor(boolean loadSource) {
-        this(loadSource, SourceFieldMapper.NAME);
+        this(loadSource, DocSysColumns.Source.NAME);
     }
 
     public FieldsVisitor(boolean loadSource, String sourceFieldName) {
@@ -78,7 +78,7 @@ public class FieldsVisitor extends StoredFieldVisitor {
     public void binaryField(FieldInfo fieldInfo, byte[] value) throws IOException {
         if (sourceFieldName.equals(fieldInfo.name)) {
             source = new BytesArray(value);
-        } else if (IdFieldMapper.NAME.equals(fieldInfo.name)) {
+        } else if (DocSysColumns.Names.ID.equals(fieldInfo.name)) {
             id = Uid.decodeId(value);
         } else {
             addValue(fieldInfo.name, new BytesRef(value));

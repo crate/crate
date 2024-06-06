@@ -34,7 +34,6 @@ import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.index.mapper.TypeParsers;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.expression.symbol.Symbol;
@@ -43,6 +42,7 @@ import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.format.Style;
+import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -334,7 +334,7 @@ public class SimpleReference implements Reference {
         if (storageSupport != null) {
             boolean docValuesDefault = storageSupport.getComputedDocValuesDefault(indexType);
             if (docValuesDefault != hasDocValues) {
-                mapping.put(TypeParsers.DOC_VALUES, Boolean.toString(hasDocValues));
+                mapping.put(DocTableInfoFactory.MappingKeys.DOC_VALUES, Boolean.toString(hasDocValues));
             }
         }
         if (defaultExpression != null) {

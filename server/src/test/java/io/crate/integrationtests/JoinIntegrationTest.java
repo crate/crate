@@ -1336,14 +1336,14 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("EXPLAIN (COSTS FALSE)" + stmt);
         assertThat(response).hasLines(
                 "Eval[id, reference]",
-                "  └ NestedLoopJoin[LEFT | ((cluster_id = id) AND (kind = 'bar'))]",
+                "  └ NestedLoopJoin[LEFT | (cluster_id = id)]",
                 "    ├ HashJoin[(cluster_id = id)]",
                 "    │  ├ HashJoin[(subscription_id = id)]",
                 "    │  │  ├ Collect[doc.t3 | [id, reference] | (reference = 'bazinga')]",
                 "    │  │  └ Collect[doc.t1 | [subscription_id, id] | true]",
                 "    │  └ Collect[doc.t2 | [cluster_id] | (kind = 'bar')]",
-                "    └ Rename[cluster_id, kind] AS temp",
-                "      └ Collect[doc.t2 | [cluster_id, kind] | true]"
+                "    └ Rename[cluster_id] AS temp",
+                "      └ Collect[doc.t2 | [cluster_id] | (kind = 'bar')]"
         );
 
         execute(stmt);
