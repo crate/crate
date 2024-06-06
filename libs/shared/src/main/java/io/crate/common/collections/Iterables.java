@@ -21,8 +21,6 @@
 
 package io.crate.common.collections;
 
-import java.lang.reflect.Array;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
@@ -179,32 +177,6 @@ public final class Iterables {
      */
     public static <T> Iterable<T> concat(Iterable<? extends T> a, Iterable<? extends T> b) {
         return FluentIterable.concat(a, b);
-    }
-
-
-    /**
-     * Copies an iterable's elements into an array.
-     *
-     * @param iterable the iterable to copy
-     * @param type the type of the elements
-     * @return a newly-allocated array into which all the elements of the iterable have been copied
-     */
-    @SuppressWarnings("unchecked")
-    public static <T> T[] toArray(Iterable<? extends T> iterable, Class<T> type) {
-        return toArray(iterable, (T[]) Array.newInstance(type, 0));
-    }
-
-    @SuppressWarnings("unchecked")
-    static <T> T[] toArray(Iterable<? extends T> iterable, T[] array) {
-        final Collection<? extends T> collection;
-        if (iterable instanceof Collection) {
-            collection = (Collection<T>) iterable;
-        } else {
-            ArrayList<T> list = new ArrayList<>();
-            Iterators.addAll(list, iterable.iterator());
-            collection = list;
-        }
-        return collection.toArray(array);
     }
 
 

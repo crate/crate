@@ -31,7 +31,7 @@ import java.util.function.Supplier;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
-import io.crate.common.collections.Ordering;
+import io.crate.common.collections.CompoundOrdering;
 import io.crate.data.ArrayRow;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -93,6 +93,6 @@ public final class Comparators {
                 orderBy.nullsFirst()[i]
             ));
         }
-        return Ordering.compound(comparators);
+        return CompoundOrdering.of(comparators);
     }
 }

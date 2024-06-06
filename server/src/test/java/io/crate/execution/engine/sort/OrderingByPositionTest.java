@@ -30,7 +30,7 @@ import java.util.List;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import io.crate.common.collections.Ordering;
+import io.crate.common.collections.CompoundOrdering;
 import io.crate.types.DataTypes;
 
 public class OrderingByPositionTest extends ESTestCase {
@@ -77,7 +77,7 @@ public class OrderingByPositionTest extends ESTestCase {
 
     @Test
     public void testMultipleOrderBy() throws Exception {
-        Comparator<Object[]> ordering = Ordering.compound(Arrays.asList(
+        Comparator<Object[]> ordering = CompoundOrdering.of(Arrays.asList(
             OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 1, false, false),
             OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 0, false, false)
         ));
