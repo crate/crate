@@ -36,14 +36,17 @@
 
 package io.crate.common.collections;
 
-import java.io.Serializable;
 import java.util.Comparator;
 import java.util.Iterator;
 
 import org.jetbrains.annotations.Nullable;
 
 
-public final class LexicographicalOrdering<T> extends Ordering<Iterable<T>> implements Serializable {
+public final class LexicographicalOrdering<T> implements Comparator<Iterable<T>> {
+
+    private static final int LEFT_IS_GREATER = 1;
+    private static final int RIGHT_IS_GREATER = -1;
+
     final Comparator<? super T> elementOrder;
 
     public LexicographicalOrdering(Comparator<? super T> elementOrder) {
@@ -90,6 +93,4 @@ public final class LexicographicalOrdering<T> extends Ordering<Iterable<T>> impl
     public String toString() {
         return elementOrder + ".lexicographical()";
     }
-
-    private static final long serialVersionUID = 0;
 }
