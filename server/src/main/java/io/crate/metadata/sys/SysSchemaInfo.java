@@ -77,11 +77,6 @@ public class SysSchemaInfo implements SchemaInfo {
     }
 
     @Override
-    public void invalidateTableCache(String tableName) {
-
-    }
-
-    @Override
     public Iterable<TableInfo> getTables() {
         return tableInfos.values();
     }

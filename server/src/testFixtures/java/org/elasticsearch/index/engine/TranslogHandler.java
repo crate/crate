@@ -84,7 +84,9 @@ public class TranslogHandler implements Engine.TranslogRecoveryRunner {
             Version.CURRENT,
             Version.CURRENT,
             false,
-            Set.of());
+            Set.of(),
+            0
+        );
         return new TranslogIndexer(table);
     }
 

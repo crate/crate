@@ -368,7 +368,8 @@ public abstract class AggregationTestCase extends ESTestCase {
             Version.CURRENT,
             null,
             false,
-            Set.of()
+            Set.of(),
+            0
         );
         Indexer indexer = new Indexer(
             shard.shardId().getIndexName(),
