@@ -28,6 +28,7 @@ import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 
 import io.crate.data.testing.BatchIteratorTester;
+import io.crate.data.testing.BatchIteratorTester.ResultOrder;
 import io.crate.data.testing.BatchSimulatingIterator;
 import io.crate.data.testing.TestingBatchIterators;
 
@@ -40,7 +41,7 @@ class LimitingBatchIteratorTest {
     @Test
     void testLimitingBatchIterator() throws Exception {
         var tester = BatchIteratorTester.forRows(
-            () -> LimitingBatchIterator.newInstance(TestingBatchIterators.range(0, 10), LIMIT)
+            () -> LimitingBatchIterator.newInstance(TestingBatchIterators.range(0, 10), LIMIT), ResultOrder.EXACT
         );
         tester.verifyResultAndEdgeCaseBehaviour(EXPECTED_RESULT);
     }
@@ -52,7 +53,7 @@ class LimitingBatchIteratorTest {
                 BatchSimulatingIterator<Row> batchSimulatingIt = new BatchSimulatingIterator<>(
                     TestingBatchIterators.range(0, 10), 2, 5, null);
                 return LimitingBatchIterator.newInstance(batchSimulatingIt, LIMIT);
-            }
+            }, ResultOrder.EXACT
         );
         tester.verifyResultAndEdgeCaseBehaviour(EXPECTED_RESULT);
     }

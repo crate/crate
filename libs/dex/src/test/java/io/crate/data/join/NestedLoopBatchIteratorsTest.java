@@ -37,6 +37,7 @@ import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.testing.BatchIteratorTester;
+import io.crate.data.testing.BatchIteratorTester.ResultOrder;
 import io.crate.data.testing.BatchSimulatingIterator;
 import io.crate.data.testing.TestingBatchIterators;
 import io.crate.data.testing.TestingRowConsumer;
@@ -102,7 +103,7 @@ class NestedLoopBatchIteratorsTest {
                 TestingBatchIterators.range(0, 3),
                 TestingBatchIterators.range(0, 3),
                 new CombinedRow(1, 1)
-            )
+            ), ResultOrder.EXACT
         );
         tester.verifyResultAndEdgeCaseBehaviour(threeXThreeRows);
     }
@@ -114,7 +115,7 @@ class NestedLoopBatchIteratorsTest {
                 new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 3), 2, 2, null),
                 new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 3), 2, 2, null),
                 new CombinedRow(1, 1)
-            )
+            ), ResultOrder.EXACT
         );
         tester.verifyResultAndEdgeCaseBehaviour(threeXThreeRows);
     }
@@ -164,7 +165,7 @@ class NestedLoopBatchIteratorsTest {
             new CombinedRow(1, 1),
             getCol0EqCol1JoinCondition()
         );
-        var tester = BatchIteratorTester.forRows(batchIteratorSupplier);
+        var tester = BatchIteratorTester.forRows(batchIteratorSupplier, ResultOrder.EXACT);
         tester.verifyResultAndEdgeCaseBehaviour(leftJoinResult);
     }
 
@@ -176,7 +177,7 @@ class NestedLoopBatchIteratorsTest {
             new CombinedRow(1, 1),
             getCol0EqCol1JoinCondition()
         );
-        var tester = BatchIteratorTester.forRows(batchIteratorSupplier);
+        var tester = BatchIteratorTester.forRows(batchIteratorSupplier, ResultOrder.EXACT);
         tester.verifyResultAndEdgeCaseBehaviour(leftJoinResult);
     }
 
@@ -188,7 +189,7 @@ class NestedLoopBatchIteratorsTest {
             new CombinedRow(1, 1),
             getCol0EqCol1JoinCondition()
         );
-        var tester = BatchIteratorTester.forRows(batchIteratorSupplier);
+        var tester = BatchIteratorTester.forRows(batchIteratorSupplier, ResultOrder.EXACT);
         tester.verifyResultAndEdgeCaseBehaviour(rightJoinResult);
     }
 
@@ -200,7 +201,7 @@ class NestedLoopBatchIteratorsTest {
             new CombinedRow(1, 1),
             getCol0EqCol1JoinCondition()
         );
-        var tester = BatchIteratorTester.forRows(batchIteratorSupplier);
+        var tester = BatchIteratorTester.forRows(batchIteratorSupplier, ResultOrder.EXACT);
         tester.verifyResultAndEdgeCaseBehaviour(rightJoinResult);
     }
 
@@ -212,7 +213,7 @@ class NestedLoopBatchIteratorsTest {
             new CombinedRow(1, 1),
             getCol0EqCol1JoinCondition()
         );
-        var tester = BatchIteratorTester.forRows(batchIteratorSupplier);
+        var tester = BatchIteratorTester.forRows(batchIteratorSupplier, ResultOrder.EXACT);
         tester.verifyResultAndEdgeCaseBehaviour(fullJoinResult);
     }
 
@@ -224,7 +225,7 @@ class NestedLoopBatchIteratorsTest {
             new CombinedRow(1, 1),
             getCol0EqCol1JoinCondition()
         );
-        var tester = BatchIteratorTester.forRows(batchIteratorSupplier);
+        var tester = BatchIteratorTester.forRows(batchIteratorSupplier, ResultOrder.EXACT);
         tester.verifyResultAndEdgeCaseBehaviour(fullJoinResult);
     }
 
@@ -255,7 +256,7 @@ class NestedLoopBatchIteratorsTest {
             new CombinedRow(1, 0),
             getCol0EqCol1JoinCondition()
         );
-        var tester = BatchIteratorTester.forRows(batchIteratorSupplier);
+        var tester = BatchIteratorTester.forRows(batchIteratorSupplier, ResultOrder.EXACT);
         tester.verifyResultAndEdgeCaseBehaviour(semiJoinResult);
     }
 
@@ -267,7 +268,7 @@ class NestedLoopBatchIteratorsTest {
             new CombinedRow(1, 1),
             getCol0EqCol1JoinCondition()
         );
-        var tester = BatchIteratorTester.forRows(batchIteratorSupplier);
+        var tester = BatchIteratorTester.forRows(batchIteratorSupplier, ResultOrder.EXACT);
         tester.verifyResultAndEdgeCaseBehaviour(semiJoinResult);
     }
 
@@ -305,7 +306,7 @@ class NestedLoopBatchIteratorsTest {
             new CombinedRow(1, 1),
             getCol0EqCol1JoinCondition()
         );
-        var tester = BatchIteratorTester.forRows(batchIteratorSupplier);
+        var tester = BatchIteratorTester.forRows(batchIteratorSupplier, ResultOrder.EXACT);
         tester.verifyResultAndEdgeCaseBehaviour(antiJoinResult);
     }
 
@@ -317,7 +318,7 @@ class NestedLoopBatchIteratorsTest {
             new CombinedRow(1, 1),
             getCol0EqCol1JoinCondition()
         );
-        var tester = BatchIteratorTester.forRows(batchIteratorSupplier);
+        var tester = BatchIteratorTester.forRows(batchIteratorSupplier, ResultOrder.EXACT);
         tester.verifyResultAndEdgeCaseBehaviour(antiJoinResult);
     }
 
@@ -342,7 +343,7 @@ class NestedLoopBatchIteratorsTest {
             new CombinedRow(1, 1),
             getCol0EqCol1JoinCondition()
         );
-        var tester = BatchIteratorTester.forRows(batchIteratorSupplier);
+        var tester = BatchIteratorTester.forRows(batchIteratorSupplier, ResultOrder.EXACT);
         tester.verifyResultAndEdgeCaseBehaviour(Arrays.asList(
             new Object[] { 0 },
             new Object[] { 1 },

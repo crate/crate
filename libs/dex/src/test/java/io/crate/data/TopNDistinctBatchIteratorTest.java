@@ -29,6 +29,7 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 
 import io.crate.data.testing.BatchIteratorTester;
+import io.crate.data.testing.BatchIteratorTester.ResultOrder;
 
 class TopNDistinctBatchIteratorTest {
 
@@ -67,7 +68,7 @@ class TopNDistinctBatchIteratorTest {
                 false
             );
             return new TopNDistinctBatchIterator<>(source, 3, x -> x);
-        });
+        }, ResultOrder.EXACT);
         tester.verifyResultAndEdgeCaseBehaviour(
             List.of(
                 new Object[] { 1 },
