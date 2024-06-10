@@ -113,7 +113,7 @@ public class IntervalArithmeticFunctions {
 
     }
 
-    private static class  IntervalDateArithmeticScalar extends Scalar<Long, Object> {
+    private static class  IntervalDateArithmeticScalar extends Scalar<Long, Object> implements BiFunction<Long, Period, Long>{
 
 
         private final BiFunction<DateTime, Period, DateTime> operation;
@@ -155,6 +155,16 @@ public class IntervalArithmeticFunctions {
            
         }
 
+        
+        @Override
+        public Long apply(Long timestamp, Period period){       
+            if (period == null || timestamp ==null){
+                return null;
+            }
+            return operation.apply(new DateTime(timestamp, DateTimeZone.UTC), period).toInstant().getMillis();
+     
+        }
+
         @Override
         public Long evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>[] args){
             final Long timestamp = (Long) args[timestampIdx].value();
@@ -163,21 +173,11 @@ public class IntervalArithmeticFunctions {
 
         }
 
-        @Override
-        public Long apply(Long timestamp, Period period){
-            if (period == null || timestamp ==null){
-                return null;
-            }
-            return operation.apply(new DateTime(timestamp, DateTimeZone.UTC), period).toInstant().getMillis();
-     
-        }
-
 
       
     }
 
 
-    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     private static class IntervalIntervalArithmeticScalar extends Scalar<Period, Object> {
 
