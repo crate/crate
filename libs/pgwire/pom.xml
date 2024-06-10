@@ -43,11 +43,6 @@
       <version>${versions.antlr}</version>
     </dependency>
     <dependency>
-      <groupId>com.carrotsearch</groupId>
-      <artifactId>hppc</artifactId>
-      <version>${versions.hppc}</version>
-    </dependency>
-    <dependency>
       <groupId>org.assertj</groupId>
       <artifactId>assertj-core</artifactId>
       <version>${versions.assertj}</version>
@@ -55,7 +50,7 @@
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter</artifactId>
+      <artifactId>junit-jupiter-api</artifactId>
       <version>${versions.junit5}</version>
       <scope>test</scope>
     </dependency>
