@@ -167,11 +167,6 @@
     </dependency>
     <dependency>
       <groupId>io.netty</groupId>
-      <artifactId>netty-resolver</artifactId>
-      <version>${versions.netty}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.netty</groupId>
       <artifactId>netty-transport-native-epoll</artifactId>
       <version>${versions.netty}</version>
     </dependency>
@@ -203,16 +198,6 @@
     </dependency>
     <dependency>
       <groupId>org.apache.lucene</groupId>
-      <artifactId>lucene-grouping</artifactId>
-      <version>${versions.lucene}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.lucene</groupId>
-      <artifactId>lucene-join</artifactId>
-      <version>${versions.lucene}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.lucene</groupId>
       <artifactId>lucene-misc</artifactId>
       <version>${versions.lucene}</version>
     </dependency>
@@ -223,17 +208,7 @@
     </dependency>
     <dependency>
       <groupId>org.apache.lucene</groupId>
-      <artifactId>lucene-sandbox</artifactId>
-      <version>${versions.lucene}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.lucene</groupId>
       <artifactId>lucene-spatial-extras</artifactId>
-      <version>${versions.lucene}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.lucene</groupId>
-      <artifactId>lucene-spatial3d</artifactId>
       <version>${versions.lucene}</version>
     </dependency>
     <dependency>
@@ -323,11 +298,6 @@
       <version>${versions.jackson}</version>
     </dependency>
     <dependency>
-      <groupId>javax.xml.bind</groupId>
-      <artifactId>jaxb-api</artifactId>
-      <version>${versions.jaxb_api}</version>
-    </dependency>
-    <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
       <version>${versions.jdbc}</version>
@@ -376,15 +346,6 @@
       <artifactId>mockito-core</artifactId>
       <version>${versions.mockito}</version>
       <scope>test</scope>
-    </dependency>
-
-    <dependency>
-      <groupId>io.crate</groupId>
-      <artifactId>crate-libs-shared</artifactId>
-      <version>${project.version}</version>
-      <type>test-jar</type>
-      <scope>test</scope>
-      <classifier>tests</classifier>
     </dependency>
 
     <dependency>
