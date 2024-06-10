@@ -154,13 +154,14 @@ public class DocSchemaInfo implements SchemaInfo {
         Metadata metadata = clusterService.state().metadata();
         DocTableInfo docTableInfo = docTableByName.get(name);
         try {
+            RelationName relation = new RelationName(schemaName, name);
             if (docTableInfo == null) {
                 return docTableByName.computeIfAbsent(
                     name,
-                    n -> docTableInfoFactory.create(new RelationName(schemaName, n), metadata)
+                    n -> docTableInfoFactory.create(relation, metadata)
                 );
             }
-            if (docTableInfo.metadataVersion() < metadata.version()) {
+            if (docTableInfo.tableVersion() < getTableVersion(metadata, relation)) {
                 DocTableInfo newTable = docTableInfoFactory.create(new RelationName(schemaName, name), metadata);
                 docTableByName.replace(name, newTable);
                 return newTable;
@@ -171,6 +172,17 @@ public class DocSchemaInfo implements SchemaInfo {
                 return null;
             }
             throw e;
+        }
+    }
+
+    private static long getTableVersion(Metadata metadata, RelationName relation) {
+        String templateName = PartitionName.templateName(relation.schema(), relation.name());
+        IndexTemplateMetadata indexTemplateMetadata = metadata.templates().get(templateName);
+        if (indexTemplateMetadata == null) {
+            IndexMetadata index = metadata.index(relation.indexNameOrAlias());
+            return index == null ? 0 : index.getVersion();
+        } else {
+            return indexTemplateMetadata.version() == null ? 0 : indexTemplateMetadata.version();
         }
     }
 
