@@ -22,139 +22,124 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.IOException;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpRequest.BodyPublishers;
+import java.net.http.HttpResponse.BodyHandlers;
 
-import org.apache.http.Header;
-import org.apache.http.message.BasicHeader;
-import org.apache.http.util.EntityUtils;
 import org.junit.Test;
 
 public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
 
     @Test
-    public void test_get() throws IOException {
+    public void test_get() throws Exception {
         var response = get("");
-        assertThat(response.getStatusLine().getStatusCode()).isEqualTo(200);
-        String bodyAsString = EntityUtils.toString(response.getEntity());
-        assertThat(bodyAsString).startsWith("""
-                                                {
-                                                  "ok" : true,
-                                                  "status" : 200,
-                                                  "name" : "node_""");
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(response.body()).startsWith(
+            """
+            {
+              "ok" : true,
+              "status" : 200,
+              "name" : "node_""");
         response = get("admin");
-        assertThat(response.getStatusLine().getStatusCode()).isEqualTo(200);
-        bodyAsString = EntityUtils.toString(response.getEntity());
-        assertThat(bodyAsString).startsWith("""
-                                                {
-                                                  "ok" : true,
-                                                  "status" : 200,
-                                                  "name" : "node_""");
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(response.body()).startsWith(
+            """
+            {
+              "ok" : true,
+              "status" : 200,
+              "name" : "node_""");
     }
 
     @Test
-    public void test_get_wrong_file_path() throws IOException {
+    public void test_get_wrong_file_path() throws Exception {
         var response = get("/file/path/notexists");
-        assertThat(response.getStatusLine().getStatusCode()).isEqualTo(404);
-        String bodyAsString = EntityUtils.toString(response.getEntity());
-        assertThat(bodyAsString).isEqualTo("Requested file [file/path/notexists] was not found");
+        assertThat(response.statusCode()).isEqualTo(404);
+        assertThat(response.body()).isEqualTo("Requested file [file/path/notexists] was not found");
     }
 
     @Test
-    public void test_post_not_allowed_for_incorrect_paths() throws IOException {
-        try (var response = post("/file/path/notexists", null, null)) {
-            assertThat(response.getStatusLine().getStatusCode()).isEqualTo(403);
-            String bodyAsString = EntityUtils.toString(response.getEntity());
-            assertThat(bodyAsString).isEqualTo("POST method is not allowed for [/file/path/notexists]");
-        }
-        try (var response = post("/file/path/notexists", "{\"stmt\": \"select 1\"}", null)) {
-            assertThat(response.getStatusLine().getStatusCode()).isEqualTo(403);
-            String bodyAsString = EntityUtils.toString(response.getEntity());
-            assertThat(bodyAsString).isEqualTo("POST method is not allowed for [/file/path/notexists]");
-        }
+    public void test_post_not_allowed_for_incorrect_paths() throws Exception {
+        var response = post("/file/path/notexists", (String) null);
+        assertThat(response.statusCode()).isEqualTo(403);
+        assertThat(response.body()).isEqualTo("POST method is not allowed for [//file/path/notexists]");
+
+        response = post("/file/path/notexists", "{\"stmt\": \"select 1\"}");
+        assertThat(response.statusCode()).isEqualTo(403);
+        assertThat(response.body()).isEqualTo("POST method is not allowed for [//file/path/notexists]");
     }
 
     @Test
-    public void test_without_body() throws IOException {
-        try (var response = post(null)) {
-            assertThat(response.getStatusLine().getStatusCode()).isEqualTo(400);
-            String bodyAsString = EntityUtils.toString(response.getEntity());
-            assertThat(bodyAsString).startsWith("{\"error\":{\"message\":\"" +
-                                                "SQLParseException[Missing request body]\"," +
-                                                "\"code\":4000},");
-        }
+    public void test_without_body() throws Exception {
+        var response = post(null);
+        assertThat(response.statusCode()).isEqualTo(400);
+        assertThat(response.body()).startsWith(
+            "{\"error\":{\"message\":\"SQLParseException[Missing request body]\",\"code\":4000},");
     }
 
     @Test
-    public void test_with_invalid_payload() throws IOException {
-        try (var response = post("{\"foo\": \"bar\"}")) {
-            assertThat(response.getStatusLine().getStatusCode()).isEqualTo(400);
-            String bodyAsString = EntityUtils.toString(response.getEntity());
-            assertThat(bodyAsString).startsWith("{\"error\":{\"message\":\"SQLParseException[Failed to parse source" +
-                                                " [{\\\"foo\\\": \\\"bar\\\"}]]\",\"code\":4000},");
-        }
+    public void test_with_invalid_payload() throws Exception {
+        var response = post("{\"foo\": \"bar\"}");
+        assertThat(response.statusCode()).isEqualTo(400);
+        assertThat(response.body()).startsWith(
+            "{\"error\":{\"message\":\"SQLParseException[Failed to parse source" +
+            " [{\\\"foo\\\": \\\"bar\\\"}]]\",\"code\":4000},");
     }
 
     @Test
-    public void test_with_args_and_bulk_args() throws IOException {
-        try (var response
-            = post("{\"stmt\": \"INSERT INTO foo (bar) values (?)\", \"args\": [0], \"bulk_args\": [[0], [1]]}");) {
-            assertThat(response.getStatusLine().getStatusCode()).isEqualTo(400);
-            String bodyAsString = EntityUtils.toString(response.getEntity());
-            assertThat(bodyAsString).startsWith("{\"error\":{\"message\":\"SQLParseException[" +
-                                                "request body contains args and bulk_args. It's forbidden to provide both]\"");
-        }
+    public void test_with_args_and_bulk_args() throws Exception {
+        var response = post("{\"stmt\": \"INSERT INTO foo (bar) values (?)\", \"args\": [0], \"bulk_args\": [[0], [1]]}");
+        assertThat(response.statusCode()).isEqualTo(400);
+        assertThat(response.body()).startsWith(
+            "{\"error\":{\"message\":\"SQLParseException[" +
+            "request body contains args and bulk_args. It's forbidden to provide both]\"");
     }
 
     @Test
-    public void test_empty_bulk_args_with_statement_containing_parameters() throws IOException {
+    public void test_empty_bulk_args_with_statement_containing_parameters() throws Exception {
         execute("create table doc.t (id int primary key) with (number_of_replicas = 0)");
-        try (var response = post("{\"stmt\": \"delete from t where id = ?\", \"bulk_args\": []}")) {
-            assertThat(response.getStatusLine().getStatusCode()).isEqualTo(200);
-            String bodyAsString = EntityUtils.toString(response.getEntity());
-            assertThat(bodyAsString).startsWith("{\"cols\":[],\"duration\":");
-        }
+        var response = post("{\"stmt\": \"delete from t where id = ?\", \"bulk_args\": []}");
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(response.body()).startsWith("{\"cols\":[],\"duration\":");
     }
 
     @Test
-    public void test_set_custom_schema() throws IOException {
+    public void test_set_custom_schema() throws Exception {
         execute("create table custom.foo (id string)");
-        Header[] headers = new Header[]{
-            new BasicHeader("Default-Schema", "custom")
-        };
-        try (var response = post("{\"stmt\": \"select * from foo\"}", headers)) {
-            assertThat(response.getStatusLine().getStatusCode()).isEqualTo(200);
-        }
-        try (var response = post("{\"stmt\": \"select * from foo\"}")) {
-            assertThat(response.getStatusLine().getStatusCode()).isEqualTo(404);
-            assertThat(EntityUtils.toString(response.getEntity())).contains("RelationUnknown");
+        var response = post("{\"stmt\": \"select * from foo\"}", new String[] { "Default-Schema", "custom"});
+        assertThat(response.statusCode()).isEqualTo(200);
+
+        try (var client = HttpClient.newHttpClient()) {
+            var request = HttpRequest.newBuilder(uri)
+                .POST(BodyPublishers.ofString("{\"stmt\": \"select * from foo\"}"))
+                .header("Content-Type", "application/json")
+                .build();
+            response = client.send(request, BodyHandlers.ofString());
+            assertThat(response.statusCode()).isEqualTo(404);
+            assertThat(response.body()).contains("RelationUnknown");
         }
     }
 
     @Test
-    public void test_insert_with_mixed_compatible_types() throws IOException {
+    public void test_insert_with_mixed_compatible_types() throws Exception {
         execute("create table doc.t1 (x array(float))");
-        try (var resp =
-                 post("{\"stmt\": \"insert into doc.t1 (x) values (?)\", \"args\": [[0, 1.0, 1.42]]}")) {
-            assertThat(resp.getStatusLine().getStatusCode()).isEqualTo(200);
-            execute("refresh table doc.t1");
-            assertThat(execute("select x from doc.t1")).hasRows("[0.0, 1.0, 1.42]");
-        }
+        var resp = post("{\"stmt\": \"insert into doc.t1 (x) values (?)\", \"args\": [[0, 1.0, 1.42]]}");
+        assertThat(resp.statusCode()).isEqualTo(200);
+        execute("refresh table doc.t1");
+        assertThat(execute("select x from doc.t1")).hasRows("[0.0, 1.0, 1.42]");
     }
 
     @Test
     public void test_execution_error_contains_stack_trace() throws Exception {
-        try (var resp = post("{\"stmt\": \"select 1 / 0\"}")) {
-            String bodyAsString = EntityUtils.toString(resp.getEntity());
-            assertThat(bodyAsString).contains("BinaryScalar.java");
-        }
+        var resp = post("{\"stmt\": \"select 1 / 0\"}");
+        assertThat(resp.body()).contains("BinaryScalar.java");
     }
 
     @Test
     public void test_interval_is_represented_as_text_via_http() throws Exception {
-        try (var resp = post("{\"stmt\": \"select '5 days'::interval as x\"}")) {
-            String bodyAsString = EntityUtils.toString(resp.getEntity());
-            assertThat(bodyAsString).contains("5 days");
-        }
+        var resp = post("{\"stmt\": \"select '5 days'::interval as x\"}");
+        assertThat(resp.body()).contains("5 days");
     }
 }

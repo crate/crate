@@ -22,6 +22,7 @@
 package io.crate.test.utils;
 
 import java.net.InetSocketAddress;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -40,13 +41,13 @@ public class Blobs {
         }
     }
 
-    public static String url(boolean https, InetSocketAddress address, String table, String digest) {
+    public static URI url(boolean https, InetSocketAddress address, String table, String digest) {
         return url(https, address, table + "/" + digest);
     }
 
-    public static String url(boolean https, InetSocketAddress address, String tableAndDigest) {
+    public static URI url(boolean https, InetSocketAddress address, String tableAndDigest) {
         String protocol = https ? "https" : "http";
-        return String.format(Locale.ENGLISH, "%s://%s:%s/_blobs/%s",
-            protocol, address.getHostName(), address.getPort(), tableAndDigest);
+        return URI.create(String.format(Locale.ENGLISH, "%s://%s:%s/_blobs/%s",
+            protocol, address.getHostName(), address.getPort(), tableAndDigest));
     }
 }

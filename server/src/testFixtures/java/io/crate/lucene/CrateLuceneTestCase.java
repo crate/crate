@@ -38,12 +38,17 @@
 
 package io.crate.lucene;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.io.Closeable;
 import java.io.IOException;
+import java.net.http.HttpClient;
 import java.nio.file.Path;
 import java.util.Locale;
 import java.util.Random;
 import java.util.TimeZone;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.ForkJoinWorkerThread;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.document.Field;
@@ -83,6 +88,7 @@ import com.carrotsearch.randomizedtesting.MixWithSuiteName;
 import com.carrotsearch.randomizedtesting.RandomizedContext;
 import com.carrotsearch.randomizedtesting.RandomizedRunner;
 import com.carrotsearch.randomizedtesting.RandomizedTest;
+import com.carrotsearch.randomizedtesting.ThreadFilter;
 import com.carrotsearch.randomizedtesting.annotations.Listeners;
 import com.carrotsearch.randomizedtesting.annotations.SeedDecorators;
 import com.carrotsearch.randomizedtesting.annotations.TestMethodProviders;
@@ -97,6 +103,8 @@ import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope.Scope;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakZombies;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakZombies.Consequence;
 import com.carrotsearch.randomizedtesting.annotations.TimeoutSuite;
+
+import io.crate.lucene.CrateLuceneTestCase.CommonPoolFilter;
 
 /**
  * Base class for all Lucene unit tests, Junit3 or Junit4 variant.
@@ -150,12 +158,25 @@ import com.carrotsearch.randomizedtesting.annotations.TimeoutSuite;
 @TimeoutSuite(millis = 2 * TimeUnits.HOUR)
 @ThreadLeakFilters(
     defaultFilters = true,
-    filters = {QuickPatchThreadsFilter.class})
+    filters = {QuickPatchThreadsFilter.class, CommonPoolFilter.class})
 public abstract class CrateLuceneTestCase {
 
     public static class LocalLuceneTestCase extends LuceneTestCase {
         public static TestRuleMarkFailure getSuiteFailureMarker() {
             return suiteFailureMarker;
+        }
+    }
+
+    /**
+     * Ignores thread leaks from {@link ForkJoinPool#commonPool()} which is used by components like
+     * {@link HttpClient} and cannot be shutdown manually. It closes on SystemExit.
+     * {@link CrateLuceneTestCase#assertNoActiveCommonPoolThreads()} ensures there are no actual tasks leaking.
+     **/
+    public static class CommonPoolFilter implements ThreadFilter {
+
+        @Override
+        public boolean reject(Thread t) {
+            return t instanceof ForkJoinWorkerThread wt && wt.getPool() == ForkJoinPool.commonPool();
         }
     }
 
@@ -186,6 +207,11 @@ public abstract class CrateLuceneTestCase {
     @After
     public void tearDown() throws Exception {
         luceneTestCase.tearDown();
+    }
+
+    @After
+    public void assertNoActiveCommonPoolThreads() throws Exception {
+        assertThat(ForkJoinPool.commonPool().getActiveThreadCount()).isEqualTo(0);
     }
 
     public void setIndexWriterMaxDocs(int limit) {

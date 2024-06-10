@@ -23,43 +23,33 @@ package io.crate.integrationtests;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.InetSocketAddress;
 import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpClient.Redirect;
+import java.net.http.HttpRequest;
+import java.net.http.HttpRequest.BodyPublishers;
+import java.net.http.HttpResponse;
+import java.net.http.HttpResponse.BodyHandlers;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.http.Header;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpDelete;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpHead;
-import org.apache.http.client.methods.HttpPut;
-import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.client.protocol.HttpClientContext;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.message.BasicHeader;
-import org.apache.http.util.EntityUtils;
-import org.apache.lucene.util.IOUtils;
 import org.elasticsearch.http.HttpServerTransport;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
 import org.junit.Before;
 
 import io.crate.blob.BlobTransferStatus;
 import io.crate.blob.BlobTransferTarget;
-import io.crate.test.utils.Blobs;
+import io.crate.common.concurrent.CompletableFutures;
 
 public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
 
@@ -67,7 +57,7 @@ public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
     protected InetSocketAddress dataNode2;
     protected InetSocketAddress randomNode;
 
-    protected CloseableHttpClient httpClient = HttpClients.createDefault();
+    protected HttpClient httpClient;
 
     static {
         System.setProperty("tests.short_timeouts", "true");
@@ -76,6 +66,10 @@ public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
 
     @Before
     public void setup() throws ExecutionException, InterruptedException {
+        httpClient = HttpClient.newBuilder()
+            .followRedirects(Redirect.NORMAL)
+            .executor(cluster().getInstance(ThreadPool.class).generic())
+            .build();
         randomNode = cluster().getInstances(HttpServerTransport.class)
             .iterator().next().boundAddress().publishAddress().address();
         Iterable<HttpServerTransport> transports = cluster().getDataNodeInstances(HttpServerTransport.class);
@@ -86,6 +80,11 @@ public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
         execute("create blob table test_blobs2 clustered into 2 shards with (number_of_replicas = 0)");
         execute("create table test_no_blobs (x int) clustered into 2 shards with (number_of_replicas = 0)");
         ensureGreen();
+    }
+
+    @After
+    public void closeClient() throws Exception {
+        httpClient.close();
     }
 
     @SuppressWarnings("unchecked")
@@ -106,116 +105,84 @@ public abstract class BlobHttpIntegrationTest extends BlobIntegrationTestBase {
         });
     }
 
-    protected String blobUri(String digest) {
+    protected URI blobUri(String digest) {
         return blobUri("test", digest);
     }
 
-    protected String blobUri(String index, String digest) {
-        return String.format(Locale.ENGLISH, "%s/%s", index, digest);
+    protected URI blobUri(String index, String digest) {
+        String url = String.format(Locale.ENGLISH, "http://%s:%s/_blobs/%s/%s", dataNode1.getHostName(), dataNode1.getPort(), index, digest);
+        return URI.create(url);
     }
 
-    protected CloseableHttpResponse put(String uri, String body) throws IOException {
-        HttpPut httpPut = new HttpPut(Blobs.url(false, randomNode, uri));
-        if (body != null) {
-            StringEntity bodyEntity = new StringEntity(body);
-            httpPut.setEntity(bodyEntity);
-        }
-        return executeAndDefaultAssertions(httpPut);
+    protected HttpResponse<String> put(String index, String digest, String body) throws Exception {
+        return put(blobUri(index, digest), body);
     }
 
-    protected CloseableHttpResponse executeAndDefaultAssertions(HttpUriRequest request) throws IOException {
-        CloseableHttpResponse resp = httpClient.execute(request);
-        assertThat(resp.containsHeader("Connection")).isFalse();
-        return resp;
+    protected HttpResponse<String> put(URI uri, String body) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder(uri)
+            .PUT(BodyPublishers.ofString(body))
+            .build();
+        HttpResponse<String> response = httpClient.send(request, BodyHandlers.ofString());
+        assertThat(response.headers().firstValue("Connection")).isNotPresent();
+        return response;
     }
 
-    protected CloseableHttpResponse get(String uri) throws IOException {
-        return get(uri, new Header[] { new BasicHeader("Origin", "http://example.com") });
+    protected HttpResponse<String> get(String index, String digest) throws Exception {
+        return get(blobUri(index, digest));
     }
 
-    protected boolean mget(String[] uris, Header[][] headers, final String[] expectedContent) throws Throwable {
-        final CountDownLatch latch = new CountDownLatch(uris.length);
-        final ConcurrentHashMap<Integer, Boolean> results = new ConcurrentHashMap<>(uris.length);
+    protected HttpResponse<String> get(URI uri) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder(uri)
+            .build();
+        return httpClient.send(request, BodyHandlers.ofString());
+    }
+
+    protected void mget(URI[] uris, String[][] headers, final String[] expectedContent) throws Throwable {
+        final List<CompletableFuture<HttpResponse<String>>> results = new ArrayList<>(uris.length);
         for (int i = 0; i < uris.length; i++) {
-            final int indexerId = i;
-            final String uri = uris[indexerId];
-            final Header[] header = headers[indexerId];
-            final String expected = expectedContent[indexerId];
-            Thread thread = new Thread(() -> {
-                try {
-                    CloseableHttpResponse res = get(uri, header);
-                    int statusCode = res.getStatusLine().getStatusCode();
-                    String resultContent = EntityUtils.toString(res.getEntity());
-                    if (!resultContent.equals(expected)) {
-                        logger.warn(String.format(Locale.ENGLISH, "incorrect response %d -- length: %d expected: %d%n",
-                            indexerId, resultContent.length(), expected.length()));
-                    }
-                    results.put(indexerId, (statusCode >= 200 && statusCode < 300 &&
-                                            expected.equals(resultContent)));
-                } catch (Exception e) {
-                    logger.warn("**** failed indexing thread: " + indexerId, e);
-                } finally {
-                    latch.countDown();
-                }
-            });
-            thread.start();
+            var requestBuilder = HttpRequest.newBuilder(uris[i]);
+            String[] header = headers[i];
+            if (header != null) {
+                requestBuilder.header(header[0], header[1]);
+            }
+            var responseFuture = httpClient.sendAsync(requestBuilder.build(), BodyHandlers.ofString());
+            results.add(responseFuture);
         }
-        assertThat(latch.await(30L, TimeUnit.SECONDS)).isTrue();
-        return results.values().stream().allMatch(input -> input);
-    }
-
-    protected CloseableHttpResponse get(String uri, Header[] headers) throws IOException {
-        HttpGet httpGet = new HttpGet(String.format(Locale.ENGLISH, "http://%s:%s/_blobs/%s", dataNode1.getHostName(), dataNode1.getPort(), uri));
-        if (headers != null) {
-            httpGet.setHeaders(headers);
-        }
-        return executeAndDefaultAssertions(httpGet);
-    }
-
-    protected CloseableHttpResponse head(String uri) throws IOException {
-        HttpHead httpHead = new HttpHead(String.format(Locale.ENGLISH, "http://%s:%s/_blobs/%s", dataNode1.getHostName(), dataNode1.getPort(), uri));
-        return executeAndDefaultAssertions(httpHead);
-    }
-
-    protected CloseableHttpResponse delete(String uri) throws IOException {
-        HttpDelete httpDelete = new HttpDelete(String.format(Locale.ENGLISH, "http://%s:%s/_blobs/%s", dataNode1.getHostName(), dataNode1.getPort(), uri));
-        return executeAndDefaultAssertions(httpDelete);
-    }
-
-    public static List<String> getRedirectLocations(CloseableHttpClient client, String uri, InetSocketAddress address) throws IOException {
-        CloseableHttpResponse response = null;
-        try {
-            HttpClientContext context = HttpClientContext.create();
-            HttpHead httpHead = new HttpHead(String.format(Locale.ENGLISH, "http://%s:%s/_blobs/%s", address.getHostName(), address.getPort(), uri));
-            response = client.execute(httpHead, context);
-
-            List<URI> redirectLocations = context.getRedirectLocations();
-            if (redirectLocations == null) {
-                // client might not follow redirects automatically
-                if (response.containsHeader("location")) {
-                    List<String> redirects = new ArrayList<>(1);
-                    for (Header location : response.getHeaders("location")) {
-                        redirects.add(location.getValue());
-                    }
-                    return redirects;
-                }
-                return Collections.emptyList();
-            }
-
-            List<String> redirects = new ArrayList<>(1);
-            for (URI redirectLocation : redirectLocations) {
-                redirects.add(redirectLocation.toString());
-            }
-            return redirects;
-        } finally {
-            if (response != null) {
-                IOUtils.closeWhileHandlingException(response);
-            }
+        List<HttpResponse<String>> responses = CompletableFutures.allAsList(results).get(60, TimeUnit.SECONDS);
+        for (int i = 0; i < uris.length; i++) {
+            HttpResponse<String> httpResponse = responses.get(i);
+            String expected = expectedContent[i];
+            assertThat(httpResponse.body()).isEqualTo(expected);
         }
     }
 
-    public int getNumberOfRedirects(String uri, InetSocketAddress address) throws IOException {
-        return getRedirectLocations(httpClient, uri, address).size();
+
+    protected HttpResponse<Void> head(URI uri) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder(uri).HEAD().build();
+        return httpClient.send(request, BodyHandlers.discarding());
+    }
+
+    protected HttpResponse<Void> delete(URI uri) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder(uri).DELETE().build();
+        return httpClient.send(request, BodyHandlers.discarding());
+    }
+
+    public static List<String> getRedirectLocations(HttpClient client, URI uri) throws Exception {
+        HttpRequest request = HttpRequest.newBuilder(uri)
+            .build();
+        var response = client.send(request, BodyHandlers.discarding());
+        response = response.previousResponse().orElse(null);
+        List<String> redirects = new ArrayList<>();
+        while (response != null) {
+            redirects.addAll(response.headers().allValues("location"));
+            response = response.previousResponse().orElse(null);
+        }
+        return redirects;
+    }
+
+    public int getNumberOfRedirects(String digest, InetSocketAddress address) throws Exception {
+        String url = String.format(Locale.ENGLISH, "http://%s:%s/_blobs/test/%s", address.getHostName(), address.getPort(), digest);
+        return getRedirectLocations(httpClient, URI.create(url)).size();
     }
 
 }

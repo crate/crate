@@ -601,7 +601,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
         String r1 = "{\"id\": 1, \"name\":\"Marvin\"}";
         String r2 = "{\"id\": 2, \"name\":\"Slartibartfast\"}";
-        List<String> urls = List.of(upload("blobs", r1), upload("blobs", r2));
+        List<String> urls = List.of(upload("blobs", r1).toString(), upload("blobs", r2).toString());
 
         execute("copy names from ?", new Object[]{urls});
         assertThat(response).hasRowCount(2L);
@@ -621,7 +621,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         String r2 = "{\"id\": 2, \"name\":\"Slartibartfast\"}";
 
         Files.write(file.toPath(), Collections.singletonList(r1), StandardCharsets.UTF_8);
-        List<String> urls = List.of(tmpDir.toUri().toString() + "*.json", upload("blobs", r2));
+        List<String> urls = List.of(tmpDir.toUri().toString() + "*.json", upload("blobs", r2).toString());
 
         execute("copy names from ?", new Object[]{urls});
         assertThat(response).hasRowCount(2L);
