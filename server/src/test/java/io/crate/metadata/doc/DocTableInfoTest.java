@@ -97,7 +97,8 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             Version.CURRENT,
             null,
             false,
-            Operation.ALL
+            Operation.ALL,
+            0
         );
         final ColumnIdent col = new ColumnIdent("o", List.of("foobar"));
         Reference foobar = info.getReference(col);
@@ -162,7 +163,8 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             Version.CURRENT,
             null,
             false,
-            Operation.ALL
+            Operation.ALL,
+            0
         );
 
         final ColumnIdent columnIdent = new ColumnIdent("foobar", Arrays.asList("foo", "bar"));
@@ -293,7 +295,8 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
                 Version.CURRENT,
                 null,
                 false,
-                Operation.ALL
+                Operation.ALL,
+                0
         );
 
         assertThat(info.lookupNameBySourceKey().apply("2")).isEqualTo("b");

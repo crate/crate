@@ -194,7 +194,8 @@ public class DocTableInfoFactory {
             versionCreated,
             versionUpgraded,
             indexMetadata.getState() == IndexMetadata.State.CLOSE,
-            Operation.CLOSED_OPERATIONS
+            Operation.CLOSED_OPERATIONS,
+            0
         );
     }
 
@@ -322,7 +323,8 @@ public class DocTableInfoFactory {
                 tableParameters,
                 state,
                 publicationsMetadata == null ? false : publicationsMetadata.isPublished(relation)
-            )
+            ),
+            metadata.version()
         );
     }
 

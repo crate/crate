@@ -33,8 +33,6 @@ import java.util.function.Predicate;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -43,13 +41,14 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.index.Index;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import com.carrotsearch.hppc.ObjectLookupContainer;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import io.crate.blob.v2.BlobIndex;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.exceptions.ResourceUnknownException;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
@@ -152,8 +151,21 @@ public class DocSchemaInfo implements SchemaInfo {
 
     @Override
     public TableInfo getTableInfo(String name) {
+        Metadata metadata = clusterService.state().metadata();
+        DocTableInfo docTableInfo = docTableByName.get(name);
         try {
-            return docTableByName.computeIfAbsent(name, n -> docTableInfoFactory.create(new RelationName(schemaName, n), clusterService.state().metadata()));
+            if (docTableInfo == null) {
+                return docTableByName.computeIfAbsent(
+                    name,
+                    n -> docTableInfoFactory.create(new RelationName(schemaName, n), metadata)
+                );
+            }
+            if (docTableInfo.metadataVersion() < metadata.version()) {
+                DocTableInfo newTable = docTableInfoFactory.create(new RelationName(schemaName, name), metadata);
+                docTableByName.replace(name, newTable);
+                return newTable;
+            }
+            return docTableInfo;
         } catch (Exception e) {
             if (e instanceof ResourceUnknownException) {
                 return null;
@@ -217,11 +229,6 @@ public class DocSchemaInfo implements SchemaInfo {
     @Override
     public String name() {
         return schemaName;
-    }
-
-    @Override
-    public void invalidateTableCache(String tableName) {
-        docTableByName.remove(tableName);
     }
 
     @Override

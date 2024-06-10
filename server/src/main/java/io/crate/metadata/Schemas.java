@@ -436,7 +436,6 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         if (schemaInfo == null) {
             return false;
         }
-        schemaInfo.invalidateTableCache(relationName.name());
         TableInfo tableInfo = schemaInfo.getTableInfo(relationName.name());
         if (tableInfo == null) {
             return false;
