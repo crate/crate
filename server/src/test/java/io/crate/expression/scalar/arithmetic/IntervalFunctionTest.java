@@ -146,4 +146,9 @@ public class IntervalFunctionTest extends ScalarTestCase {
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
             .hasMessageStartingWith("Unknown function: (cast('1 second' AS interval) - cast('86401000' AS timestamp with time zone)), ");
     }
+
+    /*@Test
+    public void test_date_interval(){
+        assertEvaluate("interval '1 second' + '86400000'::timestamp", 86401000L);
+    }*/
 }

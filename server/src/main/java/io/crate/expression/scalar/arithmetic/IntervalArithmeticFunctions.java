@@ -23,9 +23,11 @@ package io.crate.expression.scalar.arithmetic;
 
 import java.util.function.BiFunction;
 
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+
 import org.joda.time.Period;
 import org.joda.time.PeriodType;
-
 import io.crate.data.Input;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
@@ -33,6 +35,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.IntervalType;
 
@@ -77,7 +80,104 @@ public class IntervalArithmeticFunctions {
             ).withFeature(Scalar.Feature.NULLABLE),
             MultiplyIntervalByIntegerScalar::new
         );
+        module.add(
+                Signature.scalar(
+                    ArithmeticFunctions.Names.ADD,
+                    DataTypes.INTERVAL.getTypeSignature(),
+                    DataTypes.TIMESTAMP.getTypeSignature(),
+                    DataTypes.TIMESTAMP.getTypeSignature()
+                ).withForbiddenCoercion(),
+                (signature, boundSignature) ->
+                new IntervalDateArithmeticScalar(
+                    "+",
+                    signature,
+                    boundSignature
+                )
+        );
+        module.add(
+                Signature.scalar(
+                    ArithmeticFunctions.Names.SUBTRACT,
+                    DataTypes.INTERVAL.getTypeSignature(),
+                    DataTypes.TIMESTAMP.getTypeSignature(),
+                    DataTypes.TIMESTAMP.getTypeSignature()
+                ).withForbiddenCoercion(),
+                (signature, boundSignature) ->
+                new IntervalDateArithmeticScalar(
+                    "-",
+                    signature,
+                    boundSignature
+                )
+        );
+     
+     
+
     }
+
+    private static class  IntervalDateArithmeticScalar extends Scalar<Long, Object> {
+
+
+        private final BiFunction<DateTime, Period, DateTime> operation;
+        private final int periodIdx;
+        private final int timestampIdx;
+
+        IntervalDateArithmeticScalar(String operator,
+                                         Signature signature,
+                                         BoundSignature boundSignature) {
+            super(signature, boundSignature);
+
+            var firstArgType = boundSignature.argTypes().get(0);
+            if (firstArgType.id() == IntervalType.ID){
+                periodIdx = 0;
+                timestampIdx = 1;
+            } else {
+                periodIdx = 1;
+                timestampIdx = 0;
+            }
+
+
+            switch (operator) {
+                case "+":
+                    operation = DateTime::plus;
+                    break;
+                case "-":
+                    if (firstArgType.id() == IntervalType.ID) {
+                        throw new IllegalArgumentException("Unsupported operator for interval " + operator);
+                    }
+                    operation = DateTime::minus;
+                    break;
+                default:
+                    operation = (a, b) -> {
+                        throw new IllegalArgumentException("Unsupported operator for interval" + operator);
+                    };
+                    
+            }
+
+           
+        }
+
+        @Override
+        public Long evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>[] args){
+            final Long timestamp = (Long) args[timestampIdx].value();
+            final Period period = (Period) args[periodIdx].value();
+            return apply(timestamp, period);
+
+        }
+
+        @Override
+        public Long apply(Long timestamp, Period period){
+            if (period == null || timestamp ==null){
+                return null;
+            }
+            return operation.apply(new DateTime(timestamp, DateTimeZone.UTC), period).toInstant().getMillis();
+     
+        }
+
+
+      
+    }
+
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     private static class IntervalIntervalArithmeticScalar extends Scalar<Period, Object> {
 
@@ -130,4 +230,7 @@ public class IntervalArithmeticFunctions {
             return period.multipliedBy(integer).normalizedStandard(PeriodType.yearMonthDayTime());
         }
     }
+    
+    
+
 }
