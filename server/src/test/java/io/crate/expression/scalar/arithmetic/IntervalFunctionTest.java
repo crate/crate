@@ -22,7 +22,7 @@
 package io.crate.expression.scalar.arithmetic;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+/*import static org.junit.jupiter.api.Assertions.assertEquals;*/
 
 import org.joda.time.Period;
 import org.joda.time.PeriodType;
@@ -149,7 +149,7 @@ public class IntervalFunctionTest extends ScalarTestCase {
     }
 
     @Test
-    public void test_date_interval(){
+    public void test_date_interval() {
         assertEvaluate("interval '1 second' + '86400000'::timestamp", 86401000L);
         assertEvaluate("'86400000'::timestamp + interval '1 second'", 86401000L);
         assertEvaluate("'86401000'::timestamp - interval '1 second'", 86400000L);

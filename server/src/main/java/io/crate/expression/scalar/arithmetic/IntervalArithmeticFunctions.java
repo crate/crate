@@ -35,7 +35,6 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.IntervalType;
 
@@ -113,7 +112,7 @@ public class IntervalArithmeticFunctions {
 
     }
 
-    private static class  IntervalDateArithmeticScalar extends Scalar<Long, Object> implements BiFunction<Long, Period, Long>{
+    private static class IntervalDateArithmeticScalar extends Scalar<Long, Object> implements BiFunction<Long, Period, Long> {
 
 
         private final BiFunction<DateTime, Period, DateTime> operation;
@@ -126,7 +125,7 @@ public class IntervalArithmeticFunctions {
             super(signature, boundSignature);
 
             var firstArgType = boundSignature.argTypes().get(0);
-            if (firstArgType.id() == IntervalType.ID){
+            if (firstArgType.id() == IntervalType.ID) {
                 periodIdx = 0;
                 timestampIdx = 1;
             } else {
@@ -157,8 +156,8 @@ public class IntervalArithmeticFunctions {
 
         
         @Override
-        public Long apply(Long timestamp, Period period){       
-            if (period == null || timestamp ==null){
+        public Long apply(Long timestamp, Period period) {       
+            if (period == null || timestamp == null) {
                 return null;
             }
             return operation.apply(new DateTime(timestamp, DateTimeZone.UTC), period).toInstant().getMillis();
@@ -166,7 +165,7 @@ public class IntervalArithmeticFunctions {
         }
 
         @Override
-        public Long evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>[] args){
+        public Long evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>[] args) {
             final Long timestamp = (Long) args[timestampIdx].value();
             final Period period = (Period) args[periodIdx].value();
             return apply(timestamp, period);
