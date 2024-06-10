@@ -40,6 +40,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.data.testing.BatchIteratorTester;
+import io.crate.data.testing.BatchIteratorTester.ResultOrder;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LongColumnReference;
 
@@ -78,7 +79,7 @@ public class LuceneBatchIteratorTest {
                 new CollectorContext(Set.of(), UnaryOperator.identity()),
                 columnRefs,
                 columnRefs
-            )
+            ), ResultOrder.EXACT
         );
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }

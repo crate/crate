@@ -50,6 +50,7 @@ import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.data.testing.BatchIteratorTester;
+import io.crate.data.testing.BatchIteratorTester.ResultOrder;
 import io.crate.data.testing.BatchSimulatingIterator;
 import io.crate.data.testing.TestingBatchIterators;
 import io.crate.data.testing.TestingRowConsumer;
@@ -88,7 +89,7 @@ public class WindowBatchIteratorTest {
                     Collections.emptyList(),
                     new Boolean[]{null},
                     new Input[0]);
-            }
+            }, ResultOrder.EXACT
         );
         tester.verifyResultAndEdgeCaseBehaviour(expectedRowNumberResult);
     }
@@ -113,7 +114,7 @@ public class WindowBatchIteratorTest {
                     Collections.emptyList(),
                     new Boolean[]{null},
                     new Input[0]);
-            }
+            }, ResultOrder.EXACT
         );
         tester.verifyResultAndEdgeCaseBehaviour(expectedRowNumberResult);
     }

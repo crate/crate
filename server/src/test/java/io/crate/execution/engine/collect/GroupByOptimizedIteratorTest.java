@@ -62,6 +62,7 @@ import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.data.testing.BatchIteratorTester;
+import io.crate.data.testing.BatchIteratorTester.ResultOrder;
 import io.crate.exceptions.JobKilledException;
 import io.crate.execution.dml.StringIndexer;
 import io.crate.execution.dsl.projection.GroupProjection;
@@ -258,7 +259,7 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
 
     @Test
     public void test_optimized_iterator_behaviour() throws Exception {
-        var tester = BatchIteratorTester.forRows(() -> createBatchIterator(() -> {}));
+        var tester = BatchIteratorTester.forRows(() -> createBatchIterator(() -> {}), ResultOrder.ANY);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 

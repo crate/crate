@@ -48,6 +48,7 @@ import org.mockito.ArgumentCaptor;
 import io.crate.analyze.OrderBy;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.testing.BatchIteratorTester;
+import io.crate.data.testing.BatchIteratorTester.ResultOrder;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.engine.collect.stats.NodeStatsRequest;
 import io.crate.execution.engine.collect.stats.NodeStatsResponse;
@@ -203,7 +204,7 @@ public class NodeStatsTest extends ESTestCase {
             nodes,
             txnCtx,
             new InputFactory(nodeCtx)
-        ));
+        ), ResultOrder.EXACT);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 }

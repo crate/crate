@@ -28,6 +28,7 @@ import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 
 import io.crate.data.testing.BatchIteratorTester;
+import io.crate.data.testing.BatchIteratorTester.ResultOrder;
 import io.crate.data.testing.BatchSimulatingIterator;
 import io.crate.data.testing.TestingBatchIterators;
 
@@ -42,7 +43,7 @@ class SkippingBatchIteratorTest {
     @Test
     void testSkippingBatchIterator() throws Exception {
         var tester = BatchIteratorTester.forRows(
-            () -> new SkippingBatchIterator<>(TestingBatchIterators.range(0, 10), OFFSET)
+            () -> new SkippingBatchIterator<>(TestingBatchIterators.range(0, 10), OFFSET), ResultOrder.EXACT
         );
         tester.verifyResultAndEdgeCaseBehaviour(EXPECTED_RESULT);
     }
@@ -54,7 +55,7 @@ class SkippingBatchIteratorTest {
                 BatchIterator<Row> source = TestingBatchIterators.range(0, 10);
                 source = new BatchSimulatingIterator<>(source, 2, 5, null);
                 return new SkippingBatchIterator<>(source, OFFSET);
-            }
+            }, ResultOrder.EXACT
         );
         tester.verifyResultAndEdgeCaseBehaviour(EXPECTED_RESULT);
     }
