@@ -73,6 +73,7 @@
           <!-- by default is false but is set to true by `serverTest` profile to avoid running tests
                for modules on which `server` module depends on, when running `mvn -Pserver test` -->
           <skip>${skipRunTests}</skip>
+          <argLine>-XX:+UseSerialGC -XX:TieredStopAtLevel=1 -XX:ReservedCodeCacheSize=512M</argLine>
         </configuration>
       </plugin>
       <plugin>
