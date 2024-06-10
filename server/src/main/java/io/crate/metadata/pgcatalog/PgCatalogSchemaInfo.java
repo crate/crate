@@ -101,10 +101,6 @@ public final class PgCatalogSchemaInfo implements SchemaInfo {
     }
 
     @Override
-    public void invalidateTableCache(String tableName) {
-    }
-
-    @Override
     public void close() throws Exception {
     }
 
