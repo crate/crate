@@ -52,15 +52,9 @@
       <version>${versions.annotations}</version>
     </dependency>
     <dependency>
-      <groupId>com.pholser</groupId>
-      <artifactId>junit-quickcheck-core</artifactId>
-      <version>${versions.quickcheck}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.pholser</groupId>
-      <artifactId>junit-quickcheck-generators</artifactId>
-      <version>${versions.quickcheck}</version>
+      <groupId>net.jqwik</groupId>
+      <artifactId>jqwik-api</artifactId>
+      <version>1.8.5</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -71,13 +65,7 @@
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter</artifactId>
-      <version>${versions.junit5}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.junit.vintage</groupId>
-      <artifactId>junit-vintage-engine</artifactId>
+      <artifactId>junit-jupiter-api</artifactId>
       <version>${versions.junit5}</version>
       <scope>test</scope>
     </dependency>

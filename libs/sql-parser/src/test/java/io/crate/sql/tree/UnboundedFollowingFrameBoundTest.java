@@ -29,15 +29,16 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.util.Comparator;
 import java.util.List;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 
 public class UnboundedFollowingFrameBoundTest {
 
     private List<Integer> partition;
     private Comparator<Integer> intComparator;
 
-    @Before
+    @BeforeEach
     public void setupPartitionAndComparator() {
         intComparator = Comparator.comparing(x -> x);
         partition = List.of(1, 2, 2);

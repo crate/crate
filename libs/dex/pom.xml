@@ -57,13 +57,6 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>io.crate</groupId>
-      <artifactId>crate-libs-shared</artifactId>
-      <version>${project.version}</version>
-      <type>test-jar</type>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>org.jetbrains</groupId>
       <artifactId>annotations</artifactId>
       <version>${versions.annotations}</version>
@@ -77,7 +70,13 @@
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter</artifactId>
+      <artifactId>junit-jupiter-api</artifactId>
+      <version>${versions.junit5}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-params</artifactId>
       <version>${versions.junit5}</version>
       <scope>test</scope>
     </dependency>

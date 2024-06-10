@@ -36,7 +36,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.crate.common.collections.Lists;
 import io.crate.sql.tree.ArrayLiteral;
