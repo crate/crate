@@ -23,23 +23,32 @@ package io.crate.integrationtests;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.Socket;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpClient.Redirect;
+import java.net.http.HttpRequest;
+import java.net.http.HttpRequest.BodyPublishers;
+import java.net.http.HttpRequest.Builder;
+import java.net.http.HttpResponse;
+import java.net.http.HttpResponse.BodyHandlers;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.Locale;
 
-import org.apache.http.Header;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpPut;
-import org.apache.http.conn.ssl.NoopHostnameVerifier;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509ExtendedTrustManager;
+
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.test.IntegTestCase;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
@@ -49,19 +58,56 @@ import io.crate.test.utils.Blobs;
 
 public abstract class SQLHttpIntegrationTest extends IntegTestCase {
 
-    private HttpPost httpPost;
-    private InetSocketAddress address;
-
-    protected final CloseableHttpClient httpClient;
     private final boolean usesSSL;
+    private final SSLContext sslContext;
+
+    private InetSocketAddress address;
+    protected URI uri;
+    protected HttpClient httpClient;
+
+    private static TrustManager[] trustAll = new TrustManager[]{
+        // Workaround to disable hostname verification (+ all other other certificate validaiton)
+        new X509ExtendedTrustManager() {
+
+            public X509Certificate[] getAcceptedIssuers() {
+                return null;
+            }
+
+            public void checkClientTrusted(X509Certificate[] certs, String authType) {
+            }
+
+            public void checkServerTrusted(java.security.cert.X509Certificate[] certs, String authType) {
+            }
+
+            @Override
+            public void checkClientTrusted(X509Certificate[] chain, String authType, Socket socket) throws CertificateException {
+            }
+
+            @Override
+            public void checkServerTrusted(X509Certificate[] chain, String authType, Socket socket) throws CertificateException {
+            }
+
+            @Override
+            public void checkClientTrusted(X509Certificate[] chain, String authType, SSLEngine engine) throws CertificateException {
+            }
+
+            @Override
+            public void checkServerTrusted(X509Certificate[] chain, String authType, SSLEngine engine) throws CertificateException {
+            }
+        }
+    };
 
     public SQLHttpIntegrationTest() {
         this(false);
     }
 
     public SQLHttpIntegrationTest(boolean useSSL) {
-        this.httpClient = HttpClients.custom()
-            .setSSLHostnameVerifier(new NoopHostnameVerifier()).build();
+        try {
+            sslContext = SSLContext.getInstance("TLSv1.2");
+            sslContext.init(null, trustAll, new SecureRandom());
+        } catch (KeyManagementException | NoSuchAlgorithmException e) {
+            throw new RuntimeException(e);
+        }
         this.usesSSL = useSSL;
     }
 
@@ -85,64 +131,60 @@ public abstract class SQLHttpIntegrationTest extends IntegTestCase {
 
     @Before
     public void setup() {
+        this.httpClient = HttpClient.newBuilder()
+            .followRedirects(Redirect.NORMAL)
+            .executor(cluster().getInstance(ThreadPool.class).generic())
+            .sslContext(sslContext)
+            .build();
         HttpServerTransport httpServerTransport = cluster().getInstance(HttpServerTransport.class);
         address = httpServerTransport.boundAddress().publishAddress().address();
-        httpPost = new HttpPost(String.format(Locale.ENGLISH,
+        uri = URI.create(String.format(Locale.ENGLISH,
             "%s://%s:%s/_sql?error_trace",
             usesSSL ? "https" : "http", address.getHostName(), address.getPort()));
     }
 
-    protected CloseableHttpResponse get(String url, @Nullable Header[] headers) throws IOException {
-        assert url != null : "url cannot be null";
-        HttpGet httpGet = new HttpGet(String.format(Locale.ENGLISH,
-            "%s://%s:%s/%s", usesSSL ? "https" : "http", address.getHostName(), address.getPort(), url)
-        );
-        httpGet.setHeaders(headers);
-        return httpClient.execute(httpGet);
+    protected HttpResponse<String> get(String urlPath) throws Exception {
+        assert urlPath != null : "url cannot be null";
+        URI uri = URI.create(String.format(Locale.ENGLISH,
+            "%s://%s:%s/%s", usesSSL ? "https" : "http", address.getHostName(), address.getPort(), urlPath));
+        HttpRequest request = HttpRequest.newBuilder(uri)
+            .build();
+        return httpClient.send(request, BodyHandlers.ofString());
     }
 
-    protected CloseableHttpResponse get(String url) throws IOException {
-        return get(url, null);
+    protected HttpResponse<String> post(String urlPath,
+                                        @Nullable String body, String[] ... headers) throws Exception {
+        assert urlPath != null : "url cannot be null";
+        URI uri = URI.create(String.format(Locale.ENGLISH,
+            "%s://%s:%s/%s", usesSSL ? "https" : "http", address.getHostName(), address.getPort(), urlPath));
+        HttpRequest request = HttpRequest.newBuilder(uri)
+            .POST(body == null ? BodyPublishers.noBody() : BodyPublishers.ofString(body))
+            .build();
+        return httpClient.send(request, BodyHandlers.ofString());
     }
 
-    protected CloseableHttpResponse post(String url,
-                                         @Nullable String body,
-                                         @Nullable Header[] headers) throws IOException {
-        assert url != null : "url cannot be null";
-        HttpPost post = new HttpPost(String.format(Locale.ENGLISH,
-            "%s://%s:%s/%s", usesSSL ? "https" : "http", address.getHostName(), address.getPort(), url));
+    protected HttpResponse<String> post(String body, String[] ... headers) throws Exception {
+        Builder builder = HttpRequest.newBuilder(uri)
+            .header("Content-Type", "application/json");
         if (body != null) {
-            StringEntity bodyEntity = new StringEntity(body, ContentType.APPLICATION_JSON);
-            post.setEntity(bodyEntity);
+            builder.POST(BodyPublishers.ofString(body));
         }
-        post.setHeaders(headers);
-        return httpClient.execute(post);
-    }
-
-    protected CloseableHttpResponse post(String body, @Nullable Header[] headers) throws IOException {
-        if (body != null) {
-            StringEntity bodyEntity = new StringEntity(body, ContentType.APPLICATION_JSON);
-            httpPost.setEntity(bodyEntity);
+        for (String[] header : headers) {
+            builder.headers(header[0], header[1]);
         }
-        httpPost.setHeaders(headers);
-        return httpClient.execute(httpPost);
+        return httpClient.send(builder.build(), BodyHandlers.ofString());
     }
 
-    protected CloseableHttpResponse post(String body) throws IOException {
-        return post(body, null);
-    }
-
-    protected String upload(String table, String content) throws IOException {
+    protected URI upload(String table, String content) throws Exception {
         String digest = blobDigest(content);
-        String url = Blobs.url(usesSSL, address, table, digest);
-        HttpPut httpPut = new HttpPut(url);
-        httpPut.setEntity(new StringEntity(content));
+        URI uri = Blobs.url(usesSSL, address, table, digest);
+        HttpRequest request = HttpRequest.newBuilder(uri)
+            .PUT(BodyPublishers.ofString(content))
+            .build();
+        HttpResponse<Void> response = httpClient.send(request, BodyHandlers.discarding());
 
-        CloseableHttpResponse response = httpClient.execute(httpPut);
-        assertThat(response.getStatusLine().getStatusCode()).isEqualTo(201);
-        response.close();
-
-        return url;
+        assertThat(response.statusCode()).isEqualTo(201);
+        return uri;
     }
 
     protected String blobDigest(String content) {
