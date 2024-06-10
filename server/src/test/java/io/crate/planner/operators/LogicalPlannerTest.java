@@ -23,7 +23,6 @@ package io.crate.planner.operators;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.MemoryLimits.assertMaxBytesAllocated;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -663,6 +662,24 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "  └ Eval[a]",
                 "    └ OrderBy[a ASC]",
                 "      └ Collect[doc.t1 | [a] | (x > 10)]"
+            );
+    }
+
+    @Test
+    public void test_rename_gets_scalar_outputs_from_collect() {
+        var plan = sqlExecutor.logicalPlan("""
+          SELECT
+            TRY_CAST(x AS BIGINT) AS val
+          FROM t1 as t
+          WHERE x < 123
+          ORDER BY val ASC
+            """);
+        assertThat(plan)
+            .hasOperators(
+                "Eval[try_cast(x AS bigint) AS val]",
+                "  └ Rename[try_cast(x AS bigint) AS val, try_cast(x AS bigint)] AS t",
+                "    └ OrderBy[try_cast(x AS bigint) ASC]",
+                "      └ Collect[doc.t1 | [try_cast(x AS bigint) AS val, try_cast(x AS bigint)] | (x < 123)]"
             );
     }
 }
