@@ -24,7 +24,6 @@ package io.crate.statistics;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeThat;
 
 import java.io.IOException;
@@ -33,52 +32,48 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.assertj.core.data.Offset;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.hamcrest.Matchers;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-
-import com.pholser.junit.quickcheck.Property;
-import com.pholser.junit.quickcheck.generator.InRange;
-import com.pholser.junit.quickcheck.runner.JUnitQuickcheck;
+import org.junit.jupiter.api.Test;
 
 import io.crate.types.DataTypes;
+import net.jqwik.api.Property;
+import net.jqwik.api.constraints.IntRange;
 
-@RunWith(JUnitQuickcheck.class)
 public class ColumnStatsTest {
 
     @Test
     public void test_column_stats_generation() {
-        ColumnStats columnStats = StatsUtils.statsFromValues(DataTypes.INTEGER, List.of(1, 1, 2, 4, 4, 4, 4, 4), 1);
+        ColumnStats<?> columnStats = StatsUtils.statsFromValues(DataTypes.INTEGER, List.of(1, 1, 2, 4, 4, 4, 4, 4), 1);
         assertThat(columnStats.averageSizeInBytes()).isEqualTo((double) DataTypes.INTEGER.fixedSize());
-        assertThat(columnStats.nullFraction(), Matchers.closeTo(0.111, 0.01));
+        assertThat(columnStats.nullFraction()).isCloseTo(0.111, Offset.offset(0.01));
         assertThat(columnStats.approxDistinct()).isEqualTo(3.0);
-        MostCommonValues mostCommonValues = columnStats.mostCommonValues();
+        MostCommonValues<?> mostCommonValues = columnStats.mostCommonValues();
         assertThat(mostCommonValues.values()).hasSize(3);
     }
 
     @Property
     public void test_null_fraction_is_between_incl_0_and_incl_1(ArrayList<Integer> numbers,
-                                                                @InRange(minInt = 0) int nullCount,
+                                                                @IntRange(min = 0) int nullCount,
                                                                 long totalRowCount) {
         assumeThat(totalRowCount, greaterThanOrEqualTo((long) nullCount));
         assumeThat((long) numbers.size() + nullCount, lessThanOrEqualTo(totalRowCount));
 
         ColumnStats<Integer> stats = StatsUtils.statsFromValues(DataTypes.INTEGER, numbers);
-        assertThat(stats.nullFraction(), greaterThanOrEqualTo(0.0));
-        assertThat(stats.nullFraction(), lessThanOrEqualTo(1.0));
+        assertThat(stats.nullFraction()).isGreaterThanOrEqualTo(0.0);
+        assertThat(stats.nullFraction()).isLessThanOrEqualTo(1.0);
     }
 
     @Test
     public void test_common_stats_can_be_serialized_and_deserialized() throws IOException {
         List<Integer> numbers = List.of(1, 1, 2, 4, 4, 4, 4, 4);
-        ColumnStats columnStats = StatsUtils.statsFromValues(DataTypes.INTEGER, numbers);
+        ColumnStats<?> columnStats = StatsUtils.statsFromValues(DataTypes.INTEGER, numbers);
 
         BytesStreamOutput out = new BytesStreamOutput();
         columnStats.writeTo(out);
         StreamInput in = out.bytes().streamInput();
-        ColumnStats stats = new ColumnStats(in);
+        ColumnStats<?> stats = new ColumnStats<>(in);
 
         assertThat(stats).isEqualTo(columnStats);
     }
@@ -100,12 +95,12 @@ public class ColumnStatsTest {
         ColumnStats<Integer> columnStats = StatsUtils.statsFromValues(DataTypes.INTEGER, numbers);
         List<Integer> histogramSample = columnStats.histogram().subList(0, 8);
         assertThat(histogramSample).containsExactly(1, 3, 5, 7, 9, 31, 33, 35);
-        MostCommonValues mostCommonValues = columnStats.mostCommonValues();
+        MostCommonValues<?> mostCommonValues = columnStats.mostCommonValues();
         assertThat(mostCommonValues.values()).hasSize(2);
         assertThat(mostCommonValues.values().get(0)).isEqualTo(10);
-        assertThat(mostCommonValues.frequencies()[0], Matchers.closeTo(0.376, 0.01));
+        assertThat(mostCommonValues.frequencies()[0]).isCloseTo(0.376, Offset.offset(0.01));
         assertThat(mostCommonValues.values().get(1)).isEqualTo(20);
-        assertThat(mostCommonValues.frequencies()[1], Matchers.closeTo(0.086, 0.01));
+        assertThat(mostCommonValues.frequencies()[1]).isCloseTo(0.086, Offset.offset(0.01));
     }
 
     @Test
@@ -118,7 +113,7 @@ public class ColumnStatsTest {
 
     @Test
     public void test_average_size_in_bytes_is_calculated_for_variable_width_columns() {
-        ColumnStats stats = StatsUtils.statsFromValues(DataTypes.STRING, List.of("a", "b", "ccc", "dddddd"));
+        ColumnStats<?> stats = StatsUtils.statsFromValues(DataTypes.STRING, List.of("a", "b", "ccc", "dddddd"));
         assertThat(stats.averageSizeInBytes()).isEqualTo(50.0);
     }
 
@@ -126,7 +121,7 @@ public class ColumnStatsTest {
     public void test_column_stats_generation_from_null_values_only_has_null_fraction_1() {
         List<Integer> allNulls = new ArrayList<>();
         allNulls.add(null);
-        ColumnStats columnStats = StatsUtils.statsFromValues(DataTypes.INTEGER, allNulls);
+        ColumnStats<?> columnStats = StatsUtils.statsFromValues(DataTypes.INTEGER, allNulls);
         assertThat(columnStats.nullFraction()).isEqualTo(1.0);
     }
 }
