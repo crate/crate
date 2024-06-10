@@ -116,7 +116,8 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
         }
 
         InetAddress address = addressFromRequestOrChannel(request, ctx.channel());
-        ConnectionProperties connectionProperties = new ConnectionProperties(address, Protocol.HTTP, session);
+        ConnectionProperties connectionProperties = new ConnectionProperties(credentials, address, Protocol.HTTP, session);
+
         AuthenticationMethod authMethod = authService.resolveAuthenticationType(username, connectionProperties);
         if (authMethod == null) {
             String errorMessage = String.format(

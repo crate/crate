@@ -21,10 +21,10 @@
 
 package io.crate.metadata.table;
 
-import io.crate.metadata.view.ViewInfo;
 import org.elasticsearch.cluster.ClusterChangedEvent;
-
 import org.jetbrains.annotations.Nullable;
+
+import io.crate.metadata.view.ViewInfo;
 
 public interface SchemaInfo extends AutoCloseable {
 
@@ -37,8 +37,6 @@ public interface SchemaInfo extends AutoCloseable {
     }
 
     String name();
-
-    void invalidateTableCache(String tableName);
 
     /**
      * Called when cluster state and so the table definitions changes.

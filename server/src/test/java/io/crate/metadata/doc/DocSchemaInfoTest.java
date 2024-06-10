@@ -262,7 +262,8 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
             Version.CURRENT,
             null,
             false,
-            Operation.ALL
+            Operation.ALL,
+            0
         );
     }
 }

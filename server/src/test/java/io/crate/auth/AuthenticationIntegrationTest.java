@@ -96,9 +96,10 @@ public class AuthenticationIntegrationTest extends IntegTestCase {
         request.setHeader(HttpHeaderNames.AUTHORIZATION.toString(), "Basic QXJ0aHVyOkV4Y2FsaWJ1cg==");
         request.setHeader(HttpHeaderNames.ORIGIN.toString(), "http://example.com");
         request.setHeader(HttpHeaderNames.ACCESS_CONTROL_REQUEST_METHOD.toString(), "GET");
-        CloseableHttpClient httpClient = HttpClients.createDefault();
-        CloseableHttpResponse resp = httpClient.execute(request);
-        assertThat(resp.getStatusLine().getReasonPhrase()).isEqualTo("OK");
+        try (CloseableHttpClient httpClient = HttpClients.createDefault()) {
+            CloseableHttpResponse resp = httpClient.execute(request);
+            assertThat(resp.getStatusLine().getReasonPhrase()).isEqualTo("OK");
+        }
     }
 
     @Test
