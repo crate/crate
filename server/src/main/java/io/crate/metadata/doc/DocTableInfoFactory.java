@@ -194,7 +194,8 @@ public class DocTableInfoFactory {
             versionCreated,
             versionUpgraded,
             indexMetadata.getState() == IndexMetadata.State.CLOSE,
-            Operation.CLOSED_OPERATIONS
+            Operation.CLOSED_OPERATIONS,
+            0
         );
     }
 
@@ -218,6 +219,7 @@ public class DocTableInfoFactory {
         } catch (IndexNotFoundException e) {
             throw new RelationUnknown(relation.fqn(), e);
         }
+        long tableVersion;
         if (indexTemplateMetadata == null) {
             IndexMetadata index = metadata.index(relation.indexNameOrAlias());
             if (index == null) {
@@ -229,6 +231,7 @@ public class DocTableInfoFactory {
             state = index.getState();
             MappingMetadata mapping = index.mapping();
             mappingSource = mapping == null ? Map.of() : mapping.sourceAsMap();
+            tableVersion = index.getVersion();
             if (concreteIndices.length == 0) {
                 throw new RelationUnknown(relation);
             }
@@ -244,6 +247,7 @@ public class DocTableInfoFactory {
             boolean isClosed = Maps.getOrDefault(
                 Maps.getOrDefault(mappingSource, "_meta", Map.of()), "closed", false);
             state = isClosed ? State.CLOSE : State.OPEN;
+            tableVersion = indexTemplateMetadata.version() == null ? 0 : indexTemplateMetadata.version();
         }
         final Map<String, Object> metaMap = Maps.getOrDefault(mappingSource, "_meta", Map.of());
         final List<ColumnIdent> partitionedBy = parsePartitionedByStringsList(
@@ -322,7 +326,8 @@ public class DocTableInfoFactory {
                 tableParameters,
                 state,
                 publicationsMetadata == null ? false : publicationsMetadata.isPublished(relation)
-            )
+            ),
+            tableVersion
         );
     }
 

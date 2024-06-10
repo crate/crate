@@ -54,7 +54,8 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
 
     private static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(ColumnIdent.class);
 
-    private static final Comparator<Iterable<String>> ORDERING = new LexicographicalOrdering<>(Comparator.<String>naturalOrder());
+    private static final Comparator<ColumnIdent> COMPARATOR = Comparator.comparing(ColumnIdent::name)
+        .thenComparing(ColumnIdent::path, new LexicographicalOrdering<>(Comparator.naturalOrder()));
 
     private final String name;
     private final List<String> path;
@@ -435,9 +436,7 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
 
     @Override
     public int compareTo(ColumnIdent o) {
-        return Comparator.comparing(ColumnIdent::name)
-            .thenComparing(ColumnIdent::path, ORDERING)
-            .compare(this, o);
+        return COMPARATOR.compare(this, o);
     }
 
     public void writeTo(StreamOutput out) throws IOException {

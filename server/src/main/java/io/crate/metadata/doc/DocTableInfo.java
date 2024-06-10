@@ -198,6 +198,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     private final boolean closed;
     private final ColumnPolicy columnPolicy;
     private TranslogIndexer translogIndexer; // lazily initialised
+    private final long tableVersion;
 
     public DocTableInfo(RelationName ident,
                         Map<ColumnIdent, Reference> references,
@@ -213,7 +214,8 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                         Version versionCreated,
                         @Nullable Version versionUpgraded,
                         boolean closed,
-                        Set<Operation> supportedOperations) {
+                        Set<Operation> supportedOperations,
+                        long tableVersion) {
         this.notNullColumns = references.values().stream()
             .filter(r -> !r.column().isSystemColumn())
             .filter(r -> !primaryKeys.contains(r.column()))
@@ -286,6 +288,14 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             .stream()
             .filter(r -> r.defaultExpression() != null)
             .toList();
+        this.tableVersion = tableVersion;
+    }
+
+    /**
+     * Version of the template metadata if partitioned, otherwise of the index metadata
+     **/
+    public long tableVersion() {
+        return tableVersion;
     }
 
     @Nullable
@@ -775,7 +785,8 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             versionCreated,
             versionUpgraded,
             closed,
-            supportedOperations
+            supportedOperations,
+            tableVersion
         );
     }
 
@@ -842,7 +853,8 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             versionCreated,
             versionUpgraded,
             closed,
-            supportedOperations
+            supportedOperations,
+            tableVersion
         );
     }
 
@@ -948,7 +960,8 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             versionCreated,
             versionUpgraded,
             closed,
-            supportedOperations
+            supportedOperations,
+            tableVersion
         );
     }
 
@@ -1144,7 +1157,8 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             versionCreated,
             versionUpgraded,
             closed,
-            supportedOperations
+            supportedOperations,
+            tableVersion
         );
     }
 
