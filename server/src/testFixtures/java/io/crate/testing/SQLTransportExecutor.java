@@ -22,18 +22,15 @@
 package io.crate.testing;
 
 import static io.crate.action.sql.Session.UNNAMED;
+import static io.crate.types.ResultSetParser.getObject;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.sql.Array;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -63,17 +60,9 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
-import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
-import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
-import org.locationtech.spatial4j.shape.impl.PointImpl;
-import org.postgresql.geometric.PGpoint;
-import org.postgresql.util.PGobject;
 
 import com.carrotsearch.randomizedtesting.RandomizedContext;
 
@@ -94,17 +83,13 @@ import io.crate.metadata.SearchPath;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.planner.optimizer.LoadedRules;
 import io.crate.planner.optimizer.Rule;
-import io.crate.protocols.postgres.types.PGArray;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
-import io.crate.protocols.postgres.types.PgOidVectorType;
 import io.crate.role.Role;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.JsonType;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.Unpooled;
 
 public class SQLTransportExecutor {
 
@@ -487,115 +472,6 @@ public class SQLTransportExecutor {
             default -> DataTypes.UNDEFINED;
         };
         return dataType;
-    }
-
-    /**
-     * retrieve the same type of object from the resultSet as the CrateClient would return
-     */
-    private static Object getObject(ResultSet resultSet, int i, String typeName) throws SQLException {
-        Object value;
-        int columnIndex = i + 1;
-        switch (typeName) {
-            // need to use explicit `get<Type>` for some because getObject would return a wrong type.
-            // E.g. int2 would return Integer instead of short.
-            case "int2":
-                Integer intValue = (Integer) resultSet.getObject(columnIndex);
-                if (intValue == null) {
-                    return null;
-                }
-                value = intValue.shortValue();
-                break;
-            case "_char": {
-                Array array = resultSet.getArray(columnIndex);
-                if (array == null) {
-                    return null;
-                }
-                ArrayList<Byte> elements = new ArrayList<>();
-                for (Object o : ((Object[]) array.getArray())) {
-                    elements.add(Byte.parseByte((String) o));
-                }
-                return elements;
-            }
-            case "oidvector": {
-                String textval = resultSet.getString(columnIndex);
-                if (textval == null) {
-                    return null;
-                }
-                return PgOidVectorType.listFromOidVectorString(textval);
-            }
-            case "char":
-                String strValue = resultSet.getString(columnIndex);
-                if (strValue == null) {
-                    return null;
-                }
-                return Byte.valueOf(strValue);
-            case "byte":
-                value = resultSet.getByte(columnIndex);
-                break;
-            case "_json": {
-                Array array = resultSet.getArray(columnIndex);
-                if (array == null) {
-                    return null;
-                }
-                ArrayList<Object> jsonObjects = new ArrayList<>();
-                for (Object item : (Object[]) array.getArray()) {
-                    jsonObjects.add(jsonToObject((String) item));
-                }
-                value = jsonObjects;
-                break;
-            }
-            case "json":
-                String json = resultSet.getString(columnIndex);
-                value = jsonToObject(json);
-                break;
-            case "point":
-                PGpoint pGpoint = resultSet.getObject(columnIndex, PGpoint.class);
-                value = new PointImpl(pGpoint.x, pGpoint.y, JtsSpatialContext.GEO);
-                break;
-            case "record":
-                value = resultSet.getObject(columnIndex, PGobject.class).getValue();
-                break;
-            case "_bit":
-                String pgBitStringArray = resultSet.getString(columnIndex);
-                if (pgBitStringArray == null) {
-                    return null;
-                }
-                byte[] bytes = pgBitStringArray.getBytes(StandardCharsets.UTF_8);
-                ByteBuf buf = Unpooled.wrappedBuffer(bytes);
-                value = PGArray.BIT_ARRAY.readTextValue(buf, bytes.length);
-                buf.release();
-                break;
-
-            default:
-                value = resultSet.getObject(columnIndex);
-                break;
-        }
-        if (value instanceof Timestamp) {
-            value = ((Timestamp) value).getTime();
-        } else if (value instanceof Array) {
-            value = Arrays.asList(((Object[]) ((Array) value).getArray()));
-        }
-        return value;
-    }
-
-    private static Object jsonToObject(String json) {
-        try {
-            if (json != null) {
-                byte[] bytes = json.getBytes(StandardCharsets.UTF_8);
-                XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
-                    NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, bytes);
-                if (bytes.length >= 1 && bytes[0] == '[') {
-                    parser.nextToken();
-                    return parser.list();
-                } else {
-                    return parser.mapOrdered();
-                }
-            } else {
-                return null;
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     /**
