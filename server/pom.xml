@@ -365,21 +365,9 @@
     </dependency>
 
     <dependency>
-      <groupId>com.pholser</groupId>
-      <artifactId>junit-quickcheck-core</artifactId>
-      <version>${versions.quickcheck}</version>
-      <scope>test</scope>
-      <exclusions>
-        <exclusion>
-          <groupId>org.hamcrest</groupId>
-          <artifactId>hamcrest-core</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-    <dependency>
-      <groupId>com.pholser</groupId>
-      <artifactId>junit-quickcheck-generators</artifactId>
-      <version>${versions.quickcheck}</version>
+      <groupId>net.jqwik</groupId>
+      <artifactId>jqwik-api</artifactId>
+      <version>1.8.5</version>
       <scope>test</scope>
     </dependency>
 
