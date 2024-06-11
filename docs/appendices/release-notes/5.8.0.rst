@@ -93,7 +93,7 @@ SQL Statements
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
 
-None
+- `Julia <https://github.com/julant7>`_  added an empty ``pg_catalog.pg_matviews`` table.
 
 Data Types
 ----------

@@ -245,6 +245,11 @@ public final class PgCatalogTableDefinitions {
                 () -> completedFuture(emptyList()),
                 PgDepend.create().expressions(),
                 false
+            )),
+            Map.entry(PgMatviews.NAME, new StaticTableDefinition<>(
+                () -> completedFuture(emptyList()),
+                PgMatviews.create().expressions(),
+                false
             ))
         );
     }
