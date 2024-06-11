@@ -23,46 +23,27 @@ package io.crate.metadata.view;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.junit.Test;
+import org.mockito.Mockito;
 
-import io.crate.exceptions.ConversionException;
-import io.crate.exceptions.RelationsUnknown;
+import io.crate.analyze.relations.RelationAnalyzer;
+import io.crate.analyze.relations.StatementAnalysisContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SearchPath;
-import io.crate.types.ArrayType;
-import io.crate.types.TimestampType;
+import io.crate.sql.tree.Node;
 
 public class ViewInfoFactoryTest {
 
     @Test
-    public void create_view_throws_exception_view_is_created_with_hint_in_statement() {
-        ViewInfoFactory factory = new ViewInfoFactory(() -> {
-            throw new ConversionException(new ArrayType<>(TimestampType.INSTANCE_WITHOUT_TZ), TimestampType.INSTANCE_WITHOUT_TZ);
-        });
-
-        String statement = "SELECT * FROM users";
-        RelationName ident = new RelationName(null, "test");
-        ViewMetadata viewMetadata = new ViewMetadata(statement, null, SearchPath.pathWithPGCatalogAndDoc());
-        ViewsMetadata views = new ViewsMetadata(Map.of(ident.fqn(), viewMetadata));
-
-        ClusterState state = ClusterState.builder(ClusterState.EMPTY_STATE)
-            .metadata(Metadata.builder().putCustom(ViewsMetadata.TYPE, views)).build();
-
-        // `definition` col includes a hint about an error in the view's query
-        ViewInfo viewInfo = factory.create(ident, state);
-        assertThat(viewInfo.definition()).isEqualTo("/* Corrupted view, needs fix */\n" + statement);
-    }
-
-    @Test
-    public void test_view_definition_contains_corrupted_hint_if_analyzer_throws_ResourceUnknownException() {
-        ViewInfoFactory factory = new ViewInfoFactory(() -> {
-            throw new RelationsUnknown(List.of());
-        });
+    public void test_view_factory_tags_definition_with_corruption_marker_on_analyzer_errors() {
+        RelationAnalyzer relationAnalyzer = Mockito.mock(RelationAnalyzer.class);
+        Mockito.when(relationAnalyzer.analyze(Mockito.any(Node.class), Mockito.any(StatementAnalysisContext.class)))
+            .thenThrow(new IllegalArgumentException("dummy exception"));
+        ViewInfoFactory factory = new ViewInfoFactory(relationAnalyzer);
 
         String statement = "SELECT * FROM users";
         RelationName ident = new RelationName(null, "test");

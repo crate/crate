@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Locale;
 
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.common.inject.Provider;
 
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -47,9 +46,9 @@ import io.crate.types.ObjectType;
 
 public class ViewInfoFactory {
 
-    private final Provider<RelationAnalyzer> analyzerProvider;
+    private final RelationAnalyzer analyzerProvider;
 
-    public ViewInfoFactory(Provider<RelationAnalyzer> analyzerProvider) {
+    public ViewInfoFactory(RelationAnalyzer analyzerProvider) {
         this.analyzerProvider = analyzerProvider;
     }
 
@@ -67,7 +66,7 @@ public class ViewInfoFactory {
         try {
             CoordinatorTxnCtx transactionContext = CoordinatorTxnCtx.systemTransactionContext();
             transactionContext.sessionSettings().setSearchPath(view.searchPath());
-            AnalyzedRelation relation = analyzerProvider.get().analyze(
+            AnalyzedRelation relation = analyzerProvider.analyze(
                 (Query) SqlParser.createStatement(view.stmt()),
                 transactionContext,
                 ParamTypeHints.EMPTY

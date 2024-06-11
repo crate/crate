@@ -64,7 +64,7 @@ public class NodeContext {
                 BlobSchemaInfo.NAME, blobSchemaInfo
             );
             var relationAnalyzer = new RelationAnalyzer(nodeCtx);
-            var viewInfoFactory = new ViewInfoFactory(() -> relationAnalyzer);
+            var viewInfoFactory = new ViewInfoFactory(relationAnalyzer);
             Schemas schemas = new Schemas(
                 systemSchemas,
                 clusterService,
