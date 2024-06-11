@@ -21,8 +21,8 @@
 
 package io.crate.execution.engine.sort;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.execution.engine.sort.Sort.sortOverheadBytes;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -36,6 +36,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
+
+import io.crate.data.breaker.RamAccounting;
+import io.crate.testing.PlainRamAccounting;
 
 public class SortTest extends ESTestCase {
 
@@ -62,15 +65,20 @@ public class SortTest extends ESTestCase {
         }
         var unsortedNumbers = new ArrayList<>(numbers);
         numbers.sort(Comparator.comparingInt(x -> x));
-        assertThat(
-            numbers,
-            is(Sort.parallelSort(
+        RamAccounting accounting = new PlainRamAccounting();
+        assertThat(numbers).isEqualTo(
+            Sort.parallelSort(
                 unsortedNumbers,
+                accounting::addBytes,
                 Comparator.comparingInt(x -> x),
                 randomIntBetween(1, 1000),
                 randomIntBetween(1, 4),
                 executor
-                ).get(5, TimeUnit.SECONDS))
+                ).get(5, TimeUnit.SECONDS)
         );
+        long sortOverhead = sortOverheadBytes(numbers.size());
+        // Sorting overhead applies for both parallel/non-parallel executions.
+        // We used to not count memory at all, let's assert lower bound as actual value is different due to randomness and repetitions.
+        assertThat(accounting.totalBytes()).isGreaterThanOrEqualTo(sortOverhead);
     }
 }

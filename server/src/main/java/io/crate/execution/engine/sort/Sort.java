@@ -23,19 +23,27 @@ package io.crate.execution.engine.sort;
 
 import static io.crate.common.concurrent.CompletableFutures.supplyAsync;
 import static java.util.concurrent.CompletableFuture.completedFuture;
+import static org.apache.lucene.util.RamUsageEstimator.NUM_BYTES_ARRAY_HEADER;
+import static org.apache.lucene.util.RamUsageEstimator.NUM_BYTES_OBJECT_REF;
 
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.function.LongConsumer;
+
+
+import org.apache.lucene.util.RamUsageEstimator;
 
 import io.crate.common.collections.Iterables;
 import io.crate.common.collections.Lists;
 
 public final class Sort {
 
+    @SuppressWarnings("unchecked")
     public static <T> CompletableFuture<List<T>> parallelSort(List<T> list,
+                                                              LongConsumer allocateBytes,
                                                               Comparator<? super T> comparator,
                                                               int minItemsPerThread,
                                                               int numAvailableThreads,
@@ -44,26 +52,42 @@ public final class Sort {
         int itemsPerThread = list.size() / Math.max(1, numAvailableThreads);
         if (numAvailableThreads <= 1 || itemsPerThread < minItemsPerThread) {
             list.sort(comparator);
+            allocateBytes.accept(sortOverheadBytes(list.size()));
             return completedFuture(list);
         }
         List<List<T>> partitions = Lists.partition(list, itemsPerThread);
-        ArrayList<CompletableFuture<List<T>>> futures = new ArrayList<>(partitions.size());
+        allocateBytes.accept(RamUsageEstimator.sizeOfObject(partitions)); // Accounts for nested list
+        CompletableFuture<List<T>>[] futures = new CompletableFuture[partitions.size()];
+        allocateBytes.accept(RamUsageEstimator.shallowSizeOf(futures));
+        int index = 0;
         for (List<T> partition : partitions) {
-            futures.add(supplyAsync(() -> {
+            futures[index] = supplyAsync(() -> {
                 partition.sort(comparator);
+                allocateBytes.accept(sortOverheadBytes(partition.size()));
                 return partition;
-            }, executor));
+            }, executor);
+            index++;
         }
-        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
-            .thenApply(aVoid -> {
+        return CompletableFuture.allOf(futures)
+            .thenApply(_ -> {
 
                 ArrayList<T> result = new ArrayList<>(list.size());
-                ArrayList<List<T>> parts = new ArrayList<>(futures.size());
-                for (int i = 0; i < futures.size(); i++) {
-                    parts.add(futures.get(i).join());
+                ArrayList<List<T>> parts = new ArrayList<>(futures.length);
+                for (int i = 0; i < futures.length; i++) {
+                    parts.add(futures[i].join());
                 }
                 Iterables.addAll(result, Iterables.mergeSorted(parts, comparator));
+                allocateBytes.accept(RamUsageEstimator.sizeOfObject(parts));
+                allocateBytes.accept(RamUsageEstimator.sizeOfObject(result));
                 return result;
             });
+    }
+
+    /**
+     * Inlining {@link RamUsageEstimator#shallowSizeOf(Object[])}
+     * to account for intermediate sorting array.
+     */
+    static long sortOverheadBytes(int size) {
+        return RamUsageEstimator.alignObjectSize((long) NUM_BYTES_ARRAY_HEADER + (long) NUM_BYTES_OBJECT_REF * size);
     }
 }

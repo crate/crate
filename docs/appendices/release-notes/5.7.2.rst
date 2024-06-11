@@ -104,7 +104,7 @@ Fixes
   query.
 
 - Fixed an issue that could lead to out-of-memory errors when executing
-  ``lead`` or ``lag`` window functions on a large table.
+  window functions on a large table.
 
 - Fixed an issue that could lead to errors when loading data from geo_point
   fields inside nested arrays.

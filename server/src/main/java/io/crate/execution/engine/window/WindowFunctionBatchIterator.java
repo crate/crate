@@ -160,7 +160,7 @@ public final class WindowFunctionBatchIterator {
         } else {
             int minItemsPerThread = 1 << 13; // Same as Arrays.MIN_ARRAY_SORT_GRAN
             return Sort
-                .parallelSort(rows, cmpPartitionThenOrderBy, minItemsPerThread, numAvailableThreads.getAsInt(), executor)
+                .parallelSort(rows, allocateBytes, cmpPartitionThenOrderBy, minItemsPerThread, numAvailableThreads.getAsInt(), executor)
                 .thenApply(computeWindowsFn);
         }
     }
