@@ -37,6 +37,7 @@ import org.elasticsearch.index.Index;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.common.collections.Lists;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
@@ -59,7 +60,7 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
         docSchemaInfo = new DocSchemaInfo(
             "doc",
             clusterService,
-            new ViewInfoFactory(() -> null),
+            new ViewInfoFactory(new RelationAnalyzer(nodeCtx)),
             new DocTableInfoFactory(nodeCtx)
         );
     }

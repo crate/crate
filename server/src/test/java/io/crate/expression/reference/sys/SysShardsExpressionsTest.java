@@ -96,7 +96,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
             clusterService,
             new DocSchemaInfoFactory(
                 new DocTableInfoFactory(nodeCtx),
-                new ViewInfoFactory(() -> new RelationAnalyzer(nodeCtx))
+                new ViewInfoFactory(new RelationAnalyzer(nodeCtx))
             ),
             List::of
         );
