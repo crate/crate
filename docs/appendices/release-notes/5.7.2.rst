@@ -52,6 +52,10 @@ Security Fixes
 Fixes
 =====
 
+- Fixed an issue that prevented users with :ref:`DDL <privilege_types>`
+  privileges on table to execute
+  :ref:`ALTER TABLE t REROUTE... <ddl_reroute_shards>` statements.
+
 - Fixed an issue that could lead to requests getting stuck when trying to
   download a blob via HTTPS.
 
