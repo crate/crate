@@ -30,7 +30,6 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
-import io.crate.metadata.FunctionType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import io.crate.types.TypeSignature;
@@ -43,23 +42,19 @@ public class SignatureTest {
             .setInnerType("x", DataTypes.INTEGER)
             .build();
 
-        var signature = Signature.builder()
-            .name("foo")
-            .kind(FunctionType.SCALAR)
-            .argumentTypes(
+        var signature =
+            Signature.scalar(
+                "foo",
                 TypeSignature.parse("E"),
                 DataTypes.INTEGER.getTypeSignature(),
-                objectType.getTypeSignature()
-            )
-            .returnType(DataTypes.BIGINT_ARRAY.getTypeSignature())
-            .variableArityGroup(
+                objectType.getTypeSignature(),
+                DataTypes.BIGINT_ARRAY.getTypeSignature()
+            ).withVariableArityGroup(
                 List.of(
                     DataTypes.INTEGER.getTypeSignature(),
                     objectType.getTypeSignature()
                 )
-            )
-            .typeVariableConstraints(typeVariable("E"))
-            .build();
+            ).withTypeVariableConstraints(typeVariable("E"));
 
         BytesStreamOutput out = new BytesStreamOutput();
         signature.writeTo(out);

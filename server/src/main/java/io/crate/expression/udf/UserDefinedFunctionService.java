@@ -54,7 +54,6 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.FunctionProvider;
-import io.crate.metadata.FunctionType;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -63,6 +62,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
+import io.crate.types.TypeSignature;
 
 
 public class UserDefinedFunctionService extends AbstractLifecycleComponent implements ClusterStateListener {
@@ -225,16 +225,10 @@ public class UserDefinedFunctionService extends AbstractLifecycleComponent imple
     @Nullable
     public FunctionProvider buildFunctionResolver(UserDefinedFunctionMetadata udf) {
         var functionName = new FunctionName(udf.schema(), udf.name());
-        var signature = Signature.builder()
-            .name(functionName)
-            .kind(FunctionType.SCALAR)
-            .argumentTypes(
-                Lists.map(
-                    udf.argumentTypes(),
-                    DataType::getTypeSignature))
-            .returnType(udf.returnType().getTypeSignature())
-            .feature(Scalar.Feature.DETERMINISTIC)
-            .build();
+        List<TypeSignature> typeSignatures = new ArrayList<>(Lists.map(udf.argumentTypes(), DataType::getTypeSignature));
+        typeSignatures.add(udf.returnType().getTypeSignature());
+        var signature = Signature.scalar(functionName, typeSignatures.toArray(TypeSignature[]::new))
+            .withFeature(Scalar.Feature.DETERMINISTIC);
 
         final Scalar<?, ?> scalar;
         try {

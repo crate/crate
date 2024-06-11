@@ -26,7 +26,6 @@ import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import java.util.ArrayList;
 
 import io.crate.data.Input;
-import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -39,17 +38,15 @@ public class ArrayFunction extends Scalar<Object, Object> {
 
     public static final String NAME = "_array";
     public static final Signature SIGNATURE =
-        Signature.builder()
-            .name(NAME)
-            .kind(FunctionType.SCALAR)
-            .typeVariableConstraints(typeVariable("E"))
-            .argumentTypes(TypeSignature.parse("E"))
-            .returnType(TypeSignature.parse("array(E)"))
-            .setVariableArity(true)
-            .feature(Feature.NON_NULLABLE)
-            .feature(Feature.DETERMINISTIC)
-            .build();
-
+        Signature.scalar(
+                NAME,
+                TypeSignature.parse("E"),
+                TypeSignature.parse("array(E)")
+            )
+            .withTypeVariableConstraints(typeVariable("E"))
+            .withFeature(Feature.NON_NULLABLE)
+            .withFeature(Feature.DETERMINISTIC)
+            .withVariableArity();
 
     public static void register(Functions.Builder module) {
         module.add(

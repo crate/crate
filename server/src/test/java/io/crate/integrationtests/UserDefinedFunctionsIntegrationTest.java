@@ -48,7 +48,6 @@ import io.crate.expression.udf.UDFLanguage;
 import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.FunctionName;
-import io.crate.metadata.FunctionType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.Schemas;
@@ -265,16 +264,14 @@ public class UserDefinedFunctionsIntegrationTest extends IntegTestCase {
 
     @Test
     public void test_pg_function_is_visible() throws Exception {
-        Signature signature = Signature
-            .builder()
-            .kind(FunctionType.SCALAR)
-            .name(new FunctionName(Schemas.DOC_SCHEMA_NAME, "my_func"))
-            .argumentTypes(
+        Signature signature =
+            Signature.scalar(
+                new FunctionName(Schemas.DOC_SCHEMA_NAME, "my_func"),
                 TypeSignature.parse("array(array(integer))"),
                 TypeSignature.parse("integer"),
-                TypeSignature.parse("text"))
-            .returnType(TypeSignature.parse("text"))
-            .build();
+                TypeSignature.parse("text"),
+                TypeSignature.parse("text")
+            );
         int functionOid = OidHash.functionOid(signature);
 
         execute("select pg_function_is_visible(" + functionOid + ")");
@@ -294,13 +291,12 @@ public class UserDefinedFunctionsIntegrationTest extends IntegTestCase {
     public void test_pg_get_function_result() throws Exception {
         TypeSignature returnTypeSig = TypeSignature.parse("array(array(integer))");
         String returnType = returnTypeSig.toString();
-        Signature signature = Signature
-            .builder()
-            .kind(FunctionType.SCALAR)
-            .name(new FunctionName(Schemas.DOC_SCHEMA_NAME, "make_2d_array"))
-            .argumentTypes(DataTypes.INTEGER.getTypeSignature())
-            .returnType(returnTypeSig)
-            .build();
+        Signature signature =
+            Signature.scalar(
+                new FunctionName(Schemas.DOC_SCHEMA_NAME, "make_2d_array"),
+                DataTypes.INTEGER.getTypeSignature(),
+                returnTypeSig
+            );
         int functionOid = OidHash.functionOid(signature);
 
         execute("select pg_get_function_result(?)", new Object[]{functionOid});
@@ -318,13 +314,11 @@ public class UserDefinedFunctionsIntegrationTest extends IntegTestCase {
 
     @Test
     public void test_pg_function_is_visible_when_oid_is_retrieved_from_column() throws Exception {
-        Signature signature = Signature
-            .builder()
-            .kind(FunctionType.SCALAR)
-            .name(new FunctionName(null, CurrentTimeFunction.NAME))
-            .argumentTypes()
-            .returnType(DataTypes.TIMETZ.getTypeSignature())
-            .build();
+        Signature signature =
+            Signature.scalar(
+                new FunctionName(null, CurrentTimeFunction.NAME),
+                DataTypes.TIMETZ.getTypeSignature()
+            );
         int functionOid = OidHash.functionOid(signature);
 
         execute("create table oid_test(oid integer)");
