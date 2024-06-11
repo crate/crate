@@ -35,6 +35,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.file.Path;
 import java.security.cert.Certificate;
 import java.util.Collections;
@@ -45,8 +46,7 @@ import java.util.Optional;
 
 import javax.net.ssl.SSLSession;
 
-import org.apache.http.impl.conn.InMemoryDnsResolver;
-import org.apache.http.impl.conn.SystemDefaultDnsResolver;
+import org.elasticsearch.common.network.DnsResolver;
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.InternalSettingsPreparer;
@@ -113,7 +113,18 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         .build();
 
     private static final InetAddress LOCALHOST = InetAddresses.forString("127.0.0.1");
-    private static final InMemoryDnsResolver IN_MEMORY_RESOLVER = new InMemoryDnsResolver();
+    private static final DnsResolver IN_MEMORY_RESOLVER = new DnsResolver() {
+
+        @Override
+        public InetAddress[] resolve(String host) throws UnknownHostException {
+            return switch (host) {
+                case TEST_DNS_HOSTNAME -> new InetAddress[] { InetAddresses.forString(TEST_DNS_IP) };
+                case TEST_SUBDOMAIN_HOSTNAME -> new InetAddress[] { InetAddresses.forString(TEST_SUBDOMAIN_IP) };
+                case TEST_DOMAIN_HOSTNAME -> new InetAddress[] { InetAddresses.forString(TEST_DOMAIN_IP) };
+                default -> new InetAddress[0];
+            };
+        }
+    };
 
     private SSLSession sslSession;
 
@@ -124,9 +135,6 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         // Until this is fixed, we force the english locale.
         // See also https://github.com/bcgit/bc-java/issues/405 (different topic, but same root cause)
         Locale.setDefault(Locale.ENGLISH);
-        IN_MEMORY_RESOLVER.add(TEST_DNS_HOSTNAME, InetAddresses.forString(TEST_DNS_IP));
-        IN_MEMORY_RESOLVER.add(TEST_SUBDOMAIN_HOSTNAME, InetAddresses.forString(TEST_SUBDOMAIN_IP));
-        IN_MEMORY_RESOLVER.add(TEST_DOMAIN_HOSTNAME, InetAddresses.forString(TEST_DOMAIN_IP));
     }
 
     @Before
@@ -146,7 +154,7 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         HostBasedAuthentication authService = new HostBasedAuthentication(
             Settings.EMPTY,
             null,
-            SystemDefaultDnsResolver.INSTANCE,
+            DnsResolver.SYSTEM,
             () -> "dummy"
         );
         AuthenticationMethod method;
@@ -162,7 +170,7 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         HostBasedAuthentication authService = new HostBasedAuthentication(
             Settings.EMPTY,
             null,
-            SystemDefaultDnsResolver.INSTANCE,
+            DnsResolver.SYSTEM,
             () -> "dummy"
         );
         AuthenticationMethod method =
@@ -175,7 +183,7 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         HostBasedAuthentication authService = new HostBasedAuthentication(
             HBA_1,
             null,
-            SystemDefaultDnsResolver.INSTANCE,
+            DnsResolver.SYSTEM,
             () -> "dummy"
         );
         AuthenticationMethod method =
@@ -188,7 +196,7 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         HostBasedAuthentication authService = new HostBasedAuthentication(
             HBA_6,
             null,
-            SystemDefaultDnsResolver.INSTANCE,
+            DnsResolver.SYSTEM,
             () -> "dummy"
         );
         Credentials credentials = new Credentials(JWT_TOKEN);
@@ -208,7 +216,7 @@ public class HostBasedAuthenticationTest extends ESTestCase {
             () -> new HostBasedAuthentication(
                 noProtocolSettings,
                 null,
-                SystemDefaultDnsResolver.INSTANCE,
+                DnsResolver.SYSTEM,
                 () -> "dummy"
             )
         ).isExactlyInstanceOf(IllegalArgumentException.class)
@@ -224,7 +232,7 @@ public class HostBasedAuthenticationTest extends ESTestCase {
             () -> new HostBasedAuthentication(
                 unsupportedProtocolSettings,
                 null,
-                SystemDefaultDnsResolver.INSTANCE,
+                DnsResolver.SYSTEM,
                 () -> "dummy"
             )
         ).isExactlyInstanceOf(IllegalArgumentException.class)
@@ -236,7 +244,7 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         HostBasedAuthentication authService = new HostBasedAuthentication(
             HBA_1,
             null,
-            SystemDefaultDnsResolver.INSTANCE,
+            DnsResolver.SYSTEM,
             () -> "dummy"
         );
         Optional<Map.Entry<String, Map<String, String>>> entry;
@@ -263,7 +271,7 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         HostBasedAuthentication authService = new HostBasedAuthentication(
             settings,
             null,
-            SystemDefaultDnsResolver.INSTANCE,
+            DnsResolver.SYSTEM,
             () -> "dummy"
         );
 
@@ -293,7 +301,7 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         HostBasedAuthentication authService = new HostBasedAuthentication(
             HBA_4,
             null,
-            SystemDefaultDnsResolver.INSTANCE,
+            DnsResolver.SYSTEM,
             () -> "dummy"
         );
 
@@ -315,7 +323,7 @@ public class HostBasedAuthenticationTest extends ESTestCase {
             () -> "dummy"
         );
 
-        Optional entry = authService.getEntry("crate",
+        Optional<?> entry = authService.getEntry("crate",
             new ConnectionProperties(CRATE_USER_CREDENTIALS, InetAddresses.forString(TEST_DNS_IP), Protocol.POSTGRES, null));
 
         assertThat(entry.isPresent()).isTrue();
@@ -347,15 +355,15 @@ public class HostBasedAuthenticationTest extends ESTestCase {
     @Test
     public void testMatchAddress() throws Exception {
         String hbaAddress = "10.0.1.100";
-        assertThat(isValidAddress(hbaAddress, InetAddresses.forString("10.0.1.100"), SystemDefaultDnsResolver.INSTANCE)).isTrue();
-        assertThat(isValidAddress(hbaAddress, InetAddresses.forString("10.0.1.99"), SystemDefaultDnsResolver.INSTANCE)).isFalse();
-        assertThat(isValidAddress(hbaAddress, InetAddresses.forString("10.0.1.101"), SystemDefaultDnsResolver.INSTANCE)).isFalse();
+        assertThat(isValidAddress(hbaAddress, InetAddresses.forString("10.0.1.100"), DnsResolver.SYSTEM)).isTrue();
+        assertThat(isValidAddress(hbaAddress, InetAddresses.forString("10.0.1.99"), DnsResolver.SYSTEM)).isFalse();
+        assertThat(isValidAddress(hbaAddress, InetAddresses.forString("10.0.1.101"), DnsResolver.SYSTEM)).isFalse();
 
         hbaAddress = "10.0.1.0/24";  // 10.0.1.0 -- 10.0.1.255
-        assertThat(isValidAddress(hbaAddress, InetAddresses.forString("10.0.1.0"), SystemDefaultDnsResolver.INSTANCE)).isTrue();
-        assertThat(isValidAddress(hbaAddress, InetAddresses.forString("10.0.1.255"), SystemDefaultDnsResolver.INSTANCE)).isTrue();
-        assertThat(isValidAddress(hbaAddress, InetAddresses.forString("10.0.0.255"), SystemDefaultDnsResolver.INSTANCE)).isFalse();
-        assertThat(isValidAddress(hbaAddress, InetAddresses.forString("10.0.2.0"), SystemDefaultDnsResolver.INSTANCE)).isFalse();
+        assertThat(isValidAddress(hbaAddress, InetAddresses.forString("10.0.1.0"), DnsResolver.SYSTEM)).isTrue();
+        assertThat(isValidAddress(hbaAddress, InetAddresses.forString("10.0.1.255"), DnsResolver.SYSTEM)).isTrue();
+        assertThat(isValidAddress(hbaAddress, InetAddresses.forString("10.0.0.255"), DnsResolver.SYSTEM)).isFalse();
+        assertThat(isValidAddress(hbaAddress, InetAddresses.forString("10.0.2.0"), DnsResolver.SYSTEM)).isFalse();
 
         hbaAddress = ".b.crate.io";
 
@@ -370,13 +378,13 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         assertThat(isValidAddress(hbaAddress, randomAddressAsLong, () -> TEST_SUBDOMAIN_HOSTNAME, IN_MEMORY_RESOLVER)).isTrue();
         assertThat(isValidAddress(hbaAddress, randomAddressAsLong, () -> TEST_DOMAIN_HOSTNAME, IN_MEMORY_RESOLVER)).isFalse();
 
-        assertThat(isValidAddress(null, randomAddress, SystemDefaultDnsResolver.INSTANCE)).isTrue();
+        assertThat(isValidAddress(null, randomAddress, DnsResolver.SYSTEM)).isTrue();
     }
 
     @Test
     public void test_cidr_check_with_ip_requiring_all_bits() throws Exception {
         String hbaAddress = "192.168.0.0/16";
-        assertThat(isValidAddress(hbaAddress, InetAddresses.forString("192.168.101.92"), SystemDefaultDnsResolver.INSTANCE)).isTrue();
+        assertThat(isValidAddress(hbaAddress, InetAddresses.forString("192.168.101.92"), DnsResolver.SYSTEM)).isTrue();
     }
 
     @Test
@@ -392,7 +400,7 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         HostBasedAuthentication authService = new HostBasedAuthentication(
             settings,
             null,
-            SystemDefaultDnsResolver.INSTANCE,
+            DnsResolver.SYSTEM,
             () -> "dummy"
         );
         Settings confirmSettings = Settings.builder().put(HBA_1).put(HBA_2).build();
@@ -410,7 +418,7 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         authService = new HostBasedAuthentication(
             sslConfig,
             null,
-            SystemDefaultDnsResolver.INSTANCE,
+            DnsResolver.SYSTEM,
             () -> "dummy"
         );
         assertThat(
@@ -426,7 +434,7 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         authService = new HostBasedAuthentication(
             sslConfig,
             null,
-            SystemDefaultDnsResolver.INSTANCE,
+            DnsResolver.SYSTEM,
             () -> "dummy"
         );
         assertThat(
@@ -441,7 +449,7 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         authService = new HostBasedAuthentication(
             sslConfig,
             null,
-            SystemDefaultDnsResolver.INSTANCE,
+            DnsResolver.SYSTEM,
             () -> "dummy"
         );
         assertThat(
@@ -473,7 +481,7 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         authService = new HostBasedAuthentication(
             sslConfig,
             null,
-            SystemDefaultDnsResolver.INSTANCE,
+            DnsResolver.SYSTEM,
             () -> "dummy"
         );
         assertThat(authService.getEntry("crate", noSslConnProperties), not(Optional.empty()));
@@ -485,7 +493,7 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         authService = new HostBasedAuthentication(
             sslConfig,
             null,
-            SystemDefaultDnsResolver.INSTANCE,
+            DnsResolver.SYSTEM,
             () -> "dummy"
         );
         assertThat(authService.getEntry("crate", noSslConnProperties)).isEqualTo(Optional.empty());
@@ -497,7 +505,7 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         authService = new HostBasedAuthentication(
             sslConfig,
             null,
-            SystemDefaultDnsResolver.INSTANCE,
+            DnsResolver.SYSTEM,
             () -> "dummy"
         );
         assertThat(authService.getEntry("crate", noSslConnProperties), not(Optional.empty()));
@@ -519,7 +527,7 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         HostBasedAuthentication hba = new HostBasedAuthentication(
             settings,
             null,
-            SystemDefaultDnsResolver.INSTANCE,
+            DnsResolver.SYSTEM,
             () -> "dummy"
         );
 
@@ -559,7 +567,7 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         HostBasedAuthentication hba = new HostBasedAuthentication(
             finalSettings,
             null,
-            SystemDefaultDnsResolver.INSTANCE,
+            DnsResolver.SYSTEM,
             () -> "dummy"
         );
         SSLSession sslSession = mock(SSLSession.class);
@@ -590,13 +598,13 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         HostBasedAuthentication pwdFirstService = new HostBasedAuthentication(
             pwdFirst,
             null,
-            SystemDefaultDnsResolver.INSTANCE,
+            DnsResolver.SYSTEM,
             () -> "dummy"
         );
         HostBasedAuthentication jwtFirstService = new HostBasedAuthentication(
             jwtFirst,
             null,
-            SystemDefaultDnsResolver.INSTANCE,
+            DnsResolver.SYSTEM,
             () -> "dummy"
         );
         AuthenticationMethod authMethod;
@@ -633,7 +641,7 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         HostBasedAuthentication certFirstService = new HostBasedAuthentication(
             certFirstSettings,
             null,
-            SystemDefaultDnsResolver.INSTANCE,
+            DnsResolver.SYSTEM,
             () -> "dummy"
         );
 
@@ -646,7 +654,7 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         HostBasedAuthentication jwtFirstService = new HostBasedAuthentication(
             jwtFirstSettings,
             null,
-            SystemDefaultDnsResolver.INSTANCE,
+            DnsResolver.SYSTEM,
             () -> "dummy"
         );
 
@@ -671,7 +679,7 @@ public class HostBasedAuthenticationTest extends ESTestCase {
         HostBasedAuthentication authService = new HostBasedAuthentication(
             settings,
             null,
-            SystemDefaultDnsResolver.INSTANCE,
+            DnsResolver.SYSTEM,
             () -> "dummy"
         );
         AuthenticationMethod authMethod = authService.resolveAuthenticationType(
