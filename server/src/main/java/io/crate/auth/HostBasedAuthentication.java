@@ -21,17 +21,6 @@
 
 package io.crate.auth;
 
-import org.jetbrains.annotations.VisibleForTesting;
-import io.crate.role.Roles;
-import io.crate.protocols.postgres.ConnectionProperties;
-import org.apache.http.conn.DnsResolver;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.network.Cidrs;
-import org.elasticsearch.common.network.InetAddresses;
-import org.elasticsearch.common.settings.Settings;
-
-import org.jetbrains.annotations.Nullable;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Collections;
@@ -43,6 +32,18 @@ import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.function.Supplier;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.network.Cidrs;
+import org.elasticsearch.common.network.DnsResolver;
+import org.elasticsearch.common.network.InetAddresses;
+import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
+
+import io.crate.protocols.postgres.ConnectionProperties;
+import io.crate.role.Roles;
 
 
 public class HostBasedAuthentication implements Authentication {

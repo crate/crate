@@ -48,7 +48,6 @@ import java.util.stream.Stream;
 
 import javax.net.ssl.SNIHostName;
 
-import org.apache.http.impl.conn.SystemDefaultDnsResolver;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.search.IndexSearcher;
@@ -95,6 +94,7 @@ import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.lease.Releasables;
 import org.elasticsearch.common.logging.NodeAndClusterIdStateListener;
+import org.elasticsearch.common.network.DnsResolver;
 import org.elasticsearch.common.network.NetworkAddress;
 import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.network.NetworkService;
@@ -581,7 +581,7 @@ public class Node implements Closeable {
                 ? new HostBasedAuthentication(
                     settings,
                     roles,
-                    SystemDefaultDnsResolver.INSTANCE,
+                    DnsResolver.SYSTEM,
                     () -> clusterService.state().metadata().clusterUUID()
                 )
                 : new AlwaysOKAuthentication(roles);

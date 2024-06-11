@@ -281,6 +281,7 @@
     <versions.jodatime>2.12.5</versions.jodatime>
     <versions.aws>1.12.353</versions.aws>
     <versions.commonsmath>3.6.1</versions.commonsmath>
+    <versions.commonscodec>1.17.0</versions.commonscodec>
     <versions.jaxb_api>2.3.1</versions.jaxb_api>
     <versions.graalvm>24.0.1</versions.graalvm>
     <versions.jwt>4.4.0</versions.jwt>
