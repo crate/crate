@@ -30,6 +30,7 @@ import io.crate.expression.symbol.VoidReference;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
+import io.crate.role.Role;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -46,11 +47,11 @@ import java.util.function.Consumer;
 public final class AnalyzedView implements AnalyzedRelation, FieldResolver {
 
     private final RelationName name;
-    private final String owner;
+    private final Role owner;
     private final AnalyzedRelation relation;
     private final List<Symbol> outputSymbols;
 
-    public AnalyzedView(RelationName name, String owner, AnalyzedRelation relation) {
+    public AnalyzedView(RelationName name, Role owner, AnalyzedRelation relation) {
         this.name = name;
         this.owner = owner;
         this.relation = relation;
@@ -64,7 +65,8 @@ public final class AnalyzedView implements AnalyzedRelation, FieldResolver {
         this.outputSymbols = List.copyOf(outputs);
     }
 
-    public String owner() {
+    @NotNull
+    public Role owner() {
         return owner;
     }
 

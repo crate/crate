@@ -272,13 +272,8 @@ public final class AccessControlImpl implements AccessControl {
                 Securable.VIEW,
                 analyzedView.name().toString()
             );
-            Role owner = analyzedView.owner() == null ? null : roles.findUser(analyzedView.owner());
-            if (owner == null) {
-                throw new UnauthorizedException(
-                    "Owner \"" + analyzedView.owner() + "\" of the view \"" + analyzedView.name().fqn() + "\" not found");
-            }
             Role currentUser = context.user;
-            context.user = owner;
+            context.user = analyzedView.owner();
             analyzedView.relation().accept(this, context);
             context.user = currentUser;
             return null;

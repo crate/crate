@@ -21,8 +21,6 @@
 
 package io.crate.planner.operators;
 
-import static java.util.Objects.requireNonNull;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashSet;
@@ -432,7 +430,7 @@ public class LogicalPlanner {
         public LogicalPlan visitView(AnalyzedView view, List<Symbol> outputs) {
             CoordinatorSessionSettings sessionSettings = coordinatorTxnCtx.sessionSettings();
             Role sessionUser = sessionSettings.sessionUser();
-            sessionSettings.setSessionUser(requireNonNull(nodeContext.roles().findUser(view.owner()), "view owner must exist"));
+            sessionSettings.setSessionUser(view.owner());
             var child = view.relation();
             var source = child.accept(this, child.outputs());
             sessionSettings.setSessionUser(sessionUser);
