@@ -52,6 +52,9 @@ Security Fixes
 Fixes
 =====
 
+- Fixed an issue that could lead to requests getting stuck when trying to
+  download a blob via HTTPS.
+
 - Fixed an issue leading to slow query processing during the analysis phase,
   when the ``WHERE``` clause of a query contains columns of a
   :ref:`PRIMARY KEY <constraints-primary-key>` and combines them using complex
