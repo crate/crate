@@ -55,6 +55,7 @@ import io.crate.common.collections.Lists;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.RelationValidationException;
+import io.crate.exceptions.UnauthorizedException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.scalar.arithmetic.ArrayFunction;
@@ -80,6 +81,7 @@ import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.metadata.view.ViewInfo;
 import io.crate.planner.consumer.OrderByWithAggregationValidator;
 import io.crate.planner.consumer.RelationNameCollector;
+import io.crate.role.Role;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.AliasedRelation;
 import io.crate.sql.tree.DefaultTraversalVisitor;
@@ -713,7 +715,12 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                             viewInfo.searchPath(),
                             newContext -> viewQuery.accept(this, newContext)
                     );
-                    relation = new AnalyzedView(viewInfo.ident(), viewInfo.owner(), resolvedView);
+                    Role owner = nodeCtx.roles().findRole(viewInfo.owner());
+                    if (owner == null) {
+                        throw new UnauthorizedException(
+                            "Owner \"" + owner + "\" of the view \"" + viewInfo.owner() + "\" not found");
+                    }
+                    relation = new AnalyzedView(viewInfo.ident(), owner, resolvedView);
                 }
                 default -> throw new IllegalStateException("Unexpected relationInfo: " + relationInfo);
             }
