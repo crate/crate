@@ -120,6 +120,7 @@ import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
+import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.util.concurrent.Future;
 
@@ -535,6 +536,7 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
             ch.pipeline().addLast("encoder", new HttpResponseEncoder());
             final HttpObjectAggregator aggregator = new HttpObjectAggregator(Math.toIntExact(transport.maxContentLength.getBytes()));
             aggregator.setMaxCumulationBufferComponents(transport.maxCompositeBufferComponents);
+            ch.pipeline().addLast("chunked", new ChunkedWriteHandler());
             ch.pipeline().addLast("aggregator", aggregator);
             if (transport.compression) {
                 ch.pipeline().addLast("encoder_compress", new HttpContentCompressor(transport.compressionLevel));
