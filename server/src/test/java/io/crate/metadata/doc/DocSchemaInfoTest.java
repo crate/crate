@@ -21,7 +21,6 @@
 
 package io.crate.metadata.doc;
 
-import static io.crate.metadata.SearchPath.pathWithPGCatalogAndDoc;
 import static io.crate.metadata.doc.DocSchemaInfo.getTablesAffectedByPublicationsChange;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -30,109 +29,39 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.script.ScriptException;
-
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
-import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.common.collections.Lists;
-import io.crate.data.Input;
-import io.crate.expression.udf.UDFLanguage;
-import io.crate.expression.udf.UserDefinedFunctionMetadata;
-import io.crate.expression.udf.UserDefinedFunctionService;
-import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TransactionContext;
-import io.crate.metadata.functions.BoundSignature;
-import io.crate.metadata.functions.Signature;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.view.ViewInfoFactory;
 import io.crate.replication.logical.metadata.Publication;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.types.DataTypes;
 
 public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
 
     private DocSchemaInfo docSchemaInfo;
-    private UserDefinedFunctionService udfService;
     private NodeContext nodeCtx;
 
     @Before
     public void setup() throws Exception {
         nodeCtx = createNodeContext();
-        var docTableFactory = new DocTableInfoFactory(nodeCtx);
-        udfService = new UserDefinedFunctionService(clusterService, docTableFactory, nodeCtx);
-        udfService.registerLanguage(new UDFLanguage() {
-            @Override
-            public Scalar createFunctionImplementation(UserDefinedFunctionMetadata metadata,
-                                                       Signature signature,
-                                                       BoundSignature boundSignature) throws ScriptException {
-                String error = validate(metadata);
-                if (error != null) {
-                    throw new ScriptException("this is not Burlesque");
-                }
-                return new Scalar<>(signature, boundSignature) {
-                    @Override
-                    public Object evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input[] args) {
-                        return null;
-                    }
-                };
-            }
-
-            @Override
-            @Nullable
-            public String validate(UserDefinedFunctionMetadata metadata) {
-                if (!metadata.definition().equals("\"Hello, World!\"Q")) {
-                    return "this is not Burlesque";
-                }
-                return null;
-            }
-
-            @Override
-            public String name() {
-                return "burlesque";
-            }
-        });
         docSchemaInfo = new DocSchemaInfo(
             "doc",
             clusterService,
-            nodeCtx,
-            udfService,
             new ViewInfoFactory(() -> null),
             new DocTableInfoFactory(nodeCtx)
         );
-    }
-
-    @Test
-    public void testInvalidFunction() throws Exception {
-        UserDefinedFunctionMetadata invalid = new UserDefinedFunctionMetadata(
-            "my_schema", "invalid", List.of(), DataTypes.INTEGER,
-            "burlesque", "this is not valid burlesque code"
-        );
-        UserDefinedFunctionMetadata valid = new UserDefinedFunctionMetadata(
-            "my_schema", "valid", List.of(), DataTypes.INTEGER,
-            "burlesque", "\"Hello, World!\"Q"
-        );
-        UserDefinedFunctionsMetadata metadata = UserDefinedFunctionsMetadata.of(invalid, valid);
-        // if a functionImpl can't be created, it won't be registered
-
-        udfService.updateImplementations("my_schema", metadata.functionsMetadata().stream());
-
-        assertThat(nodeCtx.functions().get("my_schema", "valid", List.of(), pathWithPGCatalogAndDoc())).isNotNull();
-
-        expectedException.expectMessage("Unknown function: my_schema.invalid()");
-        nodeCtx.functions().get("my_schema", "invalid", List.of(), pathWithPGCatalogAndDoc());
     }
 
     @Test

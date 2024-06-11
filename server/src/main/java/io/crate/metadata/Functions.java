@@ -31,7 +31,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.ServiceLoader;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -64,14 +63,8 @@ public class Functions {
 
     private static final Logger LOGGER = LogManager.getLogger(Functions.class);
 
-    private final Map<FunctionName, List<FunctionProvider>> udfFunctionImplementations = new ConcurrentHashMap<>();
+    private volatile Map<FunctionName, List<FunctionProvider>> udfFunctionImplementations = Map.of();
     private final Map<FunctionName, List<FunctionProvider>> functionImplementations;
-
-    public Functions copyOf() {
-        var functions = new Functions(functionImplementations);
-        functions.udfFunctionImplementations.putAll(udfFunctionImplementations);
-        return functions;
-    }
 
     public static class Builder {
 
@@ -124,20 +117,8 @@ public class Functions {
             .iterator();
     }
 
-    public void registerUdfFunctionImplementationsForSchema(
-        String schema, Map<FunctionName, List<FunctionProvider>> functions) {
-        // remove deleted ones before re-registering all current ones for the given schema
-        udfFunctionImplementations.entrySet()
-            .removeIf(
-                function ->
-                    schema.equals(function.getKey().schema())
-                    && functions.get(function.getKey()) == null);
-        udfFunctionImplementations.putAll(functions);
-    }
-
-    public void deregisterUdfResolversForSchema(String schema) {
-        udfFunctionImplementations.keySet()
-            .removeIf(function -> schema.equals(function.schema()));
+    public void setUDFs(Map<FunctionName, List<FunctionProvider>> functions) {
+        udfFunctionImplementations = functions;
     }
 
     @Nullable
