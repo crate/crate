@@ -44,9 +44,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.net.http.HttpClient;
 import java.nio.file.Path;
-import java.util.Locale;
 import java.util.Random;
-import java.util.TimeZone;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinWorkerThread;
 
@@ -56,14 +54,9 @@ import org.apache.lucene.document.Field.Store;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriterConfig;
-import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LogMergePolicy;
 import org.apache.lucene.index.MergePolicy;
-import org.apache.lucene.index.NumericDocValues;
-import org.apache.lucene.index.PostingsEnum;
-import org.apache.lucene.index.Terms;
-import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.tests.store.BaseDirectoryWrapper;
 import org.apache.lucene.tests.store.MockDirectoryWrapper;
 import org.apache.lucene.tests.util.FailureMarker;
@@ -230,104 +223,6 @@ public abstract class CrateLuceneTestCase {
         return luceneTestCase.getTestName();
     }
 
-    public void overrideTestDefaultQueryCache() {
-        luceneTestCase.overrideTestDefaultQueryCache();
-    }
-
-    public void assertReaderEquals(String info, IndexReader leftReader, IndexReader rightReader) throws IOException {
-        luceneTestCase.assertReaderEquals(info, leftReader, rightReader);
-    }
-
-    public void assertReaderStatisticsEquals(String info, IndexReader leftReader, IndexReader rightReader)
-            throws IOException {
-        luceneTestCase.assertReaderStatisticsEquals(info, leftReader, rightReader);
-    }
-
-    public void assertTermsEquals(String info, IndexReader leftReader, IndexReader rightReader, boolean deep)
-            throws IOException {
-        luceneTestCase.assertTermsEquals(info, leftReader, rightReader, deep);
-    }
-
-    public void assertTermsEquals(String info, IndexReader leftReader, Terms leftTerms, Terms rightTerms, boolean deep)
-            throws IOException {
-        luceneTestCase.assertTermsEquals(info, leftReader, leftTerms, rightTerms, deep);
-    }
-
-    public void assertTermsStatisticsEquals(String info, Terms leftTerms, Terms rightTerms) throws IOException {
-        luceneTestCase.assertTermsStatisticsEquals(info, leftTerms, rightTerms);
-    }
-
-    public void assertTermsEnumEquals(String info, IndexReader leftReader, TermsEnum leftTermsEnum,
-            TermsEnum rightTermsEnum, boolean deep) throws IOException {
-        luceneTestCase.assertTermsEnumEquals(info, leftReader, leftTermsEnum, rightTermsEnum, deep);
-    }
-
-    public void assertDocsAndPositionsEnumEquals(String info, PostingsEnum leftDocs, PostingsEnum rightDocs)
-            throws IOException {
-        luceneTestCase.assertDocsAndPositionsEnumEquals(info, leftDocs, rightDocs);
-    }
-
-    public void assertDocsEnumEquals(String info, PostingsEnum leftDocs, PostingsEnum rightDocs, boolean hasFreqs)
-            throws IOException {
-        luceneTestCase.assertDocsEnumEquals(info, leftDocs, rightDocs, hasFreqs);
-    }
-
-    public void assertDocsSkippingEquals(String info, IndexReader leftReader, int docFreq, PostingsEnum leftDocs,
-            PostingsEnum rightDocs, boolean hasFreqs) throws IOException {
-        luceneTestCase.assertDocsSkippingEquals(info, leftReader, docFreq, leftDocs, rightDocs, hasFreqs);
-    }
-
-    public void assertPositionsSkippingEquals(String info, IndexReader leftReader, int docFreq, PostingsEnum leftDocs,
-            PostingsEnum rightDocs) throws IOException {
-        luceneTestCase.assertPositionsSkippingEquals(info, leftReader, docFreq, leftDocs, rightDocs);
-    }
-
-    public void assertTermStatsEquals(String info, TermsEnum leftTermsEnum, TermsEnum rightTermsEnum)
-            throws IOException {
-        luceneTestCase.assertTermStatsEquals(info, leftTermsEnum, rightTermsEnum);
-    }
-
-    public void assertNormsEquals(String info, IndexReader leftReader, IndexReader rightReader) throws IOException {
-        luceneTestCase.assertNormsEquals(info, leftReader, rightReader);
-    }
-
-    public void assertStoredFieldsEquals(String info, IndexReader leftReader, IndexReader rightReader)
-            throws IOException {
-        luceneTestCase.assertStoredFieldsEquals(info, leftReader, rightReader);
-    }
-
-    public void assertStoredFieldEquals(String info, IndexableField leftField, IndexableField rightField) {
-        luceneTestCase.assertStoredFieldEquals(info, leftField, rightField);
-    }
-
-    public void assertTermVectorsEquals(String info, IndexReader leftReader, IndexReader rightReader)
-            throws IOException {
-        luceneTestCase.assertTermVectorsEquals(info, leftReader, rightReader);
-    }
-
-    public void assertDocValuesEquals(String info, IndexReader leftReader, IndexReader rightReader) throws IOException {
-        luceneTestCase.assertDocValuesEquals(info, leftReader, rightReader);
-    }
-
-    public void assertDocValuesEquals(String info, int num, NumericDocValues leftDocValues,
-            NumericDocValues rightDocValues) throws IOException {
-        luceneTestCase.assertDocValuesEquals(info, num, leftDocValues, rightDocValues);
-    }
-
-    public void assertDeletedDocsEquals(String info, IndexReader leftReader, IndexReader rightReader)
-            throws IOException {
-        luceneTestCase.assertDeletedDocsEquals(info, leftReader, rightReader);
-    }
-
-    public void assertFieldInfosEquals(String info, IndexReader leftReader, IndexReader rightReader)
-            throws IOException {
-        luceneTestCase.assertFieldInfosEquals(info, leftReader, rightReader);
-    }
-
-    public void assertPointsEquals(String info, IndexReader leftReader, IndexReader rightReader) throws IOException {
-        luceneTestCase.assertPointsEquals(info, leftReader, rightReader);
-    }
-
     /**
      * Access to the current {@link RandomizedContext}'s Random instance. It is safe
      * to use this
@@ -362,31 +257,6 @@ public abstract class CrateLuceneTestCase {
      */
     public static Random random() {
         return RandomizedContext.current().getRandom();
-    }
-
-    /**
-     * Return a random Locale from the available locales on the system.
-     *
-     * @see <a href=
-     *      "http://issues.apache.org/jira/browse/LUCENE-4020">LUCENE-4020</a>
-     */
-    public static Locale randomLocale(Random random) {
-        return LuceneTestCase.randomLocale(random);
-    }
-
-    /**
-     * Return a random TimeZone from the available timezones on the system
-     *
-     * @see <a href=
-     *      "http://issues.apache.org/jira/browse/LUCENE-4020">LUCENE-4020</a>
-     */
-    public static TimeZone randomTimeZone(Random random) {
-        return LuceneTestCase.randomTimeZone(random);
-    }
-
-    /** return a Locale object equivalent to its programmatic name */
-    public static Locale localeForLanguageTag(String languageTag) {
-        return LuceneTestCase.localeForLanguageTag(languageTag);
     }
 
     /**
