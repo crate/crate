@@ -481,6 +481,18 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
+    public void test_alter_table_reroute() throws Exception {
+        analyze("alter table users reroute MOVE SHARD 1 FROM 'node1' TO 'node2'");
+        assertAskedForTable(Permission.DDL, "doc.users");
+        analyze("alter table users reroute ALLOCATE REPLICA SHARD 1 ON 'node1'");
+        assertAskedForTable(Permission.DDL, "doc.users");
+        analyze("alter table users reroute PROMOTE REPLICA SHARD 1 ON 'node1'");
+        assertAskedForTable(Permission.DDL, "doc.users");
+        analyze("alter table users reroute CANCEL SHARD 1 ON 'node1'");
+        assertAskedForTable(Permission.DDL, "doc.users");
+    }
+
+    @Test
     public void testShowTable() throws Exception {
         analyze("show create table users");
         assertAskedForTable(Permission.DQL, "doc.users");

@@ -24,8 +24,11 @@ package io.crate.metadata.table;
 import org.elasticsearch.cluster.metadata.Metadata;
 
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.RelationName;
 
 public interface ShardedTable {
+
+    RelationName ident();
 
     int numberOfShards();
 
