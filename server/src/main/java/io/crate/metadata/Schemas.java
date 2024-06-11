@@ -334,6 +334,14 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         return schemaInfo;
     }
 
+    public SchemaInfo getSystemSchema(String name) {
+        SchemaInfo schemaInfo = builtInSchemas.get(name);
+        if (schemaInfo == null) {
+            throw new SchemaUnknownException(name);
+        }
+        return schemaInfo;
+    }
+
     @NotNull
     public Iterator<SchemaInfo> iterator() {
         return schemas.values().iterator();

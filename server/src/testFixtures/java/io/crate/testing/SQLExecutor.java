@@ -36,11 +36,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -48,7 +48,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.LongSupplier;
-import java.util.stream.Stream;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDeleteRepositoryAction;
@@ -120,6 +119,7 @@ import io.crate.analyze.relations.FullQualifiedNameFieldProvider;
 import io.crate.analyze.relations.ParentRelations;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.relations.StatementAnalysisContext;
+import io.crate.common.collections.Lists;
 import io.crate.common.collections.MapBuilder;
 import io.crate.data.Row;
 import io.crate.data.RowN;
@@ -133,6 +133,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.udf.UDFLanguage;
 import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.fdw.AddForeignTableTask;
 import io.crate.fdw.AddServerTask;
 import io.crate.fdw.CreateServerRequest;
@@ -149,20 +150,12 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
-import io.crate.metadata.blob.BlobSchemaInfo;
-import io.crate.metadata.blob.BlobTableInfoFactory;
-import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.doc.DocTableInfoFactory;
-import io.crate.metadata.information.InformationSchemaInfo;
-import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
-import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.metadata.view.ViewInfoFactory;
 import io.crate.metadata.view.ViewsMetadata;
 import io.crate.planner.CreateForeignTablePlan;
 import io.crate.planner.DependencyCarrier;
@@ -332,38 +325,14 @@ public class SQLExecutor {
                 Settings.builder().put(PATH_HOME_SETTING.getKey(), homeDir.toAbsolutePath()).build(),
                 homeDir.resolve("config")
             );
-            UserDefinedFunctionService[] udfServiceRef = new UserDefinedFunctionService[1];
-            var nodeCtx = new NodeContext(
+            var nodeCtx = NodeContext.of(
+                environment,
+                clusterService,
                 Functions.load(settings, sessionSettingRegistry),
                 roleManager,
-                nodeContext -> {
-                    var tableInfoFactory = new DocTableInfoFactory(nodeContext);
-                    var udfService = new UserDefinedFunctionService(clusterService, tableInfoFactory, nodeContext);
-                    udfServiceRef[0] = udfService;
-                    Map<String, SchemaInfo> schemaInfoByName = new HashMap<>();
-                    schemaInfoByName.put(SysSchemaInfo.NAME, new SysSchemaInfo(clusterService, roleManager));
-                    schemaInfoByName.put(InformationSchemaInfo.NAME, new InformationSchemaInfo());
-                    schemaInfoByName.put(PgCatalogSchemaInfo.NAME, new PgCatalogSchemaInfo(udfService, tableStats, roleManager));
-                    schemaInfoByName.put(
-                        BlobSchemaInfo.NAME,
-                        new BlobSchemaInfo(
-                            clusterService,
-                            new BlobTableInfoFactory(clusterService.getSettings(), environment)));
-                    var viewInfoFactory = new ViewInfoFactory(() -> {
-                        var relationAnalyzer = relationAnalyzerRef.get();
-                        assert relationAnalyzer != null : "RelationAnalyzer must be set";
-                        return relationAnalyzer;
-                    });
-                    var schemas = new Schemas(
-                        schemaInfoByName,
-                        clusterService,
-                        new DocSchemaInfoFactory(tableInfoFactory, viewInfoFactory, nodeContext, udfService),
-                        roleManager
-                    );
-                    schemas.start();  // start listen to cluster state changes
-                    return schemas;
-                }
+                tableStats
             );
+            var udfService = new UserDefinedFunctionService(clusterService, nodeCtx);
 
             var relationAnalyzer = new RelationAnalyzer(nodeCtx);
             relationAnalyzerRef.set(relationAnalyzer);
@@ -371,7 +340,8 @@ public class SQLExecutor {
             try {
                 analysisRegistry = new AnalysisModule(environment, analysisPlugins).getAnalysisRegistry();
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                udfService.close();
+                throw new UncheckedIOException(e);
             }
             var fulltextAnalyzerResolver = new FulltextAnalyzerResolver(clusterService, analysisRegistry);
             var allocationService = new AllocationService(
@@ -438,7 +408,7 @@ public class SQLExecutor {
                 nodeCtx.schemas(),
                 Randomness.get(),
                 fulltextAnalyzerResolver,
-                udfServiceRef[0],
+                udfService,
                 tableStats,
                 foreignDataWrappers
             );
@@ -1042,7 +1012,8 @@ public class SQLExecutor {
     }
 
     public SQLExecutor addUDF(UserDefinedFunctionMetadata udf) {
-        udfService.updateImplementations(udf.schema(), Stream.of(udf));
+        UserDefinedFunctionsMetadata udfs = clusterService.state().metadata().custom(UserDefinedFunctionsMetadata.TYPE);
+        udfService.updateImplementations(Lists.concat(udfs == null ? List.of() : udfs.functionsMetadata(), udf));
         return this;
     }
 }

@@ -23,7 +23,7 @@ package io.crate.integrationtests;
 
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.assertj.core.api.Assertions.assertThat;
-import static io.crate.testing.Asserts.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 
@@ -88,6 +88,6 @@ public class SchemaAndRelationNamesIntegrationTest extends IntegTestCase {
         assertThat(printedTable(response.rows())).isEqualTo("Abc| DUMMY EATS text\n");
 
         assertThatThrownBy(() -> execute("drop function \"_Abc\".func(string)"))
-            .hasMessageContaining("Cannot drop function '_Abc.func(text)', it is still in use by 'abc._T.c AS \"_Abc\".func(b)'");
+            .hasMessageContaining("Cannot drop function '\"_Abc\".func'. It is in use by column 'c' of table 'abc._T'");
     }
 }

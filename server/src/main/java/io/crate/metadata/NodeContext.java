@@ -21,8 +21,24 @@
 
 package io.crate.metadata;
 
-import io.crate.role.Roles;
+import java.util.Map;
 import java.util.function.Function;
+
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.env.Environment;
+
+import io.crate.analyze.relations.RelationAnalyzer;
+import io.crate.metadata.blob.BlobSchemaInfo;
+import io.crate.metadata.blob.BlobTableInfoFactory;
+import io.crate.metadata.doc.DocSchemaInfoFactory;
+import io.crate.metadata.doc.DocTableInfoFactory;
+import io.crate.metadata.information.InformationSchemaInfo;
+import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
+import io.crate.metadata.sys.SysSchemaInfo;
+import io.crate.metadata.table.SchemaInfo;
+import io.crate.metadata.view.ViewInfoFactory;
+import io.crate.role.Roles;
+import io.crate.statistics.TableStats;
 
 public class NodeContext {
 
@@ -30,6 +46,35 @@ public class NodeContext {
     private final long serverStartTimeInMs;
     private final Roles roles;
     private final Schemas schemas;
+
+    public static NodeContext of(Environment environment,
+                                 ClusterService clusterService,
+                                 Functions functions,
+                                 Roles roles,
+                                 TableStats tableStats) {
+        return new NodeContext(functions, roles, nodeCtx -> {
+            var tableInfoFactory = new DocTableInfoFactory(nodeCtx);
+            BlobSchemaInfo blobSchemaInfo = new BlobSchemaInfo(
+                clusterService,
+                new BlobTableInfoFactory(clusterService.getSettings(), environment));
+            Map<String, SchemaInfo> systemSchemas = Map.of(
+                SysSchemaInfo.NAME, new SysSchemaInfo(clusterService, nodeCtx.roles()),
+                InformationSchemaInfo.NAME, new InformationSchemaInfo(),
+                PgCatalogSchemaInfo.NAME, new PgCatalogSchemaInfo(tableStats, nodeCtx.roles()),
+                BlobSchemaInfo.NAME, blobSchemaInfo
+            );
+            var relationAnalyzer = new RelationAnalyzer(nodeCtx);
+            var viewInfoFactory = new ViewInfoFactory(() -> relationAnalyzer);
+            Schemas schemas = new Schemas(
+                systemSchemas,
+                clusterService,
+                new DocSchemaInfoFactory(tableInfoFactory, viewInfoFactory),
+                nodeCtx.roles()
+            );
+            schemas.start();
+            return schemas;
+        });
+    }
 
     public NodeContext(Functions functions, Roles roles, Function<NodeContext, Schemas> createSchemas) {
         this.functions = functions;
@@ -52,9 +97,5 @@ public class NodeContext {
 
     public Schemas schemas() {
         return schemas;
-    }
-
-    public NodeContext copy() {
-        return new NodeContext(functions.copyOf(), roles, (nodeContext) -> schemas);
     }
 }
