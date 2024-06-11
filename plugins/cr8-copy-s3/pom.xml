@@ -23,6 +23,11 @@
       <artifactId>annotations</artifactId>
       <version>${versions.annotations}</version>
     </dependency>
+    <dependency>
+      <groupId>com.amazonaws</groupId>
+      <artifactId>aws-java-sdk-s3</artifactId>
+      <version>${versions.aws}</version>
+    </dependency>
 
     <dependency>
       <groupId>io.crate</groupId>
