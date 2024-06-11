@@ -108,8 +108,6 @@ public class IntervalArithmeticFunctions {
                 )
         );
      
-     
-
     }
 
     private static class IntervalDateArithmeticScalar extends Scalar<Long, Object> implements BiFunction<Long, Period, Long> {
@@ -171,12 +169,7 @@ public class IntervalArithmeticFunctions {
             return apply(timestamp, period);
 
         }
-
-
-      
     }
-
-
 
     private static class IntervalIntervalArithmeticScalar extends Scalar<Period, Object> {
 
