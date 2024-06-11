@@ -467,4 +467,35 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             """);
         assertThat(response).hasRows("1");
     }
+
+
+    /*
+     * https://github.com/crate/crate/issues/16124
+     */
+    @Test
+    public void test_scalar_in_projection_with_correlated_sub_query() {
+        execute("create table table1 (field1 int)");
+        execute("insert into table1(field1) values (1)");
+        execute("create table table2 (field1 int);");
+        execute("insert into table2(field1) values (1)");
+        execute("create table table3 (field1 int,field2 text)");
+        execute("insert into table3(field1,field2) values (1,'abc')");
+        execute("refresh table table1, table2, table3");
+        execute("""
+            SELECT (
+             SELECT CONCAT (
+                                table2.field1::TEXT,(
+                                                      SELECT table3.field2
+                                                             FROM table3
+                                                             WHERE table3.field1 = table2.field1 limit 1
+                                                     )
+                                )
+                FROM table2
+                WHERE table2.field1 = table1.field1
+                ) AS table2_Details
+                FROM table1;
+             """);
+
+        assertThat(response).hasRows("1abc");
+    }
 }
