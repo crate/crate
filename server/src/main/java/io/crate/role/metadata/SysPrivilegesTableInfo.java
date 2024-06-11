@@ -34,17 +34,9 @@ import io.crate.role.Role;
 
 public class SysPrivilegesTableInfo {
 
-    private static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "privileges");
+    public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "privileges");
 
-    @SuppressWarnings("WeakerAccess")
-    public static class PrivilegeRow {
-        private final String grantee;
-        private final Privilege privilege;
-
-        PrivilegeRow(String grantee, Privilege privilege) {
-            this.grantee = grantee;
-            this.privilege = privilege;
-        }
+    public static record PrivilegeRow(String grantee, Privilege privilege) {
     }
 
     public static SystemTable<PrivilegeRow> create() {

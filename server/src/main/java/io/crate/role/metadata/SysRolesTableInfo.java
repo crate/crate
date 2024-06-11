@@ -34,7 +34,7 @@ public class SysRolesTableInfo {
 
     private SysRolesTableInfo() {}
 
-    private static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "roles");
+    public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "roles");
 
     public static SystemTable<Role> create() {
         return SystemTable.<Role>builder(IDENT)

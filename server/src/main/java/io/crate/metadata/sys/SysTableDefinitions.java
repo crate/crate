@@ -24,9 +24,9 @@ package io.crate.metadata.sys;
 import static java.util.concurrent.CompletableFuture.completedFuture;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 import java.util.stream.StreamSupport;
 
@@ -48,12 +48,16 @@ import io.crate.expression.reference.sys.snapshot.SysSnapshots;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
 import io.crate.role.Permission;
+import io.crate.role.Role;
 import io.crate.role.Roles;
 import io.crate.role.Securable;
+import io.crate.role.metadata.SysPrivilegesTableInfo;
+import io.crate.role.metadata.SysRolesTableInfo;
+import io.crate.role.metadata.SysUsersTableInfo;
 
 public class SysTableDefinitions {
 
-    private final Map<RelationName, StaticTableDefinition<?>> tableDefinitions = new HashMap<>();
+    private final Map<RelationName, StaticTableDefinition<?>> tableDefinitions;
 
     @Inject
     public SysTableDefinitions(ClusterService clusterService,
@@ -69,104 +73,159 @@ public class SysTableDefinitions {
         Supplier<DiscoveryNode> localNode = clusterService::localNode;
         var sysClusterTableInfo = (SystemTable<Void>) sysSchemaInfo.getTableInfo(SysClusterTableInfo.IDENT.name());
         assert sysClusterTableInfo != null : "sys.cluster table must exist in sys schema";
-        tableDefinitions.put(SysClusterTableInfo.IDENT, new StaticTableDefinition<>(
-            () -> completedFuture(Collections.singletonList(null)),
-            sysClusterTableInfo.expressions(),
-            false
-        ));
-        var sysJobsTable = SysJobsTableInfo.create(localNode);
-        tableDefinitions.put(SysJobsTableInfo.IDENT, new StaticTableDefinition<>(
-            (txnCtx, user) -> completedFuture(
-                () -> StreamSupport.stream(jobsLogs.activeJobs().spliterator(), false)
-                    .filter(x ->
-                        user.isSuperUser()
-                        || user.name().equals(x.username())
-                        || roles.hasPrivilege(user, Permission.AL, Securable.CLUSTER, null))
-                    .iterator()
-            ),
-            sysJobsTable.expressions(),
-            false));
-        var sysJobsLogTable = SysJobsLogTableInfo.create(localNode);
-        tableDefinitions.put(SysJobsLogTableInfo.IDENT, new StaticTableDefinition<>(
-            (txnCtx, user) -> completedFuture(
-                () -> StreamSupport.stream(jobsLogs.jobsLog().spliterator(), false)
-                    .filter(x ->
-                        user.isSuperUser()
-                        || user.name().equals(x.username())
-                        || roles.hasPrivilege(user, Permission.AL, Securable.CLUSTER, null))
-                    .iterator()
-            ),
-            sysJobsLogTable.expressions(),
-            false));
-        tableDefinitions.put(SysOperationsTableInfo.IDENT, new StaticTableDefinition<>(
-            () -> completedFuture(jobsLogs.activeOperations()),
-            SysOperationsTableInfo.create(localNode).expressions(),
-            false));
-        tableDefinitions.put(SysOperationsLogTableInfo.IDENT, new StaticTableDefinition<>(
-            () -> completedFuture(jobsLogs.operationsLog()),
-            SysOperationsLogTableInfo.create().expressions(),
-            false));
 
+        SystemTable<Role> userTable = SysUsersTableInfo.create(() -> clusterService.state().metadata().clusterUUID());
         SysChecker<SysCheck> sysChecker = new SysChecker<>(sysChecks);
-        tableDefinitions.put(SysChecksTableInfo.IDENT, new StaticTableDefinition<>(
-            sysChecker::computeResultAndGet,
-            SysChecksTableInfo.create().expressions(),
-            true));
-
-        tableDefinitions.put(SysNodeChecksTableInfo.IDENT, new StaticTableDefinition<>(
-            () -> completedFuture(sysNodeChecks),
-            SysNodeChecksTableInfo.create().expressions(),
-            true));
-        tableDefinitions.put(SysRepositoriesTableInfo.IDENT, new StaticTableDefinition<>(
-            () -> completedFuture(repositoriesService.getRepositoriesList()),
-            SysRepositoriesTableInfo.create(clusterService.getClusterSettings().maskedSettings()).expressions(),
-            false));
-        tableDefinitions.put(SysSnapshotsTableInfo.IDENT, new StaticTableDefinition<>(
-            sysSnapshots::currentSnapshots,
-            SysSnapshotsTableInfo.create().expressions(),
-            true));
-        tableDefinitions.put(SysSnapshotRestoreTableInfo.IDENT, new StaticTableDefinition<>(
-            () -> completedFuture(SysSnapshotRestoreTableInfo.snapshotsRestoreInProgress(
-                    clusterService.state().custom(RestoreInProgress.TYPE))
-            ),
-            SysSnapshotRestoreTableInfo.create().expressions(),
-            true));
-
-        tableDefinitions.put(SysAllocationsTableInfo.IDENT, new StaticTableDefinition<>(
-            () -> sysAllocations,
-            (user, allocation) -> roles.hasAnyPrivilege(user, Securable.TABLE, allocation.fqn()),
-            SysAllocationsTableInfo.create().expressions()
-        ));
-
         SummitsIterable summits = new SummitsIterable();
-        tableDefinitions.put(SysSummitsTableInfo.IDENT, new StaticTableDefinition<>(
-            () -> completedFuture(summits),
-            SysSummitsTableInfo.create().expressions(),
-            false));
 
-        SystemTable<TableHealth> sysHealth = SysHealth.create();
-        tableDefinitions.put(SysHealth.IDENT, new StaticTableDefinition<>(
-            () -> TableHealth.compute(clusterService.state()),
-            sysHealth.expressions(),
-            (user, tableHealth) -> roles.hasAnyPrivilege(user, Securable.TABLE, tableHealth.fqn()),
-            true)
+        tableDefinitions = Map.ofEntries(
+            Map.entry(
+                SysUsersTableInfo.IDENT,
+                new StaticTableDefinition<>(
+                    () -> CompletableFuture.completedFuture(roles.roles().stream().filter(Role::isUser).toList()),
+                    userTable.expressions(),
+                    false
+                )
+            ),
+            Map.entry(
+                SysRolesTableInfo.IDENT,
+                new StaticTableDefinition<>(
+                    () -> CompletableFuture.completedFuture(roles.roles().stream().filter(r -> r.isUser() == false).toList()),
+                    SysRolesTableInfo.create().expressions(),
+                    false
+                )
+            ),
+            Map.entry(
+                SysPrivilegesTableInfo.IDENT,
+                new StaticTableDefinition<>(
+                    () -> CompletableFuture.completedFuture(SysPrivilegesTableInfo.buildPrivilegesRows(roles.roles())),
+                    SysPrivilegesTableInfo.create().expressions(),
+                    false
+                )
+            ),
+            Map.entry(
+                SysClusterTableInfo.IDENT,
+                new StaticTableDefinition<>(
+                    () -> completedFuture(Collections.singletonList(null)), sysClusterTableInfo.expressions(), false)
+            ),
+            Map.entry(
+                SysJobsTableInfo.IDENT,
+                new StaticTableDefinition<>(
+                    (txnCtx, user) -> completedFuture(
+                        () -> StreamSupport.stream(jobsLogs.activeJobs().spliterator(), false)
+                            .filter(x ->
+                                user.isSuperUser()
+                                || user.name().equals(x.username())
+                                || roles.hasPrivilege(user, Permission.AL, Securable.CLUSTER, null))
+                            .iterator()
+                    ),
+                    SysJobsTableInfo.create(localNode).expressions(),
+                    false
+                )
+            ),
+            Map.entry(
+                SysJobsLogTableInfo.IDENT,
+                new StaticTableDefinition<>(
+                    (txnCtx, user) -> completedFuture(
+                        () -> StreamSupport.stream(jobsLogs.jobsLog().spliterator(), false)
+                            .filter(x ->
+                                user.isSuperUser()
+                                || user.name().equals(x.username())
+                                || roles.hasPrivilege(user, Permission.AL, Securable.CLUSTER, null))
+                            .iterator()
+                    ),
+                    SysJobsLogTableInfo.create(localNode).expressions(),
+                    false)
+            ),
+            Map.entry(
+                SysOperationsTableInfo.IDENT,
+                new StaticTableDefinition<>(
+                    () -> completedFuture(jobsLogs.activeOperations()),
+                    SysOperationsTableInfo.create(localNode).expressions(),
+                    false)
+            ),
+            Map.entry(
+                SysOperationsLogTableInfo.IDENT,
+                new StaticTableDefinition<>(
+                    () -> completedFuture(jobsLogs.operationsLog()),
+                    SysOperationsLogTableInfo.create().expressions(),
+                    false
+                )
+            ),
+            Map.entry(
+                SysChecksTableInfo.IDENT,
+                new StaticTableDefinition<>(
+                    sysChecker::computeResultAndGet, SysChecksTableInfo.create().expressions(), true)
+            ),
+            Map.entry(
+                SysNodeChecksTableInfo.IDENT,
+                new StaticTableDefinition<>(
+                    () -> completedFuture(sysNodeChecks), SysNodeChecksTableInfo.create().expressions(), true)
+            ),
+            Map.entry(
+                SysRepositoriesTableInfo.IDENT,
+                new StaticTableDefinition<>(
+                    () -> completedFuture(repositoriesService.getRepositoriesList()),
+                    SysRepositoriesTableInfo.create(clusterService.getClusterSettings().maskedSettings()).expressions(),
+                    false
+                )
+            ),
+            Map.entry(
+                SysSnapshotsTableInfo.IDENT,
+                new StaticTableDefinition<>(
+                    sysSnapshots::currentSnapshots, SysSnapshotsTableInfo.create().expressions(), true)
+            ),
+            Map.entry(
+                SysSnapshotRestoreTableInfo.IDENT,
+                new StaticTableDefinition<>(
+                    () -> completedFuture(SysSnapshotRestoreTableInfo.snapshotsRestoreInProgress(
+                        clusterService.state().custom(RestoreInProgress.TYPE))),
+                    SysSnapshotRestoreTableInfo.create().expressions(),
+                    true
+                )
+            ),
+
+            Map.entry(
+                SysAllocationsTableInfo.IDENT,
+                new StaticTableDefinition<>(
+                    () -> sysAllocations,
+                    (user, allocation) -> roles.hasAnyPrivilege(user, Securable.TABLE, allocation.fqn()),
+                    SysAllocationsTableInfo.create().expressions()
+                )
+            ),
+
+            Map.entry(
+                SysSummitsTableInfo.IDENT,
+                new StaticTableDefinition<>(
+                    () -> completedFuture(summits), SysSummitsTableInfo.create().expressions(), false)
+            ),
+
+            Map.entry(
+                SysHealth.IDENT,
+                new StaticTableDefinition<>(
+                    () -> TableHealth.compute(clusterService.state()),
+                    SysHealth.create().expressions(),
+                    (user, tableHealth) -> roles.hasAnyPrivilege(user, Securable.TABLE, tableHealth.fqn()),
+                    true
+                )
+            ),
+            Map.entry(
+                SysMetricsTableInfo.NAME,
+                new StaticTableDefinition<>(
+                    () -> completedFuture(jobsLogs.metrics()), SysMetricsTableInfo.create(localNode).expressions(), false)
+            ),
+            Map.entry(
+                SysSegmentsTableInfo.IDENT,
+                new StaticTableDefinition<>(
+                    () -> completedFuture(shardSegmentInfos),
+                    SysSegmentsTableInfo.create(clusterService::localNode).expressions(),
+                    true
+                )
+            )
         );
-        tableDefinitions.put(SysMetricsTableInfo.NAME, new StaticTableDefinition<>(
-            () -> completedFuture(jobsLogs.metrics()),
-            SysMetricsTableInfo.create(localNode).expressions(),
-            false));
-        tableDefinitions.put(SysSegmentsTableInfo.IDENT, new StaticTableDefinition<>(
-            () -> completedFuture(shardSegmentInfos),
-            SysSegmentsTableInfo.create(clusterService::localNode).expressions(),
-            true));
     }
 
     public StaticTableDefinition<?> get(RelationName relationName) {
         return tableDefinitions.get(relationName);
-    }
-
-    public <R> void registerTableDefinition(RelationName relationName, StaticTableDefinition<R> definition) {
-        StaticTableDefinition<?> existingDefinition = tableDefinitions.putIfAbsent(relationName, definition);
-        assert existingDefinition == null : "A static table definition is already registered for ident=" + relationName.toString();
     }
 }

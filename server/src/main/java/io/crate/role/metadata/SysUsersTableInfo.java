@@ -35,7 +35,7 @@ import io.crate.role.Role;
 
 public class SysUsersTableInfo {
 
-    private static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "users");
+    public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "users");
     public static final String PASSWORD_PLACEHOLDER = "********";
 
     private SysUsersTableInfo() {}

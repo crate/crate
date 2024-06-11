@@ -28,7 +28,6 @@ import static io.crate.role.metadata.RolesHelper.userOf;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -51,7 +50,6 @@ import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.TableDefinitions;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.UnauthorizedException;
-import io.crate.execution.engine.collect.sources.SysTableRegistry;
 import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.cluster.DDLClusterStateService;
@@ -129,7 +127,6 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
             null,
             null,
             null,
-            mock(SysTableRegistry.class),
             roles,
             new DDLClusterStateService(),
             this.clusterService

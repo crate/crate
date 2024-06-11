@@ -22,7 +22,6 @@
 package io.crate.metadata.sys;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -36,6 +35,9 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.view.ViewInfo;
 import io.crate.role.Roles;
+import io.crate.role.metadata.SysPrivilegesTableInfo;
+import io.crate.role.metadata.SysRolesTableInfo;
+import io.crate.role.metadata.SysUsersTableInfo;
 
 @Singleton
 public class SysSchemaInfo implements SchemaInfo {
@@ -45,25 +47,31 @@ public class SysSchemaInfo implements SchemaInfo {
 
     @Inject
     public SysSchemaInfo(ClusterService clusterService, Roles roles) {
-        tableInfos = new HashMap<>();
-        tableInfos.put(SysClusterTableInfo.IDENT.name(), SysClusterTableInfo.of(clusterService));
-        tableInfos.put(SysNodesTableInfo.IDENT.name(), SysNodesTableInfo.create());
-        tableInfos.put(SysShardsTableInfo.IDENT.name(), SysShardsTableInfo.create(roles));
         Supplier<DiscoveryNode> localNode = clusterService::localNode;
-        tableInfos.put(SysJobsTableInfo.IDENT.name(), SysJobsTableInfo.create(localNode));
-        tableInfos.put(SysJobsLogTableInfo.IDENT.name(), SysJobsLogTableInfo.create(localNode));
-        tableInfos.put(SysOperationsTableInfo.IDENT.name(), SysOperationsTableInfo.create(localNode));
-        tableInfos.put(SysOperationsLogTableInfo.IDENT.name(), SysOperationsLogTableInfo.create());
-        tableInfos.put(SysChecksTableInfo.IDENT.name(), SysChecksTableInfo.create());
-        tableInfos.put(SysNodeChecksTableInfo.IDENT.name(), SysNodeChecksTableInfo.create());
-        tableInfos.put(SysRepositoriesTableInfo.IDENT.name(), SysRepositoriesTableInfo.create(clusterService.getClusterSettings().maskedSettings()));
-        tableInfos.put(SysSnapshotsTableInfo.IDENT.name(), SysSnapshotsTableInfo.create());
-        tableInfos.put(SysSnapshotRestoreTableInfo.IDENT.name(), SysSnapshotRestoreTableInfo.create());
-        tableInfos.put(SysSummitsTableInfo.IDENT.name(), SysSummitsTableInfo.create());
-        tableInfos.put(SysAllocationsTableInfo.IDENT.name(), SysAllocationsTableInfo.create());
-        tableInfos.put(SysHealth.IDENT.name(), SysHealth.create());
-        tableInfos.put(SysMetricsTableInfo.NAME.name(), SysMetricsTableInfo.create(localNode));
-        tableInfos.put(SysSegmentsTableInfo.IDENT.name(), SysSegmentsTableInfo.create(clusterService::localNode));
+        tableInfos = Map.ofEntries(
+            Map.entry(SysClusterTableInfo.IDENT.name(), SysClusterTableInfo.of(clusterService)),
+            Map.entry(SysNodesTableInfo.IDENT.name(), SysNodesTableInfo.create()),
+            Map.entry(SysShardsTableInfo.IDENT.name(), SysShardsTableInfo.create(roles)),
+            Map.entry(SysJobsTableInfo.IDENT.name(), SysJobsTableInfo.create(localNode)),
+            Map.entry(SysJobsLogTableInfo.IDENT.name(), SysJobsLogTableInfo.create(localNode)),
+            Map.entry(SysOperationsTableInfo.IDENT.name(), SysOperationsTableInfo.create(localNode)),
+            Map.entry(SysOperationsLogTableInfo.IDENT.name(), SysOperationsLogTableInfo.create()),
+            Map.entry(SysChecksTableInfo.IDENT.name(), SysChecksTableInfo.create()),
+            Map.entry(SysNodeChecksTableInfo.IDENT.name(), SysNodeChecksTableInfo.create()),
+            Map.entry(SysRepositoriesTableInfo.IDENT.name(), SysRepositoriesTableInfo.create(clusterService.getClusterSettings().maskedSettings())),
+            Map.entry(SysSnapshotsTableInfo.IDENT.name(), SysSnapshotsTableInfo.create()),
+            Map.entry(SysSnapshotRestoreTableInfo.IDENT.name(), SysSnapshotRestoreTableInfo.create()),
+            Map.entry(SysSummitsTableInfo.IDENT.name(), SysSummitsTableInfo.create()),
+            Map.entry(SysAllocationsTableInfo.IDENT.name(), SysAllocationsTableInfo.create()),
+            Map.entry(SysHealth.IDENT.name(), SysHealth.create()),
+            Map.entry(SysMetricsTableInfo.NAME.name(), SysMetricsTableInfo.create(localNode)),
+            Map.entry(SysSegmentsTableInfo.IDENT.name(), SysSegmentsTableInfo.create(clusterService::localNode)),
+            Map.entry(
+                SysUsersTableInfo.IDENT.name(),
+                SysUsersTableInfo.create(() -> clusterService.state().metadata().clusterUUID())),
+            Map.entry(SysRolesTableInfo.IDENT.name(), SysRolesTableInfo.create()),
+            Map.entry(SysPrivilegesTableInfo.IDENT.name(), SysPrivilegesTableInfo.create())
+        );
     }
 
     @Override
@@ -94,11 +102,5 @@ public class SysSchemaInfo implements SchemaInfo {
     @Override
     public void update(ClusterChangedEvent event) {
 
-    }
-
-    public void registerSysTable(TableInfo tableInfo) {
-        assert tableInfo.ident().schema().equals("sys") : "table is not in sys schema";
-        assert !tableInfos.containsKey(tableInfo.ident().name()) : "table already exists";
-        tableInfos.put(tableInfo.ident().name(), tableInfo);
     }
 }
