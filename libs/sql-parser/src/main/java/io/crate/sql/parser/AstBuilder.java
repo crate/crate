@@ -59,6 +59,7 @@ import io.crate.sql.parser.antlr.SqlBaseParser.DropForeignTableContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.DropServerContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.DropUserMappingContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.FetchContext;
+import io.crate.sql.parser.antlr.SqlBaseParser.GenericPropertyContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.IsolationLevelContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.MappedUserContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.QueryContext;
@@ -615,8 +616,9 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
         // PostgreSQL syntax, space separated options with or without a value
         if (ctx.spaceSeparatedIdents() != null) {
-            Map<String, Expression> options = new HashMap<>();
-            for (var identCtx : ctx.spaceSeparatedIdents().identWithOrWithoutValue()) {
+            var idents = ctx.spaceSeparatedIdents().identWithOrWithoutValue();
+            Map<String, Expression> options = HashMap.newHashMap(idents.size());
+            for (var identCtx : idents) {
                 var value = visitIfPresent(identCtx.parameterOrSimpleLiteral(), Expression.class);
                 if (value.isEmpty()) {
                     options.put(getIdentText(identCtx.ident()), NullLiteral.INSTANCE);
@@ -1361,8 +1363,9 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
     @Override
     public Node visitGenericProperties(SqlBaseParser.GenericPropertiesContext context) {
-        Map<String, Expression> properties = new HashMap<>();
-        for (var property : context.genericProperty()) {
+        List<GenericPropertyContext> genericProperty = context.genericProperty();
+        Map<String, Expression> properties = HashMap.newHashMap(genericProperty.size());
+        for (var property : genericProperty) {
             String key = getIdentText(property.ident());
             Expression value = (Expression) visit(property.expr());
             properties.put(key, value);
@@ -1601,7 +1604,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     }
 
     private Map<String, Window> getWindowDefinitions(List<SqlBaseParser.NamedWindowContext> windowContexts) {
-        HashMap<String, Window> windows = new HashMap<>(windowContexts.size());
+        HashMap<String, Window> windows = HashMap.newHashMap(windowContexts.size());
         for (var windowContext : windowContexts) {
             var name = getIdentText(windowContext.name);
             if (windows.containsKey(name)) {

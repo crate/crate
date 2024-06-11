@@ -117,7 +117,7 @@ public class AnalyzedInsertStatement implements AnalyzedStatement {
         if (targetColumns.isEmpty()) {
             return Collections.emptyMap();
         }
-        Map<ColumnIdent, Integer> columnPositions = new HashMap<>(targetColumns.size(), 1);
+        Map<ColumnIdent, Integer> columnPositions = HashMap.newHashMap(targetColumns.size());
         ListIterator<Reference> it = targetColumns.listIterator();
         while (it.hasNext()) {
             columnPositions.put(it.next().column(), it.previousIndex());

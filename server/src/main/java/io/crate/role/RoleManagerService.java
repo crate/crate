@@ -34,12 +34,8 @@ import io.crate.auth.AccessControl;
 import io.crate.auth.AccessControlImpl;
 import io.crate.exceptions.RoleAlreadyExistsException;
 import io.crate.exceptions.RoleUnknownException;
-import io.crate.execution.engine.collect.sources.SysTableRegistry;
 import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
-import io.crate.role.metadata.SysPrivilegesTableInfo;
-import io.crate.role.metadata.SysRolesTableInfo;
-import io.crate.role.metadata.SysUsersTableInfo;
 
 @Singleton
 public class RoleManagerService implements RoleManager {
@@ -73,7 +69,6 @@ public class RoleManagerService implements RoleManager {
                               TransportDropRoleAction transportDropRoleAction,
                               TransportAlterRoleAction transportAlterRoleAction,
                               TransportPrivilegesAction transportPrivilegesAction,
-                              SysTableRegistry sysTableRegistry,
                               Roles roles,
                               DDLClusterStateService ddlClusterStateService,
                               ClusterService clusterService) {
@@ -82,31 +77,6 @@ public class RoleManagerService implements RoleManager {
         this.transportAlterRoleAction = transportAlterRoleAction;
         this.transportPrivilegesAction = transportPrivilegesAction;
         this.roles = roles;
-        var userTable = SysUsersTableInfo.create(() -> clusterService.state().metadata().clusterUUID());
-        sysTableRegistry.registerSysTable(
-            userTable,
-            () -> CompletableFuture.completedFuture(
-                roles.roles().stream().filter(Role::isUser).toList()),
-            userTable.expressions(),
-            false
-        );
-        var rolesTable = SysRolesTableInfo.create();
-        sysTableRegistry.registerSysTable(
-            rolesTable,
-            () -> CompletableFuture.completedFuture(
-                roles.roles().stream().filter(r -> r.isUser() == false).toList()),
-                rolesTable.expressions(),
-            false
-        );
-
-        var privilegesTable = SysPrivilegesTableInfo.create();
-        sysTableRegistry.registerSysTable(
-            privilegesTable,
-            () -> CompletableFuture.completedFuture(SysPrivilegesTableInfo.buildPrivilegesRows(roles.roles())),
-            privilegesTable.expressions(),
-            false
-        );
-
         ddlClusterStateService.addModifier(DDL_MODIFIER);
     }
 
