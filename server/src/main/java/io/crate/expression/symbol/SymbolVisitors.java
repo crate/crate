@@ -22,8 +22,10 @@
 package io.crate.expression.symbol;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
@@ -95,17 +97,21 @@ public final class SymbolVisitors {
     @SuppressWarnings({"SuspiciousMethodCalls", "unchecked"})
     private static class IntersectionVisitor<T> extends SymbolVisitor<Void, Void> {
 
-        private final Collection<T> haystack;
+        private final Map<T, T> haystack;
         private final Consumer<T> consumer;
 
-        public IntersectionVisitor(Collection<T> haystack, Consumer<T> consumer) {
-            this.haystack = haystack;
+        private IntersectionVisitor(Collection<T> values, Consumer<T> consumer) {
+            this.haystack = new HashMap<T, T>(values.size());
+            for (T t : values) {
+                haystack.put(t, t);
+            }
             this.consumer = consumer;
         }
 
         @Override
         public Void visitFunction(Function func, Void context) {
-            if (haystack.contains(func)) {
+            T t = haystack.get(func);
+            if (t != null) {
                 consumer.accept((T) func);
             } else {
                 for (Symbol argument : func.arguments()) {
@@ -121,7 +127,8 @@ public final class SymbolVisitors {
 
         @Override
         public Void visitWindowFunction(WindowFunction windowFunc, Void context) {
-            if (haystack.contains(windowFunc)) {
+            T t = haystack.get(windowFunc);
+            if (t != null) {
                 consumer.accept((T) windowFunc);
             } else {
                 for (Symbol argument : windowFunc.arguments()) {
@@ -154,7 +161,8 @@ public final class SymbolVisitors {
         }
 
         private void callConsumerOrVisit(Symbol symbol) {
-            if (haystack.contains(symbol)) {
+            T t = haystack.get(symbol);
+            if (t != null) {
                 consumer.accept((T) symbol);
             } else {
                 symbol.accept(this, null);
@@ -163,7 +171,8 @@ public final class SymbolVisitors {
 
         @Override
         public Void visitAlias(AliasSymbol aliasSymbol, Void context) {
-            if (haystack.contains(aliasSymbol)) {
+            T t = haystack.get(aliasSymbol);
+            if (t != null) {
                 consumer.accept((T) aliasSymbol);
             } else {
                 aliasSymbol.symbol().accept(this, context);
@@ -173,14 +182,15 @@ public final class SymbolVisitors {
 
         @Override
         public Void visitField(ScopedSymbol field, Void context) {
-            if (haystack.contains(field)) {
+            T t = haystack.get(field);
+            if (t != null) {
                 consumer.accept((T) field);
             } else if (!field.column().isRoot()) {
                 // needle: `obj[x]`, haystack: [`obj`] -> `obj` is an intersection
                 ColumnIdent root = field.column().getRoot();
-                for (T t : haystack) {
-                    if (t instanceof ScopedSymbol scopedSymbol && scopedSymbol.column().equals(root)) {
-                        consumer.accept(t);
+                for (T h : haystack.values()) {
+                    if (h instanceof ScopedSymbol scopedSymbol && scopedSymbol.column().equals(root)) {
+                        consumer.accept(h);
                     }
                 }
             }
@@ -189,20 +199,21 @@ public final class SymbolVisitors {
 
         @Override
         public Void visitReference(Reference ref, Void context) {
-            if (haystack.contains(ref)) {
+            T t = haystack.get(ref);
+            if (t != null) {
                 consumer.accept((T) ref);
             } else if (!ref.column().isRoot()) {
                 // needle: `obj[x]`, haystack: [`obj`] -> `obj` is an intersection
                 ColumnIdent root = ref.column().getRoot();
-                for (T t : haystack) {
-                    if (t instanceof Reference tRef && tRef.column().equals(root)) {
-                        consumer.accept(t);
+                for (T h : haystack.values()) {
+                    if (h instanceof Reference tRef && tRef.column().equals(root)) {
+                        consumer.accept(h);
                         break;
                     } else if (ref instanceof VoidReference
-                               && t instanceof ScopedSymbol tScopedSymbol
+                               && h instanceof ScopedSymbol tScopedSymbol
                                && tScopedSymbol.relation().equals(ref.ident().tableIdent())
                                && tScopedSymbol.column().equals(root)) {
-                        consumer.accept(t);
+                        consumer.accept(h);
                         break;
                     }
                 }
@@ -212,7 +223,8 @@ public final class SymbolVisitors {
 
         @Override
         protected Void visitSymbol(Symbol symbol, Void context) {
-            if (haystack.contains(symbol)) {
+            T t = haystack.get(symbol);
+            if (t != null) {
                 consumer.accept((T) symbol);
             }
             return null;

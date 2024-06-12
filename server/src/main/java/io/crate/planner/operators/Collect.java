@@ -334,11 +334,7 @@ public class Collect implements LogicalPlan {
     public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
         LinkedHashSet<Symbol> newOutputs = new LinkedHashSet<>();
         for (Symbol outputToKeep : outputsToKeep) {
-            SymbolVisitors.intersection(outputToKeep, outputs, needle -> {
-                int index = outputs.indexOf(needle);
-                assert index != -1 : "Consumer is called only when intersection is found";
-                newOutputs.add(outputs.get(index));
-            });
+            SymbolVisitors.intersection(outputToKeep, outputs, newOutputs::add);
         }
         if (newOutputs.size() == outputs.size() && newOutputs.containsAll(outputs)) {
             return this;
