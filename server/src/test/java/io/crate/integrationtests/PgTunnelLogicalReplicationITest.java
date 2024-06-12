@@ -38,7 +38,6 @@ import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.MockHttpTransport;
 import org.elasticsearch.test.NodeConfigurationSource;
 import org.elasticsearch.test.TestCluster;
-import org.elasticsearch.transport.Netty4Plugin;
 import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Test;
@@ -90,10 +89,7 @@ public class PgTunnelLogicalReplicationITest extends ESTestCase {
             nodeConfigurationSource,
             0,
             clusterName + "_node",
-            List.of(
-                MockHttpTransport.TestPlugin.class,
-                Netty4Plugin.class
-            ),
+            List.of(MockHttpTransport.TestPlugin.class),
             true
         );
         cluster.beforeTest(random());

@@ -19,22 +19,23 @@
 
 package org.elasticsearch.http;
 
-import io.crate.common.Booleans;
+import static java.util.Collections.emptyList;
+import static org.elasticsearch.common.settings.Setting.boolSetting;
+import static org.elasticsearch.common.settings.Setting.listSetting;
+
+import java.util.List;
+import java.util.function.Function;
+
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.transport.PortsRange;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
+
+import io.crate.common.Booleans;
 import io.crate.common.unit.TimeValue;
 import io.crate.types.DataTypes;
-
-import java.util.List;
-import java.util.function.Function;
-
-import static java.util.Collections.emptyList;
-import static org.elasticsearch.common.settings.Setting.boolSetting;
-import static org.elasticsearch.common.settings.Setting.listSetting;
 
 public final class HttpTransportSettings {
 
@@ -53,7 +54,7 @@ public final class HttpTransportSettings {
     public static final Setting<Integer> SETTING_PIPELINING_MAX_EVENTS =
         Setting.intSetting("http.pipelining.max_events", 10000, Property.NodeScope);
     public static final Setting<Boolean> SETTING_HTTP_COMPRESSION =
-        Setting.boolSetting("http.compression", true, Property.NodeScope);
+        Setting.boolSetting("http.compression", false, Property.NodeScope);
     // we intentionally use a different compression level as Netty here as our benchmarks have shown that a compression level of 3 is the
     // best compromise between reduction in network traffic and added latency. For more details please check #7309.
     public static final Setting<Integer> SETTING_HTTP_COMPRESSION_LEVEL =
