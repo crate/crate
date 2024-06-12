@@ -48,4 +48,9 @@ See the :ref:`version_5.7.0` release notes for a full list of changes in the
 Fixes
 =====
 
-None
+- Fixed an issue that prevented sub-columns of a view to be shown in the
+  ``information_schema.columns`` table if only top-level columns were used in
+  the view's SELECT query. Workaround: explicitly select sub-columns in the
+  view definition, e.g.::
+
+      CREATE VIEW v AS SELECT a, a['b'] FROM t;
