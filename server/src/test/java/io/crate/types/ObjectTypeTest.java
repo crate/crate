@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -36,6 +37,7 @@ import org.junit.Test;
 
 import io.crate.common.collections.MapBuilder;
 import io.crate.exceptions.ConversionException;
+import io.crate.testing.DataTypeTesting;
 
 public class ObjectTypeTest extends DataTypeTestCase<Map<String, Object>> {
 
@@ -45,8 +47,13 @@ public class ObjectTypeTest extends DataTypeTestCase<Map<String, Object>> {
     }
 
     @Override
-    protected boolean supportsDocValues() {
-        return false;
+    protected DataDef<Map<String, Object>> getDataDef() {
+        // float vectors will not compare properly so we exclude them here
+        DataType<?> innerType = DataTypeTesting.randomTypeExcluding(Set.of(FloatVectorType.INSTANCE_ONE));
+        DataType<Map<String, Object>> objectType
+            = new ObjectType.Builder().setInnerType("x", innerType).build();
+        String definition = "OBJECT AS (x " + innerType.getTypeSignature() + ")";
+        return new DataDef<>(objectType, definition, DataTypeTesting.getDataGenerator(objectType));
     }
 
     @Test
