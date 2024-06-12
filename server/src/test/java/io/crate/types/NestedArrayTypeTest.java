@@ -52,11 +52,6 @@ public class NestedArrayTypeTest extends DataTypeTestCase<List<List<Object>>> {
         return new ArrayType<>(new ArrayType<>(randomType));
     }
 
-    @Override
-    protected boolean supportsDocValues() {
-        return false;
-    }
-
     @Test
     public void test_index_structure() throws IOException {
         // create a table with a nested array

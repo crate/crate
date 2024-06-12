@@ -48,8 +48,16 @@ public class ArrayTypeTest extends DataTypeTestCase<List<Object>> {
     }
 
     @Override
-    protected boolean supportsDocValues() {
-        return false;
+    @SuppressWarnings("unchecked")
+    protected DataDef<List<Object>> getDataDef() {
+        // Exclude float vectors and objects - we don't support arrays of float vector,
+        // and arrays of objects aren't currently handled by data generation code; these
+        // are tested in ObjectTypeTest instead.
+        DataType<Object> randomType = (DataType<Object>) DataTypeTesting.randomTypeExcluding(
+            Set.of(FloatVectorType.INSTANCE_ONE, ObjectType.UNTYPED)
+        );
+        DataType<List<Object>> type = new ArrayType<>(randomType);
+        return new DataDef<>(type, type.getTypeSignature().toString(), DataTypeTesting.getDataGenerator(type));
     }
 
     @Test
