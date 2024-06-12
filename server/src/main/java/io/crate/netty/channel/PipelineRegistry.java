@@ -30,7 +30,6 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.netty4.cors.Netty4CorsConfig;
-import org.elasticsearch.transport.Netty4Plugin;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.auth.AuthenticationHttpAuthHandlerRegistry;

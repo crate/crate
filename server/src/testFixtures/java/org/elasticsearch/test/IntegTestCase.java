@@ -134,7 +134,6 @@ import org.elasticsearch.test.disruption.NetworkDisruption;
 import org.elasticsearch.test.disruption.ServiceDisruptionScheme;
 import org.elasticsearch.test.store.MockFSIndexStore;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.Netty4Plugin;
 import org.hamcrest.Matchers;
 import org.jetbrains.annotations.Nullable;
 import org.junit.After;
@@ -1155,7 +1154,7 @@ public abstract class IntegTestCase extends ESTestCase {
      * Returns a collection of plugins that should be loaded on each node.
      */
     protected Collection<Class<? extends Plugin>> nodePlugins() {
-        return List.of(Netty4Plugin.class);
+        return List.of();
     }
 
     protected TestCluster buildTestCluster(Scope scope, long seed) {
@@ -1195,7 +1194,7 @@ public abstract class IntegTestCase extends ESTestCase {
             nodeConfigurationSource,
             getNumClientNodes(),
             nodePrefix,
-            Lists.concat(mockPlugins, Netty4Plugin.class),
+            mockPlugins,
             forbidPrivateIndexSettings()
         );
     }

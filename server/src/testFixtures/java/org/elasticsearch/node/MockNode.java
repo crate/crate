@@ -29,7 +29,7 @@ import org.elasticsearch.cluster.ClusterInfoService;
 import org.elasticsearch.cluster.MockInternalClusterInfoService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.network.NetworkModule;
+import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.BoundTransportAddress;
@@ -37,6 +37,7 @@ import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.MockBigArrays;
 import org.elasticsearch.common.util.MockPageCacheRecycler;
 import org.elasticsearch.common.util.PageCacheRecycler;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
@@ -50,6 +51,7 @@ import org.elasticsearch.transport.TransportService;
 import org.elasticsearch.transport.netty4.Netty4Transport;
 
 import io.crate.netty.NettyBootstrap;
+import io.crate.netty.channel.PipelineRegistry;
 import io.crate.protocols.postgres.MockPgClientFactory;
 import io.crate.protocols.postgres.PgClientFactory;
 import io.crate.protocols.ssl.SslContextProvider;
@@ -173,9 +175,14 @@ public class MockNode extends Node {
     }
 
     @Override
-    protected HttpServerTransport newHttpTransport(NetworkModule networkModule) {
+    protected HttpServerTransport newHttpTransport(NetworkService networkService,
+                                                   BigArrays bigArrays,
+                                                   ThreadPool threadPool,
+                                                   NamedXContentRegistry xContentRegistry,
+                                                   PipelineRegistry pipelineRegistry,
+                                                   NodeClient nodeClient) {
         if (getPluginsService().filterPlugins(MockHttpTransport.TestPlugin.class).isEmpty()) {
-            return super.newHttpTransport(networkModule);
+            return super.newHttpTransport(networkService, bigArrays, threadPool, xContentRegistry, pipelineRegistry, nodeClient);
         } else {
             return new MockHttpTransport();
         }

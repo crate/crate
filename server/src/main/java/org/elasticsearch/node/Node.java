@@ -95,7 +95,6 @@ import org.elasticsearch.common.lease.Releasables;
 import org.elasticsearch.common.logging.NodeAndClusterIdStateListener;
 import org.elasticsearch.common.network.DnsResolver;
 import org.elasticsearch.common.network.NetworkAddress;
-import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
@@ -119,6 +118,7 @@ import org.elasticsearch.gateway.GatewayService;
 import org.elasticsearch.gateway.MetaStateService;
 import org.elasticsearch.gateway.PersistedClusterStateService;
 import org.elasticsearch.http.HttpServerTransport;
+import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
 import org.elasticsearch.index.engine.EngineFactory;
@@ -143,7 +143,6 @@ import org.elasticsearch.plugins.DiscoveryPlugin;
 import org.elasticsearch.plugins.EnginePlugin;
 import org.elasticsearch.plugins.IndexStorePlugin;
 import org.elasticsearch.plugins.MetadataUpgrader;
-import org.elasticsearch.plugins.NetworkPlugin;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.plugins.PluginsService;
 import org.elasticsearch.plugins.RepositoryPlugin;
@@ -204,6 +203,7 @@ import io.crate.metadata.upgrade.MetadataIndexUpgrader;
 import io.crate.module.CrateCommonModule;
 import io.crate.monitor.MonitorModule;
 import io.crate.netty.NettyBootstrap;
+import io.crate.netty.channel.PipelineRegistry;
 import io.crate.planner.optimizer.LoadedRules;
 import io.crate.plugin.CopyPlugin;
 import io.crate.protocols.postgres.PgClientFactory;
@@ -464,7 +464,6 @@ public class Node implements Closeable {
             BigArrays bigArrays = createBigArrays(pageCacheRecycler, circuitBreakerService);
             modules.add(settingsModule);
             List<NamedWriteableRegistry.Entry> namedWriteables = Stream.of(
-                NetworkModule.getNamedWriteables().stream(),
                 IndicesModule.getNamedWriteables().stream(),
                 pluginsService.filterPlugins(Plugin.class).stream()
                     .flatMap(p -> p.getNamedWriteables().stream()),
@@ -473,7 +472,6 @@ public class Node implements Closeable {
                 .flatMap(Function.identity()).collect(Collectors.toList());
             final NamedWriteableRegistry namedWriteableRegistry = new NamedWriteableRegistry(namedWriteables);
             NamedXContentRegistry xContentRegistry = new NamedXContentRegistry(Stream.of(
-                NetworkModule.getNamedXContents().stream(),
                 IndicesModule.getNamedXContents().stream(),
                 pluginsService.filterPlugins(Plugin.class).stream()
                     .flatMap(p -> p.getNamedXContent().stream()),
@@ -553,20 +551,6 @@ public class Node implements Closeable {
             final SslContextProvider sslContextProvider = new SslContextProvider(settings);
             final NettyBootstrap nettyBootstrap = new NettyBootstrap(settings);
             nettyBootstrap.start();
-            final NetworkModule networkModule = new NetworkModule(
-                settings,
-                pluginsService.filterPlugins(NetworkPlugin.class),
-                threadPool,
-                bigArrays,
-                pageCacheRecycler,
-                circuitBreakerService,
-                namedWriteableRegistry,
-                xContentRegistry,
-                networkService,
-                nettyBootstrap,
-                authentication,
-                sslContextProvider,
-                client);
 
             List<UnaryOperator<Map<String, Metadata.Custom>>> customMetadataUpgraders =
                 pluginsService.filterPlugins(Plugin.class).stream()
@@ -612,7 +596,15 @@ public class Node implements Closeable {
                 settingsModule.getClusterSettings()
             );
             final GatewayMetaState gatewayMetaState = new GatewayMetaState();
-            final HttpServerTransport httpServerTransport = newHttpTransport(networkModule);
+            PipelineRegistry pipelineRegistry = new PipelineRegistry(settings);
+            final HttpServerTransport httpServerTransport = newHttpTransport(
+                networkService,
+                bigArrays,
+                threadPool,
+                xContentRegistry,
+                pipelineRegistry,
+                client
+            );
 
             PgClientFactory pgClientFactory = newPgClientFactory(
                 settings,
@@ -797,6 +789,7 @@ public class Node implements Closeable {
                     b.bind(PgCatalogSchemaInfo.class).toInstance((PgCatalogSchemaInfo) schemas.getSystemSchema(PgCatalogSchemaInfo.NAME));
                     b.bind(InformationSchemaInfo.class).toInstance((InformationSchemaInfo) schemas.getSystemSchema(InformationSchemaInfo.NAME));
                     b.bind(BlobSchemaInfo.class).toInstance((BlobSchemaInfo) schemas.getSystemSchema(BlobSchemaInfo.NAME));
+                    b.bind(PipelineRegistry.class).toInstance(pipelineRegistry);
                 }
             );
             injector = modules.createInjector();
@@ -1337,8 +1330,21 @@ public class Node implements Closeable {
     }
 
     /** Constructs a {@link org.elasticsearch.http.HttpServerTransport} which may be mocked for tests. */
-    protected HttpServerTransport newHttpTransport(NetworkModule networkModule) {
-        return networkModule.getHttpServerTransportSupplier().get();
+    protected HttpServerTransport newHttpTransport(NetworkService networkService,
+                                                   BigArrays bigArrays,
+                                                   ThreadPool threadPool,
+                                                   NamedXContentRegistry xContentRegistry,
+                                                   PipelineRegistry pipelineRegistry,
+                                                   NodeClient nodeClient) {
+        return new Netty4HttpServerTransport(
+            settings,
+            networkService,
+            bigArrays,
+            threadPool,
+            xContentRegistry,
+            pipelineRegistry,
+            nodeClient
+        );
     }
 
     private static class LocalNodeFactory implements Function<BoundTransportAddress, DiscoveryNode> {

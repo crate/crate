@@ -57,7 +57,6 @@ import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.MockHttpTransport;
 import org.elasticsearch.test.NodeConfigurationSource;
 import org.elasticsearch.test.TestCluster;
-import org.elasticsearch.transport.Netty4Plugin;
 import org.junit.Test;
 
 import io.crate.common.io.IOUtils;
@@ -70,7 +69,7 @@ import io.crate.common.io.IOUtils;
 public class InternalTestClusterTests extends ESTestCase {
 
     private static Collection<Class<? extends Plugin>> mockPlugins() {
-        return Arrays.asList(MockHttpTransport.TestPlugin.class, Netty4Plugin.class);
+        return Arrays.asList(MockHttpTransport.TestPlugin.class);
     }
 
     @Test
