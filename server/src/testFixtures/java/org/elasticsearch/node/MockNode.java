@@ -50,11 +50,14 @@ import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportService;
 import org.elasticsearch.transport.netty4.Netty4Transport;
 
+import io.crate.action.sql.Sessions;
+import io.crate.auth.Authentication;
+import io.crate.blob.BlobService;
 import io.crate.netty.NettyBootstrap;
-import io.crate.netty.channel.PipelineRegistry;
 import io.crate.protocols.postgres.MockPgClientFactory;
 import io.crate.protocols.postgres.PgClientFactory;
 import io.crate.protocols.ssl.SslContextProvider;
+import io.crate.role.Roles;
 
 /**
  * A node for testing which allows:
@@ -179,10 +182,26 @@ public class MockNode extends Node {
                                                    BigArrays bigArrays,
                                                    ThreadPool threadPool,
                                                    NamedXContentRegistry xContentRegistry,
-                                                   PipelineRegistry pipelineRegistry,
+                                                   SslContextProvider sslContextProvider,
+                                                   BlobService blobService,
+                                                   Sessions sessions,
+                                                   Authentication authentication,
+                                                   Roles roles,
+                                                   CircuitBreakerService breakerService,
                                                    NodeClient nodeClient) {
         if (getPluginsService().filterPlugins(MockHttpTransport.TestPlugin.class).isEmpty()) {
-            return super.newHttpTransport(networkService, bigArrays, threadPool, xContentRegistry, pipelineRegistry, nodeClient);
+            return super.newHttpTransport(
+                networkService,
+                bigArrays,
+                threadPool,
+                xContentRegistry,
+                sslContextProvider,
+                blobService,
+                sessions,
+                authentication,
+                roles,
+                breakerService,
+                nodeClient);
         } else {
             return new MockHttpTransport();
         }

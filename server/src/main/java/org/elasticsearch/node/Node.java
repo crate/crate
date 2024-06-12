@@ -39,6 +39,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
@@ -90,6 +91,7 @@ import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.inject.Key;
 import org.elasticsearch.common.inject.Module;
 import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.lease.Releasables;
 import org.elasticsearch.common.logging.NodeAndClusterIdStateListener;
@@ -97,6 +99,7 @@ import org.elasticsearch.common.network.DnsResolver;
 import org.elasticsearch.common.network.NetworkAddress;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.SettingUpgrader;
@@ -162,20 +165,25 @@ import org.elasticsearch.transport.TransportService;
 import org.elasticsearch.transport.netty4.Netty4Transport;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.action.sql.Sessions;
+import io.crate.analyze.Analyzer;
+import io.crate.analyze.NumberOfShards;
+import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.auth.AlwaysOKAuthentication;
 import io.crate.auth.AuthSettings;
 import io.crate.auth.Authentication;
-import io.crate.auth.AuthenticationModule;
 import io.crate.auth.HostBasedAuthentication;
-import io.crate.blob.BlobModule;
 import io.crate.blob.BlobService;
 import io.crate.blob.BlobTransferTarget;
+import io.crate.blob.transfer.BlobHeadRequestHandler;
 import io.crate.blob.v2.BlobIndicesModule;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.cluster.gracefulstop.DecommissioningService;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.TransportExecutorModule;
+import io.crate.execution.ddl.RepositoryService;
+import io.crate.execution.ddl.tables.TableCreator;
 import io.crate.execution.engine.collect.CollectOperationModule;
 import io.crate.execution.engine.collect.files.CopyModule;
 import io.crate.execution.engine.collect.stats.JobsLogService;
@@ -185,6 +193,7 @@ import io.crate.execution.jobs.transport.NodeDisconnectJobMonitorService;
 import io.crate.expression.reference.sys.check.SysChecksModule;
 import io.crate.expression.reference.sys.check.node.SysNodeChecksModule;
 import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.fdw.ForeignDataWrappers;
 import io.crate.metadata.CustomMetadataUpgraderLoader;
 import io.crate.metadata.DanglingArtifactsService;
 import io.crate.metadata.Functions;
@@ -192,6 +201,7 @@ import io.crate.metadata.MetadataModule;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.blob.BlobSchemaInfo;
+import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.information.MetadataInformationModule;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
@@ -203,7 +213,8 @@ import io.crate.metadata.upgrade.MetadataIndexUpgrader;
 import io.crate.module.CrateCommonModule;
 import io.crate.monitor.MonitorModule;
 import io.crate.netty.NettyBootstrap;
-import io.crate.netty.channel.PipelineRegistry;
+import io.crate.planner.DependencyCarrier;
+import io.crate.planner.Planner;
 import io.crate.planner.optimizer.LoadedRules;
 import io.crate.plugin.CopyPlugin;
 import io.crate.protocols.postgres.PgClientFactory;
@@ -213,7 +224,8 @@ import io.crate.protocols.ssl.SslContextProviderService;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.LogicalReplicationSettings;
 import io.crate.replication.logical.ShardReplicationService;
-import io.crate.role.RoleManagementModule;
+import io.crate.role.RoleManager;
+import io.crate.role.RoleManagerService;
 import io.crate.role.Roles;
 import io.crate.role.RolesService;
 import io.crate.statistics.TableStats;
@@ -412,7 +424,6 @@ public class Node implements Closeable {
                 modules.add(pluginModule);
             }
 
-            modules.add(new BlobModule());
             if (Node.NODE_DATA_SETTING.get(settings)) {
                 // the actual blob indices module is only available on data nodes. the blobservice on non data nodes will
                 // handle the requests redirection to data nodes.
@@ -428,8 +439,6 @@ public class Node implements Closeable {
             modules.add(new MonitorModule());
             modules.add(new SysChecksModule());
             modules.add(new SysNodeChecksModule());
-            modules.add(new RoleManagementModule());
-            modules.add(new AuthenticationModule());
 
             final MonitorService monitorService = new MonitorService(settings,
                                                                      nodeEnvironment,
@@ -499,6 +508,7 @@ public class Node implements Closeable {
                     .flatMap(m -> m.entrySet().stream())
                     .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
 
+            IndexScopedSettings indexScopedSettings = settingsModule.getIndexScopedSettings();
             final IndicesService indicesService = new IndicesService(
                 nodeContext,
                 settings,
@@ -507,7 +517,7 @@ public class Node implements Closeable {
                 nodeEnvironment,
                 analysisModule.getAnalysisRegistry(),
                 threadPool,
-                settingsModule.getIndexScopedSettings(),
+                indexScopedSettings,
                 circuitBreakerService,
                 bigArrays,
                 metaStateService,
@@ -522,7 +532,7 @@ public class Node implements Closeable {
                 clusterModule.getAllocationService(),
                 shardLimitValidator,
                 environment,
-                settingsModule.getIndexScopedSettings(),
+                indexScopedSettings,
                 threadPool,
                 forbidPrivateIndexSettings
             );
@@ -547,6 +557,7 @@ public class Node implements Closeable {
                     () -> clusterService.state().metadata().clusterUUID()
                 )
                 : new AlwaysOKAuthentication(roles);
+
 
             final SslContextProvider sslContextProvider = new SslContextProvider(settings);
             final NettyBootstrap nettyBootstrap = new NettyBootstrap(settings);
@@ -574,7 +585,7 @@ public class Node implements Closeable {
                 indexTemplateMetadataUpgraders);
             final MetadataIndexUpgradeService metadataIndexUpgradeService = new MetadataIndexUpgradeService(
                 nodeContext,
-                settingsModule.getIndexScopedSettings(),
+                indexScopedSettings,
                 indexMetadataUpgraders);
             final Netty4Transport transport = new Netty4Transport(
                 settings,
@@ -596,13 +607,22 @@ public class Node implements Closeable {
                 settingsModule.getClusterSettings()
             );
             final GatewayMetaState gatewayMetaState = new GatewayMetaState();
-            PipelineRegistry pipelineRegistry = new PipelineRegistry(settings);
-            final HttpServerTransport httpServerTransport = newHttpTransport(
-                networkService,
-                bigArrays,
+            BlobIndicesService blobIndicesService = new BlobIndicesService(settings, clusterService);
+            BlobTransferTarget blobTransferTarget = new BlobTransferTarget(
+                blobIndicesService,
                 threadPool,
-                xContentRegistry,
-                pipelineRegistry,
+                transportService,
+                clusterService
+            );
+            final BlobService blobService = new BlobService(
+                clusterService,
+                blobIndicesService,
+                new BlobHeadRequestHandler(
+                    transportService,
+                    clusterService,
+                    blobTransferTarget,
+                    threadPool
+                ),
                 client
             );
 
@@ -623,7 +643,7 @@ public class Node implements Closeable {
             );
             final LogicalReplicationService logicalReplicationService = new LogicalReplicationService(
                 settings,
-                settingsModule.getIndexScopedSettings(),
+                indexScopedSettings,
                 clusterService,
                 remoteClusters,
                 threadPool,
@@ -654,28 +674,28 @@ public class Node implements Closeable {
             CopyModule copyModule = new CopyModule(pluginsService.filterPlugins(CopyPlugin.class));
             modules.add(copyModule);
 
-            RepositoriesService repositoryService = repositoriesModule.repositoryService();
-            repositoriesServiceReference.set(repositoryService);
-            logicalReplicationService.repositoriesService(repositoryService);
+            RepositoriesService repositoriesService = repositoriesModule.repositoryService();
+            repositoriesServiceReference.set(repositoriesService);
+            logicalReplicationService.repositoriesService(repositoriesService);
 
             final SnapshotsService snapshotsService = new SnapshotsService(
                 settings,
                 clusterService,
-                repositoryService,
+                repositoriesService,
                 transportService
             );
 
             final SnapshotShardsService snapshotShardsService = new SnapshotShardsService(
                 settings,
                 clusterService,
-                repositoryService,
+                repositoriesService,
                 transportService,
                 indicesService
             );
 
             RestoreService restoreService = new RestoreService(
                 clusterService,
-                repositoryService,
+                repositoriesService,
                 clusterModule.getAllocationService(),
                 metadataCreateIndexService,
                 metadataIndexUpgradeService,
@@ -706,19 +726,79 @@ public class Node implements Closeable {
                 fsHealthService
             );
             this.nodeService = new NodeService(monitorService, indicesService, transportService);
-
-            BlobIndicesService blobIndicesService = new BlobIndicesService(settings, clusterService);
-            BlobTransferTarget blobTransferTarget = new BlobTransferTarget(
-                blobIndicesService,
-                threadPool,
-                transportService,
+            DDLClusterStateService ddlClusterStateService = new DDLClusterStateService();
+            RoleManagerService rolesManager = new RoleManagerService(
+                client,
+                roles,
+                ddlClusterStateService,
                 clusterService
+            );
+            AnalysisRegistry analysisRegistry = analysisModule.getAnalysisRegistry();
+            AtomicReference<Injector> injectorRef = new AtomicReference<>();
+            Provider<DependencyCarrier> dependencyCarrier = () -> injectorRef.get().getInstance(DependencyCarrier.class);
+
+            Planner planner = new Planner(
+                settings,
+                clusterService,
+                nodeContext,
+                tableStats,
+                new NumberOfShards(clusterService),
+                new TableCreator(client),
+                rolesManager,
+                new ForeignDataWrappers(settings, clusterService, nodeContext),
+                sessionSettingRegistry
+            );
+            RepositoryService repositoryService = new RepositoryService(clusterService, client);
+            Analyzer analyzer = new Analyzer(
+                nodeContext,
+                new RelationAnalyzer(nodeContext),
+                clusterService,
+                analysisRegistry,
+                repositoryService,
+                roles,
+                sessionSettingRegistry,
+                logicalReplicationService
+            );
+            JobsLogService jobsLogService = new JobsLogService(
+                settings,
+                clusterService,
+                nodeContext,
+                circuitBreakerService
+            );
+            Sessions sessions = new Sessions(
+                nodeContext,
+                analyzer,
+                planner,
+                dependencyCarrier,
+                jobsLogService.get(),
+                settings,
+                clusterService
+            );
+            final HttpServerTransport httpServerTransport = newHttpTransport(
+                networkService,
+                bigArrays,
+                threadPool,
+                xContentRegistry,
+                sslContextProvider,
+                blobService,
+                sessions,
+                authentication,
+                roles,
+                circuitBreakerService,
+                client
             );
 
             modules.add(b -> {
                     b.bind(Node.class).toInstance(this);
                     b.bind(NodeContext.class).toInstance(nodeContext);
                     b.bind(TableStats.class).toInstance(tableStats);
+                    b.bind(Analyzer.class).toInstance(analyzer);
+                    b.bind(Sessions.class).toInstance(sessions);
+                    b.bind(Planner.class).toInstance(planner);
+                    b.bind(JobsLogService.class).toInstance(jobsLogService);
+                    b.bind(RepositoryService.class).toInstance(repositoryService);
+                    b.bind(RoleManager.class).toInstance(rolesManager);
+                    b.bind(DDLClusterStateService.class).toInstance(ddlClusterStateService);
                     b.bind(NodeService.class).toInstance(nodeService);
                     b.bind(NamedXContentRegistry.class).toInstance(xContentRegistry);
                     b.bind(PluginsService.class).toInstance(pluginsService);
@@ -730,7 +810,7 @@ public class Node implements Closeable {
                     b.bind(CircuitBreakerService.class).toInstance(circuitBreakerService);
                     b.bind(BigArrays.class).toInstance(bigArrays);
                     b.bind(PageCacheRecycler.class).toInstance(pageCacheRecycler);
-                    b.bind(AnalysisRegistry.class).toInstance(analysisModule.getAnalysisRegistry());
+                    b.bind(AnalysisRegistry.class).toInstance(analysisRegistry);
                     b.bind(NamedWriteableRegistry.class).toInstance(namedWriteableRegistry);
                     b.bind(MetadataUpgrader.class).toInstance(metadataUpgrader);
                     b.bind(MetaStateService.class).toInstance(metaStateService);
@@ -745,10 +825,11 @@ public class Node implements Closeable {
                     b.bind(ClusterInfoService.class).toInstance(clusterInfoService);
                     b.bind(SnapshotsInfoService.class).toInstance(snapshotsInfoService);
                     b.bind(GatewayMetaState.class).toInstance(gatewayMetaState);
-                    b.bind(RepositoriesService.class).toInstance(repositoryService);
+                    b.bind(RepositoriesService.class).toInstance(repositoriesService);
                     b.bind(SnapshotsService.class).toInstance(snapshotsService);
                     b.bind(SnapshotShardsService.class).toInstance(snapshotShardsService);
                     b.bind(RestoreService.class).toInstance(restoreService);
+                    b.bind(BlobService.class).toInstance(blobService);
                     b.bind(BlobIndicesService.class).toInstance(blobIndicesService);
                     b.bind(BlobTransferTarget.class).toInstance(blobTransferTarget);
                     b.bind(Coordinator.class).toInstance(discoveryModule.getCoordinator());
@@ -789,10 +870,10 @@ public class Node implements Closeable {
                     b.bind(PgCatalogSchemaInfo.class).toInstance((PgCatalogSchemaInfo) schemas.getSystemSchema(PgCatalogSchemaInfo.NAME));
                     b.bind(InformationSchemaInfo.class).toInstance((InformationSchemaInfo) schemas.getSystemSchema(InformationSchemaInfo.NAME));
                     b.bind(BlobSchemaInfo.class).toInstance((BlobSchemaInfo) schemas.getSystemSchema(BlobSchemaInfo.NAME));
-                    b.bind(PipelineRegistry.class).toInstance(pipelineRegistry);
                 }
             );
             injector = modules.createInjector();
+            injectorRef.set(injector);
 
             // We allocate copies of existing shards by looking for a viable copy of the shard in the cluster and assigning the shard there.
             // The search for viable copies is triggered by an allocation attempt (i.e. a reroute) and is performed asynchronously. When it
@@ -1334,7 +1415,12 @@ public class Node implements Closeable {
                                                    BigArrays bigArrays,
                                                    ThreadPool threadPool,
                                                    NamedXContentRegistry xContentRegistry,
-                                                   PipelineRegistry pipelineRegistry,
+                                                   SslContextProvider sslContextProvider,
+                                                   BlobService blobService,
+                                                   Sessions sessions,
+                                                   Authentication authentication,
+                                                   Roles roles,
+                                                   CircuitBreakerService breakerService,
                                                    NodeClient nodeClient) {
         return new Netty4HttpServerTransport(
             settings,
@@ -1342,7 +1428,12 @@ public class Node implements Closeable {
             bigArrays,
             threadPool,
             xContentRegistry,
-            pipelineRegistry,
+            sslContextProvider,
+            blobService,
+            sessions,
+            authentication,
+            roles,
+            breakerService,
             nodeClient
         );
     }

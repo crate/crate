@@ -29,8 +29,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ResourceAlreadyExistsException;
 import org.elasticsearch.Version;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.client.node.NodeClient;
 import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntArrayList;
@@ -44,16 +43,13 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.sql.tree.ColumnPolicy;
 
-@Singleton
 public class TableCreator {
 
     protected static final Logger LOGGER = LogManager.getLogger(TableCreator.class);
+    private final NodeClient client;
 
-    private final TransportCreateTableAction transportCreateTableAction;
-
-    @Inject
-    public TableCreator(TransportCreateTableAction transportCreateIndexAction) {
-        this.transportCreateTableAction = transportCreateIndexAction;
+    public TableCreator(NodeClient client) {
+        this.client = client;
     }
 
     public CompletableFuture<Long> create(BoundCreateTable createTable, Version minNodeVersion) {
@@ -81,7 +77,7 @@ public class TableCreator {
         } else {
             throw new UnsupportedOperationException("All nodes in the cluster must at least have version 5.4.0");
         }
-        return transportCreateTableAction.execute(createTableRequest, resp -> {
+        return client.execute(TransportCreateTableAction.ACTION, createTableRequest).thenApply(resp -> {
             if (!resp.isAllShardsAcked() && LOGGER.isWarnEnabled()) {
                 LOGGER.warn("CREATE TABLE `{}` was not acknowledged. This could lead to inconsistent state.", relationName.fqn());
             }

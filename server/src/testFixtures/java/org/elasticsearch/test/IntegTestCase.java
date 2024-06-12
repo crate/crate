@@ -1603,7 +1603,7 @@ public abstract class IntegTestCase extends ESTestCase {
                     "An exception is one session created by the TableStatsService";
                 assertThat(sessions.getActive())
                     .as(msg)
-                    .hasSize(1);
+                    .hasSizeLessThanOrEqualTo(1);
             }
         });
     }

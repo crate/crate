@@ -38,7 +38,6 @@ import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.fdw.ForeignTablesMetadata;
 import io.crate.fdw.ServersMetadata;
 import io.crate.license.License;
-import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.view.ViewsMetadata;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
@@ -208,6 +207,5 @@ public class MetadataModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        bind(DDLClusterStateService.class).asEagerSingleton();
     }
 }

@@ -65,7 +65,7 @@ import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.ConnectionStats;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.protocols.ssl.SslSettings;
-import io.crate.role.RoleManager;
+import io.crate.role.Roles;
 import io.crate.types.DataTypes;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
@@ -100,7 +100,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
     private final NettyBootstrap nettyBootstrap;
     private final Logger namedLogger;
     private final Settings settings;
-    private final RoleManager roleManager;
+    private final Roles roles;
     private final Supplier<SslContext> sslContextProvider;
 
     private ServerBootstrap bootstrap;
@@ -123,7 +123,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
     public PostgresNetty(Settings settings,
                          SessionSettingRegistry sessionSettingRegistry,
                          Sessions sqlOperations,
-                         RoleManager roleManager,
+                         Roles roles,
                          NetworkService networkService,
                          Authentication authentication,
                          NettyBootstrap nettyBootstrap,
@@ -132,7 +132,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
                          SslContextProvider sslContextProvider) {
         this.settings = settings;
         this.sessionSettingRegistry = sessionSettingRegistry;
-        this.roleManager = roleManager;
+        this.roles = roles;
         namedLogger = LogManager.getLogger("psql");
         this.sqlOperations = sqlOperations;
         this.networkService = networkService;
@@ -179,7 +179,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
                 PostgresWireProtocol postgresWireProtocol = new PostgresWireProtocol(
                     sqlOperations,
                     sessionSettingRegistry,
-                    roleManager::getAccessControl,
+                    roles::getAccessControl,
                     chPipeline -> {
                         var nettyTcpChannel = new CloseableChannel(ch, true);
                         ch.attr(Netty4Transport.CHANNEL_KEY).set(nettyTcpChannel);

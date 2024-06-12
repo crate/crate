@@ -24,7 +24,6 @@ package io.crate.analyze;
 import java.util.HashMap;
 
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
 
@@ -48,7 +47,7 @@ import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.analyze.LogicalReplicationAnalyzer;
 import io.crate.role.Role;
-import io.crate.role.RoleManager;
+import io.crate.role.Roles;
 import io.crate.sql.tree.AlterClusterRerouteRetryFailed;
 import io.crate.sql.tree.AlterPublication;
 import io.crate.sql.tree.AlterRole;
@@ -142,7 +141,7 @@ public class Analyzer {
     private final CreateBlobTableAnalyzer createBlobTableAnalyzer;
     private final CreateAnalyzerStatementAnalyzer createAnalyzerStatementAnalyzer;
     private final DropAnalyzerStatementAnalyzer dropAnalyzerStatementAnalyzer;
-    private final RoleManager roleManager;
+    private final Roles roles;
     private final RefreshTableAnalyzer refreshTableAnalyzer;
     private final OptimizeTableAnalyzer optimizeTableAnalyzer;
     private final AlterTableAnalyzer alterTableAnalyzer;
@@ -177,13 +176,12 @@ public class Analyzer {
      *                         {@link io.crate.metadata.view.ViewInfoFactory} and we want to keep only a single
      *                         instance of the class
      */
-    @Inject
     public Analyzer(NodeContext nodeCtx,
                     RelationAnalyzer relationAnalyzer,
                     ClusterService clusterService,
                     AnalysisRegistry analysisRegistry,
                     RepositoryService repositoryService,
-                    RoleManager roleManager,
+                    Roles roles,
                     SessionSettingRegistry sessionSettingRegistry,
                     LogicalReplicationService logicalReplicationService
     ) {
@@ -192,7 +190,7 @@ public class Analyzer {
         this.relationAnalyzer = relationAnalyzer;
         this.dropTableAnalyzer = new DropTableAnalyzer(clusterService, schemas);
         this.dropCheckConstraintAnalyzer = new DropCheckConstraintAnalyzer(schemas);
-        this.roleManager = roleManager;
+        this.roles = roles;
         this.createTableStatementAnalyzer = new CreateTableStatementAnalyzer(nodeCtx);
         this.alterTableAnalyzer = new AlterTableAnalyzer(schemas, nodeCtx);
         this.alterTableAddColumnAnalyzer = new AlterTableAddColumnAnalyzer(schemas, nodeCtx);
@@ -246,7 +244,7 @@ public class Analyzer {
                 paramTypeHints,
                 cursors
             ));
-        roleManager.getAccessControl(sessionSettings).ensureMayExecute(analyzedStatement);
+        roles.getAccessControl(sessionSettings).ensureMayExecute(analyzedStatement);
         return analyzedStatement;
     }
 
@@ -779,7 +777,7 @@ public class Analyzer {
                 ? context.sessionSettings().userName()
                 : createUserMapping.userName();
 
-            Role user = roleManager.getUser(userName);
+            Role user = roles.getUser(userName);
             ExpressionAnalyzer expressionAnalyzer = new ExpressionAnalyzer(
                 context.transactionContext(),
                 nodeCtx,
@@ -823,7 +821,7 @@ public class Analyzer {
             String resolvedUserName = userName == null
                 ? context.sessionSettings().userName()
                 : userName;
-            Role user = roleManager.findUser(resolvedUserName);
+            Role user = roles.findUser(resolvedUserName);
             return new AnalyzedDropUserMapping(
                 user,
                 dropUserMapping.ifExists(),

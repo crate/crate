@@ -22,11 +22,9 @@
 package io.crate.statistics;
 
 
-import org.elasticsearch.Version;
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -37,11 +35,12 @@ import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.Session;
 import io.crate.action.sql.Sessions;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Row;
 
@@ -63,7 +62,9 @@ public class TableStatsService implements Runnable {
 
     private final ClusterService clusterService;
     private final ThreadPool threadPool;
-    private final Session session;
+    private final Sessions sessions;
+
+    private Session session;
 
     @VisibleForTesting
     volatile TimeValue refreshInterval;
@@ -75,12 +76,12 @@ public class TableStatsService implements Runnable {
     public TableStatsService(Settings settings,
                              ThreadPool threadPool,
                              ClusterService clusterService,
-                             Sessions sqlOperations) {
+                             Sessions sessions) {
         this.threadPool = threadPool;
         this.clusterService = clusterService;
+        this.sessions = sessions;
         refreshInterval = STATS_SERVICE_REFRESH_INTERVAL_SETTING.get(settings);
         scheduledRefresh = scheduleNextRefresh(refreshInterval);
-        session = sqlOperations.newSystemSession();
 
         clusterService.getClusterSettings().addSettingsUpdateConsumer(
             STATS_SERVICE_REFRESH_INTERVAL_SETTING, this::setRefreshInterval);
@@ -118,6 +119,9 @@ public class TableStatsService implements Runnable {
                     LOGGER.error("Error running periodic " + STMT + "", err);
                 }
             });
+            if (session == null) {
+                session = sessions.newSystemSession();
+            }
             session.quickExec(STMT, resultReceiver, Row.EMPTY);
         } catch (Throwable t) {
             LOGGER.error("error retrieving table stats", t);

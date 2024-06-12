@@ -50,8 +50,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.LongSupplier;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDeleteRepositoryAction;
-import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepositoryAction;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.ClusterChangedEvent;
@@ -370,6 +368,7 @@ public class SQLExecutor {
             );
             logicalReplicationService.repositoriesService(mock(RepositoriesService.class));
             var foreignDataWrappers = new ForeignDataWrappers(settings, clusterService, nodeCtx);
+            var client = new NodeClient(settings, threadPool);
 
             publishInitialClusterState(clusterService);
             return new SQLExecutor(
@@ -381,11 +380,7 @@ public class SQLExecutor {
                     relationAnalyzer,
                     clusterService,
                     analysisRegistry,
-                    new RepositoryService(
-                        clusterService,
-                        mock(TransportDeleteRepositoryAction.class),
-                        mock(TransportPutRepositoryAction.class)
-                    ),
+                    new RepositoryService(clusterService, client),
                     roleManager,
                     sessionSettingRegistry,
                     logicalReplicationService

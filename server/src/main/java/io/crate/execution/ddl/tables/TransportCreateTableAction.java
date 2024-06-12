@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.util.HashSet;
 
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.admin.indices.create.CreateIndexClusterStateUpdateRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
@@ -41,8 +42,8 @@ import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
 import org.elasticsearch.cluster.metadata.MetadataIndexTemplateService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -62,14 +63,23 @@ import io.crate.metadata.RelationName;
  *
  * See also: {@link io.crate.execution.ddl.views.TransportCreateViewAction}
  */
+@Singleton
 public class TransportCreateTableAction extends TransportMasterNodeAction<CreateTableRequest, CreateTableResponse> {
 
-    public static final String NAME = "internal:crate:sql/tables/admin/create";
+    public static final Action ACTION = new Action();
+
+    public static class Action extends ActionType<CreateTableResponse> {
+
+        public static final String NAME = "internal:crate:sql/tables/admin/create";
+
+        public Action() {
+            super(NAME);
+        }
+    }
 
     private final MetadataCreateIndexService createIndexService;
     private final MetadataIndexTemplateService indexTemplateService;
     private final NodeContext nodeContext;
-    private final IndexScopedSettings indexScopedSettings;
 
     @Inject
     public TransportCreateTableAction(TransportService transportService,
@@ -77,10 +87,9 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
                                       ThreadPool threadPool,
                                       MetadataCreateIndexService createIndexService,
                                       MetadataIndexTemplateService indexTemplateService,
-                                      NodeContext nodeContext,
-                                      IndexScopedSettings indexScopedSettings) {
+                                      NodeContext nodeContext) {
         super(
-            NAME,
+            ACTION.name(),
             transportService,
             clusterService, threadPool,
             CreateTableRequest::new
@@ -88,7 +97,6 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
         this.createIndexService = createIndexService;
         this.indexTemplateService = indexTemplateService;
         this.nodeContext = nodeContext;
-        this.indexScopedSettings = indexScopedSettings;
     }
 
     @Override
