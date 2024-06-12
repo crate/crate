@@ -54,6 +54,7 @@ import io.crate.action.sql.Session;
 import io.crate.action.sql.Sessions;
 import io.crate.action.sql.parser.SQLRequestParseContext;
 import io.crate.action.sql.parser.SQLRequestParser;
+import io.crate.auth.AccessControl;
 import io.crate.auth.AuthSettings;
 import io.crate.auth.Credentials;
 import io.crate.auth.HttpAuthUpstreamHandler;
@@ -84,21 +85,21 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     private static final String REQUEST_HEADER_SCHEMA = "Default-Schema";
 
     private final Settings settings;
-    private final Sessions sqlOperations;
+    private final Sessions sessions;
     private final Function<String, CircuitBreaker> circuitBreakerProvider;
     private final Roles roles;
     private final Netty4CorsConfig corsConfig;
 
     private Session session;
 
-    SqlHttpHandler(Settings settings,
-                   Sessions sqlOperations,
-                   Function<String, CircuitBreaker> circuitBreakerProvider,
-                   Roles roles,
-                   Netty4CorsConfig corsConfig) {
+    public SqlHttpHandler(Settings settings,
+                          Sessions sessions,
+                          Function<String, CircuitBreaker> circuitBreakerProvider,
+                          Roles roles,
+                          Netty4CorsConfig corsConfig) {
         super(false);
         this.settings = settings;
-        this.sqlOperations = sqlOperations;
+        this.sessions = sessions;
         this.circuitBreakerProvider = circuitBreakerProvider;
         this.roles = roles;
         this.corsConfig = corsConfig;
@@ -157,7 +158,8 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             resp = new DefaultFullHttpResponse(httpVersion, HttpResponseStatus.OK, content);
             resp.headers().add(HttpHeaderNames.CONTENT_TYPE, result.contentType().mediaType());
         } else {
-            var throwable = SQLExceptions.prepareForClientTransmission(roles.getAccessControl(session.sessionSettings()), t);
+            AccessControl accessControl = roles.getAccessControl(session.sessionSettings());
+            var throwable = SQLExceptions.prepareForClientTransmission(accessControl, t);
             HttpError httpError = HttpError.fromThrowable(throwable);
             String mediaType;
             boolean includeErrorTrace = paramContainFlag(parameters, "error_trace");
@@ -216,10 +218,10 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         Role authenticatedUser = userFromAuthHeader(request.headers().get(HttpHeaderNames.AUTHORIZATION));
         Session session = this.session;
         if (session == null) {
-            session = sqlOperations.newSession(defaultSchema, authenticatedUser);
+            session = sessions.newSession(defaultSchema, authenticatedUser);
         } else if (session.sessionSettings().authenticatedUser().equals(authenticatedUser) == false) {
             session.close();
-            session = sqlOperations.newSession(defaultSchema, authenticatedUser);
+            session = sessions.newSession(defaultSchema, authenticatedUser);
         }
         this.session = session;
         return session;

@@ -31,6 +31,7 @@ import java.util.Set;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
@@ -44,8 +45,8 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-
 import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.role.metadata.RolesMetadata;
 import io.crate.role.metadata.UsersMetadata;
 import io.crate.role.metadata.UsersPrivilegesMetadata;
@@ -53,7 +54,15 @@ import io.crate.role.metadata.UsersPrivilegesMetadata;
 @Singleton
 public class TransportPrivilegesAction extends TransportMasterNodeAction<PrivilegesRequest, PrivilegesResponse> {
 
-    private static final String ACTION_NAME = "internal:crate:sql/privileges/grant";
+    public static final Action ACTION = new Action();
+
+    public static class Action extends ActionType<PrivilegesResponse> {
+        private static final String NAME = "internal:crate:sql/privileges/grant";
+
+        private Action() {
+            super(NAME);
+        }
+    }
 
     private final Roles roles;
 
@@ -63,7 +72,7 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
                                      Roles roles,
                                      ThreadPool threadPool) {
         super(
-            ACTION_NAME,
+            ACTION.name(),
             transportService,
             clusterService,
             threadPool,

@@ -25,8 +25,8 @@ import java.util.Collection;
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 
+import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.jetbrains.annotations.Nullable;
 
@@ -57,25 +57,14 @@ public class RoleManagerService implements RoleManager {
 
     private static final RoleManagerDDLModifier DDL_MODIFIER = new RoleManagerDDLModifier();
 
-    private final TransportCreateRoleAction transportCreateRoleAction;
-    private final TransportDropRoleAction transportDropRoleAction;
-    private final TransportAlterRoleAction transportAlterRoleAction;
-    private final TransportPrivilegesAction transportPrivilegesAction;
-
     private final Roles roles;
+    private final NodeClient client;
 
-    @Inject
-    public RoleManagerService(TransportCreateRoleAction transportCreateRoleAction,
-                              TransportDropRoleAction transportDropRoleAction,
-                              TransportAlterRoleAction transportAlterRoleAction,
-                              TransportPrivilegesAction transportPrivilegesAction,
+    public RoleManagerService(NodeClient client,
                               Roles roles,
                               DDLClusterStateService ddlClusterStateService,
                               ClusterService clusterService) {
-        this.transportCreateRoleAction = transportCreateRoleAction;
-        this.transportDropRoleAction = transportDropRoleAction;
-        this.transportAlterRoleAction = transportAlterRoleAction;
-        this.transportPrivilegesAction = transportPrivilegesAction;
+        this.client = client;
         this.roles = roles;
         ddlClusterStateService.addModifier(DDL_MODIFIER);
     }
@@ -86,7 +75,8 @@ public class RoleManagerService implements RoleManager {
                                               boolean isUser,
                                               @Nullable SecureHash hashedPw,
                                               @Nullable JwtProperties jwtProperties) {
-        return transportCreateRoleAction.execute(new CreateRoleRequest(roleName, isUser, hashedPw, jwtProperties), r -> {
+        CreateRoleRequest request = new CreateRoleRequest(roleName, isUser, hashedPw, jwtProperties);
+        return client.execute(TransportCreateRoleAction.ACTION, request).thenApply(r -> {
             if (r.doesUserExist()) {
                 throw new RoleAlreadyExistsException(String.format(Locale.ENGLISH, "Role '%s' already exists", roleName));
             }
@@ -97,7 +87,8 @@ public class RoleManagerService implements RoleManager {
     @Override
     public CompletableFuture<Long> dropRole(String roleName, boolean suppressNotFoundError) {
         ensureDropRoleTargetIsNotSuperUser(roles.findUser(roleName));
-        return transportDropRoleAction.execute(new DropRoleRequest(roleName, suppressNotFoundError), r -> {
+        DropRoleRequest request = new DropRoleRequest(roleName, suppressNotFoundError);
+        return client.execute(TransportDropRoleAction.ACTION, request).thenApply(r -> {
             if (r.doesUserExist() == false) {
                 if (suppressNotFoundError) {
                     return 0L;
@@ -114,22 +105,27 @@ public class RoleManagerService implements RoleManager {
                                              @Nullable JwtProperties newJwtProperties,
                                              boolean resetPassword,
                                              boolean resetJwtProperties) {
-        return transportAlterRoleAction.execute(
-            new AlterRoleRequest(roleName, newHashedPw, newJwtProperties, resetPassword, resetJwtProperties),
-            r -> {
-                if (r.doesUserExist() == false) {
-                    throw new RoleUnknownException(roleName);
-                }
-                return 1L;
-            }
+        AlterRoleRequest request = new AlterRoleRequest(
+            roleName,
+            newHashedPw,
+            newJwtProperties,
+            resetPassword,
+            resetJwtProperties
         );
+        return client.execute(TransportAlterRoleAction.ACTION, request).thenApply(r -> {
+            if (r.doesUserExist() == false) {
+                throw new RoleUnknownException(roleName);
+            }
+            return 1L;
+        });
     }
 
     public CompletableFuture<Long> applyPrivileges(Collection<String> roleNames,
                                                    Collection<Privilege> privileges,
                                                    GrantedRolesChange grantedRolesChange) {
         roleNames.forEach(s -> ensureAlterPrivilegeTargetIsNotSuperuser(roles.findUser(s)));
-        return transportPrivilegesAction.execute(new PrivilegesRequest(roleNames, privileges, grantedRolesChange), r -> {
+        PrivilegesRequest request = new PrivilegesRequest(roleNames, privileges, grantedRolesChange);
+        return client.execute(TransportPrivilegesAction.ACTION, request).thenApply(r -> {
             if (!r.unknownUserNames().isEmpty()) {
                 throw new RoleUnknownException(r.unknownUserNames());
             }

@@ -99,6 +99,7 @@ import io.crate.blob.TransportStartBlobAction;
 import io.crate.cluster.decommission.DecommissionNodeAction;
 import io.crate.cluster.decommission.TransportDecommissionNodeAction;
 import io.crate.execution.ddl.tables.RenameColumnAction;
+import io.crate.execution.ddl.tables.TransportCreateTableAction;
 import io.crate.execution.ddl.tables.TransportDropTableAction;
 import io.crate.execution.ddl.tables.TransportRenameColumnAction;
 import io.crate.execution.dml.delete.ShardDeleteAction;
@@ -133,6 +134,10 @@ import io.crate.replication.logical.action.ReleasePublisherResourcesAction;
 import io.crate.replication.logical.action.ReplayChangesAction;
 import io.crate.replication.logical.action.ShardChangesAction;
 import io.crate.replication.logical.action.UpdateSubscriptionAction;
+import io.crate.role.TransportAlterRoleAction;
+import io.crate.role.TransportCreateRoleAction;
+import io.crate.role.TransportDropRoleAction;
+import io.crate.role.TransportPrivilegesAction;
 
 /**
  * Builds and binds the generic action map, all {@link TransportAction}s
@@ -168,6 +173,7 @@ public class ActionModule extends AbstractModule {
         }
 
         ActionRegistry actions = new ActionRegistry();
+        actions.register(TransportCreateTableAction.ACTION, TransportCreateTableAction.class);
         actions.register(ClusterStateAction.INSTANCE, TransportClusterStateAction.class);
         actions.register(ClusterHealthAction.INSTANCE, TransportClusterHealthAction.class);
         actions.register(ClusterUpdateSettingsAction.INSTANCE, TransportClusterUpdateSettingsAction.class);
@@ -239,6 +245,11 @@ public class ActionModule extends AbstractModule {
         actions.register(TransportDropUserMapping.ACTION, TransportDropUserMapping.class);
 
         actions.register(TransportDropTableAction.ACTION, TransportDropTableAction.class);
+
+        actions.register(TransportPrivilegesAction.ACTION, TransportPrivilegesAction.class);
+        actions.register(TransportCreateRoleAction.ACTION, TransportCreateRoleAction.class);
+        actions.register(TransportDropRoleAction.ACTION, TransportDropRoleAction.class);
+        actions.register(TransportAlterRoleAction.ACTION, TransportAlterRoleAction.class);
 
         return unmodifiableMap(actions.getRegistry());
     }

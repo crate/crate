@@ -88,6 +88,7 @@ import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.http.netty4.cors.Netty4CorsConfig;
 import org.elasticsearch.http.netty4.cors.Netty4CorsConfigBuilder;
 import org.elasticsearch.http.netty4.cors.Netty4CorsHandler;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.rest.RestUtils;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.BindTransportException;
@@ -100,11 +101,20 @@ import org.jetbrains.annotations.Nullable;
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
 
+import io.crate.action.sql.Sessions;
+import io.crate.auth.Authentication;
+import io.crate.auth.HttpAuthUpstreamHandler;
+import io.crate.auth.Protocol;
+import io.crate.blob.BlobService;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.netty.NettyBootstrap;
-import io.crate.netty.channel.PipelineRegistry;
 import io.crate.protocols.ConnectionStats;
+import io.crate.protocols.http.HttpBlobHandler;
 import io.crate.protocols.http.MainAndStaticFileHandler;
+import io.crate.protocols.ssl.SslContextProvider;
+import io.crate.protocols.ssl.SslSettings;
+import io.crate.rest.action.SqlHttpHandler;
+import io.crate.role.Roles;
 import io.crate.types.DataTypes;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
@@ -113,6 +123,7 @@ import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
+import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.FixedRecvByteBufAllocator;
 import io.netty.channel.RecvByteBufAllocator;
@@ -123,6 +134,7 @@ import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
+import io.netty.handler.ssl.SslContext;
 import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.util.concurrent.Future;
@@ -217,7 +229,6 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
 
     protected final List<Channel> serverChannels = new ArrayList<>();
 
-    // package private for testing
     private final StatsTracker statsTracker = new StatsTracker();
     @Nullable
     private Netty4InboundStatsHandler inboundStatsHandler;
@@ -225,26 +236,42 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
     private Netty4OutboundStatsHandler outboundStatsHandler;
 
     private final Netty4CorsConfig corsConfig;
-
-    private final PipelineRegistry pipelineRegistry;
-
     private final NodeClient nodeClient;
 
+    private final SslContextProvider sslContextProvider;
+
+    private final BlobService blobService;
+    private final Sessions sessions;
+    private final Authentication authentication;
+    private final Roles roles;
+    private final CircuitBreakerService breakerService;
+
     private EventLoopGroup eventLoopGroup;
+
 
     public Netty4HttpServerTransport(Settings settings,
                                      NetworkService networkService,
                                      BigArrays bigArrays,
                                      ThreadPool threadPool,
                                      NamedXContentRegistry xContentRegistry,
-                                     PipelineRegistry pipelineRegistry,
+                                     SslContextProvider sslContextProvider,
+                                     BlobService blobService,
+                                     Sessions sessions,
+                                     Authentication authentication,
+                                     Roles roles,
+                                     CircuitBreakerService breakerService,
                                      NodeClient nodeClient) {
         this.settings = settings;
         this.networkService = networkService;
         this.bigArrays = bigArrays;
         this.threadPool = threadPool;
         this.xContentRegistry = xContentRegistry;
-        this.pipelineRegistry = pipelineRegistry;
+        this.sslContextProvider = sslContextProvider;
+        this.blobService = blobService;
+        this.sessions = sessions;
+        this.authentication = authentication;
+        this.roles = roles;
+        this.breakerService = breakerService;
         this.nodeClient = nodeClient;
 
         this.maxContentLength = SETTING_HTTP_MAX_CONTENT_LENGTH.get(settings);
@@ -510,7 +537,17 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
     }
 
     public ChannelHandler configureServerChannelHandler() {
-        return new HttpChannelHandler(this, nodeClient, settings, pipelineRegistry);
+        return new HttpChannelHandler(
+            this,
+            sessions,
+            authentication,
+            roles,
+            breakerService,
+            blobService,
+            nodeClient,
+            settings,
+            sslContextProvider
+        );
     }
 
     public static class HttpChannelHandler extends ChannelInitializer<Channel> {
@@ -519,48 +556,80 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
         private final NodeClient nodeClient;
         private final String nodeName;
         private final Path home;
-        private final PipelineRegistry pipelineRegistry;
+        private BlobService blobService;
+        private final Sessions sessions;
+        private final Authentication authentication;
+        private final Roles roles;
+        private final CircuitBreakerService breakerService;
+        private final Settings settings;
+        private final SslContextProvider sslContextProvider;
 
         protected HttpChannelHandler(Netty4HttpServerTransport transport,
+                                     Sessions sessions,
+                                     Authentication authentication,
+                                     Roles roles,
+                                     CircuitBreakerService breakerService,
+                                     BlobService blobService,
                                      NodeClient nodeClient,
                                      Settings settings,
-                                     PipelineRegistry pipelineRegistry) {
+                                     SslContextProvider sslContextProvider) {
+            this.sessions = sessions;
+            this.authentication = authentication;
+            this.roles = roles;
+            this.breakerService = breakerService;
+            this.blobService = blobService;
             this.transport = transport;
             this.nodeClient = nodeClient;
-            this.pipelineRegistry = pipelineRegistry;
+            this.settings = settings;
+            this.sslContextProvider = sslContextProvider;
             this.nodeName = NODE_NAME_SETTING.get(settings);
             this.home = PathUtils.get(PATH_HOME_SETTING.get(settings)).normalize();
         }
 
         @Override
         public void initChannel(Channel ch) throws Exception {
-            ch.pipeline().addLast("inbound_stats", transport.inboundStatsHandler);
-            ch.pipeline().addLast("outbound_stats", transport.outboundStatsHandler);
-            ch.pipeline().addLast("read_timeout", new ReadTimeoutHandler(transport.readTimeoutMillis, TimeUnit.MILLISECONDS));
+            ChannelPipeline pipeline = ch.pipeline();
+            if (SslSettings.isHttpsEnabled(settings)) {
+                SslContext sslContext = sslContextProvider.getServerContext(Protocol.HTTP);
+                if (sslContext != null) {
+                    pipeline.addFirst(sslContext.newHandler(ch.alloc()));
+                }
+            }
+            pipeline.addLast("inbound_stats", transport.inboundStatsHandler);
+            pipeline.addLast("outbound_stats", transport.outboundStatsHandler);
+            pipeline.addLast("read_timeout", new ReadTimeoutHandler(transport.readTimeoutMillis, TimeUnit.MILLISECONDS));
             final HttpRequestDecoder decoder = new HttpRequestDecoder(
                 Math.toIntExact(transport.maxInitialLineLength.getBytes()),
                 Math.toIntExact(transport.maxHeaderSize.getBytes()),
                 Math.toIntExact(transport.maxChunkSize.getBytes()));
             decoder.setCumulator(ByteToMessageDecoder.COMPOSITE_CUMULATOR);
-            ch.pipeline().addLast("decoder", decoder);
-            ch.pipeline().addLast("decoder_compress", new HttpContentDecompressor());
-            ch.pipeline().addLast("encoder", new HttpResponseEncoder());
+            pipeline.addLast("decoder", decoder);
+            pipeline.addLast("decoder_compress", new HttpContentDecompressor());
+            pipeline.addLast("encoder", new HttpResponseEncoder());
             final HttpObjectAggregator aggregator = new HttpObjectAggregator(Math.toIntExact(transport.maxContentLength.getBytes()));
             aggregator.setMaxCumulationBufferComponents(transport.maxCompositeBufferComponents);
-            ch.pipeline().addLast("chunked", new ChunkedWriteHandler());
-            ch.pipeline().addLast("aggregator", aggregator);
+            pipeline.addLast("chunked", new ChunkedWriteHandler());
+            pipeline.addLast("auth_handler", new HttpAuthUpstreamHandler(settings, authentication, roles));
+            pipeline.addLast("blob_handler", new HttpBlobHandler(blobService, transport.getCorsConfig()));
+            pipeline.addLast("aggregator", aggregator);
             if (transport.compression) {
-                ch.pipeline().addLast("encoder_compress", new HttpContentCompressor(transport.compressionLevel));
+                pipeline.addLast("encoder_compress", new HttpContentCompressor(transport.compressionLevel));
             }
-            ch.pipeline().addLast("handler", new MainAndStaticFileHandler(
+            pipeline.addLast("sql_handler", new SqlHttpHandler(
+                settings,
+                sessions,
+                breakerService::getBreaker,
+                roles,
+                transport.getCorsConfig()
+            ));
+            pipeline.addLast("handler", new MainAndStaticFileHandler(
                 nodeName,
                 home,
                 nodeClient,
                 transport.getCorsConfig()
             ));
-            pipelineRegistry.registerItems(ch.pipeline(), transport.getCorsConfig());
             if (SETTING_CORS_ENABLED.get(transport.settings())) {
-                ch.pipeline().addAfter("encoder", "cors", new Netty4CorsHandler(transport.getCorsConfig()));
+                pipeline.addAfter("encoder", "cors", new Netty4CorsHandler(transport.getCorsConfig()));
             }
         }
 
