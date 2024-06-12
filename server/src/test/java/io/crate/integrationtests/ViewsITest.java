@@ -84,6 +84,42 @@ public class ViewsITest extends IntegTestCase {
     }
 
     @Test
+    public void test_view_on_top_level_columns_sub_columns_are_shown_in_information_schema() throws Exception {
+        execute("CREATE TABLE with_object (a OBJECT AS (b INTEGER), x int, y int)");
+        execute("CREATE VIEW view_with_object AS SELECT x, a, y FROM with_object");
+
+        execute("SELECT column_name, data_type, ordinal_position FROM information_schema.columns WHERE table_name = 'with_object'");
+        assertThat(response).hasRows(
+            "a| object| 1",
+            "a['b']| integer| 2",
+            "x| integer| 3",
+            "y| integer| 4"
+        );
+
+        // Note, that ordinal of the column "a" in the view is different from ordinal in the table.
+        // Ordinals in views assigned by select order and not related to original ordinal in table.
+        // This is compatible with PG behavior.
+        execute("SELECT column_name, data_type, ordinal_position FROM information_schema.columns WHERE table_name = 'view_with_object'");
+        assertThat(response).hasRows(
+            "x| integer| 1",
+            "a| object| 2",
+            "y| integer| 3",
+            "a['b']| integer| 4"
+        );
+
+        // View dynamically binds new sub-columns (even if SELECT is static).
+        execute("ALTER TABLE with_object ADD COLUMN a['c'] text");
+        execute("SELECT column_name, data_type, ordinal_position FROM information_schema.columns WHERE table_name = 'view_with_object'");
+        assertThat(response).hasRows(
+            "x| integer| 1",
+            "a| object| 2",
+            "y| integer| 3",
+            "a['b']| integer| 4",
+            "a['c']| text| 5" // New columns have higher ordinals to keep all ordinals stable.
+        );
+    }
+
+    @Test
     public void testViewCanBeUsedForJoins() {
         execute("CREATE TABLE t1 (a STRING, x INTEGER)");
         execute("INSERT INTO t1 (x, a) VALUES (1, 'foo')");

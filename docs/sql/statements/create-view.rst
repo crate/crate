@@ -61,6 +61,14 @@ operations.
   been created, these columns will show up in subsequent queries on the view.
   It is generally recommended to avoid using ``*`` in view definitions.
 
+ .. NOTE::
+
+   If an object column is selected, sub-columns are visible in the
+   ``information_schema.columns`` table. Added sub-columns at the source
+   relation are visible there while dropped columns won't show up there anymore
+   as well. This applies both to views where ``*`` is used to select columns
+   and to views with a static selection of top level columns.
+
 
 Privileges
 ==========
