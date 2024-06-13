@@ -49,16 +49,12 @@ public class ObjectTypeTest extends DataTypeTestCase<Map<String, Object>> {
     @Override
     protected DataDef<Map<String, Object>> getDataDef() {
         // float vectors will not compare properly so we exclude them here
-        DataType<?> innerType = DataTypeTesting.randomTypeExcluding(Set.of(FloatVectorType.INSTANCE_ONE));
+        DataType<?> innerType
+            = DataTypeTesting.randomTypeExcluding(Set.of(FloatVectorType.INSTANCE_ONE, ObjectType.UNTYPED));
         DataType<Map<String, Object>> objectType
             = new ObjectType.Builder().setInnerType("x", innerType).build();
         String definition = "OBJECT AS (x " + innerType.getTypeSignature() + ")";
         return new DataDef<>(objectType, definition, DataTypeTesting.getDataGenerator(objectType));
-    }
-
-    @Override
-    public void test_lucene_reference_resolver_round_trip() throws Exception {
-        assumeTrue("Ignoring ObjectTypeTest until seed 1BEEC18BF09254DB:3F28A01480C26D50 is resolved", false);
     }
 
     @Test
