@@ -67,6 +67,7 @@ import io.crate.data.Row;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.data.breaker.RowAccounting;
 import io.crate.data.testing.BatchIteratorTester;
+import io.crate.data.testing.BatchIteratorTester.ResultOrder;
 import io.crate.data.testing.TestingRowConsumer;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
@@ -143,7 +144,7 @@ public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
                     () -> 1,
                     true
                 );
-            }
+            }, ResultOrder.EXACT
         );
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }

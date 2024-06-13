@@ -4007,7 +4007,26 @@ Example::
     +----------+
     SELECT 1 row in set (... sec)
     
-    
+.. NOTE::
+
+    For unknown tables:
+
+    - Returns ``TRUE`` for superusers.
+
+    - For a user with ``DQL`` on cluster scope, returns ``TRUE`` if the
+      privilege type is ``SELECT``.
+
+    - For a user with ``DML`` on cluster scope, returns ``TRUE`` if the
+      privilege type is ``INSERT``, ``UPDATE`` or ``DELETE``.
+
+    - For a user with ``DQL`` on the schema, returns ``TRUE`` if the privilege
+      type is ``SELECT``.
+
+    - For a user with ``DML`` on the schema, returns ``TRUE`` if the privilege
+      type is ``INSERT``, ``UPDATE`` or ``DELETE``.
+
+    - Returns ``FALSE`` otherwise.
+
 .. _scalar-pg_backend_pid:
 
 ``pg_backend_pid()``
@@ -4275,6 +4294,32 @@ Example:
     +------------------------+
     | TRUE                   |
     +------------------------+
+    SELECT 1 row in set (... sec)
+
+
+.. _scalar-pg_table_is_visible:
+
+``pg_table_is_visible()``
+-------------------------
+
+The function ``pg_table_is_visible`` accepts an OID as an argument. It returns
+``true`` if the current user holds at least one of ``DQL``, ``DDL`` or ``DML``
+privilege on the table or view referred by the OID and there are no other
+tables or views with the same name and privileges but with different schema
+names appearing earlier in the search path.
+
+Returns: ``boolean``
+
+Example:
+
+::
+
+    cr> select pg_table_is_visible(912037690) as is_visible;
+    +------------+
+    | is_visible |
+    +------------+
+    | TRUE       |
+    +------------+
     SELECT 1 row in set (... sec)
 
 

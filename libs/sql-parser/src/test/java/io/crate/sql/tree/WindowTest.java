@@ -21,15 +21,16 @@
 
 package io.crate.sql.tree;
 
-import org.junit.Test;
-
-import java.util.List;
-import java.util.Optional;
 
 import static io.crate.sql.tree.FrameBound.Type.CURRENT_ROW;
 import static io.crate.sql.tree.WindowFrame.Mode.RANGE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import java.util.List;
+import java.util.Optional;
+
+import org.junit.jupiter.api.Test;
 
 public class WindowTest {
 

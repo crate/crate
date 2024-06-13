@@ -69,7 +69,11 @@ import io.crate.analyze.AnalyzedInsertStatement;
 import io.crate.analyze.AnalyzedKill;
 import io.crate.analyze.AnalyzedOptimizeTable;
 import io.crate.analyze.AnalyzedPrivileges;
+import io.crate.analyze.AnalyzedPromoteReplica;
 import io.crate.analyze.AnalyzedRefreshTable;
+import io.crate.analyze.AnalyzedRerouteAllocateReplicaShard;
+import io.crate.analyze.AnalyzedRerouteCancelShard;
+import io.crate.analyze.AnalyzedRerouteMoveShard;
 import io.crate.analyze.AnalyzedRerouteRetryFailed;
 import io.crate.analyze.AnalyzedResetStatement;
 import io.crate.analyze.AnalyzedRestoreSnapshot;
@@ -146,6 +150,10 @@ public final class AccessControlImpl implements AccessControl {
     @Override
     public void ensureMayExecute(AnalyzedStatement statement) {
         if (!sessionUser.isSuperUser()) {
+            if (roles.findRole(sessionUser.name()) == null) {
+                // Check that user was not dropped in a meantime.
+                throw new IllegalStateException("User \"" + sessionUser.name() + "\" was dropped");
+            }
             statement.accept(
                 new StatementVisitor(
                     roles,
@@ -368,13 +376,7 @@ public final class AccessControlImpl implements AccessControl {
 
         @Override
         public Void visitAlterTable(AnalyzedAlterTable alterTable, Role user) {
-            Privileges.ensureUserHasPrivilege(
-                relationVisitor.roles,
-                user,
-                Permission.DDL,
-                Securable.TABLE,
-                alterTable.tableInfo().ident().toString()
-            );
+            ensureDDLOnTable(user, alterTable.tableInfo().ident().fqn());
             return null;
         }
 
@@ -496,13 +498,7 @@ public final class AccessControlImpl implements AccessControl {
 
         @Override
         public Void visitDropTable(AnalyzedDropTable<?> dropTable, Role user) {
-            Privileges.ensureUserHasPrivilege(
-                relationVisitor.roles,
-                user,
-                Permission.DDL,
-                Securable.TABLE,
-                dropTable.tableName().toString()
-            );
+            ensureDDLOnTable(user, dropTable.tableName().fqn());
             return null;
         }
 
@@ -546,13 +542,7 @@ public final class AccessControlImpl implements AccessControl {
 
         @Override
         public Void visitAnalyzedAlterTableRenameTable(AnalyzedAlterTableRenameTable analysis, Role user) {
-            Privileges.ensureUserHasPrivilege(
-                relationVisitor.roles,
-                user,
-                Permission.DDL,
-                Securable.TABLE,
-                analysis.sourceName().fqn()
-            );
+            ensureDDLOnTable(user, analysis.sourceName().fqn());
             return null;
         }
 
@@ -585,62 +575,32 @@ public final class AccessControlImpl implements AccessControl {
 
         @Override
         public Void visitAlterTableAddColumn(AnalyzedAlterTableAddColumn analysis, Role user) {
-            Privileges.ensureUserHasPrivilege(
-                relationVisitor.roles,
-                user,
-                Permission.DDL,
-                Securable.TABLE,
-                analysis.table().ident().toString()
-            );
+            ensureDDLOnTable(user, analysis.table().ident().fqn());
             return null;
         }
 
         @Override
         public Void visitAlterTableDropColumn(AnalyzedAlterTableDropColumn analysis, Role user) {
-            Privileges.ensureUserHasPrivilege(
-                relationVisitor.roles,
-                user,
-                Permission.DDL,
-                Securable.TABLE,
-                analysis.table().ident().toString()
-            );
+            ensureDDLOnTable(user, analysis.table().ident().fqn());
             return null;
         }
 
         @Override
         public Void visitAlterTableRenameColumn(AnalyzedAlterTableRenameColumn analysis, Role user) {
-            Privileges.ensureUserHasPrivilege(
-                relationVisitor.roles,
-                user,
-                Permission.DDL,
-                Securable.TABLE,
-                analysis.table().toString()
-            );
+            ensureDDLOnTable(user, analysis.table().fqn());
             return null;
         }
 
         @Override
         public Void visitAlterTableDropCheckConstraint(AnalyzedAlterTableDropCheckConstraint dropCheckConstraint,
-                                                      Role user) {
-            Privileges.ensureUserHasPrivilege(
-                relationVisitor.roles,
-                user,
-                Permission.DDL,
-                Securable.TABLE,
-                dropCheckConstraint.tableInfo().ident().toString()
-            );
+                                                       Role user) {
+            ensureDDLOnTable(user, dropCheckConstraint.tableInfo().ident().fqn());
             return null;
         }
 
         @Override
         public Void visitAnalyzedAlterTableOpenClose(AnalyzedAlterTableOpenClose analysis, Role user) {
-            Privileges.ensureUserHasPrivilege(
-                relationVisitor.roles,
-                user,
-                Permission.DDL,
-                Securable.TABLE,
-                analysis.tableInfo().ident().toString()
-            );
+            ensureDDLOnTable(user, analysis.tableInfo().ident().fqn());
             return null;
         }
 
@@ -804,6 +764,30 @@ public final class AccessControlImpl implements AccessControl {
         }
 
         @Override
+        protected Void visitRerouteMoveShard(AnalyzedRerouteMoveShard analysis, Role user) {
+            ensureDDLOnTable(user, analysis.shardedTable().ident().fqn());
+            return null;
+        }
+
+        @Override
+        protected Void visitRerouteAllocateReplicaShard(AnalyzedRerouteAllocateReplicaShard analysis, Role user) {
+            ensureDDLOnTable(user, analysis.shardedTable().ident().fqn());
+            return null;
+        }
+
+        @Override
+        protected Void visitRerouteCancelShard(AnalyzedRerouteCancelShard analysis, Role user) {
+            ensureDDLOnTable(user, analysis.shardedTable().ident().fqn());
+            return null;
+        }
+
+        @Override
+        public Void visitReroutePromoteReplica(AnalyzedPromoteReplica analysis, Role user) {
+            ensureDDLOnTable(user, analysis.shardedTable().ident().fqn());
+            return null;
+        }
+
+        @Override
         public Void visitDropView(AnalyzedDropView dropView, Role user) {
             for (RelationName name : dropView.views()) {
                 Privileges.ensureUserHasPrivilege(
@@ -830,13 +814,7 @@ public final class AccessControlImpl implements AccessControl {
         @Override
         public Void visitOptimizeTableStatement(AnalyzedOptimizeTable optimizeTable, Role user) {
             for (TableInfo table : optimizeTable.tables().values()) {
-                Privileges.ensureUserHasPrivilege(
-                    relationVisitor.roles,
-                    user,
-                    Permission.DDL,
-                    Securable.TABLE,
-                    table.ident().toString()
-                );
+                ensureDDLOnTable(user, table.ident().fqn());
             }
             return null;
         }
@@ -1021,6 +999,16 @@ public final class AccessControlImpl implements AccessControl {
                 );
             }
             return null;
+        }
+
+        private void ensureDDLOnTable(Role user, String tableFqn) {
+            Privileges.ensureUserHasPrivilege(
+                relationVisitor.roles,
+                user,
+                Permission.DDL,
+                Securable.TABLE,
+                tableFqn
+            );
         }
     }
 

@@ -189,11 +189,11 @@ public final class WhereClauseOptimizer {
         int clusterIdxWithinPK = table.primaryKey().indexOf(table.clusteredBy());
         final DocKeys docKeys;
         final boolean shouldUseDocKeys = table.isPartitioned() == false && (
-                DocSysColumns.ID.equals(table.clusteredBy()) || (
+                DocSysColumns.ID.COLUMN.equals(table.clusteredBy()) || (
                     table.primaryKey().size() == 1 && table.clusteredBy().equals(table.primaryKey().getFirst())));
 
         if (pkMatches.matches() == null && shouldUseDocKeys) {
-            pkMatches = eqExtractor.extractMatches(List.of(DocSysColumns.ID), optimizedCastsQuery, txnCtx);
+            pkMatches = eqExtractor.extractMatches(List.of(DocSysColumns.ID.COLUMN), optimizedCastsQuery, txnCtx);
         }
 
         if (pkMatches.matches() == null) {

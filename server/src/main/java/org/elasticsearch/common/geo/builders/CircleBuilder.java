@@ -19,17 +19,14 @@
 
 package org.elasticsearch.common.geo.builders;
 
+import java.util.Objects;
+
 import org.elasticsearch.common.geo.GeoShapeType;
-import org.elasticsearch.common.geo.parsers.ShapeParser;
 import org.elasticsearch.common.unit.DistanceUnit;
 import org.elasticsearch.common.unit.DistanceUnit.Distance;
 import org.elasticsearch.common.xcontent.ParseField;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.spatial4j.shape.Circle;
-
-import java.io.IOException;
-import java.util.Objects;
 
 public class CircleBuilder extends ShapeBuilder<Circle, CircleBuilder> {
 
@@ -128,16 +125,6 @@ public class CircleBuilder extends ShapeBuilder<Circle, CircleBuilder> {
      */
     public DistanceUnit unit() {
         return this.unit;
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject();
-        builder.field(ShapeParser.FIELD_TYPE.getPreferredName(), TYPE.shapeName());
-        builder.field(FIELD_RADIUS.getPreferredName(), unit.toString(radius));
-        builder.field(ShapeParser.FIELD_COORDINATES.getPreferredName());
-        toXContent(builder, center);
-        return builder.endObject();
     }
 
     @Override

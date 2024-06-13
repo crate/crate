@@ -203,13 +203,8 @@ public class LuceneQueryBuilder {
         }
 
         @Nullable
-        public Reference getRef(String field) {
-            try {
-                long oid = Long.parseLong(field);
-                return table.getReference(oid);
-            } catch (NumberFormatException ex) {
-                return getRef(ColumnIdent.fromPath(field));
-            }
+        public Reference getRef(String storageIdent) {
+            return table.getReference(storageIdent);
         }
 
         @Nullable
@@ -292,7 +287,7 @@ public class LuceneQueryBuilder {
                     if (ref.column().equals(DocSysColumns.UID)) {
                         return new Function(
                             function.signature(),
-                            List.of(DocSysColumns.forTable(ref.ident().tableIdent(), DocSysColumns.ID), right),
+                            List.of(DocSysColumns.forTable(ref.ident().tableIdent(), DocSysColumns.ID.COLUMN), right),
                             function.valueType()
                         );
                     } else {

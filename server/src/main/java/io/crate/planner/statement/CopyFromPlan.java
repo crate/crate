@@ -227,11 +227,11 @@ public final class CopyFromPlan implements Plan {
 
         // need to exclude _id columns; they're auto generated and won't be available in the files being imported
         ColumnIdent clusteredBy = table.clusteredBy();
-        if (DocSysColumns.ID.equals(clusteredBy)) {
+        if (DocSysColumns.ID.COLUMN.equals(clusteredBy)) {
             clusteredBy = null;
         }
         List<Reference> primaryKeyRefs = table.primaryKey().stream()
-            .filter(r -> !r.equals(DocSysColumns.ID))
+            .filter(r -> !r.equals(DocSysColumns.ID.COLUMN))
             .map(table::getReference)
             .collect(Collectors.toList());
 

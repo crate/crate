@@ -36,7 +36,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.crate.common.collections.Lists;
 import io.crate.sql.tree.ArrayLiteral;
@@ -488,17 +488,9 @@ public class TestSqlParser {
     }
 
     @Test
-    public void testStackOverflowExpression() {
-        assertThatThrownBy(
-            () -> SqlParser.createExpression(Lists.joinOn(" OR ", nCopies(6000, "x = y"), x -> x)))
-            .isExactlyInstanceOf(ParsingException.class)
-            .hasMessage("line 1:1: expression is too large (stack overflow while parsing)");
-    }
-
-    @Test
     public void testStackOverflowStatement() {
         assertThatThrownBy(
-            () -> SqlParser.createStatement("SELECT " + Lists.joinOn(" OR ", nCopies(6000, "x = y"), x -> x)))
+            () -> SqlParser.createStatement("SELECT " + Lists.joinOn(" OR ", nCopies(12000, "x = y"), x -> x)))
             .isExactlyInstanceOf(ParsingException.class)
             .hasMessage("line 1:1: statement is too large (stack overflow while parsing)");
     }

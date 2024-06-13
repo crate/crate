@@ -21,23 +21,24 @@
 
 package io.crate.sql.tree;
 
-import org.junit.Before;
-import org.junit.Test;
-
-import java.util.Comparator;
-import java.util.List;
 
 import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_PRECEDING;
 import static io.crate.sql.tree.WindowFrame.Mode.RANGE;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.Comparator;
+import java.util.List;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+
 public class UnboundedPrecedingFrameBoundTest {
 
     private List<Integer> partition;
     private Comparator<Integer> intComparator;
 
-    @Before
+    @BeforeEach
     public void setupPartitionAndComparator() {
         intComparator = Comparator.comparing(x -> x);
         partition = List.of(1, 2, 2);

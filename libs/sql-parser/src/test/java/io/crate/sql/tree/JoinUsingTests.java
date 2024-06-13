@@ -23,10 +23,10 @@ package io.crate.sql.tree;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
-
 import java.util.ArrayList;
 import java.util.List;
+
+import org.junit.jupiter.api.Test;
 
 public class JoinUsingTests {
 

@@ -57,6 +57,7 @@ import org.mockito.ArgumentCaptor;
 
 import io.crate.data.BatchIterator;
 import io.crate.data.testing.BatchIteratorTester;
+import io.crate.data.testing.BatchIteratorTester.ResultOrder;
 import io.crate.execution.engine.collect.files.FileReadingIterator.LineCursor;
 
 public class FileReadingIteratorTest extends ESTestCase {
@@ -130,7 +131,7 @@ public class FileReadingIteratorTest extends ESTestCase {
             "name,id,age",
             "Trillian,5,33"
         );
-        var tester = new BatchIteratorTester<>(() -> batchIteratorSupplier.get().map(LineCursor::line));
+        var tester = new BatchIteratorTester<>(() -> batchIteratorSupplier.get().map(LineCursor::line), ResultOrder.EXACT);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 
@@ -178,7 +179,7 @@ public class FileReadingIteratorTest extends ESTestCase {
                 }
             };
 
-        var tester = new BatchIteratorTester<>(() -> batchIteratorSupplier.get().map(LineCursor::line));
+        var tester = new BatchIteratorTester<>(() -> batchIteratorSupplier.get().map(LineCursor::line), ResultOrder.EXACT);
         tester.verifyResultAndEdgeCaseBehaviour(lines);
     }
 

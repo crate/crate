@@ -1,16 +1,10 @@
 .. _version_5.7.2:
 
-==========================
-Version 5.7.2 - Unreleased
-==========================
+=============
+Version 5.7.2
+=============
 
-
-.. comment 1. Remove the " - Unreleased" from the header above and adjust the ==
-.. comment 2. Remove the NOTE below and replace with: "Released on 20XX-XX-XX."
-.. comment    (without a NOTE entry, simply starting from col 1 of the line)
-.. NOTE::
-    In development. 5.7.2 isn't released yet. These are the release notes for
-    the upcoming release.
+Released on 2024-06-12.
 
 .. NOTE::
     If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
@@ -52,6 +46,26 @@ Security Fixes
 Fixes
 =====
 
+- Fixed an issue that prevented users with :ref:`DDL <privilege_types>`
+  privileges on table to execute
+  :ref:`ALTER TABLE t REROUTE... <ddl_reroute_shards>` statements.
+
+- Fixed an issue that could lead to requests getting stuck when trying to
+  download a blob via HTTPS.
+
+- Fixed an issue leading to slow query processing during the analysis phase,
+  when the ``WHERE``` clause of a query contains columns of a
+  :ref:`PRIMARY KEY <constraints-primary-key>` and combines them using complex
+  logical expressions, e.g.::
+
+      SELECT * FROM t WHERE pk_col1 = ? AND pk_col2 = ? OR
+                            pk_col1 = ? AND pk_col2 = ? OR
+                            ...
+
+- Fixed an issue leading to a ``UnsupportedFeatureException`` when using a
+  correlated sub-query in a case function as part of a select statement where
+  some of its outputs weren't used in the outer-query.
+
 - Fixed an issue leading to a ``ArrayIndexOutOfBoundsException``  instead of a
   user friendly error message when the ``WHERE``` clause of a query contains
   all columns of a :ref:`PRIMARY KEY <constraints-primary-key>`, uses
@@ -85,3 +99,23 @@ Fixes
 
 - Fixed an issue that could lead to out-of-memory errors when executing
   ``lead`` or ``lag`` window functions on a large table.
+
+- Fixed an issue that could lead to errors when loading data from geo_point
+  fields inside nested arrays.
+
+- Fixed an issue that caused ``SQLParseException`` when the results returned
+  from foreign tables could not be casted to CrateDB specific data types.
+
+- Fixed an issue that allowed dropped users to run queries if active user was
+  set by ``SET SESSION AUTHORIZATION`` and then dropped.
+
+- Fixed an issue leading to authentication errors when
+  :ref:`Host-Based Authentication <admin_hba>` was enabled and had entries
+  matching multiple authentication methods simultaneously, e.g.::
+
+    auth.host_based.config.1.method=password
+    auth.host_based.config.2.method=jwt
+    auth.host_based.config.2.protocol=http
+
+  This example configuration were rejecting authentication via JWT as only
+  the first entry was checked.

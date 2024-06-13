@@ -37,11 +37,9 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.SequenceIDFields;
-import org.elasticsearch.index.mapper.TextFieldMapper;
 import org.elasticsearch.index.mapper.Uid;
 
 import io.crate.expression.reference.doc.lucene.SourceParser;
@@ -105,7 +103,7 @@ public class TranslogIndexer {
             doc.add(new StoredField("_source", source.toBytesRef()));
 
             BytesRef idBytes = Uid.encodeId(id);
-            doc.add(new Field(DocSysColumns.Names.ID, idBytes, IdFieldMapper.Defaults.FIELD_TYPE));
+            doc.add(new Field(DocSysColumns.Names.ID, idBytes, DocSysColumns.ID.FIELD_TYPE));
 
             SequenceIDFields seqID = SequenceIDFields.emptySeqID();
             // Actual values are set via ParsedDocument.updateSeqID
@@ -195,7 +193,7 @@ public class TranslogIndexer {
     }
 
     private static void addIndexField(Document doc, String field, Object value) {
-        doc.add(new Field(field, value.toString(), TextFieldMapper.Defaults.FIELD_TYPE));
+        doc.add(new Field(field, value.toString(), FulltextIndexer.FIELD_TYPE));
     }
 
 }

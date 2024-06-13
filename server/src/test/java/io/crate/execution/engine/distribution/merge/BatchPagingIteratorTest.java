@@ -45,6 +45,7 @@ import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.data.testing.BatchIteratorTester;
+import io.crate.data.testing.BatchIteratorTester.ResultOrder;
 import io.crate.data.testing.BatchSimulatingIterator;
 import io.crate.data.testing.RowGenerator;
 import io.crate.data.testing.TestingBatchIterators;
@@ -79,7 +80,7 @@ public class BatchPagingIteratorTest {
                 () -> true,
                 throwable -> {}
             );
-        });
+        }, ResultOrder.EXACT);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 
@@ -130,7 +131,7 @@ public class BatchPagingIteratorTest {
                 }
             );
         };
-        var tester = BatchIteratorTester.forRows(batchIteratorSupplier);
+        var tester = BatchIteratorTester.forRows(batchIteratorSupplier, ResultOrder.EXACT);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 

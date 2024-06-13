@@ -42,7 +42,6 @@ import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.MergeSchedulerConfig;
 import org.elasticsearch.index.engine.EngineConfig;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.store.Store;
 
 import io.crate.blob.v2.BlobIndicesService;
@@ -50,6 +49,7 @@ import io.crate.common.annotations.Immutable;
 import io.crate.common.annotations.ThreadSafe;
 import io.crate.common.collections.MapBuilder;
 import io.crate.common.unit.TimeValue;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.NumberOfReplicas;
 import io.crate.metadata.settings.Validators;
 import io.crate.sql.tree.ColumnPolicy;
@@ -94,7 +94,7 @@ public class TableParameters {
             IndexSettings.INDEX_TRANSLOG_SYNC_INTERVAL_SETTING,
             IndexSettings.INDEX_TRANSLOG_DURABILITY_SETTING,
             ShardsLimitAllocationDecider.INDEX_TOTAL_SHARDS_PER_NODE_SETTING,
-            MapperService.INDEX_MAPPING_TOTAL_FIELDS_LIMIT_SETTING,
+            DocTableInfo.TOTAL_COLUMNS_LIMIT,
             UnassignedInfo.INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING,
             IndexMetadata.SETTING_WAIT_FOR_ACTIVE_SHARDS,
             MaxRetryAllocationDecider.SETTING_ALLOCATION_MAX_RETRY,

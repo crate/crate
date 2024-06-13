@@ -46,7 +46,7 @@ public class SysNodeChecks implements SysRowUpdater<SysNodeCheck>, Iterable<SysN
 
     @Inject
     public SysNodeChecks(Map<Integer, SysNodeCheck> checks, Coordinator coordinator, ClusterService clusterService) {
-        this.checks = new HashMap<>(checks.size());
+        this.checks = HashMap.newHashMap(checks.size());
         // we need to wait for the discovery to finish to have a local node id
         coordinator.addLifecycleListener(new LifecycleListener() {
             @Override

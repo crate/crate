@@ -45,16 +45,24 @@ public class NestedArrayTypeTest extends DataTypeTestCase<List<List<Object>>> {
 
     @Override
     @SuppressWarnings("unchecked")
+    protected DataDef<List<List<Object>>> getDataDef() {
+        // Exclude float vectors and objects - we don't support arrays of float vector,
+        // and arrays of objects aren't currently handled by data generation code; these
+        // are tested in ObjectTypeTest instead.
+        DataType<Object> randomType = (DataType<Object>) DataTypeTesting.randomTypeExcluding(
+            Set.of(FloatVectorType.INSTANCE_ONE, ObjectType.UNTYPED)
+        );
+        DataType<List<List<Object>>> type = new ArrayType<>(new ArrayType<>(randomType));
+        return new DataDef<>(type, type.getTypeSignature().toString(), DataTypeTesting.getDataGenerator(type));
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
     public DataType<List<List<Object>>> getType() {
         DataType<Object> randomType = (DataType<Object>) DataTypeTesting.randomTypeExcluding(
             Set.of(FloatVectorType.INSTANCE_ONE)
         );
         return new ArrayType<>(new ArrayType<>(randomType));
-    }
-
-    @Override
-    protected boolean supportsDocValues() {
-        return false;
     }
 
     @Test

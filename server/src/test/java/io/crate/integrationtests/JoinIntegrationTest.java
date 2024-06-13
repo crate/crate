@@ -1336,14 +1336,14 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("EXPLAIN (COSTS FALSE)" + stmt);
         assertThat(response).hasLines(
                 "Eval[id, reference]",
-                "  └ NestedLoopJoin[LEFT | ((cluster_id = id) AND (kind = 'bar'))]",
+                "  └ NestedLoopJoin[LEFT | (cluster_id = id)]",
                 "    ├ HashJoin[(cluster_id = id)]",
                 "    │  ├ HashJoin[(subscription_id = id)]",
                 "    │  │  ├ Collect[doc.t3 | [id, reference] | (reference = 'bazinga')]",
                 "    │  │  └ Collect[doc.t1 | [subscription_id, id] | true]",
                 "    │  └ Collect[doc.t2 | [cluster_id] | (kind = 'bar')]",
-                "    └ Rename[cluster_id, kind] AS temp",
-                "      └ Collect[doc.t2 | [cluster_id, kind] | true]"
+                "    └ Rename[cluster_id] AS temp",
+                "      └ Collect[doc.t2 | [cluster_id] | (kind = 'bar')]"
         );
 
         execute(stmt);
@@ -1437,13 +1437,12 @@ public class JoinIntegrationTest extends IntegTestCase {
 
         execute("explain (costs false)" + stmt);
         assertThat(response).hasLines(
-                "Eval[x, x, x]",
-                "  └ OrderBy[x ASC]",
-                "    └ HashJoin[(x = x)]",
-                "      ├ HashJoin[(x = x)]",
-                "      │  ├ Collect[doc.j2 | [x] | true]",
-                "      │  └ Collect[doc.j3 | [x] | true]",
-                "      └ Collect[doc.j1 | [x] | true]"
+                "OrderBy[x ASC]",
+                "  └ HashJoin[(x = x)]",
+                "    ├ HashJoin[(x = x)]",
+                "    │  ├ Collect[doc.j1 | [x] | true]",
+                "    │  └ Collect[doc.j2 | [x] | true]",
+                "    └ Collect[doc.j3 | [x] | true]"
         );
 
         execute(stmt);
@@ -1625,12 +1624,11 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("explain (costs false) " + stmt);
 
         assertThat(response).hasLines(
-            "Eval[a, x, b, y, c]",
-                "  └ HashJoin[((c = b) AND ((a = b) AND (x = y)))]",
-                "    ├ HashJoin[(c = a)]",
-                "    │  ├ Collect[doc.t3 | [c] | true]",
-                "    │  └ Collect[doc.t1 | [a, x] | true]",
-                "    └ Collect[doc.t2 | [b, y] | true]"
+            "HashJoin[((c = a) AND (c = b))]",
+            "  ├ HashJoin[((a = b) AND (x = y))]",
+            "  │  ├ Collect[doc.t1 | [a, x] | true]",
+            "  │  └ Collect[doc.t2 | [b, y] | true]",
+            "  └ Collect[doc.t3 | [c] | true]"
         );
 
         execute(stmt);

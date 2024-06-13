@@ -19,12 +19,20 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.lucene;
+package org.elasticsearch.common.network;
 
-import org.elasticsearch.index.mapper.MappedFieldType;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
-@FunctionalInterface
-public interface FieldTypeLookup {
+public interface DnsResolver {
 
-    MappedFieldType get(String fullColumnName);
+    public static final DnsResolver SYSTEM = new DnsResolver() {
+
+        @Override
+        public InetAddress[] resolve(String host) throws UnknownHostException {
+            return InetAddress.getAllByName(host);
+        }
+    };
+
+    InetAddress[] resolve(String host) throws UnknownHostException;
 }

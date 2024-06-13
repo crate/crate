@@ -38,12 +38,12 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.mapper.TextFieldMapper;
 import org.elasticsearch.indices.analysis.AnalysisModule;
 import org.elasticsearch.indices.analysis.AnalysisModule.AnalysisProvider;
 import org.elasticsearch.indices.analysis.PreBuiltAnalyzers;
 
 import io.crate.common.io.IOUtils;
+import io.crate.types.StringType;
 
 /**
  * An internal registry for tokenizer, token filter, char filter and analyzer.
@@ -486,14 +486,6 @@ public final class AnalysisRegistry implements Closeable {
             processAnalyzerFactory(indexSettings, "default", new StandardAnalyzerProvider(indexSettings, null, "default", Settings.Builder.EMPTY_SETTINGS),
                 analyzers, tokenFilterFactoryFactories, charFilterFactoryFactories, tokenizerFactoryFactories);
         }
-        if (!analyzers.containsKey("default_search")) {
-            analyzers.put("default_search", analyzers.get("default"));
-        }
-        if (!analyzers.containsKey("default_search_quoted")) {
-            analyzers.put("default_search_quoted", analyzers.get("default_search"));
-        }
-
-
         Index index = indexSettings.getIndex();
         NamedAnalyzer defaultAnalyzer = analyzers.get("default");
         if (defaultAnalyzer == null) {
@@ -505,8 +497,6 @@ public final class AnalysisRegistry implements Closeable {
                 "use [index.analysis.analyzer.default] instead for index [" + index.getName() + "]");
         }
         NamedAnalyzer defaultIndexAnalyzer = analyzers.containsKey("default_index") ? analyzers.get("default_index") : defaultAnalyzer;
-        NamedAnalyzer defaultSearchAnalyzer = analyzers.containsKey("default_search") ? analyzers.get("default_search") : defaultAnalyzer;
-        NamedAnalyzer defaultSearchQuoteAnalyzer = analyzers.containsKey("default_search_quote") ? analyzers.get("default_search_quote") : defaultSearchAnalyzer;
 
         for (Map.Entry<String, NamedAnalyzer> analyzer : analyzers.entrySet()) {
             if (analyzer.getKey().startsWith("_")) {
@@ -516,8 +506,6 @@ public final class AnalysisRegistry implements Closeable {
         return new IndexAnalyzers(
             indexSettings,
             defaultIndexAnalyzer,
-            defaultSearchAnalyzer,
-            defaultSearchQuoteAnalyzer,
             analyzers,
             normalizers,
             whitespaceNormalizers
@@ -537,7 +525,7 @@ public final class AnalysisRegistry implements Closeable {
          * and 100 afterwards so we override the positionIncrementGap if it
          * doesn't match here.
          */
-        int overridePositionIncrementGap = TextFieldMapper.Defaults.POSITION_INCREMENT_GAP;
+        int overridePositionIncrementGap = StringType.POSITION_INCREMENT_GAP;
         if (analyzerFactory instanceof CustomAnalyzerProvider customAnalyzerProvider) {
             customAnalyzerProvider.build(tokenizers, charFilters, tokenFilters);
             /*

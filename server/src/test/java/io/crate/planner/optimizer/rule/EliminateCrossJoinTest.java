@@ -23,7 +23,6 @@ package io.crate.planner.optimizer.rule;
 
 import static io.crate.common.collections.Iterables.getOnlyElement;
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 import java.util.function.UnaryOperator;
@@ -46,7 +45,6 @@ import io.crate.metadata.table.Operation;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.JoinPlan;
-import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.Order;
 import io.crate.planner.operators.Rename;
 import io.crate.planner.operators.Union;
@@ -178,9 +176,8 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
             "  └ Collect[doc.a | [x] | true]"
         );
 
-        List<LogicalPlan> invalidOrder = List.of(a, c, b);
-        assertThatThrownBy(() -> EliminateCrossJoin.reorder(joinGraph, invalidOrder))
-            .hasMessage("JoinPlan cannot be built with the provided order [doc.a, doc.c, doc.b]");
+        var invalidOrder = EliminateCrossJoin.reorder(joinGraph, List.of(a, c, b));
+        assertThat(invalidOrder).isNull();
     }
 
     @Test

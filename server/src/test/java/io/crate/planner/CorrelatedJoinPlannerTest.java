@@ -131,7 +131,7 @@ public class CorrelatedJoinPlannerTest extends CrateDummyClusterServiceUnitTest 
         );
         CorrelatedJoin join = new CorrelatedJoin(collect, selectSymbol, null);
         assertThat(join.outputs()).containsExactly(a, b, selectSymbol);
-        LogicalPlan pruned = join.pruneOutputsExcept(List.of(selectSymbol));
+        LogicalPlan pruned = join.pruneOutputsExcept(List.of(b, selectSymbol));
         assertThat(pruned.outputs())
             .as("removes unused a")
             .containsExactly(b, selectSymbol);

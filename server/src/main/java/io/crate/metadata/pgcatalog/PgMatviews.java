@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,41 +19,28 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package org.elasticsearch.index.mapper;
+package io.crate.metadata.pgcatalog;
 
-import org.elasticsearch.index.analysis.NamedAnalyzer;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.SystemTable;
+import io.crate.types.DataTypes;
 
-class ArrayFieldType extends MappedFieldType {
+public class PgMatviews {
+    public static final RelationName NAME = new RelationName(PgCatalogSchemaInfo.NAME, "pg_matviews");
 
-    private final MappedFieldType innerFieldType;
+    private PgMatviews() {}
 
-    ArrayFieldType(MappedFieldType innerFieldType) {
-        super(innerFieldType.name(), innerFieldType.isSearchable(), innerFieldType.hasDocValues());
-        this.innerFieldType = innerFieldType;
+    public static SystemTable<Void> create() {
+        // https://www.postgresql.org/docs/current/view-pg-matviews.html
+        return SystemTable.<Void>builder(NAME)
+            .add("schemaname", DataTypes.STRING, c -> null)
+            .add("matviewname", DataTypes.STRING, c -> null)
+            .add("matviewowner", DataTypes.STRING, c -> null)
+            .add("tablespace", DataTypes.STRING, c -> null)
+            .add("hasindexes", DataTypes.BOOLEAN, c -> null)
+            .add("ispopulated", DataTypes.BOOLEAN, c -> null)
+            .add("definition", DataTypes.STRING, c -> null)
+            .build();
     }
 
-    @Override
-    public String name() {
-        return innerFieldType.name();
-    }
-
-    @Override
-    public String typeName() {
-        return ArrayMapper.CONTENT_TYPE;
-    }
-
-    @Override
-    public boolean hasDocValues() {
-        return innerFieldType.hasDocValues();
-    }
-
-    @Override
-    public NamedAnalyzer indexAnalyzer() {
-        return innerFieldType.indexAnalyzer();
-    }
-
-    @Override
-    public void setIndexAnalyzer(NamedAnalyzer analyzer) {
-        innerFieldType.setIndexAnalyzer(analyzer);
-    }
 }

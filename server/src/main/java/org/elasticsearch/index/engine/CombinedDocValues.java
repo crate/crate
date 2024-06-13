@@ -21,14 +21,13 @@
 
 package org.elasticsearch.index.engine;
 
-import org.apache.lucene.index.LeafReader;
-import org.apache.lucene.index.NumericDocValues;
-import org.elasticsearch.index.mapper.SourceFieldMapper;
-
-import io.crate.metadata.doc.DocSysColumns;
-
 import java.io.IOException;
 import java.util.Objects;
+
+import org.apache.lucene.index.LeafReader;
+import org.apache.lucene.index.NumericDocValues;
+
+import io.crate.metadata.doc.DocSysColumns;
 
 final class CombinedDocValues {
     private final NumericDocValues versionDV;
@@ -43,7 +42,7 @@ final class CombinedDocValues {
         this.primaryTermDV = Objects.requireNonNull(
             leafReader.getNumericDocValues(DocSysColumns.Names.PRIMARY_TERM), "PrimaryTermDV is missing");
         this.tombstoneDV = leafReader.getNumericDocValues(DocSysColumns.Names.TOMBSTONE);
-        this.recoverySource = leafReader.getNumericDocValues(SourceFieldMapper.RECOVERY_SOURCE_NAME);
+        this.recoverySource = leafReader.getNumericDocValues(DocSysColumns.Source.RECOVERY_NAME);
     }
 
     long docVersion(int segmentDocId) throws IOException {

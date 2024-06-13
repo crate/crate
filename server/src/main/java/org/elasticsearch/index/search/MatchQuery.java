@@ -56,7 +56,6 @@ import org.elasticsearch.common.logging.DeprecationLogger;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.lucene.search.MultiPhrasePrefixQuery;
 import org.elasticsearch.common.unit.Fuzziness;
-import org.elasticsearch.index.mapper.MappedFieldType;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.lucene.DisableGraphAttribute;
@@ -69,7 +68,7 @@ import io.crate.metadata.Reference;
 
 public class MatchQuery {
 
-    private static final DeprecationLogger DEPRECATION_LOGGER = new DeprecationLogger(LogManager.getLogger(MappedFieldType.class));
+    private static final DeprecationLogger DEPRECATION_LOGGER = new DeprecationLogger(LogManager.getLogger(MatchQuery.class));
     static final float DEFAULT_BOOST = 1.0f;
 
     public enum Type {

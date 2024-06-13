@@ -20,10 +20,10 @@
 package org.elasticsearch.common.blobstore.url;
 
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 
-import org.apache.http.client.utils.URIBuilder;
 import org.elasticsearch.common.blobstore.BlobContainer;
 import org.elasticsearch.common.blobstore.BlobPath;
 import org.elasticsearch.common.blobstore.BlobStore;
@@ -107,9 +107,12 @@ public class URLBlobStore implements BlobStore {
         if (paths.length == 0) {
             return path();
         }
-        return new URIBuilder(this.path.toURI())
-            .setPathSegments(paths)
-            .build()
-            .toURL();
+        URI blobPath = this.path.toURI().resolve(paths[0] + "/");
+        if (paths.length > 1) {
+            for (int i = 1; i < paths.length; i++) {
+                blobPath = blobPath.resolve(paths[i] + "/");
+            }
+        }
+        return blobPath.toURL();
     }
 }

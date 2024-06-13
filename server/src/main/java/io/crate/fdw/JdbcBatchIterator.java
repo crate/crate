@@ -21,12 +21,15 @@
 
 package io.crate.fdw;
 
+import static io.crate.types.ResultSetParser.getObject;
+
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.List;
@@ -168,7 +171,8 @@ public class JdbcBatchIterator implements BatchIterator<Row> {
             if (resultSet.next()) {
                 for (int i = 0; i < columns.size(); i ++) {
                     Reference ref = columns.get(i);
-                    Object object = resultSet.getObject(i + 1);
+                    ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
+                    Object object = getObject(resultSet, i, resultSetMetaData.getColumnTypeName(i + 1));
                     try {
                         cells[i] = ref.valueType().implicitCast(object);
                     } catch (ClassCastException | IllegalArgumentException e) {
@@ -262,7 +266,7 @@ public class JdbcBatchIterator implements BatchIterator<Row> {
                 sb.append(quoteString);
             }
             sb.append(quoteString);
-            sb.append(Identifiers.escape(column.name()));
+            sb.append(Identifiers.escape(column.sqlFqn()));
             sb.append(quoteString);
             return sb.toString();
         }

@@ -334,7 +334,7 @@ public class ProjectionToProjectorVisitor
         return new GroupingProjector(
             projection.keys(),
             keyInputs,
-            Iterables.toArray(ctx.expressions(), CollectExpression.class),
+            ctx.expressions().toArray(CollectExpression[]::new),
             projection.mode(),
             ctx.aggregations().toArray(new AggregationContext[0]),
             context.ramAccounting,

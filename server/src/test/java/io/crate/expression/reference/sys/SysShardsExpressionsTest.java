@@ -62,7 +62,6 @@ import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.expression.NestableInput;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.reference.sys.shard.ShardRowContext;
-import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.NodeContext;
@@ -92,19 +91,12 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
     public void prepare() {
         NodeContext nodeCtx = createNodeContext();
         indexShard = mockIndexShard();
-        UserDefinedFunctionService udfService = new UserDefinedFunctionService(
-            clusterService,
-            new DocTableInfoFactory(nodeCtx),
-            nodeCtx
-        );
         schemas = new Schemas(
             Map.of("sys", new SysSchemaInfo(this.clusterService, List::of)),
             clusterService,
             new DocSchemaInfoFactory(
                 new DocTableInfoFactory(nodeCtx),
-                new ViewInfoFactory(() -> new RelationAnalyzer(nodeCtx)),
-                nodeCtx,
-                udfService
+                new ViewInfoFactory(() -> new RelationAnalyzer(nodeCtx))
             ),
             List::of
         );

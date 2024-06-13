@@ -31,12 +31,11 @@ import org.apache.lucene.document.BinaryDocValuesField;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.KnnFloatVectorField;
+import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.VectorEncoding;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
-import org.elasticsearch.index.mapper.FloatVectorFieldMapper;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -45,16 +44,25 @@ import io.crate.execution.dml.Indexer.Synthetic;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.types.FloatVectorType;
 
 public class FloatVectorIndexer implements ValueIndexer<float[]> {
+
+    public static final FieldType FIELD_TYPE = new FieldType();
+
+    static {
+        FIELD_TYPE.setIndexOptions(IndexOptions.NONE);
+        FIELD_TYPE.setStored(false);
+        FIELD_TYPE.freeze();
+    }
 
     final FieldType fieldType;
     private final String name;
     private final Reference ref;
 
     public FloatVectorIndexer(Reference ref) {
-        this.fieldType = new FieldType(FloatVectorFieldMapper.Defaults.FIELD_TYPE);
+        this.fieldType = new FieldType(FIELD_TYPE);
         this.fieldType.setVectorAttributes(
             ref.valueType().characterMaximumLength(),
             VectorEncoding.FLOAT32,
@@ -113,9 +121,9 @@ public class FloatVectorIndexer implements ValueIndexer<float[]> {
             addField.accept(field);
         } else {
             addField.accept(new Field(
-                FieldNamesFieldMapper.NAME,
+                DocSysColumns.FieldNames.NAME,
                 fqn,
-                FieldNamesFieldMapper.Defaults.FIELD_TYPE));
+                DocSysColumns.FieldNames.FIELD_TYPE));
         }
     }
 }

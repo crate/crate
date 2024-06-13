@@ -79,11 +79,12 @@ public class SqlExpressions {
                           @Nullable FieldResolver fieldResolver,
                           Role sessionUser,
                           List<Role> additionalUsers,
-                          Schemas schemas) {
+                          Schemas schemas,
+                          String... searchPaths) {
         this.nodeCtx = createNodeContext(schemas, Lists.concat(additionalUsers, sessionUser));
         // In test_throws_error_when_user_is_not_found we explicitly inject null user but SessionContext user cannot be not null.
         Role role = sessionUser == null ? Role.CRATE_USER : sessionUser;
-        var sessionSettings = new CoordinatorSessionSettings(role, role, LoadedRules.INSTANCE.disabledRules());
+        var sessionSettings = new CoordinatorSessionSettings(role, role, LoadedRules.INSTANCE.disabledRules(), searchPaths);
         coordinatorTxnCtx = new CoordinatorTxnCtx(sessionSettings);
         expressionAnalyzer = new ExpressionAnalyzer(
             coordinatorTxnCtx,

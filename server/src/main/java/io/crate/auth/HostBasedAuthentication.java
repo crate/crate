@@ -21,27 +21,29 @@
 
 package io.crate.auth;
 
-import org.jetbrains.annotations.VisibleForTesting;
-import io.crate.role.Roles;
-import io.crate.protocols.postgres.ConnectionProperties;
-import org.apache.http.conn.DnsResolver;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.network.Cidrs;
-import org.elasticsearch.common.network.InetAddresses;
-import org.elasticsearch.common.settings.Settings;
-
-import org.jetbrains.annotations.Nullable;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.function.Supplier;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.network.Cidrs;
+import org.elasticsearch.common.network.DnsResolver;
+import org.elasticsearch.common.network.InetAddresses;
+import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
+
+import io.crate.protocols.postgres.ConnectionProperties;
+import io.crate.role.Roles;
 
 
 public class HostBasedAuthentication implements Authentication {
@@ -172,6 +174,7 @@ public class HostBasedAuthentication implements Authentication {
             .filter(e -> Matchers.isValidAddress(e.getValue().get(KEY_ADDRESS), connectionProperties.address(), dnsResolver))
             .filter(e -> Matchers.isValidProtocol(e.getValue().get(KEY_PROTOCOL), connectionProperties.protocol()))
             .filter(e -> Matchers.isValidConnection(e.getValue().get(SSL.KEY), connectionProperties))
+            .filter(e -> Matchers.isValidMethod(e.getValue().get(KEY_METHOD), connectionProperties.clientMethods()))
             .findFirst();
     }
 
@@ -240,6 +243,22 @@ public class HostBasedAuthentication implements Authentication {
                 case NEVER -> !connectionProperties.hasSSL();
                 case REQUIRED -> connectionProperties.hasSSL();
             };
+        }
+
+        /**
+         * Last Matcher in the chain.
+         * @param method can be null and in this case we return true so that we can fall back to trust later.
+         */
+        static boolean isValidMethod(@Nullable String method, List<ConnectionProperties.ClientMethod> clientMethods) {
+            if (method == null) {
+                return true;
+            }
+            for (ConnectionProperties.ClientMethod clientMethod: clientMethods) {
+                if (clientMethod.toString().equalsIgnoreCase(method)) {
+                    return true;
+                }
+            }
+            return false;
         }
 
         static long inetAddressToInt(InetAddress address) {

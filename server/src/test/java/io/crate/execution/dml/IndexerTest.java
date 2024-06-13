@@ -22,14 +22,14 @@
 package io.crate.execution.dml;
 
 import static io.crate.testing.Asserts.assertThat;
+import static io.crate.types.GeoShapeType.Names.TREE_BKD;
+import static io.crate.types.GeoShapeType.Names.TREE_GEOHASH;
+import static io.crate.types.GeoShapeType.Names.TREE_LEGACY_QUADTREE;
+import static io.crate.types.GeoShapeType.Names.TREE_QUADTREE;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
-import static org.elasticsearch.index.mapper.GeoShapeFieldMapper.Names.TREE_BKD;
-import static org.elasticsearch.index.mapper.GeoShapeFieldMapper.Names.TREE_GEOHASH;
-import static org.elasticsearch.index.mapper.GeoShapeFieldMapper.Names.TREE_LEGACY_QUADTREE;
-import static org.elasticsearch.index.mapper.GeoShapeFieldMapper.Names.TREE_QUADTREE;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -49,15 +49,9 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.elasticsearch.index.MapperTestUtils;
-import org.elasticsearch.index.mapper.DocumentMapper;
-import org.elasticsearch.index.mapper.DocumentMapperParser;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -142,26 +136,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 XContentBuilder.builder(JsonXContent.JSON_XCONTENT)
                         .map(sourceMap(parsedDocument, tableInfo))
         );
-    }
-
-    /**
-     * create index with type and mapping and validate DocumentMapper serialization
-     */
-    public static DocumentMapper mapper(String indexName, String mapping) throws IOException {
-        MapperService mapperService = MapperTestUtils.newMapperService(
-            createTempDir(),
-            Settings.EMPTY,
-            indexName
-        );
-        DocumentMapperParser parser = mapperService.documentMapperParser();
-
-        DocumentMapper defaultMapper = parser.parse(new CompressedXContent(mapping));
-        XContentBuilder builder = JsonXContent.builder();
-        builder.startObject();
-        defaultMapper.toXContent(builder, ToXContent.EMPTY_PARAMS);
-        builder.endObject();
-        String rebuildMapping = Strings.toString(builder);
-        return parser.parse(new CompressedXContent(rebuildMapping));
     }
 
     @Test
@@ -719,10 +693,10 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
         DocTableInfo table = e.resolveTableInfo("tbl");
         try (var indexEnv = new IndexEnv(
+                e.nodeCtx,
                 THREAD_POOL,
                 table,
-                clusterService.state(),
-                Version.CURRENT)) {
+                clusterService.state(), Version.CURRENT)) {
 
             Indexer indexer = new Indexer(
                 table.ident().indexNameOrAlias(),

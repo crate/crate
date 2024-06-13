@@ -164,8 +164,7 @@ public class FunctionsTest extends ESTestCase {
             DataTypes.STRING.getTypeSignature(),
             DataTypes.INTEGER.getTypeSignature()
         );
-        functions.registerUdfFunctionImplementationsForSchema(
-            "schema2",
+        functions.setUDFs(
             Map.of(
                 new FunctionName("schema2", "foo"),
                 List.of(new FunctionProvider(signature, (sig, args) -> new DummyFunction(sig)))

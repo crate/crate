@@ -26,11 +26,8 @@ import java.util.Collections;
 import java.util.Map;
 
 import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.metadata.Metadata;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.expression.udf.UserDefinedFunctionService;
-import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.metadata.SystemTable;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
@@ -46,11 +43,9 @@ public final class PgCatalogSchemaInfo implements SchemaInfo {
 
     public static final String NAME = "pg_catalog";
     private final Map<String, TableInfo> tableInfoMap;
-    private final UserDefinedFunctionService udfService;
     private final SystemTable<PgClassTable.Entry> pgClassTable;
 
-    public PgCatalogSchemaInfo(UserDefinedFunctionService udfService, TableStats tableStats, Roles roles) {
-        this.udfService = udfService;
+    public PgCatalogSchemaInfo(TableStats tableStats, Roles roles) {
         this.pgClassTable = PgClassTable.create(tableStats);
         tableInfoMap = Map.<String, TableInfo>ofEntries(
             Map.entry(PgStatsTable.NAME.name(), PgStatsTable.create()),
@@ -81,7 +76,8 @@ public final class PgCatalogSchemaInfo implements SchemaInfo {
             Map.entry(PgViewsTable.IDENT.name(), PgViewsTable.create()),
             Map.entry(PgCursors.IDENT.name(), PgCursors.create()),
             Map.entry(PgEventTrigger.NAME.name(), PgEventTrigger.create()),
-            Map.entry(PgDepend.NAME.name(), PgDepend.create())
+            Map.entry(PgDepend.NAME.name(), PgDepend.create()),
+            Map.entry(PgMatviews.NAME.name(), PgMatviews.create())
         );
     }
 
@@ -101,10 +97,6 @@ public final class PgCatalogSchemaInfo implements SchemaInfo {
     }
 
     @Override
-    public void invalidateTableCache(String tableName) {
-    }
-
-    @Override
     public void close() throws Exception {
     }
 
@@ -113,7 +105,6 @@ public final class PgCatalogSchemaInfo implements SchemaInfo {
         return tableInfoMap.values();
     }
 
-
     @Override
     public Iterable<ViewInfo> getViews() {
         return Collections.emptyList();
@@ -121,14 +112,5 @@ public final class PgCatalogSchemaInfo implements SchemaInfo {
 
     @Override
     public void update(ClusterChangedEvent event) {
-        assert event.metadataChanged() : "metadataChanged must be true if update is called";
-        Metadata newMetadata = event.state().metadata();
-        // re register UDFs for this schema
-        UserDefinedFunctionsMetadata udfMetadata = newMetadata.custom(UserDefinedFunctionsMetadata.TYPE);
-        if (udfMetadata != null) {
-            udfService.updateImplementations(
-                NAME,
-                udfMetadata.functionsMetadata().stream().filter(f -> NAME.equals(f.schema())));
-        }
     }
 }

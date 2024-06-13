@@ -29,13 +29,11 @@ import static org.junit.Assert.assertThat;
 import java.util.List;
 
 import org.junit.Test;
-import org.junit.jupiter.api.Assertions;
 
 import io.crate.analyze.FunctionArgumentDefinition;
 import io.crate.exceptions.UserDefinedFunctionAlreadyExistsException;
 import io.crate.exceptions.UserDefinedFunctionUnknownException;
 import io.crate.metadata.Schemas;
-import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 
 public class UserDefinedFunctionServiceTest extends UdfUnitTest {
@@ -116,58 +114,47 @@ public class UserDefinedFunctionServiceTest extends UdfUnitTest {
 
     @Test
     public void test_validate_table_while_dropping_udf() throws Exception {
-        UserDefinedFunctionsMetadata metadataWithoutFunction = UserDefinedFunctionsMetadata.of();
-        SQLExecutor executor = SQLExecutor.of(clusterService)
+        sqlExecutor
             .addUDFLanguage(DUMMY_LANG)
             .addUDF(FOO)
-            .addTable("create table doc.t1 (id int, gen as foo(id))");
-
-        Assertions.assertThrows(
-            IllegalArgumentException.class,
-            () -> executor.udfService().validateFunctionIsNotInUseByGeneratedColumn(
+            .addUDF(new UserDefinedFunctionMetadata(
                 Schemas.DOC_SCHEMA_NAME,
                 "foo",
-                metadataWithoutFunction,
-                clusterService.state()
-            ),
-            "Cannot drop function 'foo', it is still in use by 'doc.t1.gen AS doc.foo(id)'"
-        );
+                List.of(FunctionArgumentDefinition.of("i", DataTypes.LONG)),
+                DataTypes.LONG,
+                DUMMY_LANG.name(),
+                "function foo(i) { return i; }"
+            ))
+            .addTable("create table doc.t1 (id int, gen as foo(id))");
+
+        assertThatThrownBy(() -> udfService.ensureFunctionIsUnused(Schemas.DOC_SCHEMA_NAME, "foo", List.of(DataTypes.LONG)))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Cannot drop function 'doc.foo'. It is in use by column 'gen' of table 'doc.t1'");
+
+        sqlExecutor.udfService().ensureFunctionIsUnused(Schemas.DOC_SCHEMA_NAME, "foo", List.of(DataTypes.INTEGER));
     }
 
     @Test
     public void test_validate_partitioned_table_while_dropping_udf() throws Exception {
-        UserDefinedFunctionsMetadata metadataWithoutFunction = UserDefinedFunctionsMetadata.of();
-        SQLExecutor executor = SQLExecutor.of(clusterService)
+        sqlExecutor
             .addUDFLanguage(DUMMY_LANG)
             .addUDF(FOO)
             .addPartitionedTable("create table doc.p1 (id int, p int, gen as foo(id)) partitioned by (p)");
 
-        Assertions.assertThrows(
-            IllegalArgumentException.class,
-            () -> executor.udfService().validateFunctionIsNotInUseByGeneratedColumn(
-                Schemas.DOC_SCHEMA_NAME,
-                "foo",
-                metadataWithoutFunction,
-                clusterService.state()
-            ),
-            "Cannot drop function 'foo', it is still in use by 'doc.p1.gen AS doc.foo(id)'"
-        );
+        assertThatThrownBy(() -> udfService.ensureFunctionIsUnused(Schemas.DOC_SCHEMA_NAME, "foo", List.of(DataTypes.INTEGER)))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Cannot drop function 'doc.foo'. It is in use by column 'gen' of table 'doc.p1'");
     }
 
     @Test
     public void test_validate_sub_columns_while_dropping_udf() throws Exception {
-        UserDefinedFunctionsMetadata metadataWithoutFunction = UserDefinedFunctionsMetadata.of();
-        SQLExecutor executor = SQLExecutor.of(clusterService)
+        sqlExecutor
             .addUDFLanguage(DUMMY_LANG)
             .addUDF(FOO)
             .addPartitionedTable("create table doc.p1 (o object as (id int), gen as foo(o['id'])) partitioned by (o['id'])");
 
-        assertThatThrownBy(() -> executor.udfService().validateFunctionIsNotInUseByGeneratedColumn(
-                               Schemas.DOC_SCHEMA_NAME,
-                               "foo",
-                               metadataWithoutFunction,
-                               clusterService.state()))
+        assertThatThrownBy(() -> udfService.ensureFunctionIsUnused(Schemas.DOC_SCHEMA_NAME, "foo", List.of(DataTypes.INTEGER)))
             .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessageContaining("Cannot drop function 'foo', it is still in use by 'doc.p1.gen AS doc.foo(o['id'])'");
+            .hasMessageContaining("Cannot drop function 'doc.foo'. It is in use by column 'gen' of table 'doc.p1'");
     }
 }

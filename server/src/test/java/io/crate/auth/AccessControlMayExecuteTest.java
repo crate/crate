@@ -28,7 +28,6 @@ import static io.crate.role.metadata.RolesHelper.userOf;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -51,7 +50,6 @@ import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.TableDefinitions;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.UnauthorizedException;
-import io.crate.execution.engine.collect.sources.SysTableRegistry;
 import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.cluster.DDLClusterStateService;
@@ -66,6 +64,7 @@ import io.crate.role.RoleManager;
 import io.crate.role.RoleManagerService;
 import io.crate.role.Roles;
 import io.crate.role.Securable;
+import io.crate.role.StubRoleManager;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -128,7 +127,6 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
             null,
             null,
             null,
-            mock(SysTableRegistry.class),
             roles,
             new DDLClusterStateService(),
             this.clusterService
@@ -480,6 +478,18 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
+    public void test_alter_table_reroute() throws Exception {
+        analyze("alter table users reroute MOVE SHARD 1 FROM 'node1' TO 'node2'");
+        assertAskedForTable(Permission.DDL, "doc.users");
+        analyze("alter table users reroute ALLOCATE REPLICA SHARD 1 ON 'node1'");
+        assertAskedForTable(Permission.DDL, "doc.users");
+        analyze("alter table users reroute PROMOTE REPLICA SHARD 1 ON 'node1'");
+        assertAskedForTable(Permission.DDL, "doc.users");
+        analyze("alter table users reroute CANCEL SHARD 1 ON 'node1'");
+        assertAskedForTable(Permission.DDL, "doc.users");
+    }
+
+    @Test
     public void testShowTable() throws Exception {
         analyze("show create table users");
         assertAskedForTable(Permission.DQL, "doc.users");
@@ -756,6 +766,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
             .setUser(normalUser)
             .addSubscription("sub1", "pub1");
         analyze("ALTER SUBSCRIPTION sub1 DISABLE", normalUser);
+
         assertAskedForCluster(Permission.AL);
     }
 
@@ -822,6 +833,22 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     public void test_drop_user_mapping_requires_al() throws Exception {
         analyze("drop user mapping for current_user server pg", normalUser);
         assertAskedForCluster(Permission.AL);
+    }
+
+    @Test
+    public void test_checks_user_existence() {
+        var e = SQLExecutor.builder(clusterService)
+            // Make sure normalUser won't be found and AC is enabled
+            .setRoleManager(new StubRoleManager(List.of(Role.CRATE_USER), true))
+            .build();
+        e.setUser(normalUser);
+
+        // Runs on behalf of "normalUser" but we imitate via StubRoleManager that user was dropped.
+        assertThatThrownBy(
+            () -> e.analyze("SELECT current_user"))
+            .isExactlyInstanceOf(IllegalStateException.class)
+            .hasMessage("User \"normal\" was dropped");
+        ;
     }
 
 }

@@ -169,6 +169,7 @@ following tables:
 - `pg_index <pgsql_pg_index_>`__
 - `pg_indexes <pgsql_pg_indexes_>`__
 - `pg_locks <pgsql_pg_locks_>`__
+- `pg_matviews <pgsql_pg_matviews_>`__
 - `pg_namespace <pgsql_pg_namespace_>`__
 - `pg_proc <pgsql_pg_proc_>`__
 - `pg_publication <pgsql_pg_publication_>`__
@@ -549,6 +550,7 @@ CrateDB and we love to hear feedback.
 .. _pgsql_pg_index: https://www.postgresql.org/docs/14/static/catalog-pg-index.html
 .. _pgsql_pg_indexes: https://www.postgresql.org/docs/14/view-pg-indexes.html
 .. _pgsql_pg_locks: https://www.postgresql.org/docs/14/view-pg-locks.html
+.. _pgsql_pg_matviews: https://www.postgresql.org/docs/current/view-pg-matviews.html
 .. _pgsql_pg_namespace: https://www.postgresql.org/docs/14/static/catalog-pg-namespace.html
 .. _pgsql_pg_proc: https://www.postgresql.org/docs/14/static/catalog-pg-proc.html
 .. _pgsql_pg_publication: https://www.postgresql.org/docs/14/catalog-pg-publication.html

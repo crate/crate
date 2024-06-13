@@ -235,7 +235,7 @@ class InsertAnalyzer {
 
     private static void ensureClusteredByPresentOrNotRequired(List<Reference> targetColumnRefs, DocTableInfo tableInfo) {
         ColumnIdent clusteredBy = tableInfo.clusteredBy();
-        if (clusteredBy == null || clusteredBy.equals(DocSysColumns.ID)) {
+        if (clusteredBy == null || clusteredBy.equals(DocSysColumns.ID.COLUMN)) {
             return;
         }
         Reference clusteredByRef = tableInfo.getReference(clusteredBy);

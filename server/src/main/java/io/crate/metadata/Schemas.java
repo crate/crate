@@ -53,7 +53,6 @@ import io.crate.common.collections.Sets;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SchemaUnknownException;
-import io.crate.execution.dml.TranslogIndexer;
 import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.fdw.ForeignTable;
@@ -326,16 +325,19 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         }
     }
 
-    public TranslogIndexer getTranslogIndexer(RelationName ident) {
-        DocTableInfo ti = getTableInfo(ident);
-        return ti.getTranslogIndexer();
-    }
-
     private SchemaInfo getSchemaInfo(RelationName ident) {
         String schemaName = ident.schema();
         SchemaInfo schemaInfo = schemas.get(schemaName);
         if (schemaInfo == null) {
             throw new SchemaUnknownException(schemaName);
+        }
+        return schemaInfo;
+    }
+
+    public SchemaInfo getSystemSchema(String name) {
+        SchemaInfo schemaInfo = builtInSchemas.get(name);
+        if (schemaInfo == null) {
+            throw new SchemaUnknownException(name);
         }
         return schemaInfo;
     }
@@ -442,7 +444,6 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         if (schemaInfo == null) {
             return false;
         }
-        schemaInfo.invalidateTableCache(relationName.name());
         TableInfo tableInfo = schemaInfo.getTableInfo(relationName.name());
         if (tableInfo == null) {
             return false;

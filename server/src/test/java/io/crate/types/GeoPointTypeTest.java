@@ -26,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 
+import org.assertj.core.data.Offset;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
@@ -41,8 +42,9 @@ public class GeoPointTypeTest extends DataTypeTestCase<Point> {
     }
 
     @Override
-    protected boolean supportsDocValues() {
-        return false;
+    protected void assertEquals(Point actual, Point expected) {
+        assertThat(actual.getX()).isCloseTo(expected.getX(), Offset.offset(0.0001));
+        assertThat(actual.getY()).isCloseTo(expected.getY(), Offset.offset(0.0001));
     }
 
     @Test

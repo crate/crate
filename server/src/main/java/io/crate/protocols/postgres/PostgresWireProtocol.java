@@ -413,7 +413,8 @@ public class PostgresWireProtocol {
         InetAddress address = Netty4HttpServerTransport.getRemoteAddress(channel);
 
         SSLSession sslSession = getSession(channel);
-        ConnectionProperties connProperties = new ConnectionProperties(address, Protocol.POSTGRES, sslSession);
+        var credentials = new Credentials(userName, null);
+        ConnectionProperties connProperties = new ConnectionProperties(credentials, address, Protocol.POSTGRES, sslSession);
 
         AuthenticationMethod authMethod = authService.resolveAuthenticationType(userName, connProperties);
         if (authMethod == null) {
@@ -427,7 +428,7 @@ public class PostgresWireProtocol {
             authContext = new AuthenticationContext(
                 authMethod,
                 connProperties,
-                new Credentials(userName, null),
+                credentials,
                 LOGGER
             );
             if (PASSWORD_AUTH_NAME.equals(authMethod.name())) {

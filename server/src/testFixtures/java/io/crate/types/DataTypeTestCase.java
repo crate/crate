@@ -53,7 +53,6 @@ import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.DocReferences;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -66,34 +65,33 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
 
     public abstract DataType<T> getType();
 
-    /**
-     * @return {@code false} if this data type does not support docvalues
-     */
-    protected boolean supportsDocValues() {
-        return true;
+    protected record DataDef<T>(DataType<T> type, String definition, Supplier<T> data) {}
+
+    protected DataDef<T> getDataDef() {
+        DataType<T> type = getType();
+        return new DataDef<>(type, type.getTypeSignature().toString(), DataTypeTesting.getDataGenerator(type));
     }
 
     @Test
-    public void test_doc_values_write_and_read_roundtrip_inclusive_doc_mapper_parse() throws Exception {
-        DataType<T> type = getType();
-        assumeTrue("Data type " + type + " does not support doc values", supportsDocValues());
-        StorageSupport<? super T> storageSupport = type.storageSupport();
-        assumeTrue("Data type " + type + " does not support storage", storageSupport != null);
+    public void test_lucene_reference_resolver_round_trip() throws Exception {
+        DataDef<T> dataDef = getDataDef();
+        StorageSupport<? super T> storageSupport = dataDef.type.storageSupport();
+        assumeTrue("Data type " + dataDef.type + " does not support storage", storageSupport != null);
 
         var sqlExecutor = SQLExecutor.of(clusterService)
-            .addTable("create table tbl (id int, x " + type.getTypeSignature().toString() + ")");
+            .addTable("create table tbl (id int, x " + dataDef.definition + ")");
 
-        Supplier<T> dataGenerator = DataTypeTesting.getDataGenerator(type);
         DocTableInfo table = sqlExecutor.resolveTableInfo("tbl");
         Reference reference = table.getReference(new ColumnIdent("x"));
         assertThat(reference).isNotNull();
 
         try (var indexEnv = new IndexEnv(
+                sqlExecutor.nodeCtx,
                 THREAD_POOL,
                 table,
                 clusterService.state(),
                 Version.CURRENT)) {
-            T value = dataGenerator.get();
+            T value = dataDef.data.get();
 
             Indexer indexer = getIndexer(sqlExecutor, table.ident().name(), "x");
             ParsedDocument doc = indexer.index(item(value));
@@ -103,9 +101,7 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
 
             LuceneReferenceResolver luceneReferenceResolver = indexEnv.luceneReferenceResolver();
             LuceneCollectorExpression<?> docValueImpl = luceneReferenceResolver.getImplementation(reference);
-            LuceneCollectorExpression<?> sourceLookup = luceneReferenceResolver.getImplementation(DocReferences.toSourceLookup(reference));
             assertThat(docValueImpl).isNotNull();
-            assertThat(sourceLookup).isNotNull();
 
             IndexSearcher indexSearcher;
             try {
@@ -116,7 +112,7 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
 
             List<LeafReaderContext> leaves = indexSearcher.getTopReaderContext().leaves();
             assertThat(leaves).hasSize(1);
-            LeafReaderContext leafReader = leaves.get(0);
+            LeafReaderContext leafReader = leaves.getFirst();
 
             Weight weight = indexSearcher.createWeight(
                 new MatchAllDocsQuery(),
@@ -133,8 +129,12 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
             docValueImpl.startCollect(collectorContext);
             docValueImpl.setNextReader(readerContext);
             docValueImpl.setNextDocId(nextDoc);
-            assertThat(docValueImpl.value()).isEqualTo(value);
+            assertEquals((T) docValueImpl.value(), value);
         }
+    }
+
+    protected void assertEquals(T actual, T expected) {
+        assertThat(actual).isEqualTo(expected);
     }
 
     @Test
@@ -149,16 +149,10 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
         Reference reference = table.getReference(new ColumnIdent("x"));
         assertThat(reference).isNotNull();
 
-        try (var indexEnv = new IndexEnv(
-            THREAD_POOL,
-            table,
-            clusterService.state(),
-            Version.CURRENT)) {
-            T value = dataGenerator.get();
-            Indexer indexer = getIndexer(sqlExecutor, table.ident().name(), "x");
-            ParsedDocument doc = indexer.index(item(value));
-            IndexerTest.assertTranslogParses(doc, table);
-        }
+        T value = dataGenerator.get();
+        Indexer indexer = getIndexer(sqlExecutor, table.ident().name(), "x");
+        ParsedDocument doc = indexer.index(item(value));
+        IndexerTest.assertTranslogParses(doc, table);
     }
 
     @Test

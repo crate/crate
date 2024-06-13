@@ -40,6 +40,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.lucene.store.Directory;
@@ -65,17 +66,16 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.MapperTestUtils;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.cache.query.DisabledQueryCache;
 import org.elasticsearch.index.engine.DocIdSeqNoAndSource;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.EngineFactory;
 import org.elasticsearch.index.engine.EngineTestCase;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.SourceToParse;
 import org.elasticsearch.index.seqno.ReplicationTracker;
 import org.elasticsearch.index.seqno.RetentionLeaseSyncer;
@@ -103,11 +103,11 @@ import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jetbrains.annotations.Nullable;
+import org.mockito.Mockito;
 
 import io.crate.action.FutureActionListener;
 import io.crate.common.CheckedFunction;
 import io.crate.common.io.IOUtils;
-import io.crate.execution.dml.TranslogIndexer;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
@@ -239,16 +239,15 @@ public abstract class IndexShardTestCase extends ESTestCase {
 
     protected void updateMappings(IndexShard shard, IndexMetadata indexMetadata) {
         shard.indexSettings().updateIndexMetadata(indexMetadata);
-        shard.mapperService().merge(indexMetadata, MapperService.MergeReason.MAPPING_UPDATE);
     }
 
-    protected TranslogIndexer getTranslogIndexer(IndexShard shard) {
+    protected DocTableInfo getDocTable(Supplier<IndexMetadata> getIndexMetadata) {
         NodeContext nodeCtx = createNodeContext();
         DocTableInfoFactory tableFactory = new DocTableInfoFactory(nodeCtx);
-        IndexMetadata indexMetadata = IndexMetadata.builder(shard.indexSettings.getIndexMetadata()).build();
+        IndexMetadata indexMetadata = getIndexMetadata.get();
         Metadata metadata = new Metadata.Builder().put(indexMetadata, false).build();
-        DocTableInfo table = tableFactory.create(RelationName.fromIndexName(indexMetadata.getIndex().getName()), metadata);
-        return new TranslogIndexer(table);
+        RelationName relationName = RelationName.fromIndexName(indexMetadata.getIndex().getName());
+        return tableFactory.create(relationName, metadata);
     }
 
     protected void assertDocCount(IndexShard shard, int docDount) throws IOException {
@@ -502,7 +501,10 @@ public abstract class IndexShardTestCase extends ESTestCase {
                                   RetentionLeaseSyncer retentionLeaseSyncer,
                                   IndexEventListener indexEventListener,
                                   IndexingOperationListener... listeners) throws IOException {
-        final Settings nodeSettings = Settings.builder().put("node.name", routing.currentNodeId()).build();
+        final Settings nodeSettings = Settings.builder()
+            .put("node.name", routing.currentNodeId())
+            .put(Environment.PATH_HOME_SETTING.getKey(), createTempDir())
+            .build();
         final IndexSettings indexSettings = new IndexSettings(indexMetadata, nodeSettings);
         final IndexShard indexShard;
         if (storeProvider == null) {
@@ -512,30 +514,25 @@ public abstract class IndexShardTestCase extends ESTestCase {
         boolean success = false;
         try {
             var queryCache = DisabledQueryCache.instance();
-            MapperService mapperService = MapperTestUtils.newMapperService(
-                createTempDir(),
-                indexSettings.getSettings(),
-                "index"
-            );
-            mapperService.merge(indexMetadata, MapperService.MergeReason.MAPPING_RECOVERY);
+            TestAnalysis testAnalysis = createTestAnalysis(indexSettings, indexSettings.getSettings());
             ClusterSettings clusterSettings = new ClusterSettings(nodeSettings, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
             CircuitBreakerService breakerService = new HierarchyCircuitBreakerService(nodeSettings, clusterSettings);
             indexShard = new IndexShard(
+                Mockito.mock(NodeContext.class),
                 routing,
                 indexSettings,
                 shardPath,
                 store,
                 queryCache,
-                mapperService,
-                this::getTranslogIndexer,
+                testAnalysis.indexAnalyzers,
+                () -> getDocTable(() -> indexSettings.getIndexMetadata()),
                 engineFactoryProviders,
                 indexEventListener,
                 threadPool,
                 BigArrays.NON_RECYCLING_INSTANCE,
                 Arrays.asList(listeners),
                 globalCheckpointSyncer,
-                retentionLeaseSyncer,
-                breakerService
+                retentionLeaseSyncer, breakerService
             );
             indexShard.addShardFailureCallback(DEFAULT_SHARD_FAILURE_HANDLER);
             success = true;

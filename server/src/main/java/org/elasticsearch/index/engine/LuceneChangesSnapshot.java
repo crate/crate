@@ -44,8 +44,6 @@ import org.apache.lucene.util.ArrayUtil;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.index.fieldvisitor.FieldsVisitor;
-import org.elasticsearch.index.mapper.IdFieldMapper;
-import org.elasticsearch.index.mapper.SourceFieldMapper;
 import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.translog.Translog;
 
@@ -234,8 +232,8 @@ final class LuceneChangesSnapshot implements Translog.Snapshot {
             return null;
         }
         final long version = parallelArray.version[docIndex];
-        final String sourceField = parallelArray.hasRecoverySource[docIndex] ? SourceFieldMapper.RECOVERY_SOURCE_NAME :
-            SourceFieldMapper.NAME;
+        final String sourceField = parallelArray.hasRecoverySource[docIndex] ? DocSysColumns.Source.RECOVERY_NAME :
+            DocSysColumns.Source.NAME;
         final FieldsVisitor fields = new FieldsVisitor(true, sourceField);
         StoredFields storedFields = leaf.reader().storedFields();
         storedFields.document(segmentDocID, fields);
@@ -248,7 +246,7 @@ final class LuceneChangesSnapshot implements Translog.Snapshot {
             assert assertDocSoftDeleted(leaf.reader(), segmentDocID) : "Noop but soft_deletes field is not set [" + op + "]";
         } else {
             final String id = fields.id();
-            final Term uid = new Term(IdFieldMapper.NAME, Uid.encodeId(id));
+            final Term uid = new Term(DocSysColumns.Names.ID, Uid.encodeId(id));
             if (isTombstone) {
                 op = new Translog.Delete(id, uid, seqNo, primaryTerm, version);
                 assert assertDocSoftDeleted(leaf.reader(), segmentDocID) : "Delete op but soft_deletes field is not set [" + op + "]";

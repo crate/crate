@@ -21,32 +21,33 @@
 
 package io.crate.expression.udf;
 
-import static io.crate.testing.TestingHelpers.createNodeContext;
-
 import javax.script.ScriptException;
 
 import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 
+import io.crate.analyze.TableDefinitions;
 import io.crate.data.Input;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 
 public abstract class UdfUnitTest extends CrateDummyClusterServiceUnitTest {
 
     UserDefinedFunctionService udfService;
+    protected SQLExecutor sqlExecutor;
 
     @Override
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        NodeContext nodeContext = createNodeContext();
-        udfService = new UserDefinedFunctionService(clusterService, new DocTableInfoFactory(nodeContext), nodeContext);
+        sqlExecutor = SQLExecutor.of(clusterService)
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
+        udfService = sqlExecutor.udfService();
     }
 
     public static final UDFLanguage DUMMY_LANG = new UDFLanguage() {

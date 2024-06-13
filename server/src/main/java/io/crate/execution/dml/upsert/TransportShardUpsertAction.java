@@ -44,7 +44,6 @@ import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.Engine.IndexResult;
 import org.elasticsearch.index.engine.Engine.Operation.Origin;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
-import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.seqno.SequenceNumbers;
@@ -353,9 +352,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             List<Reference> newColumns = rawIndexer != null ? rawIndexer.collectSchemaUpdates(item) : indexer.collectSchemaUpdates(item);
 
             if (!newColumns.isEmpty()) {
-                // this forces clearing the cache
-                schemas.tableExists(relationName);
-
                 // Even though the primary waits on all nodes to ack the mapping changes to the master
                 // (see MappingUpdatedAction.updateMappingOnMaster) we still need to protect against missing mappings
                 // and wait for them. The reason is concurrent requests. Request r1 which has new field f triggers a
@@ -371,7 +367,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
             ParsedDocument parsedDoc = rawIndexer != null ? rawIndexer.index() : indexer.index(item);
 
-            Term uid = new Term(IdFieldMapper.NAME, Uid.encodeId(item.id()));
+            Term uid = new Term(DocSysColumns.Names.ID, Uid.encodeId(item.id()));
             boolean isRetry = false;
             Engine.Index index = new Engine.Index(
                 uid,
@@ -527,7 +523,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 new IntArrayList(0)
             );
             addColumnAction.execute(addColumnRequest).get();
-            schemas.tableExists(relationName); // triggers cache invalidation
             DocTableInfo actualTable = schemas.getTableInfo(relationName);
             if (rawIndexer != null) {
                 rawIndexer.updateTargets(actualTable::getReference);
@@ -546,7 +541,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             item.insertValues(rawIndexer.addGeneratedValues(item));
         }
 
-        Term uid = new Term(IdFieldMapper.NAME, Uid.encodeId(item.id()));
+        Term uid = new Term(DocSysColumns.Names.ID, Uid.encodeId(item.id()));
         assert VersionType.INTERNAL.validateVersionForWrites(version);
         Engine.Index index = new Engine.Index(
             uid,

@@ -35,6 +35,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 
 import io.crate.data.testing.BatchIteratorTester;
+import io.crate.data.testing.BatchIteratorTester.ResultOrder;
 import io.crate.data.testing.BatchSimulatingIterator;
 import io.crate.data.testing.TestingBatchIterators;
 
@@ -111,7 +112,7 @@ class AsyncFlatMapBatchIteratorTest {
         var tester = BatchIteratorTester.forRows(() -> {
             BatchIterator<Row> source = TestingBatchIterators.range(1, 4);
             return new AsyncFlatMapBatchIterator<>(source, duplicateRow);
-        });
+        }, ResultOrder.EXACT);
         tester.verifyResultAndEdgeCaseBehaviour(
             Arrays.asList(
                 new Object[] { 1 },

@@ -25,14 +25,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.netty4.cors.Netty4CorsConfig;
 import org.elasticsearch.transport.Netty4Plugin;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.auth.AuthenticationHttpAuthHandlerRegistry;
 import io.crate.auth.Protocol;
@@ -114,7 +113,6 @@ public class PipelineRegistry {
         for (PipelineRegistry.ChannelPipelineItem item : addBeforeList) {
             pipeline.addBefore(item.base, item.name, item.handlerFactory.apply(corsConfig));
         }
-
         if (sslContextProvider != null) {
             SslContext sslContext = sslContextProvider.getServerContext(Protocol.HTTP);
             if (sslContext != null) {

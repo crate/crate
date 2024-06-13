@@ -27,7 +27,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
-import java.nio.charset.StandardCharsets;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse.BodyHandlers;
 import java.security.KeyFactory;
 import java.security.interfaces.RSAPrivateKey;
 import java.security.interfaces.RSAPublicKey;
@@ -39,11 +42,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.util.EntityUtils;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.test.IntegTestCase;
@@ -58,7 +56,6 @@ import com.fasterxml.jackson.core.JsonGenerator;
 import io.crate.http.HttpTestServer;
 import io.crate.testing.UseJdbc;
 import io.netty.handler.codec.http.HttpHeaderNames;
-import io.netty.handler.codec.http.HttpRequest;
 
 @UseJdbc(value = 0) // jwt is supported only for http
 public class JwtAuthenticationIntegrationTest extends IntegTestCase {
@@ -86,8 +83,8 @@ public class JwtAuthenticationIntegrationTest extends IntegTestCase {
      *    ]
      * }
      */
-    private static final BiConsumer<HttpRequest, JsonGenerator> jwkRequestHandler =
-        (HttpRequest msg, JsonGenerator generator) -> {
+    private static final BiConsumer<io.netty.handler.codec.http.HttpRequest, JsonGenerator> jwkRequestHandler =
+        (io.netty.handler.codec.http.HttpRequest msg, JsonGenerator generator) -> {
             try {
                 KeyFactory keyFactory = KeyFactory.getInstance("RSA");
                 EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(BASE_64_DECODER.decode(PUBLIC_KEY_256));
@@ -169,19 +166,21 @@ public class JwtAuthenticationIntegrationTest extends IntegTestCase {
 
         HttpServerTransport httpTransport = cluster().getInstance(HttpServerTransport.class);
         InetSocketAddress address = httpTransport.boundAddress().publishAddress().address();
-        String uri = String.format(Locale.ENGLISH, "http://%s:%s/", address.getHostName(), address.getPort());
-        HttpGet request = new HttpGet(uri);
-        request.setHeader(HttpHeaderNames.AUTHORIZATION.toString(), "Bearer " + jwt);
-        request.setHeader(HttpHeaderNames.ORIGIN.toString(), "http://example.com");
-        request.setHeader(HttpHeaderNames.ACCESS_CONTROL_REQUEST_METHOD.toString(), "GET");
-        CloseableHttpClient httpClient = HttpClients.createDefault();
-        CloseableHttpResponse resp = httpClient.execute(request);
-        String bodyAsString = EntityUtils.toString(resp.getEntity(), StandardCharsets.UTF_8);
-        assertThat(bodyAsString).containsIgnoringWhitespaces("""
-                                                {
-                                                  "ok" : true,
-                                                  "status" : 200
-                                                  """);
+        URI uri = URI.create(String.format(Locale.ENGLISH, "http://%s:%s/", address.getHostName(), address.getPort()));
+
+        try (var client = HttpClient.newHttpClient()) {
+            HttpRequest request = HttpRequest.newBuilder(uri)
+                .header(HttpHeaderNames.AUTHORIZATION.toString(), "Bearer " + jwt)
+                .header(HttpHeaderNames.ORIGIN.toString(), "http://example.com")
+                .header(HttpHeaderNames.ACCESS_CONTROL_REQUEST_METHOD.toString(), "GET")
+                .build();
+            var resp = client.send(request, BodyHandlers.ofString());
+            assertThat(resp.body()).containsIgnoringWhitespaces("""
+                {
+                  "ok" : true,
+                  "status" : 200
+                  """);
+        }
 
     }
 
@@ -206,14 +205,15 @@ public class JwtAuthenticationIntegrationTest extends IntegTestCase {
 
         HttpServerTransport httpTransport = cluster().getInstance(HttpServerTransport.class);
         InetSocketAddress address = httpTransport.boundAddress().publishAddress().address();
-        String uri = String.format(Locale.ENGLISH, "http://%s:%s/", address.getHostName(), address.getPort());
-        HttpGet request = new HttpGet(uri);
-        request.setHeader(HttpHeaderNames.AUTHORIZATION.toString(), "Bearer " + jwt);
-        request.setHeader(HttpHeaderNames.ORIGIN.toString(), "http://example.com");
-        request.setHeader(HttpHeaderNames.ACCESS_CONTROL_REQUEST_METHOD.toString(), "GET");
-        CloseableHttpClient httpClient = HttpClients.createDefault();
-        CloseableHttpResponse resp = httpClient.execute(request);
-        String bodyAsString = EntityUtils.toString(resp.getEntity(), StandardCharsets.UTF_8);
-        assertThat(bodyAsString).contains("jwt authentication failed for user John. Reason: Cannot obtain jwks from url");
+        URI uri = URI.create(String.format(Locale.ENGLISH, "http://%s:%s/", address.getHostName(), address.getPort()));
+        try (var httpClient = HttpClient.newHttpClient()) {
+            var request = HttpRequest.newBuilder(uri)
+                .header(HttpHeaderNames.AUTHORIZATION.toString(), "Bearer " + jwt)
+                .header(HttpHeaderNames.ORIGIN.toString(), "http://example.com")
+                .header(HttpHeaderNames.ACCESS_CONTROL_REQUEST_METHOD.toString(), "GET")
+                .build();
+            var resp = httpClient.send(request, BodyHandlers.ofString());
+            assertThat(resp.body()).contains("jwt authentication failed for user John. Reason: Cannot obtain jwks from url");
+        }
     }
 }

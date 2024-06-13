@@ -46,10 +46,6 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.elasticsearch.index.mapper.DocumentMapper;
-import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.mapper.MapperService.MergeReason;
-import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
@@ -84,7 +80,6 @@ public class CreateTableIntegrationTest extends IntegTestCase {
             .endObject();
 
         ClusterService clusterService = cluster().getCurrentMasterNodeInstance(ClusterService.class);
-        IndicesService indicesService = cluster().getCurrentMasterNodeInstance(IndicesService.class);
         var updateTask = new AckedClusterStateUpdateTask<AcknowledgedResponse>(new AcknowledgedRequest() {}) {
 
             @Override
@@ -96,17 +91,13 @@ public class CreateTableIntegrationTest extends IntegTestCase {
             public ClusterState execute(ClusterState currentState) throws Exception {
                 Metadata metadata = currentState.metadata();
                 IndexMetadata indexMetadata = metadata.index("tbl");
-                MapperService mapperService = indicesService.createIndexMapperService(indexMetadata);
-                mapperService.merge(indexMetadata, MergeReason.MAPPING_RECOVERY);
-
                 BytesReference newMapping = BytesReference.bytes(builder);
-                DocumentMapper newMapper = mapperService.merge(new CompressedXContent(newMapping), MergeReason.MAPPING_UPDATE);
                 return ClusterState.builder(currentState)
                     .metadata(
                         Metadata.builder(metadata)
                             .put(
                                 IndexMetadata.builder(indexMetadata)
-                                    .putMapping(new MappingMetadata(newMapper.mappingSource()))
+                                    .putMapping(new MappingMetadata(new CompressedXContent(newMapping)))
                                     .mappingVersion(indexMetadata.getMappingVersion() + 1)
                             )
                     )

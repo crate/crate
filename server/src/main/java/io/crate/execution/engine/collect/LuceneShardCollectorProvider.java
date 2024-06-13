@@ -119,11 +119,9 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         SharedShardContext sharedShardContext = collectTask.sharedShardContexts().getOrCreateContext(shardId);
         var searcher = sharedShardContext.acquireSearcher("unordered-iterator: " + formatSource(collectPhase));
         collectTask.addSearcher(sharedShardContext.readerId(), searcher);
-        IndexShard sharedShardContextShard = sharedShardContext.indexShard();
         // A closed shard has no mapper service and cannot be queried with lucene,
         // therefore skip it
-        boolean isClosed = sharedShardContextShard.mapperService() == null;
-        if (isClosed) {
+        if (indexShard.isClosed()) {
             return InMemoryBatchIterator.empty(SentinelRow.SENTINEL);
         }
         IndexService indexService = sharedShardContext.indexService();
@@ -131,7 +129,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(
             collectPhase.where(),
             collectTask.txnCtx(),
-            sharedShardContextShard.shardId().getIndexName(),
+            indexShard.shardId().getIndexName(),
             indexService.indexAnalyzers(),
             table,
             indexService.cache()
@@ -217,8 +215,8 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         int batchSize = collectPhase.shardQueueSize(localNodeId.get());
         if (LOGGER.isTraceEnabled()) {
             LOGGER.trace("[{}][{}] creating LuceneOrderedDocCollector. Expected number of rows to be collected: {}",
-                sharedShardContext.indexShard().routingEntry().currentNodeId(),
-                sharedShardContext.indexShard().shardId(),
+                indexShard.routingEntry().currentNodeId(),
+                indexShard.shardId(),
                 batchSize);
         }
         var optimizeQueryForSearchAfter = new OptimizeQueryForSearchAfter(collectPhase.orderBy());

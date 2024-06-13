@@ -26,8 +26,6 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.store.AlreadyClosedException;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -38,6 +36,7 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexShardClosedException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.store.StoreStats;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.blob.v2.BlobShard;
 import io.crate.common.Suppliers;
@@ -165,7 +164,7 @@ public class ShardRowContext {
     }
 
     public boolean isClosed() {
-        return indexShard.mapperService() == null;
+        return indexShard.isClosed();
     }
 
     @Nullable
