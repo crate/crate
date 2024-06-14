@@ -88,7 +88,7 @@ public class ResultSetParser {
             case "byte":
                 value = resultSet.getByte(columnIndex);
                 break;
-            case "_json": {
+            case "_json", "_jsonb": {
                 Array array = resultSet.getArray(columnIndex);
                 if (array == null) {
                     return null;
@@ -100,7 +100,7 @@ public class ResultSetParser {
                 value = jsonObjects;
                 break;
             }
-            case "json":
+            case "json", "jsonb":
                 String json = resultSet.getString(columnIndex);
                 value = jsonToObject(json);
                 break;

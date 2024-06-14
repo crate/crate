@@ -76,6 +76,8 @@ system::
 The ``jdbc`` foreign data wrapper allows to connect to a foreign database via
 ``JDBC``. Bundled JDBC drivers include:
 
+.. _administration-fdw-jdbc-psql:
+
 - PostgreSQL
 
 

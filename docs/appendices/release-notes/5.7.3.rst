@@ -54,3 +54,7 @@ Fixes
   view definition, e.g.::
 
       CREATE VIEW v AS SELECT a, a['b'] FROM t;
+
+- Fixed an issue that caused ``SQLParseException`` when a
+  :ref:`PostgreSQL foreign table <administration-fdw-jdbc-psql>` has columns of
+  type ``JSONB``, or ``JSONB[]``.
