@@ -141,6 +141,11 @@ public class Functions {
         return get(suppliedSchema, functionName, Symbols.typeView(arguments), arguments, searchPath);
     }
 
+    @VisibleForTesting
+    Map<FunctionName, List<FunctionProvider>> getFunctionImplementations() {
+        return functionImplementations;
+    }
+
     /**
      * Return a function that matches the name/arguments.
      *
