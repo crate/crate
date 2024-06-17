@@ -54,7 +54,6 @@ import io.crate.action.sql.Session;
 import io.crate.action.sql.Sessions;
 import io.crate.action.sql.parser.SQLRequestParseContext;
 import io.crate.action.sql.parser.SQLRequestParser;
-import io.crate.auth.AccessControl;
 import io.crate.auth.AuthSettings;
 import io.crate.auth.Credentials;
 import io.crate.auth.HttpAuthUpstreamHandler;
@@ -64,7 +63,6 @@ import io.crate.data.breaker.RamAccounting;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.protocols.http.Headers;
 import io.crate.role.Role;
 import io.crate.role.Roles;
@@ -89,7 +87,6 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     private final Sessions sqlOperations;
     private final Function<String, CircuitBreaker> circuitBreakerProvider;
     private final Roles roles;
-    private final Function<CoordinatorSessionSettings, AccessControl> getAccessControl;
     private final Netty4CorsConfig corsConfig;
 
     private Session session;
@@ -98,14 +95,12 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
                    Sessions sqlOperations,
                    Function<String, CircuitBreaker> circuitBreakerProvider,
                    Roles roles,
-                   Function<CoordinatorSessionSettings, AccessControl> getAccessControl,
                    Netty4CorsConfig corsConfig) {
         super(false);
         this.settings = settings;
         this.sqlOperations = sqlOperations;
         this.circuitBreakerProvider = circuitBreakerProvider;
         this.roles = roles;
-        this.getAccessControl = getAccessControl;
         this.corsConfig = corsConfig;
     }
 
@@ -162,7 +157,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             resp = new DefaultFullHttpResponse(httpVersion, HttpResponseStatus.OK, content);
             resp.headers().add(HttpHeaderNames.CONTENT_TYPE, result.contentType().mediaType());
         } else {
-            var throwable = SQLExceptions.prepareForClientTransmission(getAccessControl.apply(session.sessionSettings()), t);
+            var throwable = SQLExceptions.prepareForClientTransmission(roles.getAccessControl(session.sessionSettings()), t);
             HttpError httpError = HttpError.fromThrowable(throwable);
             String mediaType;
             boolean includeErrorTrace = paramContainFlag(parameters, "error_trace");

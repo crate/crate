@@ -40,7 +40,6 @@ import org.junit.Test;
 
 import io.crate.action.sql.Session;
 import io.crate.action.sql.Sessions;
-import io.crate.auth.AccessControl;
 import io.crate.auth.AuthSettings;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.role.Role;
@@ -57,7 +56,6 @@ public class SqlHttpHandlerTest {
             mock(Sessions.class),
             (s) -> new NoopCircuitBreaker("dummy"),
             () -> List.of(Role.CRATE_USER),
-            sessionSettings -> AccessControl.DISABLED,
             Netty4CorsConfigBuilder.forAnyOrigin().build()
         );
 
@@ -75,7 +73,6 @@ public class SqlHttpHandlerTest {
             mock(Sessions.class),
             (s) -> new NoopCircuitBreaker("dummy"),
             () -> List.of(RolesHelper.userOf("trillian")),
-            sessionSettings -> AccessControl.DISABLED,
             Netty4CorsConfigBuilder.forAnyOrigin().build()
         );
 
@@ -90,7 +87,6 @@ public class SqlHttpHandlerTest {
             mock(Sessions.class),
             (s) -> new NoopCircuitBreaker("dummy"),
             () -> List.of(RolesHelper.userOf("Aladdin")),
-            sessionSettings -> AccessControl.DISABLED,
             Netty4CorsConfigBuilder.forAnyOrigin().build()
         );
 
@@ -117,7 +113,6 @@ public class SqlHttpHandlerTest {
             mockedSqlOperations,
             (s) -> new NoopCircuitBreaker("dummy"),
             () -> List.of(dummyUser),
-            settings -> AccessControl.DISABLED,
             Netty4CorsConfigBuilder.forAnyOrigin().build()
         );
 
@@ -145,7 +140,6 @@ public class SqlHttpHandlerTest {
             mock(Sessions.class),
             (s) -> new NoopCircuitBreaker("dummy"),
             () -> List.of(JWT_USER),
-            sessionSettings -> AccessControl.DISABLED,
             Netty4CorsConfigBuilder.forAnyOrigin().build()
         );
 

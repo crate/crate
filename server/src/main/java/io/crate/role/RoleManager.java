@@ -26,9 +26,6 @@ import java.util.concurrent.CompletableFuture;
 
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.auth.AccessControl;
-import io.crate.metadata.settings.CoordinatorSessionSettings;
-
 /**
  * responsible for creating and deleting roles (and users)
  */
@@ -87,6 +84,4 @@ public interface RoleManager extends Roles {
         Collection<String> roleNames,
         Collection<Privilege> privileges,
         GrantedRolesChange grantedRolesChange);
-
-    AccessControl getAccessControl(CoordinatorSessionSettings sessionSettings);
 }
