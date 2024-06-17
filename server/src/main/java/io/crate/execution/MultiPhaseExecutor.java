@@ -27,13 +27,13 @@ import io.crate.breaker.ConcurrentRamAccounting;
 import io.crate.data.CollectingRowConsumer;
 import io.crate.data.Row;
 import io.crate.data.breaker.BlockBasedRamAccounting;
-import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.FirstColumnConsumers;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.types.DataType;
 
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
@@ -57,7 +57,7 @@ public final class MultiPhaseExecutor {
             executor.circuitBreaker(HierarchyCircuitBreakerService.QUERY),
             plannerContext.transactionContext().sessionSettings().memoryLimitInBytes()
         );
-
+        var blockAccounting = new BlockBasedRamAccounting(ramAccounting::addBytes, MAX_BLOCK_SIZE_IN_BYTES);
         List<CompletableFuture<?>> dependencyFutures = new ArrayList<>(dependencies.size());
         IdentityHashMap<SelectSymbol, Object> valueBySubQuery = new IdentityHashMap<>();
 
@@ -65,13 +65,15 @@ public final class MultiPhaseExecutor {
             LogicalPlan depPlan = entry.getKey();
             depPlan = plannerContext.optimize().apply(depPlan, plannerContext);
             SelectSymbol selectSymbol = entry.getValue();
+            DataType<Object> dataType = (DataType<Object>) selectSymbol.valueType();
 
-            CollectingRowConsumer<?, ?> rowConsumer = getConsumer(selectSymbol, ramAccounting);
+            CollectingRowConsumer<?, ?> rowConsumer = getConsumer(selectSymbol.getResultType());
             depPlan.execute(
                 executor, PlannerContext.forSubPlan(plannerContext), rowConsumer, params, SubQueryResults.EMPTY);
 
             dependencyFutures.add(rowConsumer.completionFuture().thenAccept(val -> {
                 synchronized (valueBySubQuery) {
+                    blockAccounting.addBytes(dataType.valueBytes(val));
                     valueBySubQuery.put(selectSymbol, val);
                 }
             }));
@@ -84,13 +86,7 @@ public final class MultiPhaseExecutor {
             });
     }
 
-    private static CollectingRowConsumer<?, ?> getConsumer(SelectSymbol selectSymbol, RamAccounting ramAccounting) {
-        return new CollectingRowConsumer<>(
-            FirstColumnConsumers.getCollector(
-                selectSymbol.getResultType(),
-                selectSymbol.innerType(),
-                new BlockBasedRamAccounting(ramAccounting::addBytes, MAX_BLOCK_SIZE_IN_BYTES)
-            )
-        );
+    private static CollectingRowConsumer<?, ?> getConsumer(SelectSymbol.ResultType resultType) {
+        return new CollectingRowConsumer<>(FirstColumnConsumers.getCollector(resultType));
     }
 }

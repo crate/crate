@@ -77,9 +77,7 @@ public final class CorrelatedJoinProjector implements Projector {
 
         public BindAndExecuteSubQuery() {
             this.collector = FirstColumnConsumers.getCollector(
-                correlatedSubQuery.getResultType(),
-                correlatedSubQuery.innerType(),
-                RamAccounting.NO_ACCOUNTING
+                correlatedSubQuery.getResultType()
             );
         }
 
