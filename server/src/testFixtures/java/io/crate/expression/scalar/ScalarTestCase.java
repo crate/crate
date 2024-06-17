@@ -23,6 +23,7 @@ package io.crate.expression.scalar;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isNull;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -155,7 +156,7 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
                 inputs[i] = ((Input<?>) function.arguments().get(i));
             }
             Object expectedValue = ((Input<?>) normalized).value();
-            assertThat(((Scalar) impl).evaluate(txnCtx, null, inputs))
+            assertThat(((Scalar) impl).evaluate(txnCtx, sqlExpressions.nodeCtx, inputs))
                 .isEqualTo(expectedValue);
             assertThat(((Scalar) impl)
                            .compile(function.arguments(), "dummy", () -> List.of(Role.CRATE_USER))
