@@ -37,25 +37,23 @@ public final class PgSettingsTable {
 
     private PgSettingsTable() {}
 
-    public static SystemTable<NamedSessionSetting> create() {
-        return SystemTable.<NamedSessionSetting>builder(IDENT)
-            .add("name", STRING, NamedSessionSetting::name)
-            .add("setting", STRING, NamedSessionSetting::value)
-            .add("unit", STRING, c -> null)
-            .add("category", STRING, c -> null)
-            .add("short_desc", STRING, NamedSessionSetting::description)
-            .add("extra_desc", STRING, c -> null)
-            .add("context", STRING, c -> null)
-            .add("vartype", STRING, c -> c.type().getName())
-            .add("source", STRING, c -> null)
-            .add("enumvals", STRING_ARRAY, c -> null)
-            .add("min_val", STRING, c -> null)
-            .add("max_val", STRING, c -> null)
-            .add("boot_val", STRING, NamedSessionSetting::defaultValue)
-            .add("reset_val", STRING, NamedSessionSetting::defaultValue)
-            .add("sourcefile", STRING, c -> null)
-            .add("sourceline", INTEGER, c -> null)
-            .add("pending_restart", BOOLEAN, c -> null)
-            .build();
-    }
+    public static SystemTable<NamedSessionSetting> INSTANCE = SystemTable.<NamedSessionSetting>builder(IDENT)
+        .add("name", STRING, NamedSessionSetting::name)
+        .add("setting", STRING, NamedSessionSetting::value)
+        .add("unit", STRING, c -> null)
+        .add("category", STRING, c -> null)
+        .add("short_desc", STRING, NamedSessionSetting::description)
+        .add("extra_desc", STRING, c -> null)
+        .add("context", STRING, c -> null)
+        .add("vartype", STRING, c -> c.type().getName())
+        .add("source", STRING, c -> null)
+        .add("enumvals", STRING_ARRAY, c -> null)
+        .add("min_val", STRING, c -> null)
+        .add("max_val", STRING, c -> null)
+        .add("boot_val", STRING, NamedSessionSetting::defaultValue)
+        .add("reset_val", STRING, NamedSessionSetting::defaultValue)
+        .add("sourcefile", STRING, c -> null)
+        .add("sourceline", INTEGER, c -> null)
+        .add("pending_restart", BOOLEAN, c -> null)
+        .build();
 }

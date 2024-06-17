@@ -51,7 +51,7 @@ public class InformationSchemaTableDefinitions {
                 new StaticTableDefinition<>(
                     informationSchemaIterables::schemas,
                     (user, s) -> roles.hasAnyPrivilege(user, Securable.SCHEMA, s.name()),
-                    InformationSchemataTableInfo.create().expressions()
+                    InformationSchemataTableInfo.INSTANCE.expressions()
                 )
             ),
             Map.entry(
@@ -61,7 +61,7 @@ public class InformationSchemaTableDefinitions {
                     (user, t) -> roles.hasAnyPrivilege(user, Securable.TABLE, t.ident().fqn())
                                 // we also need to check for views which have privileges set
                                 || roles.hasAnyPrivilege(user, Securable.VIEW, t.ident().fqn()),
-                    InformationTablesTableInfo.create().expressions()
+                    InformationTablesTableInfo.INSTANCE.expressions()
                 )
             ),
             Map.entry(
@@ -69,7 +69,7 @@ public class InformationSchemaTableDefinitions {
                 new StaticTableDefinition<>(
                     informationSchemaIterables::views,
                     (user, t) -> roles.hasAnyPrivilege(user, Securable.VIEW, t.ident().fqn()),
-                    InformationViewsTableInfo.create().expressions()
+                    InformationViewsTableInfo.INSTANCE.expressions()
                 )
             ),
             Map.entry(
@@ -77,7 +77,7 @@ public class InformationSchemaTableDefinitions {
                 new StaticTableDefinition<>(
                     informationSchemaIterables::partitions,
                     (user, p) -> roles.hasAnyPrivilege(user, Securable.TABLE, p.name().relationName().fqn()),
-                    InformationPartitionsTableInfo.create().expressions()
+                    InformationPartitionsTableInfo.INSTANCE.expressions()
                 )
             ),
             Map.entry(
@@ -88,7 +88,7 @@ public class InformationSchemaTableDefinitions {
                                 // we also need to check for views which have privileges set
                                 || roles.hasAnyPrivilege(user, Securable.VIEW, c.relation().ident().fqn())
                                 ) && !c.ref().isDropped(),
-                    InformationColumnsTableInfo.create().expressions()
+                    InformationColumnsTableInfo.INSTANCE.expressions()
                 )
             ),
             Map.entry(
@@ -96,7 +96,7 @@ public class InformationSchemaTableDefinitions {
                 new StaticTableDefinition<>(
                     informationSchemaIterables::constraints,
                     (user, t) -> roles.hasAnyPrivilege(user, Securable.TABLE, t.relationName().fqn()),
-                    InformationTableConstraintsTableInfo.create().expressions()
+                    InformationTableConstraintsTableInfo.INSTANCE.expressions()
                 )
             ),
             Map.entry(
@@ -104,14 +104,14 @@ public class InformationSchemaTableDefinitions {
                 new StaticTableDefinition<>(
                     informationSchemaIterables::routines,
                     (user, r) -> roles.hasAnyPrivilege(user, Securable.SCHEMA, r.schema()),
-                    InformationRoutinesTableInfo.create().expressions()
+                    InformationRoutinesTableInfo.INSTANCE.expressions()
                 )
             ),
             Map.entry(
                 InformationSqlFeaturesTableInfo.IDENT,
                 new StaticTableDefinition<>(
-                    () -> completedFuture(informationSchemaIterables.features()),
-                    InformationSqlFeaturesTableInfo.create().expressions(),
+                    (txnCtx, role) -> completedFuture(informationSchemaIterables.features()),
+                    InformationSqlFeaturesTableInfo.INSTANCE.expressions(),
                     false
                 )
             ),
@@ -120,22 +120,22 @@ public class InformationSchemaTableDefinitions {
                 new StaticTableDefinition<>(
                     informationSchemaIterables::keyColumnUsage,
                     (user, k) -> roles.hasAnyPrivilege(user, Securable.TABLE, k.getFQN()),
-                    InformationKeyColumnUsageTableInfo.create().expressions()
+                    InformationKeyColumnUsageTableInfo.INSTANCE.expressions()
                 )
             ),
             Map.entry(
                 InformationReferentialConstraintsTableInfo.IDENT,
                 new StaticTableDefinition<>(
-                    () -> completedFuture(informationSchemaIterables.referentialConstraintsInfos()),
-                    InformationReferentialConstraintsTableInfo.create().expressions(),
+                    (txnCtx, role) -> completedFuture(informationSchemaIterables.referentialConstraintsInfos()),
+                    InformationReferentialConstraintsTableInfo.INSTANCE.expressions(),
                     false
                 )
             ),
             Map.entry(
                 InformationCharacterSetsTable.IDENT,
                 new StaticTableDefinition<>(
-                    () -> completedFuture(Arrays.asList(new Void[]{null})),
-                    InformationCharacterSetsTable.create().expressions(),
+                    (txnCtx, role) -> completedFuture(Arrays.asList(new Void[]{null})),
+                    InformationCharacterSetsTable.INSTANCE.expressions(),
                     false
                 )
             ),
@@ -144,7 +144,7 @@ public class InformationSchemaTableDefinitions {
                 new StaticTableDefinition<>(
                     informationSchemaIterables::servers,
                     (user, t) -> user.isSuperUser() || t.owner().equals(user.name()),
-                    ForeignServerTableInfo.create().expressions()
+                    ForeignServerTableInfo.INSTANCE.expressions()
                 )
             ),
             Map.entry(
@@ -152,7 +152,7 @@ public class InformationSchemaTableDefinitions {
                 new StaticTableDefinition<>(
                     informationSchemaIterables::serverOptions,
                     (user, t) -> user.isSuperUser() || t.serverOwner().equals(user.name()),
-                    ForeignServerOptionsTableInfo.create().expressions()
+                    ForeignServerOptionsTableInfo.INSTANCE.expressions()
                 )
             ),
             Map.entry(
@@ -160,7 +160,7 @@ public class InformationSchemaTableDefinitions {
                 new StaticTableDefinition<>(
                     informationSchemaIterables::foreignTables,
                     (user, t) -> roles.hasAnyPrivilege(user, Securable.TABLE, t.name().fqn()),
-                    ForeignTableTableInfo.create().expressions()
+                    ForeignTableTableInfo.INSTANCE.expressions()
                 )
             ),
             Map.entry(
@@ -168,7 +168,7 @@ public class InformationSchemaTableDefinitions {
                 new StaticTableDefinition<>(
                     informationSchemaIterables::foreignTableOptions,
                     (user, t) -> roles.hasAnyPrivilege(user, Securable.TABLE, t.relationName().fqn()),
-                    ForeignTableOptionsTableInfo.create().expressions()
+                    ForeignTableOptionsTableInfo.INSTANCE.expressions()
                 )
             ),
             Map.entry(
@@ -176,7 +176,7 @@ public class InformationSchemaTableDefinitions {
                 new StaticTableDefinition<>(
                     informationSchemaIterables::userMappings,
                     (user, t) -> roles.hasPrivilege(user, Permission.AL, Securable.CLUSTER, null),
-                    UserMappingsTableInfo.create().expressions()
+                    UserMappingsTableInfo.INSTANCE.expressions()
                 )
             ),
             Map.entry(
@@ -197,7 +197,7 @@ public class InformationSchemaTableDefinitions {
                             })
                             .iterator()
                 ),
-                UserMappingOptionsTableInfo.create().expressions(),
+                UserMappingOptionsTableInfo.INSTANCE.expressions(),
                 true
             ))
         );

@@ -34,18 +34,16 @@ public class SysSummitsTableInfo {
 
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME,"summits");
 
-    public static SystemTable<SummitsContext> create() {
-        return SystemTable.<SummitsContext>builder(IDENT)
-            .add("mountain", STRING, SummitsContext::mountain)
-            .add("height", INTEGER, SummitsContext::height)
-            .add("prominence", INTEGER, SummitsContext::prominence)
-            .add("coordinates", GEO_POINT, SummitsContext::coordinates)
-            .add("range", STRING, SummitsContext::range)
-            .add("classification", STRING, SummitsContext::classification)
-            .add("region", STRING, SummitsContext::region)
-            .add("country", STRING, SummitsContext::country)
-            .add("first_ascent", INTEGER, SummitsContext::firstAscent)
-            .setPrimaryKeys(new ColumnIdent("mountain"))
-            .build();
-    }
+    public static SystemTable<SummitsContext> INSTANCE = SystemTable.<SummitsContext>builder(IDENT)
+        .add("mountain", STRING, SummitsContext::mountain)
+        .add("height", INTEGER, SummitsContext::height)
+        .add("prominence", INTEGER, SummitsContext::prominence)
+        .add("coordinates", GEO_POINT, SummitsContext::coordinates)
+        .add("range", STRING, SummitsContext::range)
+        .add("classification", STRING, SummitsContext::classification)
+        .add("region", STRING, SummitsContext::region)
+        .add("country", STRING, SummitsContext::country)
+        .add("first_ascent", INTEGER, SummitsContext::firstAscent)
+        .setPrimaryKeys(new ColumnIdent("mountain"))
+        .build();
 }

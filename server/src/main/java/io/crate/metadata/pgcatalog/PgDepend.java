@@ -31,16 +31,14 @@ public class PgDepend {
 
     private PgDepend() {}
 
-    public static SystemTable<Void> create() {
-        // https://www.postgresql.org/docs/current/catalog-pg-depend.html
-        return SystemTable.<Void>builder(NAME)
-            .add("classid", DataTypes.INTEGER, c -> null)
-            .add("objid", DataTypes.INTEGER, c -> null)
-            .add("objsubid", DataTypes.INTEGER, c -> null)
-            .add("refclassid", DataTypes.INTEGER, c -> null)
-            .add("refobjid", DataTypes.INTEGER, c -> null)
-            .add("refobjsubid", DataTypes.INTEGER, c -> null)
-            .add("deptype", DataTypes.CHARACTER, c -> null)
-            .build();
-    }
+    // https://www.postgresql.org/docs/current/catalog-pg-depend.html
+    public static SystemTable<Void> INSTANCE = SystemTable.<Void>builder(NAME)
+        .add("classid", DataTypes.INTEGER, c -> null)
+        .add("objid", DataTypes.INTEGER, c -> null)
+        .add("objsubid", DataTypes.INTEGER, c -> null)
+        .add("refclassid", DataTypes.INTEGER, c -> null)
+        .add("refobjid", DataTypes.INTEGER, c -> null)
+        .add("refobjsubid", DataTypes.INTEGER, c -> null)
+        .add("deptype", DataTypes.CHARACTER, c -> null)
+        .build();
 }

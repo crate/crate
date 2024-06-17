@@ -33,12 +33,10 @@ public final class PgDescriptionTable {
 
     private PgDescriptionTable() {}
 
-    public static SystemTable<Void> create() {
-        return SystemTable.<Void>builder(NAME)
-            .add("objoid", INTEGER, c -> null)
-            .add("classoid", INTEGER, c -> null)
-            .add("objsubid", INTEGER, c -> null)
-            .add("description", STRING , c -> null)
-            .build();
-    }
+    public static SystemTable<Void> INSTANCE = SystemTable.<Void>builder(NAME)
+        .add("objoid", INTEGER, c -> null)
+        .add("classoid", INTEGER, c -> null)
+        .add("objsubid", INTEGER, c -> null)
+        .add("description", STRING , c -> null)
+        .build();
 }

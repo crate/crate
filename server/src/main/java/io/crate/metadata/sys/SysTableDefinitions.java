@@ -91,7 +91,7 @@ public class SysTableDefinitions {
                 SysRolesTableInfo.IDENT,
                 new StaticTableDefinition<>(
                     () -> CompletableFuture.completedFuture(roles.roles().stream().filter(r -> r.isUser() == false).toList()),
-                    SysRolesTableInfo.create().expressions(),
+                    SysRolesTableInfo.INSTANCE.expressions(),
                     false
                 )
             ),
@@ -99,7 +99,7 @@ public class SysTableDefinitions {
                 SysPrivilegesTableInfo.IDENT,
                 new StaticTableDefinition<>(
                     () -> CompletableFuture.completedFuture(SysPrivilegesTableInfo.buildPrivilegesRows(roles.roles())),
-                    SysPrivilegesTableInfo.create().expressions(),
+                    SysPrivilegesTableInfo.INSTANCE.expressions(),
                     false
                 )
             ),
@@ -148,19 +148,19 @@ public class SysTableDefinitions {
                 SysOperationsLogTableInfo.IDENT,
                 new StaticTableDefinition<>(
                     () -> completedFuture(jobsLogs.operationsLog()),
-                    SysOperationsLogTableInfo.create().expressions(),
+                    SysOperationsLogTableInfo.INSTANCE.expressions(),
                     false
                 )
             ),
             Map.entry(
                 SysChecksTableInfo.IDENT,
                 new StaticTableDefinition<>(
-                    sysChecker::computeResultAndGet, SysChecksTableInfo.create().expressions(), true)
+                    sysChecker::computeResultAndGet, SysChecksTableInfo.INSTANCE.expressions(), true)
             ),
             Map.entry(
                 SysNodeChecksTableInfo.IDENT,
                 new StaticTableDefinition<>(
-                    () -> completedFuture(sysNodeChecks), SysNodeChecksTableInfo.create().expressions(), true)
+                    () -> completedFuture(sysNodeChecks), SysNodeChecksTableInfo.INSTANCE.expressions(), true)
             ),
             Map.entry(
                 SysRepositoriesTableInfo.IDENT,
@@ -173,14 +173,14 @@ public class SysTableDefinitions {
             Map.entry(
                 SysSnapshotsTableInfo.IDENT,
                 new StaticTableDefinition<>(
-                    sysSnapshots::currentSnapshots, SysSnapshotsTableInfo.create().expressions(), true)
+                    sysSnapshots::currentSnapshots, SysSnapshotsTableInfo.INSTANCE.expressions(), true)
             ),
             Map.entry(
                 SysSnapshotRestoreTableInfo.IDENT,
                 new StaticTableDefinition<>(
                     () -> completedFuture(SysSnapshotRestoreTableInfo.snapshotsRestoreInProgress(
                         clusterService.state().custom(RestoreInProgress.TYPE))),
-                    SysSnapshotRestoreTableInfo.create().expressions(),
+                    SysSnapshotRestoreTableInfo.INSTANCE.expressions(),
                     true
                 )
             ),
@@ -190,21 +190,21 @@ public class SysTableDefinitions {
                 new StaticTableDefinition<>(
                     () -> sysAllocations,
                     (user, allocation) -> roles.hasAnyPrivilege(user, Securable.TABLE, allocation.fqn()),
-                    SysAllocationsTableInfo.create().expressions()
+                    SysAllocationsTableInfo.INSTANCE.expressions()
                 )
             ),
 
             Map.entry(
                 SysSummitsTableInfo.IDENT,
                 new StaticTableDefinition<>(
-                    () -> completedFuture(summits), SysSummitsTableInfo.create().expressions(), false)
+                    () -> completedFuture(summits), SysSummitsTableInfo.INSTANCE.expressions(), false)
             ),
 
             Map.entry(
                 SysHealth.IDENT,
                 new StaticTableDefinition<>(
                     () -> TableHealth.compute(clusterService.state()),
-                    SysHealth.create().expressions(),
+                    SysHealth.INSTANCE.expressions(),
                     (user, tableHealth) -> roles.hasAnyPrivilege(user, Securable.TABLE, tableHealth.fqn()),
                     true
                 )

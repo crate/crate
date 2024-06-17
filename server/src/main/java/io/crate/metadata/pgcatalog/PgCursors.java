@@ -33,14 +33,12 @@ public final class PgCursors {
 
     private PgCursors() {}
 
-    public static SystemTable<Cursor> create() {
-        return SystemTable.<Cursor>builder(IDENT)
-            .add("name", DataTypes.STRING, Cursor::name)
-            .add("statement", DataTypes.STRING, Cursor::declareStatement)
-            .add("is_holdable", DataTypes.BOOLEAN, Cursor::isHold)
-            .add("is_binary", DataTypes.BOOLEAN, Cursor::isBinary)
-            .add("is_scrollable", DataTypes.BOOLEAN, Cursor::isScrollable)
-            .add("creation_time", DataTypes.TIMESTAMPZ, Cursor::creationTime)
-            .build();
-    }
+    public static SystemTable<Cursor> INSTANCE = SystemTable.<Cursor>builder(IDENT)
+        .add("name", DataTypes.STRING, Cursor::name)
+        .add("statement", DataTypes.STRING, Cursor::declareStatement)
+        .add("is_holdable", DataTypes.BOOLEAN, Cursor::isHold)
+        .add("is_binary", DataTypes.BOOLEAN, Cursor::isBinary)
+        .add("is_scrollable", DataTypes.BOOLEAN, Cursor::isScrollable)
+        .add("creation_time", DataTypes.TIMESTAMPZ, Cursor::creationTime)
+        .build();
 }

@@ -47,21 +47,19 @@ public class SysNodeChecksTableInfo {
         public static final ColumnIdent ACKNOWLEDGED = new ColumnIdent("acknowledged");
     }
 
-    public static SystemTable<SysNodeCheck> create() {
-        return SystemTable.<SysNodeCheck>builder(IDENT)
-            .add("id", INTEGER, SysNodeCheck::id)
-            .add("node_id", STRING, SysNodeCheck::nodeId)
-            .add("severity", INTEGER, (SysNodeCheck x) -> x.severity().value())
-            .add("description", STRING, SysNodeCheck::description)
-            .add("passed", BOOLEAN, SysNodeCheck::isValid)
-            .add("acknowledged", BOOLEAN, SysNodeCheck::acknowledged)
-            .add(DocSysColumns.ID.COLUMN.name(), STRING, SysNodeCheck::rowId)
-            .withRouting((state, routingProvider, sessionSettings) -> Routing.forTableOnAllNodes(IDENT, state.nodes()))
-            .withSupportedOperations(SUPPORTED_OPERATIONS)
-            .setPrimaryKeys(
-                new ColumnIdent("id"),
-                new ColumnIdent("node_id")
-            )
-            .build();
-    }
+    public static SystemTable<SysNodeCheck> INSTANCE = SystemTable.<SysNodeCheck>builder(IDENT)
+        .add("id", INTEGER, SysNodeCheck::id)
+        .add("node_id", STRING, SysNodeCheck::nodeId)
+        .add("severity", INTEGER, (SysNodeCheck x) -> x.severity().value())
+        .add("description", STRING, SysNodeCheck::description)
+        .add("passed", BOOLEAN, SysNodeCheck::isValid)
+        .add("acknowledged", BOOLEAN, SysNodeCheck::acknowledged)
+        .add(DocSysColumns.ID.COLUMN.name(), STRING, SysNodeCheck::rowId)
+        .withRouting((state, routingProvider, sessionSettings) -> Routing.forTableOnAllNodes(IDENT, state.nodes()))
+        .withSupportedOperations(SUPPORTED_OPERATIONS)
+        .setPrimaryKeys(
+            new ColumnIdent("id"),
+            new ColumnIdent("node_id")
+        )
+        .build();
 }

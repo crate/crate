@@ -32,13 +32,11 @@ public class ForeignTableOptionsTableInfo {
     public static final String NAME = "foreign_table_options";
     public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
 
-    public static SystemTable<ForeignTable.Option> create() {
-        return SystemTable.<ForeignTable.Option>builder(IDENT)
-            .add("foreign_table_catalog", DataTypes.STRING, ignored -> Constants.DB_NAME)
-            .add("foreign_table_schema", DataTypes.STRING, x -> x.relationName().schema())
-            .add("foreign_table_name", DataTypes.STRING, x -> x.relationName().name())
-            .add("option_name", DataTypes.STRING, ForeignTable.Option::name)
-            .add("option_value", DataTypes.STRING, ForeignTable.Option::value)
-            .build();
-    }
+    public static SystemTable<ForeignTable.Option> INSTANCE = SystemTable.<ForeignTable.Option>builder(IDENT)
+        .add("foreign_table_catalog", DataTypes.STRING, ignored -> Constants.DB_NAME)
+        .add("foreign_table_schema", DataTypes.STRING, x -> x.relationName().schema())
+        .add("foreign_table_name", DataTypes.STRING, x -> x.relationName().name())
+        .add("option_name", DataTypes.STRING, ForeignTable.Option::name)
+        .add("option_value", DataTypes.STRING, ForeignTable.Option::value)
+        .build();
 }

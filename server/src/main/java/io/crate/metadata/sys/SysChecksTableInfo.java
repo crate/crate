@@ -34,13 +34,11 @@ public final class SysChecksTableInfo {
 
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "checks");
 
-    public static SystemTable<SysCheck> create() {
-        return SystemTable.<SysCheck>builder(IDENT)
-            .add("id", INTEGER, SysCheck::id)
-            .add("severity", INTEGER, x -> x.severity().value())
-            .add("description", STRING, SysCheck::description)
-            .add("passed", BOOLEAN, SysCheck::isValid)
-            .setPrimaryKeys(new ColumnIdent("id"))
-            .build();
-    }
+    public static SystemTable<SysCheck> INSTANCE = SystemTable.<SysCheck>builder(IDENT)
+        .add("id", INTEGER, SysCheck::id)
+        .add("severity", INTEGER, x -> x.severity().value())
+        .add("description", STRING, SysCheck::description)
+        .add("passed", BOOLEAN, SysCheck::isValid)
+        .setPrimaryKeys(new ColumnIdent("id"))
+        .build();
 }

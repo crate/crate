@@ -103,7 +103,7 @@ public final class NodeStats {
             this.nodes = nodes;
             this.txnCtx = txnCtx;
             this.inputFactory = inputFactory;
-            this.expressions = SysNodesTableInfo.create().expressions();
+            this.expressions = SysNodesTableInfo.INSTANCE.expressions();
         }
 
         @Override

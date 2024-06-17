@@ -32,12 +32,10 @@ public class ForeignServerOptionsTableInfo {
     public static final String NAME = "foreign_server_options";
     public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
 
-    public static SystemTable<Server.Option> create() {
-        return SystemTable.<Server.Option>builder(IDENT)
-            .add("foreign_server_catalog", DataTypes.STRING, ignored -> Constants.DB_NAME)
-            .add("foreign_server_name", DataTypes.STRING, Server.Option::serverName)
-            .add("option_name", DataTypes.STRING, Server.Option::name)
-            .add("option_value", DataTypes.STRING, Server.Option::value)
-            .build();
-    }
+    public static SystemTable<Server.Option> INSTANCE = SystemTable.<Server.Option>builder(IDENT)
+        .add("foreign_server_catalog", DataTypes.STRING, ignored -> Constants.DB_NAME)
+        .add("foreign_server_name", DataTypes.STRING, Server.Option::serverName)
+        .add("option_name", DataTypes.STRING, Server.Option::name)
+        .add("option_value", DataTypes.STRING, Server.Option::value)
+        .build();
 }

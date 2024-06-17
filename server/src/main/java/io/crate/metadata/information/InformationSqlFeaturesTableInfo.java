@@ -35,23 +35,21 @@ public class InformationSqlFeaturesTableInfo {
     public static final String NAME = "sql_features";
     public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
 
-    public static SystemTable<SqlFeatureContext> create() {
-        return SystemTable.<SqlFeatureContext>builder(IDENT)
-            .add("feature_id", STRING, SqlFeatureContext::getFeatureId)
-            .add("feature_name", STRING, SqlFeatureContext::getFeatureName)
-            .add("sub_feature_id", STRING, SqlFeatureContext::getSubFeatureId)
-            .add("sub_feature_name", STRING, SqlFeatureContext::getSubFeatureName)
-            .add("is_supported", BOOLEAN, SqlFeatureContext::isSupported)
-            .add("is_verified_by", STRING, SqlFeatureContext::getIsVerifiedBy)
-            .add("comments", STRING, SqlFeatureContext::getComments)
-            .setPrimaryKeys(
-                new ColumnIdent("feature_id"),
-                new ColumnIdent("feature_name"),
-                new ColumnIdent("sub_feature_id"),
-                new ColumnIdent("sub_feature_name"),
-                new ColumnIdent("is_supported"),
-                new ColumnIdent("is_verified_by")
-            )
-            .build();
-    }
+    public static SystemTable<SqlFeatureContext> INSTANCE = SystemTable.<SqlFeatureContext>builder(IDENT)
+        .add("feature_id", STRING, SqlFeatureContext::getFeatureId)
+        .add("feature_name", STRING, SqlFeatureContext::getFeatureName)
+        .add("sub_feature_id", STRING, SqlFeatureContext::getSubFeatureId)
+        .add("sub_feature_name", STRING, SqlFeatureContext::getSubFeatureName)
+        .add("is_supported", BOOLEAN, SqlFeatureContext::isSupported)
+        .add("is_verified_by", STRING, SqlFeatureContext::getIsVerifiedBy)
+        .add("comments", STRING, SqlFeatureContext::getComments)
+        .setPrimaryKeys(
+            new ColumnIdent("feature_id"),
+            new ColumnIdent("feature_name"),
+            new ColumnIdent("sub_feature_id"),
+            new ColumnIdent("sub_feature_name"),
+            new ColumnIdent("is_supported"),
+            new ColumnIdent("is_verified_by")
+        )
+        .build();
 }
