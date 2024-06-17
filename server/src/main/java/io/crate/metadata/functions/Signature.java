@@ -26,7 +26,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 
 import org.apache.lucene.util.Accountable;
@@ -422,22 +421,20 @@ public final class Signature implements Writeable, Accountable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        Signature signature = (Signature) o;
-        return name.equals(signature.name) &&
-               kind == signature.kind &&
-               argumentTypes.equals(signature.argumentTypes) &&
-               returnType.equals(signature.returnType);
+        return o instanceof Signature signature &&
+            name.equals(signature.name) &&
+            kind == signature.kind &&
+            argumentTypes.equals(signature.argumentTypes) &&
+            returnType.equals(signature.returnType);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, kind, argumentTypes, returnType);
+        int result = name.hashCode();
+        result = 31 * result + kind.hashCode();
+        result = 31 * result + argumentTypes.hashCode();
+        result = 31 * result + returnType.hashCode();
+        return result;
     }
 
     @Override

@@ -27,19 +27,18 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
-public class Aggregation implements Symbol {
+public final class Aggregation implements Symbol {
 
     private static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(Aggregation.class);
 
@@ -151,22 +150,20 @@ public class Aggregation implements Symbol {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        Aggregation that = (Aggregation) o;
-        return Objects.equals(signature, that.signature) &&
-               Objects.equals(inputs, that.inputs) &&
-               Objects.equals(valueType, that.valueType) &&
-               Objects.equals(filter, that.filter);
+        return o instanceof Aggregation that &&
+            Objects.equals(signature, that.signature) &&
+            Objects.equals(inputs, that.inputs) &&
+            Objects.equals(valueType, that.valueType) &&
+            Objects.equals(filter, that.filter);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(signature, inputs, valueType, filter);
+        int result = signature.hashCode();
+        result = 31 * result + inputs.hashCode();
+        result = 31 * result + valueType.hashCode();
+        result = 31 * result + filter.hashCode();
+        return result;
     }
 
     @Override
