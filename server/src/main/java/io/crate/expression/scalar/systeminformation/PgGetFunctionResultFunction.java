@@ -22,22 +22,25 @@
 package io.crate.expression.scalar.systeminformation;
 
 import io.crate.data.Input;
+import io.crate.metadata.FunctionName;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.types.DataTypes;
 
 public final class PgGetFunctionResultFunction extends Scalar<String, Integer> {
 
     public static final String NAME = "pg_get_function_result";
+    private static final FunctionName FQN = new FunctionName(PgCatalogSchemaInfo.NAME, NAME);
 
     public static void register(Functions.Builder module) {
         module.add(
             Signature.scalar(
-                NAME,
+                FQN,
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
             ),
