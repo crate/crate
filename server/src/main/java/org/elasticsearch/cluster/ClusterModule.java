@@ -42,6 +42,12 @@ import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.routing.allocation.ExistingShardsAllocator;
 import org.elasticsearch.cluster.routing.allocation.allocator.BalancedShardsAllocator;
 import org.elasticsearch.cluster.routing.allocation.allocator.ShardsAllocator;
+import org.elasticsearch.cluster.routing.allocation.command.AllocateEmptyPrimaryAllocationCommand;
+import org.elasticsearch.cluster.routing.allocation.command.AllocateReplicaAllocationCommand;
+import org.elasticsearch.cluster.routing.allocation.command.AllocateStalePrimaryAllocationCommand;
+import org.elasticsearch.cluster.routing.allocation.command.AllocationCommand;
+import org.elasticsearch.cluster.routing.allocation.command.CancelAllocationCommand;
+import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationCommand;
 import org.elasticsearch.cluster.routing.allocation.decider.AllocationDecider;
 import org.elasticsearch.cluster.routing.allocation.decider.AllocationDeciders;
 import org.elasticsearch.cluster.routing.allocation.decider.AwarenessAllocationDecider;
@@ -114,6 +120,27 @@ public class ClusterModule extends AbstractModule {
         // Metadata
         registerMetadataCustom(entries, RepositoriesMetadata.TYPE, RepositoriesMetadata::new, RepositoriesMetadata::readDiffFrom);
         registerMetadataCustom(entries, IndexGraveyard.TYPE, IndexGraveyard::new, IndexGraveyard::readDiffFrom);
+        entries.add(new Entry(
+            AllocationCommand.class,
+            CancelAllocationCommand.COMMAND_NAME_FIELD.getPreferredName(),
+            CancelAllocationCommand::new));
+        entries.add(new Entry(
+            AllocationCommand.class,
+            MoveAllocationCommand.COMMAND_NAME_FIELD.getPreferredName(),
+            MoveAllocationCommand::new));
+        entries.add(new Entry(
+            AllocationCommand.class,
+            AllocateReplicaAllocationCommand.COMMAND_NAME_FIELD.getPreferredName(),
+            AllocateReplicaAllocationCommand::new));
+        entries.add(new Entry(
+            AllocationCommand.class,
+            AllocateEmptyPrimaryAllocationCommand.COMMAND_NAME_FIELD.getPreferredName(),
+            AllocateEmptyPrimaryAllocationCommand::new));
+        entries.add(new Entry(
+            AllocationCommand.class,
+            AllocateStalePrimaryAllocationCommand.COMMAND_NAME_FIELD.getPreferredName(),
+            AllocateStalePrimaryAllocationCommand::new));
+
         return entries;
     }
 
@@ -147,13 +174,22 @@ public class ClusterModule extends AbstractModule {
     }
 
     public static List<NamedXContentRegistry.Entry> getNamedXWriteables() {
-        List<NamedXContentRegistry.Entry> entries = new ArrayList<>();
-        // Metadata
-        entries.add(new NamedXContentRegistry.Entry(Metadata.Custom.class, new ParseField(RepositoriesMetadata.TYPE),
-            RepositoriesMetadata::fromXContent));
-        entries.add(new NamedXContentRegistry.Entry(Metadata.Custom.class, new ParseField(IndexGraveyard.TYPE),
-            IndexGraveyard::fromXContent));
-        return entries;
+        return List.of(
+            new NamedXContentRegistry.Entry(
+                Metadata.Custom.class, new ParseField(RepositoriesMetadata.TYPE), RepositoriesMetadata::fromXContent),
+            new NamedXContentRegistry.Entry(
+                Metadata.Custom.class, new ParseField(IndexGraveyard.TYPE), IndexGraveyard::fromXContent),
+            new NamedXContentRegistry.Entry(
+                AllocationCommand.class, CancelAllocationCommand.COMMAND_NAME_FIELD, CancelAllocationCommand::fromXContent),
+            new NamedXContentRegistry.Entry(
+                AllocationCommand.class, MoveAllocationCommand.COMMAND_NAME_FIELD, MoveAllocationCommand::fromXContent),
+            new NamedXContentRegistry.Entry(
+                AllocationCommand.class, AllocateReplicaAllocationCommand.COMMAND_NAME_FIELD, AllocateReplicaAllocationCommand::fromXContent),
+            new NamedXContentRegistry.Entry(
+                AllocationCommand.class, AllocateEmptyPrimaryAllocationCommand.COMMAND_NAME_FIELD, AllocateEmptyPrimaryAllocationCommand::fromXContent),
+            new NamedXContentRegistry.Entry(
+                AllocationCommand.class, AllocateStalePrimaryAllocationCommand.COMMAND_NAME_FIELD, AllocateStalePrimaryAllocationCommand::fromXContent)
+        );
     }
 
     private static <T extends ClusterState.Custom> void registerClusterCustom(List<Entry> entries, String name, Reader<? extends T> reader,

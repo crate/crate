@@ -22,7 +22,6 @@
 package io.crate.rest;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.elasticsearch.common.network.NetworkModule.HTTP_DEFAULT_TYPE_SETTING;
 
 import java.net.InetSocketAddress;
 import java.net.URI;
@@ -37,20 +36,15 @@ import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.http.HttpServerTransport;
-import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.Netty4Plugin;
 import org.junit.After;
 import org.junit.Before;
 
@@ -62,19 +56,6 @@ public abstract class AdminUIHttpIntegrationTest extends IntegTestCase {
     @Override
     protected boolean addMockHttpTransport() {
         return false;
-    }
-
-    @Override
-    protected Settings nodeSettings(int nodeOrdinal) {
-        return Settings.builder()
-            .put(super.nodeSettings(nodeOrdinal))
-            .put(HTTP_DEFAULT_TYPE_SETTING.getKey(), "netty4")
-            .build();
-    }
-
-    @Override
-    protected Collection<Class<? extends Plugin>> nodePlugins() {
-        return Arrays.asList(Netty4Plugin.class);
     }
 
     @Before

@@ -59,7 +59,6 @@ import org.elasticsearch.cluster.service.ClusterApplierService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.cluster.service.MasterService;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.util.PageCacheRecycler;
@@ -74,6 +73,7 @@ import org.elasticsearch.gateway.DanglingIndicesState;
 import org.elasticsearch.gateway.GatewayService;
 import org.elasticsearch.gateway.PersistedClusterStateService;
 import org.elasticsearch.http.HttpTransportSettings;
+import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.indices.IndexingMemoryController;
 import org.elasticsearch.indices.IndicesQueryCache;
@@ -97,6 +97,7 @@ import org.elasticsearch.snapshots.InternalSnapshotsInfoService;
 import org.elasticsearch.snapshots.SnapshotsService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportSettings;
+import org.elasticsearch.transport.netty4.Netty4Transport;
 
 import io.crate.action.sql.Sessions;
 import io.crate.auth.AuthSettings;
@@ -243,8 +244,14 @@ public final class ClusterSettings extends AbstractScopedSettings {
         GatewayService.RECOVER_AFTER_NODES_SETTING,
         GatewayService.RECOVER_AFTER_TIME_SETTING,
         PersistedClusterStateService.SLOW_WRITE_LOGGING_THRESHOLD,
-        NetworkModule.HTTP_DEFAULT_TYPE_SETTING,
-        NetworkModule.HTTP_TYPE_SETTING,
+        Netty4HttpServerTransport.SETTING_HTTP_NETTY_MAX_COMPOSITE_BUFFER_COMPONENTS,
+        Netty4HttpServerTransport.SETTING_HTTP_WORKER_COUNT,
+        Netty4HttpServerTransport.SETTING_HTTP_NETTY_RECEIVE_PREDICTOR_SIZE,
+        Netty4Transport.WORKER_COUNT,
+        Netty4Transport.NETTY_RECEIVE_PREDICTOR_SIZE,
+        Netty4Transport.NETTY_RECEIVE_PREDICTOR_MIN,
+        Netty4Transport.NETTY_RECEIVE_PREDICTOR_MAX,
+        Netty4Transport.NETTY_BOSS_COUNT,
         HttpTransportSettings.SETTING_CORS_ALLOW_CREDENTIALS,
         HttpTransportSettings.SETTING_CORS_ENABLED,
         HttpTransportSettings.SETTING_CORS_MAX_AGE,

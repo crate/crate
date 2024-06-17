@@ -44,6 +44,7 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.net.http.HttpClient;
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.ForkJoinWorkerThread;
@@ -204,7 +205,22 @@ public abstract class CrateLuceneTestCase {
 
     @After
     public void assertNoActiveCommonPoolThreads() throws Exception {
-        assertThat(ForkJoinPool.commonPool().getActiveThreadCount()).isEqualTo(0);
+        ForkJoinPool commonPool = ForkJoinPool.commonPool();
+        StringBuilder sb = new StringBuilder();
+        if (commonPool.getActiveThreadCount() > 0) {
+            Map<Thread, StackTraceElement[]> allStackTraces = Thread.getAllStackTraces();
+            for (var entry : allStackTraces.entrySet()) {
+                Thread thread = entry.getKey();
+                if (thread instanceof ForkJoinWorkerThread) {
+                    sb.append(thread.getName());
+                    StackTraceElement[] stacktrace = entry.getValue();
+                    for (StackTraceElement stackTraceElement : stacktrace) {
+                        sb.append("\n    at").append(stackTraceElement);
+                    }
+                }
+            }
+       }
+       assertThat(commonPool.getActiveThreadCount()).as(sb.toString()).isEqualTo(0);
     }
 
     public void setIndexWriterMaxDocs(int limit) {

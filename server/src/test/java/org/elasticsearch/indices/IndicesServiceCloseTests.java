@@ -44,7 +44,6 @@ import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.MockHttpTransport;
 import org.elasticsearch.test.TestCluster;
-import org.elasticsearch.transport.Netty4Plugin;
 import org.junit.Test;
 
 import io.crate.action.sql.CollectingResultReceiver;
@@ -75,7 +74,7 @@ public class IndicesServiceCloseTests extends ESTestCase {
             .putList(INITIAL_MASTER_NODES_SETTING.getKey(), nodeName)
             .build();
 
-        Collection<Class<? extends Plugin>> plugins = Arrays.asList(MockHttpTransport.TestPlugin.class, Netty4Plugin.class);
+        Collection<Class<? extends Plugin>> plugins = Arrays.asList(MockHttpTransport.TestPlugin.class);
         Node node = new MockNode(settings, plugins, true);
         node.start();
         return node;
