@@ -47,7 +47,6 @@ import io.crate.blob.exceptions.DigestMismatchException;
 import io.crate.blob.exceptions.DigestNotFoundException;
 import io.crate.blob.exceptions.MissingHTTPEndpointException;
 import io.crate.blob.v2.BlobIndex;
-import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
 import io.crate.blob.v2.BlobsDisabledException;
 import io.netty.buffer.ByteBuf;
@@ -91,7 +90,6 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
 
     private final Matcher blobsMatcher = BLOBS_PATTERN.matcher("");
     private final BlobService blobService;
-    private final BlobIndicesService blobIndicesService;
     private final Netty4CorsConfig corsConfig;
     private HttpRequest currentMessage;
 
@@ -100,10 +98,9 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
     private String index;
     private String digest;
 
-    public HttpBlobHandler(BlobService blobService, BlobIndicesService blobIndicesService, Netty4CorsConfig corsConfig) {
+    public HttpBlobHandler(BlobService blobService, Netty4CorsConfig corsConfig) {
         super(false);
         this.blobService = blobService;
-        this.blobIndicesService = blobIndicesService;
         this.corsConfig = corsConfig;
     }
 
@@ -294,7 +291,7 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
         // this method only supports local mode, which is ok, since there
         // should be a redirect upfront if data is not local
 
-        BlobShard blobShard = localBlobShard(index, digest);
+        BlobShard blobShard = blobService.localBlobShard(index, digest);
         long length = blobShard.blobContainer().getFile(digest).length();
         if (length < 1) {
             simpleResponse(request, HttpResponseStatus.NOT_FOUND);
@@ -315,10 +312,6 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
         }
     }
 
-    private BlobShard localBlobShard(String index, String digest) {
-        return blobIndicesService.localBlobShard(index, digest);
-    }
-
     private void partialContentResponse(String range, HttpRequest request, String index, final String digest)
         throws IOException {
         assert range != null : "Getting partial response but no byte-range is not present.";
@@ -328,7 +321,7 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
             fullContentResponse(request, index, digest);
             return;
         }
-        BlobShard blobShard = localBlobShard(index, digest);
+        BlobShard blobShard = blobService.localBlobShard(index, digest);
 
         final RandomAccessFile raf = blobShard.blobContainer().getRandomAccessFile(digest);
         long start;
@@ -376,7 +369,7 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
     }
 
     private void fullContentResponse(HttpRequest request, String index, final String digest) throws IOException {
-        BlobShard blobShard = localBlobShard(index, digest);
+        BlobShard blobShard = blobService.localBlobShard(index, digest);
         HttpResponse response = new DefaultHttpResponse(HTTP_1_1, HttpResponseStatus.OK);
         Netty4CorsHandler.setCorsResponseHeaders(request, response, corsConfig);
         final RandomAccessFile raf = blobShard.blobContainer().getRandomAccessFile(digest);

@@ -36,6 +36,7 @@ import io.crate.blob.exceptions.MissingHTTPEndpointException;
 import io.crate.blob.transfer.BlobHeadRequestHandler;
 import io.crate.blob.v2.BlobIndex;
 import io.crate.blob.v2.BlobIndicesService;
+import io.crate.blob.v2.BlobShard;
 import io.crate.netty.channel.PipelineRegistry;
 import io.crate.protocols.http.HttpBlobHandler;
 
@@ -72,7 +73,7 @@ public class BlobService extends AbstractLifecycleComponent {
     protected void doStart() throws ElasticsearchException {
         pipelineRegistry.addBefore(
             new PipelineRegistry.ChannelPipelineItem(
-                "aggregator", "blob_handler", netty4CorsConfig -> new HttpBlobHandler(this, blobIndicesService, netty4CorsConfig))
+                "aggregator", "blob_handler", netty4CorsConfig -> new HttpBlobHandler(this, netty4CorsConfig))
         );
         blobHeadRequestHandler.registerHandler();
     }
@@ -115,4 +116,7 @@ public class BlobService extends AbstractLifecycleComponent {
         throw new MissingHTTPEndpointException("Can't find a suitable http server to serve the blob");
     }
 
+    public BlobShard localBlobShard(String index, String digest) {
+        return blobIndicesService.localBlobShard(index, digest);
+    }
 }
