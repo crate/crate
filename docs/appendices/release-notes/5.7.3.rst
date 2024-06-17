@@ -58,3 +58,7 @@ Fixes
 - Fixed an issue that caused ``SQLParseException`` when a
   :ref:`PostgreSQL foreign table <administration-fdw-jdbc-psql>` has columns of
   type ``JSONB``, or ``JSONB[]``.
+
+- Fixed an issue that caused ``WHERE`` clause to fail to filter rows when
+  the clause contained :ref:`scalar-pg_get_partkeydef` scalar function under
+  ``NOT`` operator.

@@ -105,6 +105,12 @@ public class ThreeValuedLogicQueryBuilderTest extends LuceneQueryBuilderTest {
     }
 
     @Test
+    public void test_not_on_pg_get_partkeydef() {
+        assertThat(convert("NOT (PG_GET_PARTKEYDEF(x))"))
+            .hasToString("+(+*:* -pg_catalog.pg_get_partkeydef(x)) #(NOT pg_catalog.pg_get_partkeydef(x))");
+    }
+
+    @Test
     public void test_not_on_current_setting() {
         assertThat(convert("NOT (CURRENT_SETTING(name))"))
             .hasToString("+(+*:* -pg_catalog.current_setting(name)) #(NOT pg_catalog.current_setting(name))");

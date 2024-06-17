@@ -21,15 +21,18 @@
 
 package io.crate.expression.scalar.systeminformation;
 
-import io.crate.expression.scalar.UnaryScalar;
+import io.crate.data.Input;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.types.DataTypes;
 
-public class PgGetPartkeydefFunction {
+public class PgGetPartkeydefFunction extends Scalar<String, Integer> {
 
     public static final String NAME = "pg_get_partkeydef";
     private static final FunctionName FQN = new FunctionName(PgCatalogSchemaInfo.NAME, NAME);
@@ -40,14 +43,17 @@ public class PgGetPartkeydefFunction {
                 FQN,
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ).withFeature(Scalar.Feature.NULLABLE),
-            (signature, boundSignature) ->
-            new UnaryScalar<>(
-                signature,
-                boundSignature,
-                DataTypes.INTEGER,
-                oid -> null
-            )
+            ),
+            PgGetPartkeydefFunction::new
         );
+    }
+
+    public PgGetPartkeydefFunction(Signature signature, BoundSignature boundSignature) {
+        super(signature, boundSignature);
+    }
+
+    @Override
+    public String evaluate(TransactionContext txnCtx, NodeContext nodeContext, Input<Integer>... args) {
+        return null;
     }
 }
