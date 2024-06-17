@@ -4432,7 +4432,7 @@ Example:
 ---------------------------------
 
 Returns the type name of a type. The first argument is the ``OID`` of the type.
-The second argument is the type modifier. This function exits for PostgreSQL
+The second argument is the type modifier. This function exists for PostgreSQL
 compatibility and the type modifier is always ignored.
 
 Returns: ``text``
