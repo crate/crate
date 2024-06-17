@@ -43,7 +43,6 @@ import org.elasticsearch.env.Environment;
 import org.elasticsearch.node.InternalSettingsPreparer;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.transport.Netty4Plugin;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -94,7 +93,7 @@ public class NodeSettingsTest extends ESTestCase {
         settings.put("legacy.table_function_column_naming", "true");
 
         Environment environment = InternalSettingsPreparer.prepareEnvironment(Settings.EMPTY, settings, configPath, () -> "node-test");
-        node = new Node(environment, List.of(Netty4Plugin.class), true);
+        node = new Node(environment, List.of(), true);
         node.start();
         sqlOperations = node.injector().getInstance(Sessions.class);
     }

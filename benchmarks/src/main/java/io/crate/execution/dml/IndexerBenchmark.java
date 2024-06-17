@@ -32,7 +32,6 @@ import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.node.Node;
-import org.elasticsearch.transport.Netty4Plugin;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -78,7 +77,7 @@ public class IndexerBenchmark {
         Environment environment = new Environment(settings, tempDir);
         node = new Node(
             environment,
-            List.of(Netty4Plugin.class),
+            List.of(),
             true
         );
         node.start();

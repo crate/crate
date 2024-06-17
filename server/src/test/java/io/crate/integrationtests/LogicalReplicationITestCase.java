@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_READ_POLL_DURATION;
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.discovery.DiscoveryModule.DISCOVERY_SEED_PROVIDERS_SETTING;
 import static org.elasticsearch.discovery.SettingsBasedSeedHostsProvider.DISCOVERY_SEED_HOSTS_SETTING;
 
@@ -41,7 +42,6 @@ import java.util.Locale;
 import java.util.StringJoiner;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
@@ -55,7 +55,6 @@ import org.elasticsearch.test.NodeConfigurationSource;
 import org.elasticsearch.test.TestCluster;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.threadpool.TestThreadPool;
-import org.elasticsearch.transport.Netty4Plugin;
 import org.elasticsearch.transport.TransportService;
 import org.jetbrains.annotations.Nullable;
 import org.junit.After;
@@ -65,9 +64,9 @@ import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.LogicalReplicationSettings;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
+import io.crate.role.Role;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
-import io.crate.role.Role;
 
 public abstract class LogicalReplicationITestCase extends ESTestCase {
 
@@ -78,12 +77,6 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
     SQLTransportExecutor subscriberSqlExecutor;
 
     protected static final String SUBSCRIBING_USER = "subscriber";
-
-    protected Collection<Class<? extends Plugin>> nodePlugins() {
-        return List.of(
-            Netty4Plugin.class
-        );
-    }
 
     @Before
     public void setupClusters() throws IOException, InterruptedException {
@@ -105,8 +98,7 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
             createNodeConfigurationSource(),
             0,
             "publisher",
-            Stream.concat(nodePlugins().stream(), mockPlugins.stream())
-                .collect(Collectors.toList()),
+            mockPlugins,
             true
         );
         publisherCluster.beforeTest(random());
@@ -124,8 +116,7 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
             createNodeConfigurationSource(),
             0,
             "subscriber",
-            Stream.concat(nodePlugins().stream(), mockPlugins.stream())
-                .collect(Collectors.toList()),
+            mockPlugins,
             true
         );
         subscriberCluster.beforeTest(random());
