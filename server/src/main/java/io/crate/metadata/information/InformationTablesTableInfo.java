@@ -69,168 +69,166 @@ public class InformationTablesTableInfo {
     private static final String SELF_REFERENCING_COLUMN_NAME = "_id";
     private static final String REFERENCE_GENERATION = "SYSTEM GENERATED";
 
-    public static SystemTable<RelationInfo> create() {
-        return SystemTable.<RelationInfo>builder(IDENT)
-            .add("table_schema", STRING, r -> r.ident().schema())
-            .add("table_name", STRING, r -> r.ident().name())
-            .add("table_catalog", STRING, r -> Constants.DB_NAME)
-            .add("table_type", STRING, r -> r.relationType().pretty())
-            .add("number_of_shards", INTEGER, row -> {
+    public static SystemTable<RelationInfo> INSTANCE = SystemTable.<RelationInfo>builder(IDENT)
+        .add("table_schema", STRING, r -> r.ident().schema())
+        .add("table_name", STRING, r -> r.ident().name())
+        .add("table_catalog", STRING, r -> Constants.DB_NAME)
+        .add("table_type", STRING, r -> r.relationType().pretty())
+        .add("number_of_shards", INTEGER, row -> {
+            if (row instanceof ShardedTable) {
+                return ((ShardedTable) row).numberOfShards();
+            }
+            return null;
+        })
+        .add("number_of_replicas", STRING,
+            row -> {
                 if (row instanceof ShardedTable) {
-                    return ((ShardedTable) row).numberOfShards();
+                    return ((ShardedTable) row).numberOfReplicas();
                 }
                 return null;
             })
-            .add("number_of_replicas", STRING,
-                row -> {
-                    if (row instanceof ShardedTable) {
-                        return ((ShardedTable) row).numberOfReplicas();
-                    }
-                    return null;
-                })
-            .add("clustered_by", STRING,
-                row -> {
-                    if (row instanceof ShardedTable) {
-                        ColumnIdent clusteredBy = ((ShardedTable) row).clusteredBy();
-                        if (clusteredBy == null) {
-                            return null;
-                        }
-                        return clusteredBy.fqn();
-                    }
-                    return null;
-                })
-            .add("partitioned_by", STRING_ARRAY,
-                row -> {
-                    if (row instanceof DocTableInfo) {
-                        List<ColumnIdent> partitionedBy = ((DocTableInfo) row).partitionedBy();
-                        if (partitionedBy == null || partitionedBy.isEmpty()) {
-                            return null;
-                        }
-                        return Lists.map(partitionedBy, ColumnIdent::sqlFqn);
-                    }
-                    return null;
-                })
-            .add("blobs_path", STRING,
-                row -> {
-                    if (row instanceof BlobTableInfo) {
-                        return ((BlobTableInfo) row).blobsPath();
-                    }
-                    return null;
-                })
-            .add("column_policy", STRING,
-                row -> {
-                    if (row instanceof DocTableInfo) {
-                        return ((DocTableInfo) row).columnPolicy().lowerCaseName();
-                    }
-                    return ColumnPolicy.STRICT.lowerCaseName();
-                })
-            .add("routing_hash_function", STRING,
-                row -> {
-                    if (row instanceof ShardedTable) {
-                        return IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME;
-                    }
-                    return null;
-                })
-            .startObject("version", x -> !(x instanceof ShardedTable))
-                .add(
-                    Version.Property.CREATED.toString(),
-                    STRING,
-                    x -> {
-                        if (x instanceof StoredTable) {
-                            Version version = ((StoredTable) x).versionCreated();
-                            return version == null ? null : version.externalNumber();
-                        }
+        .add("clustered_by", STRING,
+            row -> {
+                if (row instanceof ShardedTable) {
+                    ColumnIdent clusteredBy = ((ShardedTable) row).clusteredBy();
+                    if (clusteredBy == null) {
                         return null;
                     }
-                )
-                .add(
-                    Version.Property.UPGRADED.toString(),
-                    STRING,
-                    x -> {
-                        if (x instanceof StoredTable) {
-                            Version version = ((StoredTable) x).versionUpgraded();
-                            return version == null ? null : version.externalNumber();
-                        }
+                    return clusteredBy.fqn();
+                }
+                return null;
+            })
+        .add("partitioned_by", STRING_ARRAY,
+            row -> {
+                if (row instanceof DocTableInfo) {
+                    List<ColumnIdent> partitionedBy = ((DocTableInfo) row).partitionedBy();
+                    if (partitionedBy == null || partitionedBy.isEmpty()) {
                         return null;
                     }
-                )
-            .endObject()
-            .add("closed", BOOLEAN, row -> {
-                if (row instanceof ShardedTable) {
-                    return ((ShardedTable) row).isClosed();
+                    return Lists.map(partitionedBy, ColumnIdent::sqlFqn);
                 }
                 return null;
             })
-            .add("reference_generation", STRING, r -> REFERENCE_GENERATION)
-            .add("self_referencing_column_name", STRING,row -> {
-                if (row instanceof ShardedTable) {
-                    return SELF_REFERENCING_COLUMN_NAME;
+        .add("blobs_path", STRING,
+            row -> {
+                if (row instanceof BlobTableInfo) {
+                    return ((BlobTableInfo) row).blobsPath();
                 }
                 return null;
             })
-            .startObject("settings", x -> !(x instanceof ShardedTable))
-                .add("refresh_interval", LONG, fromTimeValue(INDEX_REFRESH_INTERVAL_SETTING))
-
-                .startObject("blocks")
-                    .add("read_only", BOOLEAN, fromSetting(IndexMetadata.INDEX_READ_ONLY_SETTING))
-                    .add("read", BOOLEAN, fromSetting(IndexMetadata.INDEX_BLOCKS_READ_SETTING))
-                    .add("write", BOOLEAN, fromSetting(IndexMetadata.INDEX_BLOCKS_WRITE_SETTING))
-                    .add("metadata", BOOLEAN, fromSetting(IndexMetadata.INDEX_BLOCKS_METADATA_SETTING))
-                    .add("read_only_allow_delete", BOOLEAN, fromSetting(IndexMetadata.INDEX_BLOCKS_READ_ONLY_ALLOW_DELETE_SETTING))
-                .endObject()
-                .add("codec", STRING, fromSetting(INDEX_CODEC_SETTING))
-                .startObject("store")
-                    .add("type", STRING, fromSetting(INDEX_STORE_TYPE_SETTING))
-                .endObject()
-
-                .startObject("translog")
-                    .add("flush_threshold_size", LONG, fromByteSize(IndexSettings.INDEX_TRANSLOG_FLUSH_THRESHOLD_SIZE_SETTING))
-                    .add("sync_interval", LONG, fromTimeValue(IndexSettings.INDEX_TRANSLOG_SYNC_INTERVAL_SETTING))
-                    .add("durability", STRING, fromSetting(IndexSettings.INDEX_TRANSLOG_DURABILITY_SETTING, Translog.Durability::name))
-                .endObject()
-
-                .startObject("routing")
-                    .startObject("allocation")
-                        .add("enable", STRING, fromSetting(EnableAllocationDecider.INDEX_ROUTING_ALLOCATION_ENABLE_SETTING, EnableAllocationDecider.Allocation::toString))
-                        .add("total_shards_per_node", INTEGER, fromSetting(ShardsLimitAllocationDecider.INDEX_TOTAL_SHARDS_PER_NODE_SETTING))
-                        .addDynamicObject("require", STRING, fromSetting(IndexMetadata.INDEX_ROUTING_REQUIRE_GROUP_SETTING))
-                        .addDynamicObject("include", STRING, fromSetting(IndexMetadata.INDEX_ROUTING_INCLUDE_GROUP_SETTING))
-                        .addDynamicObject("exclude", STRING, fromSetting(IndexMetadata.INDEX_ROUTING_EXCLUDE_GROUP_SETTING))
-                    .endObject()
-                .endObject()
-
-                .startObject("unassigned")
-                    .startObject("node_left")
-                        .add("delayed_timeout", LONG, fromTimeValue(UnassignedInfo.INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING))
-                    .endObject()
-                .endObject()
-
-                .startObject("mapping")
-                    .startObject("total_fields")
-                        .add("limit", INTEGER, fromSetting(DocTableInfo.TOTAL_COLUMNS_LIMIT, INTEGER::sanitizeValue))
-                    .endObject()
-                .endObject()
-
-                .startObject("merge")
-                    .startObject("scheduler")
-                        .add("max_thread_count", INTEGER, fromSetting(MAX_THREAD_COUNT_SETTING))
-                        .add("max_merge_count", INTEGER, fromSetting(MAX_MERGE_COUNT_SETTING))
-                    .endObject()
-                .endObject()
-
-
-                .startObject("write")
-                    .add("wait_for_active_shards", STRING, fromSetting(IndexMetadata.SETTING_WAIT_FOR_ACTIVE_SHARDS, ActiveShardCount::toString))
-                .endObject()
-
-            .endObject()
-            .setPrimaryKeys(
-                new ColumnIdent("table_catalog"),
-                new ColumnIdent("table_schema"),
-                new ColumnIdent("table_name")
+        .add("column_policy", STRING,
+            row -> {
+                if (row instanceof DocTableInfo) {
+                    return ((DocTableInfo) row).columnPolicy().lowerCaseName();
+                }
+                return ColumnPolicy.STRICT.lowerCaseName();
+            })
+        .add("routing_hash_function", STRING,
+            row -> {
+                if (row instanceof ShardedTable) {
+                    return IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME;
+                }
+                return null;
+            })
+        .startObject("version", x -> !(x instanceof ShardedTable))
+            .add(
+                Version.Property.CREATED.toString(),
+                STRING,
+                x -> {
+                    if (x instanceof StoredTable) {
+                        Version version = ((StoredTable) x).versionCreated();
+                        return version == null ? null : version.externalNumber();
+                    }
+                    return null;
+                }
             )
-            .build();
-    }
+            .add(
+                Version.Property.UPGRADED.toString(),
+                STRING,
+                x -> {
+                    if (x instanceof StoredTable) {
+                        Version version = ((StoredTable) x).versionUpgraded();
+                        return version == null ? null : version.externalNumber();
+                    }
+                    return null;
+                }
+            )
+        .endObject()
+        .add("closed", BOOLEAN, row -> {
+            if (row instanceof ShardedTable) {
+                return ((ShardedTable) row).isClosed();
+            }
+            return null;
+        })
+        .add("reference_generation", STRING, r -> REFERENCE_GENERATION)
+        .add("self_referencing_column_name", STRING,row -> {
+            if (row instanceof ShardedTable) {
+                return SELF_REFERENCING_COLUMN_NAME;
+            }
+            return null;
+        })
+        .startObject("settings", x -> !(x instanceof ShardedTable))
+            .add("refresh_interval", LONG, fromTimeValue(INDEX_REFRESH_INTERVAL_SETTING))
+
+            .startObject("blocks")
+                .add("read_only", BOOLEAN, fromSetting(IndexMetadata.INDEX_READ_ONLY_SETTING))
+                .add("read", BOOLEAN, fromSetting(IndexMetadata.INDEX_BLOCKS_READ_SETTING))
+                .add("write", BOOLEAN, fromSetting(IndexMetadata.INDEX_BLOCKS_WRITE_SETTING))
+                .add("metadata", BOOLEAN, fromSetting(IndexMetadata.INDEX_BLOCKS_METADATA_SETTING))
+                .add("read_only_allow_delete", BOOLEAN, fromSetting(IndexMetadata.INDEX_BLOCKS_READ_ONLY_ALLOW_DELETE_SETTING))
+            .endObject()
+            .add("codec", STRING, fromSetting(INDEX_CODEC_SETTING))
+            .startObject("store")
+                .add("type", STRING, fromSetting(INDEX_STORE_TYPE_SETTING))
+            .endObject()
+
+            .startObject("translog")
+                .add("flush_threshold_size", LONG, fromByteSize(IndexSettings.INDEX_TRANSLOG_FLUSH_THRESHOLD_SIZE_SETTING))
+                .add("sync_interval", LONG, fromTimeValue(IndexSettings.INDEX_TRANSLOG_SYNC_INTERVAL_SETTING))
+                .add("durability", STRING, fromSetting(IndexSettings.INDEX_TRANSLOG_DURABILITY_SETTING, Translog.Durability::name))
+            .endObject()
+
+            .startObject("routing")
+                .startObject("allocation")
+                    .add("enable", STRING, fromSetting(EnableAllocationDecider.INDEX_ROUTING_ALLOCATION_ENABLE_SETTING, EnableAllocationDecider.Allocation::toString))
+                    .add("total_shards_per_node", INTEGER, fromSetting(ShardsLimitAllocationDecider.INDEX_TOTAL_SHARDS_PER_NODE_SETTING))
+                    .addDynamicObject("require", STRING, fromSetting(IndexMetadata.INDEX_ROUTING_REQUIRE_GROUP_SETTING))
+                    .addDynamicObject("include", STRING, fromSetting(IndexMetadata.INDEX_ROUTING_INCLUDE_GROUP_SETTING))
+                    .addDynamicObject("exclude", STRING, fromSetting(IndexMetadata.INDEX_ROUTING_EXCLUDE_GROUP_SETTING))
+                .endObject()
+            .endObject()
+
+            .startObject("unassigned")
+                .startObject("node_left")
+                    .add("delayed_timeout", LONG, fromTimeValue(UnassignedInfo.INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING))
+                .endObject()
+            .endObject()
+
+            .startObject("mapping")
+                .startObject("total_fields")
+                    .add("limit", INTEGER, fromSetting(DocTableInfo.TOTAL_COLUMNS_LIMIT, INTEGER::sanitizeValue))
+                .endObject()
+            .endObject()
+
+            .startObject("merge")
+                .startObject("scheduler")
+                    .add("max_thread_count", INTEGER, fromSetting(MAX_THREAD_COUNT_SETTING))
+                    .add("max_merge_count", INTEGER, fromSetting(MAX_MERGE_COUNT_SETTING))
+                .endObject()
+            .endObject()
+
+
+            .startObject("write")
+                .add("wait_for_active_shards", STRING, fromSetting(IndexMetadata.SETTING_WAIT_FOR_ACTIVE_SHARDS, ActiveShardCount::toString))
+            .endObject()
+
+        .endObject()
+        .setPrimaryKeys(
+            new ColumnIdent("table_catalog"),
+            new ColumnIdent("table_schema"),
+            new ColumnIdent("table_name")
+        )
+        .build();
 
     private static Function<RelationInfo, Long> fromByteSize(Setting<ByteSizeValue> byteSizeSetting) {
         return rel -> {

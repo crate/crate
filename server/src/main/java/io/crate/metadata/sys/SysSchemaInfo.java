@@ -50,27 +50,27 @@ public class SysSchemaInfo implements SchemaInfo {
         Supplier<DiscoveryNode> localNode = clusterService::localNode;
         tableInfos = Map.ofEntries(
             Map.entry(SysClusterTableInfo.IDENT.name(), SysClusterTableInfo.of(clusterService)),
-            Map.entry(SysNodesTableInfo.IDENT.name(), SysNodesTableInfo.create()),
+            Map.entry(SysNodesTableInfo.IDENT.name(), SysNodesTableInfo.INSTANCE),
             Map.entry(SysShardsTableInfo.IDENT.name(), SysShardsTableInfo.create(roles)),
             Map.entry(SysJobsTableInfo.IDENT.name(), SysJobsTableInfo.create(localNode)),
             Map.entry(SysJobsLogTableInfo.IDENT.name(), SysJobsLogTableInfo.create(localNode)),
             Map.entry(SysOperationsTableInfo.IDENT.name(), SysOperationsTableInfo.create(localNode)),
-            Map.entry(SysOperationsLogTableInfo.IDENT.name(), SysOperationsLogTableInfo.create()),
-            Map.entry(SysChecksTableInfo.IDENT.name(), SysChecksTableInfo.create()),
-            Map.entry(SysNodeChecksTableInfo.IDENT.name(), SysNodeChecksTableInfo.create()),
+            Map.entry(SysOperationsLogTableInfo.IDENT.name(), SysOperationsLogTableInfo.INSTANCE),
+            Map.entry(SysChecksTableInfo.IDENT.name(), SysChecksTableInfo.INSTANCE),
+            Map.entry(SysNodeChecksTableInfo.IDENT.name(), SysNodeChecksTableInfo.INSTANCE),
             Map.entry(SysRepositoriesTableInfo.IDENT.name(), SysRepositoriesTableInfo.create(clusterService.getClusterSettings().maskedSettings())),
-            Map.entry(SysSnapshotsTableInfo.IDENT.name(), SysSnapshotsTableInfo.create()),
-            Map.entry(SysSnapshotRestoreTableInfo.IDENT.name(), SysSnapshotRestoreTableInfo.create()),
-            Map.entry(SysSummitsTableInfo.IDENT.name(), SysSummitsTableInfo.create()),
-            Map.entry(SysAllocationsTableInfo.IDENT.name(), SysAllocationsTableInfo.create()),
-            Map.entry(SysHealth.IDENT.name(), SysHealth.create()),
+            Map.entry(SysSnapshotsTableInfo.IDENT.name(), SysSnapshotsTableInfo.INSTANCE),
+            Map.entry(SysSnapshotRestoreTableInfo.IDENT.name(), SysSnapshotRestoreTableInfo.INSTANCE),
+            Map.entry(SysSummitsTableInfo.IDENT.name(), SysSummitsTableInfo.INSTANCE),
+            Map.entry(SysAllocationsTableInfo.IDENT.name(), SysAllocationsTableInfo.INSTANCE),
+            Map.entry(SysHealth.IDENT.name(), SysHealth.INSTANCE),
             Map.entry(SysMetricsTableInfo.NAME.name(), SysMetricsTableInfo.create(localNode)),
             Map.entry(SysSegmentsTableInfo.IDENT.name(), SysSegmentsTableInfo.create(clusterService::localNode)),
             Map.entry(
                 SysUsersTableInfo.IDENT.name(),
                 SysUsersTableInfo.create(() -> clusterService.state().metadata().clusterUUID())),
-            Map.entry(SysRolesTableInfo.IDENT.name(), SysRolesTableInfo.create()),
-            Map.entry(SysPrivilegesTableInfo.IDENT.name(), SysPrivilegesTableInfo.create())
+            Map.entry(SysRolesTableInfo.IDENT.name(), SysRolesTableInfo.INSTANCE),
+            Map.entry(SysPrivilegesTableInfo.IDENT.name(), SysPrivilegesTableInfo.INSTANCE)
         );
     }
 

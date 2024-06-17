@@ -31,13 +31,11 @@ public final class PgIndexesTable {
 
     private PgIndexesTable() {}
 
-    public static SystemTable<Void> create() {
-        return SystemTable.<Void>builder(IDENT)
-            .add("schemaname", DataTypes.STRING, x -> null)
-            .add("tablename", DataTypes.STRING, x -> null)
-            .add("indexname", DataTypes.STRING, x -> null)
-            .add("tablespace", DataTypes.STRING, x -> null)
-            .add("indexdef", DataTypes.STRING, x -> null)
-            .build();
-    }
+    public static SystemTable<Void> INSTANCE = SystemTable.<Void>builder(IDENT)
+        .add("schemaname", DataTypes.STRING, x -> null)
+        .add("tablename", DataTypes.STRING, x -> null)
+        .add("indexname", DataTypes.STRING, x -> null)
+        .add("tablespace", DataTypes.STRING, x -> null)
+        .add("indexdef", DataTypes.STRING, x -> null)
+        .build();
 }

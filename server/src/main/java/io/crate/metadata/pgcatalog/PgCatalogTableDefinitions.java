@@ -75,12 +75,12 @@ public final class PgCatalogTableDefinitions {
             Map.entry(PgStatsTable.NAME, new StaticTableDefinition<>(
                     tableStats::statsEntries,
                     (user, t) -> roles.hasAnyPrivilege(user, Securable.TABLE, t.relation().fqn()),
-                    PgStatsTable.create().expressions()
+                    PgStatsTable.INSTANCE.expressions()
                 )
             ),
             Map.entry(PgTypeTable.IDENT, new StaticTableDefinition<>(
                 () -> completedFuture(PGTypes.pgTypes()),
-                PgTypeTable.create().expressions(),
+                PgTypeTable.INSTANCE.expressions(),
                 false)),
             Map.entry(PgClassTable.IDENT, new StaticTableDefinition<>(
                 informationSchemaIterables::pgClasses,
@@ -94,11 +94,11 @@ public final class PgCatalogTableDefinitions {
                 informationSchemaIterables::pgProc,
                 (user, f) -> roles.hasAnyPrivilege(user, Securable.SCHEMA, f.functionName.schema())
                             || f.functionName.isBuiltin(),
-                PgProcTable.create().expressions())
+                PgProcTable.INSTANCE.expressions())
             ),
             Map.entry(PgDatabaseTable.NAME, new StaticTableDefinition<>(
                 () -> completedFuture(singletonList(null)),
-                PgDatabaseTable.create().expressions(),
+                PgDatabaseTable.INSTANCE.expressions(),
                 false)),
             Map.entry(PgNamespaceTable.IDENT, new StaticTableDefinition<>(
                 informationSchemaIterables::schemas,
@@ -119,42 +119,42 @@ public final class PgCatalogTableDefinitions {
                     }
                     return false;
                 },
-                PgNamespaceTable.create().expressions()
+                PgNamespaceTable.INSTANCE.expressions()
             )),
             Map.entry(PgAttrDefTable.IDENT, new StaticTableDefinition<>(
                 () -> completedFuture(Collections.emptyList()),
-                PgAttrDefTable.create().expressions(),
+                PgAttrDefTable.INSTANCE.expressions(),
                 false)),
             Map.entry(PgAttributeTable.IDENT, new StaticTableDefinition<>(
                 informationSchemaIterables::columns,
                 (user, c) -> roles.hasAnyPrivilege(user, Securable.TABLE, c.relation().ident().fqn())
                             || roles.hasAnyPrivilege(user, Securable.VIEW, c.relation().ident().fqn())
                             || isPgCatalogOrInformationSchema(c.relation().ident().schema()),
-                PgAttributeTable.create().expressions()
+                PgAttributeTable.INSTANCE.expressions()
             )),
             Map.entry(PgIndexTable.IDENT, new StaticTableDefinition<>(
                 () -> completedFuture(informationSchemaIterables.pgIndices()),
-                PgIndexTable.create().expressions(),
+                PgIndexTable.INSTANCE.expressions(),
                 false)),
             Map.entry(PgConstraintTable.IDENT, new StaticTableDefinition<>(
                 informationSchemaIterables::pgConstraints,
                 (user, t) -> roles.hasAnyPrivilege(user, Securable.TABLE, t.relationName().fqn())
                             || isPgCatalogOrInformationSchema(t.relationName().schema()),
-                PgConstraintTable.create().expressions()
+                PgConstraintTable.INSTANCE.expressions()
             )),
             Map.entry(PgDescriptionTable.NAME, new StaticTableDefinition<>(
                 () -> completedFuture(emptyList()),
-                PgDescriptionTable.create().expressions(),
+                PgDescriptionTable.INSTANCE.expressions(),
                 false)
             ),
             Map.entry(PgRangeTable.IDENT, new StaticTableDefinition<>(
                 () -> completedFuture(emptyList()),
-                PgRangeTable.create().expressions(),
+                PgRangeTable.INSTANCE.expressions(),
                 false
             )),
             Map.entry(PgEnumTable.IDENT, new StaticTableDefinition<>(
                 () -> completedFuture(emptyList()),
-                PgEnumTable.create().expressions(),
+                PgEnumTable.INSTANCE.expressions(),
                 false
             )),
             Map.entry(PgRolesTable.IDENT, new StaticTableDefinition<>(
@@ -164,91 +164,91 @@ public final class PgCatalogTableDefinitions {
             )),
             Map.entry(PgAmTable.IDENT, new StaticTableDefinition<>(
                 () -> completedFuture(emptyList()),
-                PgAmTable.create().expressions(),
+                PgAmTable.INSTANCE.expressions(),
                 false
             )),
             Map.entry(PgTablespaceTable.IDENT, new StaticTableDefinition<>(
                 () -> completedFuture(emptyList()),
-                PgTablespaceTable.create().expressions(),
+                PgTablespaceTable.INSTANCE.expressions(),
                 false
             )),
             Map.entry(PgSettingsTable.IDENT, new StaticTableDefinition<>(
                 (txnCtx, user) -> completedFuture(sessionSettingRegistry.namedSessionSettings(txnCtx)),
-                PgSettingsTable.create().expressions(),
+                PgSettingsTable.INSTANCE.expressions(),
                 false
             )),
             Map.entry(PgIndexesTable.IDENT, new StaticTableDefinition<>(
                 () -> completedFuture(emptyList()),
-                PgIndexesTable.create().expressions(),
+                PgIndexesTable.INSTANCE.expressions(),
                 false
             )),
             Map.entry(PgLocksTable.IDENT, new StaticTableDefinition<>(
                 () -> completedFuture(emptyList()),
-                PgLocksTable.create().expressions(),
+                PgLocksTable.INSTANCE.expressions(),
                 false
             )),
             Map.entry(PgPublicationTable.IDENT, new StaticTableDefinition<>(
                 () -> publicationRows,
                 (user, p) -> p.owner().equals(user.name()),
-                PgPublicationTable.create().expressions()
+                PgPublicationTable.INSTANCE.expressions()
             )),
 
             Map.entry(PgPublicationTablesTable.IDENT, new StaticTableDefinition<>(
                 () -> PgPublicationTablesTable.rows(logicalReplicationService, schemas),
                 (user, p) -> p.owner().equals(user.name()),
-                PgPublicationTablesTable.create().expressions()
+                PgPublicationTablesTable.INSTANCE.expressions()
             )),
 
             // pg_subscription
             Map.entry(PgSubscriptionTable.IDENT, new StaticTableDefinition<>(
                 () -> subscriptionRows,
                 (user, s) -> s.subscription().owner().equals(user.name()),
-                PgSubscriptionTable.create().expressions()
+                PgSubscriptionTable.INSTANCE.expressions()
             )),
 
             // pg_subscription_rel
             Map.entry(PgSubscriptionRelTable.IDENT, new StaticTableDefinition<>(
                 () -> PgSubscriptionRelTable.rows(logicalReplicationService),
                 (user, p) -> p.owner().equals(user.name()),
-                PgSubscriptionRelTable.create().expressions()
+                PgSubscriptionRelTable.INSTANCE.expressions()
             )),
 
             Map.entry(PgTablesTable.IDENT, new StaticTableDefinition<>(
                 informationSchemaIterables::tables,
                 (user, t) -> roles.hasAnyPrivilege(user, Securable.TABLE, t.ident().fqn()),
-                PgTablesTable.create().expressions()
+                PgTablesTable.INSTANCE.expressions()
             )),
 
             Map.entry(PgViewsTable.IDENT, new StaticTableDefinition<>(
                 informationSchemaIterables::views,
                 (user, t) -> roles.hasAnyPrivilege(user, Securable.VIEW, t.ident().fqn()),
-                PgViewsTable.create().expressions()
+                PgViewsTable.INSTANCE.expressions()
             )),
 
             Map.entry(PgShdescriptionTable.IDENT, new StaticTableDefinition<>(
                 () -> completedFuture(emptyList()),
-                PgShdescriptionTable.create().expressions(),
+                PgShdescriptionTable.INSTANCE.expressions(),
                 false)
             ),
 
             Map.entry(PgCursors.IDENT, new StaticTableDefinition<>(
                 (txnCtx, user) -> completedFuture(sessions.getCursors(user)),
-                PgCursors.create().expressions(),
+                PgCursors.INSTANCE.expressions(),
                 false
             )),
             Map.entry(PgEventTrigger.NAME, new StaticTableDefinition<>(
                 () -> completedFuture(emptyList()),
-                PgEventTrigger.create().expressions(),
+                PgEventTrigger.INSTANCE.expressions(),
                 false
             )),
             Map.entry(PgDepend.NAME, new StaticTableDefinition<>(
                 () -> completedFuture(emptyList()),
-                PgDepend.create().expressions(),
+                PgDepend.INSTANCE.expressions(),
                 false
             )),
             Map.entry(PgMatviews.NAME, new StaticTableDefinition<>(
                 () -> completedFuture(emptyList()),
-                PgMatviews.create().expressions(),
+                PgMatviews.INSTANCE.expressions(),
                 false
             ))
         );

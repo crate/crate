@@ -98,7 +98,7 @@ public class NodeStatsCollectSource implements CollectSource {
     }
 
     static Collection<DiscoveryNode> filterNodes(Collection<DiscoveryNode> nodes, Symbol predicate, NodeContext nodeCtx) {
-        var expressions = SysNodesTableInfo.create().expressions();
+        var expressions = SysNodesTableInfo.INSTANCE.expressions();
         var nameExpr = expressions.get(SysNodesTableInfo.Columns.NAME).create();
         var idExpr = expressions.get(SysNodesTableInfo.Columns.ID).create();
         MapBackedRefResolver referenceResolver = new MapBackedRefResolver(Map.of(

@@ -32,16 +32,14 @@ public final class InformationCharacterSetsTable {
     public static final String NAME = "character_sets";
     public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
 
-    public static SystemTable<Void> create() {
-        return SystemTable.<Void>builder(IDENT)
-            .add("character_set_catalog", STRING, ignored -> null)
-            .add("character_set_schema", STRING, ignored -> null)
-            .add("character_set_name", STRING, ignored -> "UTF8")
-            .add("character_repertoire", STRING, ignored -> "UCS")
-            .add("form_of_use", STRING, ignored -> "UTF8")
-            .add("default_collate_catalog", STRING, ignored -> Constants.DB_NAME)
-            .add("default_collate_schema", STRING, ignored -> null)
-            .add("default_collate_name", STRING, ignored -> null)
-            .build();
-    }
+    public static SystemTable<Void> INSTANCE = SystemTable.<Void>builder(IDENT)
+        .add("character_set_catalog", STRING, ignored -> null)
+        .add("character_set_schema", STRING, ignored -> null)
+        .add("character_set_name", STRING, ignored -> "UTF8")
+        .add("character_repertoire", STRING, ignored -> "UCS")
+        .add("form_of_use", STRING, ignored -> "UTF8")
+        .add("default_collate_catalog", STRING, ignored -> Constants.DB_NAME)
+        .add("default_collate_schema", STRING, ignored -> null)
+        .add("default_collate_name", STRING, ignored -> null)
+        .build();
 }

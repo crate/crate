@@ -36,25 +36,23 @@ public final class PgDatabaseTable {
 
     private PgDatabaseTable() {}
 
-    public static SystemTable<Void> create() {
-        return SystemTable.<Void>builder(NAME)
-            .add("oid", INTEGER, c -> Constants.DB_OID)
-            .add("datname", STRING, c -> Constants.DB_NAME)
-            .add("datdba", INTEGER, c -> 1)
-            .add("encoding", INTEGER, c -> 6)
-            .add("datcollate", STRING, c -> "en_US.UTF-8")
-            .add("datctype", STRING, c -> "en_US.UTF-8")
-            .add("datistemplate", BOOLEAN,c -> false)
-            .add("datallowconn", BOOLEAN, c -> true)
-            .add("datconnlimit", INTEGER,c -> -1) // no limit
-            // We don't have any good values for these
-            .add("datlastsysoid", INTEGER, c -> null)
-            .add("datfrozenxid", INTEGER, c -> null)
-            .add("datminmxid", INTEGER, c -> null)
-            .add("dattablespace", INTEGER, c -> null)
-            // should be `aclitem[]` but we lack `aclitem`, so going with same choice that Cockroach made:
-            // https://github.com/cockroachdb/cockroach/blob/45deb66abbca3aae56bd27910a36d90a6a8bcafe/pkg/sql/vtable/pg_catalog.go#L277
-            .add("datacl", STRING_ARRAY, c -> null)
-            .build();
-    }
+    public static SystemTable<Void> INSTANCE = SystemTable.<Void>builder(NAME)
+        .add("oid", INTEGER, c -> Constants.DB_OID)
+        .add("datname", STRING, c -> Constants.DB_NAME)
+        .add("datdba", INTEGER, c -> 1)
+        .add("encoding", INTEGER, c -> 6)
+        .add("datcollate", STRING, c -> "en_US.UTF-8")
+        .add("datctype", STRING, c -> "en_US.UTF-8")
+        .add("datistemplate", BOOLEAN,c -> false)
+        .add("datallowconn", BOOLEAN, c -> true)
+        .add("datconnlimit", INTEGER,c -> -1) // no limit
+        // We don't have any good values for these
+        .add("datlastsysoid", INTEGER, c -> null)
+        .add("datfrozenxid", INTEGER, c -> null)
+        .add("datminmxid", INTEGER, c -> null)
+        .add("dattablespace", INTEGER, c -> null)
+        // should be `aclitem[]` but we lack `aclitem`, so going with same choice that Cockroach made:
+        // https://github.com/cockroachdb/cockroach/blob/45deb66abbca3aae56bd27910a36d90a6a8bcafe/pkg/sql/vtable/pg_catalog.go#L277
+        .add("datacl", STRING_ARRAY, c -> null)
+        .build();
 }

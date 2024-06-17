@@ -21,26 +21,24 @@
 
 package io.crate.metadata.sys;
 
-import io.crate.metadata.RelationName;
-import io.crate.metadata.SystemTable;
-
 import static io.crate.types.DataTypes.LONG;
 import static io.crate.types.DataTypes.SHORT;
 import static io.crate.types.DataTypes.STRING;
+
+import io.crate.metadata.RelationName;
+import io.crate.metadata.SystemTable;
 
 public class SysHealth {
 
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "health");
 
-    static SystemTable<TableHealth> create() {
-        return SystemTable.<TableHealth>builder(IDENT)
-            .add("table_name", STRING, TableHealth::getTableName)
-            .add("table_schema", STRING, TableHealth::getTableSchema)
-            .add("partition_ident", STRING, TableHealth::getPartitionIdent)
-            .add("health", STRING, TableHealth::getHealth)
-            .add("severity", SHORT, TableHealth::getSeverity)
-            .add("missing_shards", LONG, TableHealth::getMissingShards)
-            .add("underreplicated_shards", LONG, TableHealth::getUnderreplicatedShards)
-            .build();
-    }
+    static SystemTable<TableHealth> INSTANCE = SystemTable.<TableHealth>builder(IDENT)
+        .add("table_name", STRING, TableHealth::getTableName)
+        .add("table_schema", STRING, TableHealth::getTableSchema)
+        .add("partition_ident", STRING, TableHealth::getPartitionIdent)
+        .add("health", STRING, TableHealth::getHealth)
+        .add("severity", SHORT, TableHealth::getSeverity)
+        .add("missing_shards", LONG, TableHealth::getMissingShards)
+        .add("underreplicated_shards", LONG, TableHealth::getUnderreplicatedShards)
+        .build();
 }

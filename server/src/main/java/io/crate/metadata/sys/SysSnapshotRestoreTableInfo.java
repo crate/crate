@@ -39,27 +39,25 @@ public class SysSnapshotRestoreTableInfo {
 
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "snapshot_restore");
 
-    static SystemTable<SysSnapshotRestoreInProgress> create() {
-        return SystemTable.<SysSnapshotRestoreInProgress>builder(IDENT)
-            .add("id", STRING, SysSnapshotRestoreInProgress::id)
-            .add("name", STRING, SysSnapshotRestoreInProgress::name)
-            .add("repository", STRING, SysSnapshotRestoreInProgress::repository)
-            .startObjectArray("shards", SysSnapshotRestoreInProgress::shards)
-                .add("table_schema", STRING, s -> s.indexParts().getSchema())
-                .add("table_name", STRING, s -> s.indexParts().getTable())
-                .add("partition_ident", STRING, s -> s.indexParts().getPartitionIdent())
-                .add("shard_id", INTEGER, SysSnapshotRestoreInProgress.ShardRestoreInfo::id)
-                .add("state", STRING, s -> s.state().name())
-            .endObjectArray()
-            .add("state", STRING, SysSnapshotRestoreInProgress::state)
-            .setPrimaryKeys(
-                new ColumnIdent("id"),
-                new ColumnIdent("name"),
-                new ColumnIdent("repository"))
-            .withRouting((state, routingProvider, sessionSettings) ->
-                             routingProvider.forRandomMasterOrDataNode(IDENT, state.nodes()))
-            .build();
-    }
+    static SystemTable<SysSnapshotRestoreInProgress> INSTANCE = SystemTable.<SysSnapshotRestoreInProgress>builder(IDENT)
+        .add("id", STRING, SysSnapshotRestoreInProgress::id)
+        .add("name", STRING, SysSnapshotRestoreInProgress::name)
+        .add("repository", STRING, SysSnapshotRestoreInProgress::repository)
+        .startObjectArray("shards", SysSnapshotRestoreInProgress::shards)
+            .add("table_schema", STRING, s -> s.indexParts().getSchema())
+            .add("table_name", STRING, s -> s.indexParts().getTable())
+            .add("partition_ident", STRING, s -> s.indexParts().getPartitionIdent())
+            .add("shard_id", INTEGER, SysSnapshotRestoreInProgress.ShardRestoreInfo::id)
+            .add("state", STRING, s -> s.state().name())
+        .endObjectArray()
+        .add("state", STRING, SysSnapshotRestoreInProgress::state)
+        .setPrimaryKeys(
+            new ColumnIdent("id"),
+            new ColumnIdent("name"),
+            new ColumnIdent("repository"))
+        .withRouting((state, routingProvider, sessionSettings) ->
+                            routingProvider.forRandomMasterOrDataNode(IDENT, state.nodes()))
+        .build();
 
     public static Iterable<SysSnapshotRestoreInProgress> snapshotsRestoreInProgress(
         @Nullable RestoreInProgress restoreInProgress) {
