@@ -38,7 +38,6 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.file.Path;
 import java.security.cert.Certificate;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -55,6 +54,8 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import io.crate.auth.HostBasedAuthentication.HBAConf;
+import io.crate.auth.HostBasedAuthentication.SSL;
 import io.crate.protocols.postgres.ConnectionProperties;
 import io.netty.buffer.UnpooledByteBufAllocator;
 import io.netty.handler.ssl.SslContextBuilder;
@@ -247,7 +248,7 @@ public class HostBasedAuthenticationTest extends ESTestCase {
             DnsResolver.SYSTEM,
             () -> "dummy"
         );
-        Optional<Map.Entry<String, Map<String, String>>> entry;
+        Optional<Map.Entry<String, HBAConf>> entry;
 
         entry = authService.getEntry("crate", new ConnectionProperties(CRATE_USER_CREDENTIALS, LOCALHOST, Protocol.POSTGRES, null));
         assertThat(entry.isPresent()).isTrue();
@@ -275,19 +276,19 @@ public class HostBasedAuthenticationTest extends ESTestCase {
             () -> "dummy"
         );
 
-        Optional<Map.Entry<String, Map<String, String>>> entry;
+        Optional<Map.Entry<String, HBAConf>> entry;
 
         entry = authService.getEntry("crate",
             new ConnectionProperties(CRATE_USER_CREDENTIALS, InetAddresses.forString("123.45.67.89"), Protocol.POSTGRES, null));
         assertThat(entry.isPresent()).isTrue();
-        assertThat(entry.get().getValue().get("method")).isEqualTo("password");
+        assertThat(entry.get().getValue().method()).isEqualTo("password");
 
         entry = authService.getEntry(
             "cr8",
             new ConnectionProperties(new Credentials("cr8", null), InetAddresses.forString("127.0.0.1"), Protocol.POSTGRES, null)
         );
         assertThat(entry.isPresent()).isTrue();
-        assertThat(entry.get().getValue().get("method")).isEqualTo("password");
+        assertThat(entry.get().getValue().method()).isEqualTo("password");
 
         entry = authService.getEntry(
             "cr8",
@@ -305,7 +306,7 @@ public class HostBasedAuthenticationTest extends ESTestCase {
             () -> "dummy"
         );
 
-        Optional<Map.Entry<String, Map<String, String>>> entry;
+        Optional<Map.Entry<String, HBAConf>> entry;
         entry = authService.getEntry("crate",
             new ConnectionProperties(CRATE_USER_CREDENTIALS, InetAddresses.forString("127.0.0.1"), Protocol.POSTGRES, null));
         assertThat(entry.isPresent()).isTrue();
@@ -332,16 +333,12 @@ public class HostBasedAuthenticationTest extends ESTestCase {
     @Test
     public void testMatchUser() throws Exception {
         // only "crate" matches
-        Map.Entry<String, Map<String, String>> entry = new HashMap.SimpleEntry<>(
-            "0", Collections.singletonMap("user", "crate")
-        );
+        Map.Entry<String, HBAConf> entry = Map.entry("0", new HBAConf("trust", SSL.OPTIONAL, "crate", null, null));
         assertThat(isValidUser(entry, "crate")).isTrue();
         assertThat(isValidUser(entry, "postgres")).isFalse();
 
         // any user matches
-        entry = new HashMap.SimpleEntry<>(
-            "0", Collections.emptyMap() // key "user" not present in map
-        );
+        entry = Map.entry("0", new HBAConf("trust", SSL.OPTIONAL, null, null, null));
         assertThat(isValidUser(entry, randomAlphaOfLength(8))).isTrue();
     }
 
