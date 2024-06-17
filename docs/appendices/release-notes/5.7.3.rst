@@ -62,3 +62,7 @@ Fixes
 - Fixed an issue that caused ``WHERE`` clause to fail to filter rows when
   the clause contained :ref:`scalar-pg_get_partkeydef` scalar function under
   ``NOT`` operator.
+
+- Changed :ref:`scalar-pg_get_function_result` functions to be registered under
+  :ref:`postgres-pg_catalog` schema, in order to be compatible with PostgreSQL
+  behaviour.
