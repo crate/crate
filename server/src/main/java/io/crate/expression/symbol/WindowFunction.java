@@ -116,7 +116,10 @@ public class WindowFunction extends Function {
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), windowDefinition, ignoreNulls);
+        int result = super.hashCode();
+        result = 31 * result + windowDefinition.hashCode();
+        result = 31 * result + (ignoreNulls == null ? 0 : ignoreNulls.hashCode());
+        return result;
     }
 
     @Override
