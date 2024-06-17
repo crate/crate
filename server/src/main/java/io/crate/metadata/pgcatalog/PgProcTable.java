@@ -39,6 +39,7 @@ import java.util.Set;
 import io.crate.common.collections.Lists;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.Scalar.Feature;
 import io.crate.metadata.SystemTable;
 import io.crate.metadata.functions.Signature;
 import io.crate.protocols.postgres.types.AnyType;
@@ -76,7 +77,7 @@ public final class PgProcTable {
         .add("prokind", STRING, x -> prokind(x.signature))
         .add("prosecdef", BOOLEAN, x -> null)
         .add("proleakproof", BOOLEAN, x -> null)
-        .add("proisstrict", BOOLEAN, x -> null)
+        .add("proisstrict", BOOLEAN, x -> x.signature.hasFeature(Feature.NULLABLE))
         .add("proretset", BOOLEAN, x -> x.returnSetType)
         .add("provolatile", STRING, x -> null)
         .add("proparallel", STRING, x -> null)

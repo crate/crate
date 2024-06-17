@@ -64,7 +64,9 @@ None
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
 
-None
+- The ``proisstrict`` property of the ``pg_catalog.pg_proc`` table now returns
+  true or false depending on if a function always returns null if any call
+  argument is null. Before the property's value was a static ``null``.
 
 Data Types
 ----------
