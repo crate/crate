@@ -21,16 +21,16 @@
 
 package io.crate.metadata;
 
-import org.apache.lucene.util.Accountable;
-import org.apache.lucene.util.RamUsageEstimator;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
-import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+
+import org.apache.lucene.util.Accountable;
+import org.apache.lucene.util.RamUsageEstimator;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.jetbrains.annotations.Nullable;
 
 public final class ReferenceIdent implements Accountable {
 
@@ -67,20 +67,15 @@ public final class ReferenceIdent implements Accountable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        ReferenceIdent that = (ReferenceIdent) o;
-        return Objects.equals(relationName, that.relationName) &&
-               Objects.equals(columnIdent, that.columnIdent);
+        return o instanceof ReferenceIdent that
+            && Objects.equals(relationName, that.relationName)
+            && Objects.equals(columnIdent, that.columnIdent);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(relationName, columnIdent);
+        int result = relationName.hashCode();
+        return 31 * result + columnIdent.hashCode();
     }
 
     @Override

@@ -235,9 +235,6 @@ public class Function implements Symbol, Cloneable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
@@ -249,7 +246,10 @@ public class Function implements Symbol, Cloneable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(arguments, signature, filter);
+        int result = arguments.hashCode();
+        result = 31 * result + signature.hashCode();
+        result = 31 * result + (filter == null ? 0 : filter.hashCode());
+        return result;
     }
 
     @Override

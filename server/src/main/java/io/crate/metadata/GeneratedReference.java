@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.function.IntSupplier;
 import java.util.function.LongSupplier;
 
@@ -45,7 +44,7 @@ import io.crate.expression.symbol.format.Style;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
 
-public class GeneratedReference implements Reference {
+public final class GeneratedReference implements Reference {
 
     private static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(GeneratedReference.class);
 
@@ -160,21 +159,18 @@ public class GeneratedReference implements Reference {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        GeneratedReference that = (GeneratedReference) o;
-        return Objects.equals(generatedExpression, that.generatedExpression) &&
-               Objects.equals(referencedReferences, that.referencedReferences) &&
-               Objects.equals(ref, that.ref);
+        return o instanceof GeneratedReference that
+            && generatedExpression.equals(that.generatedExpression)
+            && referencedReferences.equals(that.referencedReferences)
+            && ref.equals(that.ref);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(generatedExpression, ref, referencedReferences);
+        int result = generatedExpression.hashCode();
+        result = 31 * result + ref.hashCode();
+        result = 31 * referencedReferences.hashCode();
+        return result;
     }
 
     @Override
