@@ -28,10 +28,10 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 
 import io.crate.action.sql.Sessions;
-import io.crate.role.Roles;
-import io.crate.role.RoleManager;
 import io.crate.netty.channel.PipelineRegistry;
 import io.crate.protocols.ssl.SslContextProvider;
+import io.crate.role.RoleManager;
+import io.crate.role.Roles;
 
 @Singleton
 public class RestSQLAction {
@@ -53,7 +53,6 @@ public class RestSQLAction {
                 sqlOperations,
                 breakerService::getBreaker,
                 roles,
-                roleManager::getAccessControl,
                 corsConfig
             )
         ));
