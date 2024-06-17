@@ -101,7 +101,7 @@ public class ThreeValuedLogicQueryBuilderTest extends LuceneQueryBuilderTest {
     @Test
     public void test_not_on_pg_get_function_result() {
         assertThat(convert("NOT (PG_GET_FUNCTION_RESULT(x))"))
-            .hasToString("+(+*:* -pg_get_function_result(x)) #(NOT pg_get_function_result(x))");
+            .hasToString("+(+*:* -pg_catalog.pg_get_function_result(x)) #(NOT pg_catalog.pg_get_function_result(x))");
     }
 
     @Test
