@@ -57,7 +57,7 @@ public class NodeStatsCollectSourceTest extends ESTestCase {
 
     private List<DiscoveryNode> filterNodes(String where) throws NoSuchFieldException, IllegalAccessException {
         // build where clause with id = ?
-        TableInfo tableInfo = SysNodesTableInfo.create();
+        TableInfo tableInfo = SysNodesTableInfo.INSTANCE;
         TableRelation tableRelation = new TableRelation(tableInfo);
         Map<RelationName, AnalyzedRelation> tableSources = Map.of(tableInfo.ident(), tableRelation);
         SqlExpressions sqlExpressions = new SqlExpressions(tableSources, tableRelation);

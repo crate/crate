@@ -40,26 +40,24 @@ public class SysSnapshotsTableInfo {
 
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "snapshots");
 
-    static SystemTable<SysSnapshot> create() {
-        return SystemTable.<SysSnapshot>builder(IDENT)
-            .add("name", STRING, SysSnapshot::name)
-            .add("repository", STRING, SysSnapshot::repository)
-            .add("concrete_indices", STRING_ARRAY, SysSnapshot::concreteIndices)
-            .add("tables", STRING_ARRAY, SysSnapshot::tables)
-            .startObjectArray("table_partitions", SysSnapshot::tablePartitions)
-                .add("table_schema", STRING, x -> x.relationName().schema())
-                .add("table_name", STRING, x -> x.relationName().name())
-                .add("values", STRING_ARRAY, PartitionName::values)
-            .endObjectArray()
-            .add("started", TIMESTAMPZ, SysSnapshot::started)
-            .add("finished", TIMESTAMPZ, SysSnapshot::finished)
-            .add("version", STRING, SysSnapshot::version)
-            .add("state", STRING, SysSnapshot::state)
-            .add("failures", STRING_ARRAY, SysSnapshot::failures)
-            .setPrimaryKeys(new ColumnIdent("name"), new ColumnIdent("repository"))
-            .withRouting(SysSnapshotsTableInfo::getRouting)
-            .build();
-    }
+    static SystemTable<SysSnapshot> INSTANCE = SystemTable.<SysSnapshot>builder(IDENT)
+        .add("name", STRING, SysSnapshot::name)
+        .add("repository", STRING, SysSnapshot::repository)
+        .add("concrete_indices", STRING_ARRAY, SysSnapshot::concreteIndices)
+        .add("tables", STRING_ARRAY, SysSnapshot::tables)
+        .startObjectArray("table_partitions", SysSnapshot::tablePartitions)
+            .add("table_schema", STRING, x -> x.relationName().schema())
+            .add("table_name", STRING, x -> x.relationName().name())
+            .add("values", STRING_ARRAY, PartitionName::values)
+        .endObjectArray()
+        .add("started", TIMESTAMPZ, SysSnapshot::started)
+        .add("finished", TIMESTAMPZ, SysSnapshot::finished)
+        .add("version", STRING, SysSnapshot::version)
+        .add("state", STRING, SysSnapshot::state)
+        .add("failures", STRING_ARRAY, SysSnapshot::failures)
+        .setPrimaryKeys(new ColumnIdent("name"), new ColumnIdent("repository"))
+        .withRouting(SysSnapshotsTableInfo::getRouting)
+        .build();
 
     private static Routing getRouting(ClusterState state, RoutingProvider routingProvider, CoordinatorSessionSettings sessionSettings) {
         // route to random master or data node,

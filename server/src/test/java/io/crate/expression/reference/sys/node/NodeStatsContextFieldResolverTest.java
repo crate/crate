@@ -21,8 +21,8 @@
 
 package io.crate.expression.reference.sys.node;
 
-import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.DiscoveryNodes.newNode;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -92,7 +92,7 @@ public class NodeStatsContextFieldResolverTest {
         NodeStatsContext statsContext = resolver.forTopColumnIdents(
             Collections.singletonList(SysNodesTableInfo.Columns.CONNECTIONS));
         RowCollectExpressionFactory<NodeStatsContext> expressionFactory =
-            SysNodesTableInfo.create().expressions().get(SysNodesTableInfo.Columns.CONNECTIONS);
+            SysNodesTableInfo.INSTANCE.expressions().get(SysNodesTableInfo.Columns.CONNECTIONS);
         NestableCollectExpression<NodeStatsContext, ?> expression = expressionFactory.create();
 
         NestableCollectExpression http = (NestableCollectExpression) expression.getChild("http");
@@ -112,7 +112,7 @@ public class NodeStatsContextFieldResolverTest {
         NodeStatsContext statsContext = resolver.forTopColumnIdents(
             Collections.singletonList(SysNodesTableInfo.Columns.CONNECTIONS));
         RowCollectExpressionFactory<NodeStatsContext> expressionFactory =
-            SysNodesTableInfo.create().expressions().get(SysNodesTableInfo.Columns.CONNECTIONS);
+            SysNodesTableInfo.INSTANCE.expressions().get(SysNodesTableInfo.Columns.CONNECTIONS);
         NestableCollectExpression<NodeStatsContext, ?> expression = expressionFactory.create();
 
         NestableCollectExpression psql = (NestableCollectExpression) expression.getChild("psql");
@@ -132,7 +132,7 @@ public class NodeStatsContextFieldResolverTest {
         NodeStatsContext statsContext = resolver.forTopColumnIdents(
             Collections.singletonList(SysNodesTableInfo.Columns.CONNECTIONS));
         RowCollectExpressionFactory<NodeStatsContext> expressionFactory =
-            SysNodesTableInfo.create().expressions().get(SysNodesTableInfo.Columns.CONNECTIONS);
+            SysNodesTableInfo.INSTANCE.expressions().get(SysNodesTableInfo.Columns.CONNECTIONS);
         NestableCollectExpression<NodeStatsContext, ?> expression = expressionFactory.create();
 
         NestableCollectExpression psql = (NestableCollectExpression) expression.getChild("transport");

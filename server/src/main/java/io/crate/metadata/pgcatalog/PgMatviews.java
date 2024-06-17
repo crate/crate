@@ -30,17 +30,14 @@ public class PgMatviews {
 
     private PgMatviews() {}
 
-    public static SystemTable<Void> create() {
-        // https://www.postgresql.org/docs/current/view-pg-matviews.html
-        return SystemTable.<Void>builder(NAME)
-            .add("schemaname", DataTypes.STRING, c -> null)
-            .add("matviewname", DataTypes.STRING, c -> null)
-            .add("matviewowner", DataTypes.STRING, c -> null)
-            .add("tablespace", DataTypes.STRING, c -> null)
-            .add("hasindexes", DataTypes.BOOLEAN, c -> null)
-            .add("ispopulated", DataTypes.BOOLEAN, c -> null)
-            .add("definition", DataTypes.STRING, c -> null)
-            .build();
-    }
-
+    // https://www.postgresql.org/docs/current/view-pg-matviews.html
+    public static SystemTable<Void> INSTANCE = SystemTable.<Void>builder(NAME)
+        .add("schemaname", DataTypes.STRING, c -> null)
+        .add("matviewname", DataTypes.STRING, c -> null)
+        .add("matviewowner", DataTypes.STRING, c -> null)
+        .add("tablespace", DataTypes.STRING, c -> null)
+        .add("hasindexes", DataTypes.BOOLEAN, c -> null)
+        .add("ispopulated", DataTypes.BOOLEAN, c -> null)
+        .add("definition", DataTypes.STRING, c -> null)
+        .build();
 }

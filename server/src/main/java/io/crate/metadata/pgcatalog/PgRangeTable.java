@@ -21,10 +21,11 @@
 
 package io.crate.metadata.pgcatalog;
 
-import io.crate.metadata.RelationName;
-import io.crate.metadata.SystemTable;
 import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.REGPROC;
+
+import io.crate.metadata.RelationName;
+import io.crate.metadata.SystemTable;
 
 public final class PgRangeTable {
 
@@ -32,15 +33,13 @@ public final class PgRangeTable {
 
     private PgRangeTable() {}
 
-    public static SystemTable<Void> create() {
-        return SystemTable.<Void>builder(IDENT)
-            .add("rngtypid", INTEGER, ignored -> null)
-            .add("rngsubtype", INTEGER, ignored -> null)
-            .add("rngmultitypid", INTEGER, ignored -> null)
-            .add("rngcollation", INTEGER, ignored -> null)
-            .add("rngsubopc", INTEGER, ignored -> null)
-            .add("rngcanonical", REGPROC, ignored -> null)
-            .add("rngsubdiff", REGPROC, ignored -> null)
-            .build();
-    }
+    public static SystemTable<Void> INSTANCE = SystemTable.<Void>builder(IDENT)
+        .add("rngtypid", INTEGER, ignored -> null)
+        .add("rngsubtype", INTEGER, ignored -> null)
+        .add("rngmultitypid", INTEGER, ignored -> null)
+        .add("rngcollation", INTEGER, ignored -> null)
+        .add("rngsubopc", INTEGER, ignored -> null)
+        .add("rngcanonical", REGPROC, ignored -> null)
+        .add("rngsubdiff", REGPROC, ignored -> null)
+        .build();
 }

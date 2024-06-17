@@ -23,12 +23,10 @@ package io.crate.metadata;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
 
 import java.util.List;
 
 import org.elasticsearch.Version;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -50,7 +48,7 @@ public class SysNodesTableInfoTest extends CrateDummyClusterServiceUnitTest {
      */
     @Test
     public void testRegistered() {
-        var info = SysNodesTableInfo.create();
+        var info = SysNodesTableInfo.INSTANCE;
         ReferenceResolver<?> referenceResolver = new StaticTableReferenceResolver<>(info.expressions());
         for (var reference : info) {
             assertNotNull(referenceResolver.getImplementation(reference));
@@ -59,7 +57,7 @@ public class SysNodesTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCompatibilityVersion() {
-        RowCollectExpressionFactory<NodeStatsContext> sysNodeTableStats = SysNodesTableInfo.create().expressions().get(
+        RowCollectExpressionFactory<NodeStatsContext> sysNodeTableStats = SysNodesTableInfo.INSTANCE.expressions().get(
             SysNodesTableInfo.Columns.VERSION);
 
         assertThat(sysNodeTableStats.create().getChild("minimum_index_compatibility_version").value()).isEqualTo(Version.CURRENT.minimumIndexCompatibilityVersion().externalNumber());
@@ -69,7 +67,7 @@ public class SysNodesTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_column_that_is_a_child_of_an_array_has_array_type_on_select() {
-        var table = SysNodesTableInfo.create();
+        var table = SysNodesTableInfo.INSTANCE;
         Reference ref = table.getReference(new ColumnIdent("fs", List.of("data", "path")));
         assertThat(ref.valueType()).isEqualTo(new ArrayType<>(DataTypes.STRING));
 
@@ -80,9 +78,9 @@ public class SysNodesTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_fs_data_is_a_object_array() {
-        var table = SysNodesTableInfo.create();
+        var table = SysNodesTableInfo.INSTANCE;
         Reference ref = table.getReference(new ColumnIdent("fs", "data"));
-        assertThat(ref.valueType().id(), Matchers.is(ArrayType.ID));
+        assertThat(ref.valueType().id()).isEqualTo(ArrayType.ID);
         assertThat(((ArrayType<?>) ref.valueType()).innerType().id()).isEqualTo(ObjectType.ID);
     }
 }

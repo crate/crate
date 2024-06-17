@@ -32,13 +32,11 @@ public class ForeignTableTableInfo {
     public static final String NAME = "foreign_tables";
     public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
 
-    public static SystemTable<ForeignTable> create() {
-        return SystemTable.<ForeignTable>builder(IDENT)
-            .add("foreign_table_catalog", DataTypes.STRING, ignored -> Constants.DB_NAME)
-            .add("foreign_table_schema", DataTypes.STRING, table -> table.name().schema())
-            .add("foreign_table_name", DataTypes.STRING, table -> table.name().name())
-            .add("foreign_server_catalog", DataTypes.STRING, ignored -> Constants.DB_NAME)
-            .add("foreign_server_name", DataTypes.STRING, ForeignTable::server)
-            .build();
-    }
+    public static SystemTable<ForeignTable> INSTANCE = SystemTable.<ForeignTable>builder(IDENT)
+        .add("foreign_table_catalog", DataTypes.STRING, ignored -> Constants.DB_NAME)
+        .add("foreign_table_schema", DataTypes.STRING, table -> table.name().schema())
+        .add("foreign_table_name", DataTypes.STRING, table -> table.name().name())
+        .add("foreign_server_catalog", DataTypes.STRING, ignored -> Constants.DB_NAME)
+        .add("foreign_server_name", DataTypes.STRING, ForeignTable::server)
+        .build();
 }

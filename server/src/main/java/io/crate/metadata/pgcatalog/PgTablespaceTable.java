@@ -31,15 +31,13 @@ public final class PgTablespaceTable {
 
     private PgTablespaceTable() {}
 
-    public static SystemTable<Void> create() {
-        return SystemTable.<Void>builder(IDENT)
-            .add("oid", DataTypes.INTEGER, ignored -> null)
-            .add("spcname", DataTypes.STRING, ignored -> null)
-            .add("spcowner", DataTypes.INTEGER, ignored -> null)
-            // should be `aclitem[]` but we lack `aclitem`, so going with same choice that Cockroach made:
-            // https://github.com/cockroachdb/cockroach/blob/45deb66abbca3aae56bd27910a36d90a6a8bcafe/pkg/sql/vtable/pg_catalog.go#L746
-            .add("spcacl", DataTypes.STRING_ARRAY, ignored -> null)
-            .add("spcoptions", DataTypes.STRING_ARRAY, ignored -> null)
-            .build();
-    }
+    public static SystemTable<Void> INSTANCE = SystemTable.<Void>builder(IDENT)
+        .add("oid", DataTypes.INTEGER, ignored -> null)
+        .add("spcname", DataTypes.STRING, ignored -> null)
+        .add("spcowner", DataTypes.INTEGER, ignored -> null)
+        // should be `aclitem[]` but we lack `aclitem`, so going with same choice that Cockroach made:
+        // https://github.com/cockroachdb/cockroach/blob/45deb66abbca3aae56bd27910a36d90a6a8bcafe/pkg/sql/vtable/pg_catalog.go#L746
+        .add("spcacl", DataTypes.STRING_ARRAY, ignored -> null)
+        .add("spcoptions", DataTypes.STRING_ARRAY, ignored -> null)
+        .build();
 }

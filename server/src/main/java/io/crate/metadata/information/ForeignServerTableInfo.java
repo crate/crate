@@ -32,15 +32,13 @@ public class ForeignServerTableInfo {
     public static final String NAME = "foreign_servers";
     public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
 
-    public static SystemTable<Server> create() {
-        return SystemTable.<Server>builder(IDENT)
-            .add("foreign_server_catalog", DataTypes.STRING, ignored -> Constants.DB_NAME)
-            .add("foreign_server_name", DataTypes.STRING, Server::name)
-            .add("foreign_data_wrapper_catalog", DataTypes.STRING, ignored -> Constants.DB_NAME)
-            .add("foreign_data_wrapper_name", DataTypes.STRING, Server::fdw)
-            .add("foreign_server_type", DataTypes.STRING, ignored -> null)
-            .add("foreign_server_version", DataTypes.STRING, ignored -> null)
-            .add("authorization_identifier", DataTypes.STRING, Server::owner)
-            .build();
-    }
+    public static final SystemTable<Server> INSTANCE = SystemTable.<Server>builder(IDENT)
+        .add("foreign_server_catalog", DataTypes.STRING, ignored -> Constants.DB_NAME)
+        .add("foreign_server_name", DataTypes.STRING, Server::name)
+        .add("foreign_data_wrapper_catalog", DataTypes.STRING, ignored -> Constants.DB_NAME)
+        .add("foreign_data_wrapper_name", DataTypes.STRING, Server::fdw)
+        .add("foreign_server_type", DataTypes.STRING, ignored -> null)
+        .add("foreign_server_version", DataTypes.STRING, ignored -> null)
+        .add("authorization_identifier", DataTypes.STRING, Server::owner)
+        .build();
 }
