@@ -24,7 +24,6 @@ package io.crate.auth;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -49,12 +48,6 @@ import io.crate.role.Roles;
 public class HostBasedAuthentication implements Authentication {
 
     private static final Logger LOGGER = LogManager.getLogger(HostBasedAuthentication.class);
-
-    private static final String DEFAULT_AUTH_METHOD = "trust";
-    private static final String KEY_USER = "user";
-    private static final String KEY_ADDRESS = "address";
-    private static final String KEY_METHOD = "method";
-    private static final String KEY_PROTOCOL = "protocol";
 
     enum SSL {
         REQUIRED("on"),
@@ -81,6 +74,35 @@ public class HostBasedAuthentication implements Authentication {
         }
     }
 
+    static record HBAConf(String method,
+                          SSL ssl,
+                          @Nullable String user,
+                          @Nullable String address,
+                          @Nullable String protocol) {
+
+        private static final String DEFAULT_AUTH_METHOD = "trust";
+        private static final String KEY_USER = "user";
+        private static final String KEY_ADDRESS = "address";
+        private static final String KEY_METHOD = "method";
+        private static final String KEY_PROTOCOL = "protocol";
+
+        HBAConf {
+            if (JWTAuthenticationMethod.NAME.equals(method) && !Protocol.HTTP.toString().equals(protocol)) {
+                throw new IllegalArgumentException("protocol must be set to http when using jwt auth method");
+            }
+        }
+
+        public static HBAConf parse(Settings settings) {
+            return new HBAConf(
+                settings.get(KEY_METHOD, DEFAULT_AUTH_METHOD),
+                SSL.parseValue(settings.get(SSL.KEY, "optional")),
+                settings.get(KEY_USER),
+                settings.get(KEY_ADDRESS),
+                settings.get(KEY_PROTOCOL)
+            );
+        }
+    }
+
     /*
      * The cluster state contains the hbaConf from the setting in this format:
      {
@@ -93,7 +115,7 @@ public class HostBasedAuthentication implements Authentication {
        ...
      }
      */
-    private SortedMap<String, Map<String, String>> hbaConf;
+    private SortedMap<String, HBAConf> hbaConf;
     private final Roles roles;
     private final DnsResolver dnsResolver;
 
@@ -110,21 +132,11 @@ public class HostBasedAuthentication implements Authentication {
     }
 
     @VisibleForTesting
-    SortedMap<String, Map<String, String>> convertHbaSettingsToHbaConf(Settings settings) {
+    SortedMap<String, HBAConf> convertHbaSettingsToHbaConf(Settings settings) {
         Settings hbaSettings = AuthSettings.AUTH_HOST_BASED_CONFIG_SETTING.get(settings);
-        SortedMap<String, Map<String, String>> hostBasedConf = new TreeMap<>();
+        SortedMap<String, HBAConf> hostBasedConf = new TreeMap<>();
         for (Map.Entry<String, Settings> entry : hbaSettings.getAsGroups().entrySet()) {
-            Settings hbaEntry = entry.getValue();
-            HashMap<String, String> map = new HashMap<>(hbaEntry.size());
-            for (String name : hbaEntry.keySet()) {
-                map.put(name, hbaEntry.get(name));
-            }
-            if (JWTAuthenticationMethod.NAME.equals(map.get("method"))) {
-                if (Protocol.HTTP.toString().equals(map.get("protocol")) == false) {
-                    throw new IllegalArgumentException("protocol must be set to http when using jwt auth method");
-                }
-            }
-            hostBasedConf.put(entry.getKey(), map);
+            hostBasedConf.put(entry.getKey(), HBAConf.parse(entry.getValue()));
         }
         return Collections.unmodifiableSortedMap(hostBasedConf);
     }
@@ -149,32 +161,32 @@ public class HostBasedAuthentication implements Authentication {
     @Nullable
     public AuthenticationMethod resolveAuthenticationType(@Nullable String user, ConnectionProperties connProperties) {
         assert hbaConf != null : "hba configuration is missing";
-        Optional<Map.Entry<String, Map<String, String>>> entry = getEntry(user, connProperties);
+        Optional<Map.Entry<String, HBAConf>> entry = getEntry(user, connProperties);
         if (entry.isPresent()) {
             String methodName = entry.get()
                 .getValue()
-                .getOrDefault(KEY_METHOD, DEFAULT_AUTH_METHOD);
+                .method();
             return methodForName(methodName);
         }
         return null;
     }
 
     @VisibleForTesting
-    Map<String, Map<String, String>> hbaConf() {
+    Map<String, HBAConf> hbaConf() {
         return hbaConf;
     }
 
     @VisibleForTesting
-    Optional<Map.Entry<String, Map<String, String>>> getEntry(@Nullable String user, ConnectionProperties connectionProperties) {
+    Optional<Map.Entry<String, HBAConf>> getEntry(@Nullable String user, ConnectionProperties connectionProperties) {
         if (user == null || connectionProperties == null) {
             return Optional.empty();
         }
         return hbaConf.entrySet().stream()
             .filter(e -> Matchers.isValidUser(e, user))
-            .filter(e -> Matchers.isValidAddress(e.getValue().get(KEY_ADDRESS), connectionProperties.address(), dnsResolver))
-            .filter(e -> Matchers.isValidProtocol(e.getValue().get(KEY_PROTOCOL), connectionProperties.protocol()))
-            .filter(e -> Matchers.isValidConnection(e.getValue().get(SSL.KEY), connectionProperties))
-            .filter(e -> Matchers.isValidMethod(e.getValue().get(KEY_METHOD), connectionProperties.clientMethods()))
+            .filter(e -> Matchers.isValidAddress(e.getValue().address(), connectionProperties.address(), dnsResolver))
+            .filter(e -> Matchers.isValidProtocol(e.getValue().protocol(), connectionProperties.protocol()))
+            .filter(e -> Matchers.isValidConnection(e.getValue().ssl(), connectionProperties))
+            .filter(e -> Matchers.isValidMethod(e.getValue().method(), connectionProperties.clientMethods()))
             .findFirst();
     }
 
@@ -185,8 +197,8 @@ public class HostBasedAuthentication implements Authentication {
         // IPv6 ::1 -> 1
         private static final long IPV6_LOCALHOST = inetAddressToInt(InetAddresses.forString("::1"));
 
-        static boolean isValidUser(Map.Entry<String, Map<String, String>> entry, String user) {
-            String hbaUser = entry.getValue().get(KEY_USER);
+        static boolean isValidUser(Map.Entry<String, HBAConf> entry, String user) {
+            String hbaUser = entry.getValue().user();
             return hbaUser == null || user.equals(hbaUser);
         }
 
@@ -233,11 +245,7 @@ public class HostBasedAuthentication implements Authentication {
             return hbaProtocol == null || hbaProtocol.equals(protocol.toString());
         }
 
-        static boolean isValidConnection(String hbaConnectionMode, ConnectionProperties connectionProperties) {
-            if (hbaConnectionMode == null || hbaConnectionMode.isEmpty()) {
-                return true;
-            }
-            SSL sslMode = SSL.parseValue(hbaConnectionMode);
+        static boolean isValidConnection(SSL sslMode, ConnectionProperties connectionProperties) {
             return switch (sslMode) {
                 case OPTIONAL -> true;
                 case NEVER -> !connectionProperties.hasSSL();
