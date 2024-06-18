@@ -50,7 +50,7 @@ public class SourceParserTest extends ESTestCase {
     @Test
     public void test_extract_single_value_from_json_with_multiple_columns() throws Exception {
         SourceParser sourceParser = new SourceParser(Set.of(), UnaryOperator.identity());
-        var column = new ColumnIdent("_doc", List.of("x"));
+        var column = ColumnIdent.of("_doc", List.of("x"));
         sourceParser.register(column, DataTypes.INTEGER);
         Map<String, Object> result = sourceParser.parse(new BytesArray(
             """
@@ -64,8 +64,8 @@ public class SourceParserTest extends ESTestCase {
     @Test
     public void test_unnecessary_leafs_of_object_columns_are_not_collected() throws Exception {
         SourceParser sourceParser = new SourceParser(Set.of(), UnaryOperator.identity());
-        var x = new ColumnIdent("_doc", List.of("obj", "x"));
-        var z = new ColumnIdent("_doc", List.of("obj", "z"));
+        var x = ColumnIdent.of("_doc", List.of("obj", "x"));
+        var z = ColumnIdent.of("_doc", List.of("obj", "z"));
         sourceParser.register(x, DataTypes.INTEGER);
         sourceParser.register(z, DataTypes.LONG);
         Map<String, Object> result = sourceParser.parse(new BytesArray(
@@ -81,8 +81,8 @@ public class SourceParserTest extends ESTestCase {
     @Test
     public void test_full_object_is_collected_if_full_object_requested() throws Exception {
         SourceParser sourceParser = new SourceParser(Set.of(), UnaryOperator.identity());
-        var obj = new ColumnIdent("_doc", List.of("obj"));
-        var x = new ColumnIdent("_doc", List.of("obj", "x"));
+        var obj = ColumnIdent.of("_doc", List.of("obj"));
+        var x = ColumnIdent.of("_doc", List.of("obj", "x"));
         // the order in which the columns are registered must not matter
         boolean xFirst = randomBoolean();
         if (xFirst) {
@@ -104,14 +104,14 @@ public class SourceParserTest extends ESTestCase {
     @Test
     public void test_string_encoded_numbers_will_be_parsed_by_data_type() {
         SourceParser sourceParser = new SourceParser(Set.of(), UnaryOperator.identity());
-        sourceParser.register(new ColumnIdent("_doc", List.of("i")), DataTypes.INTEGER);
-        sourceParser.register(new ColumnIdent("_doc", List.of("l")), DataTypes.LONG);
-        sourceParser.register(new ColumnIdent("_doc", List.of("f")), DataTypes.FLOAT);
-        sourceParser.register(new ColumnIdent("_doc", List.of("d")), DataTypes.DOUBLE);
-        sourceParser.register(new ColumnIdent("_doc", List.of("s")), DataTypes.SHORT);
-        sourceParser.register(new ColumnIdent("_doc", List.of("b")), DataTypes.BYTE);
-        sourceParser.register(new ColumnIdent("_doc", List.of("ts")), DataTypes.TIMESTAMP);
-        sourceParser.register(new ColumnIdent("_doc", List.of("tsz")), DataTypes.TIMESTAMPZ);
+        sourceParser.register(ColumnIdent.of("_doc", List.of("i")), DataTypes.INTEGER);
+        sourceParser.register(ColumnIdent.of("_doc", List.of("l")), DataTypes.LONG);
+        sourceParser.register(ColumnIdent.of("_doc", List.of("f")), DataTypes.FLOAT);
+        sourceParser.register(ColumnIdent.of("_doc", List.of("d")), DataTypes.DOUBLE);
+        sourceParser.register(ColumnIdent.of("_doc", List.of("s")), DataTypes.SHORT);
+        sourceParser.register(ColumnIdent.of("_doc", List.of("b")), DataTypes.BYTE);
+        sourceParser.register(ColumnIdent.of("_doc", List.of("ts")), DataTypes.TIMESTAMP);
+        sourceParser.register(ColumnIdent.of("_doc", List.of("tsz")), DataTypes.TIMESTAMPZ);
         Map<String, Object> result = sourceParser.parse(new BytesArray(
             """
             {"i": "1", "l": "2", "f": "0.12", "d": "0.23", "s": "4", "b": "5", "ts": "915757200000", "tsz": "915757200000"}
@@ -130,7 +130,7 @@ public class SourceParserTest extends ESTestCase {
     @Test
     public void test_string_encoded_boolean_will_be_parsed_by_data_type() {
         SourceParser sourceParser = new SourceParser(Set.of(), UnaryOperator.identity());
-        sourceParser.register(new ColumnIdent("_doc", List.of("b")), DataTypes.BOOLEAN);
+        sourceParser.register(ColumnIdent.of("_doc", List.of("b")), DataTypes.BOOLEAN);
         Map<String, Object> result = sourceParser.parse(new BytesArray(
             """
                 {"b": "true"}
@@ -146,7 +146,7 @@ public class SourceParserTest extends ESTestCase {
         ObjectType objectType = ObjectType.builder()
             .setInnerType("bs", bitStringType)
             .build();
-        sourceParser.register(new ColumnIdent("_doc", List.of("o")), objectType);
+        sourceParser.register(ColumnIdent.of("_doc", List.of("o")), objectType);
         Map<String, Object> result = sourceParser.parse(new BytesArray(
             """
             {
@@ -172,7 +172,7 @@ public class SourceParserTest extends ESTestCase {
             .setInnerType("inner_object", innerObjectType)
             .setInnerType("target", DataTypes.STRING)
             .build();
-        sourceParser.register(new ColumnIdent("_doc", List.of("outer_object")), outerObjectType);
+        sourceParser.register(ColumnIdent.of("_doc", List.of("outer_object")), outerObjectType);
         Map<String, Object> result = sourceParser.parse(new BytesArray(
             """
             {
@@ -200,8 +200,8 @@ public class SourceParserTest extends ESTestCase {
         ObjectType objectType = ObjectType.builder()
             .setInnerType("target", DataTypes.FLOAT)
             .build();
-        sourceParser.register(new ColumnIdent("_doc", List.of("obj")), objectType);
-        sourceParser.register(new ColumnIdent("_doc", List.of("target")), DataTypes.STRING);
+        sourceParser.register(ColumnIdent.of("_doc", List.of("obj")), objectType);
+        sourceParser.register(ColumnIdent.of("_doc", List.of("target")), DataTypes.STRING);
         Map<String, Object> result = sourceParser.parse(new BytesArray(
             """
             {
@@ -231,7 +231,7 @@ public class SourceParserTest extends ESTestCase {
         //   )))));
         //   SELECT a['b'] from test; -- a['b'] is array(array(object))
         ArrayType<?> type = new ArrayType<>(new ArrayType<>(ObjectType.builder().setInnerType("s", DataTypes.STRING).build()));
-        sourceParser.register(new ColumnIdent("_doc", List.of("a", "b")), type);
+        sourceParser.register(ColumnIdent.of("_doc", List.of("a", "b")), type);
         var result = sourceParser.parse(new BytesArray(
             """
             {
@@ -264,7 +264,7 @@ public class SourceParserTest extends ESTestCase {
     public void test_nested_array_of_geotype() {
         SourceParser sourceParser = new SourceParser(Set.of(), UnaryOperator.identity());
         ArrayType<?> type = new ArrayType<>(new ArrayType<>(GeoPointType.INSTANCE));
-        sourceParser.register(new ColumnIdent("_doc", List.of("a")), type);
+        sourceParser.register(ColumnIdent.of("_doc", List.of("a")), type);
         var result = sourceParser.parse(new BytesArray("""
             { "a" : [ [ [1, 2], [1, 2], [3, 4] ], [ [5, 6], [7, 8] ] ] }
             """));
@@ -279,7 +279,7 @@ public class SourceParserTest extends ESTestCase {
     public void test_convert_empty_or_null_arrays_added_dynamically_to_nulls() {
         SourceParser sourceParser = new SourceParser(Set.of(), UnaryOperator.identity());
         var type = ObjectType.UNTYPED;
-        sourceParser.register(new ColumnIdent("_doc", List.of("x")), type);
+        sourceParser.register(ColumnIdent.of("_doc", List.of("x")), type);
         var result = sourceParser.parse(
             new BytesArray(
                 """
@@ -297,7 +297,7 @@ public class SourceParserTest extends ESTestCase {
     @Test
     public void test_nested_arrays_from_ignored_objects() {
         SourceParser sourceParser = new SourceParser(Set.of(), UnaryOperator.identity());
-        sourceParser.register(new ColumnIdent("_doc", List.of("obj", "x")), UndefinedType.INSTANCE);
+        sourceParser.register(ColumnIdent.of("_doc", List.of("obj", "x")), UndefinedType.INSTANCE);
         var result = sourceParser.parse(
             new BytesArray(
                 """
@@ -315,8 +315,8 @@ public class SourceParserTest extends ESTestCase {
     public void test_dropped_leaf_sub_column() {
         SourceParser sourceParser = new SourceParser(
             Set.of(
-                createReference(new ColumnIdent("o", List.of("oo", "b")), DataTypes.INTEGER),
-                createReference(new ColumnIdent("o", List.of("oo", "s")), DataTypes.INTEGER)
+                createReference(ColumnIdent.of("o", List.of("oo", "b")), DataTypes.INTEGER),
+                createReference(ColumnIdent.of("o", List.of("oo", "s")), DataTypes.INTEGER)
             ),
             UnaryOperator.identity()
         );
@@ -334,7 +334,7 @@ public class SourceParserTest extends ESTestCase {
             .setInnerType("t", DataTypes.INTEGER)
             .build();
 
-        sourceParser.register(new ColumnIdent("_doc", List.of("o")), oType);
+        sourceParser.register(ColumnIdent.of("_doc", List.of("o")), oType);
         Map<String, Object> result = sourceParser.parse(new BytesArray(
             """
                 {"o": {"a":1, "b":2, "oo":{"a": 11, "b":22, "c":33, "s":33, "t":44}, "s":3, "t":4}}
@@ -363,11 +363,11 @@ public class SourceParserTest extends ESTestCase {
             .build();
 
         SourceParser sourceParser = new SourceParser(
-                Set.of(createReference(new ColumnIdent("o", List.of("oo")), ooType)),
+                Set.of(createReference(ColumnIdent.of("o", List.of("oo")), ooType)),
                 UnaryOperator.identity()
         );
         // Register parent column in order to collect ony this one, ignoring any other column
-        sourceParser.register(new ColumnIdent("_doc", List.of("o")), oType);
+        sourceParser.register(ColumnIdent.of("_doc", List.of("o")), oType);
         Map<String, Object> result = sourceParser.parse(new BytesArray(
             """
                 {"o": {"a" : 1, "b": 2, "oo": {"a": 11, "b": 22, "c": 3}}, "x": 4}
@@ -382,7 +382,7 @@ public class SourceParserTest extends ESTestCase {
     @Test
     public void test_drop_sub_column_with_children_collect_all() {
         SourceParser sourceParser = new SourceParser(
-                Set.of(createReference(new ColumnIdent("o", List.of("oo")), DataTypes.UNTYPED_OBJECT)),
+                Set.of(createReference(ColumnIdent.of("o", List.of("oo")), DataTypes.UNTYPED_OBJECT)),
                 UnaryOperator.identity()
         );
 
@@ -402,8 +402,8 @@ public class SourceParserTest extends ESTestCase {
     public void test_alter_table_drop_leaf_subcolumn_with_parent_object_array() {
         SourceParser sourceParser = new SourceParser(
             Set.of(
-                createReference(new ColumnIdent("o", List.of("oo", "b")), DataTypes.INTEGER),
-                createReference(new ColumnIdent("o", List.of("oo", "t")), DataTypes.INTEGER)
+                createReference(ColumnIdent.of("o", List.of("oo", "b")), DataTypes.INTEGER),
+                createReference(ColumnIdent.of("o", List.of("oo", "t")), DataTypes.INTEGER)
             ),
             UnaryOperator.identity()
         );
@@ -421,7 +421,7 @@ public class SourceParserTest extends ESTestCase {
             .setInnerType("t", DataTypes.INTEGER)
             .build();
 
-        sourceParser.register(new ColumnIdent("_doc", List.of("o")), oType);
+        sourceParser.register(ColumnIdent.of("_doc", List.of("o")), oType);
         Map<String, Object> result = sourceParser.parse(new BytesArray(
             """
             {
@@ -467,11 +467,11 @@ public class SourceParserTest extends ESTestCase {
                 .build();
 
         SourceParser sourceParser = new SourceParser(
-                Set.of(createReference(new ColumnIdent("o", List.of("oo")), ooType)),
+                Set.of(createReference(ColumnIdent.of("o", List.of("oo")), ooType)),
                 UnaryOperator.identity()
         );
 
-        sourceParser.register(new ColumnIdent("_doc", List.of("o")), oType);
+        sourceParser.register(ColumnIdent.of("_doc", List.of("o")), oType);
         Map<String, Object> result = sourceParser.parse(new BytesArray(
                 """
                     {"o": {"a" : 1, "b": 2, "oo": {"a": 11, "b": 22, "c": 3}}}
@@ -495,7 +495,7 @@ public class SourceParserTest extends ESTestCase {
             .setInnerType("x", DataTypes.LONG)
             .build();
         var objArray = new ArrayType<>(objType);
-        sourceParser.register(new ColumnIdent("_doc", "os"), objArray);
+        sourceParser.register(ColumnIdent.of("_doc", "os"), objArray);
         Map<String, Object> result = sourceParser.parse(new BytesArray(
             """
             {

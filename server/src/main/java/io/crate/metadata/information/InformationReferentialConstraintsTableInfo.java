@@ -43,9 +43,9 @@ public class InformationReferentialConstraintsTableInfo {
         .add("update_rule", STRING, ignored -> null)
         .add("delete_rule", STRING, ignored -> null)
         .setPrimaryKeys(
-            new ColumnIdent("constraint_catalog"),
-            new ColumnIdent("constraint_schema"),
-            new ColumnIdent("constraint_name")
+            ColumnIdent.of("constraint_catalog"),
+            ColumnIdent.of("constraint_schema"),
+            ColumnIdent.of("constraint_name")
         )
         .build();
 }

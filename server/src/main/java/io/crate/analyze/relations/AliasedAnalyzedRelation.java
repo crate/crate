@@ -70,7 +70,7 @@ public class AliasedAnalyzedRelation implements AnalyzedRelation, FieldResolver 
             ColumnIdent childColumn = Symbols.pathFromSymbol(childOutput);
             ColumnIdent columnAlias = childColumn;
             if (i < columnAliases.size()) {
-                columnAlias = new ColumnIdent(columnAliases.get(i));
+                columnAlias = ColumnIdent.of(columnAliases.get(i));
             }
             aliasToColumnMapping.put(columnAlias, childColumn);
             var scopedSymbol = new ScopedSymbol(alias, columnAlias, childOutput.valueType());
@@ -82,7 +82,7 @@ public class AliasedAnalyzedRelation implements AnalyzedRelation, FieldResolver 
             ColumnIdent childColumn = Symbols.pathFromSymbol(childOutput);
             ColumnIdent columnAlias = childColumn;
             if (i + relation.outputs().size() < columnAliases.size()) {
-                columnAlias = new ColumnIdent(columnAliases.get(i));
+                columnAlias = ColumnIdent.of(columnAliases.get(i));
             }
             aliasToColumnMapping.putIfAbsent(columnAlias, childColumn);
         }
@@ -103,14 +103,14 @@ public class AliasedAnalyzedRelation implements AnalyzedRelation, FieldResolver 
                 // The column ident maybe a quoted subscript which points to an alias of a sub relation.
                 // Aliases are always strings but due to the support for quoted subscript expressions,
                 // the select column ident may already be expanded to a subscript.
-                var maybeQuotedSubscriptColumnAlias = new ColumnIdent(column.sqlFqn());
+                var maybeQuotedSubscriptColumnAlias = ColumnIdent.of(column.sqlFqn());
                 childColumnName = aliasToColumnMapping.get(maybeQuotedSubscriptColumnAlias);
                 if (childColumnName == null) {
                     return null;
                 }
                 column = maybeQuotedSubscriptColumnAlias;
             } else {
-                childColumnName = new ColumnIdent(childColumnName.name(), column.path());
+                childColumnName = ColumnIdent.of(childColumnName.name(), column.path());
             }
         }
         Symbol field = relation.getField(childColumnName, operation, errorOnUnknownObjectKey);
@@ -170,7 +170,7 @@ public class AliasedAnalyzedRelation implements AnalyzedRelation, FieldResolver 
         ColumnIdent childColumnName = aliasToColumnMapping.get(column);
         if (childColumnName == null && !column.isRoot()) {
             var childCol = aliasToColumnMapping.get(column.getRoot());
-            childColumnName = new ColumnIdent(childCol.name(), column.path());
+            childColumnName = ColumnIdent.of(childCol.name(), column.path());
         }
         assert childColumnName != null
             : "If a ScopedSymbol has been retrieved via `getField`, it must be possible to get the columnIdent";

@@ -45,9 +45,9 @@ public class InformationTableConstraintsTableInfo {
         .add("is_deferrable", STRING, ignored -> "NO")
         .add("initially_deferred", STRING, ignored -> "NO")
         .setPrimaryKeys(
-            new ColumnIdent("constraint_catalog"),
-            new ColumnIdent("constraint_schema"),
-            new ColumnIdent("constraint_name")
+            ColumnIdent.of("constraint_catalog"),
+            ColumnIdent.of("constraint_schema"),
+            ColumnIdent.of("constraint_name")
         )
         .build();
 }

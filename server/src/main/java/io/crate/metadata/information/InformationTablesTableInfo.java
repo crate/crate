@@ -224,9 +224,9 @@ public class InformationTablesTableInfo {
 
         .endObject()
         .setPrimaryKeys(
-            new ColumnIdent("table_catalog"),
-            new ColumnIdent("table_schema"),
-            new ColumnIdent("table_name")
+            ColumnIdent.of("table_catalog"),
+            ColumnIdent.of("table_schema"),
+            ColumnIdent.of("table_name")
         )
         .build();
 

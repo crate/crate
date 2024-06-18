@@ -43,7 +43,7 @@ public class FileWriterCountCollectorTest extends ESTestCase {
     @Test
     public void testToNestedStringObjectMap() {
         Map<ColumnIdent, Object> columnIdentMap = new HashMap<>();
-        columnIdentMap.put(new ColumnIdent("some", Arrays.asList("nested", "column")), "foo");
+        columnIdentMap.put(ColumnIdent.of("some", Arrays.asList("nested", "column")), "foo");
         Map<String, Object> convertedMap = FileWriterCountCollector.toNestedStringObjectMap(columnIdentMap);
 
         Map<?, ?> someMap = (Map<?, ?>) convertedMap.get("some");

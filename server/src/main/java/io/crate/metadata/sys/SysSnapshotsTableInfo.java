@@ -55,7 +55,7 @@ public class SysSnapshotsTableInfo {
         .add("version", STRING, SysSnapshot::version)
         .add("state", STRING, SysSnapshot::state)
         .add("failures", STRING_ARRAY, SysSnapshot::failures)
-        .setPrimaryKeys(new ColumnIdent("name"), new ColumnIdent("repository"))
+        .setPrimaryKeys(ColumnIdent.of("name"), ColumnIdent.of("repository"))
         .withRouting(SysSnapshotsTableInfo::getRouting)
         .build();
 

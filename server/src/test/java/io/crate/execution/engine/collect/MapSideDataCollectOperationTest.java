@@ -86,7 +86,7 @@ public class MapSideDataCollectOperationTest extends CrateDummyClusterServiceUni
             List.of("a", "b"),
             Arrays.asList(
                 createReference("name", DataTypes.STRING),
-                createReference(new ColumnIdent("details", "age"), DataTypes.INTEGER)
+                createReference(ColumnIdent.of("details", "age"), DataTypes.INTEGER)
             ),
             Collections.emptyList(),
             null,

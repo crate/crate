@@ -252,7 +252,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = e.resolveTableInfo("tbl");
 
         // INSERT INTO tbl (z) VALUES (?) ON CONFLICT (...) DO UPDATE SET y = ?
-        Reference[] insertColumns = new Reference[] { table.getReference(new ColumnIdent("z")) };
+        Reference[] insertColumns = new Reference[] { table.getReference(ColumnIdent.of("z")) };
         String[] updateColumns = new String[] { "y" };
         UpdateToInsert updateToInsert = new UpdateToInsert(
             e.nodeCtx,
@@ -291,7 +291,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = e.resolveTableInfo("tbl");
 
         // INSERT INTO tbl (z) VALUES (?) ON CONFLICT (...) DO UPDATE SET y['a'] = ?
-        Reference[] insertColumns = new Reference[] { table.getReference(new ColumnIdent("z")) };
+        Reference[] insertColumns = new Reference[] { table.getReference(ColumnIdent.of("z")) };
         String[] updateColumns = new String[] { "y.a" };
         UpdateToInsert updateToInsert = new UpdateToInsert(
                 e.nodeCtx,
@@ -334,8 +334,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
 
         // insert into tbl (x, z) values (1, 20) on conflict (..) do update set z = excluded.z
         Reference[] insertColumns = new Reference[] {
-            table.getReference(new ColumnIdent("x")),
-            table.getReference(new ColumnIdent("z"))
+            table.getReference(ColumnIdent.of("x")),
+            table.getReference(ColumnIdent.of("z"))
         };
         String[] updateColumns = new String[] { "z" };
         UpdateToInsert updateToInsert = new UpdateToInsert(
@@ -377,8 +377,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = e.resolveTableInfo("tbl");
         // insert into tbl (x, z) values (1, 20) on conflict (..) do update set z = excluded.z
         Reference[] insertColumns = new Reference[] {
-            table.getReference(new ColumnIdent("x")),
-            table.getReference(new ColumnIdent("z"))
+            table.getReference(ColumnIdent.of("x")),
+            table.getReference(ColumnIdent.of("z"))
         };
         String[] updateColumns = new String[] { "z" };
         UpdateToInsert updateToInsert = new UpdateToInsert(
@@ -418,8 +418,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = e.resolveTableInfo("tbl");
         // insert into tbl (x, z) values (1, 20) on conflict (..) do update set z = excluded.z
         Reference[] insertColumns = new Reference[] {
-            table.getReference(new ColumnIdent("x")),
-            table.getReference(new ColumnIdent("z"))
+            table.getReference(ColumnIdent.of("x")),
+            table.getReference(ColumnIdent.of("z"))
         };
         String[] updateColumns = new String[] { "z" };
         UpdateToInsert updateToInsert = new UpdateToInsert(

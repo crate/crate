@@ -2798,7 +2798,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(analyzed.outputs()).hasSize(1);
         assertThat(analyzed.outputs().getFirst())
             .isVoidReference()
-            .hasColumnIdent(new ColumnIdent("o", "unknown_key"))
+            .hasColumnIdent(ColumnIdent.of("o", "unknown_key"))
             .hasTableIdent(new RelationName(null, "alias"));
     }
 

@@ -47,7 +47,7 @@ public class WriterProjectionTest extends ESTestCase {
             Literal.of("/foo.json"),
             WriterProjection.CompressionType.GZIP,
             MapBuilder.<ColumnIdent, Symbol>newMapBuilder().put(
-                new ColumnIdent("partitionColumn"), Literal.of(1)).map(),
+                ColumnIdent.of("partitionColumn"), Literal.of(1)).map(),
             List.of("foo"),
             WriterProjection.OutputFormat.JSON_OBJECT,
             Settings.builder().put("protocol", "http").build()
@@ -70,7 +70,7 @@ public class WriterProjectionTest extends ESTestCase {
             Literal.of("/foo.json"),
             WriterProjection.CompressionType.GZIP,
             MapBuilder.<ColumnIdent, Symbol>newMapBuilder().put(
-                new ColumnIdent("partitionColumn"), Literal.of(1)).map(),
+                ColumnIdent.of("partitionColumn"), Literal.of(1)).map(),
             List.of("foo"),
             WriterProjection.OutputFormat.JSON_OBJECT,
             Settings.builder().put("protocol", "dummyHTTPS").build()
@@ -81,7 +81,7 @@ public class WriterProjectionTest extends ESTestCase {
             Literal.of("/foo.json"),
             WriterProjection.CompressionType.GZIP,
             MapBuilder.<ColumnIdent, Symbol>newMapBuilder().put(
-                new ColumnIdent("partitionColumn"), Literal.of(1)).map(),
+                ColumnIdent.of("partitionColumn"), Literal.of(1)).map(),
             List.of("foo"),
             WriterProjection.OutputFormat.JSON_OBJECT,
             Settings.EMPTY

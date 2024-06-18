@@ -33,7 +33,7 @@ import io.crate.types.DataTypes;
 public class SourceLineNumberExpression extends LineCollectorExpression<Long> {
 
     public static final String COLUMN_NAME = "_line_number";
-    private static final ColumnIdent COLUMN_IDENT = new ColumnIdent(COLUMN_NAME);
+    private static final ColumnIdent COLUMN_IDENT = ColumnIdent.of(COLUMN_NAME);
 
     public static Reference getReferenceForRelation(RelationName relationName) {
         return new SimpleReference(

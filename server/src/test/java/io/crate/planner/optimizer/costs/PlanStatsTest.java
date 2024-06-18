@@ -189,7 +189,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
 
         TableStats tableStats = new TableStats();
         Map<ColumnIdent, ColumnStats<?>> columnStats = Map.of(
-            new ColumnIdent("x"),
+            ColumnIdent.of("x"),
             new ColumnStats<>(
                 0,
                 DataTypes.INTEGER.fixedSize(),
@@ -198,7 +198,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
                 MostCommonValues.empty(),
                 List.of()
             ),
-            new ColumnIdent("y"),
+            ColumnIdent.of("y"),
             new ColumnStats<>(
                 0,
                 DataTypes.INTEGER.fixedSize(),
@@ -245,8 +245,8 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         TableStats tableStats = new TableStats();
         tableStats.updateTableStats(
             Map.of(
-                aDoc.ident(), new Stats(9L, 9 * DataTypes.INTEGER.fixedSize(), Map.of(new ColumnIdent("x"), xStats)),
-                bDoc.ident(), new Stats(2L, 2 * DataTypes.INTEGER.fixedSize(), Map.of(new ColumnIdent("y"), yStats))
+                aDoc.ident(), new Stats(9L, 9 * DataTypes.INTEGER.fixedSize(), Map.of(ColumnIdent.of("x"), xStats)),
+                bDoc.ident(), new Stats(2L, 2 * DataTypes.INTEGER.fixedSize(), Map.of(ColumnIdent.of("y"), yStats))
             )
         );
 
@@ -285,7 +285,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
 
         TableStats tableStats = new TableStats();
         Map<ColumnIdent, ColumnStats<?>> columnStats = Map.of(
-            new ColumnIdent("x"),
+            ColumnIdent.of("x"),
             new ColumnStats<>(
                 0.0,
                 DataTypes.INTEGER.fixedSize(),

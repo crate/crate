@@ -76,7 +76,7 @@ public record ForeignTable(RelationName name,
     ForeignTable(StreamInput in) throws IOException {
         this(
             new RelationName(in),
-            in.readMap(LinkedHashMap::new, ColumnIdent::new, Reference::fromStream),
+            in.readMap(LinkedHashMap::new, ColumnIdent::of, Reference::fromStream),
             in.readString(),
             Settings.readSettingsFromStream(in)
         );

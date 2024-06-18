@@ -43,7 +43,7 @@ import io.crate.metadata.doc.DocSysColumns;
 
 public class RowShardResolverTest extends ESTestCase {
 
-    private static final ColumnIdent ID_IDENT = new ColumnIdent("_id");
+    private static final ColumnIdent ID_IDENT = ColumnIdent.of("_id");
 
     private Row row(Object... cells) {
         if (cells == null) {
@@ -53,7 +53,7 @@ public class RowShardResolverTest extends ESTestCase {
     }
 
     private ColumnIdent ci(String ident) {
-        return new ColumnIdent(ident);
+        return ColumnIdent.of(ident);
     }
 
     private final TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
@@ -176,7 +176,7 @@ public class RowShardResolverTest extends ESTestCase {
         var rowShardResolver = new RowShardResolver(
             txnCtx,
             nodeCtx,
-            List.of(new ColumnIdent("my_pk")),
+            List.of(ColumnIdent.of("my_pk")),
             primaryKeySymbols,
             null,
             null
@@ -191,7 +191,7 @@ public class RowShardResolverTest extends ESTestCase {
         var rowShardResolver = new RowShardResolver(
             txnCtx,
             nodeCtx,
-            List.of(DocSysColumns.ID.COLUMN, new ColumnIdent("my_pk")),
+            List.of(DocSysColumns.ID.COLUMN, ColumnIdent.of("my_pk")),
             primaryKeySymbols,
             null,
             null

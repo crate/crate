@@ -130,7 +130,7 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
         assertThat(d.columns()).satisfiesExactly(
             dc -> assertThat(dc.ref())
                 .isReference()
-                .hasColumnIdent(new ColumnIdent("o", List.of("oo", "ooa")))
+                .hasColumnIdent(ColumnIdent.of("o", List.of("oo", "ooa")))
                 .hasTableIdent(d.table().ident())
                 .hasType(DataTypes.INTEGER)
         );
@@ -197,12 +197,12 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
         assertThat(d3.columns()).satisfiesExactly(
             dc -> assertThat(dc.ref())
                 .isReference()
-                .hasColumnIdent(new ColumnIdent("o", "oa"))
+                .hasColumnIdent(ColumnIdent.of("o", "oa"))
                 .hasTableIdent(d3.table().ident())
                 .hasType(DataTypes.INTEGER),
             dc -> assertThat(dc.ref())
                 .isReference()
-                .hasColumnIdent(new ColumnIdent("o", List.of("oo", "ooa")))
+                .hasColumnIdent(ColumnIdent.of("o", List.of("oo", "ooa")))
                 .hasTableIdent(d3.table().ident())
                 .hasType(DataTypes.INTEGER)
         );

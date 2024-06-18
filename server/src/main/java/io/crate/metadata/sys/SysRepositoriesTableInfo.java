@@ -43,7 +43,7 @@ public class SysRepositoriesTableInfo {
             .add("name", STRING, (Repository r) -> r.getMetadata().name())
             .add("type", STRING, (Repository r) -> r.getMetadata().type())
             .addDynamicObject("settings", STRING, r -> r.getMetadata().settings().getAsStructuredMap(maskedSettingNames))
-            .setPrimaryKeys(new ColumnIdent("name"))
+            .setPrimaryKeys(ColumnIdent.of("name"))
             .withRouting((state, routingProvider, sessionSettings) -> routingProvider.forRandomMasterOrDataNode(IDENT, state.nodes()))
             .build();
     }

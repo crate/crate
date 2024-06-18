@@ -50,7 +50,7 @@ public class AlterTableRenameColumnAnalyzerTest extends CrateDummyClusterService
 
         AnalyzedAlterTableRenameColumn analyzed = e.analyze("alter table t rename column a to b");
         assertThat(analyzed.refToRename()).isReference().hasName("a");
-        assertThat(analyzed.newName()).isEqualTo(new ColumnIdent("b"));
+        assertThat(analyzed.newName()).isEqualTo(ColumnIdent.of("b"));
         assertThat(analyzed.table()).isEqualTo(new RelationName("doc", "t"));
     }
 
@@ -60,8 +60,8 @@ public class AlterTableRenameColumnAnalyzerTest extends CrateDummyClusterService
             .addTable("create table t (o object as (o2 object as (o3 object)))");
 
         AnalyzedAlterTableRenameColumn analyzed = e.analyze("alter table t rename column o['o2']['o3'] to o['o2']['x']");
-        assertThat(analyzed.refToRename()).isReference().hasColumnIdent(new ColumnIdent("o", List.of("o2", "o3")));
-        assertThat(analyzed.newName()).isEqualTo(new ColumnIdent("o", List.of("o2", "x")));
+        assertThat(analyzed.refToRename()).isReference().hasColumnIdent(ColumnIdent.of("o", List.of("o2", "o3")));
+        assertThat(analyzed.newName()).isEqualTo(ColumnIdent.of("o", List.of("o2", "x")));
         assertThat(analyzed.table()).isEqualTo(new RelationName("doc", "t"));
     }
 
@@ -71,8 +71,8 @@ public class AlterTableRenameColumnAnalyzerTest extends CrateDummyClusterService
             .addTable("create table t (o object as (o2 object as (o3 object)))");
 
         AnalyzedAlterTableRenameColumn analyzed = e.analyze("alter table t rename column o['o2']['o3'] to o['o2']['x']");
-        assertThat(analyzed.refToRename()).isReference().hasColumnIdent(new ColumnIdent("o", List.of("o2", "o3")));
-        assertThat(analyzed.newName()).isEqualTo(new ColumnIdent("o", List.of("o2", "x")));
+        assertThat(analyzed.refToRename()).isReference().hasColumnIdent(ColumnIdent.of("o", List.of("o2", "o3")));
+        assertThat(analyzed.newName()).isEqualTo(ColumnIdent.of("o", List.of("o2", "x")));
         assertThat(analyzed.table()).isEqualTo(new RelationName("doc", "t"));
     }
 

@@ -82,7 +82,7 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
             .addTable("create table tbl (id int, x " + dataDef.definition + ")");
 
         DocTableInfo table = sqlExecutor.resolveTableInfo("tbl");
-        Reference reference = table.getReference(new ColumnIdent("x"));
+        Reference reference = table.getReference(ColumnIdent.of("x"));
         assertThat(reference).isNotNull();
 
         try (var indexEnv = new IndexEnv(
@@ -146,7 +146,7 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
 
         Supplier<T> dataGenerator = DataTypeTesting.getDataGenerator(type);
         DocTableInfo table = sqlExecutor.resolveTableInfo("tbl");
-        Reference reference = table.getReference(new ColumnIdent("x"));
+        Reference reference = table.getReference(ColumnIdent.of("x"));
         assertThat(reference).isNotNull();
 
         T value = dataGenerator.get();

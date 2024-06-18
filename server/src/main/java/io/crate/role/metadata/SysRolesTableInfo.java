@@ -42,6 +42,6 @@ public class SysRolesTableInfo {
             .add("role", STRING, GrantedRole::roleName)
             .add("grantor", STRING, GrantedRole::grantor)
         .endObjectArray()
-        .setPrimaryKeys(new ColumnIdent("name"))
+        .setPrimaryKeys(ColumnIdent.of("name"))
         .build();
 }

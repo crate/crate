@@ -68,7 +68,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
     private final boolean closed;
 
     private final Map<ColumnIdent, Reference> infos = new LinkedHashMap<>();
-    private static final List<ColumnIdent> PRIMARY_KEY = List.of(new ColumnIdent("digest"));
+    private static final List<ColumnIdent> PRIMARY_KEY = List.of(ColumnIdent.of("digest"));
 
     public BlobTableInfo(RelationName ident,
                          String index,

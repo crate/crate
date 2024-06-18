@@ -51,7 +51,7 @@ public class NameFieldProvider implements FieldProvider<Symbol> {
                                Operation operation,
                                boolean errorOnUnknownObjectKey) {
         List<String> parts = qualifiedName.getParts();
-        ColumnIdent columnIdent = new ColumnIdent(parts.get(parts.size() - 1), path);
+        ColumnIdent columnIdent = ColumnIdent.of(parts.get(parts.size() - 1), path);
         if (parts.size() != 1) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "Column reference \"%s\" has too many parts. " +

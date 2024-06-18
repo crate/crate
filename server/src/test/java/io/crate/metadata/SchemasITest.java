@@ -72,8 +72,8 @@ public class SchemasITest extends IntegTestCase {
 
         assertThat(ti.columns()).hasSize(3);
         assertThat(ti.primaryKey()).hasSize(1);
-        assertThat(ti.primaryKey().get(0)).isEqualTo(new ColumnIdent("id"));
-        assertThat(ti.clusteredBy()).isEqualTo(new ColumnIdent("id"));
+        assertThat(ti.primaryKey().get(0)).isEqualTo(ColumnIdent.of("id"));
+        assertThat(ti.clusteredBy()).isEqualTo(ColumnIdent.of("id"));
         List<CheckConstraint<Symbol>> checkConstraints = ti.checkConstraints();
         assertThat(checkConstraints.size()).isEqualTo(1);
         assertThat("not_miguel").isEqualTo(checkConstraints.get(0).name());

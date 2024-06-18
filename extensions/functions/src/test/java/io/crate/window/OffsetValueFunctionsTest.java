@@ -46,7 +46,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "lag(x) over()",
             new Object[]{null, 1, null, 2},
-            List.of(new ColumnIdent("x")),
+            List.of(ColumnIdent.of("x")),
             new Object[]{1},
             new Object[]{null},
             new Object[]{2},
@@ -59,7 +59,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "lag(x) ignore nulls over()",
             new Object[]{null, 1, 1, 2},
-            List.of(new ColumnIdent("x")),
+            List.of(ColumnIdent.of("x")),
             new Object[]{1},
             new Object[]{null},
             new Object[]{2},
@@ -72,7 +72,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "lag(x) respect nulls over()",
             new Object[]{null, 1, null, 2},
-            List.of(new ColumnIdent("x")),
+            List.of(ColumnIdent.of("x")),
             new Object[]{1},
             new Object[]{null},
             new Object[]{2},
@@ -85,7 +85,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "lag(x, 2) over()",
             new Object[]{null, null, 1, 2},
-            List.of(new ColumnIdent("x")),
+            List.of(ColumnIdent.of("x")),
             new Object[]{1},
             new Object[]{2},
             new Object[]{3},
@@ -98,7 +98,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "lag(x, 2) ignore nulls over()",
             new Object[]{null, null, 1, 1},
-            List.of(new ColumnIdent("x")),
+            List.of(ColumnIdent.of("x")),
             new Object[]{1},
             new Object[]{2},
             new Object[]{null},
@@ -111,7 +111,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "lag(x, null) over()",
             new Object[]{null, null, null},
-            List.of(new ColumnIdent("x")),
+            List.of(ColumnIdent.of("x")),
             new Object[]{1},
             new Object[]{null},
             new Object[]{2}
@@ -123,7 +123,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "lag(x, null) ignore nulls over()",
             new Object[]{null, null, null},
-            List.of(new ColumnIdent("x")),
+            List.of(ColumnIdent.of("x")),
             new Object[]{1},
             new Object[]{null},
             new Object[]{2}
@@ -135,7 +135,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "lag(x, 0) over()",
             new Object[]{1, 2},
-            List.of(new ColumnIdent("x")),
+            List.of(ColumnIdent.of("x")),
             new Object[]{1},
             new Object[]{2}
         );
@@ -146,7 +146,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
         Assertions.assertThatThrownBy(() -> assertEvaluate(
                 "lag(x,0,123) ignore nulls over()",
                 null,
-                List.of(new ColumnIdent("x")),
+                List.of(ColumnIdent.of("x")),
                 new Object[][]{{1}, {2}, {null}, {3}, {null}, {null}, {4}, {5}, {null}, {6}, {null}, {7}}))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("offset 0 is not a valid argument if ignore nulls flag is set");
@@ -157,7 +157,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "lag(x, -1) over()",
             new Object[]{2, null},
-            List.of(new ColumnIdent("x")),
+            List.of(ColumnIdent.of("x")),
             new Object[]{1},
             new Object[]{2}
         );
@@ -168,7 +168,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "lag(x, -1) ignore nulls over()",
             new Object[]{2, 3, 3 ,null},
-            List.of(new ColumnIdent("x")),
+            List.of(ColumnIdent.of("x")),
             new Object[]{1},
             new Object[]{2},
             new Object[]{null},
@@ -181,7 +181,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "lag(x, 1, -1) over()",
             new Object[]{-1, 1, 2, 3},
-            List.of(new ColumnIdent("x")),
+            List.of(ColumnIdent.of("x")),
             new Object[]{1},
             new Object[]{2},
             new Object[]{3},
@@ -194,7 +194,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "lag(x, 1, -1) ignore nulls over()",
             new Object[]{-1, 1, 1, 3},
-            List.of(new ColumnIdent("x")),
+            List.of(ColumnIdent.of("x")),
             new Object[]{1},
             new Object[]{null},
             new Object[]{3},
@@ -207,7 +207,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "lag(coalesce(x, 1), 1, -1) over()",
             new Object[]{-1, 1, 1},
-            List.of(new ColumnIdent("x")),
+            List.of(ColumnIdent.of("x")),
             new Object[]{1},
             new Object[]{null},
             new Object[]{2}
@@ -219,7 +219,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "lag(x) over(order by y)",
             new Object[]{null, 1, 3, 1},
-            List.of(new ColumnIdent("x"), new ColumnIdent("y")),
+            List.of(ColumnIdent.of("x"), ColumnIdent.of("y")),
             new Object[]{1, 1},
             new Object[]{1, 3},
             new Object[]{3, 2},
@@ -232,7 +232,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "lag(x) over(order by y, x)",
             new Object[]{null, 1, 1, 3},
-            List.of(new ColumnIdent("x"), new ColumnIdent("y")),
+            List.of(ColumnIdent.of("x"), ColumnIdent.of("y")),
             new Object[]{1, 1},
             new Object[]{1, 2},
             new Object[]{3, 2},
@@ -245,7 +245,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "lead(x,1) ignore nulls over()",
             new Object[]{null, null, null, null},
-            List.of(new ColumnIdent("x")),
+            List.of(ColumnIdent.of("x")),
             new Object[]{null},
             new Object[]{null},
             new Object[]{null},
@@ -258,7 +258,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "lead(x) ignore nulls over(order by x asc)",
             new Object[]{2, 3, 4, 5, null},
-            List.of(new ColumnIdent("x")),
+            List.of(ColumnIdent.of("x")),
             new Object[]{5},
             new Object[]{4},
             new Object[]{3},
@@ -268,7 +268,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "lead(x) ignore nulls over(order by y asc, z asc)",
             new Object[]{2, 3, 4, 5, null},
-            List.of(new ColumnIdent("x"), new ColumnIdent("y"), new ColumnIdent("z")),
+            List.of(ColumnIdent.of("x"), ColumnIdent.of("y"), ColumnIdent.of("z")),
             new Object[]{3,2,"c"},
             new Object[]{5,2,"e"},
             new Object[]{4,2,"d"},
@@ -281,7 +281,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
     public void testLagOverPartitionedWindow() throws Throwable {
         assertEvaluate("lag(x) over(partition by x > 2)",
             new Object[]{null, 1, 2, null, 3, 4},
-            List.of(new ColumnIdent("x")),
+            List.of(ColumnIdent.of("x")),
             new Object[]{1},
             new Object[]{2},
             new Object[]{2},
@@ -294,7 +294,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
     public void testLagWithIgnoreNullsOverPartitionedWindow() throws Throwable {
         assertEvaluate("lag(x) over(partition by x > 2 order by x)",
                        new Object[]{null, 1, 2, null, 3, 4, null, null},
-                       List.of(new ColumnIdent("x")),
+                       List.of(ColumnIdent.of("x")),
                        new Object[]{1},
                        new Object[]{2},
                        new Object[]{2},
@@ -311,7 +311,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "lag(x) over(RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING)",
             new Object[]{null, 1, 2, 3},
-            List.of(new ColumnIdent("x")),
+            List.of(ColumnIdent.of("x")),
             new Object[]{1},
             new Object[]{2},
             new Object[]{3},
@@ -324,7 +324,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "lead(x,-3,123) ignore nulls over(RANGE BETWEEN CURRENT ROW and CURRENT ROW)",
             new Object[]{123, 123, 123, 123, 1, 1, 1, 2, 3, 3, 4, 4},
-            List.of(new ColumnIdent("x")),
+            List.of(ColumnIdent.of("x")),
             new Object[][]{{1}, {2}, {null}, {3}, {null}, {null}, {4}, {5}, {null}, {6}, {null}, {7}}
         );
     }
@@ -334,7 +334,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "lead(x) over(partition by x > 2)",
             new Object[]{2, 2, null, 4, 5, null},
-            List.of(new ColumnIdent("x")),
+            List.of(ColumnIdent.of("x")),
             new Object[]{1},
             new Object[]{2},
             new Object[]{2},
@@ -347,7 +347,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
     public void testLeadWithOrderBy() throws Throwable {
         assertEvaluate("lead(x) over(order by y)",
                        new Object[]{3, 1, 2, null},
-                       List.of(new ColumnIdent("x"), new ColumnIdent("y")),
+                       List.of(ColumnIdent.of("x"), ColumnIdent.of("y")),
                        new Object[]{1, 1},
                        new Object[]{1, 3},
                        new Object[]{3, 2},
@@ -360,7 +360,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "lag(x) ignore nulls over()",
             new Object[]{null, null, null, 2},
-            List.of(new ColumnIdent("x")),
+            List.of(ColumnIdent.of("x")),
             new Object[]{null},
             new Object[]{null},
             new Object[]{2},
@@ -373,7 +373,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "lag(x) ignore nulls over()",
             new Object[]{null, 1, 1, 1},
-            List.of(new ColumnIdent("x")),
+            List.of(ColumnIdent.of("x")),
             new Object[]{1},
             new Object[]{null},
             new Object[]{null},
@@ -386,7 +386,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "lag(x) ignore nulls over()",
             new Object[]{null, 1, 2, 2},
-            List.of(new ColumnIdent("x")),
+            List.of(ColumnIdent.of("x")),
             new Object[]{1},
             new Object[]{2},
             new Object[]{null},
@@ -399,7 +399,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "lag(x,1) ignore nulls over()",
             new Object[]{null, null, null, null},
-            List.of(new ColumnIdent("x")),
+            List.of(ColumnIdent.of("x")),
             new Object[]{null},
             new Object[]{null},
             new Object[]{null},
@@ -412,7 +412,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "lag(x,3,123) ignore nulls over()",
             new Object[]{123, 123, 123, 123, 1, 1, 1, 2, 3, 3, 4, 4},
-            List.of(new ColumnIdent("x")),
+            List.of(ColumnIdent.of("x")),
             new Object[][]{{1}, {2}, {null}, {3}, {null}, {null}, {4}, {5}, {null}, {6}, {null}, {7}}
         );
     }
@@ -422,7 +422,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "lead(x) ignore nulls over()",
             new Object[]{2, 2, 3, null},
-            List.of(new ColumnIdent("x")),
+            List.of(ColumnIdent.of("x")),
             new Object[]{null},
             new Object[]{null},
             new Object[]{2},
@@ -435,7 +435,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "lead(x) ignore nulls over()",
             new Object[]{2, 2, 2, null},
-            List.of(new ColumnIdent("x")),
+            List.of(ColumnIdent.of("x")),
             new Object[]{1},
             new Object[]{null},
             new Object[]{null},
@@ -448,7 +448,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "lead(x) ignore nulls over()",
             new Object[]{2, null, null, null},
-            List.of(new ColumnIdent("x")),
+            List.of(ColumnIdent.of("x")),
             new Object[]{1},
             new Object[]{2},
             new Object[]{null},
@@ -461,7 +461,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "lead(x,1,123) ignore nulls over()",
             new Object[]{123, 123, 123, 123},
-            List.of(new ColumnIdent("x")),
+            List.of(ColumnIdent.of("x")),
             new Object[]{null},
             new Object[]{null},
             new Object[]{null},
@@ -474,7 +474,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "lead(x,3,123) ignore nulls over()",
             new Object[]{4, 5, 5, 6, 6, 6, 7, 123, 123, 123, 123, 123},
-            List.of(new ColumnIdent("x")),
+            List.of(ColumnIdent.of("x")),
             new Object[][]{{1}, {2}, {null}, {3}, {null}, {null}, {4}, {5}, {null}, {6}, {null}, {7}}
         );
     }
@@ -484,7 +484,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "lag(x,40,123) ignore nulls over()",
             new Object[]{123, 123, 123, 123, 123, 123, 123, 123, 123, 123, 123, 123, 123},
-            List.of(new ColumnIdent("x")),
+            List.of(ColumnIdent.of("x")),
             new Object[][]{{null}, {1}, {2}, {null}, {3}, {null}, {null}, {4}, {5}, {null}, {6}, {null}, {7}}
         );
     }
@@ -494,7 +494,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "lead(x,-3,123) ignore nulls over()",
             new Object[]{123, 123, 123, 123, 1, 1, 1, 2, 3, 3, 4, 4},
-            List.of(new ColumnIdent("x")),
+            List.of(ColumnIdent.of("x")),
             new Object[][]{{1}, {2}, {null}, {3}, {null}, {null}, {4}, {5}, {null}, {6}, {null}, {7}}
         );
     }
@@ -504,12 +504,12 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "lag(x,-2,123) ignore nulls over()",
             new Object[]{3, 4, 4, 5, 5, 5, 6, 7, 7, 123, 123, 123},
-            List.of(new ColumnIdent("x")),
+            List.of(ColumnIdent.of("x")),
             new Object[][]{{1}, {2}, {null}, {3}, {null}, {null}, {4}, {5}, {null}, {6}, {null}, {7}}
         );
     }
 
-    private static final List<ColumnIdent> INTERVAL_COLS = List.of(new ColumnIdent("x"), new ColumnIdent("y"));
+    private static final List<ColumnIdent> INTERVAL_COLS = List.of(ColumnIdent.of("x"), ColumnIdent.of("y"));
 
     private static final Object[][] INTERVAL_DATA = new Object[][]{
         new Object[]{7, 1574812800000L},
@@ -577,7 +577,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
         assertEvaluate(
             "lag(x) over(order by x)",
             new Object[]{null, 1},
-            List.of(new ColumnIdent("x")),
+            List.of(ColumnIdent.of("x")),
             accounting::addBytes,
             new Object[]{1},
             new Object[]{2}

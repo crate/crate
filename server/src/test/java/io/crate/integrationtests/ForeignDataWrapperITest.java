@@ -150,7 +150,7 @@ public class ForeignDataWrapperITest extends IntegTestCase {
         execute("explain select * from doc.dummy order by x");
         assertThat(response).hasLines(
             "OrderBy[x ASC] (rows=unknown)",
-            "  └ ForeignCollect[doc.dummy | [y, x] | true] (rows=unknown)"
+            "  └ ForeignCollect[doc.dummy | [x, y] | true] (rows=unknown)"
         );
 
         var roles = cluster().getInstance(Roles.class);

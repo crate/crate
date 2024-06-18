@@ -142,7 +142,7 @@ public class QuerySplitterTest extends CrateDummyClusterServiceUnitTest {
             1,
             null
         );
-        ScopedSymbol scopedSymbol = new ScopedSymbol(tr1, new ColumnIdent("c"), DataTypes.BOOLEAN);
+        ScopedSymbol scopedSymbol = new ScopedSymbol(tr1, ColumnIdent.of("c"), DataTypes.BOOLEAN);
         Symbol matchPredicate = asSymbol("Match(t1.a, 'abc')");
 
         Symbol query = AndOperator.join(List.of(bool_a, bool_b, scopedSymbol, matchPredicate));

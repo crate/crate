@@ -449,7 +449,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             ArraySliceFunction.NAME,
             arg1 -> assertThat(arg1)
                     .isReference()
-                    .hasColumnIdent(new ColumnIdent("xs"))
+                    .hasColumnIdent(ColumnIdent.of("xs"))
                     .hasTableIdent(new RelationName("doc", "tarr"))
                 .hasType(DataTypes.INTEGER_ARRAY),
             arg2 -> assertThat(arg2).isLiteral(1),

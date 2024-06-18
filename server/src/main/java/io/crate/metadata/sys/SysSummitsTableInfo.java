@@ -44,6 +44,6 @@ public class SysSummitsTableInfo {
         .add("region", STRING, SummitsContext::region)
         .add("country", STRING, SummitsContext::country)
         .add("first_ascent", INTEGER, SummitsContext::firstAscent)
-        .setPrimaryKeys(new ColumnIdent("mountain"))
+        .setPrimaryKeys(ColumnIdent.of("mountain"))
         .build();
 }

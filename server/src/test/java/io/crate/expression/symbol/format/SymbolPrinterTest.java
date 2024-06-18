@@ -154,7 +154,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
         SimpleReference r = new SimpleReference(
             new ReferenceIdent(
                 new RelationName("sys", "table"),
-                new ColumnIdent("column", Arrays.asList("path", "nested"))),
+                ColumnIdent.of("column", Arrays.asList("path", "nested"))),
             RowGranularity.DOC,
             DataTypes.STRING,
             1,
@@ -168,7 +168,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
         SimpleReference r = new SimpleReference(
             new ReferenceIdent(
                 new RelationName("doc", "table"),
-                new ColumnIdent("column", Arrays.asList("path", "nested"))),
+                ColumnIdent.of("column", Arrays.asList("path", "nested"))),
             RowGranularity.DOC,
             DataTypes.STRING,
             0,
@@ -181,7 +181,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     public void testDynamicReference() {
         Reference r = new DynamicReference(
             new ReferenceIdent(new RelationName("schema", "table"),
-                               new ColumnIdent("column", Arrays.asList("path", "nested"))),
+                               ColumnIdent.of("column", Arrays.asList("path", "nested"))),
             RowGranularity.DOC,
             0);
         assertPrint(r, "schema.\"table\".\"column\"['path']['nested']");
@@ -191,7 +191,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     public void testVoidReference() {
         Reference r = new VoidReference(
             new ReferenceIdent(new RelationName("schema", "table"),
-                               new ColumnIdent("column", Arrays.asList("path", "nested"))),
+                               ColumnIdent.of("column", Arrays.asList("path", "nested"))),
             0);
         assertPrint(r, "schema.\"table\".\"column\"['path']['nested']");
     }
@@ -200,7 +200,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     public void testReferenceEscaped() {
         SimpleReference r = new SimpleReference(
             new ReferenceIdent(new RelationName("doc", "table"),
-                               new ColumnIdent("colum\"n")),
+                               ColumnIdent.of("colum\"n")),
             RowGranularity.DOC,
             DataTypes.STRING,
             0,

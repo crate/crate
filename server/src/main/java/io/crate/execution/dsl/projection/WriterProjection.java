@@ -142,7 +142,7 @@ public class WriterProjection extends Projection {
         int numOverwrites = in.readVInt();
         overwrites = new HashMap<>(numOverwrites);
         for (int i = 0; i < numOverwrites; i++) {
-            overwrites.put(new ColumnIdent(in), Symbols.fromStream(in));
+            overwrites.put(ColumnIdent.of(in), Symbols.fromStream(in));
         }
         int compressionTypeOrdinal = in.readInt();
         compressionType = compressionTypeOrdinal >= 0 ? CompressionType.values()[compressionTypeOrdinal] : null;

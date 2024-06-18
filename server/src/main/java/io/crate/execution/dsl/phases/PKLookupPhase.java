@@ -93,7 +93,7 @@ public final class PKLookupPhase extends AbstractProjectionsPhase implements Col
         } else {
             partitionedByColumns = new ArrayList<>(numPartitionedByCols);
             for (int i = 0; i < numPartitionedByCols; i++) {
-                partitionedByColumns.add(new ColumnIdent(in));
+                partitionedByColumns.add(ColumnIdent.of(in));
             }
         }
     }

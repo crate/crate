@@ -120,10 +120,10 @@ public class InformationColumnsTableInfo {
             .add("path", STRING_ARRAY, r -> r.ref().column().path())
         .endObject()
         .setPrimaryKeys(
-            new ColumnIdent("table_catalog"),
-            new ColumnIdent("table_name"),
-            new ColumnIdent("table_schema"),
-            new ColumnIdent("column_name")
+            ColumnIdent.of("table_catalog"),
+            ColumnIdent.of("table_name"),
+            ColumnIdent.of("table_schema"),
+            ColumnIdent.of("column_name")
         )
         .build();
 

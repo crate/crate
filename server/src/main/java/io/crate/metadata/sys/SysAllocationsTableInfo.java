@@ -50,10 +50,10 @@ public class SysAllocationsTableInfo {
             .add("explanations", STRING_ARRAY, SysAllocation.SysAllocationNodeDecision::explanations)
         .endObjectArray()
         .setPrimaryKeys(
-            new ColumnIdent("table_schema"),
-            new ColumnIdent("table_name"),
-            new ColumnIdent("partition_ident"),
-            new ColumnIdent("shard_id")
+            ColumnIdent.of("table_schema"),
+            ColumnIdent.of("table_name"),
+            ColumnIdent.of("partition_ident"),
+            ColumnIdent.of("shard_id")
         )
         .build();
 }

@@ -40,7 +40,7 @@ public class IdTest extends ESTestCase {
     private static final List<String> EMPTY_PK_VALUES = List.of();
 
     private static ColumnIdent ci(String ident) {
-        return new ColumnIdent(ident);
+        return ColumnIdent.of(ident);
     }
 
     private static String generateId(List<ColumnIdent> pkColumns, List<String> values, ColumnIdent clusteredBy) {

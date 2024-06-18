@@ -46,9 +46,9 @@ public class InformationViewsTableInfo {
         .add("is_updatable", BOOLEAN, r -> false)
         .add("owner", STRING, ViewInfo::owner)
         .setPrimaryKeys(
-            new ColumnIdent("table_catalog"),
-            new ColumnIdent("table_name"),
-            new ColumnIdent("table_schema")
+            ColumnIdent.of("table_catalog"),
+            ColumnIdent.of("table_name"),
+            ColumnIdent.of("table_schema")
         )
         .build();
 }

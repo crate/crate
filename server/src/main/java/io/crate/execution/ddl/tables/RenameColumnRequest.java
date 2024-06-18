@@ -49,7 +49,7 @@ public class RenameColumnRequest extends AcknowledgedRequest<RenameColumnRequest
         super(in);
         this.relationName = new RelationName(in);
         this.refToRename = (Reference) Symbols.fromStream(in);
-        this.newName = new ColumnIdent(in);
+        this.newName = ColumnIdent.of(in);
     }
 
     @Override

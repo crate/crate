@@ -358,14 +358,14 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
                      "   \"col_d\" OBJECT(DYNAMIC) AS (\n" +
                      "      \"a\" TEXT\n" +
                      "   ),\n" +
-                     "   INDEX \"col_a_col_b_ft\" USING FULLTEXT (\"col_a\", \"col_b\") WITH (\n" +
-                     "      analyzer = 'english'\n" +
+                     "   INDEX \"col_a_col_b_plain\" USING FULLTEXT (\"col_a\", \"col_b\") WITH (\n" +
+                     "      analyzer = 'keyword'\n" +
                      "   ),\n" +
                      "   INDEX \"col_d_a_ft\" USING FULLTEXT (\"col_d\"['a']) WITH (\n" +
                      "      analyzer = 'custom_analyzer'\n" +
                      "   ),\n" +
-                     "   INDEX \"col_a_col_b_plain\" USING FULLTEXT (\"col_a\", \"col_b\") WITH (\n" +
-                     "      analyzer = 'keyword'\n" +
+                     "   INDEX \"col_a_col_b_ft\" USING FULLTEXT (\"col_a\", \"col_b\") WITH (\n" +
+                     "      analyzer = 'english'\n" +
                      "   )\n" +
                      ")\n" +
                      "CLUSTERED INTO 5 SHARDS\n" +
@@ -530,7 +530,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
                    )
                 """)
         );
-        Reference reference = table.getReference(new ColumnIdent("geo_arr"));
+        Reference reference = table.getReference(ColumnIdent.of("geo_arr"));
         Assertions.assertThat(reference.valueType()).isEqualTo(new ArrayType<>(DataTypes.GEO_SHAPE));
         GeoReference geoRef = (GeoReference) reference;
         Assertions.assertThat(geoRef.geoTree()).isEqualTo(GeoShapeType.Names.TREE_QUADTREE);

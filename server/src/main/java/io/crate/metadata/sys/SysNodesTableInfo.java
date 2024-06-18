@@ -63,34 +63,34 @@ public class SysNodesTableInfo {
     private static final String SYS_COL_FS = "fs";
 
     public static class Columns {
-        public static final ColumnIdent ID = new ColumnIdent(SYS_COL_ID);
-        public static final ColumnIdent NAME = new ColumnIdent(SYS_COL_NODE_NAME);
-        public static final ColumnIdent HOSTNAME = new ColumnIdent(SYS_COL_HOSTNAME);
-        public static final ColumnIdent REST_URL = new ColumnIdent(SYS_COL_REST_URL);
-        public static final ColumnIdent ATTRIBUTES = new ColumnIdent(SYS_COL_ATTRIBUTES);
+        public static final ColumnIdent ID = ColumnIdent.of(SYS_COL_ID);
+        public static final ColumnIdent NAME = ColumnIdent.of(SYS_COL_NODE_NAME);
+        public static final ColumnIdent HOSTNAME = ColumnIdent.of(SYS_COL_HOSTNAME);
+        public static final ColumnIdent REST_URL = ColumnIdent.of(SYS_COL_REST_URL);
+        public static final ColumnIdent ATTRIBUTES = ColumnIdent.of(SYS_COL_ATTRIBUTES);
 
-        public static final ColumnIdent PORT = new ColumnIdent(SYS_COL_PORT);
-        public static final ColumnIdent CLUSTER_STATE_VERSION = new ColumnIdent(SYS_COL_CLUSTER_STATE_VERSION);
+        public static final ColumnIdent PORT = ColumnIdent.of(SYS_COL_PORT);
+        public static final ColumnIdent CLUSTER_STATE_VERSION = ColumnIdent.of(SYS_COL_CLUSTER_STATE_VERSION);
 
-        public static final ColumnIdent LOAD = new ColumnIdent(SYS_COL_LOAD);
+        public static final ColumnIdent LOAD = ColumnIdent.of(SYS_COL_LOAD);
 
-        public static final ColumnIdent MEM = new ColumnIdent(SYS_COL_MEM);
+        public static final ColumnIdent MEM = ColumnIdent.of(SYS_COL_MEM);
 
-        public static final ColumnIdent HEAP = new ColumnIdent(SYS_COL_HEAP);
+        public static final ColumnIdent HEAP = ColumnIdent.of(SYS_COL_HEAP);
 
-        public static final ColumnIdent VERSION = new ColumnIdent(SYS_COL_VERSION);
+        public static final ColumnIdent VERSION = ColumnIdent.of(SYS_COL_VERSION);
 
-        public static final ColumnIdent THREAD_POOLS = new ColumnIdent(SYS_COL_THREAD_POOLS);
+        public static final ColumnIdent THREAD_POOLS = ColumnIdent.of(SYS_COL_THREAD_POOLS);
 
-        public static final ColumnIdent CONNECTIONS = new ColumnIdent("connections");
+        public static final ColumnIdent CONNECTIONS = ColumnIdent.of("connections");
 
-        public static final ColumnIdent OS = new ColumnIdent(SYS_COL_OS);
+        public static final ColumnIdent OS = ColumnIdent.of(SYS_COL_OS);
 
-        public static final ColumnIdent OS_INFO = new ColumnIdent(SYS_COL_OS_INFO);
+        public static final ColumnIdent OS_INFO = ColumnIdent.of(SYS_COL_OS_INFO);
 
-        public static final ColumnIdent PROCESS = new ColumnIdent(SYS_COL_PROCESS);
+        public static final ColumnIdent PROCESS = ColumnIdent.of(SYS_COL_PROCESS);
 
-        public static final ColumnIdent FS = new ColumnIdent(SYS_COL_FS);
+        public static final ColumnIdent FS = ColumnIdent.of(SYS_COL_FS);
     }
 
 
@@ -231,6 +231,6 @@ public class SysNodesTableInfo {
                 .add("path", STRING, FsInfo.Path::getPath)
             .endObjectArray()
         .endObject()
-        .setPrimaryKeys(new ColumnIdent("id"))
+        .setPrimaryKeys(ColumnIdent.of("id"))
         .build();
 }

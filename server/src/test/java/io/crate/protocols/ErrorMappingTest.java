@@ -54,7 +54,7 @@ public class ErrorMappingTest {
 
     @Test
     public void test_ambiguous_column_exception_error_mapping() {
-        isError(new AmbiguousColumnException(new ColumnIdent("x"), createReference("x", DataTypes.STRING)),
+        isError(new AmbiguousColumnException(ColumnIdent.of("x"), createReference("x", DataTypes.STRING)),
                 is("Column \"x\" is ambiguous"),
                 AMBIGUOUS_COLUMN,
                 BAD_REQUEST,

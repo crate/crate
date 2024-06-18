@@ -51,18 +51,18 @@ public class BlobTableInfoTest extends ESTestCase {
 
     @Test
     public void testGetColumnInfo() throws Exception {
-        Reference foobar = info.getReference(new ColumnIdent("digest"));
+        Reference foobar = info.getReference(ColumnIdent.of("digest"));
         assertNotNull(foobar);
         assertThat(foobar.valueType()).isEqualTo(DataTypes.STRING);
     }
 
     @Test
     public void testPrimaryKey() throws Exception {
-        assertThat(info.primaryKey()).isEqualTo(Collections.singletonList(new ColumnIdent("digest")));
+        assertThat(info.primaryKey()).isEqualTo(Collections.singletonList(ColumnIdent.of("digest")));
     }
 
     @Test
     public void testClusteredBy() throws Exception {
-        assertThat(info.clusteredBy()).isEqualTo(new ColumnIdent("digest"));
+        assertThat(info.clusteredBy()).isEqualTo(ColumnIdent.of("digest"));
     }
 }

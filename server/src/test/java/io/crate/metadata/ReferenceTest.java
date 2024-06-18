@@ -144,7 +144,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (xs varchar(40))");
         DocTableInfo table = e.resolveTableInfo("tbl");
-        Reference reference = table.getReference(new ColumnIdent("xs"));
+        Reference reference = table.getReference(ColumnIdent.of("xs"));
         Map<String, Object> mapping = reference.toMapping(reference.position());
         assertThat(mapping)
             .containsEntry("length_limit", 40)
@@ -163,7 +163,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (xs string storage with (columnstore = false))");
         DocTableInfo table = e.resolveTableInfo("tbl");
-        Reference reference = table.getReference(new ColumnIdent("xs"));
+        Reference reference = table.getReference(ColumnIdent.of("xs"));
         Map<String, Object> mapping = reference.toMapping(reference.position());
         assertThat(mapping)
             .containsEntry("position", 1)
@@ -182,7 +182,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.of(clusterService)
                 .addTable("create table tbl (xs float storage with (columnstore = false))");
         DocTableInfo table = e.resolveTableInfo("tbl");
-        Reference reference = table.getReference(new ColumnIdent("xs"));
+        Reference reference = table.getReference(ColumnIdent.of("xs"));
         Map<String, Object> mapping = reference.toMapping(reference.position());
         assertThat(mapping)
             .containsEntry("position", 1)
@@ -201,7 +201,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (xs string default 'foo')");
         DocTableInfo table = e.resolveTableInfo("tbl");
-        Reference reference = table.getReference(new ColumnIdent("xs"));
+        Reference reference = table.getReference(ColumnIdent.of("xs"));
         Map<String, Object> mapping = reference.toMapping(reference.position());
         assertThat(mapping)
             .containsEntry("position", 1)

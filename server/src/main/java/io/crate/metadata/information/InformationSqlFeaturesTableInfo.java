@@ -44,12 +44,12 @@ public class InformationSqlFeaturesTableInfo {
         .add("is_verified_by", STRING, SqlFeatureContext::getIsVerifiedBy)
         .add("comments", STRING, SqlFeatureContext::getComments)
         .setPrimaryKeys(
-            new ColumnIdent("feature_id"),
-            new ColumnIdent("feature_name"),
-            new ColumnIdent("sub_feature_id"),
-            new ColumnIdent("sub_feature_name"),
-            new ColumnIdent("is_supported"),
-            new ColumnIdent("is_verified_by")
+            ColumnIdent.of("feature_id"),
+            ColumnIdent.of("feature_name"),
+            ColumnIdent.of("sub_feature_id"),
+            ColumnIdent.of("sub_feature_name"),
+            ColumnIdent.of("is_supported"),
+            ColumnIdent.of("is_verified_by")
         )
         .build();
 }

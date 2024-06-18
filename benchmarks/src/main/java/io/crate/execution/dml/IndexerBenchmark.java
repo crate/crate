@@ -101,8 +101,8 @@ public class IndexerBenchmark {
             new CoordinatorTxnCtx(session.sessionSettings()),
             injector.getInstance(NodeContext.class),
             List.of(
-                table.getReference(new ColumnIdent("x")),
-                table.getReference(new ColumnIdent("y"))
+                table.getReference(ColumnIdent.of("x")),
+                table.getReference(ColumnIdent.of("y"))
             ),
             null
         );

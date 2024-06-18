@@ -59,7 +59,7 @@ public class ForeignTablesMetadataTest extends ESTestCase {
             .put("table_name", "tbl2")
             .build();
         Map<ColumnIdent, Reference> references1 = Map.of(
-            new ColumnIdent("x"),
+            ColumnIdent.of("x"),
             new SimpleReference(
                 new ReferenceIdent(rel1, "x"),
                 RowGranularity.DOC,

@@ -35,6 +35,6 @@ public class InformationSchemataTableInfo {
 
     public static SystemTable<SchemaInfo> INSTANCE = SystemTable.<SchemaInfo>builder(IDENT)
         .add("schema_name", STRING, SchemaInfo::name)
-        .setPrimaryKeys(new ColumnIdent("schema_name"))
+        .setPrimaryKeys(ColumnIdent.of("schema_name"))
         .build();
 }

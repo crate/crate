@@ -42,7 +42,7 @@ public class ClusterSettingsExpressionTest extends CrateDummyClusterServiceUnitT
         clusterService.getClusterSettings().applySettings(settings);
         var sysCluster = SysClusterTableInfo.of(clusterService);
 
-        var expressionFactory = sysCluster.expressions().get(new ColumnIdent("settings", List.of("bulk", "request_timeout")));
+        var expressionFactory = sysCluster.expressions().get(ColumnIdent.of("settings", List.of("bulk", "request_timeout")));
         var expression = expressionFactory.create();
         expression.setNextRow(null);
         assertThat(expression.value()).isEqualTo("20s");
@@ -61,17 +61,17 @@ public class ClusterSettingsExpressionTest extends CrateDummyClusterServiceUnitT
         clusterService.getClusterSettings().applySettings(settings);
 
         var jobsLogSize = sysCluster.expressions()
-            .get(new ColumnIdent("settings", List.of("stats", "jobs_log_size")))
+            .get(ColumnIdent.of("settings", List.of("stats", "jobs_log_size")))
             .create();
         assertThat(jobsLogSize.value()).isEqualTo(1);
 
         var statsEnabled = sysCluster.expressions()
-            .get(new ColumnIdent("settings", List.of("stats", "enabled")))
+            .get(ColumnIdent.of("settings", List.of("stats", "enabled")))
             .create();
         assertThat(statsEnabled.value()).isEqualTo(false);
 
         var minAvailability = sysCluster.expressions()
-            .get(new ColumnIdent("settings", List.of("cluster", "graceful_stop", "min_availability")))
+            .get(ColumnIdent.of("settings", List.of("cluster", "graceful_stop", "min_availability")))
             .create();
         assertThat(minAvailability.value()).isEqualTo("FULL");
     }

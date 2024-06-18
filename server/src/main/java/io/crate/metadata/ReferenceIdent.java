@@ -40,7 +40,7 @@ public final class ReferenceIdent implements Accountable {
     private final ColumnIdent columnIdent;
 
     public ReferenceIdent(StreamInput in) throws IOException {
-        columnIdent = new ColumnIdent(in);
+        columnIdent = ColumnIdent.of(in);
         relationName = new RelationName(in);
     }
 
@@ -50,11 +50,11 @@ public final class ReferenceIdent implements Accountable {
     }
 
     public ReferenceIdent(RelationName relationName, String column) {
-        this(relationName, new ColumnIdent(column));
+        this(relationName, ColumnIdent.of(column));
     }
 
     public ReferenceIdent(RelationName relationName, String column, @Nullable List<String> path) {
-        this(relationName, new ColumnIdent(column, path));
+        this(relationName, ColumnIdent.of(column, path));
     }
 
     public RelationName tableIdent() {

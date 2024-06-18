@@ -47,7 +47,7 @@ public class FetchMarkerTest {
         Symbol symbol = Symbols.fromStream(in);
         assertThat(symbol)
             .isReference()
-            .hasColumnIdent(new ColumnIdent("_fetchid"))
+            .hasColumnIdent(ColumnIdent.of("_fetchid"))
             .hasTableIdent(relationName)
             .hasType(DataTypes.LONG);
     }

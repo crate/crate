@@ -57,7 +57,7 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         ClusterState initialState = clusterService.state();
         var dropColumnTask = new AlterTableTask<>(
             e.nodeCtx, tbl.ident(), TransportDropColumnAction.DROP_COLUMN_OPERATOR);
-        Reference colToDrop = tbl.getReference(new ColumnIdent("y"));
+        Reference colToDrop = tbl.getReference(ColumnIdent.of("y"));
         var request = new DropColumnRequest(tbl.ident(), List.of(new DropColumn(colToDrop, false)));
         ClusterState newState = dropColumnTask.execute(initialState, request);
 
@@ -90,13 +90,13 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         var dropColumnTask = new AlterTableTask<>(
             e.nodeCtx, tbl.ident(), TransportDropColumnAction.DROP_COLUMN_OPERATOR);
-        Reference colToDrop = tbl.getReference(new ColumnIdent("o", "oo"));
+        Reference colToDrop = tbl.getReference(ColumnIdent.of("o", "oo"));
         var request = new DropColumnRequest(tbl.ident(), List.of(new DropColumn(colToDrop, false)));
         ClusterState newState = dropColumnTask.execute(clusterService.state(), request);
         DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
 
         assertThat(newTable.getReference(colToDrop.column())).isNull();
-        Reference o = newTable.getReference(new ColumnIdent("o"));
+        Reference o = newTable.getReference(ColumnIdent.of("o"));
         assertThat(o.valueType()).isExactlyInstanceOf(ObjectType.class);
         ObjectType objectType = (ObjectType) o.valueType();
         assertThat(objectType.innerTypes())
@@ -118,8 +118,8 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             TransportDropColumnAction.DROP_COLUMN_OPERATOR
         );
         // parent specified first then its child
-        Reference colToDrop1 = tbl.getReference(new ColumnIdent("o", "o2"));
-        Reference colToDrop2 = tbl.getReference(new ColumnIdent("o", List.of("o2", "c")));
+        Reference colToDrop1 = tbl.getReference(ColumnIdent.of("o", "o2"));
+        Reference colToDrop2 = tbl.getReference(ColumnIdent.of("o", List.of("o2", "c")));
         var request = new DropColumnRequest(tbl.ident(), List.of(
             new DropColumn(colToDrop1, false),
             new DropColumn(colToDrop2, false)));
@@ -183,7 +183,7 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         ClusterState state = clusterService.state();
         var dropColumnTask = new AlterTableTask<>(
             e.nodeCtx, tbl.ident(), TransportDropColumnAction.DROP_COLUMN_OPERATOR);
-        Reference ref = tbl.getReference(new ColumnIdent("y"));
+        Reference ref = tbl.getReference(ColumnIdent.of("y"));
 
         DropColumnRequest request = new DropColumnRequest(tbl.ident(), List.of(new DropColumn(ref, true)));
         assertThatThrownBy(() -> dropColumnTask.execute(state, request))

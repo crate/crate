@@ -75,7 +75,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         TableInfo t1 = sqlExecutor.resolveTableInfo("t1");
         ColumnStats<Integer> columnStats = new ColumnStats<>(
             0.0, 50L, 2, DataTypes.INTEGER, MostCommonValues.empty(), List.of());
-        sqlExecutor.updateTableStats(Map.of(t1.ident(), new Stats(2L, 100L, Map.of(new ColumnIdent("x"), columnStats))));
+        sqlExecutor.updateTableStats(Map.of(t1.ident(), new Stats(2L, 100L, Map.of(ColumnIdent.of("x"), columnStats))));
 
         // stats present -> size derived FROM them (although bogus fake stats in this case)
         plan = plan("SELECT x FROM t1");

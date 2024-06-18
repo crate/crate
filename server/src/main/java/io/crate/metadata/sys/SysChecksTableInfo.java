@@ -39,6 +39,6 @@ public final class SysChecksTableInfo {
         .add("severity", INTEGER, x -> x.severity().value())
         .add("description", STRING, SysCheck::description)
         .add("passed", BOOLEAN, SysCheck::isValid)
-        .setPrimaryKeys(new ColumnIdent("id"))
+        .setPrimaryKeys(ColumnIdent.of("id"))
         .build();
 }

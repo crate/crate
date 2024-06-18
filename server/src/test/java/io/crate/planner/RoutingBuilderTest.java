@@ -65,7 +65,7 @@ public class RoutingBuilderTest extends CrateDummyClusterServiceUnitTest {
         WhereClause whereClause = new WhereClause(
             new Function(
                 EqOperator.SIGNATURE,
-                List.of(tableInfo.getReference(new ColumnIdent("id")), Literal.of(2)),
+                List.of(tableInfo.getReference(ColumnIdent.of("id")), Literal.of(2)),
                 EqOperator.RETURN_TYPE
             ));
 
