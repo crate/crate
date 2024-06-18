@@ -318,7 +318,7 @@
     <versions.plugin.install>3.1.1</versions.plugin.install>
     <versions.plugin.compiler>3.13.0</versions.plugin.compiler>
     <versions.plugin.jar>3.3.0</versions.plugin.jar>
-    <versions.plugin.surefire>3.2.5</versions.plugin.surefire>
+    <versions.plugin.surefire>3.3.0</versions.plugin.surefire>
     <versions.plugin.checkstyle>3.3.1</versions.plugin.checkstyle>
     <versions.plugin.toolchains>4.5.0</versions.plugin.toolchains>
     <versions.plugin.jacoco>0.8.12</versions.plugin.jacoco>
