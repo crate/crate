@@ -102,10 +102,6 @@ public class SelectSymbol implements Symbol {
         return dataType;
     }
 
-    public DataType<?> innerType() {
-        return dataType.innerType();
-    }
-
     @Override
     public String toString() {
         return "(" + relation + ")";
