@@ -209,8 +209,8 @@ public class DocLevelCollectTest extends IntegTestCase {
             CoordinatorSessionSettings.systemDefaults());
         RoutedCollectPhase collectNode = getCollectNode(
             Arrays.asList(
-                tableInfo.getReference(new ColumnIdent("id")),
-                tableInfo.getReference(new ColumnIdent("date"))
+                tableInfo.getReference(ColumnIdent.of("id")),
+                tableInfo.getReference(ColumnIdent.of("date"))
             ),
             routing,
             WhereClause.MATCH_ALL

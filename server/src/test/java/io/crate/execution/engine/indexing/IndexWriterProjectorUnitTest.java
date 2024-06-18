@@ -66,7 +66,7 @@ import io.crate.types.DataTypes;
 
 public class IndexWriterProjectorUnitTest extends CrateDummyClusterServiceUnitTest {
 
-    private static final ColumnIdent ID_IDENT = new ColumnIdent("id");
+    private static final ColumnIdent ID_IDENT = ColumnIdent.of("id");
     private static final RelationName BULK_IMPORT_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "bulk_import");
     private static final SimpleReference RAW_SOURCE_REFERENCE = new SimpleReference(
         new ReferenceIdent(BULK_IMPORT_IDENT, "_raw"),

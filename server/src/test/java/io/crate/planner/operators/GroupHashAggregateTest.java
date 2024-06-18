@@ -61,8 +61,8 @@ public class GroupHashAggregateTest extends CrateDummyClusterServiceUnitTest {
             numDocs,
             DataTypes.INTEGER.fixedSize(),
             Map.of(
-                new ColumnIdent("x"), columnStats,
-                new ColumnIdent("i"), columnStats
+                ColumnIdent.of("x"), columnStats,
+                ColumnIdent.of("i"), columnStats
             )
         );
         tableStats = new TableStats();

@@ -66,7 +66,7 @@ import io.crate.types.DataTypes;
 
 public class IndexWriterProjectorTest extends IntegTestCase {
 
-    private static final ColumnIdent ID_IDENT = new ColumnIdent("id");
+    private static final ColumnIdent ID_IDENT = ColumnIdent.of("id");
 
 
     @Test

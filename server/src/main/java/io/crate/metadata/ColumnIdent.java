@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Objects;
 import java.util.StringJoiner;
 
 import org.apache.lucene.util.Accountable;
@@ -50,41 +49,165 @@ import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.QualifiedNameReference;
 import io.crate.sql.tree.SubscriptExpression;
 
-public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
-
-    private static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(ColumnIdent.class);
+public abstract sealed class ColumnIdent
+    implements Comparable<ColumnIdent>, Accountable
+    permits ColumnIdent.Col0, ColumnIdent.ColN {
 
     private static final Comparator<ColumnIdent> COMPARATOR = Comparator.comparing(ColumnIdent::name)
         .thenComparing(ColumnIdent::path, new LexicographicalOrdering<>(Comparator.naturalOrder()));
 
-    private final String name;
-    private final List<String> path;
-
-    public ColumnIdent(StreamInput in) throws IOException {
-        name = in.readString();
+    public static ColumnIdent of(StreamInput in) throws IOException {
+        String name = in.readString();
         int numParts = in.readVInt();
-        if (numParts > 0) {
-            path = new ArrayList<>(numParts);
+        if (numParts == 0) {
+            return new Col0(name);
+        } else {
+            ArrayList<String> path = new ArrayList<>(numParts);
             for (int i = 0; i < numParts; i++) {
                 path.add(in.readString());
             }
-        } else {
-            path = List.of();
+            return new ColN(name, path);
         }
     }
 
-    public ColumnIdent(String name) {
-        this.name = name;
-        this.path = List.of();
+    static final class Col0 extends ColumnIdent {
+
+        private static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(Col0.class);
+
+        private final String name;
+
+        public Col0(String name) {
+            this.name = name;
+        }
+
+        @Override
+        public String name() {
+            return name;
+        }
+
+        @Override
+        public List<String> path() {
+            return List.of();
+        }
+
+        @Override
+        public boolean isRoot() {
+            return true;
+        }
+
+        @Override
+        public ColumnIdent getRoot() {
+            return this;
+        }
+
+        @Override
+        public ColumnIdent getChild(String childName) {
+            return new ColN(name, List.of(childName));
+        }
+
+        @Override
+        protected String sqlFqn(String name) {
+            return name;
+        }
+
+        @Override
+        public String fqn() {
+            return name;
+        }
+
+        @Override
+        public int hashCode() {
+            return name.hashCode();
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            return obj instanceof Col0 other && name.equals(other.name);
+        }
+
+        @Override
+        public long ramBytesUsed() {
+            return SHALLOW_SIZE + RamUsageEstimator.sizeOf(name);
+        }
     }
 
-    public ColumnIdent(String name, String childName) {
-        this(name, List.of(childName));
-    }
+    static final class ColN extends ColumnIdent {
 
-    public ColumnIdent(String name, @Nullable List<String> path) {
-        this.name = name;
-        this.path = Objects.requireNonNullElse(path, List.of());
+        private static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(ColN.class);
+
+        private final String name;
+        private final List<String> path;
+
+        public ColN(String name, List<String> path) {
+            assert !path.isEmpty() : "Must use ColumnIdent0 instances if path is empty";
+            this.name = name;
+            this.path = path;
+        }
+
+        @Override
+        public ColumnIdent getChild(String childName) {
+            return new ColN(name, Lists.concat(path, childName));
+        }
+
+        @Override
+        public String name() {
+            return name;
+        }
+
+        @Override
+        public List<String> path() {
+            return path;
+        }
+
+        @Override
+        public boolean isRoot() {
+            return false;
+        }
+
+        @Override
+        public ColumnIdent getRoot() {
+            return new Col0(name);
+        }
+
+        @Override
+        protected String sqlFqn(String name) {
+            StringBuilder sb = new StringBuilder(name);
+            for (String s : path()) {
+                sb.append("['");
+                sb.append(s);
+                sb.append("']");
+            }
+            return sb.toString();
+        }
+
+        @Override
+        public String fqn() {
+            StringJoiner stringJoiner = new StringJoiner(".");
+            stringJoiner.add(name());
+            for (String p : path()) {
+                stringJoiner.add(p);
+            }
+            return stringJoiner.toString();
+        }
+
+        @Override
+        public int hashCode() {
+            return 31 * name.hashCode() + 31 * path.hashCode();
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            return obj instanceof ColN other
+                && name.equals(other.name)
+                && path.equals(other.path);
+        }
+
+        @Override
+        public long ramBytesUsed() {
+            return SHALLOW_SIZE
+                + RamUsageEstimator.sizeOf(name)
+                + path.stream().mapToLong(RamUsageEstimator::sizeOf).sum();
+        }
     }
 
     /**
@@ -96,7 +219,7 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
      * @return the validated ColumnIdent
      */
     public static ColumnIdent fromNameSafe(String name, List<String> path) {
-        ColumnIdent columnIdent = new ColumnIdent(name, path);
+        ColumnIdent columnIdent = path.isEmpty() ? new Col0(name) : new ColN(name, path);
         columnIdent.validForCreate();
         return columnIdent;
     }
@@ -112,6 +235,18 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
         }
         String name = parts.get(0);
         return fromNameSafe(name, path);
+    }
+
+    public static ColumnIdent of(String name) {
+        return new Col0(name);
+    }
+
+    public static ColumnIdent of(String name, String child) {
+        return new ColN(name, List.of(child));
+    }
+
+    public static ColumnIdent of(String name, @Nullable List<String> path) {
+        return path == null || path.isEmpty() ? new Col0(name) : new ColN(name, path);
     }
 
     /**
@@ -138,28 +273,23 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
         }
         List<String> parts = StringUtils.splitToList('.', path);
         if (parts.size() > 1) {
-            return new ColumnIdent(parts.get(0), parts.subList(1, parts.size()));
+            return new ColN(parts.get(0), parts.subList(1, parts.size()));
         } else {
-            return new ColumnIdent(parts.get(0));
+            return new Col0(parts.get(0));
         }
     }
 
-    public ColumnIdent getChild(String childName) {
-        if (isRoot()) {
-            return new ColumnIdent(this.name, childName);
-        }
-        return new ColumnIdent(this.name, Lists.concat(path, childName));
-    }
+    public abstract ColumnIdent getChild(String childName);
 
     /**
      * Get the first non-map value from a map by traversing the name/path of the column
      */
     public static Object get(Map<?, ?> map, ColumnIdent column) {
-        Object obj = map.get(column.name);
+        Object obj = map.get(column.name());
         if (obj instanceof Map<?, ?> m) {
             Object element = null;
-            for (int i = 0; i < column.path.size(); i++) {
-                element = m.get(column.path.get(i));
+            for (int i = 0; i < column.path().size(); i++) {
+                element = m.get(column.path().get(i));
                 if (element instanceof Map<?, ?> innerMap) {
                     m = innerMap;
                 } else {
@@ -175,8 +305,8 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
      * Convert a ColumnIdent back into a parser expression
      **/
     public Expression toExpression() {
-        Expression fqn = new QualifiedNameReference(QualifiedName.of(name));
-        for (String child : path) {
+        Expression fqn = new QualifiedNameReference(QualifiedName.of(name()));
+        for (String child : path()) {
             fqn = new SubscriptExpression(fqn, Literal.fromObject(child));
         }
         return fqn;
@@ -191,12 +321,12 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
      * @return true if <code>parentIdent</code> is parentIdent of this, false otherwise.
      */
     public boolean isChildOf(ColumnIdent parent) {
-        if (!name.equals(parent.name)) {
+        if (!name().equals(parent.name())) {
             return false;
         }
-        if (path.size() > parent.path.size()) {
-            Iterator<String> parentIt = parent.path.iterator();
-            Iterator<String> it = path.iterator();
+        if (path().size() > parent.path().size()) {
+            Iterator<String> parentIt = parent.path().iterator();
+            Iterator<String> it = path().iterator();
             while (parentIt.hasNext()) {
                 if (!parentIt.next().equals(it.next())) {
                     return false;
@@ -216,10 +346,10 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
      */
     @NotNull
     public ColumnIdent replacePrefix(@NotNull ColumnIdent newName) {
-        assert newName.path.isEmpty() || this.isChildOf(newName.getParent());
-        List<String> replaced = new ArrayList<>(newName.path);
-        replaced.addAll(this.path.subList(newName.path.size(), this.path.size()));
-        return new ColumnIdent(newName.name, replaced);
+        assert newName.path().isEmpty() || this.isChildOf(newName.getParent());
+        List<String> replaced = new ArrayList<>(newName.path());
+        replaced.addAll(this.path().subList(newName.path().size(), this.path().size()));
+        return replaced.isEmpty() ? new Col0(newName.name()) : new ColN(newName.name(), replaced);
     }
 
     /**
@@ -294,15 +424,15 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
      */
     @Nullable
     public ColumnIdent getParent() {
-        switch (path.size()) {
+        switch (path().size()) {
             case 0:
                 return null;
 
             case 1:
-                return new ColumnIdent(name);
+                return new Col0(name());
 
             default:
-                return new ColumnIdent(name, path.subList(0, path.size() - 1));
+                return new ColN(name(), path().subList(0, path().size() - 1));
         }
     }
 
@@ -317,15 +447,15 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
      */
     @Nullable
     public ColumnIdent shiftRight() {
-        switch (path.size()) {
+        switch (path().size()) {
             case 0:
                 return null;
 
             case 1:
-                return new ColumnIdent(path.get(0));
+                return new Col0(path().get(0));
 
             default:
-                return new ColumnIdent(path.get(0), path.subList(1, path.size()));
+                return new ColN(path().get(0), path().subList(1, path().size()));
         }
     }
 
@@ -347,7 +477,7 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
      * </pre>
      **/
     public boolean isSystemColumn() {
-        return isSystemColumn(name);
+        return isSystemColumn(name());
     }
 
     /**
@@ -355,79 +485,33 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
      * <p>
      * person --&gt; person
      */
-    public ColumnIdent getRoot() {
-        if (isRoot()) {
-            return this;
-        }
-        return new ColumnIdent(name());
-    }
+    public abstract ColumnIdent getRoot();
 
-    public String name() {
-        return name;
-    }
+    public abstract String name();
+
+    public abstract List<String> path();
+
+    /**
+     * @return true if this is a top level column, otherwise false
+     */
+    public abstract boolean isRoot();
 
     /**
      * This is the internal representation of a column identifier and may not supported by the SQL syntax.
      * For external exposure use {@link #sqlFqn()}.
      */
-    public String fqn() {
-        if (isRoot()) {
-            return name;
-        }
-        StringJoiner stringJoiner = new StringJoiner(".");
-        stringJoiner.add(name);
-        for (String p : path) {
-            stringJoiner.add(p);
-        }
-        return stringJoiner.toString();
-    }
+    public abstract String fqn();
+
+    protected abstract String sqlFqn(String name);
 
     public String quotedOutputName() {
-        return sqlFqn(Identifiers.quoteIfNeeded(name));
+        return sqlFqn(Identifiers.quoteIfNeeded(name()));
     }
 
     public String sqlFqn() {
-        return sqlFqn(name);
+        return sqlFqn(name());
     }
 
-    private String sqlFqn(String name) {
-        StringBuilder sb = new StringBuilder(name);
-        for (String s : path) {
-            sb.append("['");
-            sb.append(s);
-            sb.append("']");
-        }
-        return sb.toString();
-    }
-
-    public List<String> path() {
-        return path;
-    }
-
-    /**
-     * @return true if this is a top level column, otherwise false
-     */
-    public boolean isRoot() {
-        return path.isEmpty();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        ColumnIdent that = (ColumnIdent) o;
-
-        if (!name.equals(that.name)) return false;
-        return path.equals(that.path);
-    }
-
-    @Override
-    public int hashCode() {
-        int result = name.hashCode();
-        result = 31 * result + path.hashCode();
-        return result;
-    }
 
     @Override
     public String toString() {
@@ -440,9 +524,9 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
     }
 
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeString(name);
-        out.writeVInt(path.size());
-        for (String s : path) {
+        out.writeString(name());
+        out.writeVInt(path().size());
+        for (String s : path()) {
             out.writeString(s);
         }
     }
@@ -453,33 +537,26 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
      * E.g. ColumnIdent y['z'].prepend('x') becomes ColumnIdent x['y']['z']
      */
     public ColumnIdent prepend(String name) {
-        if (path.isEmpty()) {
-            return new ColumnIdent(name, this.name);
+        if (path().isEmpty()) {
+            return new ColN(name, List.of(this.name()));
         }
-        List<String> newPath = new ArrayList<>(path);
-        newPath.add(0, this.name);
-        return new ColumnIdent(name, newPath);
+        List<String> newPath = new ArrayList<>(path());
+        newPath.add(0, this.name());
+        return new ColN(name, newPath);
     }
 
     public String leafName() {
-        if (path.isEmpty()) {
-            return name;
+        if (path().isEmpty()) {
+            return name();
         } else {
-            return path.get(path.size() - 1);
+            return path().getLast();
         }
-    }
-
-    @Override
-    public long ramBytesUsed() {
-        return SHALLOW_SIZE
-            + RamUsageEstimator.sizeOf(name)
-            + path.stream().mapToLong(RamUsageEstimator::sizeOf).sum();
     }
 
     public Iterable<ColumnIdent> parents() {
         return () -> new Iterator<>() {
 
-            int level = path.size();
+            int level = path().size();
 
             @Override
             public boolean hasNext() {
@@ -492,13 +569,15 @@ public class ColumnIdent implements Comparable<ColumnIdent>, Accountable {
                     throw new NoSuchElementException("ColumnIdent has no more parents");
                 }
                 level--;
-                return new ColumnIdent(name, path.subList(0, level));
+                List<String> newPath = path().subList(0, level);
+                return newPath.isEmpty() ? new Col0(name()) : new ColN(name(), newPath);
             }
         };
     }
 
     public void validForCreate() {
-        validateColumnName(name);
-        path.forEach(x -> validateObjectKey(x));
+        validateColumnName(name());
+        path().forEach(x -> validateObjectKey(x));
     }
+
 }

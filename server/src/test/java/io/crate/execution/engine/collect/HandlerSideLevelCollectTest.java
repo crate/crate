@@ -120,7 +120,7 @@ public class HandlerSideLevelCollectTest extends IntegTestCase {
             routingProvider,
             WhereClause.MATCH_ALL, RoutingProvider.ShardSelection.ANY, CoordinatorSessionSettings.systemDefaults());
         SimpleReference clusterNameRef = new SimpleReference(
-            new ReferenceIdent(SysClusterTableInfo.IDENT, new ColumnIdent("name")),
+            new ReferenceIdent(SysClusterTableInfo.IDENT, ColumnIdent.of("name")),
             RowGranularity.CLUSTER,
             DataTypes.STRING,
             1,

@@ -46,18 +46,18 @@ public class SystemTableTest {
             .build();
 
         assertThat(table.columns()).satisfiesExactly(isReference("obj_a"));
-        assertThat(table.getReference(new ColumnIdent("obj_a", List.of("obj_b", "x"))))
+        assertThat(table.getReference(ColumnIdent.of("obj_a", List.of("obj_b", "x"))))
             .isReference().hasName("obj_a['obj_b']['x']");
 
-        var x = table.expressions().get(new ColumnIdent("obj_a", List.of("obj_b", "x"))).create();
+        var x = table.expressions().get(ColumnIdent.of("obj_a", List.of("obj_b", "x"))).create();
         x.setNextRow(null);
         assertThat(x.value()).isEqualTo(1);
 
-        var objB = table.expressions().get(new ColumnIdent("obj_a", "obj_b")).create();
+        var objB = table.expressions().get(ColumnIdent.of("obj_a", "obj_b")).create();
         objB.setNextRow(null);
         assertThat(objB.value()).isEqualTo(Map.of("x", 1));
 
-        var objA = table.expressions().get(new ColumnIdent("obj_a")).create();
+        var objA = table.expressions().get(ColumnIdent.of("obj_a")).create();
         objA.setNextRow(null);
         System.out.println(objA.value());
         assertThat(objA.value()).isEqualTo(Map.of("obj_b", Map.of("x", 1)));
@@ -83,22 +83,22 @@ public class SystemTableTest {
                 .add("y", DataTypes.INTEGER, point -> point.y)
             .endObjectArray()
             .build();
-        assertThat(table.getReference(new ColumnIdent("points"))).isReference().hasName("points");
-        var points = table.expressions().get(new ColumnIdent("points")).create();
+        assertThat(table.getReference(ColumnIdent.of("points"))).isReference().hasName("points");
+        var points = table.expressions().get(ColumnIdent.of("points")).create();
         points.setNextRow(null);
         assertThat(points.value()).isEqualTo(
             List.of(
                 Map.of("x", 10, "y", 20),
                 Map.of("x", 30, "y", 40)));
-        assertThat(table.getReference(new ColumnIdent("points", "x")))
+        assertThat(table.getReference(ColumnIdent.of("points", "x")))
             .isReference()
             .hasName("points['x']")
             .hasType(new ArrayType<>(DataTypes.INTEGER));
-        var xs = table.expressions().get(new ColumnIdent("points", "x")).create();
+        var xs = table.expressions().get(ColumnIdent.of("points", "x")).create();
         xs.setNextRow(null);
         assertThat(xs.value()).isEqualTo(List.of(10, 30));
 
-        var ys = table.expressions().get(new ColumnIdent("points", "y")).create();
+        var ys = table.expressions().get(ColumnIdent.of("points", "y")).create();
         ys.setNextRow(null);
         assertThat(ys.value()).isEqualTo(List.of(20, 40));
     }

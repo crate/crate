@@ -568,7 +568,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
         public Void visitColumnDefinition(ColumnDefinition<?> node, ColumnIdent parent) {
             ColumnDefinition<Expression> columnDefinition = (ColumnDefinition<Expression>) node;
             ColumnIdent columnName = parent == null
-                ? new ColumnIdent(columnDefinition.ident())
+                ? ColumnIdent.of(columnDefinition.ident())
                 : ColumnIdent.getChildSafe(parent, columnDefinition.ident());
             RefBuilder builder = columns.get(columnName);
 
@@ -725,7 +725,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
         public Void visitIndexDefinition(IndexDefinition<?> node, ColumnIdent parent) {
             IndexDefinition<Expression> indexDefinition = (IndexDefinition<Expression>) node;
             String name = indexDefinition.ident();
-            ColumnIdent columnIdent = parent == null ? new ColumnIdent(name) : ColumnIdent.getChildSafe(parent, name);
+            ColumnIdent columnIdent = parent == null ? ColumnIdent.of(name) : ColumnIdent.getChildSafe(parent, name);
             RefBuilder builder = columns.get(columnIdent);
             builder.indexMethod = indexDefinition.method();
             builder.indexProperties = indexDefinition.properties().map(toSymbol);

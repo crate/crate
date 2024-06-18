@@ -37,7 +37,7 @@ public class SysOperationsLogTableInfoTest {
     @Test
     public void test_job_id_returns_job_id_of_operation_context_log() {
         var table = SysOperationsLogTableInfo.INSTANCE;
-        var expressionFactory = table.expressions().get(new ColumnIdent("job_id"));
+        var expressionFactory = table.expressions().get(ColumnIdent.of("job_id"));
         var expression = expressionFactory.create();
 
         int id = 1;

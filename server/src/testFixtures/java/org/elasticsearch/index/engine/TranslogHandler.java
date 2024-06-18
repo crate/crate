@@ -71,7 +71,7 @@ public class TranslogHandler implements Engine.TranslogRecoveryRunner {
             null);
         DocTableInfo table = new DocTableInfo(
             relation,
-            Map.of(new ColumnIdent("value"), column),
+            Map.of(ColumnIdent.of("value"), column),
             Map.of(),
             Map.of(),
             null,

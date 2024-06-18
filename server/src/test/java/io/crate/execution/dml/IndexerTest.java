@@ -143,7 +143,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor executor = SQLExecutor.of(clusterService)
             .addTable("create table tbl (o object as (x int))");
         DocTableInfo table = executor.resolveTableInfo("tbl");
-        Reference o = table.getReference(new ColumnIdent("o"));
+        Reference o = table.getReference(ColumnIdent.of("o"));
         Indexer indexer = new Indexer(
             table.ident().indexNameOrAlias(),
             table,
@@ -182,7 +182,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor executor = SQLExecutor.of(clusterService)
             .addTable("create table tbl (o object as (x int))");
         DocTableInfo table = executor.resolveTableInfo("tbl");
-        Reference o = table.getReference(new ColumnIdent("o"));
+        Reference o = table.getReference(ColumnIdent.of("o"));
         Indexer indexer = new Indexer(
             table.ident().indexNameOrAlias(),
             table,
@@ -245,7 +245,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor executor = SQLExecutor.of(clusterService)
             .addTable("create table tbl (o object as (x int))");
         DocTableInfo table = executor.resolveTableInfo("tbl");
-        Reference o = table.getReference(new ColumnIdent("o"));
+        Reference o = table.getReference(ColumnIdent.of("o"));
         Indexer indexer = new Indexer(
             table.ident().indexNameOrAlias(),
             table,
@@ -287,8 +287,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table tbl (x int, y int default 0)");
         CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(executor.getSessionSettings());
         DocTableInfo table = executor.resolveTableInfo("tbl");
-        Reference x = table.getReference(new ColumnIdent("x"));
-        Reference y = table.getReference(new ColumnIdent("y"));
+        Reference x = table.getReference(ColumnIdent.of("x"));
+        Reference y = table.getReference(ColumnIdent.of("y"));
         var indexer = new Indexer(
             table.ident().indexNameOrAlias(),
             table,
@@ -325,7 +325,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor executor = SQLExecutor.of(clusterService)
             .addTable("create table tbl (x int, y int as x + 2)");
         DocTableInfo table = executor.resolveTableInfo("tbl");
-        Reference x = table.getReference(new ColumnIdent("x"));
+        Reference x = table.getReference(ColumnIdent.of("x"));
         Indexer indexer = new Indexer(
             table.ident().indexNameOrAlias(),
             table,
@@ -349,7 +349,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 partition
             );
         DocTableInfo table = executor.resolveTableInfo("tbl");
-        Reference x = table.getReference(new ColumnIdent("x"));
+        Reference x = table.getReference(ColumnIdent.of("x"));
         Indexer indexer = new Indexer(
             partition,
             table,
@@ -369,7 +369,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor executor = SQLExecutor.of(clusterService)
             .addTable("create table tbl (o object as (x int default 0, y int as o['x'] + 2, z int))");
         DocTableInfo table = executor.resolveTableInfo("tbl");
-        Reference o = table.getReference(new ColumnIdent("o"));
+        Reference o = table.getReference(ColumnIdent.of("o"));
         Indexer indexer = new Indexer(
             table.ident().indexNameOrAlias(),
             table,
@@ -399,7 +399,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         var executor = SQLExecutor.of(clusterService)
             .addTable("create table tbl (x int, o object as (x int) default {x=10})");
         DocTableInfo table = executor.resolveTableInfo("tbl");
-        Reference x = table.getReference(new ColumnIdent("x"));
+        Reference x = table.getReference(ColumnIdent.of("x"));
         Indexer indexer = new Indexer(
             table.ident().indexNameOrAlias(),
             table,
@@ -424,9 +424,9 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor executor = SQLExecutor.of(clusterService)
             .addTable("create table tbl (x int, y int as x + 2, o object as (z int as x + 3))");
         DocTableInfo table = executor.resolveTableInfo("tbl");
-        Reference x = table.getReference(new ColumnIdent("x"));
-        Reference y = table.getReference(new ColumnIdent("y"));
-        Reference o = table.getReference(new ColumnIdent("o"));
+        Reference x = table.getReference(ColumnIdent.of("x"));
+        Reference y = table.getReference(ColumnIdent.of("y"));
+        Reference o = table.getReference(ColumnIdent.of("o"));
         Indexer indexer1 = new Indexer(
             table.ident().indexNameOrAlias(),
             table,
@@ -461,7 +461,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             new CoordinatorTxnCtx(executor.getSessionSettings()),
             executor.nodeCtx,
             List.of(
-                table.getReference(new ColumnIdent("x"))
+                table.getReference(ColumnIdent.of("x"))
             ),
             null
         );
@@ -491,8 +491,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             new CoordinatorTxnCtx(executor.getSessionSettings()),
             executor.nodeCtx,
             List.of(
-                table.getReference(new ColumnIdent("x")),
-                table.getReference(new ColumnIdent("z"))
+                table.getReference(ColumnIdent.of("x")),
+                table.getReference(ColumnIdent.of("z"))
             ),
             null
         );
@@ -522,7 +522,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             new CoordinatorTxnCtx(executor.getSessionSettings()),
             executor.nodeCtx,
             List.of(
-                table.getReference(new ColumnIdent("o"))
+                table.getReference(ColumnIdent.of("o"))
             ),
             null
         );
@@ -547,7 +547,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             new CoordinatorTxnCtx(executor.getSessionSettings()),
             executor.nodeCtx,
             List.of(
-                table.getReference(new ColumnIdent("o"))
+                table.getReference(ColumnIdent.of("o"))
             ),
             null
         );
@@ -572,12 +572,12 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             new CoordinatorTxnCtx(e.getSessionSettings()),
             e.nodeCtx,
             List.of(
-                table.getReference(new ColumnIdent("x"))
+                table.getReference(ColumnIdent.of("x"))
             ),
             new Symbol[] {
-                table.getReference(new ColumnIdent("_id")),
-                table.getReference(new ColumnIdent("x")),
-                table.getReference(new ColumnIdent("y")),
+                table.getReference(ColumnIdent.of("_id")),
+                table.getReference(ColumnIdent.of("x")),
+                table.getReference(ColumnIdent.of("y")),
             }
         );
 
@@ -597,8 +597,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             new CoordinatorTxnCtx(e.getSessionSettings()),
             e.nodeCtx,
             List.of(
-                table.getReference(new ColumnIdent("x")),
-                table.getReference(new ColumnIdent("o"))
+                table.getReference(ColumnIdent.of("x")),
+                table.getReference(ColumnIdent.of("o"))
             ),
             null
         );
@@ -616,7 +616,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (x float)");
         DocTableInfo table = e.resolveTableInfo("tbl");
-        var ref = table.getReference(new ColumnIdent("x"));
+        var ref = table.getReference(ColumnIdent.of("x"));
 
         Indexer indexer = getIndexer(e, "tbl", "x");
         ParsedDocument doc = indexer.index(item(42.2f));
@@ -634,7 +634,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (x text index using fulltext with (analyzer = 'english'))");
         DocTableInfo table = e.resolveTableInfo("tbl");
-        var ref = table.getReference(new ColumnIdent("x"));
+        var ref = table.getReference(ColumnIdent.of("x"));
 
         var indexer = getIndexer(e, "tbl", "x");
         ParsedDocument doc = indexer.index(item("Hello World"));
@@ -680,7 +680,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             }
             Object value = DataTypeTesting.getDataGenerator(type).get();
             values.add(value);
-            columns.add(new ColumnIdent("c_" + type.getName()));
+            columns.add(ColumnIdent.of("c_" + type.getName()));
             stmtBuilder
                 .append("\"c_" + type.getName() + "\" ")
                 .append(type);
@@ -733,9 +733,9 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             new CoordinatorTxnCtx(e.getSessionSettings()),
             e.nodeCtx,
             List.of(
-                table.getReference(new ColumnIdent("x")),
-                table.getDynamic(new ColumnIdent("y"), true, false),
-                table.getDynamic(new ColumnIdent("z"), true, false)
+                table.getReference(ColumnIdent.of("x")),
+                table.getDynamic(ColumnIdent.of("y"), true, false),
+                table.getDynamic(ColumnIdent.of("z"), true, false)
             ),
             null
         );
@@ -811,7 +811,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (xs text[], index ft using fulltext (xs))");
         DocTableInfo table = e.resolveTableInfo("tbl");
-        var refFt = table.indexColumn(new ColumnIdent("ft"));
+        var refFt = table.indexColumn(ColumnIdent.of("ft"));
         var indexer = getIndexer(e, "tbl", "xs");
         ParsedDocument doc = indexer.index(item(List.of("foo", "bar", "baz")));
         assertThat(doc.doc().getFields(refFt.storageIdent())).hasSize(3);
@@ -834,9 +834,9 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             new CoordinatorTxnCtx(e.getSessionSettings()),
             e.nodeCtx,
             List.of(
-                table.getReference(new ColumnIdent("o")),
-                table.getDynamic(new ColumnIdent("n1"), true, false),
-                table.getDynamic(new ColumnIdent("n2"), true, false)
+                table.getReference(ColumnIdent.of("o")),
+                table.getDynamic(ColumnIdent.of("n1"), true, false),
+                table.getDynamic(ColumnIdent.of("n2"), true, false)
             ),
             null
         );
@@ -961,7 +961,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         }
 
         DocTableInfo newTable = addColumns(e, table, newColumns);
-        Reference oRef = newTable.getReference(new ColumnIdent("o"));
+        Reference oRef = newTable.getReference(ColumnIdent.of("o"));
         assertThat(((ObjectType) oRef.valueType()).innerTypes().keySet()).containsExactlyElementsOf(keys);
         indexer = new Indexer(
             newTable.ident().indexNameOrAlias(),
@@ -969,7 +969,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             new CoordinatorTxnCtx(e.getSessionSettings()),
             e.nodeCtx,
             List.of("x", "o", "y").stream()
-                .map(x -> newTable.getReference(new ColumnIdent(x)))
+                .map(x -> newTable.getReference(ColumnIdent.of(x)))
                 .toList(),
             null
         );
@@ -1054,7 +1054,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor executor = SQLExecutor.of(clusterService)
             .addTable("create table tbl (x int) with (column_policy = 'dynamic')");
         DocTableInfo table = executor.resolveTableInfo("tbl");
-        Reference x = table.getReference(new ColumnIdent("x"));
+        Reference x = table.getReference(ColumnIdent.of("x"));
         Reference y = new DynamicReference(new ReferenceIdent(table.ident(), "y"), RowGranularity.DOC, 2);
         Indexer indexer = new Indexer(
             table.ident().indexNameOrAlias(),
@@ -1098,7 +1098,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             new CoordinatorTxnCtx(executor.getSessionSettings()),
             executor.nodeCtx,
             List.of(
-                table.getReference(new ColumnIdent("a"))
+                table.getReference(ColumnIdent.of("a"))
                 // 'Parted' is not in targets to imitate insert-from-subquery behavior
                 //  which excludes partitioned columns from targets
             ),
@@ -1123,7 +1123,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor executor = SQLExecutor.of(clusterService)
             .addTable("create table tbl (obj object as (x int check (obj['x'] > 10)))");
         DocTableInfo table = executor.resolveTableInfo("tbl");
-        Reference x = table.getReference(new ColumnIdent("obj"));
+        Reference x = table.getReference(ColumnIdent.of("obj"));
         Indexer indexer = new Indexer(
             table.ident().indexNameOrAlias(),
             table,

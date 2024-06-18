@@ -73,30 +73,30 @@ public class SysShardsTableInfo {
          *  - {@link #unassignedShardsExpressions()}
          */
 
-        public static final ColumnIdent ID = new ColumnIdent("id");
-        static final ColumnIdent SCHEMA_NAME = new ColumnIdent("schema_name");
-        public static final ColumnIdent TABLE_NAME = new ColumnIdent("table_name");
-        public static final ColumnIdent PARTITION_IDENT = new ColumnIdent("partition_ident");
-        static final ColumnIdent NUM_DOCS = new ColumnIdent("num_docs");
-        public static final ColumnIdent PRIMARY = new ColumnIdent("primary");
-        static final ColumnIdent RELOCATING_NODE = new ColumnIdent("relocating_node");
-        public static final ColumnIdent SIZE = new ColumnIdent("size");
-        static final ColumnIdent STATE = new ColumnIdent("state");
-        static final ColumnIdent CLOSED = new ColumnIdent("closed");
-        static final ColumnIdent ROUTING_STATE = new ColumnIdent("routing_state");
-        static final ColumnIdent ORPHAN_PARTITION = new ColumnIdent("orphan_partition");
+        public static final ColumnIdent ID = ColumnIdent.of("id");
+        static final ColumnIdent SCHEMA_NAME = ColumnIdent.of("schema_name");
+        public static final ColumnIdent TABLE_NAME = ColumnIdent.of("table_name");
+        public static final ColumnIdent PARTITION_IDENT = ColumnIdent.of("partition_ident");
+        static final ColumnIdent NUM_DOCS = ColumnIdent.of("num_docs");
+        public static final ColumnIdent PRIMARY = ColumnIdent.of("primary");
+        static final ColumnIdent RELOCATING_NODE = ColumnIdent.of("relocating_node");
+        public static final ColumnIdent SIZE = ColumnIdent.of("size");
+        static final ColumnIdent STATE = ColumnIdent.of("state");
+        static final ColumnIdent CLOSED = ColumnIdent.of("closed");
+        static final ColumnIdent ROUTING_STATE = ColumnIdent.of("routing_state");
+        static final ColumnIdent ORPHAN_PARTITION = ColumnIdent.of("orphan_partition");
 
-        static final ColumnIdent RECOVERY = new ColumnIdent("recovery");
+        static final ColumnIdent RECOVERY = ColumnIdent.of("recovery");
 
-        static final ColumnIdent PATH = new ColumnIdent("path");
-        static final ColumnIdent BLOB_PATH = new ColumnIdent("blob_path");
+        static final ColumnIdent PATH = ColumnIdent.of("path");
+        static final ColumnIdent BLOB_PATH = ColumnIdent.of("blob_path");
 
-        static final ColumnIdent MIN_LUCENE_VERSION = new ColumnIdent("min_lucene_version");
-        static final ColumnIdent NODE = new ColumnIdent("node");
-        static final ColumnIdent SEQ_NO_STATS = new ColumnIdent("seq_no_stats");
-        static final ColumnIdent TRANSLOG_STATS = new ColumnIdent("translog_stats");
-        static final ColumnIdent RETENTION_LEASES = new ColumnIdent("retention_leases");
-        static final ColumnIdent FLUSH_STATS = new ColumnIdent("flush_stats");
+        static final ColumnIdent MIN_LUCENE_VERSION = ColumnIdent.of("min_lucene_version");
+        static final ColumnIdent NODE = ColumnIdent.of("node");
+        static final ColumnIdent SEQ_NO_STATS = ColumnIdent.of("seq_no_stats");
+        static final ColumnIdent TRANSLOG_STATS = ColumnIdent.of("translog_stats");
+        static final ColumnIdent RETENTION_LEASES = ColumnIdent.of("retention_leases");
+        static final ColumnIdent FLUSH_STATS = ColumnIdent.of("flush_stats");
     }
 
     public static Map<ColumnIdent, RowCollectExpressionFactory<UnassignedShard>> unassignedShardsExpressions() {

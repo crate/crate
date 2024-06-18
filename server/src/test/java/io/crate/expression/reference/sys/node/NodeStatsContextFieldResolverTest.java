@@ -166,7 +166,7 @@ public class NodeStatsContextFieldResolverTest {
     @Test
     public void testPSQLPortResolution() throws IOException {
         NodeStatsContext context = resolver.forTopColumnIdents(Set.of(
-            new ColumnIdent(SysNodesTableInfo.Columns.PORT.name())
+            ColumnIdent.of(SysNodesTableInfo.Columns.PORT.name())
         ));
         assertThat(context.isComplete()).isTrue();
         assertThat(context.pgPort()).isEqualTo(5432);
@@ -175,7 +175,7 @@ public class NodeStatsContextFieldResolverTest {
     @Test
     public void testClusterStateVersion() throws IOException {
         NodeStatsContext context = resolver.forTopColumnIdents(Set.of(
-            new ColumnIdent(SysNodesTableInfo.Columns.CLUSTER_STATE_VERSION.name())
+            ColumnIdent.of(SysNodesTableInfo.Columns.CLUSTER_STATE_VERSION.name())
         ));
         assertThat(context.isComplete()).isTrue();
         assertThat(context.clusterStateVersion()).isEqualTo(1L);
@@ -184,7 +184,7 @@ public class NodeStatsContextFieldResolverTest {
     @Test
     public void testResolveForNonExistingColumnIdent() {
         assertThatThrownBy(() ->
-            resolver.forTopColumnIdents(Set.of(SysNodesTableInfo.Columns.ID, new ColumnIdent("dummy"))))
+            resolver.forTopColumnIdents(Set.of(SysNodesTableInfo.Columns.ID, ColumnIdent.of("dummy"))))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Cannot resolve NodeStatsContext field for \"dummy\" column ident.");
     }

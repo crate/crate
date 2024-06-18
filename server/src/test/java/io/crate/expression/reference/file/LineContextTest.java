@@ -40,8 +40,8 @@ public class LineContextTest extends ESTestCase {
         String source = "{\"name\": \"foo\", \"details\": {\"age\": 43}}";
         context.rawSource(source.getBytes(StandardCharsets.UTF_8));
 
-        assertNull(context.get(new ColumnIdent("invalid", "column")));
-        assertNull(context.get(new ColumnIdent("details", "invalid")));
-        assertThat(context.get(new ColumnIdent("details", "age"))).isEqualTo(43);
+        assertNull(context.get(ColumnIdent.of("invalid", "column")));
+        assertNull(context.get(ColumnIdent.of("details", "invalid")));
+        assertThat(context.get(ColumnIdent.of("details", "age"))).isEqualTo(43);
     }
 }

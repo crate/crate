@@ -47,11 +47,11 @@ public class SysPrivilegesTableInfo {
         .add("class", STRING, x -> x.privilege.subject().securable().toString())
         .add("ident", STRING, x -> x.privilege.subject().ident())
         .setPrimaryKeys(
-            new ColumnIdent("grantee"),
-            new ColumnIdent("state"),
-            new ColumnIdent("type"),
-            new ColumnIdent("class"),
-            new ColumnIdent("ident")
+            ColumnIdent.of("grantee"),
+            ColumnIdent.of("state"),
+            ColumnIdent.of("type"),
+            ColumnIdent.of("class"),
+            ColumnIdent.of("ident")
         )
         .build();
 

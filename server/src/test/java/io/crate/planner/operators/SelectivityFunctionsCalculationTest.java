@@ -49,7 +49,7 @@ public class SelectivityFunctionsCalculationTest extends CrateDummyClusterServic
             .boxed()
             .collect(Collectors.toList());
         ColumnStats<Integer> cs = StatsUtils.statsFromValues(DataTypes.INTEGER, numbers);
-        columnStats.put(new ColumnIdent("x"), cs);
+        columnStats.put(ColumnIdent.of("x"), cs);
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table doc.tbl (x int)");
 
@@ -75,7 +75,7 @@ public class SelectivityFunctionsCalculationTest extends CrateDummyClusterServic
         Stats stats = new Stats(
             numDocs,
             DataTypes.INTEGER.fixedSize(),
-            Map.of(new ColumnIdent("x"), cs)
+            Map.of(ColumnIdent.of("x"), cs)
         );
 
         e.updateTableStats(Map.of(new RelationName("doc", "tbl"), stats));

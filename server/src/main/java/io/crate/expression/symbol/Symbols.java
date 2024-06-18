@@ -176,13 +176,13 @@ public final class Symbols {
 
     public static ColumnIdent pathFromSymbol(Symbol symbol) {
         if (symbol instanceof AliasSymbol aliasSymbol) {
-            return new ColumnIdent(aliasSymbol.alias());
+            return ColumnIdent.of(aliasSymbol.alias());
         } else if (symbol instanceof ScopedSymbol scopedSymbol) {
             return scopedSymbol.column();
         } else if (symbol instanceof Reference ref) {
             return ref.column();
         }
-        return new ColumnIdent(symbol.toString(Style.UNQUALIFIED));
+        return ColumnIdent.of(symbol.toString(Style.UNQUALIFIED));
     }
 
     public static boolean isDeterministic(Symbol symbol) {

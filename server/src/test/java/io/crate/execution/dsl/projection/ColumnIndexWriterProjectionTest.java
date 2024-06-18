@@ -55,7 +55,7 @@ public class ColumnIndexWriterProjectionTest {
         int numColumns = 200;
         ArrayList<Reference> targetColumns = new ArrayList<>(numColumns);
         for (int i = 0; i < numColumns; i++) {
-            var ident = new ColumnIdent(String.valueOf(i));
+            var ident = ColumnIdent.of(String.valueOf(i));
             targetColumns.add(ref(ident, DataTypes.INTEGER));
         }
         var projection = new ColumnIndexWriterProjection(

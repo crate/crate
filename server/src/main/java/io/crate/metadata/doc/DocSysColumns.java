@@ -66,7 +66,7 @@ public class DocSysColumns {
     }
 
     public static class ID {
-        public static final ColumnIdent COLUMN = new ColumnIdent(Names.ID);
+        public static final ColumnIdent COLUMN = ColumnIdent.of(Names.ID);
         public static final FieldType FIELD_TYPE = new FieldType();
 
         static {
@@ -105,19 +105,19 @@ public class DocSysColumns {
         }
     }
 
-    public static final ColumnIdent VERSION = new ColumnIdent(Names.VERSION);
-    public static final ColumnIdent SCORE = new ColumnIdent(Names.SCORE);
-    public static final ColumnIdent UID = new ColumnIdent(Names.UID);
-    public static final ColumnIdent DOC = new ColumnIdent(Names.DOC);
-    public static final ColumnIdent RAW = new ColumnIdent(Names.RAW);
-    public static final ColumnIdent SEQ_NO = new ColumnIdent(Names.SEQ_NO);
-    public static final ColumnIdent PRIMARY_TERM = new ColumnIdent(Names.PRIMARY_TERM);
+    public static final ColumnIdent VERSION = ColumnIdent.of(Names.VERSION);
+    public static final ColumnIdent SCORE = ColumnIdent.of(Names.SCORE);
+    public static final ColumnIdent UID = ColumnIdent.of(Names.UID);
+    public static final ColumnIdent DOC = ColumnIdent.of(Names.DOC);
+    public static final ColumnIdent RAW = ColumnIdent.of(Names.RAW);
+    public static final ColumnIdent SEQ_NO = ColumnIdent.of(Names.SEQ_NO);
+    public static final ColumnIdent PRIMARY_TERM = ColumnIdent.of(Names.PRIMARY_TERM);
 
     /**
      * See {@link Names#FETCHID}
      */
-    public static final ColumnIdent FETCHID = new ColumnIdent(Names.FETCHID);
-    public static final ColumnIdent DOCID = new ColumnIdent(Names.DOCID);
+    public static final ColumnIdent FETCHID = ColumnIdent.of(Names.FETCHID);
+    public static final ColumnIdent DOCID = ColumnIdent.of(Names.DOCID);
 
     public static final Map<ColumnIdent, DataType<?>> COLUMN_IDENTS = Map.of(
         DOC, DataTypes.UNTYPED_OBJECT,

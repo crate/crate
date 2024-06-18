@@ -40,8 +40,8 @@ import io.crate.testing.T3;
 
 public class EqualityExtractorTest extends EqualityExtractorBaseTest {
 
-    private static final ColumnIdent x = new ColumnIdent("x");
-    private static final ColumnIdent i = new ColumnIdent("i");
+    private static final ColumnIdent x = ColumnIdent.of("x");
+    private static final ColumnIdent i = ColumnIdent.of("i");
 
     private List<List<Symbol>> analyzeParentX(Symbol query) {
         return analyzeParent(query, List.of(x));
@@ -309,7 +309,7 @@ public class EqualityExtractorTest extends EqualityExtractorBaseTest {
         Map<RelationName, AnalyzedRelation> sources = T3.sources(List.of(T3.T4), clusterService);
         DocTableRelation tr4 = (DocTableRelation) sources.get(T3.T4);
         var expressionsT4 = new SqlExpressions(sources, tr4);
-        var pkCol = new ColumnIdent("obj");
+        var pkCol = ColumnIdent.of("obj");
 
         var query = expressionsT4.normalize(expressionsT4.asSymbol("obj = any([{i = 1}])"));
         List<List<Symbol>> matches = analyzeExact(query, List.of(pkCol));

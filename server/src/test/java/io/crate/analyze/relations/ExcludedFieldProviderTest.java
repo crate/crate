@@ -47,7 +47,7 @@ public class ExcludedFieldProviderTest {
         FieldProvider<?> fieldProvider = (qualifiedName, path, operation, errorOnUnknownObjectKey) ->
             new ScopedSymbol(
                 new RelationName("doc", "dummy"),
-                new ColumnIdent(qualifiedName.toString()),
+                ColumnIdent.of(qualifiedName.toString()),
                 DataTypes.INTEGER);
         ValuesResolver valuesResolver = argumentColumn -> {
             assertThat(argumentColumn).isField("field3");

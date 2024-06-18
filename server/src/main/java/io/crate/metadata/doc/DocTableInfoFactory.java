@@ -380,7 +380,7 @@ public class DocTableInfoFactory {
             String columnName = entry.getKey();
             Map<String, Object> columnProperties = (Map<String, Object>) entry.getValue();
             final DataType<?> type = getColumnDataType(columnProperties);
-            ColumnIdent column = parent == null ? new ColumnIdent(columnName) : parent.getChild(columnName);
+            ColumnIdent column = parent == null ? ColumnIdent.of(columnName) : parent.getChild(columnName);
             ReferenceIdent refIdent = new ReferenceIdent(relationName, column);
             columnProperties = innerProperties(columnProperties);
 

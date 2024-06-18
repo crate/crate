@@ -1675,8 +1675,8 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         // Verify that ADD COLUMN gets advanced OID.
         Schemas schemas = cluster().getMasterNodeInstance(NodeContext.class).schemas();
         DocTableInfo table = schemas.getTableInfo(RelationName.fromIndexName("t"));
-        var dateRef = table.getReference(new ColumnIdent("date"));
-        var nameRef = table.getReference(new ColumnIdent("name"));
+        var dateRef = table.getReference(ColumnIdent.of("date"));
+        var nameRef = table.getReference(ColumnIdent.of("name"));
         assertThat(nameRef.oid()).isGreaterThan(dateRef.oid());
     }
 

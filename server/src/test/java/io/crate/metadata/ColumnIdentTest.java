@@ -39,32 +39,32 @@ public class ColumnIdentTest {
 
     @Test
     public void testSqlFqn() throws Exception {
-        ColumnIdent ident = new ColumnIdent("foo", Arrays.asList("x", "y", "z"));
+        ColumnIdent ident = ColumnIdent.of("foo", Arrays.asList("x", "y", "z"));
         assertThat(ident.sqlFqn()).isEqualTo("foo['x']['y']['z']");
 
-        ident = new ColumnIdent("a");
+        ident = ColumnIdent.of("a");
         assertThat(ident.sqlFqn()).isEqualTo("a");
 
-        ident = new ColumnIdent("a", Collections.singletonList(""));
+        ident = ColumnIdent.of("a", Collections.singletonList(""));
         assertThat(ident.sqlFqn()).isEqualTo("a['']");
 
-        ident = new ColumnIdent("a.b", Collections.singletonList("c"));
+        ident = ColumnIdent.of("a.b", Collections.singletonList("c"));
         assertThat(ident.sqlFqn()).isEqualTo("a.b['c']");
     }
 
     @Test
     public void testShiftRight() throws Exception {
-        assertThat(new ColumnIdent("foo", "bar").shiftRight()).isEqualTo(new ColumnIdent("bar"));
-        assertThat(new ColumnIdent("foo", Arrays.asList("x", "y", "z")).shiftRight()).isEqualTo(new ColumnIdent("x", Arrays.asList("y", "z")));
-        assertThat(new ColumnIdent("foo").shiftRight(), Matchers.nullValue());
+        assertThat(ColumnIdent.of("foo", "bar").shiftRight()).isEqualTo(ColumnIdent.of("bar"));
+        assertThat(ColumnIdent.of("foo", Arrays.asList("x", "y", "z")).shiftRight()).isEqualTo(ColumnIdent.of("x", Arrays.asList("y", "z")));
+        assertThat(ColumnIdent.of("foo").shiftRight(), Matchers.nullValue());
     }
 
     @Test
     public void testIsChildOf() throws Exception {
-        ColumnIdent root = new ColumnIdent("root");
-        ColumnIdent rootX = new ColumnIdent("root", "x");
-        ColumnIdent rootXY = new ColumnIdent("root", Arrays.asList("x", "y"));
-        ColumnIdent rootYX = new ColumnIdent("root", Arrays.asList("y", "x"));
+        ColumnIdent root = ColumnIdent.of("root");
+        ColumnIdent rootX = ColumnIdent.of("root", "x");
+        ColumnIdent rootXY = ColumnIdent.of("root", Arrays.asList("x", "y"));
+        ColumnIdent rootYX = ColumnIdent.of("root", Arrays.asList("y", "x"));
 
         assertThat(root.isChildOf(root)).isFalse();
 
@@ -78,29 +78,29 @@ public class ColumnIdentTest {
 
     @Test
     public void testPrepend() throws Exception {
-        ColumnIdent foo = new ColumnIdent("foo");
-        assertThat(foo.prepend(DocSysColumns.DOC.name())).isEqualTo(new ColumnIdent(DocSysColumns.DOC.name(), "foo"));
+        ColumnIdent foo = ColumnIdent.of("foo");
+        assertThat(foo.prepend(DocSysColumns.DOC.name())).isEqualTo(ColumnIdent.of(DocSysColumns.DOC.name(), "foo"));
 
-        ColumnIdent fooBar = new ColumnIdent("foo", "bar");
-        assertThat(fooBar.prepend("x")).isEqualTo(new ColumnIdent("x", Arrays.asList("foo", "bar")));
+        ColumnIdent fooBar = ColumnIdent.of("foo", "bar");
+        assertThat(fooBar.prepend("x")).isEqualTo(ColumnIdent.of("x", Arrays.asList("foo", "bar")));
     }
 
     @Test
     public void test_get_parents() throws Exception {
-        assertThat(new ColumnIdent("foo").parents()).hasSize(0);
-        assertThat(new ColumnIdent("foo", "x").parents()).containsExactly(
-            new ColumnIdent("foo")
+        assertThat(ColumnIdent.of("foo").parents()).hasSize(0);
+        assertThat(ColumnIdent.of("foo", "x").parents()).containsExactly(
+            ColumnIdent.of("foo")
         );
 
-        assertThat(new ColumnIdent("foo", List.of("x", "y")).parents()).containsExactly(
-            new ColumnIdent("foo", "x"),
-            new ColumnIdent("foo")
+        assertThat(ColumnIdent.of("foo", List.of("x", "y")).parents()).containsExactly(
+            ColumnIdent.of("foo", "x"),
+            ColumnIdent.of("foo")
         );
 
-        assertThat(new ColumnIdent("foo", List.of("x", "y", "z")).parents()).containsExactly(
-            new ColumnIdent("foo", List.of("x", "y")),
-            new ColumnIdent("foo", "x"),
-            new ColumnIdent("foo")
+        assertThat(ColumnIdent.of("foo", List.of("x", "y", "z")).parents()).containsExactly(
+            ColumnIdent.of("foo", List.of("x", "y")),
+            ColumnIdent.of("foo", "x"),
+            ColumnIdent.of("foo")
         );
     }
 
@@ -152,16 +152,16 @@ public class ColumnIdentTest {
 
     @Test
     public void test_replace_paths() {
-        var a = new ColumnIdent("a");
-        var b = new ColumnIdent("b");
-        var aa = new ColumnIdent("a", List.of("a"));
-        var ba = new ColumnIdent("b", List.of("a"));
-        var ab = new ColumnIdent("a", List.of("b"));
-        var bb = new ColumnIdent("b", List.of("b"));
-        var aaa = new ColumnIdent("a", List.of("a", "a"));
-        var baa = new ColumnIdent("b", List.of("a", "a"));
-        var aba = new ColumnIdent("a", List.of("b", "a"));
-        var aab = new ColumnIdent("a", List.of("a", "b"));
+        var a = ColumnIdent.of("a");
+        var b = ColumnIdent.of("b");
+        var aa = ColumnIdent.of("a", List.of("a"));
+        var ba = ColumnIdent.of("b", List.of("a"));
+        var ab = ColumnIdent.of("a", List.of("b"));
+        var bb = ColumnIdent.of("b", List.of("b"));
+        var aaa = ColumnIdent.of("a", List.of("a", "a"));
+        var baa = ColumnIdent.of("b", List.of("a", "a"));
+        var aba = ColumnIdent.of("a", List.of("b", "a"));
+        var aab = ColumnIdent.of("a", List.of("a", "b"));
 
         assertThat(a.replacePrefix(a)).isEqualTo(a);
         assertThat(a.replacePrefix(b)).isEqualTo(b);

@@ -144,7 +144,7 @@ public class AccessControlMaySeeTest extends ESTestCase {
         // select x from empty_row;
         accessControl.ensureMaySee(
             new ColumnUnknownException(
-                new ColumnIdent("x"), new RelationName("doc", "empty_row")));
+                ColumnIdent.of("x"), new RelationName("doc", "empty_row")));
         assertAskedAnyForTable("doc.empty_row");
     }
 

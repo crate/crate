@@ -239,7 +239,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
         AnalyzedCreateTable analysis = e.analyze("create table foo (name string null)");
         Map<ColumnIdent, RefBuilder> columns = analysis.columns();
-        RefBuilder rb = columns.get(new ColumnIdent("name"));
+        RefBuilder rb = columns.get(ColumnIdent.of("name"));
         assertThat(rb.isExplicitlyNull()).isTrue();
     }
 
@@ -259,7 +259,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
         AnalyzedCreateTable analysis = e.analyze("create table foo (a int, b int, c int null, primary key(a, b))");
         Map<ColumnIdent, RefBuilder> columns = analysis.columns();
-        RefBuilder rb = columns.get(new ColumnIdent("c"));
+        RefBuilder rb = columns.get(ColumnIdent.of("c"));
         assertThat(rb.isExplicitlyNull()).isTrue();
     }
 
@@ -746,9 +746,9 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         BoundCreateTable analysis = analyze("create table test (o object as (_id integer), name string)");
         Map<ColumnIdent, Reference> columns = analysis.columns();
         assertThat(columns).containsOnlyKeys(
-            new ColumnIdent("o"),
-            new ColumnIdent("o", "_id"),
-            new ColumnIdent("name")
+            ColumnIdent.of("o"),
+            ColumnIdent.of("o", "_id"),
+            ColumnIdent.of("name")
         );
     }
 
@@ -909,7 +909,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             "name string" +
             ")");
         Map<ColumnIdent, Reference> columns = analysis.columns();
-        ColumnIdent ft = new ColumnIdent("ft");
+        ColumnIdent ft = ColumnIdent.of("ft");
         assertThat(columns).containsKey(ft);
         Reference ftRef = columns.get(ft);
         assertThat(ftRef).isExactlyInstanceOf(IndexReference.class);
@@ -1542,7 +1542,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         BoundCreateTable createTable = analyze(
             "create table t (i int, o1 object as (o2 object as (b int check (o1['o2']['b'] > 100))))");
 
-        ColumnIdent o2b = new ColumnIdent("o1", List.of("o2", "b"));
+        ColumnIdent o2b = ColumnIdent.of("o1", List.of("o2", "b"));
         Map<ColumnIdent, Reference> columns = createTable.columns();
         assertThat(columns).containsKey(o2b);
         assertThat(columns.get(o2b)).isReference().hasName("o1['o2']['b']").hasType(DataTypes.INTEGER);
@@ -1586,7 +1586,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @Test
     public void testGeneratedColumnInsideObjectIsProcessed() {
         BoundCreateTable stmt = analyze("create table t (obj object as (c as 1 + 1))");
-        Reference reference = stmt.columns().get(new ColumnIdent("obj", "c"));
+        Reference reference = stmt.columns().get(ColumnIdent.of("obj", "c"));
 
         assertThat(reference.valueType()).isEqualTo(DataTypes.INTEGER);
         assertThat(((GeneratedReference) reference).formattedGeneratedExpression()).isEqualTo("2");
@@ -1879,7 +1879,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @Test
     public void test_create_nested_array_column() throws Exception {
         BoundCreateTable createTable = analyze("create table tbl (x int[][])");
-        ColumnIdent x = new ColumnIdent("x");
+        ColumnIdent x = ColumnIdent.of("x");
         Map<ColumnIdent, Reference> columns = createTable.columns();
         assertThat(columns).containsKeys(x);
         Reference xRef = columns.get(x);
@@ -1891,7 +1891,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     public void test_can_use_vector_in_create_table() throws Exception {
         BoundCreateTable stmt = analyze("create table tbl (x float_vector)");
         assertThat(stmt.columns()).hasEntrySatisfying(
-            new ColumnIdent("x"), Asserts.isReference("x", FloatVectorType.INSTANCE_ONE)
+            ColumnIdent.of("x"), Asserts.isReference("x", FloatVectorType.INSTANCE_ONE)
         );
     }
 

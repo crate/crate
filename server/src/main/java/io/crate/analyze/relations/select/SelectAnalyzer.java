@@ -63,9 +63,9 @@ public class SelectAnalyzer {
             Symbol symbol = context.toSymbol(node.getExpression());
             String alias = node.getAlias();
             if (alias != null) {
-                context.add(new ColumnIdent(alias), new AliasSymbol(alias, symbol));
+                context.add(ColumnIdent.of(alias), new AliasSymbol(alias, symbol));
             } else {
-                context.add(new ColumnIdent(OutputNameFormatter.format(node.getExpression())), symbol);
+                context.add(ColumnIdent.of(OutputNameFormatter.format(node.getExpression())), symbol);
             }
             return null;
         }

@@ -55,7 +55,7 @@ public class GeneratedReferenceTest extends CrateDummyClusterServiceUnitTest {
         t1Info = executor.schemas().getTableInfo(T1);
 
         DocTableRelation tableRelation = new DocTableRelation(t1Info);
-        tableRelation.getField(new ColumnIdent("a"));   // allocate field so it can be resolved
+        tableRelation.getField(ColumnIdent.of("a"));   // allocate field so it can be resolved
         expressions = new SqlExpressions(Collections.emptyMap(), tableRelation);
     }
 

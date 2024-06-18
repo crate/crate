@@ -72,7 +72,7 @@ public class Stats implements Writeable {
         int numColumnStats = in.readVInt();
         this.statsByColumn = new HashMap<>();
         for (int i = 0; i < numColumnStats; i++) {
-            statsByColumn.put(new ColumnIdent(in), new ColumnStats<>(in));
+            statsByColumn.put(ColumnIdent.of(in), new ColumnStats<>(in));
         }
     }
 

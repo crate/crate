@@ -258,11 +258,11 @@ public final class SystemTable<T> implements TableInfo {
         }
 
         public <U> RelationBuilder<T> add(String column, DataType<U> type, Function<T, U> getProperty) {
-            return add(new Column<>(new ColumnIdent(column), type, getProperty));
+            return add(new Column<>(ColumnIdent.of(column), type, getProperty));
         }
 
         public <U> RelationBuilder<T> addNonNull(String column, DataType<U> type, Function<T, U> getProperty) {
-            return add(new Column<>(new ColumnIdent(column), type, getProperty, false));
+            return add(new Column<>(ColumnIdent.of(column), type, getProperty, false));
         }
 
         @Override
@@ -272,7 +272,7 @@ public final class SystemTable<T> implements TableInfo {
         }
 
         public RelationBuilder<T> addDynamicObject(String column, DataType<?> leafType, Function<T, Map<String, Object>> getObject) {
-            return add(new DynamicColumn<>(new ColumnIdent(column), leafType, getObject));
+            return add(new DynamicColumn<>(ColumnIdent.of(column), leafType, getObject));
         }
 
         public SystemTable<T> build() {
@@ -327,15 +327,15 @@ public final class SystemTable<T> implements TableInfo {
         }
 
         public ObjectBuilder<T, RelationBuilder<T>> startObject(String column) {
-            return new ObjectBuilder<>(this, new ColumnIdent(column), t -> false);
+            return new ObjectBuilder<>(this, ColumnIdent.of(column), t -> false);
         }
 
         public ObjectBuilder<T, RelationBuilder<T>> startObject(String column, Predicate<T> objectIsNull) {
-            return new ObjectBuilder<>(this, new ColumnIdent(column), objectIsNull);
+            return new ObjectBuilder<>(this, ColumnIdent.of(column), objectIsNull);
         }
 
         public <U> ObjectArrayBuilder<U, T, RelationBuilder<T>> startObjectArray(String column, Function<T, ? extends Collection<U>> getItems) {
-            return new ObjectArrayBuilder<>(this, new ColumnIdent(column), getItems);
+            return new ObjectArrayBuilder<>(this, ColumnIdent.of(column), getItems);
         }
 
         public RelationBuilder<T> setPrimaryKeys(ColumnIdent ... primaryKeys) {

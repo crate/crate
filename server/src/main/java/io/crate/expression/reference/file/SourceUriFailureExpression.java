@@ -35,7 +35,7 @@ import io.crate.types.DataTypes;
 public class SourceUriFailureExpression extends LineCollectorExpression<String> {
 
     public static final String COLUMN_NAME = "_uri_failure";
-    private static final ColumnIdent COLUMN_IDENT = new ColumnIdent(COLUMN_NAME);
+    private static final ColumnIdent COLUMN_IDENT = ColumnIdent.of(COLUMN_NAME);
 
     private LineContext lineContext;
 

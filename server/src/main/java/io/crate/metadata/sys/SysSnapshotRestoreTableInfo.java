@@ -52,9 +52,9 @@ public class SysSnapshotRestoreTableInfo {
         .endObjectArray()
         .add("state", STRING, SysSnapshotRestoreInProgress::state)
         .setPrimaryKeys(
-            new ColumnIdent("id"),
-            new ColumnIdent("name"),
-            new ColumnIdent("repository"))
+            ColumnIdent.of("id"),
+            ColumnIdent.of("name"),
+            ColumnIdent.of("repository"))
         .withRouting((state, routingProvider, sessionSettings) ->
                             routingProvider.forRandomMasterOrDataNode(IDENT, state.nodes()))
         .build();

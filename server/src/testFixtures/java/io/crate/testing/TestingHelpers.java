@@ -230,7 +230,7 @@ public class TestingHelpers {
     }
 
     public static Reference createReference(String columnName, DataType<?> dataType) {
-        return createReference("dummyTable", new ColumnIdent(columnName), dataType);
+        return createReference("dummyTable", ColumnIdent.of(columnName), dataType);
     }
 
     public static Reference createReference(ColumnIdent columnIdent, DataType<?> dataType) {

@@ -126,9 +126,9 @@ public class InformationPartitionsTableInfo {
 
         .endObject()
         .setPrimaryKeys(
-            new ColumnIdent("table_schema"),
-            new ColumnIdent("table_name"),
-            new ColumnIdent("partition_ident")
+            ColumnIdent.of("table_schema"),
+            ColumnIdent.of("table_name"),
+            ColumnIdent.of("partition_ident")
         )
         .build();
 

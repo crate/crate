@@ -255,27 +255,25 @@ public class TableInfoToAST {
         if (!(tableInfo instanceof DocTableInfo docTable)) {
             return List.of();
         }
-        List<IndexDefinition<Expression>> elements = new ArrayList<>();
         Collection<IndexReference> indexColumns = docTable.indexColumns();
-        if (indexColumns != null) {
-            for (var indexRef : indexColumns) {
-                String name = indexRef.column().name();
-                List<Expression> columns = expressionsFromReferences(indexRef.columns());
-                if (indexRef.indexType().equals(IndexType.FULLTEXT)) {
-                    String analyzer = indexRef.analyzer();
-                    GenericProperties<Expression> properties;
-                    if (analyzer == null) {
-                        properties = GenericProperties.empty();
-                    } else {
-                        properties = new GenericProperties<>(Map.of(
-                            FulltextAnalyzerResolver.CustomType.ANALYZER.getName(),
-                            new StringLiteral(analyzer))
-                        );
-                    }
-                    elements.add(new IndexDefinition<>(name, "fulltext", columns, properties));
-                } else if (indexRef.indexType().equals(IndexType.PLAIN)) {
-                    elements.add(new IndexDefinition<>(name, "plain", columns, GenericProperties.empty()));
+        List<IndexDefinition<Expression>> elements = new ArrayList<>(indexColumns.size());
+        for (var indexRef : indexColumns) {
+            String name = indexRef.column().name();
+            List<Expression> columns = expressionsFromReferences(indexRef.columns());
+            if (indexRef.indexType().equals(IndexType.FULLTEXT)) {
+                String analyzer = indexRef.analyzer();
+                GenericProperties<Expression> properties;
+                if (analyzer == null) {
+                    properties = GenericProperties.empty();
+                } else {
+                    properties = new GenericProperties<>(Map.of(
+                        FulltextAnalyzerResolver.CustomType.ANALYZER.getName(),
+                        new StringLiteral(analyzer))
+                    );
                 }
+                elements.add(new IndexDefinition<>(name, "fulltext", columns, properties));
+            } else if (indexRef.indexType().equals(IndexType.PLAIN)) {
+                elements.add(new IndexDefinition<>(name, "plain", columns, GenericProperties.empty()));
             }
         }
         return elements;

@@ -82,7 +82,7 @@ public class RawIndexer {
         currentRowIndexer = indexers.computeIfAbsent(doc.keySet(), keys -> {
             List<Reference> targetRefs = new ArrayList<>();
             for (String key : keys) {
-                ColumnIdent column = new ColumnIdent(key);
+                ColumnIdent column = ColumnIdent.of(key);
                 Reference reference = table.getReference(column);
                 if (reference == null) {
                     reference = table.getDynamic(column, true, txnCtx.sessionSettings().errorOnUnknownObjectKey());

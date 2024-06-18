@@ -49,10 +49,10 @@ public class InformationKeyColumnUsageTableInfo {
         .add("column_name", STRING, InformationSchemaIterables.KeyColumnUsage::getPkColumnIdent)
         .add("ordinal_position", INTEGER, InformationSchemaIterables.KeyColumnUsage::getOrdinal)
         .setPrimaryKeys(
-            new ColumnIdent("constraint_catalog"),
-            new ColumnIdent("constraint_schema"),
-            new ColumnIdent("constraint_name"),
-            new ColumnIdent("column_name")
+            ColumnIdent.of("constraint_catalog"),
+            ColumnIdent.of("constraint_schema"),
+            ColumnIdent.of("constraint_name"),
+            ColumnIdent.of("column_name")
         )
         .build();
 }

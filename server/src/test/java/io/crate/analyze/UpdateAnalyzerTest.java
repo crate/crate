@@ -270,9 +270,9 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         RelationName usersRelation = new RelationName("doc", "users");
         assertThat(update.assignmentByTargetCol()).hasSize(3);
         DocTableInfo tableInfo = e.schemas().getTableInfo(usersRelation);
-        Reference name = tableInfo.getReference(new ColumnIdent("name"));
-        Reference friendsRef = tableInfo.getReference(new ColumnIdent("friends"));
-        Reference otherId = tableInfo.getReference(new ColumnIdent("other_id"));
+        Reference name = tableInfo.getReference(ColumnIdent.of("name"));
+        Reference friendsRef = tableInfo.getReference(ColumnIdent.of("friends"));
+        Reference otherId = tableInfo.getReference(ColumnIdent.of("other_id"));
         assertThat(update.assignmentByTargetCol().get(name)).isExactlyInstanceOf(ParameterSymbol.class);
         assertThat(update.assignmentByTargetCol().get(friendsRef)).isExactlyInstanceOf(ParameterSymbol.class);
         assertThat(update.assignmentByTargetCol().get(otherId)).isExactlyInstanceOf(ParameterSymbol.class);

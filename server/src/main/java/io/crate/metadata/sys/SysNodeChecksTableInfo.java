@@ -44,7 +44,7 @@ public class SysNodeChecksTableInfo {
     private static final Set<Operation> SUPPORTED_OPERATIONS = EnumSet.of(Operation.READ, Operation.UPDATE);
 
     public static class Columns {
-        public static final ColumnIdent ACKNOWLEDGED = new ColumnIdent("acknowledged");
+        public static final ColumnIdent ACKNOWLEDGED = ColumnIdent.of("acknowledged");
     }
 
     public static SystemTable<SysNodeCheck> INSTANCE = SystemTable.<SysNodeCheck>builder(IDENT)
@@ -58,8 +58,8 @@ public class SysNodeChecksTableInfo {
         .withRouting((state, routingProvider, sessionSettings) -> Routing.forTableOnAllNodes(IDENT, state.nodes()))
         .withSupportedOperations(SUPPORTED_OPERATIONS)
         .setPrimaryKeys(
-            new ColumnIdent("id"),
-            new ColumnIdent("node_id")
+            ColumnIdent.of("id"),
+            ColumnIdent.of("node_id")
         )
         .build();
 }

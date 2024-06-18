@@ -70,7 +70,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
     public void testGetColumnInfo() throws Exception {
         RelationName relationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "dummy");
 
-        ColumnIdent columnIdent = new ColumnIdent("o", List.of());
+        ColumnIdent columnIdent = ColumnIdent.of("o", List.of());
         DocTableInfo info = new DocTableInfo(
             relationName,
             Map.of(
@@ -100,7 +100,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             Operation.ALL,
             0
         );
-        final ColumnIdent col = new ColumnIdent("o", List.of("foobar"));
+        final ColumnIdent col = ColumnIdent.of("o", List.of("foobar"));
         Reference foobar = info.getReference(col);
         assertThat(foobar).isNull();
 
@@ -128,7 +128,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testGetColumnInfoStrictParent() throws Exception {
         RelationName dummy = new RelationName(Schemas.DOC_SCHEMA_NAME, "dummy");
-        ColumnIdent column = new ColumnIdent("foobar");
+        ColumnIdent column = ColumnIdent.of("foobar");
         ReferenceIdent foobarIdent = new ReferenceIdent(dummy, column);
         SimpleReference strictParent = new SimpleReference(
             foobarIdent,
@@ -167,7 +167,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             0
         );
 
-        final ColumnIdent columnIdent = new ColumnIdent("foobar", Arrays.asList("foo", "bar"));
+        final ColumnIdent columnIdent = ColumnIdent.of("foobar", Arrays.asList("foo", "bar"));
         assertThat(info.getReference(columnIdent)).isNull();
 
         // forWrite: false, errorOnUnknownObjectKey: true, parentPolicy: strict
@@ -186,7 +186,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             .isExactlyInstanceOf(ColumnUnknownException.class)
             .hasMessageContaining("Column foobar['foo']['bar'] unknown");
 
-        final ColumnIdent columnIdent2 = new ColumnIdent("foobar", Collections.singletonList("foo"));
+        final ColumnIdent columnIdent2 = ColumnIdent.of("foobar", Collections.singletonList("foo"));
         assertThat(info.getReference(columnIdent2)).isNull();
 
         // forWrite: false, errorOnUnknownObjectKey: true, parentPolicy: strict
@@ -215,10 +215,10 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table tbl (o1 object as (o2 object as (x int)))");
 
         TableInfo table = e.resolveTableInfo("tbl");
-        Iterable<Reference> parents = table.getParents(new ColumnIdent("o1", List.of("o2", "x")));
+        Iterable<Reference> parents = table.getParents(ColumnIdent.of("o1", List.of("o2", "x")));
         assertThat(parents).containsExactly(
-            table.getReference(new ColumnIdent("o1", "o2")),
-            table.getReference(new ColumnIdent("o1"))
+            table.getReference(ColumnIdent.of("o1", "o2")),
+            table.getReference(ColumnIdent.of("o1"))
         );
     }
 
@@ -247,8 +247,8 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
     public void test_dropped_columns_are_included_in_oid_to_column_map() throws Exception {
         RelationName relationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "dummy");
 
-        ColumnIdent a = new ColumnIdent("a", List.of());
-        ColumnIdent b = new ColumnIdent("b", List.of());
+        ColumnIdent a = ColumnIdent.of("a", List.of());
+        ColumnIdent b = ColumnIdent.of("b", List.of());
         DocTableInfo info = new DocTableInfo(
                 relationName,
                 Map.of(
@@ -307,12 +307,12 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (o1 object as (o2 object as (x int)))");
         DocTableInfo table = e.resolveTableInfo("tbl");
-        ColumnIdent o1o2 = new ColumnIdent("o1", "o2");
+        ColumnIdent o1o2 = ColumnIdent.of("o1", "o2");
         Reference o1o2Ref = table.getReference(o1o2);
         DropColumn dropColumn = new DropColumn(o1o2Ref, true);
         DocTableInfo updatedTable = table.dropColumns(List.of(dropColumn));
 
-        Reference o1Ref = updatedTable.getReference(new ColumnIdent("o1"));
+        Reference o1Ref = updatedTable.getReference(ColumnIdent.of("o1"));
         assertThat(o1Ref.valueType()).isExactlyInstanceOf(ObjectType.class);
         ObjectType objectType = ((ObjectType) o1Ref.valueType());
         assertThat(objectType.innerTypes()).isEmpty();
@@ -323,8 +323,8 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (x int, y int, z int)");
         DocTableInfo table1 = e.resolveTableInfo("tbl");
-        Reference xref = table1.getReference(new ColumnIdent("x"));
-        Reference yref = table1.getReference(new ColumnIdent("y"));
+        Reference xref = table1.getReference(ColumnIdent.of("x"));
+        Reference yref = table1.getReference(ColumnIdent.of("y"));
         DocTableInfo table2 = table1.dropColumns(List.of(new DropColumn(xref, true)));
         assertThat(table2.droppedColumns()).satisfiesExactlyInAnyOrder(
             x -> assertThat(x).isReference().hasName("x")
@@ -358,12 +358,12 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfoFactory docTableInfoFactory = new DocTableInfoFactory(e.nodeCtx);
         DocTableInfo tbl2 = docTableInfoFactory.create(tbl.ident(), builder.build());
 
-        Reference description = tbl2.getReference(new ColumnIdent("description"));
+        Reference description = tbl2.getReference(ColumnIdent.of("description"));
         assertThat(description).isIndexReference()
             .hasName("description")
             .hasAnalyzer("simple");
 
-        IndexReference indexColumn = tbl2.indexColumn(new ColumnIdent("name_ft"));
+        IndexReference indexColumn = tbl2.indexColumn(ColumnIdent.of("name_ft"));
         assertThat(indexColumn).isNotNull();
         assertThat(indexColumn.analyzer()).isEqualTo("standard");
         assertThat(indexColumn.columns()).satisfiesExactly(
@@ -376,8 +376,8 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (x int, point object as (x int))");
         DocTableInfo table1 = e.resolveTableInfo("tbl");
-        Reference xref = table1.getReference(new ColumnIdent("x"));
-        Reference pointRef = table1.getReference(new ColumnIdent("point"));
+        Reference xref = table1.getReference(ColumnIdent.of("x"));
+        Reference pointRef = table1.getReference(ColumnIdent.of("point"));
         SimpleReference newReference = new SimpleReference(
             new ReferenceIdent(table1.ident(), "y"),
             RowGranularity.DOC,
@@ -411,7 +411,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
 
         SimpleReference pointY = new SimpleReference(
-            new ReferenceIdent(table1.ident(), new ColumnIdent("point", "y")),
+            new ReferenceIdent(table1.ident(), ColumnIdent.of("point", "y")),
             RowGranularity.DOC,
             DataTypes.INTEGER,
             -1,
@@ -423,7 +423,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             List.of(pointY),
             new IntArrayList(),
             Map.of());
-        Reference newPointRef = table3.getReference(new ColumnIdent("point"));
+        Reference newPointRef = table3.getReference(ColumnIdent.of("point"));
         assertThat(newPointRef.valueType()).isExactlyInstanceOf(ObjectType.class);
         DataType<?> yInnerType = ((ObjectType) newPointRef.valueType()).innerType("y");
         assertThat(yInnerType).isEqualTo(DataTypes.INTEGER);
@@ -435,7 +435,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table tbl (x int)");
         DocTableInfo table = e.resolveTableInfo("tbl");
         Reference ox = new SimpleReference(
-            new ReferenceIdent(table.ident(), new ColumnIdent("o", "x")),
+            new ReferenceIdent(table.ident(), ColumnIdent.of("o", "x")),
             RowGranularity.DOC,
             DataTypes.INTEGER,
             -1,
@@ -458,21 +458,21 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table tbl (o object as (o object as (b1 int), a1 int))");
         DocTableInfo table = e.resolveTableInfo("tbl");
         SimpleReference newReference1 = new SimpleReference(
-            new ReferenceIdent(table.ident(), new ColumnIdent("o", List.of("o", "o", "c1"))),
+            new ReferenceIdent(table.ident(), ColumnIdent.of("o", List.of("o", "o", "c1"))),
             RowGranularity.DOC,
             DataTypes.INTEGER,
             -1,
             null
         );
         SimpleReference newReference2 = new SimpleReference(
-            new ReferenceIdent(table.ident(), new ColumnIdent("o", List.of("o", "o"))),
+            new ReferenceIdent(table.ident(), ColumnIdent.of("o", List.of("o", "o"))),
             RowGranularity.DOC,
             DataTypes.UNTYPED_OBJECT,
             -1,
             null
         );
         SimpleReference newReference3 = new SimpleReference(
-            new ReferenceIdent(table.ident(), new ColumnIdent("o", List.of("o", "b2"))),
+            new ReferenceIdent(table.ident(), ColumnIdent.of("o", List.of("o", "b2"))),
             RowGranularity.DOC,
             DataTypes.INTEGER,
             -1,
@@ -496,15 +496,15 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             .setInnerType("o", ooType)
             .setInnerType("a1", DataTypes.INTEGER).build();
 
-        assertThat(newTable.getReference(new ColumnIdent("o", List.of("o", "o"))))
+        assertThat(newTable.getReference(ColumnIdent.of("o", List.of("o", "o"))))
             .isReference()
             .hasName("o['o']['o']")
             .hasType(oooType);
-        assertThat(newTable.getReference(new ColumnIdent("o", List.of("o"))))
+        assertThat(newTable.getReference(ColumnIdent.of("o", List.of("o"))))
             .isReference()
             .hasName("o['o']")
             .hasType(ooType);
-        assertThat(newTable.getReference(new ColumnIdent("o")))
+        assertThat(newTable.getReference(ColumnIdent.of("o")))
             .isReference()
             .hasName("o")
             .hasType(oType);
@@ -515,9 +515,9 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (o object as (o object as (o object as (c1 int), b1 int), a1 int))");
         DocTableInfo table = e.resolveTableInfo("tbl");
-        ColumnIdent dropCol1 = new ColumnIdent("o", List.of("o", "o"));
-        ColumnIdent dropCol2 = new ColumnIdent("o", List.of("o", "o", "c1"));
-        ColumnIdent dropCol3 = new ColumnIdent("o", List.of("o", "b1"));
+        ColumnIdent dropCol1 = ColumnIdent.of("o", List.of("o", "o"));
+        ColumnIdent dropCol2 = ColumnIdent.of("o", List.of("o", "o", "c1"));
+        ColumnIdent dropCol3 = ColumnIdent.of("o", List.of("o", "b1"));
         DocTableInfo newTable = table.dropColumns(
             List.of(
                 new DropColumn(table.getReference(dropCol1), false),
@@ -534,11 +534,11 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         assertThat(newTable.getReference(dropCol1)).isNull();
         assertThat(newTable.getReference(dropCol2)).isNull();
         assertThat(newTable.getReference(dropCol3)).isNull();
-        assertThat(newTable.getReference(new ColumnIdent("o", List.of("o"))))
+        assertThat(newTable.getReference(ColumnIdent.of("o", List.of("o"))))
             .isReference()
             .hasName("o['o']")
             .hasType(ooType);
-        assertThat(newTable.getReference(new ColumnIdent("o")))
+        assertThat(newTable.getReference(ColumnIdent.of("o")))
             .isReference()
             .hasName("o")
             .hasType(oType);
@@ -549,8 +549,8 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (o object as (o object as (o object as (c1 int), b1 int), a1 int))");
         DocTableInfo table = e.resolveTableInfo("tbl");
-        ColumnIdent ooo = new ColumnIdent("o", List.of("o", "o"));
-        ColumnIdent ooo2 = new ColumnIdent("o", List.of("o", "o2"));
+        ColumnIdent ooo = ColumnIdent.of("o", List.of("o", "o"));
+        ColumnIdent ooo2 = ColumnIdent.of("o", List.of("o", "o2"));
         table = table.renameColumn(table.getReference(ooo), ooo2);
 
         var ooo2Type = ObjectType.builder()
@@ -562,8 +562,8 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             .setInnerType("o", ooType)
             .setInnerType("a1", DataTypes.INTEGER).build();
 
-        ColumnIdent oo = new ColumnIdent("o", List.of("o"));
-        ColumnIdent o = new ColumnIdent("o");
+        ColumnIdent oo = ColumnIdent.of("o", List.of("o"));
+        ColumnIdent o = ColumnIdent.of("o");
 
         assertThat(table.getReference(ooo)).isNull();
         assertThat(table.getReference(ooo2))

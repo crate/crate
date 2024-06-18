@@ -38,19 +38,19 @@ public class SysClusterTableInfoTest extends CrateDummyClusterServiceUnitTest {
         var clusterTable = SysClusterTableInfo.of(clusterService);
 
         StaticTableReferenceResolver<Void> refResolver = new StaticTableReferenceResolver<>(clusterTable.expressions());
-        NestableCollectExpression<Void, ?> expiryDate = refResolver.getImplementation(clusterTable.getReference(new ColumnIdent(
+        NestableCollectExpression<Void, ?> expiryDate = refResolver.getImplementation(clusterTable.getReference(ColumnIdent.of(
             "license",
             "expiry_date")));
         expiryDate.setNextRow(null);
         assertThat(expiryDate.value(), Matchers.nullValue());
 
-        NestableCollectExpression<Void, ?> issuedTo = refResolver.getImplementation(clusterTable.getReference(new ColumnIdent(
+        NestableCollectExpression<Void, ?> issuedTo = refResolver.getImplementation(clusterTable.getReference(ColumnIdent.of(
             "license",
             "issued_to")));
         issuedTo.setNextRow(null);
         assertThat(issuedTo.value(), Matchers.nullValue());
 
-        NestableCollectExpression<Void, ?> maxNodes = refResolver.getImplementation(clusterTable.getReference(new ColumnIdent(
+        NestableCollectExpression<Void, ?> maxNodes = refResolver.getImplementation(clusterTable.getReference(ColumnIdent.of(
             "license",
             "max_nodes")));
         maxNodes.setNextRow(null);

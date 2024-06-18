@@ -182,7 +182,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                 false,
                 null
         );
-        when(tableInfo.getReference(new ColumnIdent("dynamic_long_col"))).thenReturn(dynamicLongColRef);
+        when(tableInfo.getReference(ColumnIdent.of("dynamic_long_col"))).thenReturn(dynamicLongColRef);
         when(tableInfo.iterator()).thenReturn(List.<Reference>of(ID_REF, dynamicLongColRef).iterator());
 
         transportShardUpsertAction = new TestingTransportShardUpsertAction(
@@ -297,7 +297,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         // The follow-up dynamic insert to replica tries to resolve the DynamicReference to a SimpleReference
         // and there can be a potential ClassCastException.
         DynamicReference dynamicRefConvertedToSimpleRef = new DynamicReference(
-            new ReferenceIdent(TABLE_IDENT, new ColumnIdent("dynamic_long_col")),
+            new ReferenceIdent(TABLE_IDENT, ColumnIdent.of("dynamic_long_col")),
             RowGranularity.DOC,
             0
         );

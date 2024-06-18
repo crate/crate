@@ -194,7 +194,7 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
                 """);
 
         Map<ColumnIdent, RefBuilder> columns = analysis.columns();
-        RefBuilder rb = columns.get(new ColumnIdent("col3"));
+        RefBuilder rb = columns.get(ColumnIdent.of("col3"));
         assertThat(rb.isExplicitlyNull()).isTrue();
     }
 

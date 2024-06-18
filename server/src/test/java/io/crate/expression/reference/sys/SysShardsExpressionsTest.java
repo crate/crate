@@ -334,7 +334,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
     public void test_recovery_type_is_null_if_recovery_state_is_null() {
         when(indexShard.recoveryState()).thenReturn(null);
 
-        var ref = sysShards.getReference(new ColumnIdent("recovery", "type"));
+        var ref = sysShards.getReference(ColumnIdent.of("recovery", "type"));
         var input = resolver.getImplementation(ref);
         assertThat(input.value(), Matchers.nullValue());
     }
