@@ -42,6 +42,7 @@ public class ExistsOperator extends Operator<List<Object>> {
                 TypeSignature.parse("array(E)"),
                 Operator.RETURN_TYPE.getTypeSignature()
             ).withTypeVariableConstraints(TypeVariableConstraint.typeVariable("E"))
+            .withFeature(Feature.DETERMINISTIC)
             .withFeature(Feature.NULLABLE);
         builder.add(signature, ExistsOperator::new);
     }

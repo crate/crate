@@ -41,7 +41,8 @@ public class NullIfFunction extends Scalar<Object, Object> {
                     TypeSignature.parse("E"),
                     TypeSignature.parse("E"),
                     TypeSignature.parse("E")
-                ).withTypeVariableConstraints(typeVariable("E")),
+                ).withFeature(Feature.DETERMINISTIC)
+                .withTypeVariableConstraints(typeVariable("E")),
             NullIfFunction::new
         );
     }

@@ -81,11 +81,12 @@ public class SubscriptFunction extends Scalar<Object, Object> {
         // subscript(array(object)), text) -> array(undefined)
         module.add(
             Signature.scalar(
-                NAME,
-                TypeSignature.parse("array(object)"),
-                DataTypes.STRING.getTypeSignature(),
-                TypeSignature.parse("array(undefined)")
-            ).withForbiddenCoercion(),
+                    NAME,
+                    TypeSignature.parse("array(object)"),
+                    DataTypes.STRING.getTypeSignature(),
+                    TypeSignature.parse("array(undefined)")
+                ).withFeature(Feature.DETERMINISTIC)
+                .withForbiddenCoercion(),
             (signature, boundSignature) ->
                 new SubscriptFunction(
                     signature,
@@ -101,6 +102,7 @@ public class SubscriptFunction extends Scalar<Object, Object> {
                     TypeSignature.parse("array(E)"),
                     DataTypes.INTEGER.getTypeSignature(),
                     TypeSignature.parse("E"))
+                .withFeature(Feature.DETERMINISTIC)
                 .withTypeVariableConstraints(typeVariable("E")),
             (signature, boundSignature) ->
                 new SubscriptFunction(
@@ -112,11 +114,12 @@ public class SubscriptFunction extends Scalar<Object, Object> {
         // subscript(object(text, element), text) -> undefined
         module.add(
             Signature.scalar(
-                NAME,
-                DataTypes.UNTYPED_OBJECT.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.UNDEFINED.getTypeSignature()
-            ).withForbiddenCoercion(),
+                    NAME,
+                    DataTypes.UNTYPED_OBJECT.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.UNDEFINED.getTypeSignature()
+                ).withFeature(Feature.DETERMINISTIC)
+                .withForbiddenCoercion(),
             (signature, boundSignature) ->
                 new SubscriptFunction(
                     signature,
@@ -133,11 +136,12 @@ public class SubscriptFunction extends Scalar<Object, Object> {
         // must be resolved for the `subscript(undefined, text)` signature.
         module.add(
             Signature.scalar(
-                NAME,
-                DataTypes.UNDEFINED.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.UNDEFINED.getTypeSignature()
-            ).withForbiddenCoercion(),
+                    NAME,
+                    DataTypes.UNDEFINED.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.UNDEFINED.getTypeSignature()
+                ).withFeature(Feature.DETERMINISTIC)
+                .withForbiddenCoercion(),
             (signature, boundSignature) ->
                 new SubscriptFunction(
                     signature,

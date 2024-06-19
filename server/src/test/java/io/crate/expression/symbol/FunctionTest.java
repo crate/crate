@@ -46,10 +46,11 @@ public class FunctionTest extends ESTestCase {
     private DataType<?> returnType = TestingHelpers.randomPrimitiveType();
 
     private Signature signature = Signature.scalar(
-        randomAsciiLettersOfLength(10),
-        DataTypes.BOOLEAN.getTypeSignature(),
-        returnType.getTypeSignature()
-    ).withFeatures(randomFeatures());
+            randomAsciiLettersOfLength(10),
+            DataTypes.BOOLEAN.getTypeSignature(),
+            returnType.getTypeSignature()
+        ).withFeature(Scalar.Feature.DETERMINISTIC)
+        .withFeatures(randomFeatures());
 
 
     @Test

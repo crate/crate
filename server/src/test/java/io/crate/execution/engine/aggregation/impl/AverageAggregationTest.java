@@ -39,6 +39,7 @@ import io.crate.execution.engine.aggregation.impl.average.AverageAggregation;
 import io.crate.execution.engine.aggregation.impl.average.numeric.NumericAverageState;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.functions.Signature;
 import io.crate.operation.aggregation.AggregationTestCase;
@@ -52,7 +53,7 @@ public class AverageAggregationTest extends AggregationTestCase {
         AverageAggregation.NAME,
         DataTypes.NUMERIC.getTypeSignature(),
         DataTypes.NUMERIC.getTypeSignature()
-    );
+    ).withFeature(Scalar.Feature.DETERMINISTIC);
 
     private Object executeAvgAgg(DataType<?> argumentType, Object[][] data) throws Exception {
         return executeAggregation(
@@ -60,7 +61,7 @@ public class AverageAggregationTest extends AggregationTestCase {
                 AverageAggregation.NAME,
                 argumentType.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.DETERMINISTIC),
             data,
             List.of()
         );
@@ -72,7 +73,7 @@ public class AverageAggregationTest extends AggregationTestCase {
                 AverageAggregation.NAME,
                 DataTypes.INTERVAL.getTypeSignature(),
                 DataTypes.INTERVAL.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.DETERMINISTIC),
             data,
             List.of()
         );

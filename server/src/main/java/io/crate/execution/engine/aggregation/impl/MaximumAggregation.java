@@ -44,6 +44,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -67,13 +68,14 @@ public abstract class MaximumAggregation extends AggregationFunction<Object, Obj
             var fixedWidthType = supportedType instanceof FixedWidthType;
             builder.add(
                 Signature.aggregate(
-                    NAME,
-                    supportedType.getTypeSignature(),
-                    supportedType.getTypeSignature()),
+                        NAME,
+                        supportedType.getTypeSignature(),
+                        supportedType.getTypeSignature())
+                    .withFeature(Scalar.Feature.DETERMINISTIC),
                 (signature, boundSignature) ->
                     fixedWidthType
-                    ? new FixedMaximumAggregation(signature, boundSignature)
-                    : new VariableMaximumAggregation(signature, boundSignature)
+                        ? new FixedMaximumAggregation(signature, boundSignature)
+                        : new VariableMaximumAggregation(signature, boundSignature)
             );
         }
     }

@@ -52,10 +52,11 @@ public class Ignore3vlFunction extends Scalar<Boolean, Boolean> {
 
     public static final String NAME = "ignore3vl";
     public static final Signature SIGNATURE = Signature.scalar(
-        NAME,
-        DataTypes.BOOLEAN.getTypeSignature(),
-        DataTypes.BOOLEAN.getTypeSignature()
-    ).withFeature(Feature.NON_NULLABLE);
+            NAME,
+            DataTypes.BOOLEAN.getTypeSignature(),
+            DataTypes.BOOLEAN.getTypeSignature()
+        ).withFeature(Feature.DETERMINISTIC)
+        .withFeature(Feature.NON_NULLABLE);
 
     public static void register(Functions.Builder module) {
         module.add(

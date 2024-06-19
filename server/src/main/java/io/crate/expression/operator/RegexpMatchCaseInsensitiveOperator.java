@@ -49,7 +49,7 @@ public class RegexpMatchCaseInsensitiveOperator extends Operator<String> {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
                 Operator.RETURN_TYPE.getTypeSignature()
-            ),
+            ).withFeature(Feature.DETERMINISTIC),
             RegexpMatchCaseInsensitiveOperator::new
         );
     }

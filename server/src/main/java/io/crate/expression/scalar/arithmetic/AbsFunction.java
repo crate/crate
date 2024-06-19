@@ -38,6 +38,7 @@ public final class AbsFunction {
             var typeSignature = type.getTypeSignature();
             builder.add(
                 scalar(NAME, typeSignature, typeSignature)
+                    .withFeature(Scalar.Feature.DETERMINISTIC)
                     .withFeature(Scalar.Feature.NULLABLE),
                 (signature, boundSignature) -> {
                     DataType<?> argType = boundSignature.argTypes().get(0);

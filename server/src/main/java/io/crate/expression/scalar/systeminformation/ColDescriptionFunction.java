@@ -44,7 +44,7 @@ public final class ColDescriptionFunction extends Scalar<String, Object> {
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ),
+            ).withFeature(Feature.DETERMINISTIC),
             ColDescriptionFunction::new
         );
     }

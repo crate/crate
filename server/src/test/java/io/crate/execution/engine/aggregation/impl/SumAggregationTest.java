@@ -35,6 +35,7 @@ import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.functions.Signature;
 import io.crate.operation.aggregation.AggregationTestCase;
@@ -52,7 +53,7 @@ public class SumAggregationTest extends AggregationTestCase {
                 SumAggregation.NAME,
                 argumentType.getTypeSignature(),
                 returnType.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.DETERMINISTIC),
             data,
             List.of()
         );
@@ -117,7 +118,7 @@ public class SumAggregationTest extends AggregationTestCase {
             SumAggregation.NAME,
             DataTypes.FLOAT.getTypeSignature(),
             DataTypes.FLOAT.getTypeSignature()
-        );
+        ).withFeature(Scalar.Feature.DETERMINISTIC);
         Object result = executeAggregation(
             signature,
             signature.getArgumentDataTypes(),
@@ -172,9 +173,10 @@ public class SumAggregationTest extends AggregationTestCase {
         assertThat(execPartialAggregationWithoutDocValues(
                 (IntervalSumAggregation) nodeCtx.functions().getQualified(
                     Signature.aggregate(
-                        IntervalSumAggregation.NAME,
-                        DataTypes.INTERVAL.getTypeSignature(),
-                        DataTypes.INTERVAL.getTypeSignature()),
+                            IntervalSumAggregation.NAME,
+                            DataTypes.INTERVAL.getTypeSignature(),
+                            DataTypes.INTERVAL.getTypeSignature())
+                        .withFeature(Scalar.Feature.DETERMINISTIC),
                     List.of(DataTypes.INTERVAL),
                     DataTypes.INTERVAL
                 ),

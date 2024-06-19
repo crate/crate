@@ -30,6 +30,7 @@ import org.joda.time.Period;
 import org.junit.Test;
 
 import io.crate.exceptions.UnsupportedFunctionException;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.types.DataType;
@@ -43,7 +44,7 @@ public class MaximumAggregationTest extends AggregationTestCase {
                 "max",
                 argumentType.getTypeSignature(),
                 argumentType.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.DETERMINISTIC),
             data,
             List.of()
         );

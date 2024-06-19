@@ -72,6 +72,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
 import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.Functions;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.types.DataTypes;
@@ -97,10 +98,10 @@ public class GroupingLongCollectorBenchmark {
             Functions functions = Functions.load(Settings.EMPTY, new SessionSettingRegistry(Set.of()));
             SumAggregation<?> sumAgg = (SumAggregation<?>) functions.getQualified(
                 Signature.aggregate(
-                    SumAggregation.NAME,
-                    DataTypes.INTEGER.getTypeSignature(),
-                    DataTypes.LONG.getTypeSignature()
-                ),
+                        SumAggregation.NAME,
+                        DataTypes.INTEGER.getTypeSignature(),
+                        DataTypes.LONG.getTypeSignature())
+                    .withFeature(Scalar.Feature.DETERMINISTIC),
                 List.of(DataTypes.INTEGER),
                 DataTypes.INTEGER
             );

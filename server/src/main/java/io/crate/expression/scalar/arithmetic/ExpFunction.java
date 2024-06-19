@@ -37,6 +37,7 @@ public class ExpFunction {
         var signature = type.getTypeSignature();
         module.add(
             scalar(NAME, signature, signature)
+                .withFeature(Scalar.Feature.DETERMINISTIC)
                 .withFeature(Scalar.Feature.NULLABLE),
             (declaredSignature, boundSignature) ->
                 new UnaryScalar<>(

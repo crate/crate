@@ -51,10 +51,11 @@ public final class ParseURLFunction extends Scalar<Object, String> {
     public static void register(Functions.Builder module) {
         module.add(
             Signature.scalar(
-                NAME,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.UNTYPED_OBJECT.getTypeSignature()
-            ).withFeature(Scalar.Feature.NULLABLE),
+                    NAME,
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.UNTYPED_OBJECT.getTypeSignature()
+                ).withFeature(Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE),
             ParseURLFunction::new
         );
     }

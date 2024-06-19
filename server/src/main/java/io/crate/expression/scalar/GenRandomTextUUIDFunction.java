@@ -41,9 +41,9 @@ public final class GenRandomTextUUIDFunction extends Scalar<String, Void> {
     public static void register(Functions.Builder module) {
         module.add(
             Signature.scalar(
-                NAME,
-                DataTypes.STRING.getTypeSignature()
-            ).withFeatures(EnumSet.of(Feature.NON_NULLABLE)),
+                    NAME,
+                    DataTypes.STRING.getTypeSignature()
+                ).withFeatures(EnumSet.of(Feature.NON_NULLABLE)),
             GenRandomTextUUIDFunction::new
         );
     }

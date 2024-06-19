@@ -37,6 +37,7 @@ import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.window.WindowFrameState;
 import io.crate.execution.engine.window.WindowFunction;
 import io.crate.metadata.Functions;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
@@ -263,10 +264,11 @@ public class OffsetValueFunctions implements WindowFunction {
     public static void register(Functions.Builder builder) {
         builder.add(
             Signature.window(
-                LEAD_NAME,
-                TypeSignature.parse("E"),
-                TypeSignature.parse("E")
-            ).withTypeVariableConstraints(typeVariable("E")),
+                    LEAD_NAME,
+                    TypeSignature.parse("E"),
+                    TypeSignature.parse("E")
+                ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withTypeVariableConstraints(typeVariable("E")),
             (signature, boundSignature) ->
                 new OffsetValueFunctions(
                     signature,
@@ -276,11 +278,12 @@ public class OffsetValueFunctions implements WindowFunction {
         );
         builder.add(
             Signature.window(
-                LEAD_NAME,
-                TypeSignature.parse("E"),
-                DataTypes.INTEGER.getTypeSignature(),
-                TypeSignature.parse("E")
-            ).withTypeVariableConstraints(typeVariable("E")),
+                    LEAD_NAME,
+                    TypeSignature.parse("E"),
+                    DataTypes.INTEGER.getTypeSignature(),
+                    TypeSignature.parse("E")
+                ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withTypeVariableConstraints(typeVariable("E")),
             (signature, boundSignature) ->
                 new OffsetValueFunctions(
                     signature,
@@ -290,12 +293,13 @@ public class OffsetValueFunctions implements WindowFunction {
         );
         builder.add(
             Signature.window(
-                LEAD_NAME,
-                TypeSignature.parse("E"),
-                DataTypes.INTEGER.getTypeSignature(),
-                TypeSignature.parse("E"),
-                TypeSignature.parse("E")
-            ).withTypeVariableConstraints(typeVariable("E")),
+                    LEAD_NAME,
+                    TypeSignature.parse("E"),
+                    DataTypes.INTEGER.getTypeSignature(),
+                    TypeSignature.parse("E"),
+                    TypeSignature.parse("E")
+                ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withTypeVariableConstraints(typeVariable("E")),
             (signature, boundSignature) ->
                 new OffsetValueFunctions(
                     signature,
@@ -306,10 +310,11 @@ public class OffsetValueFunctions implements WindowFunction {
 
         builder.add(
             Signature.window(
-                LAG_NAME,
-                TypeSignature.parse("E"),
-                TypeSignature.parse("E")
-            ).withTypeVariableConstraints(typeVariable("E")),
+                    LAG_NAME,
+                    TypeSignature.parse("E"),
+                    TypeSignature.parse("E")
+                ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withTypeVariableConstraints(typeVariable("E")),
             (signature, boundSignature) ->
                 new OffsetValueFunctions(
                     signature,
@@ -319,11 +324,12 @@ public class OffsetValueFunctions implements WindowFunction {
         );
         builder.add(
             Signature.window(
-                LAG_NAME,
-                TypeSignature.parse("E"),
-                DataTypes.INTEGER.getTypeSignature(),
-                TypeSignature.parse("E")
-            ).withTypeVariableConstraints(typeVariable("E")),
+                    LAG_NAME,
+                    TypeSignature.parse("E"),
+                    DataTypes.INTEGER.getTypeSignature(),
+                    TypeSignature.parse("E")
+                ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withTypeVariableConstraints(typeVariable("E")),
             (signature, boundSignature) ->
                 new OffsetValueFunctions(
                     signature,
@@ -333,12 +339,13 @@ public class OffsetValueFunctions implements WindowFunction {
         );
         builder.add(
             Signature.window(
-                LAG_NAME,
-                TypeSignature.parse("E"),
-                DataTypes.INTEGER.getTypeSignature(),
-                TypeSignature.parse("E"),
-                TypeSignature.parse("E")
-            ).withTypeVariableConstraints(typeVariable("E")),
+                    LAG_NAME,
+                    TypeSignature.parse("E"),
+                    DataTypes.INTEGER.getTypeSignature(),
+                    TypeSignature.parse("E"),
+                    TypeSignature.parse("E")
+                ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withTypeVariableConstraints(typeVariable("E")),
             (signature, boundSignature) ->
                 new OffsetValueFunctions(
                     signature,

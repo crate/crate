@@ -43,7 +43,7 @@ public class PgGetPartkeydefFunction extends Scalar<String, Integer> {
                 FQN,
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ),
+            ).withFeature(Feature.DETERMINISTIC),
             PgGetPartkeydefFunction::new
         );
     }

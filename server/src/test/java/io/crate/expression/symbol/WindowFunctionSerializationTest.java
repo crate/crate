@@ -38,6 +38,7 @@ import io.crate.analyze.WindowDefinition;
 import io.crate.execution.engine.aggregation.impl.SumAggregation;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.types.DataTypes;
@@ -49,9 +50,10 @@ public class WindowFunctionSerializationTest {
     private FunctionImplementation dummyFunction =
         functions.getQualified(
             Signature.aggregate(
-                SumAggregation.NAME,
-                DataTypes.FLOAT.getTypeSignature(),
-                DataTypes.FLOAT.getTypeSignature()),
+                    SumAggregation.NAME,
+                    DataTypes.FLOAT.getTypeSignature(),
+                    DataTypes.FLOAT.getTypeSignature())
+                .withFeature(Scalar.Feature.DETERMINISTIC),
             List.of(DataTypes.FLOAT),
             DataTypes.FLOAT
         );

@@ -51,7 +51,8 @@ public class DateFormatFunction extends Scalar<String, Object> {
                     NAME,
                     dataType.getTypeSignature(),
                     DataTypes.STRING.getTypeSignature()
-                ), DateFormatFunction::new
+                ).withFeature(Feature.DETERMINISTIC),
+                DateFormatFunction::new
             );
 
             // with format
@@ -61,7 +62,8 @@ public class DateFormatFunction extends Scalar<String, Object> {
                     DataTypes.STRING.getTypeSignature(),
                     dataType.getTypeSignature(),
                     DataTypes.STRING.getTypeSignature()
-                ), DateFormatFunction::new
+                ).withFeature(Feature.DETERMINISTIC),
+                DateFormatFunction::new
             );
 
             // time zone aware variant
@@ -72,7 +74,8 @@ public class DateFormatFunction extends Scalar<String, Object> {
                     DataTypes.STRING.getTypeSignature(),
                     dataType.getTypeSignature(),
                     DataTypes.STRING.getTypeSignature()
-                ), DateFormatFunction::new
+                ).withFeature(Feature.DETERMINISTIC),
+                DateFormatFunction::new
             );
         }
     }

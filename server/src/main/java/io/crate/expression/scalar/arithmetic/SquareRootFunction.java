@@ -37,6 +37,7 @@ public final class SquareRootFunction {
             var typeSignature = type.getTypeSignature();
             module.add(
                 scalar(NAME, typeSignature, DataTypes.DOUBLE.getTypeSignature())
+                    .withFeature(Scalar.Feature.DETERMINISTIC)
                     .withFeature(Scalar.Feature.NULLABLE),
                 (signature, boundSignature) ->
                     new DoubleScalar(signature, boundSignature, SquareRootFunction::sqrt)

@@ -44,7 +44,7 @@ public final class ObjDescriptionFunction extends Scalar<String, Object> {
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ),
+            ).withFeature(Feature.DETERMINISTIC),
             ObjDescriptionFunction::new
         );
     }

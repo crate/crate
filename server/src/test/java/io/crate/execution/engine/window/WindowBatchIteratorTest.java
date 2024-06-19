@@ -53,6 +53,7 @@ import io.crate.data.testing.TestingBatchIterators;
 import io.crate.data.testing.TestingRowConsumer;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.sort.OrderingByPosition;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.FrameBound;
@@ -399,7 +400,7 @@ public class WindowBatchIteratorTest {
 
             @Override
             public Signature signature() {
-                return Signature.window("first_cell_value", DataTypes.INTEGER.getTypeSignature());
+                return Signature.window("first_cell_value", DataTypes.INTEGER.getTypeSignature()).withFeature(Scalar.Feature.DETERMINISTIC);
             }
 
             @Override
@@ -423,7 +424,7 @@ public class WindowBatchIteratorTest {
 
             @Override
             public Signature signature() {
-                return Signature.window("a_frame_bounded_window_function", DataTypes.INTEGER.getTypeSignature());
+                return Signature.window("a_frame_bounded_window_function", DataTypes.INTEGER.getTypeSignature()).withFeature(Scalar.Feature.DETERMINISTIC);
             }
 
             @Override
@@ -448,7 +449,7 @@ public class WindowBatchIteratorTest {
 
             @Override
             public Signature signature() {
-                return Signature.window("row_number", DataTypes.INTEGER.getTypeSignature());
+                return Signature.window("row_number", DataTypes.INTEGER.getTypeSignature()).withFeature(Scalar.Feature.DETERMINISTIC);
             }
 
             @Override

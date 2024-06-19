@@ -30,6 +30,7 @@ import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.metadata.Functions;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
@@ -43,7 +44,7 @@ public class RowNumberWindowFunction implements WindowFunction {
             Signature.window(
                 NAME,
                 DataTypes.INTEGER.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.DETERMINISTIC),
             RowNumberWindowFunction::new
         );
     }

@@ -39,7 +39,7 @@ public class ConcatWsFunction extends Scalar<String, String> {
                 NAME,
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            )
+            ).withFeature(Feature.DETERMINISTIC)
             .withVariableArity(),
             ConcatWsFunction::new
         );

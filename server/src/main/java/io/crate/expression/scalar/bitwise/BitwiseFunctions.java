@@ -57,7 +57,7 @@ public class BitwiseFunctions {
                 typeSignature,
                 typeSignature,
                 typeSignature
-            )
+            ).withFeature(Scalar.Feature.DETERMINISTIC)
             .withFeatures(Scalar.DETERMINISTIC_ONLY)
             .withFeature(Scalar.Feature.NULLABLE);
         module.add(scalar, (signature, boundSignature) -> new BinaryScalar<>(operator, signature, boundSignature, type));

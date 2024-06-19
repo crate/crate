@@ -233,6 +233,7 @@ public class UserDefinedFunctionService extends AbstractLifecycleComponent imple
                     udf.argumentTypes(),
                     DataType::getTypeSignature))
             .returnType(udf.returnType().getTypeSignature())
+            .feature(Scalar.Feature.DETERMINISTIC)
             .build();
 
         final Scalar<?, ?> scalar;

@@ -45,7 +45,7 @@ public final class StringSplitPartFunction extends Scalar<String, Object> {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ),
+            ).withFeature(Feature.DETERMINISTIC),
             StringSplitPartFunction::new
         );
     }

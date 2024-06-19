@@ -47,6 +47,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
@@ -139,7 +140,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
             "agg",
             DataTypes.INTEGER.getTypeSignature(),
             DataTypes.LONG.getTypeSignature()
-        );
+        ).withFeature(Scalar.Feature.DETERMINISTIC);
         Aggregation a = new Aggregation(
             signature,
             DataTypes.LONG,

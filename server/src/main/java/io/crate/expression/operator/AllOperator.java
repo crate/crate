@@ -66,6 +66,7 @@ public final class AllOperator extends Operator<Object> {
                         TypeSignature.parse("array(E)"),
                         Operator.RETURN_TYPE.getTypeSignature()
                     ).withTypeVariableConstraints(typeVariable("E"))
+                    .withFeature(Feature.DETERMINISTIC)
                     .withFeature(Feature.NULLABLE),
                 (signature, boundSignature) ->
                     new AllOperator(

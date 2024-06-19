@@ -47,6 +47,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.Style;
 import io.crate.geo.GeoJSONUtils;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -246,11 +247,12 @@ public class CastFunctionTest extends ScalarTestCase {
             .build();
 
         var signature = Signature.scalar(
-            ExplicitCastFunction.NAME,
-            TypeSignature.parse("E"),
-            TypeSignature.parse("V"),
-            TypeSignature.parse("V")
-        ).withTypeVariableConstraints(typeVariable("E"), typeVariable("V"));
+                ExplicitCastFunction.NAME,
+                TypeSignature.parse("E"),
+                TypeSignature.parse("V"),
+                TypeSignature.parse("V")
+            ).withFeature(Scalar.Feature.DETERMINISTIC)
+            .withTypeVariableConstraints(typeVariable("E"), typeVariable("V"));
         var functionImpl = sqlExpressions.nodeCtx.functions().getQualified(
             signature,
             List.of(DataTypes.UNTYPED_OBJECT, returnType),

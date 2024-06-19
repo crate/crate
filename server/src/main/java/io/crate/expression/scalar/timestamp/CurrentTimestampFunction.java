@@ -43,17 +43,17 @@ public class CurrentTimestampFunction extends Scalar<Long, Integer> {
     public static void register(Functions.Builder module) {
         module.add(
             Signature.scalar(
-                NAME,
-                DataTypes.TIMESTAMPZ.getTypeSignature()
-            ).withFeatures(EnumSet.of(Feature.NON_NULLABLE)),
+                    NAME,
+                    DataTypes.TIMESTAMPZ.getTypeSignature()
+                ).withFeatures(EnumSet.of(Feature.NON_NULLABLE)),
             CurrentTimestampFunction::new
         );
         module.add(
             Signature.scalar(
-                NAME,
-                DataTypes.INTEGER.getTypeSignature(),
-                DataTypes.TIMESTAMPZ.getTypeSignature()
-            ).withFeatures(EnumSet.of(Feature.NON_NULLABLE)),
+                    NAME,
+                    DataTypes.INTEGER.getTypeSignature(),
+                    DataTypes.TIMESTAMPZ.getTypeSignature()
+                ).withFeatures(EnumSet.of(Feature.NON_NULLABLE)),
             CurrentTimestampFunction::new
         );
     }

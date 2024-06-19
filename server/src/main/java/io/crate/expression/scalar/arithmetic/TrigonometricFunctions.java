@@ -66,7 +66,8 @@ public final class TrigonometricFunctions {
                 name,
                 DataTypes.DOUBLE.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()
-            ).withFeature(Scalar.Feature.NULLABLE),
+            ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new DoubleScalar(signature, boundSignature, func)
         );

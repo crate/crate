@@ -150,7 +150,7 @@ public final class Signature implements Writeable, Accountable {
         private FunctionType kind;
         private List<TypeSignature> argumentTypes = Collections.emptyList();
         private TypeSignature returnType;
-        private Set<Scalar.Feature> features = Scalar.DETERMINISTIC_ONLY;
+        private Set<Scalar.Feature> features = Set.of();
         private List<TypeVariableConstraint> typeVariableConstraints = Collections.emptyList();
         private List<TypeSignature> variableArityGroup = Collections.emptyList();
         private boolean variableArity = false;
@@ -207,7 +207,7 @@ public final class Signature implements Writeable, Accountable {
         }
 
         public Builder features(Set<Scalar.Feature> features) {
-            this.features = features;
+            this.features = Sets.union(this.features, features);
             return this;
         }
 

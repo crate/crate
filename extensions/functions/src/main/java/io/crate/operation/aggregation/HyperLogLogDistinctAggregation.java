@@ -57,6 +57,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -88,7 +89,8 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                 Signature.aggregate(
                     NAME,
                     supportedType.getTypeSignature(),
-                    DataTypes.LONG.getTypeSignature()),
+                    DataTypes.LONG.getTypeSignature())
+                    .withFeature(Scalar.Feature.DETERMINISTIC),
                 (signature, boundSignature) ->
                     new HyperLogLogDistinctAggregation(signature, boundSignature, supportedType)
             );
@@ -97,8 +99,8 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                     NAME,
                     supportedType.getTypeSignature(),
                     DataTypes.INTEGER.getTypeSignature(),
-                    DataTypes.LONG.getTypeSignature()
-                ),
+                    DataTypes.LONG.getTypeSignature())
+                    .withFeature(Scalar.Feature.DETERMINISTIC),
                 (signature, boundSignature) ->
                     new HyperLogLogDistinctAggregation(signature, boundSignature, supportedType)
             );

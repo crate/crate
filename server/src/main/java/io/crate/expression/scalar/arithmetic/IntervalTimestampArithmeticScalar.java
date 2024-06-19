@@ -45,11 +45,12 @@ public class IntervalTimestampArithmeticScalar extends Scalar<Long, Object> impl
         for (var timestampType : List.of(DataTypes.TIMESTAMP, DataTypes.TIMESTAMPZ)) {
             module.add(
                 Signature.scalar(
-                    ArithmeticFunctions.Names.ADD,
-                    DataTypes.INTERVAL.getTypeSignature(),
-                    timestampType.getTypeSignature(),
-                    timestampType.getTypeSignature()
-                ).withForbiddenCoercion(),
+                        ArithmeticFunctions.Names.ADD,
+                        DataTypes.INTERVAL.getTypeSignature(),
+                        timestampType.getTypeSignature(),
+                        timestampType.getTypeSignature()
+                    ).withFeature(Feature.DETERMINISTIC)
+                    .withForbiddenCoercion(),
                 (signature, boundSignature) ->
                     new IntervalTimestampArithmeticScalar(
                         "+",
@@ -81,11 +82,12 @@ public class IntervalTimestampArithmeticScalar extends Scalar<Long, Object> impl
 
     public static Signature signatureFor(DataType<?> timestampType, String name) {
         return Signature.scalar(
-            name,
-            timestampType.getTypeSignature(),
-            DataTypes.INTERVAL.getTypeSignature(),
-            timestampType.getTypeSignature()
-        ).withForbiddenCoercion();
+                name,
+                timestampType.getTypeSignature(),
+                DataTypes.INTERVAL.getTypeSignature(),
+                timestampType.getTypeSignature()
+            ).withFeature(Feature.DETERMINISTIC)
+            .withForbiddenCoercion();
     }
 
     private final BiFunction<DateTime, Period, DateTime> operation;

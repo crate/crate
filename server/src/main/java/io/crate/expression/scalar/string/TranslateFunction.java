@@ -43,11 +43,12 @@ public class TranslateFunction extends Scalar<String, String> {
     public static void register(Functions.Builder module) {
         module.add(
             Signature.scalar(
-                "translate",
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature()),
+                    "translate",
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature())
+                .withFeature(Feature.DETERMINISTIC),
             TranslateFunction::new
         );
     }

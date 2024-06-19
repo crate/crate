@@ -39,9 +39,9 @@ public final class CurrentDateFunction extends Scalar<Long, String> {
     public static void register(Functions.Builder module) {
         module.add(
             Signature.scalar(
-                NAME,
-                DataTypes.DATE.getTypeSignature()
-            ).withFeatures(EnumSet.of(Feature.NON_NULLABLE)),
+                    NAME,
+                    DataTypes.DATE.getTypeSignature()
+                ).withFeatures(EnumSet.of(Feature.NON_NULLABLE)),
             CurrentDateFunction::new
         );
     }

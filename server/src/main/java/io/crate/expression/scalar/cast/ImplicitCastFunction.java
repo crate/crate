@@ -49,11 +49,12 @@ public class ImplicitCastFunction extends Scalar<Object, Object> {
     public static void register(Functions.Builder module) {
         module.add(
             Signature.scalar(
-                NAME,
-                TypeSignature.parse("E"),
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.UNDEFINED.getTypeSignature()
-            ).withTypeVariableConstraints(typeVariable("E")),
+                    NAME,
+                    TypeSignature.parse("E"),
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.UNDEFINED.getTypeSignature()
+                ).withFeature(Feature.DETERMINISTIC)
+                .withTypeVariableConstraints(typeVariable("E")),
             ImplicitCastFunction::new
         );
     }

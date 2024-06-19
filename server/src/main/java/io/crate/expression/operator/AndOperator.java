@@ -51,7 +51,7 @@ public class AndOperator extends Operator<Boolean> {
         DataTypes.BOOLEAN.getTypeSignature(),
         DataTypes.BOOLEAN.getTypeSignature(),
         DataTypes.BOOLEAN.getTypeSignature()
-    );
+    ).withFeature(Feature.DETERMINISTIC);
 
     public static void register(Functions.Builder builder) {
         builder.add(SIGNATURE, AndOperator::new);

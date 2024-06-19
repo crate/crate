@@ -43,17 +43,19 @@ public class CurrentTimeFunction extends Scalar<TimeTZ, Integer> {
     public static void register(Functions.Builder module) {
         module.add(
             Signature.scalar(
-                NAME,
-                DataTypes.INTEGER.getTypeSignature(),
-                DataTypes.TIMETZ.getTypeSignature()
-            ).withFeature(Feature.NON_NULLABLE),
+                    NAME,
+                    DataTypes.INTEGER.getTypeSignature(),
+                    DataTypes.TIMETZ.getTypeSignature()
+                ).withFeature(Feature.DETERMINISTIC)
+                .withFeature(Feature.NON_NULLABLE),
             CurrentTimeFunction::new
         );
         module.add(
             Signature.scalar(
-                NAME,
-                DataTypes.TIMETZ.getTypeSignature()
-            ).withFeature(Feature.NON_NULLABLE),
+                    NAME,
+                    DataTypes.TIMETZ.getTypeSignature()
+                ).withFeature(Feature.DETERMINISTIC)
+                .withFeature(Feature.NON_NULLABLE),
             CurrentTimeFunction::new
         );
     }

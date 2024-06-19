@@ -54,9 +54,10 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
 
     public static final String NAME = "op_not";
     public static final Signature SIGNATURE = Signature.scalar(
-        NAME,
-        DataTypes.BOOLEAN.getTypeSignature(),
-        DataTypes.BOOLEAN.getTypeSignature())
+            NAME,
+            DataTypes.BOOLEAN.getTypeSignature(),
+            DataTypes.BOOLEAN.getTypeSignature())
+        .withFeature(Feature.DETERMINISTIC)
         .withFeature(Feature.NULLABLE);
 
     public static void register(Functions.Builder builder) {

@@ -39,7 +39,7 @@ public final class PiFunction extends Scalar<Double, Object> {
             Signature.scalar(
                 NAME,
                 DataTypes.DOUBLE.getTypeSignature()
-            )
+            ).withFeature(Feature.DETERMINISTIC)
             .withFeature(Feature.NON_NULLABLE),
             PiFunction::new
         );

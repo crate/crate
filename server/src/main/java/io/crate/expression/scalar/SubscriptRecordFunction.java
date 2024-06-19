@@ -40,7 +40,7 @@ public final class SubscriptRecordFunction extends Scalar<Object, Object> {
         RowType.EMPTY.getTypeSignature(),
         DataTypes.STRING.getTypeSignature(),
         DataTypes.UNDEFINED.getTypeSignature()
-    );
+    ).withFeature(Feature.DETERMINISTIC);
 
     public static void register(Functions.Builder module) {
         module.add(

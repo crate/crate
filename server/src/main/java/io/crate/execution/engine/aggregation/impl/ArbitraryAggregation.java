@@ -47,6 +47,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -76,11 +77,13 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
         TypeSignature T = TypeSignature.parse("T");
         builder.add(
             Signature.aggregate(NAME, T, T)
+                .withFeature(Scalar.Feature.DETERMINISTIC)
                 .withTypeVariableConstraints(TypeVariableConstraint.typeVariableOfAnyType("T")),
             ArbitraryAggregation::new
         );
         builder.add(
             Signature.aggregate(ALIAS, T, T)
+                .withFeature(Scalar.Feature.DETERMINISTIC)
                 .withTypeVariableConstraints(TypeVariableConstraint.typeVariableOfAnyType("T")),
             ArbitraryAggregation::new
         );

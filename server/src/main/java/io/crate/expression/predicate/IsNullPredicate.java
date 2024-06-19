@@ -68,7 +68,8 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
             NAME,
             TypeSignature.parse("E"),
             DataTypes.BOOLEAN.getTypeSignature()
-        ).withFeature(Feature.NON_NULLABLE)
+        ).withFeature(Feature.DETERMINISTIC)
+        .withFeature(Feature.NON_NULLABLE)
         .withTypeVariableConstraints(typeVariable("E"));
 
     public static void register(Functions.Builder builder) {

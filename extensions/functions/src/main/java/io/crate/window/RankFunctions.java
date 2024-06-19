@@ -33,6 +33,7 @@ import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.window.WindowFrameState;
 import io.crate.execution.engine.window.WindowFunction;
 import io.crate.metadata.Functions;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
@@ -94,7 +95,7 @@ public class RankFunctions implements WindowFunction {
             Signature.window(
                 RANK_NAME,
                 DataTypes.INTEGER.getTypeSignature()
-                ),
+                ).withFeature(Scalar.Feature.DETERMINISTIC),
             (signature, boundSignature) ->
                 new RankFunctions(
                     signature,
@@ -107,7 +108,7 @@ public class RankFunctions implements WindowFunction {
             Signature.window(
                 DENSE_RANK_NAME,
                 DataTypes.INTEGER.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.DETERMINISTIC),
             (signature, boundSignature) ->
                 new RankFunctions(
                     signature,

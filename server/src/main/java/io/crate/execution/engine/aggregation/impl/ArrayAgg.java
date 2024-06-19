@@ -34,6 +34,7 @@ import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.Functions;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
@@ -44,10 +45,11 @@ public final class ArrayAgg extends AggregationFunction<List<Object>, List<Objec
     public static final String NAME = "array_agg";
     public static final Signature SIGNATURE =
         Signature.aggregate(
-            NAME,
-            TypeSignature.parse("E"),
-            TypeSignature.parse("array(E)")
-        ).withTypeVariableConstraints(typeVariable("E"));
+                NAME,
+                TypeSignature.parse("E"),
+                TypeSignature.parse("array(E)"))
+            .withFeature(Scalar.Feature.DETERMINISTIC)
+            .withTypeVariableConstraints(typeVariable("E"));
 
 
     public static void register(Functions.Builder builder) {

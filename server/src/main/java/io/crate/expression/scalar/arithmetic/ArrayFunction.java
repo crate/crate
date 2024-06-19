@@ -47,6 +47,7 @@ public class ArrayFunction extends Scalar<Object, Object> {
             .returnType(TypeSignature.parse("array(E)"))
             .setVariableArity(true)
             .feature(Feature.NON_NULLABLE)
+            .feature(Feature.DETERMINISTIC)
             .build();
 
 

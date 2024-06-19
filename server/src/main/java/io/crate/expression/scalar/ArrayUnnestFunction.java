@@ -52,6 +52,7 @@ public class ArrayUnnestFunction extends Scalar<List<Object>, List<List<Object>>
             TypeSignature.parse("array(array(E))"),
             TypeSignature.parse("array(E)")
         ).withTypeVariableConstraints(typeVariable("E"))
+        .withFeature(Feature.DETERMINISTIC)
         .withFeature(Feature.NULLABLE);
 
     public static void register(Functions.Builder module) {

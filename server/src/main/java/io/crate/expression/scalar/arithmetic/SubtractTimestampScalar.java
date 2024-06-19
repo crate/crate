@@ -45,7 +45,7 @@ public class SubtractTimestampScalar extends Scalar<Period, Object> {
                     timestampType.getTypeSignature(),
                     timestampType.getTypeSignature(),
                     DataTypes.INTERVAL.getTypeSignature()
-                ),
+                ).withFeature(Feature.DETERMINISTIC),
                 SubtractTimestampScalar::new
             );
         }
