@@ -257,7 +257,7 @@
     <!-- see surefire plugin configuration for explanation -->
     <skipRunTests>false</skipRunTests>
 
-    <versions.jdk>22</versions.jdk>
+    <versions.jdk>22.0.1+8</versions.jdk>
     <versions.annotations>24.1.0</versions.annotations>
     <versions.log4j>2.22.0</versions.log4j>
     <versions.assertj>3.25.3</versions.assertj>
