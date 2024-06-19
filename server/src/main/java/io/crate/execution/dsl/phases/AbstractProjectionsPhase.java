@@ -28,11 +28,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.jetbrains.annotations.Nullable;
 
+import io.crate.Streamer;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
@@ -81,6 +81,11 @@ public abstract class AbstractProjectionsPhase implements ExecutionPhase {
         return executionPhaseId;
     }
 
+    @Override
+    public Streamer<?>[] getStreamers() {
+        return DataTypes.getStreamers(outputTypes());
+    }
+
     public boolean hasProjections() {
         return projections.size() > 0;
     }
@@ -105,6 +110,7 @@ public abstract class AbstractProjectionsPhase implements ExecutionPhase {
     public List<DataType<?>> outputTypes() {
         return outputTypes;
     }
+
 
     protected AbstractProjectionsPhase(StreamInput in) throws IOException {
         name = in.readString();
