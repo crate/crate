@@ -48,6 +48,9 @@ See the :ref:`version_5.7.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that resulted in an ``unsupported ExecutionNode`` error if
+  joining a foreign table with another table that's sharded across many nodes.
+
 - Fixed an issue that prevented sub-columns of a view to be shown in the
   ``information_schema.columns`` table if only top-level columns were used in
   the view's SELECT query. Workaround: explicitly select sub-columns in the
