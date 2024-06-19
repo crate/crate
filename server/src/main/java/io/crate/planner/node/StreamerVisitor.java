@@ -21,11 +21,14 @@
 
 package io.crate.planner.node;
 
+import java.util.Locale;
+
 import io.crate.Streamer;
 import io.crate.execution.dsl.phases.CountPhase;
 import io.crate.execution.dsl.phases.ExecutionPhase;
 import io.crate.execution.dsl.phases.ExecutionPhaseVisitor;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
+import io.crate.execution.dsl.phases.ForeignCollectPhase;
 import io.crate.execution.dsl.phases.HashJoinPhase;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.phases.NestedLoopPhase;
@@ -33,8 +36,6 @@ import io.crate.execution.dsl.phases.PKLookupPhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.phases.TableFunctionCollectPhase;
 import io.crate.types.DataTypes;
-
-import java.util.Locale;
 
 /**
  * Get output {@link io.crate.Streamer}s for {@link ExecutionPhase}s
@@ -76,6 +77,11 @@ public class StreamerVisitor {
 
         @Override
         public Streamer<?>[] visitNestedLoopPhase(NestedLoopPhase phase, Void context) {
+            return DataTypes.getStreamers(phase.outputTypes());
+        }
+
+        @Override
+        public Streamer<?>[] visitForeignCollect(ForeignCollectPhase phase, Void context) {
             return DataTypes.getStreamers(phase.outputTypes());
         }
 
