@@ -79,6 +79,7 @@ import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -117,7 +118,7 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
             "avg",
             DataTypes.INTEGER.getTypeSignature(),
             DataTypes.DOUBLE.getTypeSignature()
-        );
+        ).withFeature(Scalar.Feature.DETERMINISTIC);
     }
 
     @Test

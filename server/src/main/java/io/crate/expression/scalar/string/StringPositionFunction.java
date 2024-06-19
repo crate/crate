@@ -39,7 +39,7 @@ public final class StringPositionFunction extends Scalar<Integer , String> {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature()
-            ),
+            ).withFeature(Feature.DETERMINISTIC),
             StringPositionFunction::new
         );
     }

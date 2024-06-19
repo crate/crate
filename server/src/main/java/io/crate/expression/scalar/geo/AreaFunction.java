@@ -62,7 +62,8 @@ public final class AreaFunction {
                 FUNCTION_NAME,
                 DataTypes.GEO_SHAPE.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()
-            ).withFeature(Scalar.Feature.NULLABLE),
+            ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new UnaryScalar<>(
                     signature,

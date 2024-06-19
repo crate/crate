@@ -54,7 +54,7 @@ public final class RegexpReplaceFunction extends Scalar<String, String> {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ),
+            ).withFeature(Feature.DETERMINISTIC),
             RegexpReplaceFunction::new
         );
         builder.add(
@@ -65,7 +65,7 @@ public final class RegexpReplaceFunction extends Scalar<String, String> {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ),
+            ).withFeature(Feature.DETERMINISTIC),
             RegexpReplaceFunction::new
         );
     }

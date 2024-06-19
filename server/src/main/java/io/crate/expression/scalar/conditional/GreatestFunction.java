@@ -40,6 +40,7 @@ public class GreatestFunction extends ConditionalCompareFunction {
                     NAME,
                     TypeSignature.parse("E"),
                     TypeSignature.parse("E"))
+                .withFeature(Feature.DETERMINISTIC)
                 .withVariableArity()
                 .withTypeVariableConstraints(typeVariable("E")),
             GreatestFunction::new

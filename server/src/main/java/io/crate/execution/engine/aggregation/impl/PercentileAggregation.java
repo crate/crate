@@ -33,6 +33,7 @@ import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.Functions;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
@@ -51,20 +52,20 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
         for (var supportedType : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             builder.add(
                 Signature.aggregate(
-                    NAME,
-                    supportedType.getTypeSignature(),
-                    DataTypes.DOUBLE.getTypeSignature(),
-                    DataTypes.DOUBLE.getTypeSignature()
-                ),
+                        NAME,
+                        supportedType.getTypeSignature(),
+                        DataTypes.DOUBLE.getTypeSignature(),
+                        DataTypes.DOUBLE.getTypeSignature())
+                    .withFeature(Scalar.Feature.DETERMINISTIC),
                 PercentileAggregation::new
             );
             builder.add(
                 Signature.aggregate(
-                    NAME,
-                    supportedType.getTypeSignature(),
-                    DataTypes.DOUBLE_ARRAY.getTypeSignature(),
-                    DataTypes.DOUBLE_ARRAY.getTypeSignature()
-                ),
+                        NAME,
+                        supportedType.getTypeSignature(),
+                        DataTypes.DOUBLE_ARRAY.getTypeSignature(),
+                        DataTypes.DOUBLE_ARRAY.getTypeSignature())
+                    .withFeature(Scalar.Feature.DETERMINISTIC),
                 PercentileAggregation::new
             );
         }

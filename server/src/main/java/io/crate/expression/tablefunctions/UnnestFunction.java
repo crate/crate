@@ -62,6 +62,7 @@ public class UnnestFunction {
                 )
                 .withTypeVariableConstraints(typeVariableOfAnyType("N"))
                 .withFeature(Scalar.Feature.NON_NULLABLE)
+                .withFeature(Scalar.Feature.DETERMINISTIC)
                 .withVariableArity(),
             (signature, boundSignature) -> {
                 List<DataType<?>> fieldTypes = Lists.map(boundSignature.argTypes(), ArrayType::unnest);
@@ -89,9 +90,10 @@ public class UnnestFunction {
         // unnest() to keep it compatible with previous versions
         builder.add(
             Signature.table(
-                NAME,
-                DataTypes.UNTYPED_OBJECT.getTypeSignature()
-            ).withFeature(Scalar.Feature.NON_NULLABLE),
+                    NAME,
+                    DataTypes.UNTYPED_OBJECT.getTypeSignature()
+                ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NON_NULLABLE),
             (signature, boundSignature) -> new UnnestTableFunctionImplementation(
                 signature,
                 boundSignature,

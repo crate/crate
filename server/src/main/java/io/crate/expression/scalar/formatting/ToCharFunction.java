@@ -56,7 +56,7 @@ public class ToCharFunction extends Scalar<String, Object> {
                         type.getTypeSignature(),
                         DataTypes.STRING.getTypeSignature(),
                         DataTypes.STRING.getTypeSignature()
-                    ),
+                    ).withFeature(Feature.DETERMINISTIC),
                     (signature, boundSignature) ->
                         new ToCharFunction(
                             signature,
@@ -72,7 +72,7 @@ public class ToCharFunction extends Scalar<String, Object> {
                 DataTypes.INTERVAL.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ),
+            ).withFeature(Feature.DETERMINISTIC),
             (signature, boundSignature) ->
                 new ToCharFunction(
                     signature,

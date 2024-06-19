@@ -41,9 +41,9 @@ public final class NowFunction extends Scalar<Long, Object> {
     public static void register(Functions.Builder module) {
         module.add(
             Signature.scalar(
-                NAME,
-                DataTypes.TIMESTAMPZ.getTypeSignature()
-            ).withFeatures(EnumSet.of(Feature.NON_NULLABLE)),
+                    NAME,
+                    DataTypes.TIMESTAMPZ.getTypeSignature()
+                ).withFeatures(EnumSet.of(Feature.NON_NULLABLE)),
             NowFunction::new
         );
     }

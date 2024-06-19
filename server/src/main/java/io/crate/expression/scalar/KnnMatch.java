@@ -54,7 +54,7 @@ public class KnnMatch extends Scalar<Boolean, Object> {
                 TypeSignature.parse(FloatVectorType.NAME),
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.BOOLEAN.getTypeSignature()
-            ),
+            ).withFeature(Feature.DETERMINISTIC),
             KnnMatch::new
         );
     }

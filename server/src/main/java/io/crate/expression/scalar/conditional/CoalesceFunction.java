@@ -43,6 +43,7 @@ public class CoalesceFunction extends Scalar<Object, Object> {
                     NAME,
                     TypeSignature.parse("E"),
                     TypeSignature.parse("E"))
+                .withFeature(Feature.DETERMINISTIC)
                 .withVariableArity()
                 .withTypeVariableConstraints(typeVariable("E")),
             CoalesceFunction::new

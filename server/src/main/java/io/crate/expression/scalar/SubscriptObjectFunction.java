@@ -54,6 +54,7 @@ public class SubscriptObjectFunction extends Scalar<Object, Map<String, Object>>
             DataTypes.UNTYPED_OBJECT.getTypeSignature(),
             DataTypes.STRING.getTypeSignature(),
             DataTypes.UNDEFINED.getTypeSignature())
+        .withFeature(Feature.DETERMINISTIC)
         .withVariableArity();
 
     public static void register(Functions.Builder module) {

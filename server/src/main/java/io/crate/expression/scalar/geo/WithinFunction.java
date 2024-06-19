@@ -68,7 +68,7 @@ public class WithinFunction extends Scalar<Boolean, Object> {
                 DataTypes.GEO_SHAPE.getTypeSignature(),
                 DataTypes.GEO_SHAPE.getTypeSignature(),
                 DataTypes.BOOLEAN.getTypeSignature()
-            ),
+            ).withFeature(Feature.DETERMINISTIC),
             WithinFunction::new
         );
         // Needed to avoid casts on references of `geo_point` and thus to avoid generic function filter on lucene.
@@ -81,7 +81,8 @@ public class WithinFunction extends Scalar<Boolean, Object> {
                     DataTypes.GEO_POINT.getTypeSignature(),
                     type.getTypeSignature(),
                     DataTypes.BOOLEAN.getTypeSignature()
-                ).withForbiddenCoercion(),
+                ).withFeature(Feature.DETERMINISTIC)
+                    .withForbiddenCoercion(),
                 WithinFunction::new
             );
         }

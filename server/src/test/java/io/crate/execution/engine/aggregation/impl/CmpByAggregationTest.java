@@ -29,6 +29,7 @@ import java.util.Map;
 
 import org.junit.Test;
 
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.types.DataTypes;
@@ -42,7 +43,7 @@ public class CmpByAggregationTest extends AggregationTestCase {
             DataTypes.STRING.getTypeSignature(),
             DataTypes.INTEGER.getTypeSignature(),
             DataTypes.STRING.getTypeSignature()
-        );
+        ).withFeature(Scalar.Feature.DETERMINISTIC);
         Object result = executeAggregation(
             signature,
             new Object[][] {
@@ -63,7 +64,7 @@ public class CmpByAggregationTest extends AggregationTestCase {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            );
+            ).withFeature(Scalar.Feature.DETERMINISTIC);
             Object result = executeAggregation(
                 signature,
                 new Object[][] {
@@ -85,7 +86,7 @@ public class CmpByAggregationTest extends AggregationTestCase {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            );
+            ).withFeature(Scalar.Feature.DETERMINISTIC);
             Object result = executeAggregation(
                 signature,
                 new Object[][] {
@@ -106,7 +107,7 @@ public class CmpByAggregationTest extends AggregationTestCase {
             DataTypes.STRING.getTypeSignature(),
             DataTypes.INTEGER.getTypeSignature(),
             DataTypes.STRING.getTypeSignature()
-        );
+        ).withFeature(Scalar.Feature.DETERMINISTIC);
         Object result = executeAggregation(
             signature,
             new Object[][] {
@@ -127,7 +128,7 @@ public class CmpByAggregationTest extends AggregationTestCase {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            );
+            ).withFeature(Scalar.Feature.DETERMINISTIC);
             Object result = executeAggregation(
                 signature,
                 new Object[][] {
@@ -148,7 +149,7 @@ public class CmpByAggregationTest extends AggregationTestCase {
             DataTypes.STRING.getTypeSignature(),
             DataTypes.INTEGER.getTypeSignature(),
             DataTypes.STRING.getTypeSignature()
-        );
+        ).withFeature(Scalar.Feature.DETERMINISTIC);
         Object result = executeAggregation(
             signature,
             new Object[][] {
@@ -169,7 +170,7 @@ public class CmpByAggregationTest extends AggregationTestCase {
             DataTypes.STRING.getTypeSignature(),
             DataTypes.UNTYPED_OBJECT.getTypeSignature(),
             DataTypes.STRING.getTypeSignature()
-        );
+        ).withFeature(Scalar.Feature.DETERMINISTIC);
         assertThatThrownBy(() -> executeAggregation(
             signature,
             new Object[][] {
@@ -188,7 +189,7 @@ public class CmpByAggregationTest extends AggregationTestCase {
             DataTypes.STRING.getTypeSignature(),
             DataTypes.LONG.getTypeSignature(),
             DataTypes.STRING.getTypeSignature()
-        );
+        ).withFeature(Scalar.Feature.DETERMINISTIC);
         Object result = executeAggregation(
             signature,
             new Object[][] {

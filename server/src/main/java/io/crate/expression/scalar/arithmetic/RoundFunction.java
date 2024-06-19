@@ -40,6 +40,7 @@ public final class RoundFunction {
             assert returnType != null : "Could not get integral type of " + type;
             module.add(
                 scalar(NAME, typeSignature, returnType.getTypeSignature())
+                    .withFeature(Scalar.Feature.DETERMINISTIC)
                     .withFeature(Scalar.Feature.NULLABLE),
                 (signature, boundSignature) -> {
                     if (returnType.equals(DataTypes.INTEGER)) {

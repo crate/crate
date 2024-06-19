@@ -52,10 +52,11 @@ public final class TrimFunctions {
         // trim(text)
         module.add(
             Signature.scalar(
-                TRIM_NAME,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature()
-            ).withFeature(Scalar.Feature.NULLABLE),
+                    TRIM_NAME,
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature()
+                ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new OneCharTrimFunction(
                     signature,
@@ -66,22 +67,24 @@ public final class TrimFunctions {
         // trim(MODE trimmingText from text)
         module.add(
             Signature.scalar(
-                TRIM_NAME,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature()
-            ).withFeature(Scalar.Feature.NULLABLE),
+                    TRIM_NAME,
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature()
+                ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE),
             TrimFunction::new
         );
 
         // ltrim(text)
         module.add(
             Signature.scalar(
-                LTRIM_NAME,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature()
-            ).withFeature(Scalar.Feature.NULLABLE),
+                    LTRIM_NAME,
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature()
+                ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new SideTrimFunction(
                     signature,
@@ -92,11 +95,12 @@ public final class TrimFunctions {
         // ltrim(text, trimmingText)
         module.add(
             Signature.scalar(
-                LTRIM_NAME,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature()
-            ).withFeature(Scalar.Feature.NULLABLE),
+                    LTRIM_NAME,
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature()
+                ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new SideTrimFunction(
                     signature,
@@ -108,10 +112,11 @@ public final class TrimFunctions {
         // rtrim(text)
         module.add(
             Signature.scalar(
-                RTRIM_NAME,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature()
-            ).withFeature(Scalar.Feature.NULLABLE),
+                    RTRIM_NAME,
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature()
+                ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new SideTrimFunction(
                     signature,
@@ -122,11 +127,12 @@ public final class TrimFunctions {
         // rtrim(text, trimmingText)
         module.add(
             Signature.scalar(
-                RTRIM_NAME,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature()
-            ).withFeature(Scalar.Feature.NULLABLE),
+                    RTRIM_NAME,
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature()
+                ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new SideTrimFunction(
                     signature,
@@ -139,10 +145,11 @@ public final class TrimFunctions {
         // btrim(text)
         module.add(
             Signature.scalar(
-                BTRIM_NAME,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature()
-            ).withFeature(Scalar.Feature.NULLABLE),
+                    BTRIM_NAME,
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature()
+                ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new SideTrimFunction(
                     signature,
@@ -153,11 +160,12 @@ public final class TrimFunctions {
         // btrim(text, trimmingText)
         module.add(
             Signature.scalar(
-                BTRIM_NAME,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature()
-            ).withFeature(Scalar.Feature.NULLABLE),
+                    BTRIM_NAME,
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature()
+                ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new SideTrimFunction(
                     signature,

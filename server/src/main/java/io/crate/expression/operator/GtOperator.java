@@ -34,11 +34,12 @@ public final class GtOperator {
         for (var supportedType : DataTypes.PRIMITIVE_TYPES) {
             builder.add(
                 Signature.scalar(
-                    NAME,
-                    supportedType.getTypeSignature(),
-                    supportedType.getTypeSignature(),
-                    Operator.RETURN_TYPE.getTypeSignature()
-                ).withFeature(Scalar.Feature.NULLABLE),
+                        NAME,
+                        supportedType.getTypeSignature(),
+                        supportedType.getTypeSignature(),
+                        Operator.RETURN_TYPE.getTypeSignature())
+                    .withFeature(Scalar.Feature.DETERMINISTIC)
+                    .withFeature(Scalar.Feature.NULLABLE),
                 (signature, boundSignature) -> new CmpOperator(
                     signature,
                     boundSignature,

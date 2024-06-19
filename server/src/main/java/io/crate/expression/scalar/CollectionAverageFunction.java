@@ -46,6 +46,7 @@ public class CollectionAverageFunction extends Scalar<Double, List<Object>> {
                     TypeSignature.parse("array(E)"),
                     DataTypes.DOUBLE.getTypeSignature()
                 ).withTypeVariableConstraints(typeVariable("E"))
+                .withFeature(Feature.DETERMINISTIC)
                 .withFeature(Feature.NULLABLE),
             CollectionAverageFunction::new
         );

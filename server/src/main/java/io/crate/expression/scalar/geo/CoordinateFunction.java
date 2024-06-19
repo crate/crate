@@ -36,7 +36,8 @@ public final class CoordinateFunction {
                 "latitude",
                 DataTypes.GEO_POINT.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()
-            ).withFeature(Scalar.Feature.NULLABLE),
+            ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new UnaryScalar<>(
                     signature,
@@ -50,7 +51,8 @@ public final class CoordinateFunction {
                 "longitude",
                 DataTypes.GEO_POINT.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()
-            ).withFeature(Scalar.Feature.NULLABLE),
+            ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new UnaryScalar<>(
                     signature,

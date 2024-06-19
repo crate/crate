@@ -36,7 +36,8 @@ public class RadiansDegreesFunctions {
                 "radians",
                 DataTypes.DOUBLE.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()
-            ).withFeature(Scalar.Feature.NULLABLE),
+            ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new UnaryScalar<>(signature, boundSignature, DataTypes.DOUBLE, Math::toRadians));
 
@@ -45,7 +46,8 @@ public class RadiansDegreesFunctions {
                 "degrees",
                 DataTypes.DOUBLE.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()
-            ).withFeature(Scalar.Feature.NULLABLE),
+            ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new UnaryScalar<>(signature, boundSignature, DataTypes.DOUBLE, Math::toDegrees));
     }

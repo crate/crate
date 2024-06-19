@@ -81,10 +81,11 @@ public class ExtractFunctions {
                 final DateTimeField dtf = entry.dtf();
                 module.add(
                     Signature.scalar(
-                        functionNameFrom(entry.extractField()),
-                        argType.getTypeSignature(),
-                        DataTypes.INTEGER.getTypeSignature()
-                    ).withFeature(Scalar.Feature.NULLABLE),
+                            functionNameFrom(entry.extractField()),
+                            argType.getTypeSignature(),
+                            DataTypes.INTEGER.getTypeSignature()
+                        ).withFeature(Scalar.Feature.DETERMINISTIC)
+                        .withFeature(Scalar.Feature.NULLABLE),
                     (signature, boundSignature) ->
                         new UnaryScalar<Number, Long>(signature, boundSignature, argType, dtf::get)
                 );
@@ -92,10 +93,11 @@ public class ExtractFunctions {
             // extract(epoch from ...) is different as is returns a `double precision`
             module.add(
                 Signature.scalar(
-                    functionNameFrom(EPOCH),
-                    argType.getTypeSignature(),
-                    DataTypes.DOUBLE.getTypeSignature()
-                ).withFeature(Scalar.Feature.NULLABLE),
+                        functionNameFrom(EPOCH),
+                        argType.getTypeSignature(),
+                        DataTypes.DOUBLE.getTypeSignature()
+                    ).withFeature(Scalar.Feature.DETERMINISTIC)
+                    .withFeature(Scalar.Feature.NULLABLE),
                 (signature, boundSignature) ->
                     new UnaryScalar<>(signature, boundSignature, argType, v -> (double) v / 1000)
             );
@@ -116,10 +118,11 @@ public class ExtractFunctions {
             final Function<Period, Integer> function = entry.function();
             module.add(
                 Signature.scalar(
-                    functionNameFrom(entry.extractField()),
-                    DataTypes.INTERVAL.getTypeSignature(),
-                    DataTypes.INTEGER.getTypeSignature()
-                ).withFeature(Scalar.Feature.NULLABLE),
+                        functionNameFrom(entry.extractField()),
+                        DataTypes.INTERVAL.getTypeSignature(),
+                        DataTypes.INTEGER.getTypeSignature()
+                    ).withFeature(Scalar.Feature.DETERMINISTIC)
+                    .withFeature(Scalar.Feature.NULLABLE),
                 (signature, boundSignature) ->
                     new UnaryScalar<Number, Period>(signature, boundSignature, DataTypes.INTERVAL, function::apply)
             );
@@ -127,10 +130,11 @@ public class ExtractFunctions {
         // extract(epoch from ...) is different as is returns a `double precision`
         module.add(
             Signature.scalar(
-                functionNameFrom(EPOCH),
-                DataTypes.INTERVAL.getTypeSignature(),
-                DataTypes.DOUBLE.getTypeSignature()
-            ).withFeature(Scalar.Feature.NULLABLE),
+                    functionNameFrom(EPOCH),
+                    DataTypes.INTERVAL.getTypeSignature(),
+                    DataTypes.DOUBLE.getTypeSignature()
+                ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new UnaryScalar<>(signature, boundSignature, DataTypes.INTERVAL, ExtractFunctions::toMillis)
         );

@@ -96,22 +96,24 @@ public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
      * 4. match_type options - object mapping option name to value (Object) (nullable)
      */
     public static final Signature TEXT_MATCH = Signature.scalar(
-        NAME,
-        DataTypes.UNTYPED_OBJECT.getTypeSignature(),
-        DataTypes.STRING.getTypeSignature(),
-        DataTypes.STRING.getTypeSignature(),
-        DataTypes.UNTYPED_OBJECT.getTypeSignature(),
-        DataTypes.BOOLEAN.getTypeSignature()
-    ).withFeature(Scalar.Feature.NON_NULLABLE);
+            NAME,
+            DataTypes.UNTYPED_OBJECT.getTypeSignature(),
+            DataTypes.STRING.getTypeSignature(),
+            DataTypes.STRING.getTypeSignature(),
+            DataTypes.UNTYPED_OBJECT.getTypeSignature(),
+            DataTypes.BOOLEAN.getTypeSignature()
+        ).withFeature(Scalar.Feature.DETERMINISTIC)
+        .withFeature(Scalar.Feature.NON_NULLABLE);
 
     public static final Signature GEO_MATCH = Signature.scalar(
-        NAME,
-        DataTypes.UNTYPED_OBJECT.getTypeSignature(),
-        DataTypes.GEO_SHAPE.getTypeSignature(),
-        DataTypes.STRING.getTypeSignature(),
-        DataTypes.UNTYPED_OBJECT.getTypeSignature(),
-        DataTypes.BOOLEAN.getTypeSignature()
-    ).withFeature(Scalar.Feature.NON_NULLABLE);
+            NAME,
+            DataTypes.UNTYPED_OBJECT.getTypeSignature(),
+            DataTypes.GEO_SHAPE.getTypeSignature(),
+            DataTypes.STRING.getTypeSignature(),
+            DataTypes.UNTYPED_OBJECT.getTypeSignature(),
+            DataTypes.BOOLEAN.getTypeSignature()
+        ).withFeature(Scalar.Feature.DETERMINISTIC)
+        .withFeature(Scalar.Feature.NON_NULLABLE);
 
 
     public static void register(Functions.Builder builder) {

@@ -48,7 +48,7 @@ public class StringPaddingFunction extends Scalar<String, Object> {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ),
+            ).withFeature(Feature.DETERMINISTIC),
             (signature, boundSignature) ->
                 new StringPaddingFunction(
                     signature,
@@ -64,7 +64,7 @@ public class StringPaddingFunction extends Scalar<String, Object> {
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ),
+            ).withFeature(Feature.DETERMINISTIC),
             (signature, boundSignature) ->
                 new StringPaddingFunction(
                     signature,
@@ -79,7 +79,7 @@ public class StringPaddingFunction extends Scalar<String, Object> {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ),
+            ).withFeature(Feature.DETERMINISTIC),
             (signature, boundSignature) ->
                 new StringPaddingFunction(
                     signature,
@@ -95,7 +95,7 @@ public class StringPaddingFunction extends Scalar<String, Object> {
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ),
+            ).withFeature(Feature.DETERMINISTIC),
             (signature, boundSignature) ->
                 new StringPaddingFunction(
                     signature,

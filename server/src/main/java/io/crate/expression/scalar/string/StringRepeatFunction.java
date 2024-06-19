@@ -39,7 +39,7 @@ public final class StringRepeatFunction extends Scalar<String, Object> {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ),
+            ).withFeature(Feature.DETERMINISTIC),
             StringRepeatFunction::new
         );
     }

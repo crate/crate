@@ -44,7 +44,7 @@ public class PgGetExpr extends Scalar<String, Object> {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ),
+            ).withFeature(Feature.DETERMINISTIC),
             PgGetExpr::new
         );
         module.add(
@@ -54,7 +54,7 @@ public class PgGetExpr extends Scalar<String, Object> {
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.BOOLEAN.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ),
+            ).withFeature(Feature.DETERMINISTIC),
             PgGetExpr::new
         );
     }

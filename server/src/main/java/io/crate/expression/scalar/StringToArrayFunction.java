@@ -49,7 +49,7 @@ public class StringToArrayFunction extends Scalar<List<String>, String> {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING_ARRAY.getTypeSignature()
-            ),
+            ).withFeature(Feature.DETERMINISTIC),
             StringToArrayFunction::new
         );
         module.add(
@@ -59,7 +59,7 @@ public class StringToArrayFunction extends Scalar<List<String>, String> {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING_ARRAY.getTypeSignature()
-            ),
+            ).withFeature(Feature.DETERMINISTIC),
             StringToArrayFunction::new
         );
     }

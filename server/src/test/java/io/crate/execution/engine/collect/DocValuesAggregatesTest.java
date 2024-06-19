@@ -44,6 +44,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
@@ -122,7 +123,7 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
                     SumAggregation.NAME,
                     DataTypes.LONG.getTypeSignature(),
                     DataTypes.LONG.getTypeSignature()
-                ),
+                ).withFeature(Scalar.Feature.DETERMINISTIC),
                 DataTypes.LONG,
                 List.of(Literal.of(1L)))
             ),
@@ -217,7 +218,7 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
                 SumAggregation.NAME,
                 DataTypes.LONG.getTypeSignature(),
                 DataTypes.LONG.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.DETERMINISTIC),
             DataTypes.LONG,
             List.of(new InputColumn(inputCol, DataTypes.LONG))
         );

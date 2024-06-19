@@ -58,6 +58,7 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
@@ -67,7 +68,8 @@ public class EqualityExtractor {
 
     private static final int MAX_ITERATIONS = 10_000;
     private static final Function NULL_MARKER = new Function(
-        Signature.scalar("null_marker", DataTypes.UNDEFINED.getTypeSignature()),
+        Signature.scalar("null_marker", DataTypes.UNDEFINED.getTypeSignature())
+            .withFeature(Scalar.Feature.DETERMINISTIC),
         List.of(),
         DataTypes.UNDEFINED
     );

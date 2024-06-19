@@ -44,6 +44,7 @@ public final class CeilFunction {
             for (var name : List.of(CEIL, CEILING)) {
                 module.add(
                     scalar(name, typeSignature, returnType.getTypeSignature())
+                        .withFeature(Scalar.Feature.DETERMINISTIC)
                         .withFeature(Scalar.Feature.NULLABLE),
                     (signature, boundSignature) ->
                         new UnaryScalar<>(

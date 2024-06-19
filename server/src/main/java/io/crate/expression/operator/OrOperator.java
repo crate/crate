@@ -46,7 +46,7 @@ public class OrOperator extends Operator<Boolean> {
         DataTypes.BOOLEAN.getTypeSignature(),
         DataTypes.BOOLEAN.getTypeSignature(),
         DataTypes.BOOLEAN.getTypeSignature()
-    );
+    ).withFeature(Feature.DETERMINISTIC);
 
 
     public static void register(Functions.Builder builder) {

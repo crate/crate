@@ -56,22 +56,24 @@ public class IfFunction extends Scalar<Object, Object> {
         // if (condition, result)
         module.add(
             Signature.scalar(
-                NAME,
-                DataTypes.BOOLEAN.getTypeSignature(),
-                TypeSignature.parse("E"),
-                TypeSignature.parse("E")
-            ).withTypeVariableConstraints(typeVariable("E")),
+                    NAME,
+                    DataTypes.BOOLEAN.getTypeSignature(),
+                    TypeSignature.parse("E"),
+                    TypeSignature.parse("E")
+                ).withFeature(Feature.DETERMINISTIC)
+                .withTypeVariableConstraints(typeVariable("E")),
             IfFunction::new
         );
         // if (condition, result, default)
         module.add(
             Signature.scalar(
-                NAME,
-                DataTypes.BOOLEAN.getTypeSignature(),
-                TypeSignature.parse("E"),
-                TypeSignature.parse("E"),
-                TypeSignature.parse("E")
-            ).withTypeVariableConstraints(typeVariable("E")),
+                    NAME,
+                    DataTypes.BOOLEAN.getTypeSignature(),
+                    TypeSignature.parse("E"),
+                    TypeSignature.parse("E"),
+                    TypeSignature.parse("E")
+                ).withFeature(Feature.DETERMINISTIC)
+                .withTypeVariableConstraints(typeVariable("E")),
             IfFunction::new
         );
     }

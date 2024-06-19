@@ -36,6 +36,7 @@ import io.crate.data.breaker.RamAccounting;
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.expression.symbol.Literal;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.testing.PlainRamAccounting;
@@ -51,7 +52,7 @@ public class PercentileAggregationTest extends AggregationTestCase {
                 argumentType.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.DETERMINISTIC),
             rows,
             List.of()
         );
@@ -64,7 +65,7 @@ public class PercentileAggregationTest extends AggregationTestCase {
                 argumentType.getTypeSignature(),
                 DataTypes.DOUBLE_ARRAY.getTypeSignature(),
                 DataTypes.DOUBLE_ARRAY.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.DETERMINISTIC),
             rows,
             List.of()
         );
@@ -81,7 +82,7 @@ public class PercentileAggregationTest extends AggregationTestCase {
                 DataTypes.DOUBLE.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.DETERMINISTIC),
             List.of(DataTypes.DOUBLE, DataTypes.DOUBLE),
             DataTypes.DOUBLE
         );
@@ -91,7 +92,7 @@ public class PercentileAggregationTest extends AggregationTestCase {
                 DataTypes.DOUBLE.getTypeSignature(),
                 DataTypes.DOUBLE_ARRAY.getTypeSignature(),
                 DataTypes.DOUBLE_ARRAY.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.DETERMINISTIC),
             List.of(DataTypes.DOUBLE, DataTypes.DOUBLE_ARRAY),
             DataTypes.DOUBLE_ARRAY
         );
@@ -234,7 +235,7 @@ public class PercentileAggregationTest extends AggregationTestCase {
                 DataTypes.LONG.getTypeSignature(),
                 DataTypes.DOUBLE_ARRAY.getTypeSignature(),
                 DataTypes.DOUBLE_ARRAY.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.DETERMINISTIC),
             List.of(DataTypes.LONG, DataTypes.DOUBLE_ARRAY),
             DataTypes.DOUBLE_ARRAY
         );
@@ -258,7 +259,7 @@ public class PercentileAggregationTest extends AggregationTestCase {
                 DataTypes.LONG.getTypeSignature(),
                 DataTypes.DOUBLE_ARRAY.getTypeSignature(),
                 DataTypes.DOUBLE_ARRAY.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.DETERMINISTIC),
             List.of(DataTypes.LONG, DataTypes.DOUBLE_ARRAY),
             DataTypes.DOUBLE_ARRAY
         );

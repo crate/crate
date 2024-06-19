@@ -45,14 +45,14 @@ public class UserFunction extends Scalar<String, Object> {
             Signature.scalar(
                 CURRENT_USER_FUNCTION_NAME,
                 DataTypes.STRING.getTypeSignature()
-            ).withFeatures(Scalar.NO_FEATURES),
+            ),
             UserFunction::new
         );
         builder.add(
             Signature.scalar(
                 SESSION_USER_FUNCTION_NAME,
                 DataTypes.STRING.getTypeSignature()
-            ).withFeatures(Scalar.NO_FEATURES),
+            ),
             UserFunction::new
         );
     }

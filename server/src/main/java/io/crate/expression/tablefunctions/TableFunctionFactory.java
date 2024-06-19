@@ -82,7 +82,7 @@ public class TableFunctionFactory {
                         functionImplementation.signature().getArgumentTypes(),
                         functionImplementation.signature().getReturnType()
                     ).toArray(new TypeSignature[0])
-                ),
+                ).withFeature(Feature.DETERMINISTIC),
                 new BoundSignature(
                     functionImplementation.boundSignature().argTypes(),
                     functionImplementation.boundSignature().returnType()

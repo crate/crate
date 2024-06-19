@@ -46,6 +46,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -108,26 +109,28 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
         var variableConstraintB = TypeVariableConstraint.typeVariableOfAnyType("B");
         builder.add(
             Signature.aggregate(
-                MAX_BY,
-                returnValueType,
-                cmpType,
-                returnValueType
-            ).withTypeVariableConstraints(
-                variableConstraintA,
-                variableConstraintB
-            ),
+                    MAX_BY,
+                    returnValueType,
+                    cmpType,
+                    returnValueType)
+                .withFeature(Scalar.Feature.DETERMINISTIC)
+                .withTypeVariableConstraints(
+                    variableConstraintA,
+                    variableConstraintB
+                ),
             (signature, boundSignature) -> new CmpByAggregation(1, signature, boundSignature)
         );
         builder.add(
             Signature.aggregate(
                 MIN_BY,
                 returnValueType,
-                cmpType,
-                returnValueType
-            ).withTypeVariableConstraints(
-                variableConstraintA,
-                variableConstraintB
-            ),
+                    cmpType,
+                    returnValueType)
+                .withFeature(Scalar.Feature.DETERMINISTIC)
+                .withTypeVariableConstraints(
+                    variableConstraintA,
+                    variableConstraintB
+                ),
             (signature, boundSignature) -> new CmpByAggregation(-1, signature, boundSignature)
         );
     }

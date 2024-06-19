@@ -34,6 +34,7 @@ import io.crate.expression.scalar.cast.ExplicitCastFunction;
 import io.crate.expression.scalar.cast.ImplicitCastFunction;
 import io.crate.expression.scalar.cast.TryCastFunction;
 import io.crate.expression.symbol.format.Style;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.types.ArrayType;
@@ -121,7 +122,8 @@ public interface Symbol extends Writeable, Accountable {
                         TypeSignature.parse("V")
                     ).withTypeVariableConstraints(
                         TypeVariableConstraint.typeVariable("E"),
-                        TypeVariableConstraint.typeVariable("V")),
+                        TypeVariableConstraint.typeVariable("V"))
+                    .withFeature(Scalar.Feature.DETERMINISTIC),
                 // a literal with a NULL value is passed as an argument
                 // to match the method signature
                 List.of(sourceSymbol, Literal.of(targetType, null)),
@@ -135,6 +137,7 @@ public interface Symbol extends Writeable, Accountable {
                         TypeSignature.parse("E"),
                         DataTypes.STRING.getTypeSignature(),
                         DataTypes.UNDEFINED.getTypeSignature())
+                    .withFeature(Scalar.Feature.DETERMINISTIC)
                     .withTypeVariableConstraints(TypeVariableConstraint.typeVariable("E")),
                 List.of(
                     sourceSymbol,

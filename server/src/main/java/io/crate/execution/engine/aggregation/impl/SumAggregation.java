@@ -49,6 +49,7 @@ import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionProvider.FunctionFactory;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -71,27 +72,28 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
 
         builder.add(
             Signature.aggregate(
-                NAME,
-                DataTypes.FLOAT.getTypeSignature(),
-                DataTypes.FLOAT.getTypeSignature()
-            ),
+                    NAME,
+                    DataTypes.FLOAT.getTypeSignature(),
+                    DataTypes.FLOAT.getTypeSignature())
+                .withFeature(Scalar.Feature.DETERMINISTIC),
             getSumAggregationForFloatFactory()
         );
         builder.add(
             Signature.aggregate(
-                NAME,
-                DataTypes.DOUBLE.getTypeSignature(),
-                DataTypes.DOUBLE.getTypeSignature()
-            ),
+                    NAME,
+                    DataTypes.DOUBLE.getTypeSignature(),
+                    DataTypes.DOUBLE.getTypeSignature())
+                .withFeature(Scalar.Feature.DETERMINISTIC),
             getSumAggregationForDoubleFactory()
         );
 
         for (var supportedType : List.of(DataTypes.BYTE, DataTypes.SHORT, DataTypes.INTEGER, DataTypes.LONG)) {
             builder.add(
                 Signature.aggregate(
-                    NAME,
-                    supportedType.getTypeSignature(),
-                    DataTypes.LONG.getTypeSignature()),
+                        NAME,
+                        supportedType.getTypeSignature(),
+                        DataTypes.LONG.getTypeSignature())
+                    .withFeature(Scalar.Feature.DETERMINISTIC),
                 (signature, boundSignature) ->
                     new SumAggregation<>(DataTypes.LONG, add, sub, signature, boundSignature)
             );

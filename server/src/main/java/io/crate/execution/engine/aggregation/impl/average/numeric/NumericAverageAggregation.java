@@ -48,6 +48,7 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -71,9 +72,10 @@ public class NumericAverageAggregation extends AggregationFunction<NumericAverag
         for (var functionName : NAMES) {
             builder.add(
                 Signature.aggregate(
-                    functionName,
-                    DataTypes.NUMERIC.getTypeSignature(),
-                    DataTypes.NUMERIC.getTypeSignature()),
+                        functionName,
+                        DataTypes.NUMERIC.getTypeSignature(),
+                        DataTypes.NUMERIC.getTypeSignature())
+                    .withFeature(Scalar.Feature.DETERMINISTIC),
                 NumericAverageAggregation::new
             );
         }

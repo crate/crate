@@ -56,7 +56,8 @@ public final class PgGetKeywordsFunction extends TableFunctionImplementation<Lis
             Signature.table(
                     FUNCTION_NAME,
                     RETURN_TYPE.getTypeSignature()
-                ).withFeature(Feature.NON_NULLABLE),
+                ).withFeature(Feature.DETERMINISTIC)
+                .withFeature(Feature.NON_NULLABLE),
             PgGetKeywordsFunction::new
         );
     }

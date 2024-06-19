@@ -45,6 +45,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -62,10 +63,10 @@ public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDe
 
     public static final String NAME = "sum";
     public static final Signature SIGNATURE = Signature.aggregate(
-        NAME,
-        DataTypes.NUMERIC.getTypeSignature(),
-        DataTypes.NUMERIC.getTypeSignature()
-    );
+            NAME,
+            DataTypes.NUMERIC.getTypeSignature(),
+            DataTypes.NUMERIC.getTypeSignature())
+        .withFeature(Scalar.Feature.DETERMINISTIC);
     private static final long INIT_BIG_DECIMAL_SIZE = NumericType.size(BigDecimal.ZERO);
 
     public static void register(Functions.Builder builder) {

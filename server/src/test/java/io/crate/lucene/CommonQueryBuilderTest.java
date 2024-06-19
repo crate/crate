@@ -57,6 +57,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.lucene.match.CrateRegexQuery;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
@@ -623,7 +624,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
                 TypeSignature.parse("array(E)"),
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.DETERMINISTIC),
             List.of(alias, Literal.of(1)), // 1 is a dummy argument for dimension.
             DataTypes.INTEGER
         );

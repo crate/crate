@@ -40,7 +40,8 @@ public final class GeoHashFunction {
                 "geohash",
                 DataTypes.GEO_POINT.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ).withFeature(Scalar.Feature.NULLABLE),
+            ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new UnaryScalar<>(
                     signature,

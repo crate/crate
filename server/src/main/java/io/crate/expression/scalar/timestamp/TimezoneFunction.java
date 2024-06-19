@@ -50,7 +50,7 @@ public class TimezoneFunction extends Scalar<Long, Object> {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.TIMESTAMPZ.getTypeSignature(),
                 DataTypes.TIMESTAMP.getTypeSignature()
-            ),
+            ).withFeature(Feature.DETERMINISTIC),
             TimezoneFunction::new
         );
         module.add(
@@ -59,7 +59,7 @@ public class TimezoneFunction extends Scalar<Long, Object> {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.TIMESTAMP.getTypeSignature(),
                 DataTypes.TIMESTAMPZ.getTypeSignature()
-            ),
+            ).withFeature(Feature.DETERMINISTIC),
             TimezoneFunction::new
         );
         module.add(
@@ -68,7 +68,7 @@ public class TimezoneFunction extends Scalar<Long, Object> {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.LONG.getTypeSignature(),
                 DataTypes.TIMESTAMPZ.getTypeSignature()
-            ),
+            ).withFeature(Feature.DETERMINISTIC),
             TimezoneFunction::new
         );
     }

@@ -65,7 +65,6 @@ import io.crate.role.Roles;
  */
 public abstract class Scalar<ReturnType, InputType> implements FunctionImplementation, FunctionToQuery {
 
-    public static final Set<Feature> NO_FEATURES = Set.of();
     public static final Set<Feature> DETERMINISTIC_ONLY = EnumSet.of(Feature.DETERMINISTIC);
     public static final Set<Feature> DETERMINISTIC_AND_COMPARISON_REPLACEMENT = EnumSet.of(
         Feature.DETERMINISTIC, Feature.COMPARISON_REPLACEMENT);

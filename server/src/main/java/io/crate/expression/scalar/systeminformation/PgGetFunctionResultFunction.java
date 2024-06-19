@@ -43,7 +43,7 @@ public final class PgGetFunctionResultFunction extends Scalar<String, Integer> {
                 FQN,
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ),
+            ).withFeature(Feature.DETERMINISTIC),
             PgGetFunctionResultFunction::new);
     }
 

@@ -48,6 +48,7 @@ public class ExplicitCastFunction extends Scalar<Object, Object> {
                     TypeSignature.parse("E"),
                     TypeSignature.parse("V"),
                     TypeSignature.parse("V"))
+                .withFeature(Feature.DETERMINISTIC)
                 .withTypeVariableConstraints(typeVariable("E"), typeVariable("V")),
             ExplicitCastFunction::new
         );

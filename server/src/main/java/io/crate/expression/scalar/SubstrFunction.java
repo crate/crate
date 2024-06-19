@@ -50,15 +50,15 @@ public class SubstrFunction extends Scalar<String, Object> {
         TypeSignature intType = DataTypes.INTEGER.getTypeSignature();
         for (var name : List.of(NAME, ALIAS)) {
             builder.add(
-                Signature.scalar(name, stringType, intType, stringType),
+                Signature.scalar(name, stringType, intType, stringType).withFeature(Feature.DETERMINISTIC),
                 SubstrFunction::new
             );
             builder.add(
-                Signature.scalar(name, stringType, intType, intType, stringType),
+                Signature.scalar(name, stringType, intType, intType, stringType).withFeature(Feature.DETERMINISTIC),
                 SubstrFunction::new
             );
             builder.add(
-                Signature.scalar(name, stringType, stringType, stringType),
+                Signature.scalar(name, stringType, stringType, stringType).withFeature(Feature.DETERMINISTIC),
                 SubstrExtractFunction::new
             );
         }
