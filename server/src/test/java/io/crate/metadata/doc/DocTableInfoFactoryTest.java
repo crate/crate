@@ -23,6 +23,7 @@ package io.crate.metadata.doc;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
 import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Collections;
 import java.util.Locale;
@@ -58,32 +59,35 @@ public class DocTableInfoFactoryTest extends ESTestCase {
     public void testNoTableInfoFromOrphanedPartition() throws Exception {
         String schemaName = randomSchema();
         PartitionName partitionName = new PartitionName(
-            new RelationName(schemaName, "test"), Collections.singletonList("boo"));
+                new RelationName(schemaName, "test"), Collections.singletonList("boo"));
         IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(partitionName.asIndexName())
-            .settings(Settings.builder().put("index.version.created", Version.CURRENT).build())
-            .numberOfReplicas(0)
-            .numberOfShards(5)
-            .putMapping(
-                "{" +
-                "  \"default\": {" +
-                "    \"properties\":{" +
-                "      \"id\": {" +
-                "         \"type\": \"integer\"," +
-                "         \"position\": 1," +
-                "         \"index\": \"not_analyzed\"" +
-                "      }" +
-                "    }" +
-                "  }" +
-                "}");
+                .settings(Settings.builder().put("index.version.created", Version.CURRENT).build())
+                .numberOfReplicas(0)
+                .numberOfShards(5)
+                .putMapping(
+                        "{" +
+                                "  \"default\": {" +
+                                "    \"properties\":{" +
+                                "      \"id\": {" +
+                                "         \"type\": \"integer\"," +
+                                "         \"position\": 1," +
+                                "         \"index\": \"not_analyzed\"" +
+                                "      }" +
+                                "    }" +
+                                "  }" +
+                                "}");
         Metadata metadata = Metadata.builder()
-            .put(indexMetadataBuilder)
-            .build();
+                .put(indexMetadataBuilder)
+                .build();
 
         ClusterState state = ClusterState.builder(ClusterName.DEFAULT).metadata(metadata).build();
         DocTableInfoFactory docTableInfoFactory = new DocTableInfoFactory(nodeCtx);
 
-        expectedException.expect(RelationUnknown.class);
-        expectedException.expectMessage(String.format(Locale.ENGLISH, "Relation '%s.test' unknown", schemaName));
-        docTableInfoFactory.create(new RelationName(schemaName, "test"), state.metadata());
+        assertThatThrownBy(() -> {
+            docTableInfoFactory.create(new RelationName(schemaName, "test"), state.metadata());
+
+        })
+                .isExactlyInstanceOf(RelationUnknown.class)
+                .hasMessage(String.format(Locale.ENGLISH, "Relation '%s.test' unknown", schemaName));
     }
 }

@@ -21,6 +21,8 @@
 
 package io.crate.expression.scalar.string;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import org.junit.Test;
 
 import io.crate.expression.scalar.ScalarTestCase;
@@ -30,10 +32,13 @@ public class StringPaddingFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_lpad_parameter_len_too_big() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("len argument exceeds predefined limit of 50000");
-        assertEvaluateNull("lpad('yes', 2000000, 'yes')");
-        assertEvaluateNull("lpad('yes', a, 'yes')",Literal.of(2000000));
+        assertThatThrownBy(() -> {
+            assertEvaluateNull("lpad('yes', 2000000, 'yes')");
+            assertEvaluateNull("lpad('yes', a, 'yes')", Literal.of(2000000));
+
+        })
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("len argument exceeds predefined limit of 50000");
     }
 
     @Test
@@ -96,10 +101,13 @@ public class StringPaddingFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_rpad_parameter_len_too_big() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("len argument exceeds predefined limit of 50000");
-        assertEvaluateNull("rpad('yes', 2000000, 'yes')");
-        assertEvaluate("rpad('yes', a, 'yes')", Literal.of(2000000));
+        assertThatThrownBy(() -> {
+            assertEvaluateNull("rpad('yes', 2000000, 'yes')");
+            assertEvaluate("rpad('yes', a, 'yes')", Literal.of(2000000));
+
+        })
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("len argument exceeds predefined limit of 50000");
     }
 
     @Test

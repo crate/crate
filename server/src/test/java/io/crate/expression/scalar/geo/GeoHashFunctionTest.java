@@ -23,9 +23,11 @@ package io.crate.expression.scalar.geo;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isLiteral;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
 
+import io.crate.exceptions.ConversionException;
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
@@ -56,24 +58,26 @@ public class GeoHashFunctionTest extends ScalarTestCase {
 
     @Test
     public void testWithTooManyArguments() {
-        expectedException.expect(UnsupportedFunctionException.class);
-        expectedException.expectMessage("Unknown function: geohash('POINT (10 20)', 'foo')," +
-                                        " no overload found for matching argument types: (text, text).");
-        assertNormalize("geohash('POINT (10 20)', 'foo')", s -> assertThat(s).isNull());
+        assertThatThrownBy(() -> {
+            assertNormalize("geohash('POINT (10 20)', 'foo')", s -> assertThat(s).isNull());
+        })
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessageStartingWith("Unknown function: geohash('POINT (10 20)', 'foo')," +
+                " no overload found for matching argument types: (text, text).");
     }
 
     @Test
     public void testResolveWithInvalidType() throws Exception {
-        expectedException.expect(UnsupportedFunctionException.class);
-        expectedException.expectMessage(
-            "Unknown function: geohash(1), no overload found for matching argument types: (integer)");
-        assertEvaluateNull("geohash(1)");
+        assertThatThrownBy(() -> assertEvaluateNull("geohash(1)"))
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessageStartingWith(
+                "Unknown function: geohash(1), no overload found for matching argument types: (integer)");
     }
 
     @Test
     public void testWithInvalidStringReferences() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot cast `'POINT (foo)'` of type `text` to type `geo_point`");
-        assertEvaluateNull("geohash('POINT (foo)')");
+        assertThatThrownBy(() -> assertEvaluateNull("geohash('POINT (foo)')"))
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessage("Cannot cast `'POINT (foo)'` of type `text` to type `geo_point`");
     }
 }

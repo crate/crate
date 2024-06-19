@@ -21,8 +21,11 @@
 
 package io.crate.expression.scalar.string;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import org.junit.Test;
 
+import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.scalar.ScalarTestCase;
 
 public class ChrFunctionTest extends ScalarTestCase {
@@ -34,30 +37,30 @@ public class ChrFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_zero_value_throws_exception() throws Exception {
-        expectedException.expectMessage("null character not permitted");
-        expectedException.expect(IllegalArgumentException.class);
-        assertEvaluate("chr(0)", "");
+        assertThatThrownBy(() -> assertEvaluate("chr(0)", ""))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("null character not permitted");
     }
 
     @Test
     public void test_negative_number_throws_exception() throws Exception {
-        expectedException.expectMessage("requested character too large for encoding: -1");
-        expectedException.expect(IllegalArgumentException.class);
-        assertEvaluate("chr(-1)", "");
+        assertThatThrownBy(() -> assertEvaluate("chr(-1)", ""))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("requested character too large for encoding: -1");
     }
 
     @Test
     public void test_large_number_throws_exception() throws Exception {
-        expectedException.expectMessage("requested character too large for encoding: 1114112");
-        expectedException.expect(IllegalArgumentException.class);
-        assertEvaluate("chr(1114112)", "");
+        assertThatThrownBy(() -> assertEvaluate("chr(1114112)", ""))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("requested character too large for encoding: 1114112");
     }
 
     @Test
     public void test_empty_value_throws_exception() throws Exception {
-        expectedException.expectMessage("Unknown function: chr(). Possible candidates: chr(integer):text");
-        expectedException.expect(Exception.class);
-        assertEvaluate("chr()", "");
+        assertThatThrownBy(() -> assertEvaluate("chr()", ""))
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessage("Unknown function: chr(). Possible candidates: chr(integer):text");
     }
 
     @Test

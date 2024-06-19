@@ -21,9 +21,9 @@
 
 package io.crate.analyze;
 
-
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -58,19 +58,28 @@ public class SwapTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSwapTableFailsIfOneTableIsMissing() {
-        expectedException.expectMessage("Relation 't4' unknown");
-        e.analyze("alter cluster swap table t1 to t4");
+        assertThatThrownBy(() -> {
+            e.analyze("alter cluster swap table t1 to t4");
+
+        })
+                .hasMessage("Relation 't4' unknown");
     }
 
     @Test
     public void testSwapTableStatementFailsWithInvalidOptions() {
-        expectedException.expectMessage("Invalid options for ALTER CLUSTER SWAP TABLE: foo");
-        e.analyze("alter cluster swap table t1 to t2 with (foo = 'bar')");
+        assertThatThrownBy(() -> {
+            e.analyze("alter cluster swap table t1 to t2 with (foo = 'bar')");
+
+        })
+                .hasMessage("Invalid options for ALTER CLUSTER SWAP TABLE: foo");
     }
 
     @Test
     public void testSwapTableDoesNotWorkOnSystemTables() {
-        expectedException.expectMessage("The relation \"sys.cluster\" doesn't support or allow ALTER operations");
-        e.analyze("alter cluster swap table sys.cluster to t2");
+        assertThatThrownBy(() -> {
+            e.analyze("alter cluster swap table sys.cluster to t2");
+
+        })
+                .hasMessage("The relation \"sys.cluster\" doesn't support or allow ALTER operations");
     }
 }

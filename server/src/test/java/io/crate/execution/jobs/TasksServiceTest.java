@@ -22,6 +22,7 @@
 package io.crate.execution.jobs;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.lang.reflect.Field;
 import java.util.List;
@@ -86,11 +87,6 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
     public void testAcquireContextSameJobId() throws Exception {
         UUID jobId = UUID.randomUUID();
 
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage(String.format(Locale.ENGLISH,
-            "task for job %s already exists", jobId));
-
-        // create new context
         RootTask.Builder builder1 = tasksService.newBuilder(jobId);
         builder1.addTask(new DummyTask(1));
         tasksService.createTask(builder1);
@@ -98,17 +94,18 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         // creating a context with the same jobId will fail
         RootTask.Builder builder2 = tasksService.newBuilder(jobId);
         builder2.addTask(new DummyTask(2));
-
-        tasksService.createTask(builder2);
+        assertThatThrownBy(() -> tasksService.createTask(builder2))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageStartingWith(String.format(Locale.ENGLISH,
+                    "task for job %s already exists", jobId));
     }
 
     @Test
     public void testCreateCallWithEmptyBuilderThrowsAnError() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("RootTask.Builder must at least contain 1 Task");
-
         RootTask.Builder builder = tasksService.newBuilder(UUID.randomUUID());
-        tasksService.createTask(builder);
+        assertThatThrownBy(() -> tasksService.createTask(builder))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("RootTask.Builder must at least contain 1 Task");
     }
 
     @Test

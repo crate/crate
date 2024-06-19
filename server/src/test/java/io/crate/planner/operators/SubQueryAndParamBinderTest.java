@@ -21,6 +21,8 @@
 
 package io.crate.planner.operators;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import java.util.Map;
 
 import org.elasticsearch.test.ESTestCase;
@@ -37,7 +39,10 @@ public class SubQueryAndParamBinderTest extends ESTestCase {
         SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(Row.EMPTY, SubQueryResults.EMPTY);
         Symbol symbol = new SqlExpressions(Map.of()).asSymbol("$1 > 10");
 
-        expectedException.expectMessage("The query contains a parameter placeholder $1, but there are only 0 parameter values");
-        paramBinder.apply(symbol);
+        assertThatThrownBy(() -> {
+            paramBinder.apply(symbol);
+
+        })
+                .hasMessage("The query contains a parameter placeholder $1, but there are only 0 parameter values");
     }
 }

@@ -22,6 +22,7 @@
 package io.crate.execution.engine.aggregation.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
@@ -126,9 +127,9 @@ public class VarianceAggregationTest extends AggregationTestCase {
 
     @Test
     public void testUnsupportedType() throws Exception {
-        expectedException.expect(UnsupportedFunctionException.class);
-        expectedException.expectMessage("Unknown function: variance(INPUT(0))," +
-                                        " no overload found for matching argument types: (geo_point).");
-        executeAggregation(DataTypes.GEO_POINT, new Object[][]{});
+        assertThatThrownBy(() -> executeAggregation(DataTypes.GEO_POINT, new Object[][] {}))
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessageStartingWith("Unknown function: variance(INPUT(0))," +
+                    " no overload found for matching argument types: (geo_point).");
     }
 }

@@ -22,8 +22,8 @@
 package io.crate.planner.node.ddl;
 
 import static io.crate.planner.node.ddl.ResetSettingsPlan.buildSettingsFrom;
-import static org.assertj.core.api.Assertions.assertThat;
 import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Set;
@@ -88,12 +88,14 @@ public class ResetSettingsPlanTest extends ESTestCase {
 
     @Test
     public void testResetNonRuntimeSettingObject() {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Setting 'gateway.recover_after_nodes' cannot be set/reset at runtime");
+        assertThatThrownBy(() -> {
+            Set<Symbol> settings = Set.of(Literal.of("gateway.recover_after_nodes"));
 
-        Set<Symbol> settings = Set.of(Literal.of("gateway.recover_after_nodes"));
+            buildSettingsFrom(settings, symbolEvaluator(Row.EMPTY));
 
-        buildSettingsFrom(settings, symbolEvaluator(Row.EMPTY));
+        })
+                .isExactlyInstanceOf(UnsupportedOperationException.class)
+                .hasMessage("Setting 'gateway.recover_after_nodes' cannot be set/reset at runtime");
     }
 
     @Test
@@ -141,10 +143,12 @@ public class ResetSettingsPlanTest extends ESTestCase {
 
     @Test
     public void testUnsupportedSetting() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Setting 'unsupported_setting' is not supported");
+        assertThatThrownBy(() -> {
+            Set<Symbol> settings = Set.of(Literal.of("unsupported_setting"));
+            buildSettingsFrom(settings, symbolEvaluator(Row.EMPTY));
 
-        Set<Symbol> settings = Set.of(Literal.of("unsupported_setting"));
-        buildSettingsFrom(settings, symbolEvaluator(Row.EMPTY));
+        })
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Setting 'unsupported_setting' is not supported");
     }
 }

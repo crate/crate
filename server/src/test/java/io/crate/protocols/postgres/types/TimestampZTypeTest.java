@@ -21,8 +21,9 @@
 
 package io.crate.protocols.postgres.types;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -60,9 +61,12 @@ public class TimestampZTypeTest extends BasePGTypeTest<Long> {
 
     @Test
     public void testDecodeUTF8TextWithUnexpectedNumberOfFractionDigits() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot parse more than 9 digits for fraction of a second");
-        TimestampZType.INSTANCE.decodeUTF8Text("2016-06-28 00:00:00.0000000001+05:00".getBytes(UTF_8));
+        assertThatThrownBy(() -> {
+            TimestampZType.INSTANCE.decodeUTF8Text("2016-06-28 00:00:00.0000000001+05:00".getBytes(UTF_8));
+
+        })
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Cannot parse more than 9 digits for fraction of a second");
     }
 
     @Test

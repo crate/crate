@@ -92,7 +92,7 @@ public class TimezoneFunction extends Scalar<Long, Object> {
             zoneId = ZoneId.of(zoneStr);
         } catch (DateTimeException e) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                                                             " time zone \"%s\" not recognized",
+                                                             "time zone \"%s\" not recognized",
                                                              zoneStr));
         }
         Number utcTimestamp = (Number) args[1].value();

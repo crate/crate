@@ -21,6 +21,8 @@
 
 package io.crate.expression.scalar.object;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import java.util.List;
 
 import org.junit.Test;
@@ -37,11 +39,14 @@ public class ObjectKeysFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_array_input() {
-        expectedException.expect(UnsupportedFunctionException.class);
-        expectedException.expectMessage("Unknown function: object_keys(_array(1)), no overload found for" +
-                                        " matching argument types: (integer_array). Possible candidates:" +
-                                        " object_keys(object):array(text)");
-        assertEvaluateNull("object_keys([1])");
+        assertThatThrownBy(() -> {
+            assertEvaluateNull("object_keys([1])");
+
+        })
+                .isExactlyInstanceOf(UnsupportedFunctionException.class)
+                .hasMessage("Unknown function: object_keys(_array(1)), no overload found for" +
+                        " matching argument types: (integer_array). Possible candidates:" +
+                        " object_keys(object):array(text)");
     }
 
     @Test

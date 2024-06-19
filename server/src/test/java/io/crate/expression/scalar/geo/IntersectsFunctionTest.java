@@ -24,9 +24,7 @@ package io.crate.expression.scalar.geo;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.TestingHelpers.jsonMap;
-import static org.hamcrest.Matchers.stringContainsInOrder;
-
-import java.util.Arrays;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
 
@@ -57,9 +55,13 @@ public class IntersectsFunctionTest extends ScalarTestCase {
 
     @Test
     public void testNormalizeFromInvalidLiteral() throws Exception {
-        expectedException.expect(ConversionException.class);
-        expectedException.expectMessage(stringContainsInOrder(Arrays.asList("Cannot cast ", "to type `geo_shape`")));
-        assertNormalize("intersects({type='LineString', coordinates=[0, 0]}, 'LINESTRING (0 2, 0 -2)')", s -> assertThat(s).isNull());
+        assertThatThrownBy(() -> {
+            assertNormalize("intersects({type='LineString', coordinates=[0, 0]}, 'LINESTRING (0 2, 0 -2)')",
+                    s -> assertThat(s).isNull());
+
+        })
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessageContaining("to type `geo_shape`");
     }
 
     @Test

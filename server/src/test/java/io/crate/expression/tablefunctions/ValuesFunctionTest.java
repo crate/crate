@@ -22,6 +22,7 @@
 package io.crate.expression.tablefunctions;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 
@@ -106,10 +107,13 @@ public class ValuesFunctionTest extends AbstractTableFunctionsTest {
 
     @Test
     public void test_function_arguments_must_have_array_types() {
-        expectedException.expect(UnsupportedFunctionException.class);
-        expectedException.expectMessage("Unknown function: _values(200)," +
-                                        " no overload found for matching argument types: (integer).");
-        assertExecute("_values(200)", "");
+        assertThatThrownBy(() -> {
+            assertExecute("_values(200)", "");
+
+        })
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessageStartingWith("Unknown function: _values(200)," +
+                    " no overload found for matching argument types: (integer).");
     }
 
     @Test

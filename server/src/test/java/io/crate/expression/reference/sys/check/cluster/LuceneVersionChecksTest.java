@@ -22,6 +22,7 @@
 package io.crate.expression.reference.sys.check.cluster;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
@@ -37,8 +38,11 @@ public class LuceneVersionChecksTest extends ESTestCase {
 
     @Test
     public void testUpgradeRequiredInvalidArg() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("'invalidVersion' is not a valid Lucene version");
-        LuceneVersionChecks.isUpgradeRequired("invalidVersion");
+        assertThatThrownBy(() -> {
+            LuceneVersionChecks.isUpgradeRequired("invalidVersion");
+
+        })
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("'invalidVersion' is not a valid Lucene version");
     }
 }

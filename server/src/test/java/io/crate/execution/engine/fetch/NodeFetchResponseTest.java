@@ -22,6 +22,7 @@
 package io.crate.execution.engine.fetch;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
@@ -89,19 +90,19 @@ public class NodeFetchResponseTest extends ESTestCase {
         orig.writeTo(out);
         StreamInput in = out.bytes().streamInput();
 
-        expectedException.expect(CircuitBreakingException.class);
-        new NodeFetchResponse(
-            in,
-            streamers,
-            ConcurrentRamAccounting.forCircuitBreaker(
-                "test",
-                new MemoryCircuitBreaker(
-                    new ByteSizeValue(2, ByteSizeUnit.BYTES),
-                    1.0,
-                    LogManager.getLogger(NodeFetchResponseTest.class)),
-                0
-            )
-        );
+        assertThatThrownBy(() -> {
+            new NodeFetchResponse(
+                    in,
+                    streamers,
+                    ConcurrentRamAccounting.forCircuitBreaker(
+                            "test",
+                            new MemoryCircuitBreaker(
+                                    new ByteSizeValue(2, ByteSizeUnit.BYTES),
+                                    1.0,
+                                    LogManager.getLogger(NodeFetchResponseTest.class)),
+                            0));
 
+        })
+                .isExactlyInstanceOf(CircuitBreakingException.class);
     }
 }

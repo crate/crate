@@ -22,6 +22,7 @@
 package io.crate.expression.symbol.format;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.IllegalFormatConversionException;
 import java.util.List;
@@ -54,8 +55,11 @@ public class SymbolFormatterTest extends ESTestCase {
 
     @Test
     public void testFormatInvalidEscape() throws Exception {
-        expectedException.expect(IllegalFormatConversionException.class);
-        expectedException.expectMessage("d != java.lang.String");
-        assertThat(Symbols.format("%d", Literal.of(42L))).isEqualTo("");
+        assertThatThrownBy(() -> {
+            assertThat(Symbols.format("%d", Literal.of(42L))).isEqualTo("");
+
+        })
+                .isExactlyInstanceOf(IllegalFormatConversionException.class)
+                .hasMessage("d != java.lang.String");
     }
 }

@@ -23,6 +23,7 @@ package io.crate.expression.scalar;
 
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -38,17 +39,17 @@ public class StringToArrayFunctionTest extends ScalarTestCase {
 
     @Test
     public void testZeroArguments() {
-        expectedException.expect(UnsupportedFunctionException.class);
-        expectedException.expectMessage("Unknown function: string_to_array()");
-        assertEvaluateNull("string_to_array()");
+        assertThatThrownBy(() -> assertEvaluateNull("string_to_array()"))
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessageStartingWith("Unknown function: string_to_array()");
     }
 
     @Test
     public void testOneArgument() {
-        expectedException.expect(UnsupportedFunctionException.class);
-        expectedException.expectMessage("Unknown function: string_to_array('xyz')," +
-                                        " no overload found for matching argument types: (text).");
-        assertEvaluateNull("string_to_array('xyz')");
+        assertThatThrownBy(() -> assertEvaluateNull("string_to_array('xyz')"))
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessageStartingWith("Unknown function: string_to_array('xyz')," +
+                " no overload found for matching argument types: (text).");
     }
 
     @Test

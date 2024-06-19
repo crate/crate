@@ -23,6 +23,7 @@ package io.crate.expression.scalar.postgres;
 
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
 
@@ -92,9 +93,11 @@ public class CurrentSettingFunctionTest extends ScalarTestCase {
 
     @Test
     public void testEvaluateNonExistingSettingSingleArgument() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Unrecognised Setting");
-        assertEvaluate("current_setting(name)", "", Literal.of("foo"));
+        assertThatThrownBy(() -> {
+            assertEvaluate("current_setting(name)", "", Literal.of("foo"));
+        })
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Unrecognised Setting: foo");
     }
 
     @Test
@@ -104,9 +107,11 @@ public class CurrentSettingFunctionTest extends ScalarTestCase {
 
     @Test
     public void testEvaluateNonExistingSettingWithMissingOKArgumentAsFalse() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Unrecognised Setting");
-        assertEvaluate("current_setting(name, false)", "", Literal.of("foo"));
+        assertThatThrownBy(() -> {
+            assertEvaluate("current_setting(name, false)", "", Literal.of("foo"));
+        })
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Unrecognised Setting: foo");
     }
 
     @Test

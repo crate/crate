@@ -22,6 +22,7 @@
 package io.crate.expression.scalar.arithmetic;
 
 import static io.crate.testing.Asserts.isFunction;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
 
@@ -42,15 +43,15 @@ public class SquareRootFunctionTest extends ScalarTestCase {
 
     @Test
     public void testSmallerThanZero() {
-        expectedException.expectMessage("cannot take square root of a negative number");
-        assertEvaluateNull("sqrt(-25.0)");
+        assertThatThrownBy(() -> assertEvaluateNull("sqrt(-25.0)"))
+            .hasMessage("cannot take square root of a negative number");
     }
 
     @Test
     public void testInvalidType() {
-        expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `byte`");
-        assertEvaluateNull("sqrt('foo')");
+        assertThatThrownBy(() -> assertEvaluateNull("sqrt('foo')"))
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessage("Cannot cast `'foo'` of type `text` to type `byte`");
     }
 
     @Test

@@ -23,6 +23,7 @@ package io.crate.execution.engine.export;
 
 import static io.crate.data.SentinelRow.SENTINEL;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -82,31 +83,33 @@ public class FileWriterProjectorTest extends ESTestCase {
 
     @Test
     public void testDirectoryAsFile() throws Exception {
-        expectedException.expect(UnhandledServerException.class);
-        expectedException.expectMessage("Failed to open output: 'Output path is a directory: ");
-
         Path directory = createTempDir();
 
         FileWriterProjector fileWriterProjector = new FileWriterProjector(
-            executorService, directory.toUri().toString(),
-            null, null, Set.of(), new HashMap<>(),
-            null, WriterProjection.OutputFormat.JSON_OBJECT,
-            Map.of(LocalFsFileOutputFactory.NAME, new LocalFsFileOutputFactory()), Settings.EMPTY);
-        new TestingRowConsumer().accept(fileWriterProjector.apply(sourceSupplier.get()), null);
+                executorService, directory.toUri().toString(),
+                null, null, Set.of(), new HashMap<>(),
+                null, WriterProjection.OutputFormat.JSON_OBJECT,
+                Map.of(LocalFsFileOutputFactory.NAME, new LocalFsFileOutputFactory()), Settings.EMPTY);
+        assertThatThrownBy(() -> {
+            new TestingRowConsumer().accept(fileWriterProjector.apply(sourceSupplier.get()), null);
+        })
+            .isExactlyInstanceOf(UnhandledServerException.class)
+            .hasMessageStartingWith("Failed to open output: 'Output path is a directory: ");
     }
 
     @Test
     public void testFileAsDirectory() throws Exception {
-        expectedException.expect(UnhandledServerException.class);
-        expectedException.expectMessage("Failed to open output");
-
         String uri = Paths.get(folder.newFile().toURI()).resolve("out.json").toUri().toString();
 
         FileWriterProjector fileWriterProjector = new FileWriterProjector(executorService, uri,
-            null, null, Set.of(), new HashMap<>(),
-            null, WriterProjection.OutputFormat.JSON_OBJECT,
-            Map.of(LocalFsFileOutputFactory.NAME, new LocalFsFileOutputFactory()), Settings.EMPTY);
+                null, null, Set.of(), new HashMap<>(),
+                null, WriterProjection.OutputFormat.JSON_OBJECT,
+                Map.of(LocalFsFileOutputFactory.NAME, new LocalFsFileOutputFactory()), Settings.EMPTY);
 
-        new TestingRowConsumer().accept(fileWriterProjector.apply(sourceSupplier.get()), null);
+        assertThatThrownBy(() -> {
+            new TestingRowConsumer().accept(fileWriterProjector.apply(sourceSupplier.get()), null);
+        })
+            .isExactlyInstanceOf(UnhandledServerException.class)
+            .hasMessageStartingWith("Failed to open output");
     }
 }

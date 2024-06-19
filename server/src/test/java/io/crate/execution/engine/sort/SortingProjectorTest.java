@@ -22,6 +22,7 @@
 package io.crate.execution.engine.sort;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 
@@ -99,20 +100,20 @@ public class SortingProjectorTest extends ESTestCase {
 
     @Test
     public void testInvalidOffset() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("invalid offset -1");
+        assertThatThrownBy(() -> {
+            new SortingProjector(null, null, null, 2, null, -1);
 
-        new SortingProjector(null, null, null, 2, null, -1);
+        })
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("invalid offset -1");
     }
 
     @Test
     public void testUsedMemoryIsAccountedFor() throws Exception {
         MemoryCircuitBreaker circuitBreaker = new MemoryCircuitBreaker(new ByteSizeValue(30, ByteSizeUnit.BYTES),
-                                                                       1,
-                                                                       LogManager.getLogger(SortingProjectorTest.class)
-        );
-        TypedCellsAccounting rowAccounting =
-            new TypedCellsAccounting(
+                1,
+                LogManager.getLogger(SortingProjectorTest.class));
+        TypedCellsAccounting rowAccounting = new TypedCellsAccounting(
                 List.of(DataTypes.INTEGER, DataTypes.BOOLEAN),
                 ConcurrentRamAccounting.forCircuitBreaker("testContext", circuitBreaker, 0),
                 0);
@@ -120,7 +121,10 @@ public class SortingProjectorTest extends ESTestCase {
         Projector projector = createProjector(rowAccounting, 1, 0);
         consumer.accept(projector.apply(TestingBatchIterators.range(1, 11)), null);
 
-        expectedException.expect(CircuitBreakingException.class);
-        consumer.getResult();
+        assertThatThrownBy(() -> {
+            consumer.getResult();
+
+        })
+                .isExactlyInstanceOf(CircuitBreakingException.class);
     }
 }

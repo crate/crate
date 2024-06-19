@@ -23,6 +23,7 @@ package io.crate.types;
 
 import static io.crate.types.TimeTZParser.parse;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -66,65 +67,96 @@ public class TimeTZParserTest extends ESTestCase {
 
     @Test
     public void test_parse_time_range_overflow() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Text '24:00:00.000001' could not be parsed: Invalid value for HourOfDay (valid values 0 - 23): 24");
-        parse("24:00:00.000001");
+        assertThatThrownBy(() -> {
+            parse("24:00:00.000001");
+
+        })
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage(
+                    "Text '24:00:00.000001' could not be parsed: Invalid value for HourOfDay (valid values 0 - 23): 24");
     }
 
     @Test
     public void test_parse_time_unsupported_literal_long() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Text '234' could not be parsed, unparsed text found at index 2");
-        parse("234");
+        assertThatThrownBy(() -> {
+            parse("234");
+
+        })
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Text '234' could not be parsed, unparsed text found at index 2");
     }
 
     @Test
     public void test_parse_time_unsupported_literal_floating_point() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Text '234.9999' could not be parsed, unparsed text found at index 2");
-        parse("234.9999");
+        assertThatThrownBy(() -> {
+            parse("234.9999");
+
+        })
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Text '234.9999' could not be parsed, unparsed text found at index 2");
     }
 
     @Test
     public void test_parse_time_out_of_range_hh() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Text '25' could not be parsed: Invalid value for HourOfDay (valid values 0 - 23): 25");
-        parse("25");
+        assertThatThrownBy(() -> {
+            parse("25");
+
+        })
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Text '25' could not be parsed: Invalid value for HourOfDay (valid values 0 - 23): 25");
     }
 
     @Test
     public void test_parse_time_out_of_range_hhmm() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Text '1778' could not be parsed: Invalid value for MinuteOfHour (valid values 0 - 59): 78");
-        parse("1778");
+        assertThatThrownBy(() -> {
+            parse("1778");
+
+        })
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage(
+                        "Text '1778' could not be parsed: Invalid value for MinuteOfHour (valid values 0 - 59): 78");
     }
 
     @Test
     public void test_parse_time_out_of_range_hhmmss() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Text '175978' could not be parsed: Invalid value for SecondOfMinute (valid values 0 - 59): 78");
-        parse("175978");
+        assertThatThrownBy(() -> {
+            parse("175978");
+
+        })
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage(
+                        "Text '175978' could not be parsed: Invalid value for SecondOfMinute (valid values 0 - 59): 78");
     }
 
     @Test
     public void test_parse_time_out_of_range_hh_floating_point() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid value for HourOfDay (valid values 0 - 23): 25");
-        parse("25.999999");
+        assertThatThrownBy(() -> {
+            parse("25.999999");
+
+        })
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Invalid value for HourOfDay (valid values 0 - 23): 25");
     }
 
     @Test
     public void test_parse_time_out_of_range_hhmm_floating_point() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid value for MinuteOfHour (valid values 0 - 59): 78");
-        parse("1778.999999");
+        assertThatThrownBy(() -> {
+            parse("1778.999999");
+
+        })
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Invalid value for MinuteOfHour (valid values 0 - 59): 78");
     }
 
     @Test
     public void test_parse_time_out_of_range_hhmmss_floating_point() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Text '175978.999999' could not be parsed: Invalid value for SecondOfMinute (valid values 0 - 59): 78");
-        parse("175978.999999");
+        assertThatThrownBy(() -> {
+            parse("175978.999999");
+
+        })
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage(
+                        "Text '175978.999999' could not be parsed: Invalid value for SecondOfMinute (valid values 0 - 59): 78");
     }
 
     @Test

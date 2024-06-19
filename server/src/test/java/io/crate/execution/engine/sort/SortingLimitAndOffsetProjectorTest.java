@@ -22,6 +22,7 @@
 package io.crate.execution.engine.sort;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Comparator;
 import java.util.List;
@@ -129,12 +130,10 @@ public class SortingLimitAndOffsetProjectorTest extends ESTestCase {
     @Test
     public void testUsedMemoryIsAccountedFor() throws Exception {
         MemoryCircuitBreaker circuitBreaker = new MemoryCircuitBreaker(new ByteSizeValue(30, ByteSizeUnit.BYTES),
-                                                                       1,
-                                                                       LogManager.getLogger(
-                                                                           SortingLimitAndOffsetProjectorTest.class)
-        );
-        TypedCellsAccounting rowAccounting =
-            new TypedCellsAccounting(
+                1,
+                LogManager.getLogger(
+                        SortingLimitAndOffsetProjectorTest.class));
+        TypedCellsAccounting rowAccounting = new TypedCellsAccounting(
                 List.of(DataTypes.INTEGER, DataTypes.BOOLEAN),
                 ConcurrentRamAccounting.forCircuitBreaker("testContext", circuitBreaker, 0),
                 0);
@@ -142,8 +141,11 @@ public class SortingLimitAndOffsetProjectorTest extends ESTestCase {
         Projector projector = getProjector(rowAccounting, 1, 100_000, LimitAndOffset.NO_OFFSET, FIRST_CELL_ORDERING);
         consumer.accept(projector.apply(TestingBatchIterators.range(1, 11)), null);
 
-        expectedException.expect(CircuitBreakingException.class);
-        consumer.getResult();
+        assertThatThrownBy(() -> {
+            consumer.getResult();
+
+        })
+                .isExactlyInstanceOf(CircuitBreakingException.class);
     }
 
     @Test
@@ -155,10 +157,9 @@ public class SortingLimitAndOffsetProjectorTest extends ESTestCase {
 
     @Test
     public void testInvalidNegativeLimit() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid LIMIT: value must be > 0; got: -1");
-
-        getProjector(2, -1, 0);
+        assertThatThrownBy(() -> getProjector(2, -1, 0))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid LIMIT: value must be > 0; got: -1");
     }
 
     @Test
@@ -171,27 +172,29 @@ public class SortingLimitAndOffsetProjectorTest extends ESTestCase {
 
     @Test
     public void testInvalidOffset() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid OFFSET: value must be >= 0; got: -1");
-
-        getProjector(2, 1, -1);
+        assertThatThrownBy(() -> getProjector(2, 1, -1))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid OFFSET: value must be >= 0; got: -1");
     }
 
     @Test
     public void testInvalidMaxSize() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid LIMIT + OFFSET: value must be <= 2147483630; got: 2147483646");
-
-        int i = Integer.MAX_VALUE / 2;
-        getProjector(2, i, i);
+        assertThatThrownBy(() -> {
+            int i = Integer.MAX_VALUE / 2;
+            getProjector(2, i, i);
+        })
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid LIMIT + OFFSET: value must be <= 2147483630; got: 2147483646");
     }
 
     @Test
     public void testInvalidMaxSizeExceedsIntegerRange() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid LIMIT + OFFSET: value must be <= 2147483630; got: -2147483648");
+        assertThatThrownBy(() -> {
+            int i = Integer.MAX_VALUE / 2 + 1;
+            getProjector(2, i, i);
 
-        int i = Integer.MAX_VALUE / 2 + 1;
-        getProjector(2, i, i);
+        })
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid LIMIT + OFFSET: value must be <= 2147483630; got: -2147483648");
     }
 }

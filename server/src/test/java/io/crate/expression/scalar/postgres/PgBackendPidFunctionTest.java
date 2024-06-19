@@ -22,6 +22,7 @@
 package io.crate.expression.scalar.postgres;
 
 import static io.crate.testing.Asserts.isLiteral;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
 
@@ -42,9 +43,9 @@ public class PgBackendPidFunctionTest extends ScalarTestCase {
 
     @Test
     public void testInvalidType() throws Exception {
-        expectedException.expectMessage("Unknown function: pg_backend_pid(NULL)," +
-                                        " no overload found for matching argument types: (undefined).");
-        sqlExpressions.asSymbol("pg_backend_pid(null)");
+        assertThatThrownBy(() -> sqlExpressions.asSymbol("pg_backend_pid(null)"))
+            .hasMessageStartingWith("Unknown function: pg_backend_pid(NULL)," +
+                " no overload found for matching argument types: (undefined).");
     }
 
 }

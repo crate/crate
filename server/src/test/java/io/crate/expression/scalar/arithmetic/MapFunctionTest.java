@@ -21,6 +21,8 @@
 
 package io.crate.expression.scalar.arithmetic;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -34,10 +36,10 @@ public class MapFunctionTest extends ScalarTestCase {
 
     @Test
     public void testMapWithWrongNumOfArguments() {
-        expectedException.expect(UnsupportedFunctionException.class);
-        expectedException.expectMessage("Unknown function: _map('foo', 1, 'bar')," +
-                                        " no overload found for matching argument types: (text, integer, text).");
-        assertEvaluateNull("_map('foo', 1, 'bar')");
+        assertThatThrownBy(() -> assertEvaluateNull("_map('foo', 1, 'bar')"))
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessageStartingWith("Unknown function: _map('foo', 1, 'bar')," +
+                " no overload found for matching argument types: (text, integer, text).");
     }
 
     @Test

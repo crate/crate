@@ -26,6 +26,7 @@ import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_FOLLOWING;
 import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_PRECEDING;
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.List;
@@ -56,44 +57,54 @@ public class WindowDefinitionTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testStartUnboundedFollowingIsIllegal() {
-        expectedException.expect(IllegalStateException.class);
-        expectedException.expectMessage(
-            "Frame start cannot be UNBOUNDED_FOLLOWING");
-        e.analyze(
-            "select sum(unnest) over(RANGE BETWEEN UNBOUNDED FOLLOWING and CURRENT ROW) FROM " +
-            "unnest([1, 2, 1, 1, 1, 4])");
+        assertThatThrownBy(() -> {
+            e.analyze(
+                    "select sum(unnest) over(RANGE BETWEEN UNBOUNDED FOLLOWING and CURRENT ROW) FROM " +
+                            "unnest([1, 2, 1, 1, 1, 4])");
 
+        })
+                .isExactlyInstanceOf(IllegalStateException.class)
+                .hasMessage(
+                        "Frame start cannot be UNBOUNDED_FOLLOWING");
     }
 
     @Test
     public void testStartFollowingIsIllegal() {
-        expectedException.expect(IllegalStateException.class);
-        expectedException.expectMessage(
-            "Frame start cannot be FOLLOWING");
-        e.analyze(
-            "select sum(unnest) over(RANGE BETWEEN 1 FOLLOWING and CURRENT ROW) FROM " +
-            "unnest([1, 2, 1, 1, 1, 4])");
+        assertThatThrownBy(() -> {
+            e.analyze(
+                    "select sum(unnest) over(RANGE BETWEEN 1 FOLLOWING and CURRENT ROW) FROM " +
+                            "unnest([1, 2, 1, 1, 1, 4])");
 
+        })
+                .isExactlyInstanceOf(IllegalStateException.class)
+                .hasMessage(
+                        "Frame start cannot be FOLLOWING");
     }
 
     @Test
     public void testEndPrecedingIsIllegal() {
-        expectedException.expect(IllegalStateException.class);
-        expectedException.expectMessage(
-            "Frame end cannot be PRECEDING");
-        e.analyze(
-            "select sum(unnest) over(RANGE BETWEEN CURRENT ROW and 1 PRECEDING) FROM " +
-            "unnest([1, 2, 1, 1, 1, 4])");
+        assertThatThrownBy(() -> {
+            e.analyze(
+                    "select sum(unnest) over(RANGE BETWEEN CURRENT ROW and 1 PRECEDING) FROM " +
+                            "unnest([1, 2, 1, 1, 1, 4])");
+
+        })
+                .isExactlyInstanceOf(IllegalStateException.class)
+                .hasMessage(
+                        "Frame end cannot be PRECEDING");
     }
 
     @Test
     public void testEndUnboundedPrecedingIsIllegal() {
-        expectedException.expect(IllegalStateException.class);
-        expectedException.expectMessage(
-            "Frame end cannot be UNBOUNDED_PRECEDING");
-        e.analyze(
-            "select sum(unnest) over(RANGE BETWEEN CURRENT ROW and UNBOUNDED PRECEDING) FROM " +
-            "unnest([1, 2, 1, 1, 1, 4])");
+        assertThatThrownBy(() -> {
+            e.analyze(
+                    "select sum(unnest) over(RANGE BETWEEN CURRENT ROW and UNBOUNDED PRECEDING) FROM " +
+                            "unnest([1, 2, 1, 1, 1, 4])");
+
+        })
+                .isExactlyInstanceOf(IllegalStateException.class)
+                .hasMessage(
+                        "Frame end cannot be UNBOUNDED_PRECEDING");
     }
 
     @Test
