@@ -121,7 +121,6 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.planner.distribution.DistributionType;
-import io.crate.planner.node.StreamerVisitor;
 import io.crate.planner.operators.PKAndVersion;
 import io.crate.types.DataTypes;
 
@@ -289,7 +288,7 @@ public class JobSetup {
                 var ramAccounting = new BlockBasedRamAccounting(
                     b -> breaker.addEstimateBytesAndMaybeBreak(b, executionPhase.label()),
                     ramAccountingBlockSizeInBytes);
-                Streamer<?>[] streamers = StreamerVisitor.streamersFromOutputs(executionPhase);
+                Streamer<?>[] streamers = executionPhase.getStreamers();
                 SingleBucketBuilder bucketBuilder = new SingleBucketBuilder(streamers, ramAccounting);
                 context.directResponseFutures.add(bucketBuilder.completionFuture().whenComplete((res, err) -> ramAccounting.close()));
                 context.registerBatchConsumer(nodeOperation.downstreamExecutionPhaseId(), bucketBuilder);
@@ -1016,7 +1015,7 @@ public class JobSetup {
                 nodeName,
                 mergePhase.phaseId(),
                 searchTp,
-                StreamerVisitor.streamersFromOutputs(mergePhase),
+                mergePhase.getStreamers(),
                 rowConsumer,
                 PagingIterator.create(
                     mergePhase.numUpstreams(),

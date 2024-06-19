@@ -21,18 +21,23 @@
 
 package io.crate.execution.dsl.phases;
 
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.Routing;
-import io.crate.planner.distribution.DistributionInfo;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
 import java.io.IOException;
 import java.util.Objects;
 import java.util.Set;
 
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+
+import io.crate.Streamer;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
+import io.crate.metadata.Routing;
+import io.crate.planner.distribution.DistributionInfo;
+import io.crate.types.DataTypes;
+
 public class CountPhase implements UpstreamPhase {
+
+    private static final Streamer<?>[] STREAMERS = new Streamer[]{DataTypes.LONG};
 
     private final int executionPhaseId;
     private final Routing routing;
@@ -57,6 +62,11 @@ public class CountPhase implements UpstreamPhase {
     @Override
     public String name() {
         return "count";
+    }
+
+    @Override
+    public Streamer<?>[] getStreamers() {
+        return STREAMERS;
     }
 
     public Routing routing() {

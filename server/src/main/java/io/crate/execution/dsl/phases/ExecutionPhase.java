@@ -30,6 +30,8 @@ import java.util.List;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.Writeable;
 
+import io.crate.Streamer;
+
 public interface ExecutionPhase extends Writeable {
 
     String DIRECT_RESPONSE = "_response";
@@ -73,6 +75,11 @@ public interface ExecutionPhase extends Writeable {
     Collection<String> nodeIds();
 
     <C, R> R accept(ExecutionPhaseVisitor<C, R> visitor, C context);
+
+    /**
+     * Streamers that can serialize the output of this phase
+     **/
+    Streamer<?>[] getStreamers();
 
     default String label() {
         return name() + ": " + phaseId();
