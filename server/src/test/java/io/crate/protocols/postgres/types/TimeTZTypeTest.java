@@ -32,7 +32,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
 
-public class TimeTZTypeTest extends BasePGTypeTest<Long> {
+public class TimeTZTypeTest extends BasePGTypeTest<TimeTZ> {
 
     public TimeTZTypeTest() {
         super(TimeTZType.INSTANCE);
@@ -46,7 +46,7 @@ public class TimeTZTypeTest extends BasePGTypeTest<Long> {
             int written = pgType.writeAsBinary(buffer, value);
             int length = buffer.readInt();
             assertThat(written - 4).isEqualTo(length);
-            TimeTZ readValue = (TimeTZ) pgType.readBinaryValue(buffer, length);
+            TimeTZ readValue = pgType.readBinaryValue(buffer, length);
             assertThat(readValue).isEqualTo(value);
         } finally {
             buffer.release();

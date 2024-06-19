@@ -36,7 +36,7 @@ import org.junit.Test;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
-public class PGArrayTest extends BasePGTypeTest<PGArray> {
+public class PGArrayTest extends BasePGTypeTest<List<Object>> {
 
     private final PGArray pgArray = PGArray.INT4_ARRAY;
 

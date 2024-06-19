@@ -21,18 +21,17 @@
 
 package io.crate.protocols.postgres.types;
 
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.data.Row;
 import io.crate.data.RowN;
 
-public class RecordTypeTest extends BasePGTypeTest<RecordType> {
+public class RecordTypeTest extends BasePGTypeTest<Row> {
 
     public RecordTypeTest() {
         super(new RecordType(List.of(
@@ -50,7 +49,7 @@ public class RecordTypeTest extends BasePGTypeTest<RecordType> {
 
         byte[] bytes = pgType.encodeAsUTF8Text(record);
         var str = new String(bytes, StandardCharsets.UTF_8);
-        assertThat(str, Matchers.is("(10,\"\",foo,\"foo bar\")"));
+        assertThat(str).isEqualTo("(10,\"\",foo,\"foo bar\")");
     }
 
     @Test
@@ -59,6 +58,6 @@ public class RecordTypeTest extends BasePGTypeTest<RecordType> {
 
         byte[] bytes = pgType.encodeAsUTF8Text(record);
         var str = new String(bytes, StandardCharsets.UTF_8);
-        assertThat(str, Matchers.is("(10,\"\",,foo)"));
+        assertThat(str).isEqualTo("(10,\"\",,foo)");
     }
 }
