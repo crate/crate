@@ -25,12 +25,14 @@ import static io.crate.expression.scalar.geo.AreaFunction.getArea;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isNull;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Map;
 
 import org.junit.Test;
 import org.locationtech.spatial4j.shape.Shape;
 
+import io.crate.exceptions.ConversionException;
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
@@ -77,24 +79,24 @@ public class AreaFunctionTest extends ScalarTestCase {
 
     @Test
     public void testWithTooManyArguments() {
-        expectedException.expect(UnsupportedFunctionException.class);
-        expectedException.expectMessage(
-            "Unknown function: area(doc.users.geoshape, 'foo'), no overload found for matching argument types: (geo_shape, text). Possible candidates: area(geo_shape):double precision");
-        assertNormalize("area(geoShape, 'foo')", isNull());
+        assertThatThrownBy(() -> assertNormalize("area(geoShape, 'foo')", isNull()))
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessage(
+                "Unknown function: area(doc.users.geoshape, 'foo'), no overload found for matching argument types: (geo_shape, text). Possible candidates: area(geo_shape):double precision");
     }
 
     @Test
     public void testResolveWithInvalidType() throws Exception {
-        expectedException.expect(UnsupportedFunctionException.class);
-        expectedException.expectMessage(
-            "Unknown function: area(1), no overload found for matching argument types: (integer). Possible candidates: area(geo_shape):double precision");
-        assertEvaluateNull("area(1)");
+        assertThatThrownBy(() -> assertEvaluateNull("area(1)"))
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessage(
+                "Unknown function: area(1), no overload found for matching argument types: (integer). Possible candidates: area(geo_shape):double precision");
     }
 
     @Test
     public void testWithInvalidStringReferences() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot cast `'POLYGON (foo)'` of type `text` to type `geo_shape`");
-        assertEvaluateNull("area('POLYGON (foo)')");
+        assertThatThrownBy(() -> assertEvaluateNull("area('POLYGON (foo)')"))
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessage("Cannot cast `'POLYGON (foo)'` of type `text` to type `geo_shape`");
     }
 }

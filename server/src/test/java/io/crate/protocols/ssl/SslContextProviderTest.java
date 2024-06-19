@@ -22,6 +22,7 @@
 package io.crate.protocols.ssl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.not;
@@ -74,13 +75,15 @@ public class SslContextProviderTest extends ESTestCase {
     public void testClassLoadingWithInvalidConfiguration() {
         // empty ssl configuration which is invalid
         Settings settings = Settings.builder()
-            .put(SslSettings.SSL_HTTP_ENABLED.getKey(), true)
-            .put(SslSettings.SSL_PSQL_ENABLED.getKey(), true)
-            .build();
-        expectedException.expect(SslConfigurationException.class);
-        expectedException.expectMessage("Failed to build SSL configuration");
-        var sslContextProvider = new SslContextProvider(settings);
-        sslContextProvider.getServerContext(Protocol.TRANSPORT);
+                .put(SslSettings.SSL_HTTP_ENABLED.getKey(), true)
+                .put(SslSettings.SSL_PSQL_ENABLED.getKey(), true)
+                .build();
+        assertThatThrownBy(() -> {
+            var sslContextProvider = new SslContextProvider(settings);
+            sslContextProvider.getServerContext(Protocol.TRANSPORT);
+        })
+            .isExactlyInstanceOf(SslConfigurationException.class)
+            .hasMessageStartingWith("Failed to build SSL configuration");
     }
 
     @Test
@@ -137,19 +140,21 @@ public class SslContextProviderTest extends ESTestCase {
 
     @Test
     public void testKeyStoreLoadingFailWrongPassword() throws Exception {
-        expectedException.expect(IOException.class);
-        expectedException.expectMessage("keystore password was incorrect");
-
-        SslContextProvider.loadKeyStore(keyStoreFile.getAbsolutePath(), "wrongpassword".toCharArray());
+        assertThatThrownBy(() -> {
+            SslContextProvider.loadKeyStore(keyStoreFile.getAbsolutePath(), "wrongpassword".toCharArray());
+        })
+            .isExactlyInstanceOf(IOException.class)
+            .hasMessage("keystore password was incorrect");
     }
 
     @Test
     public void testKeyStoreLoadingFailWrongKeyPassword() throws Exception {
-        KeyStore keyStore = SslContextProvider.loadKeyStore(keyStoreFile.getAbsolutePath(), KEYSTORE_PASSWORD.toCharArray());
+        KeyStore keyStore = SslContextProvider.loadKeyStore(keyStoreFile.getAbsolutePath(),
+                KEYSTORE_PASSWORD.toCharArray());
 
-        expectedException.expect(UnrecoverableKeyException.class);
-        expectedException.expectMessage("Get Key failed");
-        SslContextProvider.createKeyManagers(keyStore, "wrongpassword".toCharArray());
+        assertThatThrownBy(() -> SslContextProvider.createKeyManagers(keyStore, "wrongpassword".toCharArray()))
+            .isExactlyInstanceOf(UnrecoverableKeyException.class)
+            .hasMessageStartingWith("Get Key failed");
     }
 
     @Test

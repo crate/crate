@@ -21,6 +21,8 @@
 
 package io.crate.expression.scalar;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import java.util.List;
 
 import org.junit.Test;
@@ -107,93 +109,110 @@ public class ArraySliceFunctionTest extends ScalarTestCase {
 
     @Test
     public void testFromIsNotAnInteger() {
-        expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `'three'` of type `text` to type `integer`");
-        assertEvaluateNull("[1,2,3,4,5]['three':]");
+        assertThatThrownBy(() -> assertEvaluateNull("[1,2,3,4,5]['three':]"))
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessage("Cannot cast `'three'` of type `text` to type `integer`");
     }
 
     @Test
     public void testToIsNotAnInteger() {
-        expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `'three'` of type `text` to type `integer`");
-        assertEvaluateNull("[1,2,3,4,5][:'three']");
+        assertThatThrownBy(() -> assertEvaluateNull("[1,2,3,4,5][:'three']"))
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessage("Cannot cast `'three'` of type `text` to type `integer`");
     }
 
     @Test
     public void testBaseIsNotAnArray() {
-        expectedException.expect(UnsupportedFunctionException.class);
-        expectedException.expectMessage("Unknown function: array_slice('not an array', 1, 3), no overload found for matching argument types");
-        assertEvaluateNull("'not an array'[1:3]");
+        assertThatThrownBy(() -> assertEvaluateNull("'not an array'[1:3]"))
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessageStartingWith(
+                "Unknown function: array_slice('not an array', 1, 3), no overload found for matching argument types");
     }
 
     @Test
     public void testFromIsNegative() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Array index must be in range 1 to 2147483647");
-        assertEvaluateNull("[1,2,3,4,5][-1:]");
+        assertThatThrownBy(() -> assertEvaluateNull("[1,2,3,4,5][-1:]"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Array index must be in range 1 to 2147483647");
     }
 
     @Test
     public void testToIsNegative() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Array index must be in range 1 to 2147483647");
-        assertEvaluateNull("[1,2,3,4,5][:-1]");
+        assertThatThrownBy(() -> assertEvaluateNull("[1,2,3,4,5][:-1]"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Array index must be in range 1 to 2147483647");
     }
 
     @Test
     public void testFromIsBig() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot cast `2147483648::bigint` of type `bigint` to type `integer`");
-        assertEvaluate("[1,2,3,4,5][2147483648:]", List.of());
+        assertThatThrownBy(() -> assertEvaluate("[1,2,3,4,5][2147483648:]", List.of()))
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessage("Cannot cast `2147483648::bigint` of type `bigint` to type `integer`");
     }
 
     @Test
     public void testToIsBig() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot cast `2147483648::bigint` of type `bigint` to type `integer`");
-        assertEvaluate("[1,2,3,4,5][:2147483648]", List.of(1, 2, 3, 4, 5));
+        assertThatThrownBy(() -> {
+            assertEvaluate("[1,2,3,4,5][:2147483648]", List.of(1, 2, 3, 4, 5));
+        })
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessage("Cannot cast `2147483648::bigint` of type `bigint` to type `integer`");
     }
 
     @Test
     public void testFromIsBigExpression() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("integer overflow");
-        assertEvaluate("[1,2,3,4,5][2147483647+20:]", List.of());
+        assertThatThrownBy(() -> assertEvaluate("[1,2,3,4,5][2147483647+20:]", List.of()))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("integer overflow");
     }
 
     @Test
     public void testToIsBigExpression() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("integer overflow");
-        assertEvaluate("[1,2,3,4,5][:2147483647+20]", List.of(1, 2, 3, 4, 5));
+        assertThatThrownBy(() -> {
+            assertEvaluate("[1,2,3,4,5][:2147483647+20]", List.of(1, 2, 3, 4, 5));
+        })
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("integer overflow");
     }
 
     @Test
     public void testFromIsZero() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Array index must be in range 1 to 2147483647");
-        assertEvaluate("[1,2,3,4,5][0:]", List.of());
+        assertThatThrownBy(() -> {
+            assertEvaluate("[1,2,3,4,5][0:]", List.of());
+
+        })
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Array index must be in range 1 to 2147483647");
     }
 
     @Test
     public void testToIsZero() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Array index must be in range 1 to 2147483647");
-        assertEvaluate("[1,2,3,4,5][:0]", List.of());
+        assertThatThrownBy(() -> {
+            assertEvaluate("[1,2,3,4,5][:0]", List.of());
+
+        })
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Array index must be in range 1 to 2147483647");
     }
 
     @Test
     public void testFromIsZeroExpression() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Array index must be in range 1 to 2147483647");
-        assertEvaluate("[1,2,3,4,5][10-10:]", List.of());
+        assertThatThrownBy(() -> {
+            assertEvaluate("[1,2,3,4,5][10-10:]", List.of());
+
+        })
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Array index must be in range 1 to 2147483647");
     }
 
     @Test
     public void testToIsZeroExpression() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Array index must be in range 1 to 2147483647");
-        assertEvaluate("[1,2,3,4,5][:10-10]", List.of());
+        assertThatThrownBy(() -> {
+            assertEvaluate("[1,2,3,4,5][:10-10]", List.of());
+
+        })
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Array index must be in range 1 to 2147483647");
     }
 
 }

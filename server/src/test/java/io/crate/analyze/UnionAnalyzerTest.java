@@ -126,21 +126,27 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testUnionDifferentNumberOfOutputs() {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Number of output columns must be the same for all parts of a UNION");
-        analyze("select 1, 2 from users " +
-                "union all " +
-                "select 3 from users_multi_pk");
+        assertThatThrownBy(() -> {
+            analyze("select 1, 2 from users " +
+                    "union all " +
+                    "select 3 from users_multi_pk");
+
+        })
+                .isExactlyInstanceOf(UnsupportedOperationException.class)
+                .hasMessage("Number of output columns must be the same for all parts of a UNION");
     }
 
     @Test
     public void testUnionDifferentTypesOfOutputs() {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Output columns at position 2 " +
-                                        "must be compatible for all parts of a UNION. Got `integer` and `object_array`");
-        analyze("select 1, 2 from users " +
-                "union all " +
-                "select 3, friends from users_multi_pk");
+        assertThatThrownBy(() -> {
+            analyze("select 1, 2 from users " +
+                    "union all " +
+                    "select 3, friends from users_multi_pk");
+
+        })
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Output columns at position 2 " +
+                "must be compatible for all parts of a UNION. Got `integer` and `object_array`");
     }
 
     @Test
@@ -165,22 +171,28 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testUnionOrderByRefersToColumnFromRightTable() {
-        expectedException.expect(ColumnUnknownException.class);
-        expectedException.expectMessage("Column name unknown");
-        analyze("select id, text from users " +
-                "union all " +
-                "select id, name from users_multi_pk " +
-                "order by name");
+        assertThatThrownBy(() -> {
+            analyze("select id, text from users " +
+                    "union all " +
+                    "select id, name from users_multi_pk " +
+                    "order by name");
+
+        })
+                .isExactlyInstanceOf(ColumnUnknownException.class)
+                .hasMessage("Column name unknown");
     }
 
     @Test
     public void testUnionOrderByColumnRefersToOriginalColumn() {
-        expectedException.expect(ColumnUnknownException.class);
-        expectedException.expectMessage("Column id unknown");
-        analyze("select id + 10, text from users " +
-                "union all " +
-                "select id, name from users_multi_pk " +
-                "order by id");
+        assertThatThrownBy(() -> {
+            analyze("select id + 10, text from users " +
+                    "union all " +
+                    "select id, name from users_multi_pk " +
+                    "order by id");
+
+        })
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column id unknown");
     }
 
     @Test

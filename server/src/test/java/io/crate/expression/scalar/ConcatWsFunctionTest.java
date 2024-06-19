@@ -23,6 +23,7 @@ package io.crate.expression.scalar;
 
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isNull;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
 
@@ -67,12 +68,14 @@ public class ConcatWsFunctionTest extends ScalarTestCase {
 
     @Test
     public void testInvalidArrayArgument() {
-        expectedException.expect(UnsupportedFunctionException.class);
-        expectedException.expectMessage(
-            "Unknown function: concat_ws(',', 'foo', []), " +
-            "no overload found for matching argument types: (text, text, undefined_array). " +
-            "Possible candidates: concat_ws(text):text"
-        );
-        assertNormalize("concat_ws(',' , 'foo', [])", isNull());
+        assertThatThrownBy(() -> {
+            assertNormalize("concat_ws(',' , 'foo', [])", isNull());
+
+        })
+                .isExactlyInstanceOf(UnsupportedFunctionException.class)
+                .hasMessage(
+                        "Unknown function: concat_ws(',', 'foo', []), " +
+                                "no overload found for matching argument types: (text, text, undefined_array). " +
+                                "Possible candidates: concat_ws(text):text");
     }
 }

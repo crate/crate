@@ -25,6 +25,7 @@ import static io.crate.planner.Plan.StatementType.SELECT;
 import static io.crate.planner.Plan.StatementType.UNDEFINED;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertThat;
 
 import java.lang.reflect.Field;
@@ -110,20 +111,26 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
         // creating the service registers the update listener
         try (var jobsLogService = new JobsLogService(Settings.EMPTY, clusterService, nodeCtx, breakerService)) {
 
-            expectedException.expectMessage("illegal value can't update [stats.jobs_log_filter] from [true] to [statement = 'x']");
-            clusterSettings.applySettings(
-                Settings.builder().put(JobsLogService.STATS_JOBS_LOG_FILTER.getKey(), "statement = 'x'").build());
+            assertThatThrownBy(() -> {
+                clusterSettings.applySettings(
+                        Settings.builder().put(JobsLogService.STATS_JOBS_LOG_FILTER.getKey(), "statement = 'x'")
+                                .build());
+
+            })
+                    .hasMessage("illegal value can't update [stats.jobs_log_filter] from [true] to [statement = 'x']");
         }
     }
 
     @Test
     public void testErrorIsRaisedInitiallyOnInvalidFilterExpression() {
         Settings settings = Settings.builder()
-            .put(JobsLogService.STATS_JOBS_LOG_FILTER.getKey(), "invalid_column = 10")
-            .build();
+                .put(JobsLogService.STATS_JOBS_LOG_FILTER.getKey(), "invalid_column = 10")
+                .build();
 
-        expectedException.expectMessage("Invalid filter expression: invalid_column = 10: Column invalid_column unknown");
-        new JobsLogService(settings, clusterService, nodeCtx, breakerService);
+        assertThatThrownBy(() -> {
+            new JobsLogService(settings, clusterService, nodeCtx, breakerService).close();
+        })
+            .hasMessage("Invalid filter expression: invalid_column = 10: Column invalid_column unknown");
     }
 
     @Test

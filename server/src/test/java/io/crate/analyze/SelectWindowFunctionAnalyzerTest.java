@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import static io.crate.testing.Asserts.isReference;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertThrows;
 
 import java.util.List;
@@ -80,23 +81,32 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void testInvalidPartitionByField() {
-        expectedException.expect(ColumnUnknownException.class);
-        expectedException.expectMessage("Column zzz unknown");
-        e.analyze("select avg(x) OVER (PARTITION BY zzz) from t");
+        assertThatThrownBy(() -> {
+            e.analyze("select avg(x) OVER (PARTITION BY zzz) from t");
+
+        })
+                .isExactlyInstanceOf(ColumnUnknownException.class)
+                .hasMessage("Column zzz unknown");
     }
 
     @Test
     public void testInvalidOrderByField() {
-        expectedException.expect(ColumnUnknownException.class);
-        expectedException.expectMessage("Column zzz unknown");
-        e.analyze("select avg(x) OVER (ORDER BY zzz) from t");
+        assertThatThrownBy(() -> {
+            e.analyze("select avg(x) OVER (ORDER BY zzz) from t");
+
+        })
+                .isExactlyInstanceOf(ColumnUnknownException.class)
+                .hasMessage("Column zzz unknown");
     }
 
     @Test
     public void testOnlyAggregatesAndWindowFunctionsAreAllowedWithOver() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("OVER clause was specified, but abs is neither a window nor an aggregate function.");
-        e.analyze("select abs(x) OVER() from t");
+        assertThatThrownBy(() -> {
+            e.analyze("select abs(x) OVER() from t");
+
+        })
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("OVER clause was specified, but abs is neither a window nor an aggregate function.");
     }
 
     @Test
@@ -195,17 +205,19 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void test_over_references_not_defined_window() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Window w does not exist");
-        e.analyze("SELECT AVG(x) OVER w FROM t WINDOW ww AS ()");
+        assertThatThrownBy(() -> e.analyze("SELECT AVG(x) OVER w FROM t WINDOW ww AS ()"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Window w does not exist");
     }
 
     @Test
     public void test_window_function_symbols_not_in_grouping_raises_an_error() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("'x' must appear in the GROUP BY clause or be used in an aggregation function.");
-        e.analyze("select y, sum(x) over(partition by x) " +
-                "FROM unnest([1], [6]) as t (x, y) " +
-                "group by 1");
+        assertThatThrownBy(() -> {
+            e.analyze("select y, sum(x) over(partition by x) " +
+                    "FROM unnest([1], [6]) as t (x, y) " +
+                    "group by 1");
+        })
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageStartingWith("'x' must appear in the GROUP BY clause or be used in an aggregation function.");
     }
 }

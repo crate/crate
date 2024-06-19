@@ -104,9 +104,12 @@ public class DeletePlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDeleteWhereVersionIsNullPredicate() throws Exception {
-        expectedException.expect(VersioningValidationException.class);
-        expectedException.expectMessage(VersioningValidationException.VERSION_COLUMN_USAGE_MSG);
-        e.plan("delete from users where _version is null");
+        assertThatThrownBy(() -> {
+            e.plan("delete from users where _version is null");
+
+        })
+                .isExactlyInstanceOf(VersioningValidationException.class)
+                .hasMessage(VersioningValidationException.VERSION_COLUMN_USAGE_MSG);
     }
 
     @Test

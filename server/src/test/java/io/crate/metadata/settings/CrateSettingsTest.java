@@ -22,6 +22,7 @@
 package io.crate.metadata.settings;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertThat;
 
@@ -75,10 +76,12 @@ public class CrateSettingsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testIsNotRuntimeSetting() {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Setting 'gateway.expected_nodes' cannot be set/reset at runtime");
+        assertThatThrownBy(() -> {
+            CrateSettings.checkIfRuntimeSetting(GatewayService.EXPECTED_NODES_SETTING.getKey());
 
-        CrateSettings.checkIfRuntimeSetting(GatewayService.EXPECTED_NODES_SETTING.getKey());
+        })
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Setting 'gateway.expected_nodes' cannot be set/reset at runtime");
     }
 
     @Test

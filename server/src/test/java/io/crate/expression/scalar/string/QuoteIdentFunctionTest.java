@@ -24,6 +24,7 @@ package io.crate.expression.scalar.string;
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 
@@ -39,10 +40,13 @@ public class QuoteIdentFunctionTest extends ScalarTestCase {
 
     @Test
     public void testZeroArguments() {
-        expectedException.expect(UnsupportedFunctionException.class);
-        expectedException.expectMessage("Unknown function: quote_ident()." +
-                                        " Possible candidates: pg_catalog.quote_ident(text):text");
-        assertEvaluateNull("quote_ident()");
+        assertThatThrownBy(() -> {
+            assertEvaluateNull("quote_ident()");
+
+        })
+                .isExactlyInstanceOf(UnsupportedFunctionException.class)
+                .hasMessage("Unknown function: quote_ident()." +
+                        " Possible candidates: pg_catalog.quote_ident(text):text");
     }
 
     @Test

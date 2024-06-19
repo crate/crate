@@ -21,8 +21,9 @@
 
 package io.crate.protocols.postgres.types;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -60,8 +61,10 @@ public class TimestampTypeTest extends BasePGTypeTest<Long> {
 
     @Test
     public void testDecodeUTF8TextWithUnexpectedNumberOfFractionDigits() {
-        expectedException.expectMessage("Text '2016-06-28 00:00:00.0000000001+05:00' could not be parsed");
-        TimestampType.INSTANCE.decodeUTF8Text("2016-06-28 00:00:00.0000000001+05:00".getBytes(UTF_8));
+        assertThatThrownBy(() -> {
+            TimestampType.INSTANCE.decodeUTF8Text("2016-06-28 00:00:00.0000000001+05:00".getBytes(UTF_8));
+        })
+            .hasMessageStartingWith("Text '2016-06-28 00:00:00.0000000001+05:00' could not be parsed");
     }
 
     @Test

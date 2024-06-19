@@ -99,17 +99,22 @@ public class UserDefinedFunctionServiceTest extends UdfUnitTest {
 
     @Test
     public void testRemoveDoesNotExist() throws Exception {
-        expectedException.expect(UserDefinedFunctionUnknownException.class);
-        expectedException.expectMessage("Cannot resolve user defined function: 'doc.different()'");
-        UserDefinedFunctionsMetadata metadata = UserDefinedFunctionsMetadata.of(same1);
-        udfService.removeFunction(metadata, different.schema(), different.name(), different.argumentTypes(), false);
+        assertThatThrownBy(() -> {
+            UserDefinedFunctionsMetadata metadata = UserDefinedFunctionsMetadata.of(same1);
+            udfService.removeFunction(metadata, different.schema(), different.name(), different.argumentTypes(), false);
+
+        })
+                .isExactlyInstanceOf(UserDefinedFunctionUnknownException.class)
+                .hasMessage("Cannot resolve user defined function: 'doc.different()'");
     }
 
     @Test
     public void testReplaceIsFalse() throws Exception {
-        expectedException.expect(UserDefinedFunctionAlreadyExistsException.class);
-        expectedException.expectMessage("User defined Function 'doc.same()' already exists.");
-        udfService.putFunction(UserDefinedFunctionsMetadata.of(same1), same2, false);
+        assertThatThrownBy(() -> {
+            udfService.putFunction(UserDefinedFunctionsMetadata.of(same1), same2, false);
+        })
+            .isExactlyInstanceOf(UserDefinedFunctionAlreadyExistsException.class)
+            .hasMessage("User defined Function 'doc.same()' already exists.");
     }
 
     @Test

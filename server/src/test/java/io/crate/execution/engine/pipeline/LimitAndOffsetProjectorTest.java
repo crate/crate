@@ -23,6 +23,7 @@ package io.crate.execution.engine.pipeline;
 
 import static io.crate.data.SentinelRow.SENTINEL;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.emptyIterable;
 import static org.junit.Assert.assertThat;
 
@@ -127,16 +128,16 @@ public class LimitAndOffsetProjectorTest extends ESTestCase {
 
     @Test
     public void testNegativeOffset() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid OFFSET");
-        new LimitAndOffsetProjector(10, -10);
+        assertThatThrownBy(() -> new LimitAndOffsetProjector(10, -10))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid OFFSET: value must be >= 0; got: -10");
     }
 
     @Test
     public void testNegativeLimit() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid LIMIT");
-        new LimitAndOffsetProjector(-100, LimitAndOffset.NO_OFFSET);
+        assertThatThrownBy(() -> new LimitAndOffsetProjector(-100, LimitAndOffset.NO_OFFSET))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid LIMIT: value must be >= 0; got: -100");
     }
 
     @Test
@@ -186,9 +187,10 @@ public class LimitAndOffsetProjectorTest extends ESTestCase {
 
     @Test
     public void testProjectNoLimitNoOffset() throws Throwable {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid LIMIT");
-
-        prepareProjector(LimitAndOffset.NO_LIMIT, LimitAndOffset.NO_OFFSET);
+        assertThatThrownBy(() -> {
+            prepareProjector(LimitAndOffset.NO_LIMIT, LimitAndOffset.NO_OFFSET);
+        })
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid LIMIT: value must be >= 0; got: -1");
     }
 }

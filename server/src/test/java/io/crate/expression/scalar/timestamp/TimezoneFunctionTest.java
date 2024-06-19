@@ -21,10 +21,13 @@
 
 package io.crate.expression.scalar.timestamp;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.exceptions.ConversionException;
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.SystemClock;
@@ -56,31 +59,33 @@ public class TimezoneFunctionTest extends ScalarTestCase {
 
     @Test
     public void testEvaluateInvalidZoneIsBlanc() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("time zone \" \" not recognized");
-        assertEvaluateNull("timezone(' ', 257504400000)");
+        assertThatThrownBy(() -> assertEvaluateNull("timezone(' ', 257504400000)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("time zone \" \" not recognized");
     }
 
     @Test
     public void testEvaluateInvalidZoneIsRandom() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("time zone \"Random/Location\" not recognized");
-        assertEvaluateNull("timezone('Random/Location', 257504400000)");
+        assertThatThrownBy(() -> assertEvaluateNull("timezone('Random/Location', 257504400000)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("time zone \"Random/Location\" not recognized");
     }
 
     @Test
     public void testEvaluateInvalidZoneIsRandomNumeric() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("time zone \"+31:97\" not recognized");
-        assertEvaluateNull("timezone('+31:97', 257504400000)");
+        assertThatThrownBy(() -> assertEvaluateNull("timezone('+31:97', 257504400000)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("time zone \"+31:97\" not recognized");
     }
 
     @Test
     public void testEvaluateInvalidTimestamp() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage(
-            "Cannot cast `'not_a_timestamp'` of type `text` to type `timestamp with time zone`");
-        assertEvaluateNull("timezone('Europe/Madrid', 'not_a_timestamp')");
+        assertThatThrownBy(() -> {
+            assertEvaluateNull("timezone('Europe/Madrid', 'not_a_timestamp')");
+        })
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessage(
+                "Cannot cast `'not_a_timestamp'` of type `text` to type `timestamp with time zone`");
     }
 
     @Test
@@ -90,23 +95,32 @@ public class TimezoneFunctionTest extends ScalarTestCase {
 
     @Test
     public void testEvaluateInvalidZoneIsBlancFromColumn() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("time zone \" \" not recognized");
-        assertEvaluateNull("timezone(name, 257504400000)", Literal.of(" "));
+        assertThatThrownBy(() -> {
+            assertEvaluateNull("timezone(name, 257504400000)", Literal.of(" "));
+
+        })
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("time zone \" \" not recognized");
     }
 
     @Test
     public void testEvaluateInvalidZoneIsRandomFromColumn() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("time zone \"Random/Location\" not recognized");
-        assertEvaluateNull("timezone(name, 257504400000)", Literal.of("Random/Location"));
+        assertThatThrownBy(() -> {
+            assertEvaluateNull("timezone(name, 257504400000)", Literal.of("Random/Location"));
+
+        })
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("time zone \"Random/Location\" not recognized");
     }
 
     @Test
     public void testEvaluateInvalidZoneIsRandomNumericFromColumn() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("time zone \"+31:97\" not recognized");
-        assertEvaluateNull("timezone(name, 257504400000)", Literal.of("+31:97"));
+        assertThatThrownBy(() -> {
+            assertEvaluateNull("timezone(name, 257504400000)", Literal.of("+31:97"));
+
+        })
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("time zone \"+31:97\" not recognized");
     }
 
     @Test

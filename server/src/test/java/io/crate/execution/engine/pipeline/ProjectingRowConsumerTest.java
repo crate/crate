@@ -24,6 +24,7 @@ package io.crate.execution.engine.pipeline;
 import static io.crate.data.SentinelRow.SENTINEL;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 import java.util.ArrayList;
@@ -196,29 +197,28 @@ public class ProjectingRowConsumerTest extends CrateDummyClusterServiceUnitTest 
     @Test
     public void testErrorHandlingIfProjectorApplicationFails() throws Exception {
         WriterProjection writerProjection = new WriterProjection(
-            Collections.singletonList(new InputColumn(0, DataTypes.STRING)),
-            Literal.of("/x/y/z/hopefully/invalid/on/your/system/"),
-            null,
-            Collections.emptyMap(),
-            Collections.emptyList(),
-            WriterProjection.OutputFormat.JSON_OBJECT,
-            Settings.EMPTY);
+                Collections.singletonList(new InputColumn(0, DataTypes.STRING)),
+                Literal.of("/x/y/z/hopefully/invalid/on/your/system/"),
+                null,
+                Collections.emptyMap(),
+                Collections.emptyList(),
+                WriterProjection.OutputFormat.JSON_OBJECT,
+                Settings.EMPTY);
 
         TestingRowConsumer consumer = new TestingRowConsumer();
         RowConsumer rowConsumer = ProjectingRowConsumer.create(
-            consumer,
-            Collections.singletonList(writerProjection),
-            UUID.randomUUID(),
-            txnCtx,
-            RamAccounting.NO_ACCOUNTING,
-            memoryManager,
-            projectorFactory
-        );
+                consumer,
+                Collections.singletonList(writerProjection),
+                UUID.randomUUID(),
+                txnCtx,
+                RamAccounting.NO_ACCOUNTING,
+                memoryManager,
+                projectorFactory);
 
         rowConsumer.accept(InMemoryBatchIterator.empty(SENTINEL), null);
 
-        expectedException.expect(UnhandledServerException.class);
-        expectedException.expectMessage("Failed to open output");
-        consumer.getResult();
+        assertThatThrownBy(() -> consumer.getResult())
+            .isExactlyInstanceOf(UnhandledServerException.class)
+            .hasMessageStartingWith("Failed to open output");
     }
 }

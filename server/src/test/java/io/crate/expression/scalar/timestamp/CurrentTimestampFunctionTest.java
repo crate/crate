@@ -22,6 +22,7 @@
 package io.crate.expression.scalar.timestamp;
 
 import static io.crate.testing.Asserts.exactlyInstanceOf;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.After;
 import org.junit.Before;
@@ -72,9 +73,12 @@ public class CurrentTimestampFunctionTest extends ScalarTestCase {
 
     @Test
     public void precisionLargerThan3RaisesException() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Precision must be between 0 and 3");
-        assertEvaluateNull("current_timestamp(4)");
+        assertThatThrownBy(() -> {
+            assertEvaluateNull("current_timestamp(4)");
+
+        })
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Precision must be between 0 and 3");
     }
 
     @Test

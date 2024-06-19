@@ -23,9 +23,11 @@ package io.crate.expression.scalar.geo;
 
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isNull;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
 
+import io.crate.exceptions.ConversionException;
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
@@ -73,24 +75,26 @@ public class CoordinateFunctionTest extends ScalarTestCase {
 
     @Test
     public void testWithTooManyArguments() throws Exception {
-        expectedException.expect(UnsupportedFunctionException.class);
-        expectedException.expectMessage("Unknown function: latitude('POINT (10 20)', 'foo')," +
-                                        " no overload found for matching argument types: (text, text).");
-        assertNormalize("latitude('POINT (10 20)', 'foo')", isNull());
+        assertThatThrownBy(() -> {
+            assertNormalize("latitude('POINT (10 20)', 'foo')", isNull());
+        })
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessageStartingWith("Unknown function: latitude('POINT (10 20)', 'foo')," +
+                " no overload found for matching argument types: (text, text).");
     }
 
     @Test
     public void testResolveWithInvalidType() throws Exception {
-        expectedException.expect(UnsupportedFunctionException.class);
-        expectedException.expectMessage(
-            "Unknown function: longitude(1), no overload found for matching argument types: (integer)");
-        assertEvaluateNull("longitude(1)");
+        assertThatThrownBy(() -> assertEvaluateNull("longitude(1)"))
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessageStartingWith(
+                "Unknown function: longitude(1), no overload found for matching argument types: (integer)");
     }
 
     @Test
     public void testWithInvalidStringReferences() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot cast `'POINT (foo)'` of type `text` to type `geo_point`");
-        assertEvaluateNull("longitude('POINT (foo)')");
+        assertThatThrownBy(() -> assertEvaluateNull("longitude('POINT (foo)')"))
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessage("Cannot cast `'POINT (foo)'` of type `text` to type `geo_point`");
     }
 }

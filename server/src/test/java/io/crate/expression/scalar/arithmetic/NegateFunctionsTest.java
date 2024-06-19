@@ -22,6 +22,7 @@
 package io.crate.expression.scalar.arithmetic;
 
 import static io.crate.testing.Asserts.isFunction;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.nullValue;
 
 import java.math.BigDecimal;
@@ -42,10 +43,10 @@ public class NegateFunctionsTest extends ScalarTestCase {
 
     @Test
     public void testNegateOnStringResultsInError() {
-        expectedException.expect(UnsupportedFunctionException.class);
-        expectedException.expectMessage("Unknown function: - doc.users.name," +
-                                        " no overload found for matching argument types: (text).");
-        assertEvaluate("- name", nullValue(), Literal.of("foo"));
+        assertThatThrownBy(() -> assertEvaluate("- name", nullValue(), Literal.of("foo")))
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessageStartingWith("Unknown function: - doc.users.name," +
+                    " no overload found for matching argument types: (text).");
     }
 
     @Test

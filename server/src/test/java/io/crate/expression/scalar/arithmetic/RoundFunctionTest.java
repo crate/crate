@@ -22,6 +22,7 @@
 package io.crate.expression.scalar.arithmetic;
 
 import static io.crate.testing.Asserts.isFunction;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
 
@@ -44,8 +45,11 @@ public class RoundFunctionTest extends ScalarTestCase {
 
     @Test
     public void testInvalidType() throws Exception {
-        expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `byte`");
-        assertEvaluateNull("round('foo')");
+        assertThatThrownBy(() -> {
+            assertEvaluateNull("round('foo')");
+
+        })
+                .isExactlyInstanceOf(ConversionException.class)
+                .hasMessage("Cannot cast `'foo'` of type `text` to type `byte`");
     }
 }

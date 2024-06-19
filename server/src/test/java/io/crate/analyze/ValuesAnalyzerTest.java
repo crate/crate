@@ -21,14 +21,16 @@
 
 package io.crate.analyze;
 
-import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isField;
 import static io.crate.testing.Asserts.isReference;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.exceptions.ConversionException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
@@ -46,15 +48,15 @@ public class ValuesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_error_is_raised_if_number_of_items_within_rows_are_not_equal() {
-        expectedException.expectMessage("VALUES lists must all be the same length");
-        e.analyze("VALUES (1), (2, 3)");
+        assertThatThrownBy(() -> e.analyze("VALUES (1), (2, 3)"))
+            .hasMessageStartingWith("VALUES lists must all be the same length");
     }
 
     @Test
     public void test_error_is_raised_if_the_types_of_the_rows_are_not_compatible() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `integer`");
-        e.analyze("VALUES (1), ('foo')");
+        assertThatThrownBy(() -> e.analyze("VALUES (1), ('foo')"))
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessage("Cannot cast `'foo'` of type `text` to type `integer`");
     }
 
     @Test

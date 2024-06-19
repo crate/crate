@@ -22,6 +22,7 @@
 package io.crate.execution.engine.aggregation.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -190,11 +191,11 @@ public class SumAggregationTest extends AggregationTestCase {
 
     @Test
     public void testUnsupportedType() throws Exception {
-        expectedException.expect(UnsupportedFunctionException.class);
-        expectedException.expectMessage(
-            "Unknown function: sum(NULL)," +
-            " no overload found for matching argument types: (geo_point).");
-        getSum(DataTypes.GEO_POINT);
+        assertThatThrownBy(() -> getSum(DataTypes.GEO_POINT))
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessageStartingWith(
+                "Unknown function: sum(NULL)," +
+                " no overload found for matching argument types: (geo_point).");
     }
 
     @Test

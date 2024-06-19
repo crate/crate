@@ -25,6 +25,7 @@ import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isNotSameInstance;
 import static io.crate.testing.Asserts.isNull;
 import static io.crate.testing.Asserts.isSameInstance;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
 
@@ -34,7 +35,7 @@ import io.crate.types.DataTypes;
 public class DateTruncFunctionTest extends ScalarTestCase {
 
     // timestamp for Do Feb 25 12:38:01.123 UTC 1999
-    private static final Literal TIMESTAMP = Literal.of(DataTypes.TIMESTAMPZ, 919946281123L);
+    private static final Literal<Long> TIMESTAMP = Literal.of(DataTypes.TIMESTAMPZ, 919946281123L);
 
     @Test
     public void testDateTruncWithLongLiteral() throws Exception {
@@ -66,9 +67,12 @@ public class DateTruncFunctionTest extends ScalarTestCase {
 
     @Test
     public void testInvalidInterval() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("invalid interval 'invalid interval' for scalar 'date_trunc'");
-        assertNormalize("date_trunc('invalid interval', 919946281123)", isNull());
+        assertThatThrownBy(() -> {
+            assertNormalize("date_trunc('invalid interval', 919946281123)", isNull());
+
+        })
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("invalid interval 'invalid interval' for scalar 'date_trunc'");
     }
 
     @Test
@@ -124,9 +128,12 @@ public class DateTruncFunctionTest extends ScalarTestCase {
 
     @Test
     public void testInvalidTimeZone() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("invalid time zone value 'no time zone'");
-        assertNormalize("date_trunc('day', 'no time zone', 919946281123)", isNull());
+        assertThatThrownBy(() -> {
+            assertNormalize("date_trunc('day', 'no time zone', 919946281123)", isNull());
+
+        })
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("invalid time zone value 'no time zone'");
     }
 
     @Test

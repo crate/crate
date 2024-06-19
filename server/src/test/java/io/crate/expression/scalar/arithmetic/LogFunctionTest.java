@@ -21,9 +21,9 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isNull;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
 
@@ -86,9 +86,9 @@ public class LogFunctionTest extends ScalarTestCase {
 
     @Test
     public void testNormalizeString() throws Exception {
-        expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `double precision`");
-        assertNormalize("log('foo')", isNull());
+        assertThatThrownBy(() -> assertNormalize("log('foo')", isNull()))
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessage("Cannot cast `'foo'` of type `text` to type `double precision`");
     }
 
     @Test

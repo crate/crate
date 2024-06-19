@@ -22,6 +22,7 @@
 package io.crate.execution.jobs;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -93,9 +94,12 @@ public class DistResultRXTaskTest extends ESTestCase {
         bucketReceiver.setBucket(1, bucket, false, pageResultListener);
         bucketReceiver.setBucket(1, bucket, false, pageResultListener);
 
-        expectedException.expect(IllegalStateException.class);
-        expectedException.expectMessage("Same bucket of a page set more than once. node=n1 method=setBucket phaseId=1 bucket=1");
-        batchConsumer.getResult();
+        assertThatThrownBy(() -> {
+            batchConsumer.getResult();
+
+        })
+                .isExactlyInstanceOf(IllegalStateException.class)
+                .hasMessage("Same bucket of a page set more than once. node=n1 method=setBucket phaseId=1 bucket=1");
     }
 
     @Test
@@ -115,8 +119,11 @@ public class DistResultRXTaskTest extends ESTestCase {
         ctx.kill(new InterruptedException());
         assertThat(throwable.get()).isExactlyInstanceOf(CompletionException.class);
 
-        expectedException.expect(InterruptedException.class);
-        batchConsumer.getResult();
+        assertThatThrownBy(() -> {
+            batchConsumer.getResult();
+
+        })
+                .isExactlyInstanceOf(InterruptedException.class);
     }
 
     @Test
@@ -250,9 +257,12 @@ public class DistResultRXTaskTest extends ESTestCase {
         bucketReceiver.setBucket(0, bucket, true, pageResultListener);
         bucketReceiver.setBucket(1, bucket, true, pageResultListener);
 
-        expectedException.expect(RuntimeException.class);
-        expectedException.expectMessage("raised on merge");
-        batchConsumer.getResult();
+        assertThatThrownBy(() -> {
+            batchConsumer.getResult();
+
+        })
+                .isExactlyInstanceOf(RuntimeException.class)
+                .hasMessage("raised on merge");
     }
 
     @Test
@@ -267,9 +277,12 @@ public class DistResultRXTaskTest extends ESTestCase {
         Bucket bucket = new CollectionBucket(Collections.singletonList(new Object[] { "foo" }));
         bucketReceiver.setBucket(0, bucket, true, pageResultListener);
 
-        expectedException.expect(RuntimeException.class);
-        expectedException.expectMessage("raised on merge");
-        batchConsumer.getResult();
+        assertThatThrownBy(() -> {
+            batchConsumer.getResult();
+
+        })
+                .isExactlyInstanceOf(RuntimeException.class)
+                .hasMessage("raised on merge");
     }
 
     private static class CheckPageResultListener implements PageResultListener {

@@ -22,6 +22,7 @@
 package io.crate.expression.scalar.timestamp;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -74,9 +75,12 @@ public class CurrentTimeFunctionTest extends ScalarTestCase {
 
     @Test
     public void precision_larger_than_6_raises_exception() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("precision must be between [0..6]");
-        assertEvaluateNull("current_time(14)");
+        assertThatThrownBy(() -> {
+            assertEvaluateNull("current_time(14)");
+
+        })
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("precision must be between [0..6]");
     }
 
     @Test
