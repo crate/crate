@@ -89,7 +89,7 @@ final class TimestampType extends BaseTimestampType {
     }
 
     @Override
-    byte[] encodeAsUTF8Text(@NotNull Object value) {
+    byte[] encodeAsUTF8Text(@NotNull Long value) {
         long millis = (long) value;
         LocalDateTime ts =
             LocalDateTime.ofInstant(Instant.ofEpochMilli(millis), ZoneOffset.UTC);
@@ -101,7 +101,7 @@ final class TimestampType extends BaseTimestampType {
     }
 
     @Override
-    Object decodeUTF8Text(byte[] bytes) {
+    Long decodeUTF8Text(byte[] bytes) {
         String s = new String(bytes, StandardCharsets.UTF_8);
 
         try {

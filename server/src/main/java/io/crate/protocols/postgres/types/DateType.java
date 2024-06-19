@@ -74,7 +74,7 @@ final class DateType extends BaseTimestampType {
     }
 
     @Override
-    byte[] encodeAsUTF8Text(@NotNull Object value) {
+    byte[] encodeAsUTF8Text(@NotNull Long value) {
         long millis = (long) value;
         LocalDate date = LocalDate.ofInstant(Instant.ofEpochMilli(millis), ZoneOffset.UTC);
 
@@ -82,7 +82,7 @@ final class DateType extends BaseTimestampType {
     }
 
     @Override
-    Object decodeUTF8Text(byte[] bytes) {
+    Long decodeUTF8Text(byte[] bytes) {
         String s = new String(bytes, StandardCharsets.UTF_8);
 
         //TODO: Add support of other formats, other than ISO 8601 (YYYY-MM-DD).
