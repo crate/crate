@@ -27,6 +27,7 @@ import java.util.List;
 import org.apache.lucene.search.FieldComparator;
 import org.apache.lucene.search.FieldComparatorSource;
 import org.apache.lucene.search.Pruning;
+import org.apache.lucene.search.Sort;
 import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.SortedNumericSelector;
 import org.apache.lucene.search.SortedNumericSortField;
@@ -34,8 +35,10 @@ import org.apache.lucene.search.SortedSetSelector;
 import org.apache.lucene.search.SortedSetSortField;
 import org.elasticsearch.index.fielddata.NullValueOrder;
 import org.elasticsearch.search.MultiValueMode;
+import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
+import io.crate.analyze.OrderBy;
 import io.crate.data.Input;
 import io.crate.execution.engine.collect.DocInputFactory;
 import io.crate.expression.InputFactory;
@@ -68,45 +71,53 @@ import io.crate.types.ShortType;
 import io.crate.types.StringType;
 import io.crate.types.TimestampType;
 
-public class SortSymbolVisitor extends SymbolVisitor<SortSymbolVisitor.SortSymbolContext, SortField> {
+public class LuceneSort extends SymbolVisitor<LuceneSort.SortSymbolContext, SortField> {
 
     private static final SortField SORT_SCORE_REVERSE = new SortField(null, SortField.Type.SCORE, true);
     private static final SortField SORT_SCORE = new SortField(null, SortField.Type.SCORE);
 
-    static class SortSymbolContext {
 
-        private final boolean reverseFlag;
-        private final CollectorContext context;
-        private final TransactionContext txnCtx;
-        private final boolean nullFirst;
-
-        SortSymbolContext(TransactionContext txnCtx,
-                          CollectorContext collectorContext,
-                          boolean reverseFlag,
-                          boolean nullFirst) {
-            this.txnCtx = txnCtx;
-            this.nullFirst = nullFirst;
-            this.context = collectorContext;
-            this.reverseFlag = reverseFlag;
+    @Nullable
+    public static Sort generate(TransactionContext txnCtx,
+                                CollectorContext context,
+                                OrderBy orderBy,
+                                DocInputFactory docInputFactory) {
+        if (orderBy.orderBySymbols().isEmpty()) {
+            return null;
         }
+        LuceneSort luceneSort = new LuceneSort(docInputFactory);
+        SortField[] sortFields = luceneSort.generateSortFields(
+            orderBy.orderBySymbols(),
+            txnCtx,
+            context,
+            orderBy.reverseFlags(),
+            orderBy.nullsFirst()
+        );
+        return new Sort(sortFields);
+    }
+
+    static record SortSymbolContext(TransactionContext txnCtx,
+                                    CollectorContext context,
+                                    boolean reverseFlag,
+                                    boolean nullFirst){
     }
 
     private final DocInputFactory docInputFactory;
 
-    SortSymbolVisitor(DocInputFactory docInputFactory) {
-        super();
+    private LuceneSort(DocInputFactory docInputFactory) {
         this.docInputFactory = docInputFactory;
     }
 
-    SortField[] generateSortFields(List<Symbol> sortSymbols,
-                                   TransactionContext txnCtx,
-                                   CollectorContext collectorContext,
-                                   boolean[] reverseFlags,
-                                   boolean[] nullsFirst) {
+    private SortField[] generateSortFields(List<Symbol> sortSymbols,
+                                           TransactionContext txnCtx,
+                                           CollectorContext collectorContext,
+                                           boolean[] reverseFlags,
+                                           boolean[] nullsFirst) {
         SortField[] sortFields = new SortField[sortSymbols.size()];
         for (int i = 0; i < sortSymbols.size(); i++) {
             Symbol sortSymbol = sortSymbols.get(i);
-            sortFields[i] = sortSymbol.accept(this, new SortSymbolContext(txnCtx, collectorContext, reverseFlags[i], nullsFirst[i]));
+            SortSymbolContext sortSymbolContext = new SortSymbolContext(txnCtx, collectorContext, reverseFlags[i], nullsFirst[i]);
+            sortFields[i] = sortSymbol.accept(this, sortSymbolContext);
         }
         return sortFields;
     }

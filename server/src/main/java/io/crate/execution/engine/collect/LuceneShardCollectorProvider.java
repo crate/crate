@@ -47,7 +47,7 @@ import io.crate.execution.engine.collect.collectors.LuceneOrderedDocCollector;
 import io.crate.execution.engine.collect.collectors.OptimizeQueryForSearchAfter;
 import io.crate.execution.engine.collect.collectors.OrderedDocCollector;
 import io.crate.execution.engine.export.FileOutputFactory;
-import io.crate.execution.engine.sort.LuceneSortGenerator;
+import io.crate.execution.engine.sort.LuceneSort;
 import io.crate.execution.jobs.NodeLimits;
 import io.crate.execution.jobs.SharedShardContext;
 import io.crate.expression.InputFactory;
@@ -230,7 +230,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             collectTask.getRamAccounting(),
             collectorContext,
             optimizeQueryForSearchAfter,
-            LuceneSortGenerator.generateLuceneSort(collectTask.txnCtx(), collectorContext, collectPhase.orderBy(), docInputFactory),
+            LuceneSort.generate(collectTask.txnCtx(), collectorContext, collectPhase.orderBy(), docInputFactory),
             ctx.topLevelInputs(),
             ctx.expressions()
         );
