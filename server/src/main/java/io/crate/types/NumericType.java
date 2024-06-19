@@ -137,9 +137,10 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
     public BigDecimal sanitizeValue(Object value) {
         if (value == null) {
             return null;
-        } else {
-            return (BigDecimal) value;
+        } else if (value instanceof Number n) {
+            return implicitCast(n);
         }
+        return null;
     }
 
     @Override
