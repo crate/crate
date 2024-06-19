@@ -65,9 +65,14 @@ public class EquiJoinDetector {
         return context.isHashJoinPossible;
     }
 
+    /**
+     * insideEqualOperand is used to mark starting point of the computation of the either sides of equality.
+     *
+     */
     private static class Context {
         boolean exit = false;
         boolean isHashJoinPossible = false;
+        boolean insideEqualOperand = false;
         Set<RelationName> relations = new HashSet<>();
     }
 
@@ -90,18 +95,30 @@ public class EquiJoinDetector {
                 }
                 case EqOperator.NAME -> {
                     List<Symbol> arguments = function.arguments();
-
                     var left = arguments.get(0);
-                    var leftContext = new Context();
-                    left.accept(this, leftContext);
-
                     var right = arguments.get(1);
-                    var rightContext = new Context();
-                    right.accept(this, rightContext);
-                    if (leftContext.relations.size() == 1 &&
-                        rightContext.relations.size() == 1 &&
-                        !leftContext.relations.equals(rightContext.relations)) {
-                        context.isHashJoinPossible = true;
+                    if (context.insideEqualOperand) {
+                        // EQ operator inside either side of the top level EQ operator
+                        // We need to re-use the same context to ensure that we keep counting all relations of each JOIN side.
+                        left.accept(this, context);
+                        right.accept(this, context);
+                    } else {
+                        // Top level EQ operator of the JOIN condition.
+                        // There can be nested EQ operators but this is top level equal.
+                        // Start collecting relations for both sides.
+                        var leftContext = new Context();
+                        leftContext.insideEqualOperand = true;
+                        left.accept(this, leftContext);
+
+                        var rightContext = new Context();
+                        rightContext.insideEqualOperand = true;
+                        right.accept(this, rightContext);
+
+                        if (leftContext.relations.size() == 1 &&
+                            rightContext.relations.size() == 1 &&
+                            !leftContext.relations.equals(rightContext.relations)) {
+                            context.isHashJoinPossible = true;
+                        }
                     }
                 }
                 default -> {
