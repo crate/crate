@@ -315,14 +315,17 @@ public class ForeignDataWrapperITest extends IntegTestCase {
             """;
         execute(stmt);
 
+        execute("create table mountains (name text, country text)");
+        execute("insert into mountains (name, country) values ('Mont Blanc', 'FR/IT'), ('Monte Rosa', 'CH'), ('Dom', 'CH')");
+        execute("refresh table mountains");
         execute(
             """
             SELECT
                 f_summits.mountain,
-                sys_summits.country
+                mountains.country
             FROM
                 doc.summits f_summits
-                INNER JOIN sys.summits sys_summits ON f_summits.mountain = sys_summits.mountain
+                INNER JOIN mountains ON f_summits.mountain = mountains.name
             ORDER BY
                 f_summits.height DESC
             LIMIT 3
