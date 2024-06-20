@@ -46,12 +46,9 @@ public class StringSplitPartFunctionTest extends ScalarTestCase {
 
     @Test
     public void split_part_index_smaller_one_throws_exception() {
-        assertThatThrownBy(() -> {
-            assertEvaluate("split_part('abc~@~def~@~ghi', '~@~', 0)", "");
-
-        })
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("index in split_part must be greater than zero");
+        assertThatThrownBy(() -> assertEvaluate("split_part('abc~@~def~@~ghi', '~@~', 0)", ""))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("index in split_part must be greater than zero");
     }
 
     @Test
@@ -93,6 +90,4 @@ public class StringSplitPartFunctionTest extends ScalarTestCase {
     public void repeating_delimiter_last() {
         assertEvaluate("split_part('+++++++++++a+++b', '+++', 5)", "b");
     }
-
-
 }

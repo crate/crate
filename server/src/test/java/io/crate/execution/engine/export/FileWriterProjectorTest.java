@@ -45,6 +45,7 @@ import org.junit.rules.TemporaryFolder;
 
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
+import io.crate.data.Row;
 import io.crate.data.testing.RowGenerator;
 import io.crate.data.testing.TestingRowConsumer;
 import io.crate.exceptions.UnhandledServerException;
@@ -53,12 +54,12 @@ import io.crate.testing.TestingHelpers;
 
 public class FileWriterProjectorTest extends ESTestCase {
 
-    private ExecutorService executorService = Executors.newSingleThreadExecutor();
-
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
 
-    private Supplier<BatchIterator> sourceSupplier = () -> InMemoryBatchIterator.of(RowGenerator.fromSingleColValues(
+    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
+
+    private final Supplier<BatchIterator<Row>> sourceSupplier = () -> InMemoryBatchIterator.of(RowGenerator.fromSingleColValues(
         IntStream.range(0, 5)
             .mapToObj(i -> String.format(Locale.ENGLISH, "input line %02d", i))
             .collect(Collectors.toList())), SENTINEL, true);
@@ -74,11 +75,12 @@ public class FileWriterProjectorTest extends ESTestCase {
 
         new TestingRowConsumer().accept(fileWriterProjector.apply(sourceSupplier.get()), null);
 
-        assertThat(TestingHelpers.readFile(file.toAbsolutePath().toString())).isEqualTo("input line 00\n" +
-                     "input line 01\n" +
-                     "input line 02\n" +
-                     "input line 03\n" +
-                     "input line 04");
+        assertThat(TestingHelpers.readFile(file.toAbsolutePath().toString())).isEqualTo("""
+            input line 00
+            input line 01
+            input line 02
+            input line 03
+            input line 04""");
     }
 
     @Test
@@ -90,9 +92,7 @@ public class FileWriterProjectorTest extends ESTestCase {
                 null, null, Set.of(), new HashMap<>(),
                 null, WriterProjection.OutputFormat.JSON_OBJECT,
                 Map.of(LocalFsFileOutputFactory.NAME, new LocalFsFileOutputFactory()), Settings.EMPTY);
-        assertThatThrownBy(() -> {
-            new TestingRowConsumer().accept(fileWriterProjector.apply(sourceSupplier.get()), null);
-        })
+        assertThatThrownBy(() -> new TestingRowConsumer().accept(fileWriterProjector.apply(sourceSupplier.get()), null))
             .isExactlyInstanceOf(UnhandledServerException.class)
             .hasMessageStartingWith("Failed to open output: 'Output path is a directory: ");
     }
@@ -106,9 +106,7 @@ public class FileWriterProjectorTest extends ESTestCase {
                 null, WriterProjection.OutputFormat.JSON_OBJECT,
                 Map.of(LocalFsFileOutputFactory.NAME, new LocalFsFileOutputFactory()), Settings.EMPTY);
 
-        assertThatThrownBy(() -> {
-            new TestingRowConsumer().accept(fileWriterProjector.apply(sourceSupplier.get()), null);
-        })
+        assertThatThrownBy(() -> new TestingRowConsumer().accept(fileWriterProjector.apply(sourceSupplier.get()), null))
             .isExactlyInstanceOf(UnhandledServerException.class)
             .hasMessageStartingWith("Failed to open output");
     }

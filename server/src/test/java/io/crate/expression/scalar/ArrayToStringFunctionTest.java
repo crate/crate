@@ -40,8 +40,8 @@ public class ArrayToStringFunctionTest extends ScalarTestCase {
     public void testOneArgument() {
         assertThatThrownBy(() -> assertEvaluateNull("array_to_string([1, 2])"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: array_to_string(_array(1, 2))," +
-                " no overload found for matching argument types: (integer_array).");
+            .hasMessageStartingWith("Unknown function: array_to_string(_array(1, 2)), " +
+                                    "no overload found for matching argument types: (integer_array).");
     }
 
     @Test
@@ -58,13 +58,9 @@ public class ArrayToStringFunctionTest extends ScalarTestCase {
 
     @Test
     public void testNullArray() {
-        assertThatThrownBy(() -> {
-            assertEvaluateNull("array_to_string(null, ',')");
-
-        })
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage(
-                        "The inner type of the array argument `array_to_string` function cannot be undefined");
+        assertThatThrownBy(() -> assertEvaluateNull("array_to_string(null, ',')"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("The inner type of the array argument `array_to_string` function cannot be undefined");
     }
 
     @Test
@@ -105,5 +101,4 @@ public class ArrayToStringFunctionTest extends ScalarTestCase {
     public void testPgArrayToStringWithFQNFunctionName() throws Exception {
         assertEvaluate("pg_catalog.array_to_string([1, 2, 3], ', ')", "1, 2, 3");
     }
-
 }

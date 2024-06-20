@@ -48,22 +48,15 @@ public class RepositoryParamValidatorTest extends ESTestCase {
 
     @Test
     public void testValidate() throws Exception {
-        assertThatThrownBy(() -> {
-            validator.validate("invalid_type", GenericProperties.empty(), Settings.EMPTY);
-
-        })
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Invalid repository type \"invalid_type\"");
+        assertThatThrownBy(() -> validator.validate("invalid_type", GenericProperties.empty(), Settings.EMPTY))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid repository type \"invalid_type\"");
     }
 
     @Test
     public void testRequiredTypeIsMissing() throws Exception {
-        assertThatThrownBy(() -> {
-            validator.validate("fs", GenericProperties.empty(), Settings.EMPTY);
-
-        })
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage(
-                        "The following required parameters are missing to create a repository of type \"fs\": [location]");
+        assertThatThrownBy(() -> validator.validate("fs", GenericProperties.empty(), Settings.EMPTY))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("The following required parameters are missing to create a repository of type \"fs\": [location]");
     }
 }

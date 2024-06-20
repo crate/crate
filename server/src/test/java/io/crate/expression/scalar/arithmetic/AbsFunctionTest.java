@@ -44,12 +44,9 @@ public class AbsFunctionTest extends ScalarTestCase {
 
     @Test
     public void testWrongType() throws Exception {
-        assertThatThrownBy(() -> {
-            assertEvaluateNull("abs('foo')");
-
-        })
-                .isExactlyInstanceOf(ConversionException.class)
-                .hasMessage("Cannot cast `'foo'` of type `text` to type `byte`");
+        assertThatThrownBy(() -> assertEvaluateNull("abs('foo')"))
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessage("Cannot cast `'foo'` of type `text` to type `byte`");
     }
 
     @Test

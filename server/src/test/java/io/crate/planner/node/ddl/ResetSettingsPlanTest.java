@@ -88,14 +88,10 @@ public class ResetSettingsPlanTest extends ESTestCase {
 
     @Test
     public void testResetNonRuntimeSettingObject() {
-        assertThatThrownBy(() -> {
-            Set<Symbol> settings = Set.of(Literal.of("gateway.recover_after_nodes"));
-
-            buildSettingsFrom(settings, symbolEvaluator(Row.EMPTY));
-
-        })
-                .isExactlyInstanceOf(UnsupportedOperationException.class)
-                .hasMessage("Setting 'gateway.recover_after_nodes' cannot be set/reset at runtime");
+        Set<Symbol> settings = Set.of(Literal.of("gateway.recover_after_nodes"));
+        assertThatThrownBy(() -> buildSettingsFrom(settings, symbolEvaluator(Row.EMPTY)))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Setting 'gateway.recover_after_nodes' cannot be set/reset at runtime");
     }
 
     @Test
@@ -137,18 +133,14 @@ public class ResetSettingsPlanTest extends ESTestCase {
             .put("stats.jobs_log_size", (String) null)
             .build();
 
-        assertThat(
-            buildSettingsFrom(settings, symbolEvaluator(Row.EMPTY))).isEqualTo(expected);
+        assertThat(buildSettingsFrom(settings, symbolEvaluator(Row.EMPTY))).isEqualTo(expected);
     }
 
     @Test
     public void testUnsupportedSetting() throws Exception {
-        assertThatThrownBy(() -> {
-            Set<Symbol> settings = Set.of(Literal.of("unsupported_setting"));
-            buildSettingsFrom(settings, symbolEvaluator(Row.EMPTY));
-
-        })
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Setting 'unsupported_setting' is not supported");
+        Set<Symbol> settings = Set.of(Literal.of("unsupported_setting"));
+        assertThatThrownBy(() -> buildSettingsFrom(settings, symbolEvaluator(Row.EMPTY)))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Setting 'unsupported_setting' is not supported");
     }
 }

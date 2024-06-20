@@ -187,9 +187,7 @@ public class LimitAndOffsetProjectorTest extends ESTestCase {
 
     @Test
     public void testProjectNoLimitNoOffset() throws Throwable {
-        assertThatThrownBy(() -> {
-            prepareProjector(LimitAndOffset.NO_LIMIT, LimitAndOffset.NO_OFFSET);
-        })
+        assertThatThrownBy(() -> prepareProjector(LimitAndOffset.NO_LIMIT, LimitAndOffset.NO_OFFSET))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Invalid LIMIT: value must be >= 0; got: -1");
     }

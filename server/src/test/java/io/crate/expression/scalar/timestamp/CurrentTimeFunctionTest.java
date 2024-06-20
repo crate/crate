@@ -75,12 +75,9 @@ public class CurrentTimeFunctionTest extends ScalarTestCase {
 
     @Test
     public void precision_larger_than_6_raises_exception() {
-        assertThatThrownBy(() -> {
-            assertEvaluateNull("current_time(14)");
-
-        })
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("precision must be between [0..6]");
+        assertThatThrownBy(() -> assertEvaluateNull("current_time(14)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("precision must be between [0..6]");
     }
 
     @Test

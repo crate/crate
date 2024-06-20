@@ -67,96 +67,65 @@ public class TimeTZParserTest extends ESTestCase {
 
     @Test
     public void test_parse_time_range_overflow() {
-        assertThatThrownBy(() -> {
-            parse("24:00:00.000001");
-
-        })
+        assertThatThrownBy(() -> parse("24:00:00.000001"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage(
-                    "Text '24:00:00.000001' could not be parsed: Invalid value for HourOfDay (valid values 0 - 23): 24");
+            .hasMessage("Text '24:00:00.000001' could not be parsed: Invalid value for HourOfDay (valid values 0 - 23): 24");
     }
 
     @Test
     public void test_parse_time_unsupported_literal_long() {
-        assertThatThrownBy(() -> {
-            parse("234");
-
-        })
+        assertThatThrownBy(() -> parse("234"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Text '234' could not be parsed, unparsed text found at index 2");
     }
 
     @Test
     public void test_parse_time_unsupported_literal_floating_point() {
-        assertThatThrownBy(() -> {
-            parse("234.9999");
-
-        })
+        assertThatThrownBy(() -> parse("234.9999"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Text '234.9999' could not be parsed, unparsed text found at index 2");
     }
 
     @Test
     public void test_parse_time_out_of_range_hh() {
-        assertThatThrownBy(() -> {
-            parse("25");
-
-        })
+        assertThatThrownBy(() -> parse("25"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Text '25' could not be parsed: Invalid value for HourOfDay (valid values 0 - 23): 25");
     }
 
     @Test
     public void test_parse_time_out_of_range_hhmm() {
-        assertThatThrownBy(() -> {
-            parse("1778");
-
-        })
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage(
-                        "Text '1778' could not be parsed: Invalid value for MinuteOfHour (valid values 0 - 59): 78");
+        assertThatThrownBy(() -> parse("1778"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Text '1778' could not be parsed: Invalid value for MinuteOfHour (valid values 0 - 59): 78");
     }
 
     @Test
     public void test_parse_time_out_of_range_hhmmss() {
-        assertThatThrownBy(() -> {
-            parse("175978");
-
-        })
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage(
-                        "Text '175978' could not be parsed: Invalid value for SecondOfMinute (valid values 0 - 59): 78");
+        assertThatThrownBy(() -> parse("175978"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Text '175978' could not be parsed: Invalid value for SecondOfMinute (valid values 0 - 59): 78");
     }
 
     @Test
     public void test_parse_time_out_of_range_hh_floating_point() {
-        assertThatThrownBy(() -> {
-            parse("25.999999");
-
-        })
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Invalid value for HourOfDay (valid values 0 - 23): 25");
+        assertThatThrownBy(() -> parse("25.999999"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid value for HourOfDay (valid values 0 - 23): 25");
     }
 
     @Test
     public void test_parse_time_out_of_range_hhmm_floating_point() {
-        assertThatThrownBy(() -> {
-            parse("1778.999999");
-
-        })
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Invalid value for MinuteOfHour (valid values 0 - 59): 78");
+        assertThatThrownBy(() -> parse("1778.999999"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid value for MinuteOfHour (valid values 0 - 59): 78");
     }
 
     @Test
     public void test_parse_time_out_of_range_hhmmss_floating_point() {
-        assertThatThrownBy(() -> {
-            parse("175978.999999");
-
-        })
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage(
-                        "Text '175978.999999' could not be parsed: Invalid value for SecondOfMinute (valid values 0 - 59): 78");
+        assertThatThrownBy(() -> parse("175978.999999"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Text '175978.999999' could not be parsed: Invalid value for SecondOfMinute (valid values 0 - 59): 78");
     }
 
     @Test

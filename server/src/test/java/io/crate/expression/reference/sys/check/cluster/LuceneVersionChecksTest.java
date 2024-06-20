@@ -38,11 +38,8 @@ public class LuceneVersionChecksTest extends ESTestCase {
 
     @Test
     public void testUpgradeRequiredInvalidArg() {
-        assertThatThrownBy(() -> {
-            LuceneVersionChecks.isUpgradeRequired("invalidVersion");
-
-        })
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("'invalidVersion' is not a valid Lucene version");
+        assertThatThrownBy(() -> LuceneVersionChecks.isUpgradeRequired("invalidVersion"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("'invalidVersion' is not a valid Lucene version");
     }
 }

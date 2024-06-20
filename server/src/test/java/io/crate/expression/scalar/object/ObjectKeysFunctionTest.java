@@ -39,14 +39,11 @@ public class ObjectKeysFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_array_input() {
-        assertThatThrownBy(() -> {
-            assertEvaluateNull("object_keys([1])");
-
-        })
-                .isExactlyInstanceOf(UnsupportedFunctionException.class)
-                .hasMessage("Unknown function: object_keys(_array(1)), no overload found for" +
-                        " matching argument types: (integer_array). Possible candidates:" +
-                        " object_keys(object):array(text)");
+        assertThatThrownBy(() -> assertEvaluateNull("object_keys([1])"))
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessage("Unknown function: object_keys(_array(1)), no overload found for " +
+                        "matching argument types: (integer_array). Possible candidates: " +
+                        "object_keys(object):array(text)");
     }
 
     @Test

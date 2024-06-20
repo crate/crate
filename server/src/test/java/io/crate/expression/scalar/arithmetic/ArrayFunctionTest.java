@@ -37,10 +37,7 @@ public class ArrayFunctionTest extends ScalarTestCase {
 
     @Test
     public void testTypeValidation() {
-        assertThatThrownBy(() -> {
-            assertEvaluateNull("ARRAY[1, 'foo']");
-
-        })
+        assertThatThrownBy(() -> assertEvaluateNull("ARRAY[1, 'foo']"))
             .isExactlyInstanceOf(ConversionException.class)
             .hasMessage("Cannot cast `'foo'` of type `text` to type `integer`");
     }

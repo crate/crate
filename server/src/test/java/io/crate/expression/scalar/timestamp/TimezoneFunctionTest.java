@@ -80,12 +80,9 @@ public class TimezoneFunctionTest extends ScalarTestCase {
 
     @Test
     public void testEvaluateInvalidTimestamp() {
-        assertThatThrownBy(() -> {
-            assertEvaluateNull("timezone('Europe/Madrid', 'not_a_timestamp')");
-        })
+        assertThatThrownBy(() -> assertEvaluateNull("timezone('Europe/Madrid', 'not_a_timestamp')"))
             .isExactlyInstanceOf(ConversionException.class)
-            .hasMessage(
-                "Cannot cast `'not_a_timestamp'` of type `text` to type `timestamp with time zone`");
+            .hasMessage("Cannot cast `'not_a_timestamp'` of type `text` to type `timestamp with time zone`");
     }
 
     @Test
@@ -95,32 +92,23 @@ public class TimezoneFunctionTest extends ScalarTestCase {
 
     @Test
     public void testEvaluateInvalidZoneIsBlancFromColumn() {
-        assertThatThrownBy(() -> {
-            assertEvaluateNull("timezone(name, 257504400000)", Literal.of(" "));
-
-        })
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("time zone \" \" not recognized");
+        assertThatThrownBy(() -> assertEvaluateNull("timezone(name, 257504400000)", Literal.of(" ")))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("time zone \" \" not recognized");
     }
 
     @Test
     public void testEvaluateInvalidZoneIsRandomFromColumn() {
-        assertThatThrownBy(() -> {
-            assertEvaluateNull("timezone(name, 257504400000)", Literal.of("Random/Location"));
-
-        })
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("time zone \"Random/Location\" not recognized");
+        assertThatThrownBy(() -> assertEvaluateNull("timezone(name, 257504400000)", Literal.of("Random/Location")))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("time zone \"Random/Location\" not recognized");
     }
 
     @Test
     public void testEvaluateInvalidZoneIsRandomNumericFromColumn() {
-        assertThatThrownBy(() -> {
-            assertEvaluateNull("timezone(name, 257504400000)", Literal.of("+31:97"));
-
-        })
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("time zone \"+31:97\" not recognized");
+        assertThatThrownBy(() -> assertEvaluateNull("timezone(name, 257504400000)", Literal.of("+31:97")))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("time zone \"+31:97\" not recognized");
     }
 
     @Test

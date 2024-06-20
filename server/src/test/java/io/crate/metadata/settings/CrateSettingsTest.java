@@ -76,10 +76,7 @@ public class CrateSettingsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testIsNotRuntimeSetting() {
-        assertThatThrownBy(() -> {
-            CrateSettings.checkIfRuntimeSetting(GatewayService.EXPECTED_NODES_SETTING.getKey());
-
-        })
+        assertThatThrownBy(() -> CrateSettings.checkIfRuntimeSetting(GatewayService.EXPECTED_NODES_SETTING.getKey()))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("Setting 'gateway.expected_nodes' cannot be set/reset at runtime");
     }

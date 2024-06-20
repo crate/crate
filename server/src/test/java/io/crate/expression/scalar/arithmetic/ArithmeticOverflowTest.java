@@ -32,121 +32,85 @@ public class ArithmeticOverflowTest extends ScalarTestCase {
 
     @Test
     public void test_integer_overflow() {
-        assertThatThrownBy(() -> {
-            assertEvaluateNull("2147483647::integer + 1::integer");
-
-        })
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("integer overflow");
+        assertThatThrownBy(() -> assertEvaluateNull("2147483647::integer + 1::integer"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("integer overflow");
     }
 
     @Test
     public void test_integer_overflow_from_table() {
-        assertThatThrownBy(() -> {
-            assertEvaluateNull("a + 1::integer", Literal.of(Integer.MAX_VALUE));
-
-        })
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("integer overflow");
+        assertThatThrownBy(() -> assertEvaluateNull("a + 1::integer", Literal.of(Integer.MAX_VALUE)))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("integer overflow");
     }
 
     @Test
     public void test_integer_overflow_mul() {
-        assertThatThrownBy(() -> {
-            assertEvaluateNull("2147483647::integer * 2::integer");
-
-        })
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("integer overflow");
+        assertThatThrownBy(() -> assertEvaluateNull("2147483647::integer * 2::integer"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("integer overflow");
     }
 
     @Test
     public void test_integer_overflow_mul_from_table() {
-        assertThatThrownBy(() -> {
-            assertEvaluateNull("a * 2::integer", Literal.of(Integer.MAX_VALUE));
-
-        })
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("integer overflow");
+        assertThatThrownBy(() -> assertEvaluateNull("a * 2::integer", Literal.of(Integer.MAX_VALUE)))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("integer overflow");
     }
 
     @Test
     public void test_integer_underflow() {
-        assertThatThrownBy(() -> {
-            assertEvaluateNull("-2147483647::integer - 2::integer");
-
-        })
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("integer overflow");
+        assertThatThrownBy(() -> assertEvaluateNull("-2147483647::integer - 2::integer"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("integer overflow");
     }
 
     @Test
     public void test_integer_underflow_from_table() {
-        assertThatThrownBy(() -> {
-            assertEvaluateNull("a - 1::integer", Literal.of(Integer.MIN_VALUE));
-
-        })
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("integer overflow");
+        assertThatThrownBy(() -> assertEvaluateNull("a - 1::integer", Literal.of(Integer.MIN_VALUE)))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("integer overflow");
     }
 
     @Test
     public void test_long_overflow() {
-        assertThatThrownBy(() -> {
-            assertEvaluateNull("9223372036854775807 + 1");
-
-        })
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("long overflow");
+        assertThatThrownBy(() -> assertEvaluateNull("9223372036854775807 + 1"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("long overflow");
     }
 
     @Test
     public void test_long_overflow_from_table() {
-        assertThatThrownBy(() -> {
-            assertEvaluateNull("x + 1", Literal.of(Long.MAX_VALUE));
-
-        })
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("long overflow");
+        assertThatThrownBy(() -> assertEvaluateNull("x + 1", Literal.of(Long.MAX_VALUE)))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("long overflow");
     }
 
     @Test
     public void test_long_overflow_mul() {
-        assertThatThrownBy(() -> {
-            assertEvaluateNull("9223372036854775807 * 2");
-
-        })
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("long overflow");
+        assertThatThrownBy(() -> assertEvaluateNull("9223372036854775807 * 2"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("long overflow");
     }
 
     @Test
     public void test_long_overflow_mul_from_table() {
-        assertThatThrownBy(() -> {
-            assertEvaluateNull("x * 2", Literal.of(Long.MAX_VALUE));
-
-        })
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("long overflow");
+        assertThatThrownBy(() -> assertEvaluateNull("x * 2", Literal.of(Long.MAX_VALUE)))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("long overflow");
     }
 
     @Test
     public void test_long_underflow() {
-        assertThatThrownBy(() -> {
-            assertEvaluateNull("-9223372036854775807 - 2");
-
-        })
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("long overflow");
+        assertThatThrownBy(() -> assertEvaluateNull("-9223372036854775807 - 2"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("long overflow");
     }
 
     @Test
     public void test_long_underflow_from_table() {
-        assertThatThrownBy(() -> {
-            assertEvaluateNull("x - 1", Literal.of(Long.MIN_VALUE));
-
-        })
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("long overflow");
+        assertThatThrownBy(() -> assertEvaluateNull("x - 1", Literal.of(Long.MIN_VALUE)))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("long overflow");
     }
 }

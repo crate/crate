@@ -55,11 +55,8 @@ public class SymbolFormatterTest extends ESTestCase {
 
     @Test
     public void testFormatInvalidEscape() throws Exception {
-        assertThatThrownBy(() -> {
-            assertThat(Symbols.format("%d", Literal.of(42L))).isEqualTo("");
-
-        })
-                .isExactlyInstanceOf(IllegalFormatConversionException.class)
-                .hasMessage("d != java.lang.String");
+        assertThatThrownBy(() -> assertThat(Symbols.format("%d", Literal.of(42L))).isEqualTo(""))
+            .isExactlyInstanceOf(IllegalFormatConversionException.class)
+            .hasMessage("d != java.lang.String");
     }
 }

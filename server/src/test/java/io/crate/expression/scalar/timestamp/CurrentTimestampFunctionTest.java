@@ -73,12 +73,9 @@ public class CurrentTimestampFunctionTest extends ScalarTestCase {
 
     @Test
     public void precisionLargerThan3RaisesException() {
-        assertThatThrownBy(() -> {
-            assertEvaluateNull("current_timestamp(4)");
-
-        })
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Precision must be between 0 and 3");
+        assertThatThrownBy(() -> assertEvaluateNull("current_timestamp(4)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Precision must be between 0 and 3");
     }
 
     @Test

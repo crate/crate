@@ -45,8 +45,8 @@ public class NegateFunctionsTest extends ScalarTestCase {
     public void testNegateOnStringResultsInError() {
         assertThatThrownBy(() -> assertEvaluate("- name", nullValue(), Literal.of("foo")))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: - doc.users.name," +
-                    " no overload found for matching argument types: (text).");
+            .hasMessageStartingWith("Unknown function: - doc.users.name, " +
+                                    "no overload found for matching argument types: (text).");
     }
 
     @Test

@@ -32,13 +32,12 @@ public class StringPaddingFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_lpad_parameter_len_too_big() throws Exception {
-        assertThatThrownBy(() -> {
-            assertEvaluateNull("lpad('yes', 2000000, 'yes')");
-            assertEvaluateNull("lpad('yes', a, 'yes')", Literal.of(2000000));
-
-        })
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("len argument exceeds predefined limit of 50000");
+        assertThatThrownBy(() -> assertEvaluateNull("lpad('yes', 2000000, 'yes')"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("len argument exceeds predefined limit of 50000");
+        assertThatThrownBy(() -> assertEvaluateNull("lpad('yes', a, 'yes')", Literal.of(2000000)))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("len argument exceeds predefined limit of 50000");
     }
 
     @Test
@@ -101,13 +100,13 @@ public class StringPaddingFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_rpad_parameter_len_too_big() throws Exception {
-        assertThatThrownBy(() -> {
-            assertEvaluateNull("rpad('yes', 2000000, 'yes')");
-            assertEvaluate("rpad('yes', a, 'yes')", Literal.of(2000000));
+        assertThatThrownBy(() -> assertEvaluateNull("rpad('yes', 2000000, 'yes')"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("len argument exceeds predefined limit of 50000");
 
-        })
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("len argument exceeds predefined limit of 50000");
+        assertThatThrownBy(() -> assertEvaluateNull("rpad('yes', a, 'yes')", Literal.of(2000000)))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("len argument exceeds predefined limit of 50000");
     }
 
     @Test

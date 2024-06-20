@@ -159,13 +159,14 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
         QualifiedName invalidFqn = QualifiedName.of("bogus_schema", "t");
 
         var sessionSetttings = sqlExecutor.getSessionSettings();
-        assertThatThrownBy(() -> {
-            sqlExecutor.schemas().findRelation(invalidFqn, Operation.READ, sessionSetttings.sessionUser(),
-                    sessionSetttings.searchPath());
-
-        })
-                .isExactlyInstanceOf(SchemaUnknownException.class)
-                .hasMessage("Schema 'bogus_schema' unknown");
+        assertThatThrownBy(() ->
+                sqlExecutor.schemas().findRelation(
+                    invalidFqn,
+                    Operation.READ,
+                    sessionSetttings.sessionUser(),
+                    sessionSetttings.searchPath()))
+            .isExactlyInstanceOf(SchemaUnknownException.class)
+            .hasMessage("Schema 'bogus_schema' unknown");
     }
 
     @Test
@@ -174,10 +175,11 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
         QualifiedName table = QualifiedName.of("missing_table");
 
         var sessionSettings = sqlExecutor.getSessionSettings();
-        assertThatThrownBy(() -> {
-            sqlExecutor.schemas().findRelation(table, Operation.READ, sessionSettings.sessionUser(),
-                    sessionSettings.searchPath());
-        })
+        assertThatThrownBy(() -> sqlExecutor.schemas().findRelation(
+                table,
+                Operation.READ,
+                sessionSettings.sessionUser(),
+                sessionSettings.searchPath()))
             .isExactlyInstanceOf(RelationUnknown.class)
             .hasMessage("Relation 'missing_table' unknown");
     }

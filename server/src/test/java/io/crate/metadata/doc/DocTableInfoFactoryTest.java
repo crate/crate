@@ -59,23 +59,23 @@ public class DocTableInfoFactoryTest extends ESTestCase {
     public void testNoTableInfoFromOrphanedPartition() throws Exception {
         String schemaName = randomSchema();
         PartitionName partitionName = new PartitionName(
-                new RelationName(schemaName, "test"), Collections.singletonList("boo"));
+            new RelationName(schemaName, "test"), Collections.singletonList("boo"));
         IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(partitionName.asIndexName())
-                .settings(Settings.builder().put("index.version.created", Version.CURRENT).build())
-                .numberOfReplicas(0)
-                .numberOfShards(5)
-                .putMapping(
-                        "{" +
-                                "  \"default\": {" +
-                                "    \"properties\":{" +
-                                "      \"id\": {" +
-                                "         \"type\": \"integer\"," +
-                                "         \"position\": 1," +
-                                "         \"index\": \"not_analyzed\"" +
-                                "      }" +
-                                "    }" +
-                                "  }" +
-                                "}");
+            .settings(Settings.builder().put("index.version.created", Version.CURRENT).build())
+            .numberOfReplicas(0)
+            .numberOfShards(5)
+            .putMapping(
+                "{" +
+                "  \"default\": {" +
+                "    \"properties\":{" +
+                "      \"id\": {" +
+                "         \"type\": \"integer\"," +
+                "         \"position\": 1," +
+                "         \"index\": \"not_analyzed\"" +
+                "      }" +
+                "    }" +
+                "  }" +
+                "}");
         Metadata metadata = Metadata.builder()
                 .put(indexMetadataBuilder)
                 .build();
@@ -83,11 +83,9 @@ public class DocTableInfoFactoryTest extends ESTestCase {
         ClusterState state = ClusterState.builder(ClusterName.DEFAULT).metadata(metadata).build();
         DocTableInfoFactory docTableInfoFactory = new DocTableInfoFactory(nodeCtx);
 
-        assertThatThrownBy(() -> {
-            docTableInfoFactory.create(new RelationName(schemaName, "test"), state.metadata());
-
-        })
-                .isExactlyInstanceOf(RelationUnknown.class)
-                .hasMessage(String.format(Locale.ENGLISH, "Relation '%s.test' unknown", schemaName));
+        assertThatThrownBy(() ->
+                docTableInfoFactory.create(new RelationName(schemaName, "test"), state.metadata()))
+            .isExactlyInstanceOf(RelationUnknown.class)
+            .hasMessage(String.format(Locale.ENGLISH, "Relation '%s.test' unknown", schemaName));
     }
 }

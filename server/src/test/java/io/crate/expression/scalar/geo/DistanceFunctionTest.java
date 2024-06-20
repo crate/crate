@@ -39,22 +39,20 @@ public class DistanceFunctionTest extends ScalarTestCase {
 
     @Test
     public void testResolveWithTooManyArguments() throws Exception {
-        assertThatThrownBy(() -> {
-            assertNormalize("distance('POINT (10 20)', 'POINT (11 21)', 'foo')", s -> assertThat(s).isNull());
-        })
+        assertThatThrownBy(() ->
+                assertNormalize("distance('POINT (10 20)', 'POINT (11 21)', 'foo')", s -> assertThat(s).isNull()))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: distance('POINT (10 20)', 'POINT (11 21)', 'foo')," +
-                " no overload found for matching argument types: (text, text, text).");
+            .hasMessageStartingWith("Unknown function: distance('POINT (10 20)', 'POINT (11 21)', 'foo'), " +
+                                    "no overload found for matching argument types: (text, text, text).");
     }
 
     @Test
     public void testResolveWithInvalidType() throws Exception {
-        assertThatThrownBy(() -> {
-            assertNormalize("distance(1, 'POINT (11 21)')", s -> assertThat(s).isNull());
-        })
+        assertThatThrownBy(() ->
+                assertNormalize("distance(1, 'POINT (11 21)')", s -> assertThat(s).isNull()))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: distance(1, 'POINT (11 21)')," +
-                " no overload found for matching argument types: (integer, text).");
+            .hasMessageStartingWith("Unknown function: distance(1, 'POINT (11 21)'), " +
+                                    "no overload found for matching argument types: (integer, text).");
     }
 
     @Test
@@ -83,12 +81,9 @@ public class DistanceFunctionTest extends ScalarTestCase {
 
     @Test
     public void testWithInvalidReferences() {
-        assertThatThrownBy(() -> {
-            assertEvaluateNull("distance(name, [10.04, 28.02])", Literal.of("foo"));
-
-        })
-                .isExactlyInstanceOf(ConversionException.class)
-                .hasMessage("Cannot cast value `foo` to type `geo_point`");
+        assertThatThrownBy(() -> assertEvaluateNull("distance(name, [10.04, 28.02])", Literal.of("foo")))
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessage("Cannot cast value `foo` to type `geo_point`");
     }
 
     @Test

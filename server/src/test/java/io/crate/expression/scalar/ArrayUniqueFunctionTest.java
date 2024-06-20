@@ -115,8 +115,8 @@ public class ArrayUniqueFunctionTest extends ScalarTestCase {
     public void testDifferentUnconvertableInnerTypes() throws Exception {
         assertThatThrownBy(() -> assertEvaluateNull("array_unique([geopoint], [true])"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: array_unique(_array(doc.users.geopoint), _array(true))," +
-                    " no overload found for matching argument types: (geo_point_array, boolean_array).");
+            .hasMessageStartingWith("Unknown function: array_unique(_array(doc.users.geopoint), _array(true)), " +
+                    "no overload found for matching argument types: (geo_point_array, boolean_array).");
     }
 
     @Test
@@ -134,17 +134,13 @@ public class ArrayUniqueFunctionTest extends ScalarTestCase {
         assertThatThrownBy(() -> assertEvaluateNull("array_unique([], [])"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("One of the arguments of the `array_unique` function can " +
-                    "be of undefined inner type, but not both");
+                        "be of undefined inner type, but not both");
     }
 
     @Test
     public void testEmptyArray() throws Exception {
-        assertThatThrownBy(() -> {
-            assertEvaluateNull("array_unique([])");
-
-        })
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage(
-                        "When used with only one argument, the inner type of the array argument cannot be undefined");
+        assertThatThrownBy(() -> assertEvaluateNull("array_unique([])"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("When used with only one argument, the inner type of the array argument cannot be undefined");
     }
 }
