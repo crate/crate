@@ -4234,7 +4234,7 @@ Synopsis::
 
 Example::
 
-    cr> select pg_get_userbyid(1) AS name;
+    cr> select pg_get_userbyid(-450373579) AS name;
     +-------+
     | name  |
     +-------+
