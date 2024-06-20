@@ -61,15 +61,12 @@ public class InsertFromSubQueryPlannerTest extends CrateDummyClusterServiceUnitT
     public void test_returning_for_insert_from_values_throw_error_with_4_1_nodes() throws Exception {
         // Make sure the former initialized cluster service is shutdown
         cleanup();
-        this.clusterService = createClusterService(additionalClusterSettings(), Metadata.EMPTY_METADATA,
-                Version.V_4_1_0);
+        this.clusterService = createClusterService(
+            additionalClusterSettings(), Metadata.EMPTY_METADATA, Version.V_4_1_0);
         e = buildExecutor(clusterService);
-        assertThatThrownBy(() -> {
-            e.plan("insert into users (id, name) values (1, 'bob') returning id");
-
-        })
-                .isExactlyInstanceOf(UnsupportedFeatureException.class)
-                .hasMessage(InsertFromSubQueryPlanner.RETURNING_VERSION_ERROR_MSG);
+        assertThatThrownBy(() -> e.plan("insert into users (id, name) values (1, 'bob') returning id"))
+            .isExactlyInstanceOf(UnsupportedFeatureException.class)
+            .hasMessage(InsertFromSubQueryPlanner.RETURNING_VERSION_ERROR_MSG);
     }
 
     @Test
@@ -79,12 +76,10 @@ public class InsertFromSubQueryPlannerTest extends CrateDummyClusterServiceUnitT
         this.clusterService = createClusterService(additionalClusterSettings(), Metadata.EMPTY_METADATA,
                 Version.V_4_1_0);
         e = buildExecutor(clusterService);
-        assertThatThrownBy(() -> {
-            e.plan("insert into users (id, name) select '1' as id, 'b' as name returning id");
-
-        })
-                .isExactlyInstanceOf(UnsupportedFeatureException.class)
-                .hasMessage(InsertFromSubQueryPlanner.RETURNING_VERSION_ERROR_MSG);
+        assertThatThrownBy(() ->
+                e.plan("insert into users (id, name) select '1' as id, 'b' as name returning id"))
+            .isExactlyInstanceOf(UnsupportedFeatureException.class)
+            .hasMessage(InsertFromSubQueryPlanner.RETURNING_VERSION_ERROR_MSG);
     }
 
     @Test

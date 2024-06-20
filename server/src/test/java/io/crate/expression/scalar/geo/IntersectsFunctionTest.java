@@ -55,11 +55,9 @@ public class IntersectsFunctionTest extends ScalarTestCase {
 
     @Test
     public void testNormalizeFromInvalidLiteral() throws Exception {
-        assertThatThrownBy(() -> {
-            assertNormalize("intersects({type='LineString', coordinates=[0, 0]}, 'LINESTRING (0 2, 0 -2)')",
-                    s -> assertThat(s).isNull());
-
-        })
+        assertThatThrownBy(() -> assertNormalize(
+                "intersects({type='LineString', coordinates=[0, 0]}, 'LINESTRING (0 2, 0 -2)')",
+                s -> assertThat(s).isNull()))
             .isExactlyInstanceOf(ConversionException.class)
             .hasMessageContaining("to type `geo_shape`");
     }

@@ -24,7 +24,6 @@ package io.crate.analyze;
 import static io.crate.testing.Asserts.isReference;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertThrows;
 
 import java.util.List;
 
@@ -81,51 +80,42 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void testInvalidPartitionByField() {
-        assertThatThrownBy(() -> {
-            e.analyze("select avg(x) OVER (PARTITION BY zzz) from t");
-
-        })
-                .isExactlyInstanceOf(ColumnUnknownException.class)
-                .hasMessage("Column zzz unknown");
+        assertThatThrownBy(() -> e.analyze("select avg(x) OVER (PARTITION BY zzz) from t"))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column zzz unknown");
     }
 
     @Test
     public void testInvalidOrderByField() {
-        assertThatThrownBy(() -> {
-            e.analyze("select avg(x) OVER (ORDER BY zzz) from t");
-
-        })
-                .isExactlyInstanceOf(ColumnUnknownException.class)
-                .hasMessage("Column zzz unknown");
+        assertThatThrownBy(() -> e.analyze("select avg(x) OVER (ORDER BY zzz) from t"))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column zzz unknown");
     }
 
     @Test
     public void testOnlyAggregatesAndWindowFunctionsAreAllowedWithOver() {
-        assertThatThrownBy(() -> {
-            e.analyze("select abs(x) OVER() from t");
-
-        })
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("OVER clause was specified, but abs is neither a window nor an aggregate function.");
+        assertThatThrownBy(() -> e.analyze("select abs(x) OVER() from t"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("OVER clause was specified, but abs is neither a window nor an aggregate function.");
     }
 
     @Test
     public void testAggregatesCannotAcceptIgnoreOrRespectNullsFlag() {
-        var exception = assertThrows(IllegalArgumentException.class,
-                     () -> e.analyze("select avg(x) ignore nulls OVER() from t"));
-        assertThat(exception.getMessage()).isEqualTo("avg cannot accept RESPECT or IGNORE NULLS flag.");
+        assertThatThrownBy(() -> e.analyze("select avg(x) ignore nulls OVER() from t"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("avg cannot accept RESPECT or IGNORE NULLS flag.");
         //without over clause
-        var exception2 = assertThrows(IllegalArgumentException.class,
-                                     () -> e.analyze("select avg(x) ignore nulls from t"));
-        assertThat(exception2.getMessage()).isEqualTo("avg cannot accept RESPECT or IGNORE NULLS flag.");
+        assertThatThrownBy(() -> e.analyze("select avg(x) ignore nulls from t"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("avg cannot accept RESPECT or IGNORE NULLS flag.");
     }
 
     @Test
     public void testNonAggregateAndNonWindowFunctionCannotAcceptIgnoreOrRespectNullsFlag() {
         //without over clause
-        var exception = assertThrows(IllegalArgumentException.class,
-                                     () -> e.analyze("select abs(x) ignore nulls from t"));
-        assertThat(exception.getMessage()).isEqualTo("abs cannot accept RESPECT or IGNORE NULLS flag.");
+        assertThatThrownBy(() -> e.analyze("select abs(x) ignore nulls from t"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("abs cannot accept RESPECT or IGNORE NULLS flag.");
     }
 
     @Test
@@ -212,11 +202,10 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Test
     public void test_window_function_symbols_not_in_grouping_raises_an_error() {
-        assertThatThrownBy(() -> {
-            e.analyze("select y, sum(x) over(partition by x) " +
-                    "FROM unnest([1], [6]) as t (x, y) " +
-                    "group by 1");
-        })
+        assertThatThrownBy(() -> e.analyze(
+                "select y, sum(x) over(partition by x) " +
+                "FROM unnest([1], [6]) as t (x, y) " +
+                "group by 1"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessageStartingWith("'x' must appear in the GROUP BY clause or be used in an aggregation function.");
     }

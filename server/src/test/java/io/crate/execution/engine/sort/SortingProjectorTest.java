@@ -51,7 +51,7 @@ import io.crate.types.DataTypes;
 
 public class SortingProjectorTest extends ESTestCase {
 
-    private TestingRowConsumer consumer = new TestingRowConsumer();
+    private final TestingRowConsumer consumer = new TestingRowConsumer();
 
     private SortingProjector createProjector(RowAccounting<Object[]> rowAccounting, int numOutputs, int offset) {
         RowCollectExpression input = new RowCollectExpression(0);
@@ -100,12 +100,9 @@ public class SortingProjectorTest extends ESTestCase {
 
     @Test
     public void testInvalidOffset() throws Exception {
-        assertThatThrownBy(() -> {
-            new SortingProjector(null, null, null, 2, null, -1);
-
-        })
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("invalid offset -1");
+        assertThatThrownBy(() -> new SortingProjector(null, null, null, 2, null, -1))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("invalid offset -1");
     }
 
     @Test
@@ -121,10 +118,7 @@ public class SortingProjectorTest extends ESTestCase {
         Projector projector = createProjector(rowAccounting, 1, 0);
         consumer.accept(projector.apply(TestingBatchIterators.range(1, 11)), null);
 
-        assertThatThrownBy(() -> {
-            consumer.getResult();
-
-        })
-                .isExactlyInstanceOf(CircuitBreakingException.class);
+        assertThatThrownBy(() -> consumer.getResult())
+            .isExactlyInstanceOf(CircuitBreakingException.class);
     }
 }

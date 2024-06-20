@@ -110,14 +110,11 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
     public void testFilterIsValidatedOnUpdate() {
         // creating the service registers the update listener
         try (var jobsLogService = new JobsLogService(Settings.EMPTY, clusterService, nodeCtx, breakerService)) {
-
-            assertThatThrownBy(() -> {
-                clusterSettings.applySettings(
-                        Settings.builder().put(JobsLogService.STATS_JOBS_LOG_FILTER.getKey(), "statement = 'x'")
-                                .build());
-
-            })
-                    .hasMessage("illegal value can't update [stats.jobs_log_filter] from [true] to [statement = 'x']");
+            var settings = Settings.builder()
+                .put(JobsLogService.STATS_JOBS_LOG_FILTER.getKey(), "statement = 'x'")
+                .build();
+            assertThatThrownBy(() -> clusterSettings.applySettings(settings))
+                .hasMessage("illegal value can't update [stats.jobs_log_filter] from [true] to [statement = 'x']");
         }
     }
 
@@ -127,9 +124,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
                 .put(JobsLogService.STATS_JOBS_LOG_FILTER.getKey(), "invalid_column = 10")
                 .build();
 
-        assertThatThrownBy(() -> {
-            new JobsLogService(settings, clusterService, nodeCtx, breakerService).close();
-        })
+        assertThatThrownBy(() -> new JobsLogService(settings, clusterService, nodeCtx, breakerService).close())
             .hasMessage("Invalid filter expression: invalid_column = 10: Column invalid_column unknown");
     }
 

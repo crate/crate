@@ -29,7 +29,6 @@ import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.Asserts.toCondition;
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -164,8 +163,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testUpdateSysTables() throws Exception {
         assertThatThrownBy(() -> analyze("update sys.nodes set fs={\"free\"=0}"))
             .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
-            .hasMessage("The relation \"sys.nodes\" doesn't support or allow UPDATE " +
-                    "operations");
+            .hasMessage("The relation \"sys.nodes\" doesn't support or allow UPDATE operations");
     }
 
     @Test
@@ -212,11 +210,8 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testUpdateAssignmentWrongType() throws Exception {
-        assertThatThrownBy(() -> {
-            analyze("update users set other_id='String'");
-
-        })
-                .isExactlyInstanceOf(ColumnValidationException.class);
+        assertThatThrownBy(() -> analyze("update users set other_id='String'"))
+            .isExactlyInstanceOf(ColumnValidationException.class);
     }
 
     @Test
@@ -259,10 +254,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testQualifiedNameReference() throws Exception {
-        assertThatThrownBy(() -> {
-            analyze("update users set users.name='Trillian'");
-
-        })
+        assertThatThrownBy(() -> analyze("update users set users.name='Trillian'"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage(
                 "Column reference \"users.name\" has too many parts. A column must not have a schema or a table here.");
@@ -296,10 +288,10 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedUpdateStatement update = analyze("update users set name=?, friends=? where other_id=?");
 
         Assignments assignments = Assignments.convert(update.assignmentByTargetCol(), e.nodeCtx);
-        assertThatThrownBy(() -> {
-            assignments.bindSources(((DocTableInfo) update.table().tableInfo()), new RowN(params),
-                    SubQueryResults.EMPTY);
-        })
+        assertThatThrownBy(() -> assignments.bindSources(
+                ((DocTableInfo) update.table().tableInfo()),
+                new RowN(params),
+                SubQueryResults.EMPTY))
             .isExactlyInstanceOf(ConversionException.class)
             .hasMessage("Cannot cast value `[{}]` to type `text`");
     }
@@ -319,29 +311,20 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testUpdateSystemColumn() throws Exception {
-        assertThatThrownBy(() -> {
-            analyze("update users set _id=1");
-
-        })
+        assertThatThrownBy(() -> analyze("update users set _id=1"))
             .isExactlyInstanceOf(ColumnValidationException.class)
             .hasMessage("Validation failed for _id: Updating a system column is not supported");
     }
 
     @Test
     public void testUpdatePrimaryKey() throws Exception {
-        assertThatThrownBy(() -> {
-            analyze("update users set id=1");
-
-        })
+        assertThatThrownBy(() -> analyze("update users set id=1"))
             .isExactlyInstanceOf(ColumnValidationException.class);
     }
 
     @Test
     public void testUpdateClusteredBy() throws Exception {
-        assertThatThrownBy(() -> {
-            analyze("update users_clustered_by_only set id=1");
-
-        })
+        assertThatThrownBy(() -> analyze("update users_clustered_by_only set id=1"))
             .isExactlyInstanceOf(ColumnValidationException.class)
             .hasMessage("Validation failed for id: Updating a clustered-by column is not supported");
     }
@@ -392,8 +375,8 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testWhereClauseObjectArrayField() throws Exception {
         assertThatThrownBy(() -> analyze("update users set awesome=true where friends['id'] = 5"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: (doc.users.friends['id'] = 5)," +
-                " no overload found for matching argument types: (bigint_array, integer).");
+            .hasMessageStartingWith("Unknown function: (doc.users.friends['id'] = 5), " +
+                                    "no overload found for matching argument types: (bigint_array, integer).");
     }
 
     @Test
@@ -437,11 +420,11 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         };
         AnalyzedUpdateStatement update = analyze("update users set tags=? where id=1");
 
-        assertThatThrownBy(() -> {
-            Assignments assignments = Assignments.convert(update.assignmentByTargetCol(), e.nodeCtx);
-            assignments.bindSources(((DocTableInfo) update.table().tableInfo()), new RowN(params),
-                    SubQueryResults.EMPTY);
-        })
+        Assignments assignments = Assignments.convert(update.assignmentByTargetCol(), e.nodeCtx);
+        assertThatThrownBy(() -> assignments.bindSources(
+                ((DocTableInfo) update.table().tableInfo()),
+                new RowN(params),
+                SubQueryResults.EMPTY))
             .isExactlyInstanceOf(ConversionException.class)
             .hasMessage("Cannot cast value `[[a, b]]` to type `text_array`");
     }
@@ -595,12 +578,9 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_updat_returning_with_invalid_column_returning_error() {
-        assertThatThrownBy(() -> {
-            e.analyze("UPDATE users SET name='noam' RETURNING invalid");
-
-        })
-                .isExactlyInstanceOf(ColumnUnknownException.class)
-                .hasMessage("Column invalid unknown");
+        assertThatThrownBy(() -> e.analyze("UPDATE users SET name='noam' RETURNING invalid"))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column invalid unknown");
     }
 
     @Test

@@ -96,8 +96,7 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         builder2.addTask(new DummyTask(2));
         assertThatThrownBy(() -> tasksService.createTask(builder2))
             .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessageStartingWith(String.format(Locale.ENGLISH,
-                    "task for job %s already exists", jobId));
+            .hasMessageStartingWith(String.format(Locale.ENGLISH, "task for job %s already exists", jobId));
     }
 
     @Test
@@ -170,14 +169,14 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         assertThat(killCalled.get()).isTrue();
         assertThat(kill2Called.get()).isFalse();
         assertThat(activeTasks).hasSize(1); //only one job is killed
-
     }
 
 
+    @SuppressWarnings("unchecked")
     private int numContexts(RootTask rootTask) throws Exception {
         Field orderedTasks = RootTask.class.getDeclaredField("orderedTasks");
         orderedTasks.setAccessible(true);
-        return (int) ((List<Task>)(List) orderedTasks.get(rootTask)).stream().filter(x -> !x.completionFuture().isDone()).count();
+        return (int) ((List<Task>) orderedTasks.get(rootTask)).stream().filter(x -> !x.completionFuture().isDone()).count();
     }
 
     @Test

@@ -23,7 +23,6 @@ package io.crate.planner;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.exactlyInstanceOf;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -104,12 +103,9 @@ public class DeletePlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDeleteWhereVersionIsNullPredicate() throws Exception {
-        assertThatThrownBy(() -> {
-            e.plan("delete from users where _version is null");
-
-        })
-                .isExactlyInstanceOf(VersioningValidationException.class)
-                .hasMessage(VersioningValidationException.VERSION_COLUMN_USAGE_MSG);
+        assertThatThrownBy(() -> e.plan("delete from users where _version is null"))
+            .isExactlyInstanceOf(VersioningValidationException.class)
+            .hasMessage(VersioningValidationException.VERSION_COLUMN_USAGE_MSG);
     }
 
     @Test

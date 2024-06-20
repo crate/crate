@@ -75,12 +75,10 @@ public class CoordinateFunctionTest extends ScalarTestCase {
 
     @Test
     public void testWithTooManyArguments() throws Exception {
-        assertThatThrownBy(() -> {
-            assertNormalize("latitude('POINT (10 20)', 'foo')", isNull());
-        })
+        assertThatThrownBy(() -> assertNormalize("latitude('POINT (10 20)', 'foo')", isNull()))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: latitude('POINT (10 20)', 'foo')," +
-                " no overload found for matching argument types: (text, text).");
+            .hasMessageStartingWith("Unknown function: latitude('POINT (10 20)', 'foo'), " +
+                                    "no overload found for matching argument types: (text, text).");
     }
 
     @Test

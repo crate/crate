@@ -84,7 +84,7 @@ public class UpdateSettingsPlanTest extends ESTestCase {
             .put("stats.jobs_log_size", 25)
             .build();
 
-        assertThat(buildSettingsFrom(settings, symbolEvaluator(new RowN(new Object[]{10, 25}))))
+        assertThat(buildSettingsFrom(settings, symbolEvaluator(new RowN(10, 25))))
             .isEqualTo(expected);
     }
 
@@ -109,44 +109,32 @@ public class UpdateSettingsPlanTest extends ESTestCase {
             .put("stats.breaker.log.jobs.overhead", 1.05d)
             .build();
 
-        assertThat(buildSettingsFrom(settings, symbolEvaluator(new RowN(new Object[]{param})))).isEqualTo(expected);
+        assertThat(buildSettingsFrom(settings, symbolEvaluator(new RowN(param)))).isEqualTo(expected);
     }
 
     @Test
     public void testSetNonRuntimeSettingObject() {
-        assertThatThrownBy(() -> {
-            List<Assignment<Symbol>> settings = List.of(
-                    new Assignment<>(Literal.of("gateway"), List.of(Literal.of(Map.of("recover_after_nodes", 3)))));
-
-            buildSettingsFrom(settings, symbolEvaluator(Row.EMPTY));
-
-        })
+        List<Assignment<Symbol>> settings = List.of(
+            new Assignment<>(Literal.of("gateway"), List.of(Literal.of(Map.of("recover_after_nodes", 3)))));
+        assertThatThrownBy(() -> buildSettingsFrom(settings, symbolEvaluator(Row.EMPTY)))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("Setting 'gateway.recover_after_nodes' cannot be set/reset at runtime");
     }
 
     @Test
     public void testSetNonRuntimeSetting() {
-        assertThatThrownBy(() -> {
-            List<Assignment<Symbol>> settings = List.of(
-                    new Assignment<>(Literal.of("gateway.recover_after_time"), List.of(Literal.of("5m"))));
-
-            buildSettingsFrom(settings, symbolEvaluator(Row.EMPTY));
-
-        })
+        List<Assignment<Symbol>> settings = List.of(
+            new Assignment<>(Literal.of("gateway.recover_after_time"), List.of(Literal.of("5m"))));
+        assertThatThrownBy(() -> buildSettingsFrom(settings, symbolEvaluator(Row.EMPTY)))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("Setting 'gateway.recover_after_time' cannot be set/reset at runtime");
     }
 
     @Test
     public void testUnsupportedSetting() throws Exception {
-        assertThatThrownBy(() -> {
-            List<Assignment<Symbol>> settings = List.of(
-                    new Assignment<>(Literal.of("unsupported_setting"), List.of(Literal.of("foo"))));
-
-            buildSettingsFrom(settings, symbolEvaluator(Row.EMPTY));
-
-        })
+        List<Assignment<Symbol>> settings = List.of(
+            new Assignment<>(Literal.of("unsupported_setting"), List.of(Literal.of("foo"))));
+        assertThatThrownBy(() -> buildSettingsFrom(settings, symbolEvaluator(Row.EMPTY)))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Setting 'unsupported_setting' is not supported");
     }
@@ -157,8 +145,8 @@ public class UpdateSettingsPlanTest extends ESTestCase {
                 .of(new Assignment<>(Literal.of("cluster.routing.allocation.exclude._id"), Literal.NULL));
 
         assertThatThrownBy(() -> buildSettingsFrom(settings, symbolEvaluator(Row.EMPTY)))
-            .hasMessage(
-                "Cannot set \"cluster.routing.allocation.exclude._id\" to `null`. Use `RESET [GLOBAL] \"cluster.routing.allocation.exclude._id\"` to reset a setting to its default value");
+            .hasMessage("Cannot set \"cluster.routing.allocation.exclude._id\" to `null`. Use `RESET [GLOBAL] " +
+                        "\"cluster.routing.allocation.exclude._id\"` to reset a setting to its default value");
     }
 
     @Test

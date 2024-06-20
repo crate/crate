@@ -59,24 +59,24 @@ public class ArrayCatFunctionTest extends ScalarTestCase {
     public void testZeroArguments() throws Exception {
         assertThatThrownBy(() -> assertEvaluateNull("array_cat()"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: array_cat()." +
-                " Possible candidates: array_cat(array(E), array(E)):array(E)");
+            .hasMessageStartingWith("Unknown function: array_cat(). " +
+                                    "Possible candidates: array_cat(array(E), array(E)):array(E)");
     }
 
     @Test
     public void testOneArgument() {
         assertThatThrownBy(() -> assertEvaluateNull("array_cat([1])"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: array_cat(_array(1))," +
-                    " no overload found for matching argument types: (integer_array).");
+            .hasMessageStartingWith("Unknown function: array_cat(_array(1)), " +
+                                    "no overload found for matching argument types: (integer_array).");
     }
 
     @Test
     public void testThreeArguments() throws Exception {
         assertThatThrownBy(() -> assertEvaluateNull("array_cat([1], [2], [3])"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: array_cat(_array(1), _array(2), _array(3))," +
-                    " no overload found for matching argument types: (integer_array, integer_array, integer_array).");
+            .hasMessageStartingWith("Unknown function: array_cat(_array(1), _array(2), _array(3)), " +
+                    "no overload found for matching argument types: (integer_array, integer_array, integer_array).");
     }
 
     @Test
@@ -117,12 +117,8 @@ public class ArrayCatFunctionTest extends ScalarTestCase {
 
     @Test
     public void testEmptyArrays() throws Exception {
-        assertThatThrownBy(() -> {
-            assertNormalize("array_cat([], [])", (Consumer<Symbol>) null);
-
-        })
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage(
-                        "One of the arguments of the `array_cat` function can be of undefined inner type, but not both");
+        assertThatThrownBy(() -> assertNormalize("array_cat([], [])", (Consumer<Symbol>) null))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("One of the arguments of the `array_cat` function can be of undefined inner type, but not both");
     }
 }

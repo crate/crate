@@ -59,11 +59,8 @@ public class SubscriptObjectFunctionTest extends ScalarTestCase {
 
     @Test
     public void testSubscriptOnObjectLiteralWithNonExistingKey() throws Exception {
-        assertThatThrownBy(() -> {
-            assertEvaluate("subscript_obj(obj, 'y')", 10L, Literal.of(Map.of("x", 10L)));
-
-        })
-                .isExactlyInstanceOf(ColumnUnknownException.class);
+        assertThatThrownBy(() -> assertEvaluate("subscript_obj(obj, 'y')", 10L, Literal.of(Map.of("x", 10L))))
+            .isExactlyInstanceOf(ColumnUnknownException.class);
     }
 
     @Test

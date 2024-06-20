@@ -200,12 +200,11 @@ public class SumAggregationTest extends AggregationTestCase {
 
     @Test
     public void test_sum_numeric_on_long_non_doc_values_field() {
-        //noinspection rawtypes
         Version minNodeVersion = randomBoolean()
             ? Version.CURRENT
             : Version.V_4_0_9;
         var result = execPartialAggregationWithoutDocValues(
-            (AggregationFunction) nodeCtx.functions().getQualified(
+            (AggregationFunction<?, ?>) nodeCtx.functions().getQualified(
                 NumericSumAggregation.SIGNATURE,
                 List.of(DataTypes.NUMERIC),
                 DataTypes.NUMERIC
@@ -219,12 +218,11 @@ public class SumAggregationTest extends AggregationTestCase {
 
     @Test
     public void test_sum_numeric_on_long_non_doc_values_field_with_overflow() {
-        //noinspection rawtypes
         Version minNodeVersion = randomBoolean()
             ? Version.CURRENT
             : Version.V_4_0_9;
         var result = execPartialAggregationWithoutDocValues(
-            (AggregationFunction) nodeCtx.functions().getQualified(
+            (AggregationFunction<?, ?>) nodeCtx.functions().getQualified(
                 NumericSumAggregation.SIGNATURE,
                 List.of(DataTypes.NUMERIC),
                 DataTypes.NUMERIC
@@ -237,12 +235,11 @@ public class SumAggregationTest extends AggregationTestCase {
 
     @Test
     public void test_sum_numeric_on_floating_point_non_doc_values_field() {
-        //noinspection rawtypes
         Version minNodeVersion = randomBoolean()
             ? Version.CURRENT
             : Version.V_4_0_9;
         var result = execPartialAggregationWithoutDocValues(
-            (AggregationFunction) nodeCtx.functions().getQualified(
+            (AggregationFunction<?, ?>) nodeCtx.functions().getQualified(
                 NumericSumAggregation.SIGNATURE,
                 List.of(DataTypes.NUMERIC),
                 DataTypes.NUMERIC
@@ -259,12 +256,11 @@ public class SumAggregationTest extends AggregationTestCase {
         var expected = type.implicitCast(12.4357);
         assertThat(expected.toString()).isEqualTo("12.44");
 
-        //noinspection rawtypes
         Version minNodeVersion = randomBoolean()
             ? Version.CURRENT
             : Version.V_4_0_9;
         var result = execPartialAggregationWithoutDocValues(
-            (AggregationFunction) nodeCtx.functions().getQualified(
+            (AggregationFunction<?, ?>) nodeCtx.functions().getQualified(
                 NumericSumAggregation.SIGNATURE,
                 List.of(type),
                 DataTypes.NUMERIC

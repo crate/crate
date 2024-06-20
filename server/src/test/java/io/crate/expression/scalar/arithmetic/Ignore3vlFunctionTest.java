@@ -41,12 +41,9 @@ public class Ignore3vlFunctionTest extends ScalarTestCase {
 
     @Test
     public void testWrongType() {
-        assertThatThrownBy(() -> {
-            assertEvaluateNull("ignore3vl('foo')");
-
-        })
-                .isExactlyInstanceOf(ConversionException.class)
-                .hasMessage("Cannot cast `'foo'` of type `text` to type `boolean`");
+        assertThatThrownBy(() -> assertEvaluateNull("ignore3vl('foo')"))
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessage("Cannot cast `'foo'` of type `text` to type `boolean`");
     }
 
     @Test

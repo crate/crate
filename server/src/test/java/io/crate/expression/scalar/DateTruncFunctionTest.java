@@ -67,10 +67,7 @@ public class DateTruncFunctionTest extends ScalarTestCase {
 
     @Test
     public void testInvalidInterval() throws Exception {
-        assertThatThrownBy(() -> {
-            assertNormalize("date_trunc('invalid interval', 919946281123)", isNull());
-
-        })
+        assertThatThrownBy(() -> assertNormalize("date_trunc('invalid interval', 919946281123)", isNull()))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("invalid interval 'invalid interval' for scalar 'date_trunc'");
     }
@@ -128,12 +125,9 @@ public class DateTruncFunctionTest extends ScalarTestCase {
 
     @Test
     public void testInvalidTimeZone() throws Exception {
-        assertThatThrownBy(() -> {
-            assertNormalize("date_trunc('day', 'no time zone', 919946281123)", isNull());
-
-        })
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("invalid time zone value 'no time zone'");
+        assertThatThrownBy(() -> assertNormalize("date_trunc('day', 'no time zone', 919946281123)", isNull()))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("invalid time zone value 'no time zone'");
     }
 
     @Test

@@ -90,19 +90,16 @@ public class NodeFetchResponseTest extends ESTestCase {
         orig.writeTo(out);
         StreamInput in = out.bytes().streamInput();
 
-        assertThatThrownBy(() -> {
-            new NodeFetchResponse(
-                    in,
-                    streamers,
-                    ConcurrentRamAccounting.forCircuitBreaker(
-                            "test",
-                            new MemoryCircuitBreaker(
-                                    new ByteSizeValue(2, ByteSizeUnit.BYTES),
-                                    1.0,
-                                    LogManager.getLogger(NodeFetchResponseTest.class)),
-                            0));
-
-        })
-                .isExactlyInstanceOf(CircuitBreakingException.class);
+        assertThatThrownBy(() -> new NodeFetchResponse(
+                in,
+                streamers,
+                ConcurrentRamAccounting.forCircuitBreaker(
+                    "test",
+                    new MemoryCircuitBreaker(
+                        new ByteSizeValue(2, ByteSizeUnit.BYTES),
+                        1.0,
+                        LogManager.getLogger(NodeFetchResponseTest.class)),
+ 0)))
+            .isExactlyInstanceOf(CircuitBreakingException.class);
     }
 }

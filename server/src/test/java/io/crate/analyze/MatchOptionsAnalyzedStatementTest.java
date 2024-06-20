@@ -43,45 +43,33 @@ public class MatchOptionsAnalyzedStatementTest extends ESTestCase {
 
     @Test
     public void testUnknownMatchOptions() throws Exception {
-        assertThatThrownBy(() -> {
-            Map<String, Object> options = new HashMap<>();
-            options.put("analyzer_wrong", "english");
-            MatchOptionsAnalysis.validate(options);
-
-        })
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("unknown match option 'analyzer_wrong'");
+        Map<String, Object> options = new HashMap<>();
+        options.put("analyzer_wrong", "english");
+        assertThatThrownBy(() -> MatchOptionsAnalysis.validate(options))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("unknown match option 'analyzer_wrong'");
     }
 
     @Test
     public void testInvalidMatchValue() throws Exception {
-        assertThatThrownBy(() -> {
-            Map<String, Object> options = new HashMap<>();
-            options.put("max_expansions", "abc");
-            MatchOptionsAnalysis.validate(options);
-
-        })
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("invalid value for option 'max_expansions': abc");
+        Map<String, Object> options = new HashMap<>();
+        options.put("max_expansions", "abc");
+        assertThatThrownBy(() -> MatchOptionsAnalysis.validate(options))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("invalid value for option 'max_expansions': abc");
     }
 
     @Test
     public void testZeroTermsQueryMustBeAString() throws Exception {
-        assertThatThrownBy(() -> {
-            MatchOptionsAnalysis.validate(Map.of("zero_terms_query", 12.6));
-
-        })
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("invalid value for option 'zero_terms_query': 12.6");
+        assertThatThrownBy(() -> MatchOptionsAnalysis.validate(Map.of("zero_terms_query", 12.6)))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("invalid value for option 'zero_terms_query': 12.6");
     }
 
     @Test
     public void testUnknownOption() throws Exception {
-        assertThatThrownBy(() -> {
-            MatchOptionsAnalysis.validate(Map.of("oh", 1));
-
-        })
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("unknown match option 'oh'");
+        assertThatThrownBy(() -> MatchOptionsAnalysis.validate(Map.of("oh", 1)))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("unknown match option 'oh'");
     }
 }

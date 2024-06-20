@@ -152,9 +152,7 @@ public class ArraySliceFunctionTest extends ScalarTestCase {
 
     @Test
     public void testToIsBig() {
-        assertThatThrownBy(() -> {
-            assertEvaluate("[1,2,3,4,5][:2147483648]", List.of(1, 2, 3, 4, 5));
-        })
+        assertThatThrownBy(() -> assertEvaluate("[1,2,3,4,5][:2147483648]", List.of(1, 2, 3, 4, 5)))
             .isExactlyInstanceOf(ConversionException.class)
             .hasMessage("Cannot cast `2147483648::bigint` of type `bigint` to type `integer`");
     }
@@ -168,51 +166,36 @@ public class ArraySliceFunctionTest extends ScalarTestCase {
 
     @Test
     public void testToIsBigExpression() {
-        assertThatThrownBy(() -> {
-            assertEvaluate("[1,2,3,4,5][:2147483647+20]", List.of(1, 2, 3, 4, 5));
-        })
+        assertThatThrownBy(() -> assertEvaluate("[1,2,3,4,5][:2147483647+20]", List.of(1, 2, 3, 4, 5)))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("integer overflow");
     }
 
     @Test
     public void testFromIsZero() {
-        assertThatThrownBy(() -> {
-            assertEvaluate("[1,2,3,4,5][0:]", List.of());
-
-        })
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Array index must be in range 1 to 2147483647");
+        assertThatThrownBy(() -> assertEvaluate("[1,2,3,4,5][0:]", List.of()))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Array index must be in range 1 to 2147483647");
     }
 
     @Test
     public void testToIsZero() {
-        assertThatThrownBy(() -> {
-            assertEvaluate("[1,2,3,4,5][:0]", List.of());
-
-        })
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Array index must be in range 1 to 2147483647");
+        assertThatThrownBy(() -> assertEvaluate("[1,2,3,4,5][:0]", List.of()))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Array index must be in range 1 to 2147483647");
     }
 
     @Test
     public void testFromIsZeroExpression() {
-        assertThatThrownBy(() -> {
-            assertEvaluate("[1,2,3,4,5][10-10:]", List.of());
-
-        })
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Array index must be in range 1 to 2147483647");
+        assertThatThrownBy(() -> assertEvaluate("[1,2,3,4,5][10-10:]", List.of()))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Array index must be in range 1 to 2147483647");
     }
 
     @Test
     public void testToIsZeroExpression() {
-        assertThatThrownBy(() -> {
-            assertEvaluate("[1,2,3,4,5][:10-10]", List.of());
-
-        })
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Array index must be in range 1 to 2147483647");
+        assertThatThrownBy(() -> assertEvaluate("[1,2,3,4,5][:10-10]", List.of()))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Array index must be in range 1 to 2147483647");
     }
-
 }

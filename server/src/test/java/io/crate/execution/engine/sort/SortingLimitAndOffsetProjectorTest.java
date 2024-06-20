@@ -61,7 +61,7 @@ public class SortingLimitAndOffsetProjectorTest extends ESTestCase {
     private static final List<CollectExpression<Row, ?>> COLLECT_EXPRESSIONS = List.of(INPUT);
     private static final Comparator<Object[]> FIRST_CELL_ORDERING = OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 0, false, false);
 
-    private TestingRowConsumer consumer = new TestingRowConsumer();
+    private final TestingRowConsumer consumer = new TestingRowConsumer();
 
     private Projector getProjector(RowAccounting<Object[]> rowAccounting, int numOutputs, int limit, int offset, Comparator<Object[]> ordering) {
         int unboundedCollectorThreshold = 10_000;
@@ -130,22 +130,19 @@ public class SortingLimitAndOffsetProjectorTest extends ESTestCase {
     @Test
     public void testUsedMemoryIsAccountedFor() throws Exception {
         MemoryCircuitBreaker circuitBreaker = new MemoryCircuitBreaker(new ByteSizeValue(30, ByteSizeUnit.BYTES),
-                1,
-                LogManager.getLogger(
-                        SortingLimitAndOffsetProjectorTest.class));
+            1,
+            LogManager.getLogger(
+                    SortingLimitAndOffsetProjectorTest.class));
         TypedCellsAccounting rowAccounting = new TypedCellsAccounting(
-                List.of(DataTypes.INTEGER, DataTypes.BOOLEAN),
-                ConcurrentRamAccounting.forCircuitBreaker("testContext", circuitBreaker, 0),
-                0);
+            List.of(DataTypes.INTEGER, DataTypes.BOOLEAN),
+            ConcurrentRamAccounting.forCircuitBreaker("testContext", circuitBreaker, 0),
+            0);
 
         Projector projector = getProjector(rowAccounting, 1, 100_000, LimitAndOffset.NO_OFFSET, FIRST_CELL_ORDERING);
         consumer.accept(projector.apply(TestingBatchIterators.range(1, 11)), null);
 
-        assertThatThrownBy(() -> {
-            consumer.getResult();
-
-        })
-                .isExactlyInstanceOf(CircuitBreakingException.class);
+        assertThatThrownBy(() -> consumer.getResult())
+            .isExactlyInstanceOf(CircuitBreakingException.class);
     }
 
     @Test
@@ -179,21 +176,16 @@ public class SortingLimitAndOffsetProjectorTest extends ESTestCase {
 
     @Test
     public void testInvalidMaxSize() throws Exception {
-        assertThatThrownBy(() -> {
-            int i = Integer.MAX_VALUE / 2;
-            getProjector(2, i, i);
-        })
+        int i = Integer.MAX_VALUE / 2;
+        assertThatThrownBy(() -> getProjector(2, i, i))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Invalid LIMIT + OFFSET: value must be <= 2147483630; got: 2147483646");
     }
 
     @Test
     public void testInvalidMaxSizeExceedsIntegerRange() throws Exception {
-        assertThatThrownBy(() -> {
-            int i = Integer.MAX_VALUE / 2 + 1;
-            getProjector(2, i, i);
-
-        })
+        int i = Integer.MAX_VALUE / 2 + 1;
+        assertThatThrownBy(() -> getProjector(2, i, i))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Invalid LIMIT + OFFSET: value must be <= 2147483630; got: -2147483648");
     }

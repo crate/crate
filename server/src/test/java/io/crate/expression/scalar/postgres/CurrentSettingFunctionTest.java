@@ -93,9 +93,7 @@ public class CurrentSettingFunctionTest extends ScalarTestCase {
 
     @Test
     public void testEvaluateNonExistingSettingSingleArgument() {
-        assertThatThrownBy(() -> {
-            assertEvaluate("current_setting(name)", "", Literal.of("foo"));
-        })
+        assertThatThrownBy(() -> assertEvaluate("current_setting(name)", "", Literal.of("foo")))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Unrecognised Setting: foo");
     }
@@ -107,9 +105,7 @@ public class CurrentSettingFunctionTest extends ScalarTestCase {
 
     @Test
     public void testEvaluateNonExistingSettingWithMissingOKArgumentAsFalse() {
-        assertThatThrownBy(() -> {
-            assertEvaluate("current_setting(name, false)", "", Literal.of("foo"));
-        })
+        assertThatThrownBy(() -> assertEvaluate("current_setting(name, false)", "", Literal.of("foo")))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Unrecognised Setting: foo");
     }

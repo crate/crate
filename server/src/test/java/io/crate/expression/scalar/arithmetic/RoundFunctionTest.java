@@ -45,11 +45,8 @@ public class RoundFunctionTest extends ScalarTestCase {
 
     @Test
     public void testInvalidType() throws Exception {
-        assertThatThrownBy(() -> {
-            assertEvaluateNull("round('foo')");
-
-        })
-                .isExactlyInstanceOf(ConversionException.class)
-                .hasMessage("Cannot cast `'foo'` of type `text` to type `byte`");
+        assertThatThrownBy(() -> assertEvaluateNull("round('foo')"))
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessage("Cannot cast `'foo'` of type `text` to type `byte`");
     }
 }

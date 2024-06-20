@@ -40,13 +40,10 @@ public class QuoteIdentFunctionTest extends ScalarTestCase {
 
     @Test
     public void testZeroArguments() {
-        assertThatThrownBy(() -> {
-            assertEvaluateNull("quote_ident()");
-
-        })
-                .isExactlyInstanceOf(UnsupportedFunctionException.class)
-                .hasMessage("Unknown function: quote_ident()." +
-                        " Possible candidates: pg_catalog.quote_ident(text):text");
+        assertThatThrownBy(() -> assertEvaluateNull("quote_ident()"))
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessage("Unknown function: quote_ident(). " +
+                        "Possible candidates: pg_catalog.quote_ident(text):text");
     }
 
     @Test

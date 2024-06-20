@@ -78,10 +78,8 @@ public class SslContextProviderTest extends ESTestCase {
                 .put(SslSettings.SSL_HTTP_ENABLED.getKey(), true)
                 .put(SslSettings.SSL_PSQL_ENABLED.getKey(), true)
                 .build();
-        assertThatThrownBy(() -> {
-            var sslContextProvider = new SslContextProvider(settings);
-            sslContextProvider.getServerContext(Protocol.TRANSPORT);
-        })
+        var sslContextProvider = new SslContextProvider(settings);
+        assertThatThrownBy(() -> sslContextProvider.getServerContext(Protocol.TRANSPORT))
             .isExactlyInstanceOf(SslConfigurationException.class)
             .hasMessageStartingWith("Failed to build SSL configuration");
     }
@@ -140,9 +138,8 @@ public class SslContextProviderTest extends ESTestCase {
 
     @Test
     public void testKeyStoreLoadingFailWrongPassword() throws Exception {
-        assertThatThrownBy(() -> {
-            SslContextProvider.loadKeyStore(keyStoreFile.getAbsolutePath(), "wrongpassword".toCharArray());
-        })
+        assertThatThrownBy(() ->
+                SslContextProvider.loadKeyStore(keyStoreFile.getAbsolutePath(), "wrongpassword".toCharArray()))
             .isExactlyInstanceOf(IOException.class)
             .hasMessage("keystore password was incorrect");
     }
@@ -152,7 +149,8 @@ public class SslContextProviderTest extends ESTestCase {
         KeyStore keyStore = SslContextProvider.loadKeyStore(keyStoreFile.getAbsolutePath(),
                 KEYSTORE_PASSWORD.toCharArray());
 
-        assertThatThrownBy(() -> SslContextProvider.createKeyManagers(keyStore, "wrongpassword".toCharArray()))
+        assertThatThrownBy(() ->
+                SslContextProvider.createKeyManagers(keyStore, "wrongpassword".toCharArray()))
             .isExactlyInstanceOf(UnrecoverableKeyException.class)
             .hasMessageStartingWith("Get Key failed");
     }

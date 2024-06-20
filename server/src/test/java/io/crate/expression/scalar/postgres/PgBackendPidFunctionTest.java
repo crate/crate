@@ -44,8 +44,7 @@ public class PgBackendPidFunctionTest extends ScalarTestCase {
     @Test
     public void testInvalidType() throws Exception {
         assertThatThrownBy(() -> sqlExpressions.asSymbol("pg_backend_pid(null)"))
-            .hasMessageStartingWith("Unknown function: pg_backend_pid(NULL)," +
-                " no overload found for matching argument types: (undefined).");
+            .hasMessageStartingWith("Unknown function: pg_backend_pid(NULL), " +
+                                    "no overload found for matching argument types: (undefined).");
     }
-
 }

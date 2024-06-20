@@ -94,12 +94,9 @@ public class DistResultRXTaskTest extends ESTestCase {
         bucketReceiver.setBucket(1, bucket, false, pageResultListener);
         bucketReceiver.setBucket(1, bucket, false, pageResultListener);
 
-        assertThatThrownBy(() -> {
-            batchConsumer.getResult();
-
-        })
-                .isExactlyInstanceOf(IllegalStateException.class)
-                .hasMessage("Same bucket of a page set more than once. node=n1 method=setBucket phaseId=1 bucket=1");
+        assertThatThrownBy(() -> batchConsumer.getResult())
+            .isExactlyInstanceOf(IllegalStateException.class)
+            .hasMessage("Same bucket of a page set more than once. node=n1 method=setBucket phaseId=1 bucket=1");
     }
 
     @Test
@@ -119,11 +116,8 @@ public class DistResultRXTaskTest extends ESTestCase {
         ctx.kill(new InterruptedException());
         assertThat(throwable.get()).isExactlyInstanceOf(CompletionException.class);
 
-        assertThatThrownBy(() -> {
-            batchConsumer.getResult();
-
-        })
-                .isExactlyInstanceOf(InterruptedException.class);
+        assertThatThrownBy(() -> batchConsumer.getResult())
+            .isExactlyInstanceOf(InterruptedException.class);
     }
 
     @Test
@@ -257,12 +251,9 @@ public class DistResultRXTaskTest extends ESTestCase {
         bucketReceiver.setBucket(0, bucket, true, pageResultListener);
         bucketReceiver.setBucket(1, bucket, true, pageResultListener);
 
-        assertThatThrownBy(() -> {
-            batchConsumer.getResult();
-
-        })
-                .isExactlyInstanceOf(RuntimeException.class)
-                .hasMessage("raised on merge");
+        assertThatThrownBy(() -> batchConsumer.getResult())
+            .isExactlyInstanceOf(RuntimeException.class)
+            .hasMessage("raised on merge");
     }
 
     @Test
@@ -277,12 +268,9 @@ public class DistResultRXTaskTest extends ESTestCase {
         Bucket bucket = new CollectionBucket(Collections.singletonList(new Object[] { "foo" }));
         bucketReceiver.setBucket(0, bucket, true, pageResultListener);
 
-        assertThatThrownBy(() -> {
-            batchConsumer.getResult();
-
-        })
-                .isExactlyInstanceOf(RuntimeException.class)
-                .hasMessage("raised on merge");
+        assertThatThrownBy(() -> batchConsumer.getResult())
+            .isExactlyInstanceOf(RuntimeException.class)
+            .hasMessage("raised on merge");
     }
 
     private static class CheckPageResultListener implements PageResultListener {

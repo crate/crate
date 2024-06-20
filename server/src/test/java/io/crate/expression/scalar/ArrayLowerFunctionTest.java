@@ -92,32 +92,32 @@ public class ArrayLowerFunctionTest extends ScalarTestCase {
     public void testZeroArguments() {
         assertThatThrownBy(() -> assertEvaluateNull("array_lower()"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: array_lower()." +
-                    " Possible candidates: array_lower(array(E), integer):integer");
+            .hasMessageStartingWith("Unknown function: array_lower(). " +
+                                    "Possible candidates: array_lower(array(E), integer):integer");
     }
 
     @Test
     public void testOneArgument() {
         assertThatThrownBy(() -> assertEvaluateNull("array_lower([1])"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: array_lower(_array(1))," +
-                    " no overload found for matching argument types: (integer_array).");
+            .hasMessageStartingWith("Unknown function: array_lower(_array(1)), " +
+                                    "no overload found for matching argument types: (integer_array).");
     }
 
     @Test
     public void testThreeArguments() {
         assertThatThrownBy(() -> assertEvaluateNull("array_lower([1], 2, [3])"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: array_lower(_array(1), 2, _array(3))," +
-                    " no overload found for matching argument types: (integer_array, integer, integer_array).");
+            .hasMessageStartingWith("Unknown function: array_lower(_array(1), 2, _array(3)), " +
+                    "no overload found for matching argument types: (integer_array, integer, integer_array).");
     }
 
     @Test
     public void testSecondArgumentNotANumber() {
         assertThatThrownBy(() -> assertEvaluateNull("array_lower([1], [2])"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: array_lower(_array(1), _array(2))," +
-                    " no overload found for matching argument types: (integer_array, integer_array).");
+            .hasMessageStartingWith("Unknown function: array_lower(_array(1), _array(2)), " +
+                    "no overload found for matching argument types: (integer_array, integer_array).");
     }
 
     @Test

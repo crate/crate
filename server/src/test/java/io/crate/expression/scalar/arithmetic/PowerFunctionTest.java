@@ -67,7 +67,7 @@ public class PowerFunctionTest extends ScalarTestCase {
     @Test
     public void testInvalidNumberOfArguments() {
         assertThatThrownBy(() -> assertEvaluateNull("power(2)"))
-            .hasMessageStartingWith("Unknown function: power(2)," +
-                    " no overload found for matching argument types: (integer).");
+            .hasMessageStartingWith("Unknown function: power(2), " +
+                                    "no overload found for matching argument types: (integer).");
     }
 }

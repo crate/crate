@@ -77,29 +77,24 @@ public class RegexpReplaceFunctionTest extends ScalarTestCase {
 
     @Test
     public void testNormalizeSymbolWithInvalidFlags() throws Exception {
-        assertThatThrownBy(() -> {
-            assertNormalize("regexp_replace('foobar', 'foo', 'bar', 'n')", isLiteral(""));
-        })
+        assertThatThrownBy(() ->
+                assertNormalize("regexp_replace('foobar', 'foo', 'bar', 'n')", isLiteral("")))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("The regular expression flag is unknown: n");
     }
 
     @Test
     public void testNormalizeSymbolWithInvalidNumberOfArguments() throws Exception {
-        assertThatThrownBy(() -> {
-            assertNormalize("regexp_replace('foobar')", isLiteral(""));
-        })
+        assertThatThrownBy(() -> assertNormalize("regexp_replace('foobar')", isLiteral("")))
             .isExactlyInstanceOf(UnsupportedFunctionException.class);
     }
 
     @Test
     public void testNormalizeSymbolWithInvalidArgumentType() {
-        assertThatThrownBy(() -> {
-            assertNormalize("regexp_replace('foobar', '.*', [1,2])", isLiteral(""));
-
-        })
+        assertThatThrownBy(() ->
+                assertNormalize("regexp_replace('foobar', '.*', [1,2])", isLiteral("")))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: regexp_replace('foobar', '.*', _array(1, 2))," +
-                " no overload found for matching argument types: (text, text, integer_array).");
+            .hasMessageStartingWith("Unknown function: regexp_replace('foobar', '.*', _array(1, 2)), " +
+                                    "no overload found for matching argument types: (text, text, integer_array).");
     }
 }

@@ -61,12 +61,10 @@ public class TimestampZTypeTest extends BasePGTypeTest<Long> {
 
     @Test
     public void testDecodeUTF8TextWithUnexpectedNumberOfFractionDigits() {
-        assertThatThrownBy(() -> {
-            TimestampZType.INSTANCE.decodeUTF8Text("2016-06-28 00:00:00.0000000001+05:00".getBytes(UTF_8));
-
-        })
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Cannot parse more than 9 digits for fraction of a second");
+        assertThatThrownBy(() ->
+                TimestampZType.INSTANCE.decodeUTF8Text("2016-06-28 00:00:00.0000000001+05:00".getBytes(UTF_8)))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Cannot parse more than 9 digits for fraction of a second");
     }
 
     @Test

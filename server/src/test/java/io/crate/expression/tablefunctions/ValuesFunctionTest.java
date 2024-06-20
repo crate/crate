@@ -95,10 +95,8 @@ public class ValuesFunctionTest extends AbstractTableFunctionsTest {
     @Test
     public void test_function_return_type_of_the_next_nested_item() {
         Function function = (Function) sqlExpressions.asSymbol("_values([['a', 'b']])");
-
         var funcImplementation = (TableFunctionImplementation<?>) sqlExpressions.nodeCtx.functions().getQualified(
-            function
-        );
+            function);
 
         assertThat(funcImplementation.returnType()).isExactlyInstanceOf(RowType.class);
         assertThat(funcImplementation.returnType().fieldTypes()).containsExactly(DataTypes.STRING_ARRAY);
@@ -107,22 +105,18 @@ public class ValuesFunctionTest extends AbstractTableFunctionsTest {
 
     @Test
     public void test_function_arguments_must_have_array_types() {
-        assertThatThrownBy(() -> {
-            assertExecute("_values(200)", "");
-
-        })
+        assertThatThrownBy(() -> assertExecute("_values(200)", ""))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: _values(200)," +
-                    " no overload found for matching argument types: (integer).");
+            .hasMessageStartingWith("Unknown function: _values(200), " +
+                                    "no overload found for matching argument types: (integer).");
     }
 
     @Test
     public void test_bound_signature_return_type_resolves_correct_row_type_parameters() {
         var function = (Function) sqlExpressions.asSymbol("_values([1], ['a'], [{}])");
         var functionImplementation = (TableFunctionImplementation<?>) sqlExpressions.nodeCtx.functions().getQualified(
-            function
-        );
-        assertThat(
-            functionImplementation.boundSignature().returnType().getTypeParameters()).isEqualTo(List.of(DataTypes.INTEGER, DataTypes.STRING, DataTypes.UNTYPED_OBJECT));
+            function);
+        assertThat(functionImplementation.boundSignature().returnType().getTypeParameters())
+            .isEqualTo(List.of(DataTypes.INTEGER, DataTypes.STRING, DataTypes.UNTYPED_OBJECT));
     }
 }
