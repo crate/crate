@@ -98,7 +98,7 @@
             <dependency>
               <groupId>com.puppycrawl.tools</groupId>
               <artifactId>checkstyle</artifactId>
-              <version>10.15.0</version>
+              <version>10.17.0</version>
             </dependency>
           </dependencies>
         <executions>
@@ -260,7 +260,7 @@
     <versions.jdk>22.0.1+8</versions.jdk>
     <versions.annotations>24.1.0</versions.annotations>
     <versions.log4j>2.22.0</versions.log4j>
-    <versions.assertj>3.25.3</versions.assertj>
+    <versions.assertj>3.26.0</versions.assertj>
     <versions.junit5>5.10.2</versions.junit5>
     <versions.junit>4.13.2</versions.junit>
     <versions.randomizedrunner>2.8.1</versions.randomizedrunner>
@@ -302,7 +302,7 @@
     <versions.grpc>1.55.1</versions.grpc>
 
     <versions.hamcrest>2.2</versions.hamcrest>
-    <versions.mockito>5.11.0</versions.mockito>
+    <versions.mockito>5.12.0</versions.mockito>
     <versions.jdbc>42.7.3</versions.jdbc>
 
     <versions.azure_storage>8.6.6</versions.azure_storage>
