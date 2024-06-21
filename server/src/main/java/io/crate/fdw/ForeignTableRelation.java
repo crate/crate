@@ -32,7 +32,10 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.table.Operation;
+import io.crate.types.DataTypes;
 
 public class ForeignTableRelation extends AbstractTableRelation<ForeignTable> {
 
@@ -57,7 +60,17 @@ public class ForeignTableRelation extends AbstractTableRelation<ForeignTable> {
         }
         Reference reference = tableInfo.getReadReference(column);
         if (reference == null) {
-            throw new ColumnUnknownException(column, tableInfo.name());
+            // Try to get the root of the column e.g. for json_col['x']['y'], get `json_col`
+            reference = tableInfo.getReadReference(ColumnIdent.of(column.name()));
+            if (reference == null) {
+                throw new ColumnUnknownException(column, tableInfo.name());
+            }
+            reference = new SimpleReference(
+                new ReferenceIdent(relationName(), column),
+                reference.granularity(),
+                DataTypes.STRING,
+                reference.position(),
+                reference.defaultExpression());
         }
         return reference;
     }

@@ -64,9 +64,11 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.SimpleReference;
 import io.crate.sql.Identifiers;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 public class JdbcBatchIterator implements BatchIterator<Row> {
 
@@ -116,11 +118,18 @@ public class JdbcBatchIterator implements BatchIterator<Row> {
             .append(table.name())
             .append(qs);
 
+
         return String.format(
             Locale.ENGLISH,
             "SELECT %s FROM %s WHERE %s",
             String.join(", ", Lists.mapLazy(
-                columns,
+                columns.stream().map(ref ->
+                        new SimpleReference(
+                            new ReferenceIdent(table, ColumnIdent.of(ref.column().name())),
+                            ref.granularity(),
+                            DataTypes.UNTYPED_OBJECT,
+                            ref.position(),
+                            ref.defaultExpression())).toList(),
                 ref -> new QuotedReference(ref, qs).toString(Style.UNQUALIFIED))),
             relationName.toString(),
             RefReplacer.replaceRefs(
@@ -172,7 +181,7 @@ public class JdbcBatchIterator implements BatchIterator<Row> {
                 for (int i = 0; i < columns.size(); i ++) {
                     Reference ref = columns.get(i);
                     ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
-                    Object object = getObject(resultSet, i, resultSetMetaData.getColumnTypeName(i + 1));
+                    Object object = getObject(resultSet, i, resultSetMetaData.getColumnTypeName(i + 1), ref);
                     try {
                         cells[i] = ref.valueType().implicitCast(object);
                     } catch (ClassCastException | IllegalArgumentException e) {

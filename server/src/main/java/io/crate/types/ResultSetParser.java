@@ -29,6 +29,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Map;
 
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
@@ -39,6 +40,7 @@ import org.locationtech.spatial4j.shape.impl.PointImpl;
 import org.postgresql.geometric.PGpoint;
 import org.postgresql.util.PGobject;
 
+import io.crate.metadata.Reference;
 import io.crate.protocols.postgres.types.PGArray;
 import io.crate.protocols.postgres.types.PgOidVectorType;
 import io.netty.buffer.ByteBuf;
@@ -48,7 +50,7 @@ public class ResultSetParser {
     /**
      * retrieve the same type of object from the resultSet as the CrateClient would return
      */
-    public static Object getObject(ResultSet resultSet, int i, String typeName) throws SQLException {
+    public static Object getObject(ResultSet resultSet, int i, String typeName, Reference ref) throws SQLException {
         Object value;
         int columnIndex = i + 1;
         switch (typeName) {
@@ -102,7 +104,9 @@ public class ResultSetParser {
             }
             case "json", "jsonb":
                 String json = resultSet.getString(columnIndex);
-                value = jsonToObject(json);
+                Map<String, Object> o = (Map<String, Object>) jsonToObject(json);
+                // This is hacky just to test the one level subscript
+                value = o.get(ref.column().path().getFirst());
                 break;
             case "point":
                 PGpoint pGpoint = resultSet.getObject(columnIndex, PGpoint.class);

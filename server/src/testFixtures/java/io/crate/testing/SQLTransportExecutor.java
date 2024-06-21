@@ -430,7 +430,7 @@ public class SQLTransportExecutor {
                 for (int i = 0; i < row.length; i++) {
                     Object value;
                     String typeName = metadata.getColumnTypeName(i + 1);
-                    value = getObject(resultSet, i, typeName);
+                    value = getObject(resultSet, i, typeName, null);
                     row[i] = value;
                 }
                 rows.add(row);
