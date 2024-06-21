@@ -76,7 +76,7 @@ public class ShardStatsTest extends IntegTestCase {
                 "group by state, \"primary\" order by state desc");
         assertThat(response.rowCount()).isGreaterThanOrEqualTo(2L);
         assertThat(response.cols().length).isEqualTo(3);
-        assertThat((Long) response.rows()[0][0]).isLessThanOrEqualTo(5L);
+        assertThat((Long) response.rows()[0][0]).isGreaterThanOrEqualTo(5L);
         assertThat(response.rows()[0][1]).isEqualTo("UNASSIGNED");
         assertThat(response.rows()[0][2]).isEqualTo(false);
     }
