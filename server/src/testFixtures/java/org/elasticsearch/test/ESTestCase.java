@@ -116,7 +116,6 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.internal.AssumptionViolatedException;
-import org.junit.rules.ExpectedException;
 import org.junit.rules.RuleChain;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
@@ -134,7 +133,6 @@ import io.crate.analyze.OptimizeTableSettings;
 import io.crate.common.SuppressForbidden;
 import io.crate.lucene.CrateLuceneTestCase;
 import io.crate.server.xcontent.LoggingDeprecationHandler;
-import io.crate.testing.Asserts;
 
 /**
  * Base testcase for randomized unit testing with Elasticsearch
@@ -164,13 +162,6 @@ public abstract class ESTestCase extends CrateLuceneTestCase {
     private static final AtomicInteger portGenerator = new AtomicInteger();
 
     private static final Collection<String> nettyLoggedLeaks = new ArrayList<>();
-
-    /**
-     * @deprecated use {@link Asserts#assertThatThrownBy(org.assertj.core.api.ThrowableAssert.ThrowingCallable)
-     */
-    @Rule
-    @Deprecated
-    public ExpectedException expectedException = ExpectedException.none();
 
     @AfterClass
     public static void resetPortCounter() {
