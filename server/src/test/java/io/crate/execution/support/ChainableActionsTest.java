@@ -22,12 +22,6 @@
 package io.crate.execution.support;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertThat;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -95,7 +89,7 @@ public class ChainableActionsTest {
         assertThat(result.get(1, TimeUnit.SECONDS)).isEqualTo(0);
 
         assertThat(doCalls).containsExactly(0, 1, 2);
-        assertThat(undoCalls, empty());
+        assertThat(undoCalls).isEmpty();;
     }
 
     @Test
@@ -238,9 +232,9 @@ public class ChainableActionsTest {
 
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             t.printStackTrace(new PrintStream(out));
-            assertThat(new String(out.toByteArray()), allOf(
-                containsString("do operation failed"),
-                containsString("undo operation failed")));
+            assertThat(new String(out.toByteArray()))
+                .contains("do operation failed")
+                .contains("undo operation failed");
         }
     }
 
@@ -285,14 +279,14 @@ public class ChainableActionsTest {
             result.get();
         } catch (Throwable t) {
             t = SQLExceptions.unwrap(t);
-            assertThat(t, not(instanceOf(MultiException.class)));
+            assertThat(t).isNotInstanceOf(MultiException.class);
 
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             t.printStackTrace(new PrintStream(out));
-            assertThat(new String(out.toByteArray()), containsString("the first do operation failed"));
-            assertThat(new String(out.toByteArray()), allOf(
-                not(containsString("the do operation failed")),
-                not(containsString("the undo operation failed"))));
+            assertThat(new String(out.toByteArray()))
+                .contains("the first do operation failed")
+                .doesNotContain("the do operation failed")
+                .doesNotContain("the undo operation failed");
         }
     }
 }

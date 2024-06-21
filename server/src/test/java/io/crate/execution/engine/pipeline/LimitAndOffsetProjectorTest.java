@@ -24,8 +24,6 @@ package io.crate.execution.engine.pipeline;
 import static io.crate.data.SentinelRow.SENTINEL;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.emptyIterable;
-import static org.junit.Assert.assertThat;
 
 import java.util.stream.StreamSupport;
 
@@ -94,7 +92,7 @@ public class LimitAndOffsetProjectorTest extends ESTestCase {
         consumer.accept(projector.apply(InMemoryBatchIterator.empty(SENTINEL)), null);
 
         Bucket projected = consumer.getBucket();
-        assertThat(projected, emptyIterable());
+        assertThat(projected).isEmpty();
 
         long iterateLength = StreamSupport.stream(consumer.getBucket().spliterator(), false).count();
         assertThat(iterateLength).isEqualTo(0L);
@@ -170,7 +168,7 @@ public class LimitAndOffsetProjectorTest extends ESTestCase {
         Projector projector = prepareProjector(10, LimitAndOffset.NO_OFFSET);
         consumer.accept(projector.apply(InMemoryBatchIterator.empty(SENTINEL)), null);
         Bucket projected = consumer.getBucket();
-        assertThat(projected, emptyIterable());
+        assertThat(projected).isEmpty();
     }
 
     @Test

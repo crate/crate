@@ -23,8 +23,6 @@ package io.crate.expression.udf;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.assertThat;
 
 import java.util.List;
 
@@ -79,8 +77,7 @@ public class UserDefinedFunctionServiceTest extends UdfUnitTest {
     public void testReplaceNotExistingFunction() throws Exception {
         UserDefinedFunctionsMetadata metadata =
             udfService.putFunction(UserDefinedFunctionsMetadata.of(same1), different, true);
-        assertThat(metadata.functionsMetadata()).hasSize(2);
-        assertThat(metadata.functionsMetadata(), containsInAnyOrder(same1, different));
+        assertThat(metadata.functionsMetadata()).containsExactlyInAnyOrder(same1, different);
     }
 
     @Test

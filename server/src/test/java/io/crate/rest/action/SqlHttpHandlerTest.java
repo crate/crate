@@ -24,8 +24,6 @@ package io.crate.rest.action;
 import static io.crate.role.metadata.RolesHelper.JWT_TOKEN;
 import static io.crate.role.metadata.RolesHelper.JWT_USER;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -120,7 +118,7 @@ public class SqlHttpHandlerTest {
         var session = handler.ensureSession(mockedRequest);
         verify(mockedRequest, atLeast(1)).headers();
         assertThat(session.sessionSettings().authenticatedUser()).isEqualTo(dummyUser);
-        assertThat(session.sessionSettings().searchPath().currentSchema(), containsString("doc"));
+        assertThat(session.sessionSettings().searchPath().currentSchema()).contains("doc");
         assertThat(session.sessionSettings().hashJoinsEnabled()).isTrue();
 
         // modify the session settings
@@ -130,7 +128,7 @@ public class SqlHttpHandlerTest {
         // test that the 2nd call to ensureSession will retrieve the session settings modified previously
         session = handler.ensureSession(mockedRequest);
         assertThat(session.sessionSettings().hashJoinsEnabled()).isFalse();
-        assertThat(session.sessionSettings().searchPath().currentSchema(), containsString("dummy_path"));
+        assertThat(session.sessionSettings().searchPath().currentSchema()).contains("dummy_path");
     }
 
     @Test

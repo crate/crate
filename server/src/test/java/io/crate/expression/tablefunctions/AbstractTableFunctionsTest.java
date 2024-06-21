@@ -21,12 +21,8 @@
 
 package io.crate.expression.tablefunctions;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -34,9 +30,8 @@ import static org.mockito.Mockito.when;
 import java.util.List;
 import java.util.Map;
 
+import org.assertj.core.api.ThrowingConsumer;
 import org.elasticsearch.test.ESTestCase;
-import org.hamcrest.Matcher;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 
 import io.crate.analyze.relations.DocTableRelation;
@@ -55,9 +50,9 @@ import io.crate.metadata.SimpleReference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
+import io.crate.role.Role;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.DataTypes;
-import io.crate.role.Role;
 
 public abstract class AbstractTableFunctionsTest extends ESTestCase {
 
@@ -89,12 +84,10 @@ public abstract class AbstractTableFunctionsTest extends ESTestCase {
 
         if (functionImplementation.returnType().numElements() > 1) {
             // See classdocs of TableFunctionImplementation for an explanation
-            assertThat(
-                "If the rowType has multiple elements, the returnType of the boundSignature " +
-                "must be an exact match of the returnType",
-                functionImplementation.boundSignature().returnType(),
-                is(functionImplementation.returnType())
-            );
+            assertThat(functionImplementation.boundSignature().returnType())
+                .as("If the rowType has multiple elements, the returnType of the boundSignature " +
+                    "must be an exact match of the returnType")
+                .isEqualTo(functionImplementation.returnType());
         }
 
         //noinspection unchecked,rawtypes
@@ -104,15 +97,20 @@ public abstract class AbstractTableFunctionsTest extends ESTestCase {
             function.arguments().stream().map(a -> (Input) a).toArray(Input[]::new));
     }
 
-    public void assertCompile(String functionExpression, java.util.function.Function<Scalar, Matcher<Scalar>> matcher) {
+    public void assertCompile(String functionExpression,
+                              ThrowingConsumer<Scalar<?, ?>> matcher) {
         Symbol functionSymbol = sqlExpressions.asSymbol(functionExpression);
         functionSymbol = sqlExpressions.normalize(functionSymbol);
-        assertThat("function expression was normalized, compile would not be hit", functionSymbol, not(instanceOf(Literal.class)));
+        assertThat(functionSymbol)
+            .as("function expression was normalized, compile would not be hit")
+            .isNotInstanceOf(Literal.class);
         Function function = (Function) functionSymbol;
-        Scalar scalar = (Scalar) sqlExpressions.nodeCtx.functions().getQualified(function);
-        assertThat("Function implementation not found using full qualified lookup", scalar, Matchers.notNullValue());
-        Scalar compiled = scalar.compile(function.arguments(), "dummy", () -> List.of(Role.CRATE_USER));
-        assertThat(compiled, matcher.apply(scalar));
+        Scalar<?, ?> scalar = (Scalar<?, ?>) sqlExpressions.nodeCtx.functions().getQualified(function);
+        assertThat(scalar)
+            .as("Function implementation not found using full qualified lookup")
+            .isNotNull();
+        Scalar<?, ?> compiled = scalar.compile(function.arguments(), "dummy", () -> List.of(Role.CRATE_USER));
+        assertThat(compiled).satisfies(matcher);
     }
 
     protected void assertExecute(String expr, String expected) {

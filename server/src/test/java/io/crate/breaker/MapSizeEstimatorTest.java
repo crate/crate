@@ -21,8 +21,8 @@
 
 package io.crate.breaker;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Map;
 
@@ -36,9 +36,6 @@ public class MapSizeEstimatorTest {
     @Test
     public void test_map_size_estimate_depends_on_actual_instance_size() {
         Map<String, Object> map = Map.of("x", 10, "y", 20);
-        assertThat(
-            ObjectType.UNTYPED.valueBytes(map),
-            is(RamUsageEstimator.sizeOfMap(map))
-        );
+        assertThat(ObjectType.UNTYPED.valueBytes(map)).isEqualTo(RamUsageEstimator.sizeOfMap(map));
     }
 }

@@ -22,17 +22,13 @@
 package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.testing.Asserts;
-import io.crate.testing.TestingHelpers;
 
 @IntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class BlobTableIntegrationTest extends SQLHttpIntegrationTest {
@@ -44,14 +40,12 @@ public class BlobTableIntegrationTest extends SQLHttpIntegrationTest {
         ensureYellow();
 
         blobUpload(new String[]{"bar", "foo", "baz"}, "b1", "b2");
-        refresh();
 
-        execute("select b1.digest from blob.b1 join blob.b2 on b1.digest = b2.digest");
-        assertThat(TestingHelpers.printedTable(response.rows()),
-            allOf(
-                containsString("0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33\n"),
-                containsString("62cdb7020ff920e5aa642c3d4066950dd1f01f4d\n"),
-                containsString("bbe960a25ea311d21d40669e93df2003ba9b90a2\n")));
+        execute("select b1.digest from blob.b1 join blob.b2 on b1.digest = b2.digest order by 1");
+        assertThat(response).hasRows(
+            "0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33",
+            "62cdb7020ff920e5aa642c3d4066950dd1f01f4d",
+            "bbe960a25ea311d21d40669e93df2003ba9b90a2");
     }
 
     @Test
@@ -60,12 +54,12 @@ public class BlobTableIntegrationTest extends SQLHttpIntegrationTest {
         ensureYellow();
 
         blobUpload(new String[]{"bar", "foo", "baz"}, "b1");
-        refresh();
 
         execute("select b1.digest from blob.b1 order by b1.digest desc");
-        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("bbe960a25ea311d21d40669e93df2003ba9b90a2\n" +
-               "62cdb7020ff920e5aa642c3d4066950dd1f01f4d\n" +
-               "0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33\n");
+        assertThat(response).hasRows(
+            "bbe960a25ea311d21d40669e93df2003ba9b90a2",
+            "62cdb7020ff920e5aa642c3d4066950dd1f01f4d",
+            "0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33");
     }
 
     @Test
@@ -75,12 +69,12 @@ public class BlobTableIntegrationTest extends SQLHttpIntegrationTest {
         ensureYellow();
 
         blobUpload(new String[]{"bar", "foo", "baz"}, "b1", "b2");
-        refresh();
 
         execute("select b1.digest from blob.b1 join blob.b2 on b1.digest = b2.digest order by b1.digest");
-        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33\n" +
-               "62cdb7020ff920e5aa642c3d4066950dd1f01f4d\n" +
-               "bbe960a25ea311d21d40669e93df2003ba9b90a2\n");
+        assertThat(response).hasRows(
+            "0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33",
+            "62cdb7020ff920e5aa642c3d4066950dd1f01f4d",
+            "bbe960a25ea311d21d40669e93df2003ba9b90a2");
     }
 
     @Test
@@ -95,14 +89,15 @@ public class BlobTableIntegrationTest extends SQLHttpIntegrationTest {
             new Object[]{2, blobDigest("bar")},
             new Object[]{2, blobDigest("foo")}
         });
-        refresh();
+        execute("refresh table files");
 
         execute("select b1.digest from blob.b1 " +
                 "join files on b1.digest = files.digest " +
                 "where files.i = 2 " +
                 "order by files.digest");
-        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33\n" +
-               "62cdb7020ff920e5aa642c3d4066950dd1f01f4d\n");
+        assertThat(response).hasRows(
+            "0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33",
+            "62cdb7020ff920e5aa642c3d4066950dd1f01f4d");
     }
 
     @Test
@@ -111,10 +106,9 @@ public class BlobTableIntegrationTest extends SQLHttpIntegrationTest {
         ensureYellow();
 
         blobUpload(new String[]{"bar", "foo", "baz"}, "b1");
-        refresh();
 
         execute("select digest from blob.b1 where digest = '62cdb7020ff920e5aa642c3d4066950dd1f01f4d'");
-        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("62cdb7020ff920e5aa642c3d4066950dd1f01f4d\n");
+        assertThat(response).hasRows("62cdb7020ff920e5aa642c3d4066950dd1f01f4d");
     }
 
     /**
@@ -123,7 +117,6 @@ public class BlobTableIntegrationTest extends SQLHttpIntegrationTest {
     @Test
     public void test_drop_tables_which_is_read_only() throws Exception {
         execute("create blob table b1 with (number_of_replicas = 0)");
-
         execute("alter blob table b1 set (\"blocks.read_only_allow_delete\"=true)");
 
         Asserts.assertSQLError(() -> execute("drop blob table b1"))

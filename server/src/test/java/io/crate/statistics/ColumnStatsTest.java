@@ -22,14 +22,11 @@
 package io.crate.statistics;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
-import static org.junit.Assume.assumeThat;
+import static org.assertj.core.api.Assumptions.assumeThat;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.assertj.core.data.Offset;
@@ -57,8 +54,8 @@ public class ColumnStatsTest {
     public void test_null_fraction_is_between_incl_0_and_incl_1(ArrayList<Integer> numbers,
                                                                 @IntRange(min = 0) int nullCount,
                                                                 long totalRowCount) {
-        assumeThat(totalRowCount, greaterThanOrEqualTo((long) nullCount));
-        assumeThat((long) numbers.size() + nullCount, lessThanOrEqualTo(totalRowCount));
+        assumeThat(totalRowCount).isGreaterThanOrEqualTo(nullCount);
+        assumeThat((long) numbers.size() + nullCount).isLessThanOrEqualTo(totalRowCount);
 
         ColumnStats<Integer> stats = StatsUtils.statsFromValues(DataTypes.INTEGER, numbers);
         assertThat(stats.nullFraction()).isGreaterThanOrEqualTo(0.0);
@@ -90,7 +87,7 @@ public class ColumnStatsTest {
                 IntStream.range(30, 150)
             ))
             .boxed()
-            .collect(Collectors.toList());
+            .toList();
 
         ColumnStats<Integer> columnStats = StatsUtils.statsFromValues(DataTypes.INTEGER, numbers);
         List<Integer> histogramSample = columnStats.histogram().subList(0, 8);

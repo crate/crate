@@ -23,10 +23,7 @@ package io.crate.execution.engine.window;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.execution.engine.window.WindowFunctionBatchIterator.sortAndComputeWindowFunctions;
-import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -64,10 +61,10 @@ import io.crate.types.DataTypes;
 
 public class WindowBatchIteratorTest {
 
-    private Input[][] args = {new Input[0]};
+    private final Input<?>[][] args = {new Input[0]};
 
-    private List<Object[]> expectedRowNumberResult = IntStream.range(0, 10)
-        .mapToObj(l -> new Object[]{l, l + 1}).collect(toList());
+    private final List<Object[]> expectedRowNumberResult = IntStream.range(0, 10)
+        .mapToObj(l -> new Object[]{l, l + 1}).toList();
 
     @Test
     public void testWindowBatchIterator() throws Exception {
@@ -121,7 +118,7 @@ public class WindowBatchIteratorTest {
 
     @Test
     public void testFrameBoundsEmptyWindow() throws Exception {
-        var rows = IntStream.range(0, 10).mapToObj(i -> new Object[]{i, null}).collect(toList());
+        var rows = IntStream.range(0, 10).mapToObj(i -> new Object[]{i, null}).toList();
         var result = StreamSupport.stream(sortAndComputeWindowFunctions(
             new ArrayList<>(rows),
             ignored -> {},
@@ -136,7 +133,7 @@ public class WindowBatchIteratorTest {
             List.of(),
             new Boolean[]{null},
             args).get(5, TimeUnit.SECONDS).spliterator(), false)
-            .collect(toList());
+            .toList();
         var expectedBounds = new Tuple<>(0, 10);
         IntStream.range(0, 10).forEach(i -> assertThat(result.get(i)).isEqualTo(new Object[]{i, expectedBounds}));
     }
@@ -160,9 +157,7 @@ public class WindowBatchIteratorTest {
             new Boolean[]{null},
             args
         ).get(5, TimeUnit.SECONDS);
-        assertThat(
-            result,
-            contains(
+        assertThat(result).containsExactly(
                 $(-1, new Tuple<>(0, 1)),
                 $(1, new Tuple<>(0, 2)),
                 $(1, new Tuple<>(0, 2)),
@@ -173,7 +168,6 @@ public class WindowBatchIteratorTest {
                 $(5, new Tuple<>(0, 1)),
                 $(null, new Tuple<>(0, 2)),
                 $(null, new Tuple<>(0, 2))
-            )
         );
     }
 
@@ -208,20 +202,17 @@ public class WindowBatchIteratorTest {
             new Boolean[]{null},
             args
         ).get(5, TimeUnit.SECONDS);
-        assertThat(
-            result,
-            contains(
-                $(-1, -1, new Tuple<>(0, 1)),
-                $(1, 0, new Tuple<>(0, 1)),
-                $(1, 1, new Tuple<>(0, 2)),
-                $(2, -1, new Tuple<>(0, 1)),
-                $(2, 2, new Tuple<>(0, 2)),
-                $(3, 3, new Tuple<>(0, 1)),
-                $(4, 4, new Tuple<>(0, 1)),
-                $(5, 5, new Tuple<>(0, 1)),
-                $(null, null, new Tuple<>(0, 2)),
-                $(null, null, new Tuple<>(0, 2))
-            )
+        assertThat(result).containsExactly(
+            $(-1, -1, new Tuple<>(0, 1)),
+            $(1, 0, new Tuple<>(0, 1)),
+            $(1, 1, new Tuple<>(0, 2)),
+            $(2, -1, new Tuple<>(0, 1)),
+            $(2, 2, new Tuple<>(0, 2)),
+            $(3, 3, new Tuple<>(0, 1)),
+            $(4, 4, new Tuple<>(0, 1)),
+            $(5, 5, new Tuple<>(0, 1)),
+            $(null, null, new Tuple<>(0, 2)),
+            $(null, null, new Tuple<>(0, 2))
         );
     }
 
@@ -257,21 +248,18 @@ public class WindowBatchIteratorTest {
             new Boolean[]{null},
             args
         ).get(5, TimeUnit.SECONDS);
-        assertThat(
-            result,
-            contains(
-                $(-1, -1, new Tuple<>(0, 1)),
-                $(1, 0, new Tuple<>(0, 3)),
-                $(1, 1, new Tuple<>(1, 3)),
-                $(1, 1, new Tuple<>(1, 3)),
-                $(2, -1, new Tuple<>(0, 2)),
-                $(2, 2, new Tuple<>(1, 2)),
-                $(3, 3, new Tuple<>(0, 1)),
-                $(4, 4, new Tuple<>(0, 1)),
-                $(5, 5, new Tuple<>(0, 1)),
-                $(null, null, new Tuple<>(0, 2)),
-                $(null, null, new Tuple<>(0, 2))
-            )
+        assertThat(result).containsExactly(
+            $(-1, -1, new Tuple<>(0, 1)),
+            $(1, 0, new Tuple<>(0, 3)),
+            $(1, 1, new Tuple<>(1, 3)),
+            $(1, 1, new Tuple<>(1, 3)),
+            $(2, -1, new Tuple<>(0, 2)),
+            $(2, 2, new Tuple<>(1, 2)),
+            $(3, 3, new Tuple<>(0, 1)),
+            $(4, 4, new Tuple<>(0, 1)),
+            $(5, 5, new Tuple<>(0, 1)),
+            $(null, null, new Tuple<>(0, 2)),
+            $(null, null, new Tuple<>(0, 2))
         );
     }
 
@@ -331,20 +319,17 @@ public class WindowBatchIteratorTest {
             new Boolean[]{null},
             args
         ).get(5, TimeUnit.SECONDS);
-        assertThat(
-            result,
-            contains(
-                $(-1, new Tuple<>(0, 1)),
-                $(1, new Tuple<>(0, 2)),
-                $(1, new Tuple<>(1, 2)),
-                $(2, new Tuple<>(0, 2)),
-                $(2, new Tuple<>(1, 2)),
-                $(3, new Tuple<>(0, 1)),
-                $(4, new Tuple<>(0, 1)),
-                $(5, new Tuple<>(0, 1)),
-                $(null, new Tuple<>(0, 2)),
-                $(null, new Tuple<>(1, 2))
-            )
+        assertThat(result).containsExactly(
+            $(-1, new Tuple<>(0, 1)),
+            $(1, new Tuple<>(0, 2)),
+            $(1, new Tuple<>(1, 2)),
+            $(2, new Tuple<>(0, 2)),
+            $(2, new Tuple<>(1, 2)),
+            $(3, new Tuple<>(0, 1)),
+            $(4, new Tuple<>(0, 1)),
+            $(5, new Tuple<>(0, 1)),
+            $(null, new Tuple<>(0, 2)),
+            $(null, new Tuple<>(1, 2))
         );
     }
 
@@ -355,8 +340,8 @@ public class WindowBatchIteratorTest {
             TestingBatchIterators.range(0, 10),
             ignored -> {},
             new TypedRowAccounting(List.of(DataTypes.INTEGER), ramAccounting, 32),
-            (partitionStart, partitionEnd, currentIndex, sortedRows) -> 0,
-            (partitionStart, partitionEnd, currentIndex, sortedRows) -> currentIndex,
+            (_, _, _, _) -> 0,
+            (_, _, currentIndex, _) -> currentIndex,
             null,
             null,
             1,
@@ -382,8 +367,8 @@ public class WindowBatchIteratorTest {
         var result = sortAndComputeWindowFunctions(
             rows,
             ignored -> {},
-            (partitionStart, partitionEnd, currentIndex, sortedRows) -> 0,
-            (partitionStart, partitionEnd, currentIndex, sortedRows) -> currentIndex,
+            (_, _, _, _) -> 0,
+            (_, _, currentIndex, _) -> currentIndex,
             null,
             OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 0, true, true),
             1,
@@ -394,12 +379,9 @@ public class WindowBatchIteratorTest {
             new Boolean[]{null},
             args
         ).get(5, TimeUnit.SECONDS);
-        assertThat(
-            result,
-            contains(
-                $(null, null),
-                $(2, null)
-            )
+        assertThat(result).containsExactly(
+            $(null, null),
+            $(2, null)
         );
     }
 
@@ -460,7 +442,8 @@ public class WindowBatchIteratorTest {
                                   List<? extends CollectExpression<Row, ?>> expressions,
                                   Boolean ignoreNulls,
                                   Input<?> ... args) {
-                return idxInPartition + 1; // sql row numbers are 1-indexed;
+                // sql row numbers are 1-indexed
+                return idxInPartition + 1;
             }
 
             @Override

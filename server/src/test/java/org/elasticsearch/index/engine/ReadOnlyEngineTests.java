@@ -20,12 +20,8 @@ package org.elasticsearch.index.engine;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.common.lucene.index.ElasticsearchDirectoryReader.getElasticsearchDirectoryReader;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.List;
@@ -94,12 +90,12 @@ public class ReadOnlyEngineTests extends EngineTestCase {
                 }
                 Engine.Searcher external = readOnlyEngine.acquireSearcher("test", Engine.SearcherScope.EXTERNAL);
                 Engine.Searcher internal = readOnlyEngine.acquireSearcher("test", Engine.SearcherScope.INTERNAL);
-                assertSame(external.getIndexReader(), internal.getIndexReader());
+                assertThat(external.getIndexReader()).isSameAs(internal.getIndexReader());
                 assertThat(external.getIndexReader()).isInstanceOf(DirectoryReader.class);
                 DirectoryReader dirReader = external.getDirectoryReader();
                 ElasticsearchDirectoryReader esReader = getElasticsearchDirectoryReader(dirReader);
                 IndexReader.CacheHelper helper = esReader.getReaderCacheHelper();
-                assertNotNull(helper);
+                assertThat(helper).isNotNull();
                 assertThat(dirReader.getReaderCacheHelper().getKey()).isEqualTo(helper.getKey());
 
                 IOUtils.close(external, internal);
@@ -204,9 +200,8 @@ public class ReadOnlyEngineTests extends EngineTestCase {
                         }
                     })
                     .isExactlyInstanceOf(IllegalStateException.class)
-                    .hasMessage(
-                        "Maximum sequence number [" + maxSeqNo
-                        + "] from last commit does not match global checkpoint [" + globalCheckpoint.get() + "]");
+                    .hasMessage("Maximum sequence number [" + maxSeqNo + "] " +
+                                "from last commit does not match global checkpoint [" + globalCheckpoint.get() + "]");
             }
         }
     }
@@ -364,8 +359,8 @@ public class ReadOnlyEngineTests extends EngineTestCase {
 
                 assertThat(engine.getTranslogStats().estimatedNumberOfOperations()).isEqualTo(softDeletesEnabled ? uncommittedDocs : numDocs);
                 assertThat(engine.getTranslogStats().getUncommittedOperations()).isEqualTo(uncommittedDocs);
-                assertThat(engine.getTranslogStats().getTranslogSizeInBytes(), greaterThan(0L));
-                assertThat(engine.getTranslogStats().getUncommittedSizeInBytes(), greaterThan(0L));
+                assertThat(engine.getTranslogStats().getTranslogSizeInBytes()).isGreaterThan(0L);
+                assertThat(engine.getTranslogStats().getUncommittedSizeInBytes()).isGreaterThan(0L);
 
                 engine.flush(true, true);
             }
@@ -373,8 +368,8 @@ public class ReadOnlyEngineTests extends EngineTestCase {
             try (ReadOnlyEngine readOnlyEngine = new ReadOnlyEngine(config, null, null, true, UnaryOperator.identity(), true)) {
                 assertThat(readOnlyEngine.getTranslogStats().estimatedNumberOfOperations()).isEqualTo(softDeletesEnabled ? 0 : numDocs);
                 assertThat(readOnlyEngine.getTranslogStats().getUncommittedOperations()).isEqualTo(0);
-                assertThat(readOnlyEngine.getTranslogStats().getTranslogSizeInBytes(), greaterThan(0L));
-                assertThat(readOnlyEngine.getTranslogStats().getUncommittedSizeInBytes(), greaterThan(0L));
+                assertThat(readOnlyEngine.getTranslogStats().getTranslogSizeInBytes()).isGreaterThan(0L);
+                assertThat(readOnlyEngine.getTranslogStats().getUncommittedSizeInBytes()).isGreaterThan(0L);
             }
         }
     }

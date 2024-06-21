@@ -22,8 +22,6 @@
 package io.crate.metadata;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.isOneOf;
-import static org.junit.Assert.assertThat;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -90,7 +88,7 @@ public class SchemasITest extends IntegTestCase {
 
         Set<String> nodes = routing.nodes();
 
-        assertThat(nodes.size(), isOneOf(1, 2)); // for the rare case
+        assertThat(nodes.size()).isBetween(1, 2); // for the rare case
         // where all shards are on 1 node
         int numShards = 0;
         for (Map.Entry<String, Map<String, IntIndexedContainer>> nodeEntry : routing.locations().entrySet()) {
