@@ -22,8 +22,6 @@
 package io.crate.execution.engine.indexing;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.util.Map;
 
@@ -83,13 +81,11 @@ public class UpsertResultsTest {
         upsertResults.addResult("file:///t2.json", "failed to parse", 4);
         upsertResults.addResult("file:///t2.json", "failed to parse", 5);
         String message = UpsertResults.resultsToFailure(upsertResults).getMessage();
-        assertThat(
-            message, containsString(
+        assertThat(message).contains(
                 """
                     Job killed. NODE: Alplerspitz
                     [URI: file:///t.json, ERRORS: {mapping set to strict, dynamic introduction of [b] within [default] is not allowed={count=2, line_numbers=[2, 3]}}],
                     [URI: file:///t2.json, ERRORS: {failed to parse={count=2, line_numbers=[4, 5]}}]"""
-            )
         );
     }
 

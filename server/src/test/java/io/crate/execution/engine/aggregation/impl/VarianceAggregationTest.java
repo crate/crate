@@ -23,9 +23,6 @@ package io.crate.execution.engine.aggregation.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 
 import java.util.List;
 
@@ -70,17 +67,14 @@ public class VarianceAggregationTest extends AggregationTestCase {
                 List.of(Literal.of(dataType, null)),
                 SearchPath.pathWithPGCatalogAndDoc()
             );
-            assertThat(
-                varianceFunction.boundSignature().returnType(),
-                is(DataTypes.DOUBLE)
-            );
+            assertThat(varianceFunction.boundSignature().returnType()).isEqualTo(DataTypes.DOUBLE);
         }
     }
 
     @Test
     public void withNullArg() throws Exception {
         Object result = executeAggregation(DataTypes.DOUBLE, new Object[][]{{null}, {null}});
-        assertNull(result);
+        assertThat(result).isNull();
     }
 
     @Test

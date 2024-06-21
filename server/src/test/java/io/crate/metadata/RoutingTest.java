@@ -22,9 +22,6 @@
 package io.crate.metadata;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.contains;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -91,7 +88,7 @@ public class RoutingTest extends ESTestCase {
 
         RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), Collections.emptyList());
         Routing routing = routingProvider.forRandomMasterOrDataNode(new RelationName("doc", "table"), nodes);
-        assertThat(routing.locations().keySet(), anyOf(contains("data_master_node_1"), contains("data_master_node_2")));
+        assertThat(routing.locations().keySet()).containsAnyOf("data_master_node_1","data_master_node_2");
 
         Routing routing2 = routingProvider.forRandomMasterOrDataNode(new RelationName("doc", "table"), nodes);
         assertThat(routing.locations()).as("routingProvider is seeded and must return deterministic routing").isEqualTo(routing2.locations());

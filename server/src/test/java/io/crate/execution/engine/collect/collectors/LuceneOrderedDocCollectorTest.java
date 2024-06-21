@@ -22,8 +22,6 @@
 package io.crate.execution.engine.collect.collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertNull;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -65,7 +63,6 @@ import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.common.unit.Fuzziness;
 import org.elasticsearch.index.shard.ShardId;
-import org.hamcrest.Matchers;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
@@ -270,7 +267,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         Query nextPageQuery = queryForSearchAfter.apply(lastCollected);
 
         // returns null which leads to reuse of old query without paging optimization
-        assertNull(nextPageQuery);
+        assertThat(nextPageQuery).isNull();
     }
 
     @Test
@@ -299,7 +296,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         int count = 0;
         // initialSearch -> 2 rows
         for (Row row : collector.collect()) {
-            assertThat((float) row.get(0), Matchers.greaterThanOrEqualTo(0.15f));
+            assertThat((float) row.get(0)).isGreaterThanOrEqualTo(0.15f);
             count++;
         }
         assertThat(count).isEqualTo(2);
@@ -307,7 +304,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         count = 0;
         // searchMore -> 1 row is below minScore
         for (Row row : collector.collect()) {
-            assertThat((float) row.get(0), Matchers.greaterThanOrEqualTo(0.15f));
+            assertThat((float) row.get(0)).isGreaterThanOrEqualTo(0.15f);
             count++;
         }
         assertThat(count).isEqualTo(1);

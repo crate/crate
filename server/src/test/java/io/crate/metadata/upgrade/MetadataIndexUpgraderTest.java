@@ -23,7 +23,6 @@ package io.crate.metadata.upgrade;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -39,7 +38,6 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.VersionUtils;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.Constants;
@@ -83,7 +81,8 @@ public class MetadataIndexUpgraderTest extends ESTestCase {
         IndexMetadata updatedMetadata = metadataIndexUpgrader.apply(indexMetadata, null);
 
         MappingMetadata mapping = updatedMetadata.mapping();
-        assertThat(mapping.source().string(), Matchers.is("{\"default\":{\"properties\":{\"name\":{\"type\":\"keyword\",\"position\":1}}}}"));
+        assertThat(mapping.source().string()).isEqualTo(
+            "{\"default\":{\"properties\":{\"name\":{\"type\":\"keyword\",\"position\":1}}}}");
     }
 
     @Test
@@ -109,7 +108,8 @@ public class MetadataIndexUpgraderTest extends ESTestCase {
         IndexMetadata updatedMetadata = metadataIndexUpgrader.apply(indexMetadata, null);
 
         MappingMetadata mapping = updatedMetadata.mapping();
-        assertThat(mapping.source().string(), Matchers.is("{\"default\":{\"properties\":{\"name\":{\"type\":\"keyword\",\"position\":1}}}}"));
+        assertThat(mapping.source().string()).isEqualTo(
+            "{\"default\":{\"properties\":{\"name\":{\"type\":\"keyword\",\"position\":1}}}}");
     }
 
     @Test

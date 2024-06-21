@@ -27,8 +27,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
 import static org.elasticsearch.cluster.routing.TestShardRouting.newShardRouting;
-import static org.hamcrest.Matchers.empty;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -384,7 +382,7 @@ public class MetadataTrackerTest extends ESTestCase {
             SUBSCRIBER_CLUSTER_STATE,
             publicationsStateResponse
         );
-        assertThat(restoreDiff.relationsForStateUpdate(), empty());
+        assertThat(restoreDiff.relationsForStateUpdate()).isEmpty();
     }
 
     @Test
@@ -414,7 +412,7 @@ public class MetadataTrackerTest extends ESTestCase {
         );
         assertThat(restoreDiff.relationsForStateUpdate()).containsExactly(RelationName.fromIndexName("t2"));
         assertThat(restoreDiff.indexNamesToRestore()).containsExactly("t2");
-        assertThat(restoreDiff.templatesToRestore(), empty());
+        assertThat(restoreDiff.templatesToRestore()).isEmpty();
     }
 
     @Test
@@ -442,7 +440,7 @@ public class MetadataTrackerTest extends ESTestCase {
             publisherStateResponse
         );
         assertThat(restoreDiff.relationsForStateUpdate()).containsExactly(RelationName.fromIndexName("p1"));
-        assertThat(restoreDiff.indexNamesToRestore(), empty());
+        assertThat(restoreDiff.indexNamesToRestore()).isEmpty();
         assertThat(restoreDiff.templatesToRestore()).containsExactly(templateName);
     }
 
@@ -499,7 +497,7 @@ public class MetadataTrackerTest extends ESTestCase {
 
         assertThat(restoreDiff.relationsForStateUpdate()).containsExactly(relationName);
         assertThat(restoreDiff.indexNamesToRestore()).containsExactly(newPartitionName.asIndexName());
-        assertThat(restoreDiff.templatesToRestore(), empty());
+        assertThat(restoreDiff.templatesToRestore()).isEmpty();
     }
 
     @Test
@@ -562,8 +560,8 @@ public class MetadataTrackerTest extends ESTestCase {
             publisherStateResponse
         );
 
-        assertThat(restoreDiff.relationsForStateUpdate(), empty());
-        assertThat(restoreDiff.indexNamesToRestore(), empty());
-        assertThat(restoreDiff.templatesToRestore(), empty());
+        assertThat(restoreDiff.relationsForStateUpdate()).isEmpty();
+        assertThat(restoreDiff.indexNamesToRestore()).isEmpty();
+        assertThat(restoreDiff.templatesToRestore()).isEmpty();
     }
 }

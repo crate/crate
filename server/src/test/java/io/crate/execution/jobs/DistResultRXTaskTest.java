@@ -23,9 +23,7 @@ package io.crate.execution.jobs;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -228,12 +226,11 @@ public class DistResultRXTaskTest extends ESTestCase {
         assertThat(checkPageResultListener.needMoreResult).isFalse();
 
         List<Object[]> result = batchConsumer.getResult();
-        assertThat(result.toArray(), arrayContainingInAnyOrder(
+        assertThat(result.toArray()).containsExactlyInAnyOrder(
             new Object[] {"foo"},
             new Object[] {"bar"},
             new Object[] {"universe"},
-            new Object[] {"universe"}
-        ));
+            new Object[] {"universe"});
     }
 
     @Test
@@ -316,13 +313,10 @@ public class DistResultRXTaskTest extends ESTestCase {
             } else {
                 iterator = concat.iterator();
             }
-
         }
 
         @Override
-        public void finish() {
-
-        }
+        public void finish() {}
 
         @Override
         public TKey exhaustedIterable() {

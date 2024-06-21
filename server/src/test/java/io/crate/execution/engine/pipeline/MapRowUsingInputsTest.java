@@ -23,13 +23,11 @@ package io.crate.execution.engine.pipeline;
 
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertThat;
 
 import java.util.Collections;
 import java.util.List;
 
 import org.elasticsearch.test.ESTestCase;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -52,7 +50,7 @@ public class MapRowUsingInputsTest extends ESTestCase {
 
     private List<Input<?>> inputs;
     private List<CollectExpression<Row, ?>> expressions;
-    private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
+    private final TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
 
     @Before
     public void createInputs() throws Exception {
@@ -87,6 +85,6 @@ public class MapRowUsingInputsTest extends ESTestCase {
         MapRowUsingInputs mapRowUsingInputs = new MapRowUsingInputs(inputs, expressions);
         Row fst = mapRowUsingInputs.apply(new Row1(2L));
         Row snd = mapRowUsingInputs.apply(new Row1(2L));
-        assertThat(fst, Matchers.sameInstance(snd));
+        assertThat(fst).isSameAs(snd);
     }
 }

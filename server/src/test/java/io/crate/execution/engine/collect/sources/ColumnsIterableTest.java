@@ -26,14 +26,11 @@ import static io.crate.testing.T3.T1_DEFINITION;
 import static io.crate.testing.T3.T4;
 import static io.crate.testing.T3.T4_DEFINITION;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -59,12 +56,10 @@ public class ColumnsIterableTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testColumnsIteratorCanBeMaterializedToList() {
         InformationSchemaIterables.ColumnsIterable columns = new InformationSchemaIterables.ColumnsIterable(t1Info);
-        List<ColumnContext> contexts = StreamSupport.stream(columns.spliterator(), false)
-            .collect(Collectors.toList());
+        List<ColumnContext> contexts = StreamSupport.stream(columns.spliterator(), false).toList();
 
-        assertThat(
-            contexts.stream().map(c -> c.ref().column().name()).collect(Collectors.toList()),
-            Matchers.contains("a", "x", "i"));
+        assertThat(contexts.stream().map(c -> c.ref().column().name()).toList())
+            .containsExactly("a", "x", "i");
     }
 
     @Test
@@ -77,14 +72,13 @@ public class ColumnsIterableTest extends CrateDummyClusterServiceUnitTest {
         for (ColumnContext column : columns) {
             names.add(column.ref().column().name());
         }
-        assertThat(names, Matchers.contains("a", "x", "i", "a", "x", "i"));
+        assertThat(names).containsExactly("a", "x", "i", "a", "x", "i");
     }
 
     @Test
     public void testOrdinalIsNotNullOnSubColumns() throws Exception {
         InformationSchemaIterables.ColumnsIterable columns = new InformationSchemaIterables.ColumnsIterable(t4Info);
-        List<ColumnContext> contexts = StreamSupport.stream(columns.spliterator(), false)
-            .collect(Collectors.toList());
+        List<ColumnContext> contexts = StreamSupport.stream(columns.spliterator(), false).toList();
 
         // sub columns must have NON-NULL ordinal value
         assertThat(contexts.get(1).ref().position()).isEqualTo(2);
@@ -102,6 +96,6 @@ public class ColumnsIterableTest extends CrateDummyClusterServiceUnitTest {
         var columns = new InformationSchemaIterables.ColumnsIterable(e.resolveTableInfo("bit_table"));
         var contexts = StreamSupport.stream(columns.spliterator(), false).toList();
 
-        assertThat(contexts.get(0).ref().valueType().characterMaximumLength()).isEqualTo(12);
+        assertThat(contexts.getFirst().ref().valueType().characterMaximumLength()).isEqualTo(12);
     }
 }

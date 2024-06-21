@@ -22,7 +22,6 @@
 package io.crate.execution.engine.collect;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -33,12 +32,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.test.IntegTestCase;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -81,8 +78,8 @@ public class HandlerSideLevelCollectTest extends IntegTestCase {
 
     private MapSideDataCollectOperation operation;
     private Functions functions;
-    private RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), Collections.emptyList());
-    private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
+    private final RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), Collections.emptyList());
+    private final TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
 
     @Before
     public void prepare() {
@@ -129,7 +126,7 @@ public class HandlerSideLevelCollectTest extends IntegTestCase {
         RoutedCollectPhase collectNode = collectNode(routing, List.of(clusterNameRef), RowGranularity.CLUSTER);
         Bucket result = collect(collectNode);
         assertThat(result).hasSize(1);
-        assertThat(((String) result.iterator().next().get(0)), Matchers.startsWith("SUITE-"));
+        assertThat(((String) result.iterator().next().get(0))).startsWith("SUITE-");
     }
 
     private Bucket collect(RoutedCollectPhase collectPhase) throws Exception {
@@ -185,29 +182,30 @@ public class HandlerSideLevelCollectTest extends IntegTestCase {
             .stream(collect(collectNode).spliterator(), false)
             .limit(10)
             .map(Row::materialize)
-            .collect(Collectors.toList());
+            .toList();
 
-        String expected =
-            "character_repertoire| text| character_sets\n" +
-            "character_set_catalog| text| character_sets\n" +
-            "character_set_name| text| character_sets\n" +
-            "character_set_schema| text| character_sets\n" +
-            "default_collate_catalog| text| character_sets\n" +
-            "default_collate_name| text| character_sets\n" +
-            "default_collate_schema| text| character_sets\n" +
-            "form_of_use| text| character_sets\n" +
-            "character_maximum_length| integer| columns\n" +
-            "character_octet_length| integer| columns\n";
+        String expected = """
+            character_repertoire| text| character_sets
+            character_set_catalog| text| character_sets
+            character_set_name| text| character_sets
+            character_set_schema| text| character_sets
+            default_collate_catalog| text| character_sets
+            default_collate_name| text| character_sets
+            default_collate_schema| text| character_sets
+            form_of_use| text| character_sets
+            character_maximum_length| integer| columns
+            character_octet_length| integer| columns
+            """;
 
 
-        assertThat(TestingHelpers.printedTable(result.toArray(new Object[0][])), Matchers.containsString(expected));
+        assertThat(TestingHelpers.printedTable(result.toArray(new Object[0][]))).contains(expected);
 
         // second time - to check if the internal iterator resets
         result = StreamSupport
             .stream(collect(collectNode).spliterator(), false)
             .limit(10)
             .map(Row::materialize)
-            .collect(Collectors.toList());
-        assertThat(TestingHelpers.printedTable(result.toArray(new Object[0][])), Matchers.containsString(expected));
+            .toList();
+        assertThat(TestingHelpers.printedTable(result.toArray(new Object[0][]))).contains(expected);
     }
 }

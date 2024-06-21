@@ -22,8 +22,6 @@
 package io.crate.execution.engine.fetch;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
 
 import java.util.List;
 import java.util.Map;
@@ -99,10 +97,8 @@ public class ReaderBucketsTest extends CrateDummyClusterServiceUnitTest {
             assertThat(readerBuckets.ramBytesUsed()).isEqualTo(136L);
         }
 
-        assertThat(
-            "After outputRows are closed the readerBuckets are released",
-            readerBuckets.ramBytesUsed(),
-            is(0L)
-        );
+        assertThat(readerBuckets.ramBytesUsed())
+            .as("After outputRows are closed the readerBuckets are released")
+            .isZero();
     }
 }

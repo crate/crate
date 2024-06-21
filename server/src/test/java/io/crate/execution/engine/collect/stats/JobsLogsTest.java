@@ -26,7 +26,6 @@ import static io.crate.planner.Plan.StatementType.UNDEFINED;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertThat;
 
 import java.lang.reflect.Field;
 import java.util.Collections;
@@ -41,13 +40,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -85,8 +82,8 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             assertThat(stats.operationsLogSize).isEqualTo(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault(Settings.EMPTY));
             assertThat(stats.jobsLogExpiration).isEqualTo(JobsLogService.STATS_JOBS_LOG_EXPIRATION_SETTING.getDefault(Settings.EMPTY));
             assertThat(stats.operationsLogExpiration).isEqualTo(JobsLogService.STATS_OPERATIONS_LOG_EXPIRATION_SETTING.getDefault(Settings.EMPTY));
-            assertThat(stats.get().jobsLog(), Matchers.instanceOf(FilteredLogSink.class));
-            assertThat(stats.get().operationsLog(), Matchers.instanceOf(QueueSink.class));
+            assertThat(stats.get().jobsLog()).isExactlyInstanceOf(FilteredLogSink.class);
+            assertThat(stats.get().operationsLog()).isExactlyInstanceOf(QueueSink.class);
         }
     }
 
@@ -109,7 +106,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testFilterIsValidatedOnUpdate() {
         // creating the service registers the update listener
-        try (var jobsLogService = new JobsLogService(Settings.EMPTY, clusterService, nodeCtx, breakerService)) {
+        try (var _ = new JobsLogService(Settings.EMPTY, clusterService, nodeCtx, breakerService)) {
             var settings = Settings.builder()
                 .put(JobsLogService.STATS_JOBS_LOG_FILTER.getKey(), "statement = 'x'")
                 .build();
@@ -145,9 +142,9 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
 
             assertThat(stats.isEnabled()).isFalse();
             assertThat(stats.jobsLogSize).isEqualTo(100);
-            assertThat(jobsLogSink, Matchers.instanceOf(NoopLogSink.class));
+            assertThat(jobsLogSink).isExactlyInstanceOf(NoopLogSink.class);
             assertThat(stats.operationsLogSize).isEqualTo(100);
-            assertThat(operationsLogSink, Matchers.instanceOf(NoopLogSink.class));
+            assertThat(operationsLogSink).isExactlyInstanceOf(NoopLogSink.class);
 
             clusterService.getClusterSettings().applySettings(Settings.builder()
                 .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true)
@@ -155,9 +152,9 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
 
             assertThat(stats.isEnabled()).isTrue();
             assertThat(stats.jobsLogSize).isEqualTo(100);
-            assertThat(stats.get().jobsLog(), Matchers.instanceOf(FilteredLogSink.class));
+            assertThat(stats.get().jobsLog()).isExactlyInstanceOf(FilteredLogSink.class);
             assertThat(stats.operationsLogSize).isEqualTo(100);
-            assertThat(stats.get().operationsLog(), Matchers.instanceOf(QueueSink.class));
+            assertThat(stats.get().operationsLog()).isExactlyInstanceOf(QueueSink.class);
         }
     }
 
@@ -173,23 +170,23 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             Supplier<LogSink<OperationContextLog>> operationsLogSink = () -> (LogSink<OperationContextLog>) stats.get().operationsLog();
 
             // sinks are still of type QueueSink
-            assertThat(jobsLogSink.get(), Matchers.instanceOf(FilteredLogSink.class));
-            assertThat(operationsLogSink.get(), Matchers.instanceOf(QueueSink.class));
+            assertThat(jobsLogSink.get()).isExactlyInstanceOf(FilteredLogSink.class);
+            assertThat(operationsLogSink.get()).isExactlyInstanceOf(QueueSink.class);
 
-            assertThat(inspectRamAccountingQueue((QueueSink) ((FilteredLogSink) jobsLogSink.get()).delegate),
-                Matchers.instanceOf(BlockingEvictingQueue.class));
-            assertThat(inspectRamAccountingQueue((QueueSink) operationsLogSink.get()),
-                Matchers.instanceOf(BlockingEvictingQueue.class));
+            assertThat(inspectRamAccountingQueue((QueueSink<?>) ((FilteredLogSink<?>) jobsLogSink.get()).delegate))
+                .isExactlyInstanceOf(BlockingEvictingQueue.class);
+            assertThat(inspectRamAccountingQueue((QueueSink<?>) operationsLogSink.get()))
+                .isExactlyInstanceOf(BlockingEvictingQueue.class);
 
             clusterSettings.applySettings(Settings.builder()
                 .put(JobsLogService.STATS_JOBS_LOG_EXPIRATION_SETTING.getKey(), "10s")
                 .put(JobsLogService.STATS_OPERATIONS_LOG_EXPIRATION_SETTING.getKey(), "10s")
                 .build());
 
-            assertThat(inspectRamAccountingQueue((QueueSink) ((FilteredLogSink<JobContextLog>) jobsLogSink.get()).delegate),
-                Matchers.instanceOf(ConcurrentLinkedDeque.class));
-            assertThat(inspectRamAccountingQueue((QueueSink) operationsLogSink.get()),
-                Matchers.instanceOf(ConcurrentLinkedDeque.class));
+            assertThat(inspectRamAccountingQueue((QueueSink<?>) ((FilteredLogSink<JobContextLog>) jobsLogSink.get()).delegate))
+                .isExactlyInstanceOf(ConcurrentLinkedDeque.class);
+            assertThat(inspectRamAccountingQueue((QueueSink<?>) operationsLogSink.get()))
+                .isExactlyInstanceOf(ConcurrentLinkedDeque.class);
 
             // set all to 0 but don't disable stats
             clusterSettings.applySettings(Settings.builder()
@@ -198,8 +195,8 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
                 .put(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getKey(), 0)
                 .put(JobsLogService.STATS_OPERATIONS_LOG_EXPIRATION_SETTING.getKey(), "0s")
                 .build());
-            assertThat(jobsLogSink.get(), Matchers.instanceOf(NoopLogSink.class));
-            assertThat(operationsLogSink.get(), Matchers.instanceOf(NoopLogSink.class));
+            assertThat(jobsLogSink.get()).isExactlyInstanceOf(NoopLogSink.class);
+            assertThat(operationsLogSink.get()).isExactlyInstanceOf(NoopLogSink.class);
             assertThat(stats.isEnabled()).isTrue();
 
             clusterSettings.applySettings(Settings.builder()
@@ -207,30 +204,30 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
                 .put(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getKey(), 200)
                 .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true)
                 .build());
-            assertThat(jobsLogSink.get(), Matchers.instanceOf(FilteredLogSink.class));
-            assertThat(inspectRamAccountingQueue((QueueSink) ((FilteredLogSink<JobContextLog>) jobsLogSink.get()).delegate),
-                Matchers.instanceOf(BlockingEvictingQueue.class));
-            assertThat(operationsLogSink.get(), Matchers.instanceOf(QueueSink.class));
-            assertThat(inspectRamAccountingQueue((QueueSink) operationsLogSink.get()),
-                Matchers.instanceOf(BlockingEvictingQueue.class));
+            assertThat(jobsLogSink.get()).isExactlyInstanceOf(FilteredLogSink.class);
+            assertThat(inspectRamAccountingQueue((QueueSink<?>) ((FilteredLogSink<JobContextLog>) jobsLogSink.get()).delegate))
+                .isExactlyInstanceOf(BlockingEvictingQueue.class);
+            assertThat(operationsLogSink.get()).isExactlyInstanceOf(QueueSink.class);
+            assertThat(inspectRamAccountingQueue((QueueSink<?>) operationsLogSink.get()))
+                .isExactlyInstanceOf(BlockingEvictingQueue.class);
 
             // disable stats
             clusterSettings.applySettings(Settings.builder()
                 .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), false)
                 .build());
             assertThat(stats.isEnabled()).isFalse();
-            assertThat(jobsLogSink.get(), Matchers.instanceOf(NoopLogSink.class));
-            assertThat(operationsLogSink.get(), Matchers.instanceOf(NoopLogSink.class));
+            assertThat(jobsLogSink.get()).isExactlyInstanceOf(NoopLogSink.class);
+            assertThat(operationsLogSink.get()).isExactlyInstanceOf(NoopLogSink.class);
         }
     }
 
-    private static Queue inspectRamAccountingQueue(QueueSink sink) throws Exception {
+    private static Queue<?> inspectRamAccountingQueue(QueueSink<?> sink) throws Exception {
         Field field = sink.getClass().getDeclaredField("queue");
         field.setAccessible(true);
-        RamAccountingQueue q = (RamAccountingQueue) field.get(sink);
+        RamAccountingQueue<?> q = (RamAccountingQueue<?>) field.get(sink);
         field = field.get(sink).getClass().getDeclaredField("delegate");
         field.setAccessible(true);
-        return (Queue) field.get(q);
+        return (Queue<?>) field.get(q);
     }
 
     @Test
@@ -359,13 +356,13 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
 
         JobContext jobContext = new JobContext(UUID.randomUUID(), "select 1", 1L, user, classification);
         jobsLogs.logExecutionStart(jobContext.id(), jobContext.stmt(), user, classification);
-        List<JobContext> jobsEntries = StreamSupport.stream(jobsLogs.activeJobs().spliterator(), false)
-            .collect(Collectors.toList());
+        List<JobContext> jobsEntries = StreamSupport.stream(jobsLogs.activeJobs().spliterator(), false).toList();
 
         assertThat(jobsEntries).hasSize(1);
-        assertThat(jobsEntries.get(0).username()).isEqualTo(user.name());
-        assertThat(jobsEntries.get(0).stmt()).isEqualTo("select 1");
-        assertThat(jobsEntries.get(0).classification()).isEqualTo(classification);
+        JobContext job = jobsEntries.getFirst();
+        assertThat(job.username()).isEqualTo(user.name());
+        assertThat(job.stmt()).isEqualTo("select 1");
+        assertThat(job.classification()).isEqualTo(classification);
     }
 
     @Test
@@ -377,13 +374,13 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
         jobsLogs.updateJobsLog(new QueueSink<>(q, () -> {}));
         jobsLogs.logPreExecutionFailure(UUID.randomUUID(), "select foo", "stmt error", user);
 
-        List<JobContextLog> jobsLogEntries = StreamSupport.stream(jobsLogs.jobsLog().spliterator(), false)
-            .collect(Collectors.toList());
+        List<JobContextLog> jobsLogEntries = StreamSupport.stream(jobsLogs.jobsLog().spliterator(), false).toList();
         assertThat(jobsLogEntries).hasSize(1);
-        assertThat(jobsLogEntries.get(0).username()).isEqualTo(user.name());
-        assertThat(jobsLogEntries.get(0).statement()).isEqualTo("select foo");
-        assertThat(jobsLogEntries.get(0).errorMessage()).isEqualTo("stmt error");
-        assertThat(jobsLogEntries.get(0).classification()).isEqualTo(new Classification(UNDEFINED));
+        JobContextLog job = jobsLogEntries.getFirst();
+        assertThat(job.username()).isEqualTo(user.name());
+        assertThat(job.statement()).isEqualTo("select foo");
+        assertThat(job.errorMessage()).isEqualTo("stmt error");
+        assertThat(job.classification()).isEqualTo(new Classification(UNDEFINED));
     }
 
     @Test
@@ -395,12 +392,12 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
         jobsLogs.updateJobsLog(new QueueSink<>(q, () -> {}));
         jobsLogs.logPreExecutionFailure(UUID.randomUUID(), "select foo", "stmt error", user);
 
-        List<MetricsView> metrics = StreamSupport.stream(jobsLogs.metrics().spliterator(), false)
-            .collect(Collectors.toList());
+        List<MetricsView> metrics = StreamSupport.stream(jobsLogs.metrics().spliterator(), false).toList();
         assertThat(metrics).hasSize(1);
-        assertThat(metrics.get(0).failedCount()).isEqualTo(1L);
-        assertThat(metrics.get(0).totalCount()).isEqualTo(1L);
-        assertThat(metrics.get(0).classification()).isEqualTo(new Classification(UNDEFINED));
+        MetricsView job = metrics.getFirst();
+        assertThat(job.failedCount()).isEqualTo(1L);
+        assertThat(job.totalCount()).isEqualTo(1L);
+        assertThat(job.classification()).isEqualTo(new Classification(UNDEFINED));
     }
 
     @Test
@@ -417,15 +414,15 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
 
         jobsLogs.operationFinished(ctxB.id, ctxB.jobId, null);
         List<OperationContextLog> entries = StreamSupport.stream(jobsLogs.operationsLog().spliterator(), false)
-            .collect(Collectors.toList());
+            .toList();
 
-        assertThat(entries).containsExactly(new OperationContextLog(ctxB, null));
-        assertThat(entries.contains(new OperationContextLog(ctxA, null))).isFalse();
+        assertThat(entries)
+            .containsExactly(new OperationContextLog(ctxB, null))
+            .doesNotContain(new OperationContextLog(ctxA, null));
 
         jobsLogs.operationFinished(ctxA.id, ctxA.jobId, null);
-        entries = StreamSupport.stream(jobsLogs.operationsLog().spliterator(), false)
-            .collect(Collectors.toList());
-        assertThat(entries.contains(new OperationContextLog(ctxA, null))).isTrue();
+        entries = StreamSupport.stream(jobsLogs.operationsLog().spliterator(), false).toList();
+        assertThat(entries).contains(new OperationContextLog(ctxA, null));
     }
 
     @Test

@@ -24,8 +24,6 @@ package io.crate.planner.optimizer;
 import static io.crate.analyze.SymbolEvaluator.evaluateWithoutParams;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
 
 import java.util.List;
 import java.util.Set;
@@ -44,9 +42,9 @@ import io.crate.role.metadata.RolesHelper;
 
 public class OptimizerRuleSessionSettingProviderTest {
 
-    private NodeContext nodeCtx = createNodeContext();
+    private final NodeContext nodeCtx = createNodeContext();
 
-    private Function<Symbol, Object> eval = x -> evaluateWithoutParams(
+    private final Function<Symbol, Object> eval = x -> evaluateWithoutParams(
         CoordinatorTxnCtx.systemTransactionContext(),
         nodeCtx,
         x
@@ -75,7 +73,7 @@ public class OptimizerRuleSessionSettingProviderTest {
 
         // Disable MergeFilters 'SET SESSION optimizer_merge_filters = false'
         sessionSetting.apply(mergefilterSettings, List.of(Literal.of(false)), eval);
-        assertThat(mergefilterSettings.excludedOptimizerRules(), containsInAnyOrder(MergeFilters.class));
+        assertThat(mergefilterSettings.excludedOptimizerRules()).containsExactlyInAnyOrder(MergeFilters.class);
 
         // Enable MergeFilters 'SET SESSION optimizer_merge_filters = true'
         sessionSetting.apply(mergefilterSettings, List.of(Literal.of(true)), eval);

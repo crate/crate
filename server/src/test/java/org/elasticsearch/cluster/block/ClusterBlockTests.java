@@ -22,11 +22,6 @@ package org.elasticsearch.cluster.block;
 import static java.util.EnumSet.copyOf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.test.VersionUtils.randomVersion;
-import static org.hamcrest.CoreMatchers.endsWith;
-import static org.hamcrest.CoreMatchers.not;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -63,14 +58,14 @@ public class ClusterBlockTests extends ESTestCase {
 
     public void testToStringDanglingComma() {
         final ClusterBlock clusterBlock = randomClusterBlock();
-        assertThat(clusterBlock.toString(), not(endsWith(",")));
+        assertThat(clusterBlock.toString()).doesNotEndWith(",");
     }
 
     public void testGlobalBlocksCheckedIfNoIndicesSpecified() {
         ClusterBlock globalBlock = randomClusterBlock();
         ClusterBlocks clusterBlocks = new ClusterBlocks(Collections.singleton(globalBlock), ImmutableOpenMap.of());
         ClusterBlockException exception = clusterBlocks.indicesBlockedException(randomFrom(globalBlock.levels()), new String[0]);
-        assertNotNull(exception);
+        assertThat(exception).isNotNull();
         assertThat(Collections.singleton(globalBlock)).isEqualTo(exception.blocks());
     }
 
@@ -146,6 +141,6 @@ public class ClusterBlockTests extends ESTestCase {
         assertThat(actual.description()).isEqualTo(expected.description());
         assertThat(actual.retryable()).isEqualTo(expected.retryable());
         assertThat(actual.disableStatePersistence()).isEqualTo(expected.disableStatePersistence());
-        assertArrayEquals(actual.levels().toArray(), expected.levels().toArray());
+        assertThat(actual.levels().toArray()).isEqualTo(expected.levels().toArray());
     }
 }

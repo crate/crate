@@ -23,12 +23,6 @@ package io.crate.protocols.ssl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.hasItem;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.junit.Assert.assertThat;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -47,7 +41,6 @@ import javax.net.ssl.TrustManager;
 
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
-import org.hamcrest.Matchers;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -98,13 +91,13 @@ public class SslContextProviderTest extends ESTestCase {
         var sslContextProvider = new SslContextProvider(settings);
         SslContext sslContext = sslContextProvider.getServerContext(Protocol.TRANSPORT);
         assertThat(sslContext.isServer()).isTrue();
-        assertThat(sslContext.cipherSuites(), not(empty()));
+        assertThat(sslContext.cipherSuites()).isNotEmpty();
     }
 
     @Test
     public void test_no_truststore_gets_defaults_certs() {
         TrustManager[] trustManagers = SslContextProvider.createTrustManagers(null);
-        assertThat(SslContextProvider.getDefaultCertificates(trustManagers).length, greaterThan(0));
+        assertThat(SslContextProvider.getDefaultCertificates(trustManagers).length).isGreaterThan(0);
     }
 
     @Test
@@ -119,11 +112,11 @@ public class SslContextProviderTest extends ESTestCase {
             .build();
         SslContext sslContext = new SslContextProvider(settings).getServerContext(Protocol.TRANSPORT);
         assertThat(sslContext.isServer()).isTrue();
-        assertThat(sslContext.cipherSuites(), not(empty()));
+        assertThat(sslContext.cipherSuites()).isNotEmpty();
         // check that we don't offer NULL ciphers which do not encrypt
-        assertThat(sslContext.cipherSuites(), not(hasItem(containsString("NULL"))));
-
-        assertThat(defaultSSLContext, Matchers.sameInstance(SSLContext.getDefault()));
+        assertThat(sslContext.cipherSuites()).satisfies(
+            cs -> cs.forEach(s -> assertThat(s).doesNotContain("NULL")));
+        assertThat(defaultSSLContext).isSameAs(SSLContext.getDefault());
     }
 
     @Test
@@ -162,7 +155,7 @@ public class SslContextProviderTest extends ESTestCase {
         X509Certificate[] certificates = SslContextProvider.getRootCertificates(keyStore);
         assertThat(certificates.length).isEqualTo(1);
 
-        assertThat(certificates[0].getIssuerDN().getName(), containsString("CN=myCA"));
+        assertThat(certificates[0].getIssuerDN().getName()).contains("CN=myCA");
         assertThat(certificates[0].getNotAfter().getTime()).isEqualTo(1651658343000L);
     }
 
@@ -173,17 +166,17 @@ public class SslContextProviderTest extends ESTestCase {
         X509Certificate[] certificates = SslContextProvider.getCertificateChain(keyStore);
 
         assertThat(certificates.length).isEqualTo(2);
-        assertThat(certificates[0].getIssuerDN().getName(), containsString("CN=myCA, O=Dummy Company, L=Dummy Country, ST=Dummy State, C=AT"));
-        assertThat(certificates[0].getSubjectDN().getName(), containsString("CN=localhost"));
-        assertThat(certificates[1].getIssuerDN().getName(), containsString("CN=myCA, O=Dummy Company, L=Dummy Country, ST=Dummy State, C=AT"));
-        assertThat(certificates[1].getSubjectDN().getName(), containsString("CN=myCA"));
+        assertThat(certificates[0].getIssuerDN().getName()).contains("CN=myCA, O=Dummy Company, L=Dummy Country, ST=Dummy State, C=AT");
+        assertThat(certificates[0].getSubjectDN().getName()).contains("CN=localhost");
+        assertThat(certificates[1].getIssuerDN().getName()).contains("CN=myCA, O=Dummy Company, L=Dummy Country, ST=Dummy State, C=AT");
+        assertThat(certificates[1].getSubjectDN().getName()).contains("CN=myCA");
     }
 
     @Test
     public void testExportDecryptedKey() throws Exception {
         KeyStore keyStore = SslContextProvider.loadKeyStore(keyStoreFile.getAbsolutePath(), KEYSTORE_PASSWORD.toCharArray());
         PrivateKey privateKey = SslContextProvider.getPrivateKey(keyStore, KEYSTORE_KEY_PASSWORD.toCharArray());
-        assertThat(privateKey, Matchers.notNullValue());
+        assertThat(privateKey).isNotNull();
     }
 
     public static File getAbsoluteFilePathFromClassPath(final String fileNameFromClasspath) throws IOException {

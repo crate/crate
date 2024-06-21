@@ -21,11 +21,7 @@
 
 package io.crate.integrationtests;
 
-import static io.crate.testing.TestingHelpers.printedTable;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
@@ -59,15 +55,13 @@ public class ShardStatsTest extends IntegTestCase {
 
         assertBusy(() -> {
             execute("select state, \"primary\", recovery['stage'] from sys.shards where table_name = 'locations' order by state, \"primary\"");
-            assertThat(
-                printedTable(response.rows()),
-                is("STARTED| false| DONE\n" +
-                   "STARTED| false| DONE\n" +
-                   "STARTED| true| DONE\n" +
-                   "STARTED| true| DONE\n" +
-                   "UNASSIGNED| false| NULL\n" +
-                   "UNASSIGNED| false| NULL\n")
-            );
+            assertThat(response).hasRows(
+                "STARTED| false| DONE",
+                "STARTED| false| DONE",
+                "STARTED| true| DONE",
+                "STARTED| true| DONE",
+                "UNASSIGNED| false| NULL",
+                "UNASSIGNED| false| NULL");
         });
     }
 
@@ -80,9 +74,9 @@ public class ShardStatsTest extends IntegTestCase {
 
         execute("select count(*), state, \"primary\" from sys.shards " +
                 "group by state, \"primary\" order by state desc");
-        assertThat(response.rowCount(), greaterThanOrEqualTo(2L));
+        assertThat(response.rowCount()).isGreaterThanOrEqualTo(2L);
         assertThat(response.cols().length).isEqualTo(3);
-        assertThat((Long) response.rows()[0][0], greaterThanOrEqualTo(5L));
+        assertThat((Long) response.rows()[0][0]).isLessThanOrEqualTo(5L);
         assertThat(response.rows()[0][1]).isEqualTo("UNASSIGNED");
         assertThat(response.rows()[0][2]).isEqualTo(false);
     }

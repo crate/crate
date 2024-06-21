@@ -22,11 +22,9 @@
 package io.crate.execution.jobs.kill;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
 
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 public class KillResponseTest {
@@ -35,7 +33,7 @@ public class KillResponseTest {
     public void testMergeFunctionMergesRowCount() throws Exception {
         KillResponse response = KillResponse.MERGE_FUNCTION.apply(
             Arrays.asList(new KillResponse(10), new KillResponse(20)));
-        assertThat(response, Matchers.notNullValue());
+        assertThat(response).isNotNull();
         assertThat(response.numKilled()).isEqualTo(30L);
     }
 }
