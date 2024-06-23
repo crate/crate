@@ -49,23 +49,23 @@ public class ArrayPositionFunction extends Scalar<Integer, List<Object>> {
     public static void register(Functions.Builder builder) {
         builder.add(
             Signature.scalar(NAME,
+                    Feature.NULLABLE,
                     TypeSignature.parse("array(T)"),
                     TypeSignature.parse("T"),
                     DataTypes.INTEGER.getTypeSignature()
                 ).withTypeVariableConstraints(typeVariable("T"))
-                .withFeature(Feature.DETERMINISTIC)
-                .withFeature(Feature.NULLABLE),
+                .withFeature(Feature.DETERMINISTIC),
             ArrayPositionFunction::new);
 
         builder.add(
             Signature.scalar(NAME,
+                    Feature.NULLABLE,
                     TypeSignature.parse("array(T)"),
                     TypeSignature.parse("T"),
                     DataTypes.INTEGER.getTypeSignature(),
                     DataTypes.INTEGER.getTypeSignature()
                 ).withTypeVariableConstraints(typeVariable("T"))
-                .withFeature(Feature.DETERMINISTIC)
-                .withFeature(Feature.NULLABLE),
+                .withFeature(Feature.DETERMINISTIC),
             ArrayPositionFunction::new);
     }
 

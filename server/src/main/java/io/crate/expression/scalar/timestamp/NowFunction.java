@@ -23,7 +23,6 @@ package io.crate.expression.scalar.timestamp;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.EnumSet;
 
 import io.crate.data.Input;
 import io.crate.metadata.Functions;
@@ -41,9 +40,10 @@ public final class NowFunction extends Scalar<Long, Object> {
     public static void register(Functions.Builder module) {
         module.add(
             Signature.scalar(
-                    NAME,
-                    DataTypes.TIMESTAMPZ.getTypeSignature()
-                ).withFeatures(EnumSet.of(Feature.NON_NULLABLE)),
+                NAME,
+                Feature.NON_NULLABLE,
+                DataTypes.TIMESTAMPZ.getTypeSignature()
+            ),
             NowFunction::new
         );
     }

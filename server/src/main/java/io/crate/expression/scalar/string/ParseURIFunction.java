@@ -43,11 +43,11 @@ public final class ParseURIFunction extends Scalar<Object, String> {
     public static void register(Functions.Builder module) {
         module.add(
             Signature.scalar(
-                    NAME,
-                    DataTypes.STRING.getTypeSignature(),
-                    DataTypes.UNTYPED_OBJECT.getTypeSignature()
-                ).withFeature(Feature.DETERMINISTIC)
-                .withFeature(Scalar.Feature.NULLABLE),
+                NAME,
+                Feature.NULLABLE,
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.UNTYPED_OBJECT.getTypeSignature()
+            ).withFeature(Feature.DETERMINISTIC),
             ParseURIFunction::new
         );
     }

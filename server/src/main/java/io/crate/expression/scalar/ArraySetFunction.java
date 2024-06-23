@@ -46,25 +46,25 @@ public class ArraySetFunction extends Scalar<List<Object>, Object> {
         module.add(
             Signature.scalar(
                     NAME,
+                    Feature.NULLABLE,
                     arrayESignature,
                     new ArrayType<>(DataTypes.INTEGER).getTypeSignature(),
                     arrayESignature,
                     arrayESignature
                 ).withTypeVariableConstraints(typeVariable("E"))
-                .withFeature(Feature.DETERMINISTIC)
-                .withFeature(Feature.NULLABLE),
+                .withFeature(Feature.DETERMINISTIC),
             ArraySetFunction::new
         );
         module.add(
             Signature.scalar(
                     NAME,
+                    Feature.NULLABLE,
                     arrayESignature,
                     DataTypes.INTEGER.getTypeSignature(),
                     TypeSignature.parse("E"),
                     arrayESignature
                 ).withTypeVariableConstraints(typeVariable("E"))
-                .withFeature(Feature.DETERMINISTIC)
-                .withFeature(Feature.NULLABLE),
+                .withFeature(Feature.DETERMINISTIC),
             SingleArraySetFunction::new
         );
     }

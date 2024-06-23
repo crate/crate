@@ -38,10 +38,10 @@ public final class NegateFunctions {
         builder.add(
             Signature.scalar(
                     NAME,
+                    Scalar.Feature.NULLABLE,
                     TypeSignature.parse("double precision"),
                     TypeSignature.parse("double precision")
                 ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withFeature(Scalar.Feature.NULLABLE)
                 .withForbiddenCoercion(),
             (signature, boundSignature) ->
                 new UnaryScalar<>(signature, boundSignature, DataTypes.DOUBLE, x -> x * -1)
@@ -49,32 +49,31 @@ public final class NegateFunctions {
         builder.add(
             Signature.scalar(
                     NAME,
+                    Scalar.Feature.NULLABLE,
                     DataTypes.FLOAT.getTypeSignature(),
                     DataTypes.FLOAT.getTypeSignature()
                 ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withFeature(Scalar.Feature.NULLABLE)
                 .withForbiddenCoercion(),
             (signature, boundSignature) ->
                 new UnaryScalar<>(signature, boundSignature, DataTypes.FLOAT, x -> x * -1)
         );
         builder.add(
             Signature.scalar(
-                    NAME,
-                    TypeSignature.parse("integer"),
-                    TypeSignature.parse("integer")
-                ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withFeature(Scalar.Feature.NULLABLE)
-                .withForbiddenCoercion(),
+                NAME,
+                Scalar.Feature.NULLABLE,
+                TypeSignature.parse("integer"),
+                TypeSignature.parse("integer")
+            ).withFeature(Scalar.Feature.DETERMINISTIC).withForbiddenCoercion(),
             (signature, boundSignature) ->
                 new UnaryScalar<>(signature, boundSignature, DataTypes.INTEGER, x -> x * -1)
         );
         builder.add(
             Signature.scalar(
                     NAME,
+                    Scalar.Feature.NULLABLE,
                     TypeSignature.parse("bigint"),
                     TypeSignature.parse("bigint")
                 ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withFeature(Scalar.Feature.NULLABLE)
                 .withForbiddenCoercion(),
             (signature, boundSignature) ->
                 new UnaryScalar<>(signature, boundSignature, DataTypes.LONG, x -> x * -1)
@@ -82,10 +81,10 @@ public final class NegateFunctions {
         builder.add(
             Signature.scalar(
                     NAME,
+                    Scalar.Feature.NULLABLE,
                     TypeSignature.parse("smallint"),
                     TypeSignature.parse("smallint")
                 ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withFeature(Scalar.Feature.NULLABLE)
                 .withForbiddenCoercion(),
             (signature, boundSignature) ->
                 new UnaryScalar<>(signature, boundSignature, DataTypes.SHORT, x -> (short) (x * -1))
@@ -93,10 +92,10 @@ public final class NegateFunctions {
         builder.add(
             Signature.scalar(
                     NAME,
+                    Scalar.Feature.NULLABLE,
                     DataTypes.NUMERIC.getTypeSignature(),
                     DataTypes.NUMERIC.getTypeSignature()
                 ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withFeature(Scalar.Feature.NULLABLE)
                 .withForbiddenCoercion(),
             (signature, boundSignature) ->
                 new UnaryScalar<>(signature, boundSignature, DataTypes.NUMERIC, BigDecimal::negate)

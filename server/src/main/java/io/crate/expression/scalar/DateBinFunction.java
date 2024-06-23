@@ -45,21 +45,23 @@ public class DateBinFunction extends Scalar<Long, Object> {
         module.add(
             Signature.scalar(
                 NAME,
+                Feature.NULLABLE,
                 DataTypes.INTERVAL.getTypeSignature(),
                 DataTypes.TIMESTAMPZ.getTypeSignature(), // source
                 DataTypes.TIMESTAMPZ.getTypeSignature(), // origin
                 DataTypes.TIMESTAMPZ.getTypeSignature()
-            ).withFeatures(EnumSet.of(Feature.DETERMINISTIC, Feature.COMPARISON_REPLACEMENT, Feature.NULLABLE)),
+            ).withFeatures(EnumSet.of(Scalar.Feature.DETERMINISTIC, Scalar.Feature.COMPARISON_REPLACEMENT)),
             DateBinFunction::new);
 
         module.add(
             Signature.scalar(
                 NAME,
+                Feature.NULLABLE,
                 DataTypes.INTERVAL.getTypeSignature(),
                 DataTypes.TIMESTAMP.getTypeSignature(), // source
                 DataTypes.TIMESTAMP.getTypeSignature(), // origin
                 DataTypes.TIMESTAMP.getTypeSignature()
-            ).withFeatures(EnumSet.of(Feature.DETERMINISTIC, Feature.COMPARISON_REPLACEMENT, Feature.NULLABLE)),
+            ).withFeatures(EnumSet.of(Scalar.Feature.DETERMINISTIC, Scalar.Feature.COMPARISON_REPLACEMENT)),
             DateBinFunction::new);
     }
 

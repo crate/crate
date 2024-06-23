@@ -45,13 +45,13 @@ public class ArraySliceFunction extends Scalar<List<Object>, Object> {
         module.add(
             Signature.scalar(
                     NAME,
+                    Feature.NON_NULLABLE,
                     TypeSignature.parse("array(E)"),
                     DataTypes.INTEGER.getTypeSignature(),
                     DataTypes.INTEGER.getTypeSignature(),
                     TypeSignature.parse("array(E)")
                 ).withTypeVariableConstraints(typeVariable("E"))
-                .withFeature(Feature.DETERMINISTIC)
-                .withFeature(Feature.NON_NULLABLE),
+                .withFeature(Feature.DETERMINISTIC),
             ArraySliceFunction::new
         );
     }

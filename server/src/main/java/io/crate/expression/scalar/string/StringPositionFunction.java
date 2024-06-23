@@ -36,6 +36,7 @@ public final class StringPositionFunction extends Scalar<Integer , String> {
         module.add(
             Signature.scalar(
                 "strpos",
+                Feature.CONDITIONAL,
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature()

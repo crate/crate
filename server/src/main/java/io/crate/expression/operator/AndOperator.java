@@ -48,6 +48,7 @@ public class AndOperator extends Operator<Boolean> {
     public static final String NAME = "op_and";
     public static final Signature SIGNATURE = Signature.scalar(
         NAME,
+        Feature.CONDITIONAL,
         DataTypes.BOOLEAN.getTypeSignature(),
         DataTypes.BOOLEAN.getTypeSignature(),
         DataTypes.BOOLEAN.getTypeSignature()

@@ -41,6 +41,7 @@ public final class PgGetFunctionResultFunction extends Scalar<String, Integer> {
         module.add(
             Signature.scalar(
                 FQN,
+                Feature.CONDITIONAL,
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
             ).withFeature(Feature.DETERMINISTIC),

@@ -42,10 +42,10 @@ public final class QuoteIdentFunction {
         module.add(
             Signature.scalar(
                     FQNAME,
+                    Scalar.Feature.NULLABLE,
                     DataTypes.STRING.getTypeSignature(),
-                    DataTypes.STRING.getTypeSignature()
-                ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withFeature(Scalar.Feature.NULLABLE),
+                    DataTypes.STRING.getTypeSignature())
+                .withFeature(Scalar.Feature.DETERMINISTIC),
             (signature, boundSignature) ->
                 new UnaryScalar<>(
                     signature,

@@ -34,10 +34,10 @@ public final class CoordinateFunction {
         module.add(
             scalar(
                 "latitude",
+                Scalar.Feature.NULLABLE,
                 DataTypes.GEO_POINT.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withFeature(Scalar.Feature.NULLABLE),
+            ).withFeature(Scalar.Feature.DETERMINISTIC),
             (signature, boundSignature) ->
                 new UnaryScalar<>(
                     signature,
@@ -49,10 +49,10 @@ public final class CoordinateFunction {
         module.add(
             scalar(
                 "longitude",
+                Scalar.Feature.NULLABLE,
                 DataTypes.GEO_POINT.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withFeature(Scalar.Feature.NULLABLE),
+            ).withFeature(Scalar.Feature.DETERMINISTIC),
             (signature, boundSignature) ->
                 new UnaryScalar<>(
                     signature,

@@ -54,12 +54,11 @@ public class BitwiseFunctions {
         TypeSignature typeSignature = type.getTypeSignature();
         Signature scalar = Signature.scalar(
                 name.toLowerCase(Locale.ENGLISH),
+                Scalar.Feature.NULLABLE,
                 typeSignature,
                 typeSignature,
                 typeSignature
-            ).withFeature(Scalar.Feature.DETERMINISTIC)
-            .withFeatures(Scalar.DETERMINISTIC_ONLY)
-            .withFeature(Scalar.Feature.NULLABLE);
+            ).withFeature(Scalar.Feature.DETERMINISTIC);
         module.add(scalar, (signature, boundSignature) -> new BinaryScalar<>(operator, signature, boundSignature, type));
     }
 

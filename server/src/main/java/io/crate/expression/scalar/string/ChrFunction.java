@@ -35,11 +35,11 @@ public final class ChrFunction extends Scalar<String, Object> {
     public static void register(Functions.Builder module) {
         module.add(
             Signature.scalar(
-                    "chr",
-                    DataTypes.INTEGER.getTypeSignature(),
-                    DataTypes.STRING.getTypeSignature()
-                ).withFeature(Feature.DETERMINISTIC)
-                .withFeature(Feature.NULLABLE),
+                "chr",
+                Feature.NULLABLE,
+                DataTypes.INTEGER.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature()
+            ).withFeature(Feature.DETERMINISTIC),
             ChrFunction::new
         );
     }

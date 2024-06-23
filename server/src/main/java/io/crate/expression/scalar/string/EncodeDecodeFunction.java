@@ -40,12 +40,12 @@ public class EncodeDecodeFunction {
     public static void register(Functions.Builder module) {
         module.add(
             Signature.scalar(
-                    "encode",
-                    DataTypes.STRING.getTypeSignature(),
-                    DataTypes.STRING.getTypeSignature(),
-                    DataTypes.STRING.getTypeSignature()
-                ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withFeature(Scalar.Feature.NULLABLE),
+                "encode",
+                Scalar.Feature.NULLABLE,
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature()
+            ).withFeature(Scalar.Feature.DETERMINISTIC),
             (signature, boundSignature) ->
                 new BinaryScalar<>(
                     new Encode(),
@@ -56,12 +56,12 @@ public class EncodeDecodeFunction {
         );
         module.add(
             Signature.scalar(
-                    "decode",
-                    DataTypes.STRING.getTypeSignature(),
-                    DataTypes.STRING.getTypeSignature(),
-                    DataTypes.STRING.getTypeSignature()
-                ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withFeature(Scalar.Feature.NULLABLE),
+                "decode",
+                Scalar.Feature.NULLABLE,
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature()
+            ).withFeature(Scalar.Feature.DETERMINISTIC),
             (signature, boundSignature) ->
                 new BinaryScalar<>(
                         new Decode(),

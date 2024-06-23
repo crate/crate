@@ -36,11 +36,12 @@ public class ConcatWsFunction extends Scalar<String, String> {
     public static void register(Functions.Builder module) {
         module.add(
             Signature.scalar(
-                NAME,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature()
-            ).withFeature(Feature.DETERMINISTIC)
-            .withVariableArity(),
+                    NAME,
+                    Feature.CONDITIONAL,
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature()
+                ).withFeature(Feature.DETERMINISTIC)
+                .withVariableArity(),
             ConcatWsFunction::new
         );
     }

@@ -39,9 +39,8 @@ public final class RoundFunction {
             DataType<?> returnType = DataTypes.getIntegralReturnType(type);
             assert returnType != null : "Could not get integral type of " + type;
             module.add(
-                scalar(NAME, typeSignature, returnType.getTypeSignature())
-                    .withFeature(Scalar.Feature.DETERMINISTIC)
-                    .withFeature(Scalar.Feature.NULLABLE),
+                scalar(NAME, Scalar.Feature.NULLABLE, typeSignature, returnType.getTypeSignature())
+                    .withFeature(Scalar.Feature.DETERMINISTIC),
                 (signature, boundSignature) -> {
                     if (returnType.equals(DataTypes.INTEGER)) {
                         return new UnaryScalar<>(

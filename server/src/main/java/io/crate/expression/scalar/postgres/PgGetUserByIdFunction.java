@@ -38,10 +38,10 @@ public class PgGetUserByIdFunction {
         builder.add(
             scalar(
                 name,
+                Scalar.Feature.NULLABLE,
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withFeature(Scalar.Feature.NULLABLE),
+            ).withFeature(Scalar.Feature.DETERMINISTIC),
             (signature, boundSignature) ->
                 new UnaryScalar<>(
                     signature,

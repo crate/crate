@@ -38,10 +38,10 @@ public final class GeoHashFunction {
         module.add(
             scalar(
                 "geohash",
+                Scalar.Feature.NULLABLE,
                 DataTypes.GEO_POINT.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withFeature(Scalar.Feature.NULLABLE),
+            ).withFeature(Scalar.Feature.DETERMINISTIC),
             (signature, boundSignature) ->
                 new UnaryScalar<>(
                     signature,

@@ -46,11 +46,11 @@ public class IntersectsFunction extends Scalar<Boolean, Object> {
         module.add(
             scalar(
                 NAME,
+                Feature.NULLABLE,
                 DataTypes.GEO_SHAPE.getTypeSignature(),
                 DataTypes.GEO_SHAPE.getTypeSignature(),
                 DataTypes.BOOLEAN.getTypeSignature()
-            ).withFeature(Feature.DETERMINISTIC)
-                .withFeature(Feature.NULLABLE),
+            ).withFeature(Feature.DETERMINISTIC),
             IntersectsFunction::new
         );
     }

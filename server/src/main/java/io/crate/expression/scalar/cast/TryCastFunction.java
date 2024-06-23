@@ -44,6 +44,7 @@ public class TryCastFunction extends Scalar<Object, Object> {
             Signature
                 .scalar(
                     NAME,
+                    Feature.CONDITIONAL,
                     TypeSignature.parse("E"),
                     TypeSignature.parse("V"),
                     TypeSignature.parse("V"))

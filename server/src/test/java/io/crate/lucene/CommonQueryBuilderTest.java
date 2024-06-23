@@ -621,6 +621,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         var innerFunction = new Function(
             Signature.scalar(
                 "array_length",
+                Scalar.Feature.NULLABLE,
                 TypeSignature.parse("array(E)"),
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature()

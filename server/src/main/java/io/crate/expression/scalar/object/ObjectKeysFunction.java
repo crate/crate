@@ -35,10 +35,10 @@ public final class ObjectKeysFunction {
         module.add(
             Signature.scalar(
                 "object_keys",
+                Scalar.Feature.NULLABLE,
                 DataTypes.UNTYPED_OBJECT.getTypeSignature(),
                 DataTypes.STRING_ARRAY.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withFeature(Scalar.Feature.NULLABLE),
+            ).withFeature(Scalar.Feature.DETERMINISTIC),
             (signature, boundSignature) ->
             new UnaryScalar<>(
                 signature,

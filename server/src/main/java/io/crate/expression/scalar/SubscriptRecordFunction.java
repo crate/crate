@@ -37,6 +37,7 @@ public final class SubscriptRecordFunction extends Scalar<Object, Object> {
     public static final String NAME = "_subscript_record";
     public static final Signature SIGNATURE = Signature.scalar(
         NAME,
+        Feature.CONDITIONAL,
         RowType.EMPTY.getTypeSignature(),
         DataTypes.STRING.getTypeSignature(),
         DataTypes.UNDEFINED.getTypeSignature()

@@ -42,11 +42,11 @@ public final class LengthFunction {
     private static void register(Functions.Builder builder, String name, Function<String, Integer> func) {
         builder.add(
             Signature.scalar(
-                    name,
-                    DataTypes.STRING.getTypeSignature(),
-                    DataTypes.INTEGER.getTypeSignature()
-                ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withFeature(Scalar.Feature.NULLABLE),
+                name,
+                Scalar.Feature.NULLABLE,
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.INTEGER.getTypeSignature()
+            ).withFeature(Scalar.Feature.DETERMINISTIC),
             (signature, boundSignature) -> new UnaryScalar<>(signature, boundSignature, DataTypes.STRING, func)
         );
     }

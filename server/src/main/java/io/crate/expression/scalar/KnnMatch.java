@@ -50,6 +50,7 @@ public class KnnMatch extends Scalar<Boolean, Object> {
         module.add(
             Signature.scalar(
                 "knn_match",
+                Feature.CONDITIONAL,
                 TypeSignature.parse(FloatVectorType.NAME),
                 TypeSignature.parse(FloatVectorType.NAME),
                 DataTypes.INTEGER.getTypeSignature(),

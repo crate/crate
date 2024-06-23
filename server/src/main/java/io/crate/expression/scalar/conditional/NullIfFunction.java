@@ -38,10 +38,11 @@ public class NullIfFunction extends Scalar<Object, Object> {
         module.add(
             Signature.scalar(
                     NAME,
+                    Feature.CONDITIONAL,
                     TypeSignature.parse("E"),
                     TypeSignature.parse("E"),
-                    TypeSignature.parse("E")
-                ).withFeature(Feature.DETERMINISTIC)
+                    TypeSignature.parse("E"))
+                .withFeature(Feature.DETERMINISTIC)
                 .withTypeVariableConstraints(typeVariable("E")),
             NullIfFunction::new
         );

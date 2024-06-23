@@ -42,6 +42,7 @@ public class SubtractTimestampScalar extends Scalar<Period, Object> {
             module.add(
                 Signature.scalar(
                     ArithmeticFunctions.Names.SUBTRACT,
+                    Feature.CONDITIONAL,
                     timestampType.getTypeSignature(),
                     timestampType.getTypeSignature(),
                     DataTypes.INTERVAL.getTypeSignature()

@@ -131,24 +131,24 @@ public class ArithmeticFunctions {
             builder.add(
                 Signature.scalar(
                         op.toString(),
+                        NULLABLE,
                         DataTypes.INTEGER.getTypeSignature(),
                         DataTypes.INTEGER.getTypeSignature(),
                         DataTypes.INTEGER.getTypeSignature()
                     )
-                    .withFeatures(op.features)
-                    .withFeature(NULLABLE),
+                    .withFeatures(op.features),
                 (signature, boundSignature) ->
                     new BinaryScalar<>(op.integerFunction, signature, boundSignature, DataTypes.INTEGER)
             );
             builder.add(
                 Signature.scalar(
                         op.toString(),
+                        NULLABLE,
                         DataTypes.LONG.getTypeSignature(),
                         DataTypes.LONG.getTypeSignature(),
                         DataTypes.LONG.getTypeSignature()
                     )
-                    .withFeatures(op.features)
-                    .withFeature(NULLABLE),
+                    .withFeatures(op.features),
                 (signature, boundSignature) ->
                     new BinaryScalar<>(op.longFunction, signature, boundSignature, DataTypes.LONG)
             );
@@ -157,12 +157,12 @@ public class ArithmeticFunctions {
                     builder.add(
                         Signature.scalar(
                                 op.toString(),
+                                NULLABLE,
                                 type.getTypeSignature(),
                                 type.getTypeSignature(),
                                 type.getTypeSignature()
                             )
-                            .withFeatures(op.features)
-                            .withFeature(NULLABLE),
+                            .withFeatures(op.features),
                         (signature, boundSignature) ->
                             new BinaryScalar<>(op.longFunction, signature, boundSignature, type)
                     );
@@ -171,36 +171,36 @@ public class ArithmeticFunctions {
             builder.add(
                 Signature.scalar(
                         op.toString(),
+                        NULLABLE,
                         DataTypes.FLOAT.getTypeSignature(),
                         DataTypes.FLOAT.getTypeSignature(),
                         DataTypes.FLOAT.getTypeSignature()
                     )
-                    .withFeatures(op.features)
-                    .withFeature(NULLABLE),
+                    .withFeatures(op.features),
                 (signature, boundSignature) ->
                     new BinaryScalar<>(op.floatFunction, signature, boundSignature, DataTypes.FLOAT)
             );
             builder.add(
                 Signature.scalar(
                         op.toString(),
+                        NULLABLE,
                         DataTypes.DOUBLE.getTypeSignature(),
                         DataTypes.DOUBLE.getTypeSignature(),
                         DataTypes.DOUBLE.getTypeSignature()
                     )
-                    .withFeatures(op.features)
-                    .withFeature(NULLABLE),
+                    .withFeatures(op.features),
                 (signature, boundSignature) ->
                     new BinaryScalar<>(op.doubleFunction, signature, boundSignature, DataTypes.DOUBLE)
             );
             builder.add(
                 Signature.scalar(
                         op.toString(),
+                        NULLABLE,
                         DataTypes.NUMERIC.getTypeSignature(),
                         DataTypes.NUMERIC.getTypeSignature(),
                         DataTypes.NUMERIC.getTypeSignature()
                     )
-                    .withFeatures(op.features)
-                    .withFeature(NULLABLE),
+                    .withFeatures(op.features),
                 (signature, boundSignature) ->
                     new BinaryScalar<>(op.bdFunction, signature, boundSignature, DataTypes.NUMERIC)
             );
@@ -209,12 +209,12 @@ public class ArithmeticFunctions {
         builder.add(
             Signature.scalar(
                     Names.POWER,
+                    NULLABLE,
                     DataTypes.DOUBLE.getTypeSignature(),
                     DataTypes.DOUBLE.getTypeSignature(),
                     DataTypes.DOUBLE.getTypeSignature()
                 )
-                .withFeatures(DETERMINISTIC_ONLY)
-                .withFeature(NULLABLE),
+                .withFeatures(DETERMINISTIC_ONLY),
             (signature, boundSignature) ->
                 new BinaryScalar<>(Math::pow, signature, boundSignature, DataTypes.DOUBLE)
         );

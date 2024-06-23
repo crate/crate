@@ -34,11 +34,11 @@ public final class StringCaseFunction {
     public static void register(Functions.Builder module) {
         module.add(
             Signature.scalar(
-                    "upper",
-                    DataTypes.STRING.getTypeSignature(),
-                    DataTypes.STRING.getTypeSignature()
-                ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withFeature(Scalar.Feature.NULLABLE),
+                "upper",
+                Scalar.Feature.NULLABLE,
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature()
+            ).withFeature(Scalar.Feature.DETERMINISTIC),
             (signature, boundSignature) ->
                 new UnaryScalar<>(
                     signature,
@@ -49,11 +49,11 @@ public final class StringCaseFunction {
         );
         module.add(
             Signature.scalar(
-                    "lower",
-                    DataTypes.STRING.getTypeSignature(),
-                    DataTypes.STRING.getTypeSignature()
-                ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withFeature(Scalar.Feature.NULLABLE),
+                "lower",
+                Scalar.Feature.NULLABLE,
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature()
+            ).withFeature(Scalar.Feature.DETERMINISTIC),
             (signature, boundSignature) ->
                 new UnaryScalar<>(
                     signature,

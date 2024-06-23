@@ -38,6 +38,7 @@ public class GreatestFunction extends ConditionalCompareFunction {
             Signature
                 .scalar(
                     NAME,
+                    Feature.CONDITIONAL,
                     TypeSignature.parse("E"),
                     TypeSignature.parse("E"))
                 .withFeature(Feature.DETERMINISTIC)

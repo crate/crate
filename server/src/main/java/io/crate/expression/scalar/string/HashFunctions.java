@@ -46,11 +46,11 @@ public final class HashFunctions {
     private static void register(Functions.Builder builder, String name, UnaryOperator<String> func) {
         builder.add(
             Signature.scalar(
-                    name,
-                    DataTypes.STRING.getTypeSignature(),
-                    DataTypes.STRING.getTypeSignature()
-                ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withFeature(Scalar.Feature.NULLABLE),
+                name,
+                Scalar.Feature.NULLABLE,
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature()
+            ).withFeature(Scalar.Feature.DETERMINISTIC),
             (signature, boundSignature) ->
                 new UnaryScalar<>(signature, boundSignature, DataTypes.STRING, func)
         );

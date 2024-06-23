@@ -36,12 +36,12 @@ public class VectorSimilarityFunction extends Scalar<Float, float[]> {
     public static void register(Functions.Builder module) {
         module.add(
             Signature.scalar(
-                    "vector_similarity",
-                    FloatVectorType.INSTANCE_ONE.getTypeSignature(),
-                    FloatVectorType.INSTANCE_ONE.getTypeSignature(),
-                    DataTypes.FLOAT.getTypeSignature()
-                ).withFeature(Feature.DETERMINISTIC)
-                .withFeature(Scalar.Feature.NULLABLE),
+                "vector_similarity",
+                Feature.NULLABLE,
+                FloatVectorType.INSTANCE_ONE.getTypeSignature(),
+                FloatVectorType.INSTANCE_ONE.getTypeSignature(),
+                DataTypes.FLOAT.getTypeSignature()
+            ).withFeature(Feature.DETERMINISTIC),
             VectorSimilarityFunction::new
         );
     }

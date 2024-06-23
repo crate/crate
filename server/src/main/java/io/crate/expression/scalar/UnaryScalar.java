@@ -47,7 +47,7 @@ public class UnaryScalar<R, T> extends Scalar<R, T> {
                        DataType<T> type,
                        Function<T, R> func) {
         super(signature, boundSignature);
-        assert signature.hasFeature(Feature.NULLABLE) : "A UnaryScalar is NULLABLE by definition";
+        assert signature.isNullable() : "A UnaryScalar is NULLABLE by definition";
         assert boundSignature.argTypes().get(0).id() == type.id() :
             "The bound argument type of the signature must match the type argument";
         this.type = type;

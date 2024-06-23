@@ -41,6 +41,7 @@ public class PgGetExpr extends Scalar<String, Object> {
         module.add(
             Signature.scalar(
                 FQN,
+                Feature.CONDITIONAL,
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
@@ -50,6 +51,7 @@ public class PgGetExpr extends Scalar<String, Object> {
         module.add(
             Signature.scalar(
                 FQN,
+                Feature.CONDITIONAL,
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.BOOLEAN.getTypeSignature(),

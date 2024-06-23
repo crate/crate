@@ -21,6 +21,11 @@
 
 package io.crate.metadata.functions;
 
+import static io.crate.metadata.Scalar.Feature.CONDITIONAL;
+import static io.crate.metadata.Scalar.Feature.NON_NULLABLE;
+import static io.crate.metadata.Scalar.Feature.NULLABLE;
+import static io.crate.metadata.Scalar.NULLABILITY;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -34,6 +39,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.common.collections.EnumSets;
 import io.crate.common.collections.Lists;
@@ -65,14 +71,14 @@ public final class Signature implements Writeable, Accountable {
      * @return          The created signature
      */
     public static Signature aggregate(FunctionName name, TypeSignature... types) {
-        return signatureBuilder(name, FunctionType.AGGREGATE, types).build();
+        return signatureBuilder(name, FunctionType.AGGREGATE, types).feature(CONDITIONAL).build();
     }
 
     /**
-     * See {@link #scalar(FunctionName, TypeSignature...)}
+     * See {@link #scalar(FunctionName, Scalar.Feature, TypeSignature...)}
      */
-    public static Signature scalar(String name, TypeSignature... types) {
-        return scalar(new FunctionName(null, name), types);
+    public static Signature scalar(String name, Scalar.Feature nullability, TypeSignature... types) {
+        return scalar(new FunctionName(null, name), nullability, types);
     }
 
     /**
@@ -84,7 +90,7 @@ public final class Signature implements Writeable, Accountable {
      * @return          The created signature
      */
     public static Signature table(FunctionName name, TypeSignature... types) {
-        return signatureBuilder(name, FunctionType.TABLE, types).build();
+        return signatureBuilder(name, FunctionType.TABLE, types).feature(CONDITIONAL).build();
     }
 
     /**
@@ -103,7 +109,7 @@ public final class Signature implements Writeable, Accountable {
      * @return          The created signature
      */
     public static Signature window(FunctionName name, TypeSignature... types) {
-        return signatureBuilder(name, FunctionType.WINDOW, types).build();
+        return signatureBuilder(name, FunctionType.WINDOW, types).feature(CONDITIONAL).build();
     }
 
     /**
@@ -117,12 +123,13 @@ public final class Signature implements Writeable, Accountable {
      * Shortcut for creating a signature of type {@link FunctionType#SCALAR}.
      * The last element of the given types is handled as the return type.
      *
-     * @param name      The fqn function name.
-     * @param types     The argument and return (last element) types
-     * @return          The created signature
+     * @param name        The fqn function name.
+     * @param nullability
+     * @param types       The argument and return (last element) types
+     * @return The created signature
      */
-    public static Signature scalar(FunctionName name, TypeSignature... types) {
-        return signatureBuilder(name, FunctionType.SCALAR, types).build();
+    public static Signature scalar(FunctionName name, Scalar.Feature nullability, TypeSignature... types) {
+        return signatureBuilder(name, FunctionType.SCALAR, types).feature(nullability).build();
     }
 
     private static Signature.Builder signatureBuilder(FunctionName name, FunctionType type, TypeSignature... types) {
@@ -137,6 +144,7 @@ public final class Signature implements Writeable, Accountable {
         return builder;
     }
 
+    @VisibleForTesting
     static Builder builder() {
         return new Builder();
     }
@@ -240,6 +248,7 @@ public final class Signature implements Writeable, Accountable {
             assert name != null : "Signature requires the 'name' to be set";
             assert kind != null : "Signature requires the 'kind' to be set";
             assert returnType != null : "Signature requires the 'returnType' to be set";
+            assert features.stream().filter(NULLABILITY::contains).toList().size() == 1 : "Signature requires the 'nullability' to be set";
             return new Signature(
                 name,
                 kind,
@@ -271,7 +280,11 @@ public final class Signature implements Writeable, Accountable {
         var type = FunctionType.values()[in.readVInt()];
 
         int enumElements = in.readVInt();
-        var features = Collections.unmodifiableSet(EnumSets.unpackFromInt(enumElements, Scalar.Feature.class));
+        var unpackedFeatures = EnumSets.unpackFromInt(enumElements, Scalar.Feature.class);
+        if (unpackedFeatures.stream().filter(NULLABILITY::contains).toList().isEmpty()) {
+            unpackedFeatures.add(CONDITIONAL);
+        }
+        var features = Collections.unmodifiableSet(unpackedFeatures);
 
         return Signature.builder()
             .name(functionName)
@@ -324,7 +337,11 @@ public final class Signature implements Writeable, Accountable {
         }
         returnType = TypeSignature.fromStream(in);
         int enumElements = in.readVInt();
-        features = Collections.unmodifiableSet(EnumSets.unpackFromInt(enumElements, Scalar.Feature.class));
+        var unpackedFeatures = EnumSets.unpackFromInt(enumElements, Scalar.Feature.class);
+        if (unpackedFeatures.stream().filter(NULLABILITY::contains).toList().isEmpty()) {
+            unpackedFeatures.add(CONDITIONAL);
+        }
+        features = Collections.unmodifiableSet(unpackedFeatures);
         bindingInfo = null;
     }
 
@@ -406,6 +423,14 @@ public final class Signature implements Writeable, Accountable {
 
     public boolean isDeterministic() {
         return hasFeature(Scalar.Feature.DETERMINISTIC);
+    }
+
+    public boolean isNullable() {
+        return hasFeature(NULLABLE);
+    }
+
+    public boolean isNonNullable() {
+        return hasFeature(NON_NULLABLE);
     }
 
     @Nullable

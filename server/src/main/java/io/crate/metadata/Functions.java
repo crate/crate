@@ -341,8 +341,8 @@ public class Functions {
         var function = new io.crate.expression.symbol.Function(
             Signature.scalar(
                 new FunctionName(suppliedSchema, name),
-                typeSignatures.toArray(TypeSignature[]::new)
-            ),
+                Scalar.Feature.CONDITIONAL,
+                typeSignatures.toArray(TypeSignature[]::new)),
             arguments,
             DataTypes.UNDEFINED
         );

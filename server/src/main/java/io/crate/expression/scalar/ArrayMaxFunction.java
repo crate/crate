@@ -48,10 +48,10 @@ public class ArrayMaxFunction<T> extends Scalar<T, List<T>> {
         module.add(
             Signature.scalar(
                     NAME,
+                    Feature.NULLABLE,
                     new ArrayType(DataTypes.NUMERIC).getTypeSignature(),
                     DataTypes.NUMERIC.getTypeSignature()
-                ).withFeature(Feature.DETERMINISTIC)
-                .withFeature(Feature.NULLABLE),
+                ).withFeature(Feature.DETERMINISTIC),
             ArrayMaxFunction::new
         );
 
@@ -59,10 +59,10 @@ public class ArrayMaxFunction<T> extends Scalar<T, List<T>> {
             module.add(
                 Signature.scalar(
                     NAME,
+                    Feature.NULLABLE,
                     new ArrayType(supportedType).getTypeSignature(),
                     supportedType.getTypeSignature()
-                ).withFeature(Feature.DETERMINISTIC)
-                .withFeature(Feature.NULLABLE),
+                ).withFeature(Feature.DETERMINISTIC),
                 ArrayMaxFunction::new
             );
         }

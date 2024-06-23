@@ -47,24 +47,24 @@ class ArrayToStringFunction extends Scalar<String, Object> {
         module.add(
             Signature.scalar(
                     FQN,
+                    Feature.NULLABLE,
                     TypeSignature.parse("array(E)"),
                     DataTypes.STRING.getTypeSignature(),
                     DataTypes.STRING.getTypeSignature()
                 ).withTypeVariableConstraints(typeVariable("E"))
-                .withFeature(Feature.DETERMINISTIC)
-                .withFeature(Feature.NULLABLE),
+                .withFeature(Feature.DETERMINISTIC),
             ArrayToStringFunction::new
         );
         module.add(
             Signature.scalar(
                     FQN,
+                    Feature.NULLABLE,
                     TypeSignature.parse("array(E)"),
                     DataTypes.STRING.getTypeSignature(),
                     DataTypes.STRING.getTypeSignature(),
                     DataTypes.STRING.getTypeSignature()
                 ).withTypeVariableConstraints(typeVariable("E"))
-                .withFeature(Feature.DETERMINISTIC)
-                .withFeature(Feature.NULLABLE),
+                .withFeature(Feature.DETERMINISTIC),
             ArrayToStringFunction::new
         );
     }

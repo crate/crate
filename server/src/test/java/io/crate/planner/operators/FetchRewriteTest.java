@@ -70,6 +70,7 @@ public class FetchRewriteTest extends CrateDummyClusterServiceUnitTest {
                 new Function(
                     Signature.scalar(
                         "add",
+                        Scalar.Feature.CONDITIONAL,
                         DataTypes.INTEGER.getTypeSignature(),
                         DataTypes.INTEGER.getTypeSignature(),
                         DataTypes.INTEGER.getTypeSignature()

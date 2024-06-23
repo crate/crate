@@ -37,7 +37,12 @@ public class Regproc {
 
     public static Regproc of(@NotNull String name) {
         return new Regproc(
-            OidHash.functionOid(Signature.scalar(name, DataTypes.UNDEFINED.getTypeSignature()).withFeature(Scalar.Feature.DETERMINISTIC)),
+            OidHash.functionOid(Signature.scalar(
+                    name,
+                    Scalar.Feature.CONDITIONAL,
+                    DataTypes.UNDEFINED.getTypeSignature()
+                ).withFeature(Scalar.Feature.DETERMINISTIC)
+            ),
             name
         );
     }
@@ -57,7 +62,8 @@ public class Regproc {
     }
 
     public Signature asDummySignature() {
-        return Signature.scalar(name, DataTypes.UNDEFINED.getTypeSignature()).withFeature(Scalar.Feature.DETERMINISTIC);
+        return Signature.scalar(name, Scalar.Feature.CONDITIONAL, DataTypes.UNDEFINED.getTypeSignature())
+            .withFeature(Scalar.Feature.DETERMINISTIC);
     }
 
     public int oid() {

@@ -47,6 +47,7 @@ public class TimezoneFunction extends Scalar<Long, Object> {
         module.add(
             Signature.scalar(
                 NAME,
+                Feature.CONDITIONAL,
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.TIMESTAMPZ.getTypeSignature(),
                 DataTypes.TIMESTAMP.getTypeSignature()
@@ -56,6 +57,7 @@ public class TimezoneFunction extends Scalar<Long, Object> {
         module.add(
             Signature.scalar(
                 NAME,
+                Feature.CONDITIONAL,
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.TIMESTAMP.getTypeSignature(),
                 DataTypes.TIMESTAMPZ.getTypeSignature()
@@ -65,6 +67,7 @@ public class TimezoneFunction extends Scalar<Long, Object> {
         module.add(
             Signature.scalar(
                 NAME,
+                Feature.CONDITIONAL,
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.LONG.getTypeSignature(),
                 DataTypes.TIMESTAMPZ.getTypeSignature()

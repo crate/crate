@@ -66,12 +66,11 @@ public final class MatchesFunction extends TableFunctionImplementation<List<Obje
 
         builder.add(
             Signature.table(
-                    NAME,
-                    DataTypes.STRING.getTypeSignature(),
-                    DataTypes.STRING.getTypeSignature(),
-                    DataTypes.STRING_ARRAY.getTypeSignature()
-                ).withFeature(Feature.DETERMINISTIC)
-                .withFeature(Feature.NON_NULLABLE),
+                NAME,
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING_ARRAY.getTypeSignature()
+            ).withFeature(Feature.DETERMINISTIC),
             (signature, boundSignature) -> new MatchesFunction(
                 signature,
                 boundSignature,
@@ -80,13 +79,12 @@ public final class MatchesFunction extends TableFunctionImplementation<List<Obje
         );
         builder.add(
             Signature.table(
-                    NAME,
-                    DataTypes.STRING.getTypeSignature(),
-                    DataTypes.STRING.getTypeSignature(),
-                    DataTypes.STRING.getTypeSignature(),
-                    DataTypes.STRING_ARRAY.getTypeSignature()
-                ).withFeature(Feature.DETERMINISTIC)
-                .withFeature(Feature.NON_NULLABLE),
+                NAME,
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING_ARRAY.getTypeSignature()
+            ).withFeature(Feature.DETERMINISTIC),
             (signature, boundSignature) -> new MatchesFunction(
                 signature,
                 boundSignature,

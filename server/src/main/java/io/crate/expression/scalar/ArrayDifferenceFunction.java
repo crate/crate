@@ -54,12 +54,12 @@ class ArrayDifferenceFunction extends Scalar<List<Object>, List<Object>> {
         module.add(
             Signature.scalar(
                     NAME,
+                    Feature.NULLABLE,
                     TypeSignature.parse("array(E)"),
                     TypeSignature.parse("array(E)"),
                     TypeSignature.parse("array(E)")
-                ).withFeature(Feature.DETERMINISTIC)
-                .withTypeVariableConstraints(typeVariable("E"))
-                .withFeature(Feature.NULLABLE),
+                ).withTypeVariableConstraints(typeVariable("E"))
+                .withFeature(Feature.DETERMINISTIC),
             (signature, boundSignature) ->
                 new ArrayDifferenceFunction(
                     signature,

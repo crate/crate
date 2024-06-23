@@ -55,10 +55,10 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
     public static final String NAME = "op_not";
     public static final Signature SIGNATURE = Signature.scalar(
             NAME,
+            Feature.NULLABLE,
             DataTypes.BOOLEAN.getTypeSignature(),
             DataTypes.BOOLEAN.getTypeSignature())
-        .withFeature(Feature.DETERMINISTIC)
-        .withFeature(Feature.NULLABLE);
+        .withFeature(Feature.DETERMINISTIC);
 
     public static void register(Functions.Builder builder) {
         builder.add(SIGNATURE, NotPredicate::new);
@@ -157,10 +157,10 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
                 return null;
             } else {
                 var signature = function.signature();
-                if (signature.hasFeature(Feature.NON_NULLABLE)) {
+                if (signature.isNonNullable()) {
                     context.isNullable = false;
-                } else if (!signature.hasFeature(Feature.NULLABLE)) {
-                    // default case
+                } else if (!signature.isNullable()) {
+                    // default case; there are 3 states: nullable, non_nullable, conditional
                     context.enforceThreeValuedLogic = true;
                     return null;
                 }

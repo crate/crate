@@ -37,12 +37,12 @@ public class PgGetSerialSequenceFunction {
     public static void register(Functions.Builder module) {
         module.add(
             Signature.scalar(
-                    FQN,
-                    DataTypes.STRING.getTypeSignature(),
-                    DataTypes.STRING.getTypeSignature(),
-                    DataTypes.STRING.getTypeSignature()
-                ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withFeature(Scalar.Feature.NULLABLE),
+                FQN,
+                Scalar.Feature.NULLABLE,
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature()
+            ).withFeature(Scalar.Feature.DETERMINISTIC),
             (signature, boundSignature) -> new BinaryScalar<>(
                         (table,column) -> null,
                         signature,

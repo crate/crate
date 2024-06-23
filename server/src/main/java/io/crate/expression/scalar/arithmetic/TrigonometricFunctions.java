@@ -45,11 +45,11 @@ public final class TrigonometricFunctions {
         builder.add(
             scalar(
                 "atan2",
+                Scalar.Feature.NULLABLE,
                 DataTypes.DOUBLE.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature())
-                .withFeatures(Scalar.DETERMINISTIC_ONLY)
-                .withFeature(Scalar.Feature.NULLABLE),
+                .withFeatures(Scalar.DETERMINISTIC_ONLY),
             (signature, boundSignature) ->
                 new BinaryScalar<>(
                     Math::atan2,
@@ -64,10 +64,10 @@ public final class TrigonometricFunctions {
         builder.add(
             scalar(
                 name,
+                Scalar.Feature.NULLABLE,
                 DataTypes.DOUBLE.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withFeature(Scalar.Feature.NULLABLE),
+            ).withFeature(Scalar.Feature.DETERMINISTIC),
             (signature, boundSignature) ->
                 new DoubleScalar(signature, boundSignature, func)
         );

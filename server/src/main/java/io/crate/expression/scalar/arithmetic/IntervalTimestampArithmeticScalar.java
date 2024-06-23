@@ -46,6 +46,7 @@ public class IntervalTimestampArithmeticScalar extends Scalar<Long, Object> impl
             module.add(
                 Signature.scalar(
                         ArithmeticFunctions.Names.ADD,
+                        Feature.CONDITIONAL,
                         DataTypes.INTERVAL.getTypeSignature(),
                         timestampType.getTypeSignature(),
                         timestampType.getTypeSignature()
@@ -83,6 +84,7 @@ public class IntervalTimestampArithmeticScalar extends Scalar<Long, Object> impl
     public static Signature signatureFor(DataType<?> timestampType, String name) {
         return Signature.scalar(
                 name,
+                Feature.CONDITIONAL,
                 timestampType.getTypeSignature(),
                 DataTypes.INTERVAL.getTypeSignature(),
                 timestampType.getTypeSignature()

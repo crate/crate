@@ -46,6 +46,7 @@ public class StringToArrayFunction extends Scalar<List<String>, String> {
         module.add(
             Signature.scalar(
                 NAME,
+                Feature.CONDITIONAL,
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING_ARRAY.getTypeSignature()
@@ -55,6 +56,7 @@ public class StringToArrayFunction extends Scalar<List<String>, String> {
         module.add(
             Signature.scalar(
                 NAME,
+                Feature.CONDITIONAL,
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),

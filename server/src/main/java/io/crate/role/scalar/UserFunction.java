@@ -44,6 +44,7 @@ public class UserFunction extends Scalar<String, Object> {
         builder.add(
             Signature.scalar(
                 CURRENT_USER_FUNCTION_NAME,
+                Feature.CONDITIONAL,
                 DataTypes.STRING.getTypeSignature()
             ),
             UserFunction::new
@@ -51,6 +52,7 @@ public class UserFunction extends Scalar<String, Object> {
         builder.add(
             Signature.scalar(
                 SESSION_USER_FUNCTION_NAME,
+                Feature.CONDITIONAL,
                 DataTypes.STRING.getTypeSignature()
             ),
             UserFunction::new

@@ -57,10 +57,11 @@ public class IfFunction extends Scalar<Object, Object> {
         module.add(
             Signature.scalar(
                     NAME,
+                    Feature.CONDITIONAL,
                     DataTypes.BOOLEAN.getTypeSignature(),
                     TypeSignature.parse("E"),
-                    TypeSignature.parse("E")
-                ).withFeature(Feature.DETERMINISTIC)
+                    TypeSignature.parse("E"))
+                .withFeature(Feature.DETERMINISTIC)
                 .withTypeVariableConstraints(typeVariable("E")),
             IfFunction::new
         );
@@ -68,11 +69,12 @@ public class IfFunction extends Scalar<Object, Object> {
         module.add(
             Signature.scalar(
                     NAME,
+                    Feature.CONDITIONAL,
                     DataTypes.BOOLEAN.getTypeSignature(),
                     TypeSignature.parse("E"),
                     TypeSignature.parse("E"),
-                    TypeSignature.parse("E")
-                ).withFeature(Feature.DETERMINISTIC)
+                    TypeSignature.parse("E"))
+                .withFeature(Feature.DETERMINISTIC)
                 .withTypeVariableConstraints(typeVariable("E")),
             IfFunction::new
         );

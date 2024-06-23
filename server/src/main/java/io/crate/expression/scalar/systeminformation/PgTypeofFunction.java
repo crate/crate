@@ -43,11 +43,11 @@ public final class PgTypeofFunction extends Scalar<String, Object> {
         module.add(
             Signature.scalar(
                     FQNAME,
+                    Feature.NON_NULLABLE,
                     TypeSignature.parse("E"),
                     DataTypes.STRING.getTypeSignature()
                 ).withFeature(Feature.DETERMINISTIC)
-                .withTypeVariableConstraints(typeVariable("E"))
-                .withFeature(Feature.NON_NULLABLE),
+                .withTypeVariableConstraints(typeVariable("E")),
             PgTypeofFunction::new
         );
 

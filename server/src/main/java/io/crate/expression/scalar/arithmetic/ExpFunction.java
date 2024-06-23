@@ -36,9 +36,8 @@ public class ExpFunction {
         var type = DataTypes.DOUBLE;
         var signature = type.getTypeSignature();
         module.add(
-            scalar(NAME, signature, signature)
-                .withFeature(Scalar.Feature.DETERMINISTIC)
-                .withFeature(Scalar.Feature.NULLABLE),
+            scalar(NAME, Scalar.Feature.NULLABLE, signature, signature)
+                .withFeature(Scalar.Feature.DETERMINISTIC),
             (declaredSignature, boundSignature) ->
                 new UnaryScalar<>(
                     declaredSignature,
