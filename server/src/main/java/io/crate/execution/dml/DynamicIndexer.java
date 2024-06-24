@@ -34,7 +34,6 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.execution.dml.Indexer.ColumnConstraint;
-import io.crate.execution.dml.Indexer.Synthetic;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
@@ -77,7 +76,7 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
     @SuppressWarnings("unchecked")
     public void collectSchemaUpdates(Object value,
                                      Consumer<? super Reference> onDynamicColumn,
-                                     Map<ColumnIdent, Indexer.Synthetic> synthetics) throws IOException {
+                                     Synthetics synthetics) throws IOException {
         if (type == null) {
             type = guessType(value);
             DynamicIndexer.throwOnNestedArray(type);
@@ -126,7 +125,7 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
                            String storageIdentLeafName,
                            XContentBuilder xcontentBuilder,
                            Consumer<? super IndexableField> addField,
-                           Map<ColumnIdent, Synthetic> synthetics,
+                           Synthetics synthetics,
                            Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
         if (type == null) {
             // At the second phase of indexing type is not null in almost all cases
@@ -158,7 +157,7 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
     public void indexValue(Object value,
                            XContentBuilder xcontentBuilder,
                            Consumer<? super IndexableField> addField,
-                           Map<ColumnIdent, Synthetic> synthetics,
+                           Synthetics synthetics,
                            Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
         StorageSupport<?> storageSupport = type.storageSupport();
         boolean nullable = true;

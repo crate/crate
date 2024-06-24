@@ -34,7 +34,6 @@ import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
 import io.crate.execution.dml.Indexer.ColumnConstraint;
-import io.crate.execution.dml.Indexer.Synthetic;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
@@ -54,7 +53,7 @@ public class DoubleIndexer implements ValueIndexer<Number> {
     public void indexValue(Number value,
                            XContentBuilder xcontentBuilder,
                            Consumer<? super IndexableField> addField,
-                           Map<ColumnIdent, Synthetic> synthetics,
+                           Synthetics synthetics,
                            Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
         xcontentBuilder.value(value);
         double doubleValue = value.doubleValue();

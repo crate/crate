@@ -51,7 +51,7 @@ public class IntIndexer implements ValueIndexer<Number> {
     public void indexValue(Number value,
                            XContentBuilder xContentBuilder,
                            Consumer<? super IndexableField> addField,
-                           Map<ColumnIdent, Indexer.Synthetic> synthetics,
+                           Synthetics synthetics,
                            Map<ColumnIdent, Indexer.ColumnConstraint> toValidate) throws IOException {
         xContentBuilder.value(value);
         int intValue = value.intValue();
