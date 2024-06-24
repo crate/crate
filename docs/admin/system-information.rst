@@ -1976,6 +1976,10 @@ repositories (see :ref:`snapshot-restore`).
 |                      | names of all tables within the   |                              |
 |                      | snapshot.                        |                              |
 +----------------------+----------------------------------+------------------------------+
+| ``relations``        | Contains the ``table_schema``    | ``ARRAY(OBJECT)``            |
+|                      | and ``table_name`` of all tables |                              |
+|                      | within the snapshot.             |                              |
++----------------------+----------------------------------+------------------------------+
 | ``table_partitions`` | Contains the table schema, table | ``ARRAY(OBJECT)``            |
 |                      | name and partition values of     |                              |
 |                      | partitioned tables within the    |                              |

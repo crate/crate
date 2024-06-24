@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import static io.crate.testing.Asserts.assertThat;
 
 import java.util.List;
+import java.util.Map;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
@@ -80,8 +81,8 @@ public class SysSnapshotsTest extends IntegTestCase {
         execute("select * from sys.snapshots");
         assertThat(response).hasRowCount(1);
         assertThat(response.cols()).containsExactly(
-            "concrete_indices", "failures", "finished", "id", "name", "repository",
-            "started", "state", "table_partitions", "tables", "version");
+            "concrete_indices", "failures", "finished", "id", "name", "relations",
+            "repository", "started", "state", "table_partitions", "tables", "version");
         ArrayType<String> stringArray = new ArrayType<>(DataTypes.STRING);
         assertThat(response.columnTypes()).containsExactly(
             stringArray,
@@ -89,6 +90,11 @@ public class SysSnapshotsTest extends IntegTestCase {
             TimestampType.INSTANCE_WITH_TZ,
             StringType.INSTANCE,
             StringType.INSTANCE,
+            new ArrayType<>(ObjectType.builder()
+                .setInnerType("table_schema", StringType.INSTANCE)
+                .setInnerType("table_name", StringType.INSTANCE)
+                .build()
+            ),
             StringType.INSTANCE,
             TimestampType.INSTANCE_WITH_TZ,
             StringType.INSTANCE,
@@ -107,12 +113,16 @@ public class SysSnapshotsTest extends IntegTestCase {
         assertThat((Long) firstRow[2]).isLessThanOrEqualTo(finishedTime);
         // firstRow[3] is UUID, not selecting it as it's random.
         assertThat(firstRow[4]).isEqualTo("s1");
-        assertThat(firstRow[5]).isEqualTo("r1");
-        assertThat((Long) firstRow[6]).isGreaterThanOrEqualTo(createdTime);
-        assertThat(firstRow[7]).isEqualTo(SnapshotState.SUCCESS.name());
-        assertThat((List<Object>) firstRow[8]).isEmpty();
-        assertThat((List<Object>) firstRow[9]).containsExactly(getFqn("tbl"));
-        assertThat(firstRow[10]).isEqualTo(Version.CURRENT.toString());
+        List<Map<String, String>> tableRelations = (List<Map<String, String>>) firstRow[5];
+        assertThat(tableRelations).hasSize(1);
+        assertThat(tableRelations.getFirst()).hasEntrySatisfying("table_schema", o -> assertThat(o).isNotEmpty());
+        assertThat(tableRelations.getFirst()).hasEntrySatisfying("table_name", o -> assertThat(o).isEqualTo("tbl"));
+        assertThat(firstRow[6]).isEqualTo("r1");
+        assertThat((Long) firstRow[7]).isGreaterThanOrEqualTo(createdTime);
+        assertThat(firstRow[8]).isEqualTo(SnapshotState.SUCCESS.name());
+        assertThat((List<Object>) firstRow[9]).isEmpty();
+        assertThat((List<Object>) firstRow[10]).containsExactly(getFqn("tbl"));
+        assertThat(firstRow[11]).isEqualTo(Version.CURRENT.toString());
     }
 
     @Test
