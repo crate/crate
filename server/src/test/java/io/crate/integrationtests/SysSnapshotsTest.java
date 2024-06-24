@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import static io.crate.testing.Asserts.assertThat;
 
 import java.util.List;
+import java.util.Map;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
@@ -81,7 +82,7 @@ public class SysSnapshotsTest extends IntegTestCase {
         assertThat(response).hasRowCount(1);
         assertThat(response.cols()).containsExactly(
             "concrete_indices", "failures", "finished", "name", "repository",
-            "started", "state", "table_partitions", "tables", "version");
+            "started", "state", "table_partitions", "table_relations", "tables", "version");
         ArrayType<String> stringArray = new ArrayType<>(DataTypes.STRING);
         assertThat(response.columnTypes()).containsExactly(
             stringArray,
@@ -93,6 +94,11 @@ public class SysSnapshotsTest extends IntegTestCase {
             StringType.INSTANCE,
             new ArrayType<>(ObjectType.builder()
                 .setInnerType("values", stringArray)
+                .setInnerType("table_schema", StringType.INSTANCE)
+                .setInnerType("table_name", StringType.INSTANCE)
+                .build()
+            ),
+            new ArrayType<>(ObjectType.builder()
                 .setInnerType("table_schema", StringType.INSTANCE)
                 .setInnerType("table_name", StringType.INSTANCE)
                 .build()
@@ -109,8 +115,12 @@ public class SysSnapshotsTest extends IntegTestCase {
         assertThat((Long) firstRow[5]).isGreaterThanOrEqualTo(createdTime);
         assertThat(firstRow[6]).isEqualTo(SnapshotState.SUCCESS.name());
         assertThat((List<Object>) firstRow[7]).isEmpty();
-        assertThat((List<Object>) firstRow[8]).containsExactly(getFqn("tbl"));
-        assertThat(firstRow[9]).isEqualTo(Version.CURRENT.toString());
+        List<Map<String, String>> tableRelations = (List<Map<String, String>>) firstRow[8];
+        assertThat(tableRelations).hasSize(1);
+        assertThat(tableRelations.getFirst()).hasEntrySatisfying("table_schema", o -> assertThat(o).isNotEmpty());
+        assertThat(tableRelations.getFirst()).hasEntrySatisfying("table_name", o -> assertThat(o).isEqualTo("tbl"));
+        assertThat((List<Object>) firstRow[9]).containsExactly(getFqn("tbl"));
+        assertThat(firstRow[10]).isEqualTo(Version.CURRENT.toString());
     }
 
     @Test
