@@ -51,11 +51,11 @@ public class PgTableIsVisibleFunction extends Scalar<Boolean, Integer> {
     public static void register(Functions.Builder module) {
         module.add(
             Signature.scalar(
-                NAME,
-                Feature.NULLABLE,
-                DataTypes.INTEGER.getTypeSignature(),
-                DataTypes.BOOLEAN.getTypeSignature()
-            ).withFeature(Feature.DETERMINISTIC),
+                    NAME,
+                    DataTypes.INTEGER.getTypeSignature(),
+                    DataTypes.BOOLEAN.getTypeSignature()
+                ).withFeature(Feature.DETERMINISTIC)
+                .withFeature(Feature.NULLABLE),
             PgTableIsVisibleFunction::new);
     }
 

@@ -42,12 +42,12 @@ public final class FormatTypeFunction extends Scalar<String, Object> {
     public static void register(Functions.Builder module) {
         module.add(
             Signature.scalar(
-                FQN,
-                Feature.NULLABLE,
-                DataTypes.INTEGER.getTypeSignature(),
-                DataTypes.INTEGER.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature()
-            ).withFeature(Feature.DETERMINISTIC),
+                    FQN,
+                    DataTypes.INTEGER.getTypeSignature(),
+                    DataTypes.INTEGER.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature()
+                ).withFeature(Feature.DETERMINISTIC)
+                .withFeature(Feature.NULLABLE),
             FormatTypeFunction::new
         );
     }

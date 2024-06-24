@@ -36,7 +36,6 @@ public class SleepScalarFunction extends Scalar<Boolean, Long> {
 
     public static final Signature SIGNATURE = Signature.scalar(
         NAME,
-        Feature.CONDITIONAL,
         DataTypes.LONG.getTypeSignature(),
         DataTypes.BOOLEAN.getTypeSignature()
     );

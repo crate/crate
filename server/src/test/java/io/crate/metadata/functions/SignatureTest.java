@@ -30,7 +30,6 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
-import io.crate.metadata.Scalar;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import io.crate.types.TypeSignature;
@@ -46,7 +45,6 @@ public class SignatureTest {
         var signature =
             Signature.scalar(
                 "foo",
-                Scalar.Feature.CONDITIONAL,
                 TypeSignature.parse("E"),
                 DataTypes.INTEGER.getTypeSignature(),
                 objectType.getTypeSignature(),

@@ -267,11 +267,11 @@ public class UserDefinedFunctionsIntegrationTest extends IntegTestCase {
         Signature signature =
             Signature.scalar(
                 new FunctionName(Schemas.DOC_SCHEMA_NAME, "my_func"),
-                Scalar.Feature.CONDITIONAL,
                 TypeSignature.parse("array(array(integer))"),
                 TypeSignature.parse("integer"),
                 TypeSignature.parse("text"),
-                TypeSignature.parse("text"));
+                TypeSignature.parse("text")
+            );
         int functionOid = OidHash.functionOid(signature);
 
         execute("select pg_function_is_visible(" + functionOid + ")");
@@ -294,9 +294,9 @@ public class UserDefinedFunctionsIntegrationTest extends IntegTestCase {
         Signature signature =
             Signature.scalar(
                 new FunctionName(Schemas.DOC_SCHEMA_NAME, "make_2d_array"),
-                Scalar.Feature.CONDITIONAL,
                 DataTypes.INTEGER.getTypeSignature(),
-                returnTypeSig);
+                returnTypeSig
+            );
         int functionOid = OidHash.functionOid(signature);
 
         execute("select pg_get_function_result(?)", new Object[]{functionOid});
@@ -317,8 +317,8 @@ public class UserDefinedFunctionsIntegrationTest extends IntegTestCase {
         Signature signature =
             Signature.scalar(
                 new FunctionName(null, CurrentTimeFunction.NAME),
-                Scalar.Feature.CONDITIONAL,
-                DataTypes.TIMETZ.getTypeSignature());
+                DataTypes.TIMETZ.getTypeSignature()
+            );
         int functionOid = OidHash.functionOid(signature);
 
         execute("create table oid_test(oid integer)");

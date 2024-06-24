@@ -65,7 +65,6 @@ public class WithinFunction extends Scalar<Boolean, Object> {
         module.add(
             Signature.scalar(
                 NAME,
-                Feature.CONDITIONAL,
                 DataTypes.GEO_SHAPE.getTypeSignature(),
                 DataTypes.GEO_SHAPE.getTypeSignature(),
                 DataTypes.BOOLEAN.getTypeSignature()
@@ -78,12 +77,11 @@ public class WithinFunction extends Scalar<Boolean, Object> {
         for (var type : List.of(DataTypes.GEO_SHAPE, DataTypes.STRING, DataTypes.UNTYPED_OBJECT, DataTypes.UNDEFINED)) {
             module.add(
                 Signature.scalar(
-                        NAME,
-                        Feature.CONDITIONAL,
-                        DataTypes.GEO_POINT.getTypeSignature(),
-                        type.getTypeSignature(),
-                        DataTypes.BOOLEAN.getTypeSignature())
-                    .withFeature(Feature.DETERMINISTIC)
+                    NAME,
+                    DataTypes.GEO_POINT.getTypeSignature(),
+                    type.getTypeSignature(),
+                    DataTypes.BOOLEAN.getTypeSignature()
+                ).withFeature(Feature.DETERMINISTIC)
                     .withForbiddenCoercion(),
                 WithinFunction::new
             );

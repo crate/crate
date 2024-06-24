@@ -51,12 +51,12 @@ public final class CIDROperator {
     public static void register(Functions.Builder builder) {
         builder.add(
             Signature.scalar(
-                CONTAINED_WITHIN,
-                Scalar.Feature.NULLABLE,
-                DataTypes.IP.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature(),
-                Operator.RETURN_TYPE.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC),
+                    CONTAINED_WITHIN,
+                    DataTypes.IP.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature(),
+                    Operator.RETURN_TYPE.getTypeSignature())
+                .withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE),
             ContainedWithinOperator::new
         );
     }

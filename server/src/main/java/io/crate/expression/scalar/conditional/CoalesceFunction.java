@@ -41,7 +41,6 @@ public class CoalesceFunction extends Scalar<Object, Object> {
             Signature
                 .scalar(
                     NAME,
-                    Feature.CONDITIONAL,
                     TypeSignature.parse("E"),
                     TypeSignature.parse("E"))
                 .withFeature(Feature.DETERMINISTIC)

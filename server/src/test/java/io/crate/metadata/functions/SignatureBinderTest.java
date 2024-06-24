@@ -37,7 +37,6 @@ import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import io.crate.execution.engine.aggregation.impl.NumericSumAggregation;
-import io.crate.metadata.Scalar;
 import io.crate.types.BitStringType;
 import io.crate.types.CharacterType;
 import io.crate.types.DataType;
@@ -54,7 +53,6 @@ public class SignatureBinderTest extends ESTestCase {
     private static Signature.Builder functionSignature() {
         return Signature.builder()
             .name("function")
-            .feature(Scalar.Feature.CONDITIONAL)
             .kind(SCALAR);
     }
 

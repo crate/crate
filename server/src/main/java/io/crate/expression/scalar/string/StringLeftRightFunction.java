@@ -39,7 +39,6 @@ public class StringLeftRightFunction extends Scalar<String, Object> {
         module.add(
             Signature.scalar(
                 "left",
-                Feature.CONDITIONAL,
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
@@ -50,7 +49,6 @@ public class StringLeftRightFunction extends Scalar<String, Object> {
         module.add(
             Signature.scalar(
                 "right",
-                Feature.CONDITIONAL,
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()

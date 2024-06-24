@@ -34,12 +34,12 @@ public final class LtOperator {
         for (var supportedType : DataTypes.PRIMITIVE_TYPES) {
             builder.add(
                 Signature.scalar(
-                    NAME,
-                    Scalar.Feature.NULLABLE,
-                    supportedType.getTypeSignature(),
-                    supportedType.getTypeSignature(),
-                    Operator.RETURN_TYPE.getTypeSignature()
-                ).withFeature(Scalar.Feature.DETERMINISTIC),
+                        NAME,
+                        supportedType.getTypeSignature(),
+                        supportedType.getTypeSignature(),
+                        Operator.RETURN_TYPE.getTypeSignature()
+                    ).withFeature(Scalar.Feature.DETERMINISTIC)
+                    .withFeature(Scalar.Feature.NULLABLE),
                 (signature, boundSignature) ->
                     new CmpOperator(signature, boundSignature, cmpResult -> cmpResult < 0)
             );

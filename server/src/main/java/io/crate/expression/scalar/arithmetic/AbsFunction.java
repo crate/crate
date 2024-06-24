@@ -37,8 +37,9 @@ public final class AbsFunction {
         for (var type : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             var typeSignature = type.getTypeSignature();
             builder.add(
-                scalar(NAME, Scalar.Feature.NULLABLE, typeSignature, typeSignature)
-                    .withFeature(Scalar.Feature.DETERMINISTIC),
+                scalar(NAME, typeSignature, typeSignature)
+                    .withFeature(Scalar.Feature.DETERMINISTIC)
+                    .withFeature(Scalar.Feature.NULLABLE),
                 (signature, boundSignature) -> {
                     DataType<?> argType = boundSignature.argTypes().get(0);
                     return new UnaryScalar<>(

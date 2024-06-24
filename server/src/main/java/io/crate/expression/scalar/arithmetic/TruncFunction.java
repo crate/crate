@@ -52,11 +52,11 @@ public final class TruncFunction {
             module.add(
                 Signature.scalar(
                         NAME,
-                        Scalar.Feature.NULLABLE,
                         type.getTypeSignature(),
                         returnType.getTypeSignature()
                     ).withFeature(Scalar.Feature.DETERMINISTIC)
-                    .withForbiddenCoercion(),
+                    .withForbiddenCoercion()
+                    .withFeature(Scalar.Feature.NULLABLE),
                 (signature, boundSignature) ->
                     new UnaryScalar<>(
                         signature,
@@ -75,11 +75,11 @@ public final class TruncFunction {
         module.add(
             scalar(
                 NAME,
-                Scalar.Feature.NULLABLE,
                 DataTypes.DOUBLE.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC),
+            ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE),
             TruncFunction::createTruncWithMode
         );
     }

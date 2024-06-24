@@ -88,11 +88,11 @@ public class ArrayAvgFunction {
 
         builder.add(
             Signature.scalar(
-                NAME,
-                Scalar.Feature.NULLABLE,
-                new ArrayType<>(DataTypes.NUMERIC).getTypeSignature(),
-                DataTypes.NUMERIC.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC),
+                    NAME,
+                    new ArrayType<>(DataTypes.NUMERIC).getTypeSignature(),
+                    DataTypes.NUMERIC.getTypeSignature()
+                ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) -> new UnaryScalar<>(
                 signature,
                 boundSignature,
@@ -103,11 +103,11 @@ public class ArrayAvgFunction {
 
         builder.add(
             Signature.scalar(
-                NAME,
-                Scalar.Feature.NULLABLE,
-                new ArrayType<>(DataTypes.FLOAT).getTypeSignature(),
-                DataTypes.FLOAT.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC),
+                    NAME,
+                    new ArrayType<>(DataTypes.FLOAT).getTypeSignature(),
+                    DataTypes.FLOAT.getTypeSignature()
+                ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) -> new UnaryScalar<>(
                 signature,
                 boundSignature,
@@ -118,11 +118,11 @@ public class ArrayAvgFunction {
 
         builder.add(
             Signature.scalar(
-                NAME,
-                Scalar.Feature.NULLABLE,
-                new ArrayType<>(DataTypes.DOUBLE).getTypeSignature(),
-                DataTypes.DOUBLE.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC),
+                    NAME,
+                    new ArrayType<>(DataTypes.DOUBLE).getTypeSignature(),
+                    DataTypes.DOUBLE.getTypeSignature()
+                ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) -> new UnaryScalar<>(
                 signature,
                 boundSignature,
@@ -136,11 +136,11 @@ public class ArrayAvgFunction {
             if (supportedType != DataTypes.FLOAT && supportedType != DataTypes.DOUBLE) {
                 builder.add(
                     Signature.scalar(
-                        NAME,
-                        Scalar.Feature.NULLABLE,
-                        new ArrayType<>(supportedType).getTypeSignature(),
-                        DataTypes.NUMERIC.getTypeSignature()
-                    ).withFeature(Scalar.Feature.DETERMINISTIC),
+                            NAME,
+                            new ArrayType<>(supportedType).getTypeSignature(),
+                            DataTypes.NUMERIC.getTypeSignature()
+                        ).withFeature(Scalar.Feature.DETERMINISTIC)
+                        .withFeature(Scalar.Feature.NULLABLE),
                     (signature, boundSignature) -> new UnaryScalar<>(
                         signature,
                         boundSignature,

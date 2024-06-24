@@ -41,7 +41,6 @@ public final class ColDescriptionFunction extends Scalar<String, Object> {
         module.add(
             Signature.scalar(
                 FQN,
-                Feature.CONDITIONAL,
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()

@@ -45,7 +45,6 @@ public class CurrentSettingFunction extends Scalar<String, Object> {
         builder.add(
             scalar(
                 FQN,
-                Feature.CONDITIONAL,
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
             ).withFeature(Feature.DETERMINISTIC),
@@ -60,7 +59,6 @@ public class CurrentSettingFunction extends Scalar<String, Object> {
         builder.add(
             scalar(
                 FQN,
-                Feature.CONDITIONAL,
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.BOOLEAN.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()

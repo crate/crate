@@ -40,10 +40,10 @@ final class CurrentDatabaseFunction extends Scalar<String, Void> {
     public static void register(Functions.Builder module) {
         module.add(
             Signature.scalar(
-                FQN,
-                Feature.NON_NULLABLE,
-                DataTypes.STRING.getTypeSignature()
-            ).withFeature(Feature.DETERMINISTIC),
+                    FQN,
+                    DataTypes.STRING.getTypeSignature()
+                ).withFeature(Feature.DETERMINISTIC)
+                .withFeature(Feature.NON_NULLABLE),
             CurrentDatabaseFunction::new
         );
     }

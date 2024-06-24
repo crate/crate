@@ -32,11 +32,11 @@ public final class AsciiFunction {
     public static void register(Functions.Builder module) {
         module.add(
             Signature.scalar(
-                "ascii",
-                Scalar.Feature.NULLABLE,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.INTEGER.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC),
+                    "ascii",
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.INTEGER.getTypeSignature()
+                ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new UnaryScalar<>(signature, boundSignature, DataTypes.STRING, AsciiFunction::ascii)
         );

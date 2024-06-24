@@ -117,11 +117,10 @@ public interface Symbol extends Writeable, Accountable {
                 Signature
                     .scalar(
                         name,
-                        Scalar.Feature.CONDITIONAL,
                         TypeSignature.parse("E"),
                         TypeSignature.parse("V"),
-                        TypeSignature.parse("V"))
-                    .withTypeVariableConstraints(
+                        TypeSignature.parse("V")
+                    ).withTypeVariableConstraints(
                         TypeVariableConstraint.typeVariable("E"),
                         TypeVariableConstraint.typeVariable("V"))
                     .withFeature(Scalar.Feature.DETERMINISTIC),
@@ -135,7 +134,6 @@ public interface Symbol extends Writeable, Accountable {
                 Signature
                     .scalar(
                         ImplicitCastFunction.NAME,
-                        Scalar.Feature.CONDITIONAL,
                         TypeSignature.parse("E"),
                         DataTypes.STRING.getTypeSignature(),
                         DataTypes.UNDEFINED.getTypeSignature())

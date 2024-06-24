@@ -40,11 +40,11 @@ public class ArrayFunction extends Scalar<Object, Object> {
     public static final Signature SIGNATURE =
         Signature.scalar(
                 NAME,
-                Feature.NON_NULLABLE,
                 TypeSignature.parse("E"),
                 TypeSignature.parse("array(E)")
             )
             .withTypeVariableConstraints(typeVariable("E"))
+            .withFeature(Feature.NON_NULLABLE)
             .withFeature(Feature.DETERMINISTIC)
             .withVariableArity();
 

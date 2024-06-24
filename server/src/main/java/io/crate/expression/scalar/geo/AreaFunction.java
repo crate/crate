@@ -60,10 +60,10 @@ public final class AreaFunction {
         builder.add(
             scalar(
                 FUNCTION_NAME,
-                Scalar.Feature.NULLABLE,
                 DataTypes.GEO_SHAPE.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC),
+            ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new UnaryScalar<>(
                     signature,

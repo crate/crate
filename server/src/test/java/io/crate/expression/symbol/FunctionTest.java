@@ -22,7 +22,6 @@
 package io.crate.expression.symbol;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
-import static io.crate.metadata.Scalar.NULLABILITY;
 import static io.crate.testing.TestingHelpers.createReference;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -36,7 +35,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import io.crate.common.collections.Sets;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.testing.TestingHelpers;
@@ -48,11 +46,11 @@ public class FunctionTest extends ESTestCase {
     private DataType<?> returnType = TestingHelpers.randomPrimitiveType();
 
     private Signature signature = Signature.scalar(
-        randomAsciiLettersOfLength(10),
-        randomFrom(NULLABILITY),
-        DataTypes.BOOLEAN.getTypeSignature(),
-        returnType.getTypeSignature()
-    ).withFeatures(randomFeatures());
+            randomAsciiLettersOfLength(10),
+            DataTypes.BOOLEAN.getTypeSignature(),
+            returnType.getTypeSignature()
+        ).withFeature(Scalar.Feature.DETERMINISTIC)
+        .withFeatures(randomFeatures());
 
 
     @Test
@@ -113,7 +111,7 @@ public class FunctionTest extends ESTestCase {
 
     private static Set<Scalar.Feature> randomFeatures() {
         Set<Scalar.Feature> features = EnumSet.noneOf(Scalar.Feature.class);
-        for (Scalar.Feature feature : Sets.difference(EnumSet.allOf(Scalar.Feature.class), NULLABILITY)) {
+        for (Scalar.Feature feature : Scalar.Feature.values()) {
             if (randomBoolean()) {
                 features.add(feature);
             }

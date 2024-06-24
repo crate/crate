@@ -73,11 +73,11 @@ public final class EqOperator extends Operator<Object> {
 
     public static final Signature SIGNATURE = Signature.scalar(
             NAME,
-            Feature.NULLABLE,
             TypeSignature.parse("E"),
             TypeSignature.parse("E"),
             Operator.RETURN_TYPE.getTypeSignature())
         .withFeature(Feature.DETERMINISTIC)
+        .withFeature(Feature.NULLABLE)
         .withTypeVariableConstraints(typeVariable("E"));
 
     public static void register(Functions.Builder builder) {

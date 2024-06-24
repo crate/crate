@@ -49,7 +49,6 @@ public class DateFormatFunction extends Scalar<String, Object> {
             module.add(
                 Signature.scalar(
                     NAME,
-                    Feature.CONDITIONAL,
                     dataType.getTypeSignature(),
                     DataTypes.STRING.getTypeSignature()
                 ).withFeature(Feature.DETERMINISTIC),
@@ -60,7 +59,6 @@ public class DateFormatFunction extends Scalar<String, Object> {
             module.add(
                 Signature.scalar(
                     NAME,
-                    Feature.CONDITIONAL,
                     DataTypes.STRING.getTypeSignature(),
                     dataType.getTypeSignature(),
                     DataTypes.STRING.getTypeSignature()
@@ -72,7 +70,6 @@ public class DateFormatFunction extends Scalar<String, Object> {
             module.add(
                 Signature.scalar(
                     NAME,
-                    Feature.CONDITIONAL,
                     DataTypes.STRING.getTypeSignature(),
                     DataTypes.STRING.getTypeSignature(),
                     dataType.getTypeSignature(),

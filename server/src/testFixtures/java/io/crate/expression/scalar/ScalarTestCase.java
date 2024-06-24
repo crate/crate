@@ -256,7 +256,7 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
 
         actualValue = scalar.evaluate(txnCtx, sqlExpressions.nodeCtx, arguments);
         assertThat((T) actualValue).satisfies(expectedValue);
-        if (scalar.signature().isNonNullable()) {
+        if (scalar.signature().hasFeature(Scalar.Feature.NON_NULLABLE)) {
             assertThat(actualValue).isNotNull();
         }
     }

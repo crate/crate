@@ -40,12 +40,11 @@ public final class ObjDescriptionFunction extends Scalar<String, Object> {
     public static void register(Functions.Builder module) {
         module.add(
             Signature.scalar(
-                    FQN,
-                    Feature.CONDITIONAL,
-                    DataTypes.INTEGER.getTypeSignature(),
-                    DataTypes.STRING.getTypeSignature(),
-                    DataTypes.STRING.getTypeSignature())
-                .withFeature(Feature.DETERMINISTIC),
+                FQN,
+                DataTypes.INTEGER.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature()
+            ).withFeature(Feature.DETERMINISTIC),
             ObjDescriptionFunction::new
         );
     }

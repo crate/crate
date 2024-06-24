@@ -45,7 +45,6 @@ public class StringPaddingFunction extends Scalar<String, Object> {
         module.add(
             Signature.scalar(
                 LNAME,
-                Feature.CONDITIONAL,
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
@@ -61,7 +60,6 @@ public class StringPaddingFunction extends Scalar<String, Object> {
         module.add(
             Signature.scalar(
                 LNAME,
-                Feature.CONDITIONAL,
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
@@ -78,7 +76,6 @@ public class StringPaddingFunction extends Scalar<String, Object> {
         module.add(
             Signature.scalar(
                 RNAME,
-                Feature.CONDITIONAL,
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
@@ -94,7 +91,6 @@ public class StringPaddingFunction extends Scalar<String, Object> {
         module.add(
             Signature.scalar(
                 RNAME,
-                Feature.CONDITIONAL,
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),

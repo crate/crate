@@ -34,11 +34,11 @@ public final class ReverseFunction {
     public static void register(Functions.Builder module) {
         module.add(
             Signature.scalar(
-                NAME,
-                Scalar.Feature.NULLABLE,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC),
+                    NAME,
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature()
+                ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) -> {
                 return new UnaryScalar<>(
                     signature,

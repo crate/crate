@@ -25,6 +25,7 @@ import static io.crate.metadata.Scalar.Feature.DETERMINISTIC;
 import static io.crate.metadata.Scalar.Feature.NULLABLE;
 
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Locale;
 
@@ -108,11 +109,10 @@ public class HasTablePrivilegeFunction {
         module.add(
             Signature.scalar(
                 NAME,
-                NULLABLE,
                 DataTypes.STRING.getTypeSignature(), // Table
                 DataTypes.STRING.getTypeSignature(), // Privilege
                 DataTypes.BOOLEAN.getTypeSignature()
-            ).withFeature(DETERMINISTIC),
+            ).withFeatures(EnumSet.of(DETERMINISTIC, NULLABLE)),
             (signature, boundSignature) -> new HasPrivilegeFunction(
                 signature,
                 boundSignature,
@@ -126,11 +126,10 @@ public class HasTablePrivilegeFunction {
         module.add(
             Signature.scalar(
                 NAME,
-                NULLABLE,
                 DataTypes.INTEGER.getTypeSignature(), // Table
                 DataTypes.STRING.getTypeSignature(),  // Privilege
                 DataTypes.BOOLEAN.getTypeSignature()
-            ).withFeature(DETERMINISTIC),
+            ).withFeatures(EnumSet.of(DETERMINISTIC, NULLABLE)),
             (signature, boundSignature) -> new HasPrivilegeFunction(
                 signature,
                 boundSignature,
@@ -143,12 +142,11 @@ public class HasTablePrivilegeFunction {
         module.add(
             Signature.scalar(
                 NAME,
-                NULLABLE,
                 DataTypes.STRING.getTypeSignature(), // User
                 DataTypes.STRING.getTypeSignature(), // Table
                 DataTypes.STRING.getTypeSignature(), // Privilege
                 DataTypes.BOOLEAN.getTypeSignature()
-            ).withFeature(DETERMINISTIC),
+            ).withFeatures(EnumSet.of(DETERMINISTIC, NULLABLE)),
             (signature, boundSignature) -> new HasPrivilegeFunction(
                 signature,
                 boundSignature,
@@ -161,12 +159,11 @@ public class HasTablePrivilegeFunction {
         module.add(
             Signature.scalar(
                 NAME,
-                NULLABLE,
                 DataTypes.STRING.getTypeSignature(),  // User
                 DataTypes.INTEGER.getTypeSignature(), // Table
                 DataTypes.STRING.getTypeSignature(),  // Privilege
                 DataTypes.BOOLEAN.getTypeSignature()
-            ).withFeature(DETERMINISTIC),
+            ).withFeatures(EnumSet.of(DETERMINISTIC, NULLABLE)),
             (signature, boundSignature) -> new HasPrivilegeFunction(
                 signature,
                 boundSignature,
@@ -179,12 +176,11 @@ public class HasTablePrivilegeFunction {
         module.add(
             Signature.scalar(
                 NAME,
-                NULLABLE,
                 DataTypes.INTEGER.getTypeSignature(), // User
                 DataTypes.STRING.getTypeSignature(),  // Table
                 DataTypes.STRING.getTypeSignature(),  // Privilege
                 DataTypes.BOOLEAN.getTypeSignature()
-            ).withFeature(DETERMINISTIC),
+            ).withFeatures(EnumSet.of(DETERMINISTIC, NULLABLE)),
             (signature, boundSignature) -> new HasPrivilegeFunction(
                 signature,
                 boundSignature,
@@ -197,12 +193,11 @@ public class HasTablePrivilegeFunction {
         module.add(
             Signature.scalar(
                 NAME,
-                NULLABLE,
                 DataTypes.INTEGER.getTypeSignature(), // User
                 DataTypes.INTEGER.getTypeSignature(), // Table
                 DataTypes.STRING.getTypeSignature(),  // Privilege
                 DataTypes.BOOLEAN.getTypeSignature()
-            ).withFeature(DETERMINISTIC),
+            ).withFeatures(EnumSet.of(DETERMINISTIC, NULLABLE)),
             (signature, boundSignature) -> new HasPrivilegeFunction(
                 signature,
                 boundSignature,

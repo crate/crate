@@ -46,12 +46,12 @@ public class ArrayCatFunction extends Scalar<List<Object>, List<Object>> {
         module.add(
             Signature.scalar(
                     NAME,
-                    Feature.NON_NULLABLE,
                     TypeSignature.parse("array(E)"),
                     TypeSignature.parse("array(E)"),
                     TypeSignature.parse("array(E)")
-                ).withTypeVariableConstraints(typeVariable("E"))
-                .withFeature(Feature.DETERMINISTIC),
+                ).withFeature(Feature.DETERMINISTIC)
+                .withFeature(Feature.NON_NULLABLE)
+                .withTypeVariableConstraints(typeVariable("E")),
             ArrayCatFunction::new
         );
     }

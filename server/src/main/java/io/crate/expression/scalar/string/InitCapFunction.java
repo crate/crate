@@ -32,11 +32,11 @@ public final class InitCapFunction {
     public static void register(Functions.Builder module) {
         module.add(
             Signature.scalar(
-                "initcap",
-                Scalar.Feature.NULLABLE,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC),
+                    "initcap",
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature()
+                ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new UnaryScalar<>(
                     signature,

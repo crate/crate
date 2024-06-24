@@ -69,7 +69,6 @@ public class DateTruncFunction extends Scalar<Long, Object> {
             module.add(
                 Signature.scalar(
                     NAME,
-                    Feature.CONDITIONAL,
                     DataTypes.STRING.getTypeSignature(),
                     dataType.getTypeSignature(),
                     DataTypes.TIMESTAMPZ.getTypeSignature()
@@ -81,7 +80,6 @@ public class DateTruncFunction extends Scalar<Long, Object> {
             module.add(
                 Signature.scalar(
                     NAME,
-                    Feature.CONDITIONAL,
                     DataTypes.STRING.getTypeSignature(),
                     DataTypes.STRING.getTypeSignature(),
                     dataType.getTypeSignature(),

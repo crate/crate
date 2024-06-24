@@ -53,7 +53,6 @@ public class ToCharFunction extends Scalar<String, Object> {
                 module.add(
                     Signature.scalar(
                         NAME,
-                        Feature.CONDITIONAL,
                         type.getTypeSignature(),
                         DataTypes.STRING.getTypeSignature(),
                         DataTypes.STRING.getTypeSignature()
@@ -70,7 +69,6 @@ public class ToCharFunction extends Scalar<String, Object> {
         module.add(
             Signature.scalar(
                 NAME,
-                Feature.CONDITIONAL,
                 DataTypes.INTERVAL.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()

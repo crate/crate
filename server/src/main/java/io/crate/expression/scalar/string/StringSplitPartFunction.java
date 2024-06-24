@@ -41,7 +41,6 @@ public final class StringSplitPartFunction extends Scalar<String, Object> {
         module.add(
             Signature.scalar(
                 "split_part",
-                Feature.CONDITIONAL,
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature(),

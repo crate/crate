@@ -45,12 +45,12 @@ public class ArrayAppendFunction extends Scalar<List<Object>, Object> {
         builder.add(
             Signature.scalar(
                     NAME,
-                    Feature.NON_NULLABLE,
                     TypeSignature.parse("array(E)"),
                     TypeSignature.parse("E"),
                     TypeSignature.parse("array(E)")
                 ).withTypeVariableConstraints(typeVariable("E"))
-                .withFeature(Feature.DETERMINISTIC),
+                .withFeature(Feature.DETERMINISTIC)
+                .withFeature(Feature.NON_NULLABLE),
             ArrayAppendFunction::new
         );
     }

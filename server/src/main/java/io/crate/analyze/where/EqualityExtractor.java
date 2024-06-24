@@ -68,7 +68,7 @@ public class EqualityExtractor {
 
     private static final int MAX_ITERATIONS = 10_000;
     private static final Function NULL_MARKER = new Function(
-        Signature.scalar("null_marker", Scalar.Feature.CONDITIONAL, DataTypes.UNDEFINED.getTypeSignature())
+        Signature.scalar("null_marker", DataTypes.UNDEFINED.getTypeSignature())
             .withFeature(Scalar.Feature.DETERMINISTIC),
         List.of(),
         DataTypes.UNDEFINED

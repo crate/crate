@@ -63,11 +63,11 @@ public class DistanceFunction extends Scalar<Double, Point> {
         module.add(
             scalar(
                 NAME,
-                Feature.NULLABLE,
                 DataTypes.GEO_POINT.getTypeSignature(),
                 DataTypes.GEO_POINT.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()
-            ).withFeature(Feature.DETERMINISTIC),
+            ).withFeature(Feature.DETERMINISTIC)
+                .withFeature(Feature.NULLABLE),
             DistanceFunction::new
         );
     }

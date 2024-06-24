@@ -38,8 +38,9 @@ public class SignFunction {
 
     public static void register(Functions.Builder builder) {
         builder.add(
-            scalar(NAME, Scalar.Feature.NULLABLE, DataTypes.NUMERIC.getTypeSignature(), DataTypes.NUMERIC.getTypeSignature())
-                .withFeature(Scalar.Feature.DETERMINISTIC),
+            scalar(NAME, DataTypes.NUMERIC.getTypeSignature(), DataTypes.NUMERIC.getTypeSignature())
+                .withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) -> {
                 DataType<?> argType = boundSignature.argTypes().getFirst();
                 return new UnaryScalar<>(
@@ -53,8 +54,9 @@ public class SignFunction {
 
 
         builder.add(
-            scalar(NAME, Scalar.Feature.NULLABLE, DataTypes.DOUBLE.getTypeSignature(), DataTypes.DOUBLE.getTypeSignature())
-                .withFeature(Scalar.Feature.DETERMINISTIC),
+            scalar(NAME, DataTypes.DOUBLE.getTypeSignature(), DataTypes.DOUBLE.getTypeSignature())
+                .withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new DoubleScalar(signature, boundSignature, Math::signum)
         );

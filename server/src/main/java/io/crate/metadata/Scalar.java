@@ -65,7 +65,6 @@ import io.crate.role.Roles;
  */
 public abstract class Scalar<ReturnType, InputType> implements FunctionImplementation, FunctionToQuery {
 
-    public static final Set<Feature> NULLABILITY = EnumSet.of(Feature.NULLABLE, Feature.NON_NULLABLE, Feature.CONDITIONAL);
     public static final Set<Feature> DETERMINISTIC_ONLY = EnumSet.of(Feature.DETERMINISTIC);
     public static final Set<Feature> DETERMINISTIC_AND_COMPARISON_REPLACEMENT = EnumSet.of(
         Feature.DETERMINISTIC, Feature.COMPARISON_REPLACEMENT);
@@ -222,18 +221,12 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
         COMPARISON_REPLACEMENT,
         LAZY_ATTRIBUTES,
         /**
-         * If this feature is set, the function will return null only for null inputs.
+         * If this feature is set, the function will return for null argument(s) as result null.
          */
         NULLABLE,
         /**
          * If this feature is set, the function will never return null.
          */
-        NON_NULLABLE,
-        /**
-         * If this feature is set, the function may return null for non-null inputs.
-         * A non-scalar function is marked as a 'conditional' to prevent introducing another Nullability type
-         * or setting the nullability to null.
-         */
-        CONDITIONAL
+        NON_NULLABLE
     }
 }

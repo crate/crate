@@ -51,7 +51,6 @@ public class MapFunction extends Scalar<Object, Object> {
     public static final Signature SIGNATURE =
         Signature.scalar(
                 NAME,
-                Feature.CONDITIONAL,
                 TypeSignature.parse("text"),
                 TypeSignature.parse("V"),
                 // This is not 100% correct because each variadic `V` is type independent, resulting in a return type

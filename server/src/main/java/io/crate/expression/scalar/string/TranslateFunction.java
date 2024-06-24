@@ -44,7 +44,6 @@ public class TranslateFunction extends Scalar<String, String> {
         module.add(
             Signature.scalar(
                     "translate",
-                    Feature.CONDITIONAL,
                     DataTypes.STRING.getTypeSignature(),
                     DataTypes.STRING.getTypeSignature(),
                     DataTypes.STRING.getTypeSignature(),

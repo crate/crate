@@ -227,7 +227,7 @@ public class UserDefinedFunctionService extends AbstractLifecycleComponent imple
         var functionName = new FunctionName(udf.schema(), udf.name());
         List<TypeSignature> typeSignatures = new ArrayList<>(Lists.map(udf.argumentTypes(), DataType::getTypeSignature));
         typeSignatures.add(udf.returnType().getTypeSignature());
-        var signature = Signature.scalar(functionName, Scalar.Feature.CONDITIONAL, typeSignatures.toArray(TypeSignature[]::new))
+        var signature = Signature.scalar(functionName, typeSignatures.toArray(TypeSignature[]::new))
             .withFeature(Scalar.Feature.DETERMINISTIC);
 
         final Scalar<?, ?> scalar;

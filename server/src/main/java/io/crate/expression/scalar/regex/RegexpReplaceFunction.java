@@ -50,7 +50,6 @@ public final class RegexpReplaceFunction extends Scalar<String, String> {
         builder.add(
             Signature.scalar(
                 NAME,
-                Feature.CONDITIONAL,
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
@@ -61,7 +60,6 @@ public final class RegexpReplaceFunction extends Scalar<String, String> {
         builder.add(
             Signature.scalar(
                 NAME,
-                Feature.CONDITIONAL,
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),

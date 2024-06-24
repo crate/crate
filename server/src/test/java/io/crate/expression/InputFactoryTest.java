@@ -64,12 +64,12 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
     private Function add = new Function(
         Signature.scalar(
                 ArithmeticFunctions.Names.ADD,
-                Scalar.Feature.NULLABLE,
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature()
             )
-            .withFeatures(Scalar.DETERMINISTIC_AND_COMPARISON_REPLACEMENT),
+            .withFeatures(Scalar.DETERMINISTIC_AND_COMPARISON_REPLACEMENT)
+            .withFeature(Scalar.Feature.NULLABLE),
         List.of(new InputColumn(1, DataTypes.INTEGER), Literal.of(10)),
         DataTypes.INTEGER
     );

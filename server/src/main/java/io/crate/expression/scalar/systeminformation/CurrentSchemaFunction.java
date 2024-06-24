@@ -21,6 +21,8 @@
 
 package io.crate.expression.scalar.systeminformation;
 
+import java.util.EnumSet;
+
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
@@ -48,9 +50,8 @@ public class CurrentSchemaFunction extends Scalar<String, Object> {
         module.add(
             Signature.scalar(
                 FQN,
-                Feature.NON_NULLABLE,
                 DataTypes.STRING.getTypeSignature()
-            ),
+            ).withFeatures(EnumSet.of(Feature.NON_NULLABLE)),
             CurrentSchemaFunction::new
         );
     }

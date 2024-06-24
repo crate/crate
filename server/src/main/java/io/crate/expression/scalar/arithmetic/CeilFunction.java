@@ -43,8 +43,9 @@ public final class CeilFunction {
             assert returnType != null : "Could not get integral type of " + type;
             for (var name : List.of(CEIL, CEILING)) {
                 module.add(
-                    scalar(name, Scalar.Feature.NULLABLE, typeSignature, returnType.getTypeSignature())
-                        .withFeature(Scalar.Feature.DETERMINISTIC),
+                    scalar(name, typeSignature, returnType.getTypeSignature())
+                        .withFeature(Scalar.Feature.DETERMINISTIC)
+                        .withFeature(Scalar.Feature.NULLABLE),
                     (signature, boundSignature) ->
                         new UnaryScalar<>(
                             signature,

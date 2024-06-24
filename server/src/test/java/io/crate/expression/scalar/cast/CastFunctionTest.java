@@ -248,12 +248,11 @@ public class CastFunctionTest extends ScalarTestCase {
 
         var signature = Signature.scalar(
                 ExplicitCastFunction.NAME,
-                Scalar.Feature.CONDITIONAL,
                 TypeSignature.parse("E"),
                 TypeSignature.parse("V"),
                 TypeSignature.parse("V")
-            ).withTypeVariableConstraints(typeVariable("E"), typeVariable("V"))
-            .withFeature(Scalar.Feature.DETERMINISTIC);
+            ).withFeature(Scalar.Feature.DETERMINISTIC)
+            .withTypeVariableConstraints(typeVariable("E"), typeVariable("V"));
         var functionImpl = sqlExpressions.nodeCtx.functions().getQualified(
             signature,
             List.of(DataTypes.UNTYPED_OBJECT, returnType),

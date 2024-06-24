@@ -65,7 +65,8 @@ public class CaseFunction extends Scalar<Object, Object> {
         TypeSignature t = TypeSignature.parse("T");
         TypeSignature bool = TypeSignature.parse("boolean");
         module.add(
-            Signature.scalar(NAME, Feature.CONDITIONAL, bool, t, t)
+            Signature.scalar(
+                    NAME, bool, t, t)
                 .withFeature(Feature.DETERMINISTIC)
                 .withTypeVariableConstraints(typeVariable("T"))
                 .withVariableArityGroup(List.of(bool, t)),

@@ -24,6 +24,8 @@ package io.crate.expression.scalar;
 
 import static io.crate.metadata.functions.Signature.scalar;
 
+import java.util.EnumSet;
+
 import org.joda.time.DateTimeZone;
 import org.joda.time.Interval;
 import org.joda.time.Period;
@@ -48,21 +50,19 @@ public class AgeFunction extends Scalar<Period, Object> {
         builder.add(
             scalar(
                 NAME,
-                Feature.NULLABLE,
                 DataTypes.TIMESTAMP.getTypeSignature(),
                 DataTypes.INTERVAL.getTypeSignature()
-            ),
+            ).withFeatures(EnumSet.of(Feature.NULLABLE)),
             AgeFunction::new
         );
 
         builder.add(
             scalar(
                 NAME,
-                Feature.NULLABLE,
                 DataTypes.TIMESTAMP.getTypeSignature(),
                 DataTypes.TIMESTAMP.getTypeSignature(),
                 DataTypes.INTERVAL.getTypeSignature()
-            ),
+            ).withFeatures(EnumSet.of(Feature.NULLABLE)),
             AgeFunction::new
         );
     }

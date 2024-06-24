@@ -51,7 +51,6 @@ public class SubscriptObjectFunction extends Scalar<Object, Map<String, Object>>
     public static final Signature SIGNATURE = Signature
         .scalar(
             NAME,
-            Feature.CONDITIONAL,
             DataTypes.UNTYPED_OBJECT.getTypeSignature(),
             DataTypes.STRING.getTypeSignature(),
             DataTypes.UNDEFINED.getTypeSignature())

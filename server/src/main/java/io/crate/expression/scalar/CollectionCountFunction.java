@@ -43,11 +43,11 @@ public class CollectionCountFunction extends Scalar<Long, List<Object>> {
         builder.add(
             Signature.scalar(
                     NAME,
-                    Feature.NULLABLE,
                     TypeSignature.parse("array(E)"),
                     DataTypes.LONG.getTypeSignature()
                 ).withTypeVariableConstraints(typeVariable("E"))
-                .withFeature(Feature.DETERMINISTIC),
+                .withFeature(Feature.DETERMINISTIC)
+                .withFeature(Feature.NULLABLE),
             CollectionCountFunction::new
         );
     }

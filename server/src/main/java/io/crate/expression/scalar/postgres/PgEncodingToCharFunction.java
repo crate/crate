@@ -42,11 +42,10 @@ public class PgEncodingToCharFunction extends Scalar<String, Integer> {
         module.add(
             scalar(
                 FQN,
-                Feature.CONDITIONAL,
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
             ).withFeature(Feature.DETERMINISTIC),
-            PgEncodingToCharFunction::new
+            PgEncodingToCharFunction:: new
         );
     }
 

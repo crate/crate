@@ -36,7 +36,6 @@ public final class StringRepeatFunction extends Scalar<String, Object> {
         module.add(
             Signature.scalar(
                 "repeat",
-                Feature.CONDITIONAL,
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()

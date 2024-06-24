@@ -41,44 +41,44 @@ public class IntervalArithmeticFunctions {
     public static void register(Functions.Builder module) {
         module.add(
             Signature.scalar(
-                ArithmeticFunctions.Names.ADD,
-                Scalar.Feature.NULLABLE,
-                DataTypes.INTERVAL.getTypeSignature(),
-                DataTypes.INTERVAL.getTypeSignature(),
-                DataTypes.INTERVAL.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC),
+                    ArithmeticFunctions.Names.ADD,
+                    DataTypes.INTERVAL.getTypeSignature(),
+                    DataTypes.INTERVAL.getTypeSignature(),
+                    DataTypes.INTERVAL.getTypeSignature()
+                ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new IntervalIntervalArithmeticScalar(Period::plus, signature, boundSignature)
         );
         module.add(
             Signature.scalar(
-                ArithmeticFunctions.Names.SUBTRACT,
-                Scalar.Feature.NULLABLE,
-                DataTypes.INTERVAL.getTypeSignature(),
-                DataTypes.INTERVAL.getTypeSignature(),
-                DataTypes.INTERVAL.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC),
+                    ArithmeticFunctions.Names.SUBTRACT,
+                    DataTypes.INTERVAL.getTypeSignature(),
+                    DataTypes.INTERVAL.getTypeSignature(),
+                    DataTypes.INTERVAL.getTypeSignature()
+                ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new IntervalIntervalArithmeticScalar(Period::minus, signature, boundSignature)
         );
         module.add(
                 Signature.scalar(
-                    ArithmeticFunctions.Names.MULTIPLY,
-                    Scalar.Feature.NULLABLE,
-                    DataTypes.INTEGER.getTypeSignature(),
-                    DataTypes.INTERVAL.getTypeSignature(),
-                    DataTypes.INTERVAL.getTypeSignature()
-                ).withFeature(Scalar.Feature.DETERMINISTIC),
+                        ArithmeticFunctions.Names.MULTIPLY,
+                        DataTypes.INTEGER.getTypeSignature(),
+                        DataTypes.INTERVAL.getTypeSignature(),
+                        DataTypes.INTERVAL.getTypeSignature()
+                    ).withFeature(Scalar.Feature.DETERMINISTIC)
+                    .withFeature(Scalar.Feature.NULLABLE),
             MultiplyIntervalByIntegerScalar::new
         );
         module.add(
                 Signature.scalar(
-                    ArithmeticFunctions.Names.MULTIPLY,
-                    Scalar.Feature.NULLABLE,
-                    DataTypes.INTERVAL.getTypeSignature(),
-                    DataTypes.INTEGER.getTypeSignature(),
-                    DataTypes.INTERVAL.getTypeSignature()
-                ).withFeature(Scalar.Feature.DETERMINISTIC),
+                        ArithmeticFunctions.Names.MULTIPLY,
+                        DataTypes.INTERVAL.getTypeSignature(),
+                        DataTypes.INTEGER.getTypeSignature(),
+                        DataTypes.INTERVAL.getTypeSignature()
+                    ).withFeature(Scalar.Feature.DETERMINISTIC)
+                    .withFeature(Scalar.Feature.NULLABLE),
             MultiplyIntervalByIntegerScalar::new
         );
     }

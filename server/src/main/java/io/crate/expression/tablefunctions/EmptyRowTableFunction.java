@@ -44,6 +44,7 @@ public class EmptyRowTableFunction {
     public static void register(Functions.Builder builder) {
         builder.add(
             Signature.table(NAME, RowType.EMPTY.getTypeSignature())
+                .withFeature(Scalar.Feature.NON_NULLABLE)
                 .withFeature(Scalar.Feature.DETERMINISTIC),
             EmptyRowTableFunctionImplementation::new
         );

@@ -96,12 +96,11 @@ public abstract sealed class AnyOperator extends Operator<Object>
         builder.add(
             Signature.scalar(
                     name,
-                    Feature.CONDITIONAL,
                     TypeSignature.parse("E"),
                     TypeSignature.parse("array(E)"),
-                    Operator.RETURN_TYPE.getTypeSignature())
-                .withFeature(Feature.DETERMINISTIC)
-                .withTypeVariableConstraints(TypeVariableConstraint.typeVariable("E")),
+                    Operator.RETURN_TYPE.getTypeSignature()
+                ).withTypeVariableConstraints(TypeVariableConstraint.typeVariable("E"))
+                .withFeature(Feature.DETERMINISTIC),
             operatorFactory
         );
     }

@@ -44,7 +44,6 @@ public class SymbolFormatterTest extends ESTestCase {
         Function f = new Function(
             Signature.scalar(
                 "foo",
-                Scalar.Feature.CONDITIONAL,
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.UNDEFINED.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()

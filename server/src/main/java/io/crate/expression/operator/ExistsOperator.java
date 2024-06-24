@@ -39,11 +39,11 @@ public class ExistsOperator extends Operator<List<Object>> {
     public static void register(Functions.Builder builder) {
         Signature signature = Signature.scalar(
                 NAME,
-                Feature.NULLABLE,
                 TypeSignature.parse("array(E)"),
                 Operator.RETURN_TYPE.getTypeSignature()
-            ).withFeature(Feature.DETERMINISTIC)
-            .withTypeVariableConstraints(TypeVariableConstraint.typeVariable("E"));
+            ).withTypeVariableConstraints(TypeVariableConstraint.typeVariable("E"))
+            .withFeature(Feature.DETERMINISTIC)
+            .withFeature(Feature.NULLABLE);
         builder.add(signature, ExistsOperator::new);
     }
 

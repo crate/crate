@@ -70,7 +70,7 @@ public class HasPrivilegeFunction extends Scalar<Boolean, Object> {
                                 CheckPrivilege checkPrivilege,
                                 ParsePermissions parsePermissions) {
         super(signature, boundSignature);
-        assert signature().isNullable() : "HasPrivilegeFunctions are nullable";
+        assert signature().hasFeature(Feature.NULLABLE) : "HasPrivilegeFunctions are nullable";
         this.getUser = getUser;
         this.checkPrivilege = checkPrivilege;
         this.parsePermissions = parsePermissions;

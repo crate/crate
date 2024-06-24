@@ -53,7 +53,7 @@ public class RegexpMatchOperator extends Operator<String> {
         builder.add(
             Signature.scalar(
                 NAME,
-                    Feature.CONDITIONAL, DataTypes.STRING.getTypeSignature(),
+                DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
                 Operator.RETURN_TYPE.getTypeSignature()
             ).withFeature(Feature.DETERMINISTIC),

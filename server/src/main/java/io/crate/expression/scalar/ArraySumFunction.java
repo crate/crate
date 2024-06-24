@@ -47,11 +47,11 @@ public class ArraySumFunction<T extends Number, R extends Number> extends Scalar
 
     private static <T, U> Signature signature(DataType<T> elementType, DataType<U> returnType) {
         return Signature.scalar(
-            NAME,
-            Feature.NULLABLE,
-            new ArrayType<>(elementType).getTypeSignature(),
-            returnType.getTypeSignature()
-        ).withFeature(Feature.DETERMINISTIC);
+                NAME,
+                new ArrayType<>(elementType).getTypeSignature(),
+                returnType.getTypeSignature()
+            ).withFeature(Feature.DETERMINISTIC)
+            .withFeature(Feature.NULLABLE);
     }
 
     public static void register(Functions.Builder builder) {

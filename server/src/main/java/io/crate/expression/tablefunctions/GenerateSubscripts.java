@@ -55,7 +55,8 @@ public final class GenerateSubscripts<T> extends TableFunctionImplementation<T> 
                     DataTypes.INTEGER.getTypeSignature(),
                     DataTypes.INTEGER.getTypeSignature()
                 ).withTypeVariableConstraints(typeVariable("E"))
-                .withFeature(Feature.DETERMINISTIC),
+                .withFeature(Feature.DETERMINISTIC)
+                .withFeature(Feature.NON_NULLABLE),
             GenerateSubscripts::new
         );
         builder.add(
@@ -66,7 +67,8 @@ public final class GenerateSubscripts<T> extends TableFunctionImplementation<T> 
                     DataTypes.BOOLEAN.getTypeSignature(),
                     DataTypes.INTEGER.getTypeSignature()
                 ).withTypeVariableConstraints(typeVariable("E"))
-                .withFeature(Feature.DETERMINISTIC),
+                .withFeature(Feature.DETERMINISTIC)
+                .withFeature(Feature.NON_NULLABLE),
             GenerateSubscripts::new
         );
     }
