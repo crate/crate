@@ -72,14 +72,33 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
         return new DataDef<>(type, type.getTypeSignature().toString(), DataTypeTesting.getDataGenerator(type));
     }
 
-    @Test
-    public void test_lucene_reference_resolver_round_trip() throws Exception {
+    public void test_reference_resolver() throws Exception {
         DataDef<T> dataDef = getDataDef();
-        StorageSupport<? super T> storageSupport = dataDef.type.storageSupport();
-        assumeTrue("Data type " + dataDef.type + " does not support storage", storageSupport != null);
+        doReferenceResolveTest(dataDef.type, dataDef.definition, dataDef.data.get());
+    }
+
+    public void test_reference_resolver_index_off() throws Exception {
+        DataDef<T> dataDef = getDataDef();
+        doReferenceResolveTest(dataDef.type, dataDef.definition + " INDEX OFF", dataDef.data.get());
+    }
+
+    public void test_reference_resolver_docvalues_off() throws Exception {
+        DataDef<T> dataDef = getDataDef();
+        doReferenceResolveTest(dataDef.type, dataDef.definition + " STORAGE WITH (columnstore=false)", dataDef.data.get());
+    }
+
+    public void test_reference_resolver_index_and_docvalues_off() throws Exception {
+        DataDef<T> dataDef = getDataDef();
+        doReferenceResolveTest(dataDef.type, dataDef.definition + " INDEX OFF STORAGE WITH (columnstore=false)", dataDef.data.get());
+    }
+
+    protected void doReferenceResolveTest(DataType<T> type, String definition, T data) throws Exception {
+
+        StorageSupport<? super T> storageSupport = type.storageSupport();
+        assumeTrue("Data type " + type + " does not support storage", storageSupport != null);
 
         var sqlExecutor = SQLExecutor.of(clusterService)
-            .addTable("create table tbl (id int, x " + dataDef.definition + ")");
+            .addTable("create table tbl (id int, x " + definition + ")");
 
         DocTableInfo table = sqlExecutor.resolveTableInfo("tbl");
         Reference reference = table.getReference(ColumnIdent.of("x"));
@@ -91,10 +110,9 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
                 table,
                 clusterService.state(),
                 Version.CURRENT)) {
-            T value = dataDef.data.get();
 
             Indexer indexer = getIndexer(sqlExecutor, table.ident().name(), "x");
-            ParsedDocument doc = indexer.index(item(value));
+            ParsedDocument doc = indexer.index(item(data));
             IndexWriter writer = indexEnv.writer();
             writer.addDocument(doc.doc().getFields());
             writer.commit();
@@ -129,7 +147,7 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
             docValueImpl.startCollect(collectorContext);
             docValueImpl.setNextReader(readerContext);
             docValueImpl.setNextDocId(nextDoc);
-            assertEquals((T) docValueImpl.value(), value);
+            assertEquals((T) docValueImpl.value(), data);
         }
     }
 

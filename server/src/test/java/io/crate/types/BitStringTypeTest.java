@@ -21,6 +21,7 @@
 
 package io.crate.types;
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.assumeFalse;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.function.Supplier;
@@ -76,5 +77,15 @@ public class BitStringTypeTest extends DataTypeTestCase<BitString> {
         BitStringType type = new BitStringType(4);
         BitString result = type.explicitCast(BitString.ofRawBits("111"), SESSION_SETTINGS);
         assertThat(result).isEqualTo(BitString.ofRawBits("1110"));
+    }
+
+    @Override
+    public void test_reference_resolver_docvalues_off() throws Exception {
+        assumeFalse("BitStringType cannot disable column store", true);
+    }
+
+    @Override
+    public void test_reference_resolver_index_and_docvalues_off() throws Exception {
+        assumeFalse("BitStringType cannot disable column store", true);
     }
 }

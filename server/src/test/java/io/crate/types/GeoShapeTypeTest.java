@@ -21,6 +21,7 @@
 
 package io.crate.types;
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.assumeFalse;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -180,6 +181,21 @@ public class GeoShapeTypeTest extends DataTypeTestCase<Map<String, Object>> {
             Map<String, Object> map = type.sanitizeValue(shape);
             GeoJSONUtils.validateGeoJson(map);
         }
+    }
+
+    @Override
+    public void test_reference_resolver_docvalues_off() throws Exception {
+        assumeFalse("GeoShapeType cannot disable column store", true);
+    }
+
+    @Override
+    public void test_reference_resolver_index_and_docvalues_off() throws Exception {
+        assumeFalse("GeoShapeType cannot disable column store", true);
+    }
+
+    @Override
+    public void test_reference_resolver_index_off() throws Exception {
+        assumeFalse("GeoShapeType cannot disable index", true);
     }
 }
 
