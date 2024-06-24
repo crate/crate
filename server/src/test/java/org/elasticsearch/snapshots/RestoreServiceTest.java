@@ -29,7 +29,6 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.junit.Test;
@@ -63,7 +62,6 @@ public class RestoreServiceTest {
             restoreRequest,
             tablesToRestore,
             availableIndices,
-            Version.CURRENT,
             resolvedIndices,
             resolvedTemplates
         );
@@ -92,7 +90,6 @@ public class RestoreServiceTest {
             restoreRequest,
             tablesToRestore,
             availableIndices,
-            Version.CURRENT,
             resolvedIndices,
             resolvedTemplates
         );
@@ -121,7 +118,6 @@ public class RestoreServiceTest {
             restoreRequest,
             tablesToRestore,
             List.of(".partitioned.restoreme.046jcchm6krj4e1g60o30c0"),
-            Version.CURRENT,
             resolvedIndices,
             resolvedTemplates
         );
@@ -148,7 +144,6 @@ public class RestoreServiceTest {
             restoreRequest,
             tablesToRestore,
             List.of(""), // No available indices in the snapshot.
-            Version.CURRENT,
             resolvedIndices,
             resolvedTemplates
         );
@@ -179,7 +174,6 @@ public class RestoreServiceTest {
             restoreRequest,
             tablesToRestore,
             List.of(".partitioned.my_partitioned_table.046jcchm6krj4e1g60o30c0", "my_table"),
-            Version.CURRENT,
             resolvedIndices,
             resolvedTemplates
         );
