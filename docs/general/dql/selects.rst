@@ -1120,4 +1120,4 @@ in the ``HAVING`` clause, like in the result columns::
 .. _`3-valued logic`: https://en.wikipedia.org/wiki/Null_(SQL)#Comparisons_with_NULL_and_the_three-valued_logic_(3VL)
 .. _Lucene Regular Expressions: http://lucene.apache.org/core/4_9_0/core/org/apache/lucene/util/automaton/RegExp.html
 .. _PCRE: https://en.wikipedia.org/wiki/Perl_Compatible_Regular_Expressions
-.. _POSIX Extended Regular Expressions: http://en.wikipedia.org/wiki/Regular_expression#POSIX_extended
+.. _POSIX Extended Regular Expressions: http://en.wikipedia.org/wiki/Regular_expression#Metacharacters_in_POSIX_extended
