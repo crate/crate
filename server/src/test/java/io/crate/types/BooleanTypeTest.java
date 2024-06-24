@@ -21,6 +21,7 @@
 
 package io.crate.types;
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.assumeFalse;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -93,5 +94,15 @@ public class BooleanTypeTest extends DataTypeTestCase<Boolean> {
         assertThatThrownBy(() -> BooleanType.INSTANCE.implicitCast(Map.of()))
             .isExactlyInstanceOf(ClassCastException.class)
             .hasMessage("Can't cast '{}' to boolean");
+    }
+
+    @Override
+    public void test_reference_resolver_docvalues_off() throws Exception {
+        assumeFalse("BooleanType cannot disable column store", true);
+    }
+
+    @Override
+    public void test_reference_resolver_index_and_docvalues_off() throws Exception {
+        assumeFalse("BooleanType cannot disable column store", true);
     }
 }

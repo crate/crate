@@ -21,6 +21,7 @@
 
 package io.crate.types;
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.assumeFalse;
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -207,5 +208,20 @@ public class ObjectTypeTest extends DataTypeTestCase<Map<String, Object>> {
         assertThatThrownBy(() -> ObjectType.UNTYPED.implicitCast("foo"))
             .isExactlyInstanceOf(ConversionException.class)
             .hasMessage("Cannot cast value `foo` to type `object`");
+    }
+
+    @Override
+    public void test_reference_resolver_docvalues_off() throws Exception {
+        assumeFalse("ObjectType cannot disable column store", true);
+    }
+
+    @Override
+    public void test_reference_resolver_index_and_docvalues_off() throws Exception {
+        assumeFalse("ObjectType cannot disable column store", true);
+    }
+
+    @Override
+    public void test_reference_resolver_index_off() throws Exception {
+        assumeFalse("ObjectType cannot disable index", true);
     }
 }

@@ -21,6 +21,7 @@
 
 package io.crate.types;
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.assumeFalse;
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -51,5 +52,15 @@ public class IpTypeTest extends DataTypeTestCase<String> {
         assertThatThrownBy(() -> IpType.INSTANCE.implicitCast(Long.MIN_VALUE))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Failed to convert long value: -9223372036854775808 to ipv4 address");
+    }
+
+    @Override
+    public void test_reference_resolver_docvalues_off() throws Exception {
+        assumeFalse("IpType cannot disable column store", true);
+    }
+
+    @Override
+    public void test_reference_resolver_index_and_docvalues_off() throws Exception {
+        assumeFalse("IpType cannot disable column store", true);
     }
 }
