@@ -26,6 +26,7 @@ import static io.crate.types.GeoShapeType.Names.TREE_BKD;
 import static io.crate.types.GeoShapeType.Names.TREE_GEOHASH;
 import static io.crate.types.GeoShapeType.Names.TREE_LEGACY_QUADTREE;
 import static io.crate.types.GeoShapeType.Names.TREE_QUADTREE;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
@@ -1247,9 +1248,9 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_indexing_geo_shape_results_in_same_fields_as_document_mapper() throws Exception {
+        var sqlExecutor = SQLExecutor.of(clusterService);
         for (var indexType : List.of(TREE_GEOHASH, TREE_QUADTREE, TREE_LEGACY_QUADTREE, TREE_BKD)) {
-            var sqlExecutor = SQLExecutor.of(clusterService)
-                .addTable("create table tbl (x geo_shape index using " + indexType + ")");
+            sqlExecutor.addTable("create table tbl (x geo_shape index using " + indexType + ")");
 
             Supplier<Map<String, Object>> dataGenerator = DataTypeTesting.getDataGenerator(GeoShapeType.INSTANCE);
             DocTableInfo table = sqlExecutor.resolveTableInfo("tbl");
