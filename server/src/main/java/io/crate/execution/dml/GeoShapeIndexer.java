@@ -45,7 +45,6 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.locationtech.spatial4j.shape.Shape;
 
 import io.crate.execution.dml.Indexer.ColumnConstraint;
-import io.crate.execution.dml.Indexer.Synthetic;
 import io.crate.geo.GeoJSONUtils;
 import io.crate.geo.LatLonShapeUtils;
 import io.crate.metadata.ColumnIdent;
@@ -86,7 +85,7 @@ public class GeoShapeIndexer implements ValueIndexer<Map<String, Object>> {
     public void indexValue(Map<String, Object> value,
                            XContentBuilder xcontentBuilder,
                            Consumer<? super IndexableField> addField,
-                           Map<ColumnIdent, Synthetic> synthetics,
+                           Synthetics synthetics,
                            Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
         xcontentBuilder.map(value);
         indexableFieldsFactory.create(value, addField);

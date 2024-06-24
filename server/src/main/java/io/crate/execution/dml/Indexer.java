@@ -262,7 +262,7 @@ public class Indexer {
      *
      * Cached value must be cleared per-row.
      **/
-    public class Synthetic implements Input<Object> {
+    private static class Synthetic implements Input<Object> {
 
         private final Reference ref;
         private final Input<?> input;
@@ -276,10 +276,6 @@ public class Indexer {
             this.ref = ref;
             this.input = input;
             this.indexer = indexer;
-        }
-
-        public Reference ref() {
-            return ref;
         }
 
         public ValueIndexer<Object> indexer() {
@@ -696,7 +692,7 @@ public class Indexer {
                 continue;
             }
             ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) valueIndexers.get(i);
-            valueIndexer.collectSchemaUpdates(reference.valueType().sanitizeValue(value), onDynamicColumn, synthetics);
+            valueIndexer.collectSchemaUpdates(reference.valueType().sanitizeValue(value), onDynamicColumn, synthetics::get);
         }
         // Generated columns can result in new columns. For example: details object generated always as {\"a1\" = {\"b1\" = 'test'}},
         for (var entry : synthetics.entrySet()) {
@@ -713,7 +709,7 @@ public class Indexer {
             indexer.collectSchemaUpdates(
                 value,
                 onDynamicColumn,
-                synthetics
+                synthetics::get
             );
         }
         return newColumns;
@@ -762,7 +758,7 @@ public class Indexer {
                     reference.storageIdentLeafName(),
                     xContentBuilder,
                     addField,
-                    synthetics,
+                    synthetics::get,
                     columnConstraints
                 );
             }
@@ -783,7 +779,7 @@ public class Indexer {
                     synthetic.ref.storageIdentLeafName(),
                     xContentBuilder,
                     addField,
-                    synthetics,
+                    synthetics::get,
                     columnConstraints
                 );
             }

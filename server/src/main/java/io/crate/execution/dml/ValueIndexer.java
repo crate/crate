@@ -30,6 +30,7 @@ import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.data.Input;
 import io.crate.execution.dml.Indexer.ColumnConstraint;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
@@ -51,15 +52,26 @@ import io.crate.metadata.Reference;
 public interface ValueIndexer<T> {
 
     /**
+     * Represents values for columns generated from other input columns
+     */
+    interface Synthetics {
+
+        /**
+         * @return an Input object that returns generated values for a given column
+         */
+        Input<Object> get(ColumnIdent columnIdent);
+    }
+
+    /**
      * Only {@link ObjectIndexer}, {@link ArrayIndexer} and {@link DynamicIndexer} can create new columns.
      */
     default void collectSchemaUpdates(@Nullable T value,
                                       Consumer<? super Reference> onDynamicColumn,
-                                      Map<ColumnIdent, Indexer.Synthetic> synthetics) throws IOException {}
+                                      Synthetics synthetics) throws IOException {}
 
     /**
      * Update value indexer of inner columns.
-     * Should be only triggered when new columns were detected by {@link #collectSchemaUpdates(Object, Consumer, Map)
+     * Should be only triggered when new columns were detected by {@link #collectSchemaUpdates(Object, Consumer, Synthetics)
      * and added to the cluster state
      *
      * @param getRef A function that returns a reference for a given column ident based on the current cluster state
@@ -77,7 +89,7 @@ public interface ValueIndexer<T> {
         @Nullable String storageIdentLeafName,
         XContentBuilder xcontentBuilder,
         Consumer<? super IndexableField> addField,
-        Map<ColumnIdent, Indexer.Synthetic> synthetics,
+        Synthetics synthetics,
         Map<ColumnIdent, ColumnConstraint> toValidate
     ) throws IOException {
         if (storageIdentLeafName != null) {
@@ -90,7 +102,7 @@ public interface ValueIndexer<T> {
         @Nullable T value,
         XContentBuilder xcontentBuilder,
         Consumer<? super IndexableField> addField,
-        Map<ColumnIdent, Indexer.Synthetic> synthetics,
+        Synthetics synthetics,
         Map<ColumnIdent, ColumnConstraint> toValidate
     ) throws IOException;
 }

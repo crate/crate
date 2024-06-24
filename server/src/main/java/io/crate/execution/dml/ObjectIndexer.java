@@ -35,8 +35,8 @@ import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.data.Input;
 import io.crate.execution.dml.Indexer.ColumnConstraint;
-import io.crate.execution.dml.Indexer.Synthetic;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
@@ -100,7 +100,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
     public void indexValue(@Nullable Map<String, Object> value,
                            XContentBuilder xContentBuilder,
                            Consumer<? super IndexableField> addField,
-                           Map<ColumnIdent, Indexer.Synthetic> synthetics,
+                           Synthetics synthetics,
                            Map<ColumnIdent, Indexer.ColumnConstraint> checks) throws IOException {
         xContentBuilder.startObject();
         for (var entry : childColumns.entrySet()) {
@@ -110,7 +110,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
             ColumnIdent innerColumn = column.getChild(innerName);
             Object innerValue = null;
             if (value == null || value.containsKey(innerName) == false) {
-                Synthetic synthetic = synthetics.get(innerColumn);
+                Input<Object> synthetic = synthetics.get(innerColumn);
                 if (synthetic != null) {
                     innerValue = synthetic.value();
                 }
@@ -147,7 +147,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
     @Override
     public void collectSchemaUpdates(@Nullable Map<String, Object> value,
                                      Consumer<? super Reference> onDynamicColumn,
-                                     Map<ColumnIdent, Indexer.Synthetic> synthetics) throws IOException {
+                                     Synthetics synthetics) throws IOException {
         for (var entry : childColumns.entrySet()) {
             var childRef = entry.getValue();
             String innerName = entry.getKey();
@@ -155,7 +155,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
             ColumnIdent innerColumn = column.getChild(innerName);
             Object innerValue = null;
             if (value == null || value.containsKey(innerName) == false) {
-                Synthetic synthetic = synthetics.get(innerColumn);
+                Input<Object> synthetic = synthetics.get(innerColumn);
                 if (synthetic != null) {
                     innerValue = synthetic.value();
                 }
@@ -204,7 +204,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
     @SuppressWarnings("unchecked")
     private void addNewColumns(Map<String, Object> value,
                                Consumer<? super Reference> onDynamicColumn,
-                               Map<ColumnIdent, Synthetic> synthetics) throws IOException {
+                               Synthetics synthetics) throws IOException {
         int position = -1;
         for (var entry : value.entrySet()) {
             String innerName = entry.getKey();
@@ -272,7 +272,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
     }
 
     /**
-     * Writes keys and values for which there are no columns after {@link #collectSchemaUpdates(Map, Consumer, Map) to the xContentBuilder.
+     * Writes keys and values for which there are no columns after {@link #collectSchemaUpdates(Map, Consumer, Synthetics) to the xContentBuilder.
      *
      * There are no columns for:
      * <ul>

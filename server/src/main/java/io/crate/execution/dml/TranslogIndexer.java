@@ -140,7 +140,7 @@ public class TranslogIndexer {
 
             Object castValue = valueForInsert(indexer.dataType, entry.getValue());
             if (castValue != null) {
-                indexer.valueIndexer.indexValue(castValue, xcontent, doc::add, Map.of(), Map.of());
+                indexer.valueIndexer.indexValue(castValue, xcontent, doc::add, _ -> null, Map.of());
                 if (tableIndexSources.containsKey(column)) {
                     addIndexField(doc, tableIndexSources.get(column), castValue);
                 }
