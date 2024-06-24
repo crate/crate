@@ -96,11 +96,9 @@ public class SelectFromViewAnalyzerTest extends CrateDummyClusterServiceUnitTest
 
     @Test
     public void test_anylze_with_changed_search_path() throws Exception {
-        e = SQLExecutor.of(clusterService)
-            .addTable("create table custom.t1 (name string, x int)")
-            .addTable("create table doc.t1 (name string, x int)")
-            .setSearchPath("custom")
-            .addView(new RelationName("doc", "v1"), "select name, count(*) from t1 group by name");
+        e.addTable("create table custom.t1 (name string, x int)");
+        e.setSearchPath("custom");
+        e.addView(new RelationName("doc", "v1"), "select name, count(*) from t1 group by name");
         e.setSearchPath("foobar");
         QueriedSelectRelation relation = e.analyze("select * from doc.v1");
         List<AnalyzedRelation> sources = relation.from();
