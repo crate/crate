@@ -249,7 +249,6 @@ public class RestoreService implements ClusterStateApplier {
                     request,
                     tablesToRestore,
                     snapshotInfo.indices(),
-                    clusterService.state().nodes().getMinNodeVersion(),
                     resolvedIndices,
                     resolvedTemplates
                 );
@@ -330,10 +329,9 @@ public class RestoreService implements ClusterStateApplier {
     static void resolveIndices(RestoreRequest request,
                                @Nullable List<TableOrPartition> tablesToRestore,
                                List<String> availableIndices,
-                               Version minNodeVersion,
                                List<String> resolvedIndices,
                                List<String> resolvedTemplates) {
-        if (minNodeVersion.onOrAfter(Version.V_5_6_0) && tablesToRestore != null) {
+        if (tablesToRestore != null) {
             for (TableOrPartition tableOrPartition : tablesToRestore) {
                 String partitionTemplate = PartitionName.templateName(
                     tableOrPartition.table().schema(),
