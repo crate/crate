@@ -34,38 +34,19 @@ public class PointBuilder extends ShapeBuilder<Point, PointBuilder> {
         this.coordinates.add(ZERO_ZERO);
     }
 
-    public PointBuilder(double lon, double lat) {
-        //super(new ArrayList<>(1));
-        super();
-        this.coordinates.add(new Coordinate(lon, lat));
-    }
-
     public PointBuilder coordinate(Coordinate coordinate) {
         this.coordinates.set(0, coordinate);
         return this;
     }
 
-    public double longitude() {
-        return coordinates.get(0).x;
-    }
-
-    public double latitude() {
-        return coordinates.get(0).y;
-    }
-
     @Override
     public Point buildS4J() {
-        return SPATIAL_CONTEXT.makePoint(coordinates.get(0).x, coordinates.get(0).y);
+        return SHAPE_FACTORY.pointXY(coordinates.get(0).x, coordinates.get(0).y);
     }
 
     @Override
     public org.apache.lucene.geo.Point buildLucene() {
         return new org.apache.lucene.geo.Point(coordinates.get(0).y, coordinates.get(0).x);
-    }
-
-    @Override
-    public GeoShapeType type() {
-        return TYPE;
     }
 
     @Override

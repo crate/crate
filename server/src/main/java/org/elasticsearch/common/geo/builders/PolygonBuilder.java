@@ -85,10 +85,6 @@ public class PolygonBuilder extends ShapeBuilder<JtsGeometry, PolygonBuilder> {
         this(coordinates, Orientation.RIGHT);
     }
 
-    public Orientation orientation() {
-        return this.orientation;
-    }
-
     /**
      * Add a new hole to the polygon
      * @param hole linear ring defining the hole
@@ -194,7 +190,7 @@ public class PolygonBuilder extends ShapeBuilder<JtsGeometry, PolygonBuilder> {
 
     @Override
     public JtsGeometry buildS4J() {
-        return jtsGeometry(buildS4JGeometry(FACTORY, wrapdateline));
+        return jtsGeometry(buildS4JGeometry(GEO_FACTORY, wrapdateline));
     }
 
     @Override
@@ -243,11 +239,6 @@ public class PolygonBuilder extends ShapeBuilder<JtsGeometry, PolygonBuilder> {
 
     protected static LinearRing linearRingS4J(GeometryFactory factory, List<Coordinate> coordinates) {
         return factory.createLinearRing(coordinates.toArray(new Coordinate[coordinates.size()]));
-    }
-
-    @Override
-    public GeoShapeType type() {
-        return TYPE;
     }
 
     @Override
@@ -799,19 +790,6 @@ public class PolygonBuilder extends ShapeBuilder<JtsGeometry, PolygonBuilder> {
                 c.x += 2 * DATELINE;
             }
         }
-    }
-
-    @Override
-    protected StringBuilder contentToWKT() {
-        StringBuilder sb = new StringBuilder();
-        sb.append('(');
-        sb.append(ShapeBuilder.coordinateListToWKT(shell.coordinates));
-        for (LineStringBuilder hole : holes) {
-            sb.append(", ");
-            sb.append(ShapeBuilder.coordinateListToWKT(hole.coordinates));
-        }
-        sb.append(')');
-        return sb;
     }
 
     @Override

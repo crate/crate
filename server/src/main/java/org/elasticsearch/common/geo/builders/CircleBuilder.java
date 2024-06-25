@@ -57,48 +57,12 @@ public class CircleBuilder extends ShapeBuilder<Circle, CircleBuilder> {
     }
 
     /**
-     * set the center of the circle
-     * @param lon longitude of the center
-     * @param lat latitude of the center
-     * @return this
-     */
-    public CircleBuilder center(double lon, double lat) {
-        return center(new Coordinate(lon, lat));
-    }
-
-    /**
-     * Get the center of the circle
-     */
-    public Coordinate center() {
-        return center;
-    }
-
-    /**
-     * Set the radius of the circle. The String value will be parsed by {@link DistanceUnit}
-     * @param radius Value and unit of the circle combined in a string
-     * @return this
-     */
-    public CircleBuilder radius(String radius) {
-        return radius(DistanceUnit.Distance.parseDistance(radius));
-    }
-
-    /**
      * Set the radius of the circle
      * @param radius radius of the circle (see {@link org.elasticsearch.common.unit.DistanceUnit.Distance})
      * @return this
      */
     public CircleBuilder radius(Distance radius) {
         return radius(radius.value, radius.unit);
-    }
-
-    /**
-     * Set the radius of the circle
-     * @param radius value of the circles radius
-     * @param unit unit name of the radius value (see {@link DistanceUnit})
-     * @return this
-     */
-    public CircleBuilder radius(double radius, String unit) {
-        return radius(radius, DistanceUnit.fromString(unit));
     }
 
     /**
@@ -113,38 +77,14 @@ public class CircleBuilder extends ShapeBuilder<Circle, CircleBuilder> {
         return this;
     }
 
-    /**
-     * Get the radius of the circle without unit
-     */
-    public double radius() {
-        return this.radius;
-    }
-
-    /**
-     * Get the radius unit of the circle
-     */
-    public DistanceUnit unit() {
-        return this.unit;
-    }
-
     @Override
     public Circle buildS4J() {
-        return SPATIAL_CONTEXT.makeCircle(center.x, center.y, 360 * radius / unit.getEarthCircumference());
+        return SHAPE_FACTORY.circle(center.x, center.y, 360 * radius / unit.getEarthCircumference());
     }
 
     @Override
     public Object buildLucene() {
         throw new UnsupportedOperationException("CIRCLE geometry is not supported");
-    }
-
-    @Override
-    public GeoShapeType type() {
-        return TYPE;
-    }
-
-    @Override
-    public String toWKT() {
-        throw new UnsupportedOperationException("The WKT spec does not support CIRCLE geometry");
     }
 
     @Override
