@@ -19,12 +19,6 @@
 
 package org.elasticsearch.common.network;
 
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Setting.Property;
-import org.elasticsearch.common.unit.ByteSizeValue;
-import io.crate.common.unit.TimeValue;
-import io.crate.types.DataTypes;
-
 import java.io.IOException;
 import java.net.InetAddress;
 import java.util.ArrayList;
@@ -35,6 +29,13 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Setting.Property;
+import org.elasticsearch.common.unit.ByteSizeValue;
+
+import io.crate.common.unit.TimeValue;
+import io.crate.types.DataTypes;
 
 public final class NetworkService {
 
@@ -130,7 +131,6 @@ public final class NetworkService {
      *                     such as _local_ (see the documentation). if it is null, it will fall back to _local_
      * @return single internet address
      */
-    // TODO: needs to be InetAddress[]
     public InetAddress resolvePublishHostAddresses(String[] publishHosts) throws IOException {
         if (publishHosts == null || publishHosts.length == 0) {
             for (CustomNameResolver customNameResolver : customNameResolvers) {
