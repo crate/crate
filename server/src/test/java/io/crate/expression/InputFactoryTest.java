@@ -68,8 +68,7 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature()
             )
-            .withFeatures(Scalar.DETERMINISTIC_AND_COMPARISON_REPLACEMENT)
-            .withFeature(Scalar.Feature.NULLABLE),
+            .withFeatures(Scalar.DETERMINISTIC_AND_COMPARISON_REPLACEMENT),
         List.of(new InputColumn(1, DataTypes.INTEGER), Literal.of(10)),
         DataTypes.INTEGER
     );
