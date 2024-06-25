@@ -129,4 +129,10 @@ public class ThreeValuedLogicQueryBuilderTest extends LuceneQueryBuilderTest {
         assertThat(convert("NOT (has_table_privilege(name, 'select'))"))
             .hasToString("+(+*:* -pg_catalog.has_table_privilege(name, 'select')) +FieldExistsQuery [field=name]");
     }
+
+    @Test
+    public void test_negated_format_type_with_three_valued_logic() {
+        assertThat(convert("NOT pg_catalog.format_type(x, null)")).hasToString(
+            "+(+*:* -pg_catalog.format_type(x, NULL)) #(NOT pg_catalog.format_type(x, NULL))");
+    }
 }
