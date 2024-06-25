@@ -48,6 +48,10 @@ See the :ref:`version_5.7.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that caused queries to incorrectly filter out rows when the
+  ``WHERE`` clause contained :ref:`scalar-format_type` function under ``NOT`` or
+  ``!=`` operators.
+
 - Fixed an issue that resulted in an ``unsupported ExecutionNode`` error if
   joining a foreign table with another table that's sharded across many nodes.
 
