@@ -357,14 +357,14 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
 
     private BoundTransportAddress createBoundHttpAddress() {
         // Bind and start to accept incoming connections.
-        InetAddress[] hostAddresses;
+        List<InetAddress> hostAddresses;
         try {
             hostAddresses = networkService.resolveBindHostAddresses(bindHosts);
         } catch (IOException e) {
             throw new BindHttpException("Failed to resolve host [" + Arrays.toString(bindHosts) + "]", e);
         }
 
-        List<TransportAddress> boundAddresses = new ArrayList<>(hostAddresses.length);
+        List<TransportAddress> boundAddresses = new ArrayList<>(hostAddresses.size());
         for (InetAddress address : hostAddresses) {
             boundAddresses.add(bindAddress(address));
         }
