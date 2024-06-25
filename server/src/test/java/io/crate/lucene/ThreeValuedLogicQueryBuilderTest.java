@@ -21,7 +21,8 @@
 
 package io.crate.lucene;
 
-import static org.assertj.core.api.Assertions.assertThat;
+
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 import org.apache.lucene.search.Query;
 import org.junit.Test;
@@ -118,5 +119,11 @@ public class ThreeValuedLogicQueryBuilderTest extends LuceneQueryBuilderTest {
         // overload with 2 arguments
         assertThat(convert("NOT (CURRENT_SETTING(name, true))"))
             .hasToString("+(+*:* -pg_catalog.current_setting(name, true)) #(NOT pg_catalog.current_setting(name, true))");
+    }
+
+    @Test
+    public void test_negated_format_type_with_three_valued_logic() {
+        assertThat(convert("NOT pg_catalog.format_type(x, null)")).hasToString(
+            "+(+*:* -pg_catalog.format_type(x, NULL)) #(NOT pg_catalog.format_type(x, NULL))");
     }
 }
