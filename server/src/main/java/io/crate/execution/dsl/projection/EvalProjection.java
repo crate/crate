@@ -36,7 +36,6 @@ import io.crate.common.collections.MapBuilder;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.RowGranularity;
 import io.crate.types.DataType;
@@ -74,7 +73,7 @@ public class EvalProjection extends Projection {
 
     public EvalProjection(List<Symbol> outputs, RowGranularity granularity) {
         assert outputs.stream().noneMatch(
-            s -> SymbolVisitors.any(Symbols.IS_COLUMN.or(x -> x instanceof SelectSymbol), s))
+            s -> s.any(Symbols.IS_COLUMN.or(x -> x instanceof SelectSymbol)))
             : "EvalProjection doesn't support Field, Reference or SelectSymbol symbols, got: " + outputs;
         this.outputs = outputs;
         this.granularity = granularity;

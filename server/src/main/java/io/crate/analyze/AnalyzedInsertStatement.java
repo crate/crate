@@ -41,7 +41,6 @@ import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
@@ -159,7 +158,7 @@ public class AnalyzedInsertStatement implements AnalyzedStatement {
                     }
                 }
 
-                if (SymbolVisitors.any(Symbols.IS_COLUMN, symbol)) {
+                if (symbol.any(Symbols.IS_COLUMN)) {
                     if (alwaysRequireColumn) {
                         throw new IllegalArgumentException(String.format(
                             Locale.ENGLISH,

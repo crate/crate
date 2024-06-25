@@ -21,15 +21,15 @@
 
 package io.crate.rest.action;
 
-import io.crate.data.Row;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
-import io.crate.types.ArrayType;
-import io.crate.types.DataType;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-
 import java.io.IOException;
 import java.util.List;
+
+import org.elasticsearch.common.xcontent.XContentBuilder;
+
+import io.crate.data.Row;
+import io.crate.expression.symbol.Symbol;
+import io.crate.types.ArrayType;
+import io.crate.types.DataType;
 
 class ResultToXContentBuilder {
 
@@ -58,7 +58,7 @@ class ResultToXContentBuilder {
     ResultToXContentBuilder cols(List<? extends Symbol> fields) throws IOException {
         builder.startArray(FIELDS.COLS);
         for (Symbol field : fields) {
-            builder.value(Symbols.pathFromSymbol(field).sqlFqn());
+            builder.value(field.toColumn().sqlFqn());
         }
         builder.endArray();
         return this;

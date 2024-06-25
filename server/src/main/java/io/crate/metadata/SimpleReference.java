@@ -39,7 +39,6 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.doc.DocTableInfoFactory;
@@ -142,7 +141,7 @@ public class SimpleReference implements Reference {
         if (defaultExpression == null) {
             this.defaultExpression = null;
         } else {
-            if (SymbolVisitors.any(Symbols::isTableFunction, defaultExpression)) {
+            if (defaultExpression.hasFunctionType(FunctionType.TABLE)) {
                 throw new UnsupportedOperationException(
                     "Cannot use table function in default expression of column `" + ident.columnIdent().fqn() + "`");
             }

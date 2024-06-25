@@ -37,7 +37,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
@@ -81,7 +80,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
                                        List<Symbol> returnValues) {
 
         super(relationName, partitionIdent, primaryKeys, clusteredByColumn, settings, primaryKeySymbols, autoCreateIndices);
-        assert partitionedBySymbols.stream().noneMatch(s -> SymbolVisitors.any(Symbols.IS_COLUMN, s))
+        assert partitionedBySymbols.stream().noneMatch(s -> s.any(Symbols.IS_COLUMN))
             : "All references and fields in partitionedBySymbols must be resolved to inputColumns, got: " + partitionedBySymbols;
         this.allTargetColumns = allTargetColumns;
         this.partitionedBySymbols = partitionedBySymbols;

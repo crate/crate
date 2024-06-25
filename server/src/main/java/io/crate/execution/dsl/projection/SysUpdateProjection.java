@@ -21,25 +21,25 @@
 
 package io.crate.execution.dsl.projection;
 
-import io.crate.expression.symbol.InputColumn;
-import io.crate.expression.symbol.SelectSymbol;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
-import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.Reference;
-import io.crate.metadata.RowGranularity;
-import io.crate.types.DataTypes;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
-import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RowGranularity;
+import io.crate.types.DataTypes;
 
 public class SysUpdateProjection extends Projection {
 
@@ -60,7 +60,7 @@ public class SysUpdateProjection extends Projection {
         this.uidSymbol = uidSymbol;
         this.assignments = assignments;
         this.returnValues = returnValues;
-        assert Arrays.stream(outputs).noneMatch(s -> SymbolVisitors.any(Symbols.IS_COLUMN.or(x -> x instanceof SelectSymbol), s))
+        assert Arrays.stream(outputs).noneMatch(s -> s.any(Symbols.IS_COLUMN.or(x -> x instanceof SelectSymbol)))
             : "Cannot operate on Reference, Field or SelectSymbol symbols: " + outputs;
         this.outputs = outputs;
     }

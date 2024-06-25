@@ -26,15 +26,13 @@ import static io.crate.types.DataTypes.merge;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.jetbrains.annotations.NotNull;
-
 import org.elasticsearch.common.UUIDs;
+import org.jetbrains.annotations.NotNull;
 
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
@@ -62,7 +60,7 @@ public class UnionSelect implements AnalyzedRelation {
             var l = leftOutputs.get(i);
             var r = rightOutputs.get(i);
             try {
-                outputs.add(new ScopedSymbol(name, Symbols.pathFromSymbol(l), merge(l.valueType(), r.valueType())));
+                outputs.add(new ScopedSymbol(name, l.toColumn(), merge(l.valueType(), r.valueType())));
             } catch (IllegalArgumentException e) {
                 throw new UnsupportedOperationException(
                     "Output columns at position " + (i + 1) +

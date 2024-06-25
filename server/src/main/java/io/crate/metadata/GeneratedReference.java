@@ -38,7 +38,6 @@ import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.format.Style;
 import io.crate.sql.tree.ColumnPolicy;
@@ -66,11 +65,11 @@ public final class GeneratedReference implements Reference {
         this.ref = ref;
         this.generatedExpression = generatedExpression;
         this.formattedGeneratedExpression = formattedGeneratedExpression;
-        if (SymbolVisitors.any(Symbols::isAggregate, generatedExpression)) {
+        if (generatedExpression.hasFunctionType(FunctionType.AGGREGATE)) {
             throw new UnsupportedOperationException(
                 "Aggregation functions are not allowed in generated columns: " + generatedExpression);
         }
-        if (SymbolVisitors.any(Symbols::isTableFunction, generatedExpression)) {
+        if (generatedExpression.hasFunctionType(FunctionType.TABLE)) {
             throw new UnsupportedOperationException(
                 "Cannot use table function in generated expression of column `" + ref.column().fqn() + "`");
         }
@@ -150,6 +149,11 @@ public final class GeneratedReference implements Reference {
 
     public List<Reference> referencedReferences() {
         return referencedReferences;
+    }
+
+    @Override
+    public boolean isDeterministic() {
+        return generatedExpression.isDeterministic();
     }
 
     @Override

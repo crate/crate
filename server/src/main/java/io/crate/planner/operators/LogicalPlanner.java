@@ -498,7 +498,7 @@ public class LogicalPlanner {
                 }
             );
             Symbol having = relation.having();
-            if (having != null && Symbols.containsCorrelatedSubQuery(having)) {
+            if (having != null && having.any(Symbols.IS_CORRELATED_SUBQUERY)) {
                 throw new UnsupportedOperationException("Cannot use correlated subquery in HAVING clause");
             }
             return MultiPhase.createIfNeeded(

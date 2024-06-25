@@ -42,7 +42,6 @@ import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
@@ -162,9 +161,9 @@ public final class WhereClauseOptimizer {
         }
         WhereClause.validateVersioningColumnsUsage(query);
 
-        boolean versionInQuery = Symbols.containsColumn(query, DocSysColumns.VERSION);
-        boolean sequenceVersioningInQuery = Symbols.containsColumn(query, DocSysColumns.SEQ_NO) &&
-                                            Symbols.containsColumn(query, DocSysColumns.PRIMARY_TERM);
+        boolean versionInQuery = query.hasColumn(DocSysColumns.VERSION);
+        boolean sequenceVersioningInQuery = query.hasColumn(DocSysColumns.SEQ_NO) &&
+                                            query.hasColumn(DocSysColumns.PRIMARY_TERM);
         List<ColumnIdent> pkCols = pkColsInclVersioning(table, versionInQuery, sequenceVersioningInQuery);
 
         EqualityExtractor eqExtractor = new EqualityExtractor(normalizer);

@@ -53,7 +53,6 @@ import io.crate.expression.symbol.MatchPredicate;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
@@ -433,7 +432,7 @@ public class EqualityExtractor {
 
             if (functionName.equals(EqOperator.NAME)) {
                 Symbol firstArg = arguments.get(0).accept(this, ctx);
-                if (firstArg instanceof Reference ref && SymbolVisitors.any(Symbols.IS_COLUMN, arguments.get(1)) == false) {
+                if (firstArg instanceof Reference ref && arguments.get(1).any(Symbols.IS_COLUMN) == false) {
                     Comparison comparison = ctx.comparisons.get(ref.column());
                     if (comparison != null) {
                         ctx.proxyBelow = true;

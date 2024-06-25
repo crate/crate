@@ -21,15 +21,17 @@
 
 package io.crate.expression.symbol;
 
-import io.crate.expression.symbol.format.Style;
-import io.crate.sql.Identifiers;
-import io.crate.types.DataType;
+import java.io.IOException;
+import java.util.function.Predicate;
 
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import java.io.IOException;
+import io.crate.expression.symbol.format.Style;
+import io.crate.metadata.ColumnIdent;
+import io.crate.sql.Identifiers;
+import io.crate.types.DataType;
 
 public final class AliasSymbol implements Symbol {
 
@@ -54,6 +56,21 @@ public final class AliasSymbol implements Symbol {
 
     public String alias() {
         return alias;
+    }
+
+    @Override
+    public boolean isDeterministic() {
+        return symbol.isDeterministic();
+    }
+
+    @Override
+    public boolean any(Predicate<? super Symbol> predicate) {
+        return predicate.test(this) || symbol.any(predicate);
+    }
+
+    @Override
+    public ColumnIdent toColumn() {
+        return ColumnIdent.of(alias);
     }
 
     @Override

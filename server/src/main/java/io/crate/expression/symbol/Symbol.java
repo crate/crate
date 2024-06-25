@@ -24,6 +24,7 @@ package io.crate.expression.symbol;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import org.apache.lucene.util.Accountable;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -34,9 +35,15 @@ import io.crate.expression.scalar.cast.ExplicitCastFunction;
 import io.crate.expression.scalar.cast.ImplicitCastFunction;
 import io.crate.expression.scalar.cast.TryCastFunction;
 import io.crate.expression.symbol.format.Style;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.FunctionType;
+import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.functions.TypeVariableConstraint;
+import io.crate.sql.tree.ColumnDefinition;
+import io.crate.sql.tree.ColumnPolicy;
+import io.crate.sql.tree.Expression;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -62,6 +69,53 @@ public interface Symbol extends Writeable, Accountable {
     DataType<?> valueType();
 
     /**
+     * Returns true if the tree is expected to return the same value given the same inputs
+     */
+    default boolean isDeterministic() {
+        return true;
+    }
+
+    /**
+     * Returns true if the tree contains a {@link Reference} or {@link ScopedSymbol}
+     * column matching the argument.
+     */
+    default boolean hasColumn(ColumnIdent column) {
+        return any(s ->
+            s instanceof Reference ref && ref.column().equals(column) ||
+            s instanceof ScopedSymbol field && field.column().equals(column));
+    }
+
+    /**
+     * Returns true if the tree contains the given function type
+     */
+    default boolean hasFunctionType(FunctionType type) {
+        return any(s -> s instanceof Function fn && fn.signature.getKind().equals(type));
+    }
+
+    /**
+     * Returns true if the given predicate matches on any node in the symbol tree.
+     * Does not cross relations.
+     */
+    default boolean any(Predicate<? super Symbol> predicate) {
+        return predicate.test(this);
+    }
+
+    /**
+     * Returns a {@link ColumnIdent} that can be used to represent the Symbol.
+     */
+    default ColumnIdent toColumn() {
+        return ColumnIdent.of(toString(Style.UNQUALIFIED));
+    }
+
+    default ColumnDefinition<Expression> toColumnDefinition() {
+        return new ColumnDefinition<>(
+            toColumn().sqlFqn(), // allow ObjectTypes to return col name in subscript notation
+            valueType().toColumnType(ColumnPolicy.DYNAMIC, null),
+            List.of()
+        );
+    }
+
+    /**
      * Casts this Symbol to a new {@link DataType} by wrapping an implicit cast
      * function around it if no {@link CastMode} modes are provided.
      * <p>
@@ -83,6 +137,13 @@ public interface Symbol extends Writeable, Accountable {
             return this;
         }
         return generateCastFunction(this, targetType, modes);
+    }
+
+    /**
+     * If the symbol is a cast function it drops it (only on root)
+     **/
+    default Symbol uncast() {
+        return this;
     }
 
     /**

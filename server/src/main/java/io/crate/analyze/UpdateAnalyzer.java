@@ -21,8 +21,6 @@
 
 package io.crate.analyze;
 
-import static io.crate.expression.symbol.Symbols.unwrapReferenceFromCast;
-
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -226,7 +224,7 @@ public final class UpdateAnalyzer {
 
                     arraySetFunctionAllocator.put(targetCol, indexToUpdate, targetValue);
                     continue;
-                } else if (unwrapReferenceFromCast(baseCol) instanceof Reference targetCol) {
+                } else if (baseCol.uncast() instanceof Reference targetCol) {
                     rejectUpdatesToFieldsOfObjectArrays(tableInfo, targetCol, IS_OBJECT_ARRAY);
                 }
             }

@@ -38,7 +38,6 @@ import io.crate.analyze.TableElementsAnalyzer.RefBuilder;
 import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.IndexReference;
@@ -148,7 +147,7 @@ public record AnalyzedCreateTable(
 
         Optional<ColumnIdent> optClusteredBy = clusteredBy
             .flatMap(ClusteredBy::column)
-            .map(Symbols::pathFromSymbol);
+            .map(Symbol::toColumn);
         optClusteredBy.ifPresent(c -> {
             if (!primaryKeys.isEmpty() && Reference.indexOf(primaryKeys, c) < 0) {
                 throw new IllegalArgumentException(

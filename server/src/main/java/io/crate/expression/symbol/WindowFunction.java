@@ -27,6 +27,7 @@ import static io.crate.metadata.FunctionType.WINDOW;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Predicate;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -78,6 +79,36 @@ public class WindowFunction extends Function {
     @Nullable
     public Boolean ignoreNulls() {
         return ignoreNulls;
+    }
+
+    @Override
+    public boolean any(Predicate<? super Symbol> predicate) {
+        if (super.any(predicate)) {
+            return true;
+        }
+        OrderBy orderBy = windowDefinition.orderBy();
+        if (orderBy != null) {
+            for (var orderSymbol : orderBy.orderBySymbols()) {
+                if (orderSymbol.any(predicate)) {
+                    return true;
+                }
+            }
+        }
+        for (Symbol partition : windowDefinition.partitions()) {
+            if (partition.any(predicate)) {
+                return true;
+            }
+        }
+        WindowFrameDefinition frame = windowDefinition.windowFrameDefinition();
+        Symbol frameStart = frame.start().value();
+        if (frameStart != null && frameStart.any(predicate)) {
+            return true;
+        }
+        Symbol frameEnd = frame.end().value();
+        if (frameEnd != null && frameEnd.any(predicate)) {
+            return true;
+        }
+        return false;
     }
 
     @Override

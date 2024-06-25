@@ -30,7 +30,7 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.relations.StatementAnalysisContext;
 import io.crate.common.collections.Lists;
-import io.crate.expression.symbol.Symbols;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
@@ -71,7 +71,7 @@ public final class CreateTableAsAnalyzer {
             new StatementAnalysisContext(paramTypeHints, Operation.READ, txnCtx));
 
         List<TableElement<Expression>> tableElements =
-            Lists.map(analyzedSourceQuery.outputs(), Symbols::toColumnDefinition);
+            Lists.map(analyzedSourceQuery.outputs(), Symbol::toColumnDefinition);
 
         CreateTable<Expression> createTable = new CreateTable<Expression>(
             createTableAs.name(),

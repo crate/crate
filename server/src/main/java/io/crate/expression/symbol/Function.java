@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Predicate;
 
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
@@ -145,6 +146,35 @@ public class Function implements Symbol, Cloneable {
     }
 
     @Override
+    public boolean isDeterministic() {
+        if (!signature.isDeterministic()) {
+            return false;
+        }
+        for (var arg : arguments) {
+            if (!arg.isDeterministic()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @Override
+    public boolean any(Predicate<? super Symbol> predicate) {
+        if (predicate.test(this)) {
+            return true;
+        }
+        for (var arg : arguments) {
+            if (arg.any(predicate)) {
+                return true;
+            }
+        }
+        if (filter != null) {
+            return filter.any(predicate);
+        }
+        return false;
+    }
+
+    @Override
     public Symbol cast(DataType<?> targetType, CastMode... modes) {
         String name = signature.getName().name();
         if (targetType instanceof ArrayType && name.equals(ArrayFunction.NAME)) {
@@ -159,6 +189,14 @@ public class Function implements Symbol, Cloneable {
         } else {
             return Symbol.super.cast(targetType, modes);
         }
+    }
+
+    @Override
+    public Symbol uncast() {
+        if (isCast()) {
+            return arguments.get(0);
+        }
+        return this;
     }
 
     private Symbol castArrayElements(DataType<?> newDataType, CastMode... modes) {

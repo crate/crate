@@ -36,7 +36,6 @@ import io.crate.common.collections.Lists;
 import io.crate.common.collections.MapBuilder;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 
 public class OrderedLimitAndOffsetProjection extends Projection {
@@ -54,9 +53,9 @@ public class OrderedLimitAndOffsetProjection extends Projection {
                                            List<Symbol> orderBy,
                                            boolean[] reverseFlags,
                                            boolean[] nullsFirst) {
-        assert outputs.stream().noneMatch(s -> SymbolVisitors.any(Symbols.IS_COLUMN.or(x -> x instanceof SelectSymbol), s))
+        assert outputs.stream().noneMatch(s -> s.any(Symbols.IS_COLUMN.or(x -> x instanceof SelectSymbol)))
             : "OrderedLimitAndOffsetProjection outputs cannot contain Field, Reference or SelectSymbol symbols: " + outputs;
-        assert orderBy.stream().noneMatch(s -> SymbolVisitors.any(Symbols.IS_COLUMN.or(x -> x instanceof SelectSymbol), s))
+        assert orderBy.stream().noneMatch(s -> s.any(Symbols.IS_COLUMN.or(x -> x instanceof SelectSymbol)))
             : "OrderedLimitAndOffsetProjection orderBy cannot contain Field, Reference or SelectSymbol symbols: " + orderBy;
         assert orderBy.size() == reverseFlags.length : "reverse flags length does not match orderBy items count";
         assert orderBy.size() == nullsFirst.length : "nullsFirst length does not match orderBy items count";

@@ -78,7 +78,6 @@ import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.planner.optimizer.LoadedRules;
@@ -582,7 +581,7 @@ public class SQLTransportExecutor {
 
             for (int i = 0, outputFieldsSize = outputFields.size(); i < outputFieldsSize; i++) {
                 Symbol field = outputFields.get(i);
-                outputNames[i] = Symbols.pathFromSymbol(field).sqlFqn();
+                outputNames[i] = field.toColumn().sqlFqn();
                 outputTypes[i] = field.valueType();
             }
 

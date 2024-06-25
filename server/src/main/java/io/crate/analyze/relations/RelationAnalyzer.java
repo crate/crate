@@ -182,7 +182,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             expressionAnalyzer,
             expressionAnalysisContext);
         for (Symbol field : childRelationFields) {
-            selectAnalysis.add(Symbols.pathFromSymbol(field), field);
+            selectAnalysis.add(field.toColumn(), field);
         }
 
         var normalizer = EvaluatingNormalizer.functionOnlyNormalizer(
@@ -316,7 +316,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
             boolean joinColumnExistsInLeft = false;
             for (var leftOutput : leftOutputs) {
-                var columnIdent = Symbols.pathFromSymbol(leftOutput);
+                var columnIdent = leftOutput.toColumn();
                 if (columnIdent.name().equals(joinColumn)) {
                     joinColumnExistsInLeft = true;
                     if (lhsOutputs.put(joinColumn, leftOutput) != null) {
@@ -333,7 +333,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
             boolean joinColumnExistsInRight = false;
             for (Symbol rightOutput : rightOutputs) {
-                var columnIdent = Symbols.pathFromSymbol(rightOutput);
+                var columnIdent = rightOutput.toColumn();
                 if (columnIdent.name().equals(joinColumn)) {
                     joinColumnExistsInRight = true;
                     if (rhsOutputs.put(joinColumn, rightOutput) != null) {

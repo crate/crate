@@ -53,7 +53,6 @@ import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.RefReplacer;
 import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.GeneratedReference;
@@ -258,7 +257,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                         throw new IllegalArgumentException(String.format(
                             Locale.ENGLISH,
                             "INDEX source columns require `string` types. Cannot use `%s` (%s) as source for `%s`",
-                            Symbols.pathFromSymbol(indexSource),
+                            indexSource.toColumn(),
                             indexSource.valueType().getName(),
                             name
                             ));
@@ -391,7 +390,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
 
         Optional<PartitionedBy<Symbol>> partitionedBy = createTable.partitionedBy().map(x -> x.map(toSymbol));
         partitionedBy.ifPresent(p -> p.columns().forEach(partitionColumn -> {
-            ColumnIdent partitionColumnIdent = Symbols.pathFromSymbol(partitionColumn);
+            ColumnIdent partitionColumnIdent = partitionColumn.toColumn();
             RefBuilder column = columns.get(partitionColumnIdent);
             if (column == null) {
                 throw new ColumnUnknownException(partitionColumnIdent, tableName);
@@ -477,7 +476,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
             ));
         }
         clusteredBy.flatMap(ClusteredBy::column).ifPresent(clusteredBySymbol -> {
-            ColumnIdent clusteredByColumnIdent = Symbols.pathFromSymbol(clusteredBySymbol);
+            ColumnIdent clusteredByColumnIdent = clusteredBySymbol.toColumn();
             if (partitionColumnIdent.equals(clusteredByColumnIdent)) {
                 throw new IllegalArgumentException("Cannot use CLUSTERED BY column `" + clusteredByColumnIdent + "` in PARTITIONED BY clause");
             }
@@ -507,7 +506,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
             resolveMissing = true;
             Symbol columnSymbol = expressionAnalyzer.convert(name, expressionContext);
             resolveMissing = false;
-            ColumnIdent columnName = Symbols.pathFromSymbol(columnSymbol);
+            ColumnIdent columnName = columnSymbol.toColumn();
             for (ColumnIdent parent : columnName.parents()) {
                 Reference parentRef = table.getReference(parent);
                 if (parentRef != null) {
@@ -681,7 +680,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
             assert parent == null : "ADD COLUMN doesn't allow parents";
             AddColumnDefinition<Expression> columnDefinition = (AddColumnDefinition<Expression>) node;
             Expression name = columnDefinition.name();
-            ColumnIdent columnName = Symbols.pathFromSymbol(expressionAnalyzer.convert(name, expressionContext));
+            ColumnIdent columnName = expressionAnalyzer.convert(name, expressionContext).toColumn();
             RefBuilder builder = columns.get(columnName);
 
             for (var constraint : columnDefinition.constraints()) {
@@ -709,7 +708,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
 
             for (Expression pk : pkColumns) {
                 Symbol pkColumn = toSymbol.apply(pk);
-                ColumnIdent columnIdent = Symbols.pathFromSymbol(pkColumn);
+                ColumnIdent columnIdent = pkColumn.toColumn();
                 RefBuilder column = columns.get(columnIdent);
                 if (column == null) {
                     throw new ColumnUnknownException(columnIdent, tableName);

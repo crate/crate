@@ -114,7 +114,7 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
         this.outputs = Lists.concat(groupKeys, this.aggregates);
         this.groupKeys = groupKeys;
         for (Symbol key : groupKeys) {
-            if (Symbols.containsCorrelatedSubQuery(key)) {
+            if (key.any(Symbols.IS_CORRELATED_SUBQUERY)) {
                 throw new UnsupportedOperationException(
                     "Cannot use correlated subquery in GROUP BY clause");
             }

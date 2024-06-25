@@ -38,39 +38,15 @@ import io.crate.Streamer;
 import io.crate.common.collections.Lists;
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.FunctionType;
-import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
-import io.crate.sql.tree.ColumnDefinition;
-import io.crate.sql.tree.ColumnPolicy;
-import io.crate.sql.tree.Expression;
 import io.crate.types.DataType;
 
 public final class Symbols {
 
-    private static final HasColumnVisitor HAS_COLUMN_VISITOR = new HasColumnVisitor();
-
     public static final Predicate<Symbol> IS_COLUMN = s -> s instanceof ScopedSymbol || s instanceof Reference;
-    public static final Predicate<Symbol> IS_GENERATED_COLUMN = s -> s instanceof GeneratedReference;
-    public static final Predicate<Symbol> IS_CORRELATED_SUBQUERY = Symbols::isCorrelatedSubQuery;
+    public static final Predicate<Symbol> IS_CORRELATED_SUBQUERY = s -> s instanceof SelectSymbol selectSymbol && selectSymbol.isCorrelated();
 
     private Symbols() {}
-
-    public static boolean isCorrelatedSubQuery(Symbol symbol) {
-        return symbol instanceof SelectSymbol selectSymbol && selectSymbol.isCorrelated();
-    }
-
-    public static boolean containsCorrelatedSubQuery(Symbol symbol) {
-        return SymbolVisitors.any(IS_CORRELATED_SUBQUERY, symbol);
-    }
-
-    public static boolean isAggregate(Symbol s) {
-        return s instanceof Function fn && fn.signature().getKind() == FunctionType.AGGREGATE;
-    }
-
-    public static boolean isTableFunction(Symbol s) {
-        return s instanceof Function fn && fn.signature().getKind() == FunctionType.TABLE;
-    }
 
     public static List<DataType<?>> typeView(List<? extends Symbol> symbols) {
         return Lists.mapLazy(symbols, Symbol::valueType);
@@ -108,22 +84,11 @@ public final class Symbols {
     }
 
     /**
-     * returns true if the symbol contains the given columnIdent.
-     * If symbol is a Function the function tree will be traversed
-     */
-    public static boolean containsColumn(@Nullable Symbol symbol, ColumnIdent path) {
-        if (symbol == null) {
-            return false;
-        }
-        return symbol.accept(HAS_COLUMN_VISITOR, path);
-    }
-
-    /**
      * returns true if any of the symbols contains the given column
      */
     public static boolean containsColumn(Iterable<? extends Symbol> symbols, ColumnIdent path) {
         for (Symbol symbol : symbols) {
-            if (containsColumn(symbol, path)) {
+            if (symbol.hasColumn(path)) {
                 return true;
             }
         }
@@ -135,6 +100,19 @@ public final class Symbols {
         for (Symbol symbol : symbols) {
             toStream(symbol, out);
         }
+    }
+
+    public static List<Symbol> listFromStream(StreamInput in) throws IOException {
+        return in.readList(Symbols::fromStream);
+    }
+
+    @Nullable
+    public static Symbol nullableFromStream(StreamInput in) throws IOException {
+        boolean valuePresent = in.readBoolean();
+        if (!valuePresent) {
+            return null;
+        }
+        return fromStream(in);
     }
 
     public static void nullableToStream(@Nullable Symbol symbol, StreamOutput out) throws IOException {
@@ -157,49 +135,8 @@ public final class Symbols {
         }
     }
 
-    public static List<Symbol> listFromStream(StreamInput in) throws IOException {
-        return in.readList(Symbols::fromStream);
-    }
-
-    @Nullable
-    public static Symbol nullableFromStream(StreamInput in) throws IOException {
-        boolean valuePresent = in.readBoolean();
-        if (!valuePresent) {
-            return null;
-        }
-        return fromStream(in);
-    }
-
     public static Symbol fromStream(StreamInput in) throws IOException {
         return SymbolType.VALUES.get(in.readVInt()).newInstance(in);
-    }
-
-    public static ColumnIdent pathFromSymbol(Symbol symbol) {
-        if (symbol instanceof AliasSymbol aliasSymbol) {
-            return ColumnIdent.of(aliasSymbol.alias());
-        } else if (symbol instanceof ScopedSymbol scopedSymbol) {
-            return scopedSymbol.column();
-        } else if (symbol instanceof Reference ref) {
-            return ref.column();
-        }
-        return ColumnIdent.of(symbol.toString(Style.UNQUALIFIED));
-    }
-
-    public static boolean isDeterministic(Symbol symbol) {
-        boolean[] isDeterministic = new boolean[] { true };
-        symbol.accept(new DefaultTraversalSymbolVisitor<boolean[], Void>() {
-
-            @Override
-            public Void visitFunction(io.crate.expression.symbol.Function func,
-                                      boolean[] isDeterministic) {
-                if (!func.signature().isDeterministic()) {
-                    isDeterministic[0] = false;
-                    return null;
-                }
-                return super.visitFunction(func, isDeterministic);
-            }
-        }, isDeterministic);
-        return isDeterministic[0];
     }
 
     /**
@@ -217,57 +154,5 @@ public final class Symbols {
             }
         }
         return String.format(Locale.ENGLISH, messageTmpl, formattedSymbols);
-    }
-
-    public static Symbol unwrapReferenceFromCast(Symbol symbol) {
-        if (symbol instanceof Function fn && fn.isCast()) {
-            return fn.arguments().getFirst();
-        }
-        return symbol;
-    }
-
-    private static class HasColumnVisitor extends SymbolVisitor<ColumnIdent, Boolean> {
-
-        @Override
-        protected Boolean visitSymbol(Symbol symbol, ColumnIdent column) {
-            return false;
-        }
-
-        @Override
-        public Boolean visitFunction(Function symbol, ColumnIdent column) {
-            for (Symbol arg : symbol.arguments()) {
-                if (arg.accept(this, column)) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        @Override
-        public Boolean visitFetchReference(FetchReference fetchReference, ColumnIdent column) {
-            if (((Symbol) fetchReference.fetchId()).accept(this, column)) {
-                return true;
-            }
-            return fetchReference.ref().accept(this, column);
-        }
-
-        @Override
-        public Boolean visitField(ScopedSymbol field, ColumnIdent column) {
-            return field.column().equals(column);
-        }
-
-        @Override
-        public Boolean visitReference(Reference symbol, ColumnIdent column) {
-            return column.equals(symbol.column());
-        }
-    }
-
-    public static ColumnDefinition<Expression> toColumnDefinition(Symbol symbol) {
-        return new ColumnDefinition<>(
-            pathFromSymbol(symbol).sqlFqn(), // allow ObjectTypes to return col name in subscript notation
-            symbol.valueType().toColumnType(
-                symbol instanceof Reference reference ? reference.columnPolicy() : ColumnPolicy.DYNAMIC,
-                null),
-            List.of());
     }
 }

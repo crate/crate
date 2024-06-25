@@ -478,7 +478,7 @@ public class Indexer {
             Synthetic synthetic = new Synthetic(ref, input, valueIndexer);
             this.synthetics.put(column, synthetic);
 
-            if (!Symbols.isDeterministic(ref.defaultExpression())) {
+            if (!ref.defaultExpression().isDeterministic()) {
                 undeterministic.add(synthetic);
             }
         }
@@ -501,7 +501,7 @@ public class Indexer {
             Synthetic synthetic = new Synthetic(ref, input, valueIndexer);
             this.synthetics.put(ref.column(), synthetic);
 
-            if (!Symbols.isDeterministic(ref.generatedExpression())) {
+            if (!ref.isDeterministic()) {
                 undeterministic.add(synthetic);
             }
         }
@@ -647,11 +647,10 @@ public class Indexer {
     }
 
     private static void addGeneratedToVerify(Map<ColumnIdent, ColumnConstraint> columnConstraints,
-                                      DocTableInfo table,
-                                      Context<?> ctxForRefs,
-                                      Reference ref) {
-        if (ref instanceof GeneratedReference generated
-                && Symbols.isDeterministic(generated.generatedExpression())) {
+                                             DocTableInfo table,
+                                             Context<?> ctxForRefs,
+                                             Reference ref) {
+        if (ref instanceof GeneratedReference generated && generated.isDeterministic()) {
             Input<?> input = ctxForRefs.add(generated.generatedExpression());
             columnConstraints.put(ref.column(), new CheckGeneratedValue(input, generated));
         }

@@ -24,6 +24,7 @@ package io.crate.analyze.relations;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -37,7 +38,6 @@ import io.crate.analyze.QueriedSelectRelation;
 import io.crate.exceptions.RelationValidationException;
 import io.crate.expression.scalar.SubscriptFunction;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.expression.tablefunctions.ValuesFunction;
 import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -89,7 +89,7 @@ public class RelationAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testColumnNameFromArrayComparisonExpression() {
         AnalyzedRelation relation = executor.analyze("select 'foo' = any(partitioned_by) " +
                                                      "from information_schema.tables");
-        assertThat(Symbols.pathFromSymbol(relation.outputs().getFirst()).sqlFqn()).isEqualTo("('foo' = ANY(partitioned_by))");
+        assertThat(relation.outputs().getFirst().toColumn().sqlFqn()).isEqualTo("('foo' = ANY(partitioned_by))");
     }
 
     @Test
@@ -106,15 +106,15 @@ public class RelationAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         relation = executor.analyze("select crate.doc.t1.a from crate.doc.t1");
         assertThat(relation.outputs()).hasSize(1);
-        assertThat(Symbols.pathFromSymbol(relation.outputs().getFirst()).fqn()).isEqualTo("a");
+        assertThat(relation.outputs().getFirst().toColumn().fqn()).isEqualTo("a");
 
         relation = executor.analyze("select crate.doc.t1.a from t1");
         assertThat(relation.outputs()).hasSize(1);
-        assertThat(Symbols.pathFromSymbol(relation.outputs().getFirst()).fqn()).isEqualTo("a");
+        assertThat(relation.outputs().getFirst().toColumn().fqn()).isEqualTo("a");
 
         relation = executor.analyze("select t.a from crate.doc.t1 as t");
         assertThat(relation.outputs()).hasSize(1);
-        assertThat(Symbols.pathFromSymbol(relation.outputs().getFirst()).fqn()).isEqualTo("a");
+        assertThat(relation.outputs().getFirst().toColumn().fqn()).isEqualTo("a");
     }
 
     @Test

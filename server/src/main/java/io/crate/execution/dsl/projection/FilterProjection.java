@@ -21,19 +21,19 @@
 
 package io.crate.execution.dsl.projection;
 
-import io.crate.common.collections.MapBuilder;
-import io.crate.expression.symbol.SelectSymbol;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
-import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.RowGranularity;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+
+import io.crate.common.collections.MapBuilder;
+import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
+import io.crate.metadata.RowGranularity;
 
 public class FilterProjection extends Projection {
 
@@ -42,10 +42,10 @@ public class FilterProjection extends Projection {
     private RowGranularity requiredGranularity = RowGranularity.CLUSTER;
 
     public FilterProjection(Symbol query, List<Symbol> outputs) {
-        assert !SymbolVisitors.any(Symbols.IS_COLUMN.or(s -> s instanceof SelectSymbol), query)
+        assert !query.any(Symbols.IS_COLUMN.or(s -> s instanceof SelectSymbol))
             : "FilterProjection cannot operate on Reference, Field or SelectSymbol symbols: " + query;
         assert outputs.stream().noneMatch(s ->
-            SymbolVisitors.any(Symbols.IS_COLUMN.or(x -> x instanceof SelectSymbol), s))
+            s.any(Symbols.IS_COLUMN.or(x -> x instanceof SelectSymbol)))
             : "Cannot operate on Reference, Field or SelectSymbol symbols: " + outputs;
         this.query = query;
         this.outputs = outputs;
