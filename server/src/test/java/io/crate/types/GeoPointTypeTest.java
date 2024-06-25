@@ -21,6 +21,7 @@
 
 package io.crate.types;
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.assumeFalse;
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -115,5 +116,20 @@ public class GeoPointTypeTest extends DataTypeTestCase<Point> {
         assertThatThrownBy(() -> DataTypes.GEO_POINT.implicitCast(new Double[]{-187.654, 123.456}))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Failed to validate geo point [lon=-187.654000, lat=123.456000], not a valid location.");
+    }
+
+    @Override
+    public void test_reference_resolver_docvalues_off() throws Exception {
+        assumeFalse("GeoPointType cannot disable column store", true);
+    }
+
+    @Override
+    public void test_reference_resolver_index_and_docvalues_off() throws Exception {
+        assumeFalse("GeoPointType cannot disable column store", true);
+    }
+
+    @Override
+    public void test_reference_resolver_index_off() throws Exception {
+        assumeFalse("GeoPointType cannot disable index", true);
     }
 }
