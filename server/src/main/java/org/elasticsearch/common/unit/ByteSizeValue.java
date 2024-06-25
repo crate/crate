@@ -19,16 +19,16 @@
 
 package org.elasticsearch.common.unit;
 
+import java.io.IOException;
+import java.util.Locale;
+import java.util.Objects;
+
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
-import java.io.IOException;
-import java.util.Locale;
-import java.util.Objects;
-
-public class ByteSizeValue implements Comparable<ByteSizeValue>, ToXContentFragment {
+public final class ByteSizeValue implements Comparable<ByteSizeValue>, ToXContentFragment {
 
     public static final ByteSizeValue ZERO = new ByteSizeValue(0, ByteSizeUnit.BYTES);
 
@@ -51,17 +51,12 @@ public class ByteSizeValue implements Comparable<ByteSizeValue>, ToXContentFragm
         this.unit = unit;
     }
 
-    // For testing
-    long getSize() {
-        return size;
-    }
-
-    // For testing
-    ByteSizeUnit getUnit() {
-        return unit;
-    }
-
-    @Deprecated
+    /**
+     * Returns the size as int.
+     * You should use {@link #getBytes()} instead if possible.
+     *
+     * @throws IllegalArgumentException if the value exceeds {@link Integer#MAX_VALUE}
+     */
     public int bytesAsInt() {
         long bytes = getBytes();
         if (bytes > Integer.MAX_VALUE) {
@@ -72,26 +67,6 @@ public class ByteSizeValue implements Comparable<ByteSizeValue>, ToXContentFragm
 
     public long getBytes() {
         return unit.toBytes(size);
-    }
-
-    public long getKb() {
-        return unit.toKB(size);
-    }
-
-    public long getMb() {
-        return unit.toMB(size);
-    }
-
-    public long getGb() {
-        return unit.toGB(size);
-    }
-
-    public long getTb() {
-        return unit.toTB(size);
-    }
-
-    public long getPb() {
-        return unit.toPB(size);
     }
 
     public double getMbFrac() {
@@ -213,14 +188,7 @@ public class ByteSizeValue implements Comparable<ByteSizeValue>, ToXContentFragm
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
-        return compareTo((ByteSizeValue) o) == 0;
+        return o instanceof ByteSizeValue other && compareTo(other) == 0;
     }
 
     @Override
