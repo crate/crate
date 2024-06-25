@@ -26,6 +26,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -33,7 +34,6 @@ import java.util.Spliterator;
 import java.util.Spliterators;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -107,8 +107,14 @@ public class SysSnapshotsTest extends ESTestCase {
             Spliterators.spliteratorUnknownSize(sysSnapshots.currentSnapshots().get().iterator(), Spliterator.ORDERED),
             false
         );
-        assertThat(currentSnapshots.map(SysSnapshot::name).collect(Collectors.toList()))
-            .containsExactlyInAnyOrder("s1", "s2", "s3");
+        List<String> names = new ArrayList<>();
+        List<String> uuids = new ArrayList<>();
+        currentSnapshots.forEach(sysSnapshot -> {
+            names.add(sysSnapshot.name());
+            uuids.add(sysSnapshot.uuid());
+        });
+        assertThat(names).containsExactlyInAnyOrder("s1", "s2", "s3");
+        assertThat(uuids).containsExactlyInAnyOrder(s1.getUUID(), s2.getUUID(), s3.getUUID());
     }
 
     @Test

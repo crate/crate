@@ -93,6 +93,7 @@ public class SysSnapshots {
                                              List<String> partedTables) {
         Version version = snapshotInfo.version();
         return new SysSnapshot(
+            snapshotId.getUUID(),
             snapshotId.getName(),
             repository.getMetadata().name(),
             snapshotInfo.indices(),
@@ -121,6 +122,7 @@ public class SysSnapshots {
                         LOGGER.debug("Couldn't retrieve snapshotId={} error={}", snapshotId, err);
                     }
                     return new SysSnapshot(
+                        snapshotId.getUUID(),
                         snapshotId.getName(),
                         repository.getMetadata().name(),
                         Collections.emptyList(),
