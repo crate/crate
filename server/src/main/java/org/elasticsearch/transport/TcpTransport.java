@@ -354,7 +354,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
 
     protected void bindServer(Settings settings) {
         // Bind and start to accept incoming connections.
-        InetAddress[] hostAddresses;
+        List<InetAddress> hostAddresses;
         List<String> transportBindHosts = TransportSettings.BIND_HOST.get(settings);
         List<String> bindHosts = transportBindHosts.isEmpty()
             ? NetworkService.GLOBAL_NETWORK_BIND_HOST_SETTING.get(settings)
@@ -365,14 +365,14 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
             throw new BindTransportException("Failed to resolve host " + bindHosts, e);
         }
         if (logger.isDebugEnabled()) {
-            String[] addresses = new String[hostAddresses.length];
-            for (int i = 0; i < hostAddresses.length; i++) {
-                addresses[i] = NetworkAddress.format(hostAddresses[i]);
+            String[] addresses = new String[hostAddresses.size()];
+            for (int i = 0; i < hostAddresses.size(); i++) {
+                addresses[i] = NetworkAddress.format(hostAddresses.get(i));
             }
             logger.debug("binding server bootstrap to: {}", (Object) addresses);
         }
 
-        assert hostAddresses.length > 0;
+        assert hostAddresses.size() > 0;
 
         List<InetSocketAddress> boundAddresses = new ArrayList<>();
         for (InetAddress hostAddress : hostAddresses) {

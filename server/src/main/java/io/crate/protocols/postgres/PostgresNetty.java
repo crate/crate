@@ -231,7 +231,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
     private BoundTransportAddress resolveBindAddress() {
         // Bind and start to accept incoming connections.
         try {
-            InetAddress[] hostAddresses = networkService.resolveBindHostAddresses(bindHosts);
+            List<InetAddress> hostAddresses = networkService.resolveBindHostAddresses(bindHosts);
             for (InetAddress address : hostAddresses) {
                 if (address instanceof Inet4Address || address instanceof Inet6Address) {
                     boundAddresses.add(bindAddress(address));
