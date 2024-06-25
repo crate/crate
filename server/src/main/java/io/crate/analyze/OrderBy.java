@@ -39,7 +39,6 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.common.Booleans;
 import io.crate.common.collections.Lists;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 
 /**
  * <pre>
@@ -153,7 +152,7 @@ public class OrderBy implements Writeable {
         }
         orderBySymbols = new ArrayList<>(numOrderBy);
         for (int i = 0; i < numOrderBy; i++) {
-            orderBySymbols.add(Symbols.fromStream(in));
+            orderBySymbols.add(Symbol.fromStream(in));
         }
         nullsFirst = new boolean[numOrderBy];
         for (int i = 0; i < numOrderBy; i++) {
@@ -168,7 +167,7 @@ public class OrderBy implements Writeable {
             out.writeBoolean(reverseFlag);
         }
         for (Symbol symbol : orderBySymbols) {
-            Symbols.toStream(symbol, out);
+            Symbol.toStream(symbol, out);
         }
         for (boolean nullFirst : nullsFirst) {
             out.writeBoolean(nullFirst);

@@ -32,7 +32,6 @@ import java.util.function.UnaryOperator;
 
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
@@ -74,7 +73,7 @@ public final class MoveFilterBeneathProjectSet implements Rule<Filter> {
         ArrayList<Symbol> toPushDown = new ArrayList<>();
         ArrayList<Symbol> toKeep = new ArrayList<>();
         for (var part : queryParts) {
-            if (!SymbolVisitors.any(MoveFilterBeneathProjectSet::isTableFunction, part)
+            if (!part.any(MoveFilterBeneathProjectSet::isTableFunction)
                 && projectSet.standaloneOutputs().containsAll(extractColumns(part))) {
                 toPushDown.add(part);
             } else {

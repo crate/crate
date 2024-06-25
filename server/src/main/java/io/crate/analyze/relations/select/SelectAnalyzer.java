@@ -21,6 +21,10 @@
 
 package io.crate.analyze.relations.select;
 
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
 import io.crate.analyze.OutputNameFormatter;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
@@ -28,7 +32,6 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.validator.SelectSymbolValidator;
 import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.sql.tree.AllColumns;
@@ -36,10 +39,6 @@ import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.SelectItem;
 import io.crate.sql.tree.SingleColumn;
-
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 
 public class SelectAnalyzer {
 
@@ -115,9 +114,9 @@ public class SelectAnalyzer {
 
         private static void addAllFieldsFromRelation(SelectAnalysis context, AnalyzedRelation relation) {
             for (Symbol field : relation.outputs()) {
-                var columnIdent = Symbols.pathFromSymbol(field);
+                var columnIdent = field.toColumn();
                 if (!columnIdent.isSystemColumn()) {
-                    context.add(Symbols.pathFromSymbol(field), field);
+                    context.add(field.toColumn(), field);
                 }
             }
         }

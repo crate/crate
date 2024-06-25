@@ -21,22 +21,22 @@
 
 package io.crate.analyze.relations;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.VoidReference;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
 import io.crate.role.Role;
-
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Consumer;
 
 /**
  * A view is a stored SELECT statement.
@@ -59,7 +59,7 @@ public final class AnalyzedView implements AnalyzedRelation, FieldResolver {
         ArrayList<Symbol> outputs = new ArrayList<>(childOutputs.size());
         for (int i = 0; i < childOutputs.size(); i++) {
             var output = childOutputs.get(i);
-            var column = Symbols.pathFromSymbol(output);
+            var column = output.toColumn();
             outputs.add(new ScopedSymbol(name, column, output.valueType()));
         }
         this.outputSymbols = List.copyOf(outputs);

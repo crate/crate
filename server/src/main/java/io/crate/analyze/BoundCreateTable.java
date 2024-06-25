@@ -31,7 +31,6 @@ import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.common.collections.Lists;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
@@ -74,7 +73,7 @@ public record BoundCreateTable(
     }
 
     public static List<String> toPartitionMapping(Symbol symbol) {
-        String fqn = Symbols.pathFromSymbol(symbol).fqn();
+        String fqn = symbol.toColumn().fqn();
         String typeMappingName = DataTypes.esMappingNameFrom(symbol.valueType().id());
         return List.of(fqn, typeMappingName);
     }

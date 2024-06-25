@@ -40,7 +40,9 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
+import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnPolicy;
+import io.crate.sql.tree.Expression;
 import io.crate.types.DataType;
 
 public interface Reference extends Symbol {
@@ -63,6 +65,20 @@ public interface Reference extends Symbol {
     ReferenceIdent ident();
 
     ColumnIdent column();
+
+    @Override
+    default ColumnIdent toColumn() {
+        return column();
+    }
+
+    @Override
+    default ColumnDefinition<Expression> toColumnDefinition() {
+        return new ColumnDefinition<>(
+            toColumn().sqlFqn(), // allow ObjectTypes to return col name in subscript notation
+            valueType().toColumnType(columnPolicy(), null),
+            List.of()
+        );
+    }
 
     IndexType indexType();
 

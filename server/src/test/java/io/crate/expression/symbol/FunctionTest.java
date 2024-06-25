@@ -62,10 +62,10 @@ public class FunctionTest extends ESTestCase {
         );
 
         BytesStreamOutput output = new BytesStreamOutput();
-        Symbols.toStream(fn, output);
+        Symbol.toStream(fn, output);
 
         StreamInput input = output.bytes().streamInput();
-        Function fn2 = (Function) Symbols.fromStream(input);
+        Function fn2 = (Function) Symbol.fromStream(input);
 
         assertThat(fn).isEqualTo(fn2);
     }
@@ -80,10 +80,10 @@ public class FunctionTest extends ESTestCase {
         );
 
         BytesStreamOutput output = new BytesStreamOutput();
-        Symbols.toStream(fn, output);
+        Symbol.toStream(fn, output);
 
         StreamInput input = output.bytes().streamInput();
-        Function fn2 = (Function) Symbols.fromStream(input);
+        Function fn2 = (Function) Symbol.fromStream(input);
 
         assertThat(fn2.filter()).isNotNull();
         assertThat(fn).isEqualTo(fn2);
@@ -99,11 +99,11 @@ public class FunctionTest extends ESTestCase {
 
         var output = new BytesStreamOutput();
         output.setVersion(Version.V_4_0_0);
-        Symbols.toStream(fn, output);
+        Symbol.toStream(fn, output);
 
         var input = output.bytes().streamInput();
         input.setVersion(Version.V_4_0_0);
-        Function fn2 = (Function) Symbols.fromStream(input);
+        Function fn2 = (Function) Symbol.fromStream(input);
 
         assertThat(fn2.filter()).isNull();
         assertThat(fn).isEqualTo(fn2);

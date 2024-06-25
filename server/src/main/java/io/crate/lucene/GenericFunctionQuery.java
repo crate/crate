@@ -46,7 +46,6 @@ import io.crate.expression.InputCondition;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.RefVisitor;
-import io.crate.expression.symbol.SymbolVisitors;
 
 /**
  * Query implementation which filters docIds by evaluating {@code condition} on each docId to verify if it matches.
@@ -70,12 +69,7 @@ public class GenericFunctionQuery extends Query {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        GenericFunctionQuery that = (GenericFunctionQuery) o;
-
-        return function.equals(that.function);
+        return o instanceof GenericFunctionQuery that && function.equals(that.function);
     }
 
     @Override
@@ -88,7 +82,7 @@ public class GenericFunctionQuery extends Query {
         return new Weight(this) {
             @Override
             public boolean isCacheable(LeafReaderContext ctx) {
-                if (SymbolVisitors.any(s -> s instanceof Function fn && !fn.signature().isDeterministic(), function)) {
+                if (!function.isDeterministic()) {
                     return false;
                 }
                 var fields = new ArrayList<String>();

@@ -49,7 +49,6 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
-import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
@@ -114,7 +113,7 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
         this.outputs = Lists.concat(groupKeys, this.aggregates);
         this.groupKeys = groupKeys;
         for (Symbol key : groupKeys) {
-            if (Symbols.containsCorrelatedSubQuery(key)) {
+            if (key.any(Symbol.IS_CORRELATED_SUBQUERY)) {
                 throw new UnsupportedOperationException(
                     "Cannot use correlated subquery in GROUP BY clause");
             }

@@ -45,10 +45,10 @@ public class AggregationTest extends ESTestCase {
             Literal.BOOLEAN_FALSE
         );
         BytesStreamOutput output = new BytesStreamOutput();
-        Symbols.toStream(actual, output);
+        Symbol.toStream(actual, output);
 
         StreamInput input = output.bytes().streamInput();
-        Aggregation expected = (Aggregation) Symbols.fromStream(input);
+        Aggregation expected = (Aggregation) Symbol.fromStream(input);
 
         assertThat(expected.filter()).isEqualTo(Literal.BOOLEAN_FALSE);
         assertThat(expected).isEqualTo(actual);
@@ -63,12 +63,12 @@ public class AggregationTest extends ESTestCase {
         );
         BytesStreamOutput output = new BytesStreamOutput();
         output.setVersion(Version.V_4_0_0);
-        Symbols.toStream(actual, output);
+        Symbol.toStream(actual, output);
 
         StreamInput input = output.bytes().streamInput();
         input.setVersion(Version.V_4_0_0);
 
-        Aggregation expected = (Aggregation) Symbols.fromStream(input);
+        Aggregation expected = (Aggregation) Symbol.fromStream(input);
 
         assertThat(expected.filter()).isEqualTo(Literal.BOOLEAN_TRUE);
         assertThat(expected).isEqualTo(actual);

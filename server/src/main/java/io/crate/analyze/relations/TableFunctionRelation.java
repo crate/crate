@@ -34,7 +34,6 @@ import io.crate.expression.scalar.SubscriptFunctions;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionName;
@@ -89,14 +88,14 @@ public class TableFunctionRelation implements AnalyzedRelation, FieldResolver {
     @Override
     public Symbol getField(ColumnIdent column, Operation operation, boolean errorOnUnknownObjectKey) throws AmbiguousColumnException, ColumnUnknownException, UnsupportedOperationException {
         for (Symbol output : outputs) {
-            ColumnIdent outputColumn = Symbols.pathFromSymbol(output);
+            ColumnIdent outputColumn = output.toColumn();
             if (column.equals(outputColumn)) {
                 return output;
             }
         }
         ColumnIdent rootColumn = column.getRoot();
         for (Symbol output : outputs) {
-            ColumnIdent outputRoot = Symbols.pathFromSymbol(output).getRoot();
+            ColumnIdent outputRoot = output.toColumn().getRoot();
             if (output.valueType().id() == ObjectType.ID && rootColumn.equals(outputRoot)) {
                 return SubscriptFunctions.makeObjectSubscript(output, column);
             }

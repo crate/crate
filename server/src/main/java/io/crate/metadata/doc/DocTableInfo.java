@@ -829,7 +829,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         for (var constraint : checkConstraints) {
             boolean drop = false;
             for (var ref : toDrop) {
-                drop = Symbols.containsColumn(constraint.expression(), ref.column());
+                drop = constraint.expression().hasColumn(ref.column());
                 if (drop) {
                     break;
                 }

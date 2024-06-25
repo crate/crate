@@ -79,11 +79,11 @@ public final class Aggregation implements Symbol {
         }
         valueType = DataTypes.fromStream(in);
         if (in.getVersion().onOrAfter(Version.V_4_1_0)) {
-            filter = Symbols.fromStream(in);
+            filter = Symbol.fromStream(in);
         } else {
             filter = Literal.BOOLEAN_TRUE;
         }
-        inputs = Symbols.listFromStream(in);
+        inputs = Symbols.fromStream(in);
         if (in.getVersion().onOrAfter(Version.V_4_2_0)) {
             if (in.getVersion().before(Version.V_5_0_0)) {
                 in.readBoolean();
@@ -136,7 +136,7 @@ public final class Aggregation implements Symbol {
         }
         DataTypes.toStream(valueType, out);
         if (out.getVersion().onOrAfter(Version.V_4_1_0)) {
-            Symbols.toStream(filter, out);
+            Symbol.toStream(filter, out);
         }
         Symbols.toStream(inputs, out);
         if (out.getVersion().onOrAfter(Version.V_4_2_0)) {

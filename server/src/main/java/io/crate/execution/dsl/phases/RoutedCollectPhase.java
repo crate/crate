@@ -42,7 +42,6 @@ import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
@@ -78,9 +77,9 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
                               DistributionInfo distributionInfo) {
         super(jobId, executionNodeId, name, projections);
         assert toCollect.stream().noneMatch(
-            st -> SymbolVisitors.any(s -> s instanceof ScopedSymbol || s instanceof SelectSymbol, st))
+            st -> st.any(s -> s instanceof ScopedSymbol || s instanceof SelectSymbol))
             : "toCollect must not contain any fields or selectSymbols: " + toCollect;
-        assert !SymbolVisitors.any(s -> s instanceof ScopedSymbol || s instanceof SelectSymbol, where)
+        assert !where.any(s -> s instanceof ScopedSymbol || s instanceof SelectSymbol)
             : "whereClause must not contain any fields or selectSymbols: " + where;
         assert routing != null : "routing must not be null";
 
@@ -174,7 +173,8 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
     }
 
     public void orderBy(@Nullable OrderBy orderBy) {
-        assert orderBy == null || orderBy.orderBySymbols().stream().noneMatch(st -> SymbolVisitors.any(s -> s instanceof ScopedSymbol, st))
+        assert orderBy == null
+            || orderBy.orderBySymbols().stream().noneMatch(st -> st.any(s -> s instanceof ScopedSymbol))
             : "orderBy must not contain any fields: " + orderBy.orderBySymbols();
         this.orderBy = orderBy;
     }
@@ -208,12 +208,12 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
         super(in);
         distributionInfo = new DistributionInfo(in);
 
-        toCollect = Symbols.listFromStream(in);
+        toCollect = Symbols.fromStream(in);
         maxRowGranularity = RowGranularity.fromStream(in);
 
         routing = new Routing(in);
 
-        where = Symbols.fromStream(in);
+        where = Symbol.fromStream(in);
 
         nodePageSizeHint = in.readOptionalVInt();
 
@@ -230,7 +230,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
         RowGranularity.toStream(maxRowGranularity, out);
 
         routing.writeTo(out);
-        Symbols.toStream(where, out);
+        Symbol.toStream(where, out);
 
         out.writeOptionalVInt(nodePageSizeHint);
         out.writeOptionalWriteable(orderBy);

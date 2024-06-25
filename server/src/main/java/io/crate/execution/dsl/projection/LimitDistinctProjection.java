@@ -21,15 +21,15 @@
 
 package io.crate.execution.dsl.projection;
 
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.RowGranularity;
+import java.io.IOException;
+import java.util.List;
 
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import java.io.IOException;
-import java.util.List;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
+import io.crate.metadata.RowGranularity;
 
 public class LimitDistinctProjection extends Projection {
 
@@ -45,7 +45,7 @@ public class LimitDistinctProjection extends Projection {
 
     public LimitDistinctProjection(StreamInput in) throws IOException {
         this.limit = in.readVInt();
-        this.outputs = Symbols.listFromStream(in);
+        this.outputs = Symbols.fromStream(in);
         this.granularity = RowGranularity.fromStream(in);
     }
 

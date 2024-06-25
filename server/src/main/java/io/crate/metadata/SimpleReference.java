@@ -39,8 +39,6 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.expression.symbol.SymbolVisitors;
-import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.sql.tree.ColumnPolicy;
@@ -96,7 +94,7 @@ public class SimpleReference implements Reference {
         hasDocValues = !in.readBoolean();
         final boolean hasDefaultExpression = in.readBoolean();
         defaultExpression = hasDefaultExpression
-            ? Symbols.fromStream(in)
+            ? Symbol.fromStream(in)
             : null;
     }
 
@@ -142,7 +140,7 @@ public class SimpleReference implements Reference {
         if (defaultExpression == null) {
             this.defaultExpression = null;
         } else {
-            if (SymbolVisitors.any(Symbols::isTableFunction, defaultExpression)) {
+            if (defaultExpression.hasFunctionType(FunctionType.TABLE)) {
                 throw new UnsupportedOperationException(
                     "Cannot use table function in default expression of column `" + ident.columnIdent().fqn() + "`");
             }
@@ -422,11 +420,7 @@ public class SimpleReference implements Reference {
         out.writeBoolean(nullable);
         // property was "columnStoreDisabled" so need to reverse the value.
         out.writeBoolean(!hasDocValues);
-        final boolean hasDefaultExpression = defaultExpression != null;
-        out.writeBoolean(hasDefaultExpression);
-        if (hasDefaultExpression) {
-            Symbols.toStream(defaultExpression, out);
-        }
+        Symbol.nullableToStream(defaultExpression, out);
     }
 
     @Override

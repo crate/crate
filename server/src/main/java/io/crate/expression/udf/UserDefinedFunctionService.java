@@ -51,7 +51,6 @@ import io.crate.exceptions.UserDefinedFunctionAlreadyExistsException;
 import io.crate.exceptions.UserDefinedFunctionUnknownException;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.FunctionProvider;
 import io.crate.metadata.FunctionType;
@@ -272,7 +271,7 @@ public class UserDefinedFunctionService extends AbstractLifecycleComponent imple
                 }
                 List<GeneratedReference> generatedColumns = docTable.generatedColumns();
                 for (var genColumn : generatedColumns) {
-                    if (SymbolVisitors.any(isFunction, genColumn.generatedExpression())) {
+                    if (genColumn.generatedExpression().any(isFunction)) {
                         throw new IllegalArgumentException(String.format(
                             Locale.ENGLISH,
                             "Cannot drop function '%s'. It is in use by column '%s' of table '%s'",

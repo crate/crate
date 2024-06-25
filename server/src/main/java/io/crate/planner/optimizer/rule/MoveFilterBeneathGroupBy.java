@@ -31,8 +31,7 @@ import java.util.function.UnaryOperator;
 
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
-import io.crate.expression.symbol.Symbols;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.Filter;
@@ -87,7 +86,7 @@ public final class MoveFilterBeneathGroupBy implements Rule<Filter> {
         ArrayList<Symbol> withAggregates = new ArrayList<>();
         ArrayList<Symbol> withoutAggregates = new ArrayList<>();
         for (Symbol part : parts) {
-            if (SymbolVisitors.any(Symbols::isAggregate, part)) {
+            if (part.hasFunctionType(FunctionType.AGGREGATE)) {
                 withAggregates.add(part);
             } else {
                 withoutAggregates.add(part);

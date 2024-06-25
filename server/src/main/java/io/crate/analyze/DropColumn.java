@@ -27,7 +27,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
-import io.crate.expression.symbol.Symbols;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
 
 public record DropColumn(Reference ref, boolean ifExists) implements Writeable {
@@ -38,7 +38,7 @@ public record DropColumn(Reference ref, boolean ifExists) implements Writeable {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        Symbols.toStream(ref, out);
+        Symbol.toStream(ref, out);
         out.writeBoolean(ifExists);
     }
 }

@@ -39,7 +39,6 @@ import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.FetchMarker;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
@@ -126,7 +125,7 @@ public final class Eval extends ForwardingLogicalPlan {
         }
         for (Symbol output : outputs) {
             newReplacedOutputs.put(output, mapToFetchStubs.apply(output));
-            if (SymbolVisitors.any(newSource.outputs()::contains, output)) {
+            if (output.any(newSource.outputs()::contains)) {
                 newOutputs.add(output);
             }
         }

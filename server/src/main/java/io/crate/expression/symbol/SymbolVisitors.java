@@ -40,13 +40,13 @@ public final class SymbolVisitors {
 
     private SymbolVisitors() {}
 
-    private static final AnyPredicateVisitor ANY_VISITOR = new AnyPredicateVisitor();
     private static final ExtractAnalyzedRelationsVisitor EXTRACT_ANALYZED_RELATIONS_VISITOR =
         new ExtractAnalyzedRelationsVisitor();
 
     public static boolean any(Predicate<? super Symbol> predicate, List<? extends Symbol> symbols) {
         for (int i = 0; i < symbols.size(); i++) {
-            if (any(predicate, symbols.get(i))) {
+            Symbol symbol = symbols.get(i);
+            if (symbol.any(predicate)) {
                 return true;
             }
         }
@@ -55,15 +55,11 @@ public final class SymbolVisitors {
 
     public static boolean any(Predicate<? super Symbol> predicate, Iterable<? extends Symbol> symbols) {
         for (Symbol symbol: symbols) {
-            if (any(predicate, symbol)) {
+            if (symbol.any(predicate)) {
                 return true;
             }
         }
         return false;
-    }
-
-    public static boolean any(Predicate<? super Symbol> symbolPredicate, Symbol symbol) {
-        return symbol.accept(ANY_VISITOR, symbolPredicate);
     }
 
     /**
@@ -216,73 +212,6 @@ public final class SymbolVisitors {
                 consumer.accept((T) symbol);
             }
             return null;
-        }
-    }
-
-    private static class AnyPredicateVisitor extends SymbolVisitor<Predicate<? super Symbol>, Boolean> {
-
-        @Override
-        public Boolean visitFunction(Function symbol, Predicate<? super Symbol> symbolPredicate) {
-            if (symbolPredicate.test(symbol)) {
-                return true;
-            }
-            for (Symbol arg : symbol.arguments()) {
-                if (arg.accept(this, symbolPredicate)) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        @Override
-        public Boolean visitWindowFunction(WindowFunction symbol, Predicate<? super Symbol> context) {
-            return visitFunction(symbol, context);
-        }
-
-        @Override
-        public Boolean visitFetchReference(FetchReference fetchReference, Predicate<? super Symbol> symbolPredicate) {
-            return symbolPredicate.test(fetchReference)
-                   || fetchReference.fetchId().accept(this, symbolPredicate)
-                   || fetchReference.ref().accept(this, symbolPredicate);
-        }
-
-        @Override
-        public Boolean visitMatchPredicate(MatchPredicate matchPredicate, Predicate<? super Symbol> symbolPredicate) {
-            if (symbolPredicate.test(matchPredicate)) {
-                return true;
-            }
-            for (Symbol field : matchPredicate.identBoostMap().keySet()) {
-                if (field.accept(this, symbolPredicate)) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        @Override
-        public Boolean visitAlias(AliasSymbol aliasSymbol, Predicate<? super Symbol> predicate) {
-            if (predicate.test(aliasSymbol)) {
-                return true;
-            }
-            return aliasSymbol.symbol().accept(this, predicate);
-        }
-
-        @Override
-        public Boolean visitOuterColumn(OuterColumn outerColumn, Predicate<? super Symbol> predicate) {
-            if (predicate.test(outerColumn)) {
-                return true;
-            }
-            return outerColumn.symbol().accept(this, predicate);
-        }
-
-        @Override
-        protected Boolean visitSymbol(Symbol symbol, Predicate<? super Symbol> symbolPredicate) {
-            return symbolPredicate.test(symbol);
-        }
-
-        @Override
-        public Boolean visitSelectSymbol(SelectSymbol selectSymbol, Predicate<? super Symbol> predicate) {
-            return predicate.test(selectSymbol);
         }
     }
 

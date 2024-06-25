@@ -92,7 +92,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
         }
         overwriteDuplicates = in.readBoolean();
         rawSourceReference = Reference.fromStream(in);
-        rawSourceSymbol = (InputColumn) Symbols.fromStream(in);
+        rawSourceSymbol = (InputColumn) Symbol.fromStream(in);
 
         if (version.before(Version.V_5_3_0)) {
             if (in.readBoolean()) {
@@ -112,7 +112,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
         } else {
             excludes = null;
         }
-        outputs = Symbols.listFromStream(in);
+        outputs = Symbols.fromStream(in);
         if (version.onOrAfter(Version.V_4_8_0) && version.before(Version.V_5_5_0)) {
             in.readBoolean(); // validation
         }
@@ -128,7 +128,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
         }
         out.writeBoolean(overwriteDuplicates);
         Reference.toStream(out, rawSourceReference);
-        Symbols.toStream(rawSourceSymbol, out);
+        Symbol.toStream(rawSourceSymbol, out);
 
         if (version.before(Version.V_5_3_0)) {
             // no includes

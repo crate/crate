@@ -38,8 +38,6 @@ import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.expression.symbol.SymbolVisitors;
-import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.format.Style;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
@@ -66,11 +64,11 @@ public final class GeneratedReference implements Reference {
         this.ref = ref;
         this.generatedExpression = generatedExpression;
         this.formattedGeneratedExpression = formattedGeneratedExpression;
-        if (SymbolVisitors.any(Symbols::isAggregate, generatedExpression)) {
+        if (generatedExpression.hasFunctionType(FunctionType.AGGREGATE)) {
             throw new UnsupportedOperationException(
                 "Aggregation functions are not allowed in generated columns: " + generatedExpression);
         }
-        if (SymbolVisitors.any(Symbols::isTableFunction, generatedExpression)) {
+        if (generatedExpression.hasFunctionType(FunctionType.TABLE)) {
             throw new UnsupportedOperationException(
                 "Cannot use table function in generated expression of column `" + ref.column().fqn() + "`");
         }
@@ -87,9 +85,9 @@ public final class GeneratedReference implements Reference {
         }
         formattedGeneratedExpression = in.readString();
         if (version.onOrAfter(Version.V_5_1_0) && version.onOrBefore(Version.V_5_6_0)) {
-            generatedExpression = Symbols.nullableFromStream(in);
+            generatedExpression = Symbol.nullableFromStream(in);
         } else {
-            generatedExpression = Symbols.fromStream(in);
+            generatedExpression = Symbol.fromStream(in);
         }
         int size = in.readVInt();
         referencedReferences = new ArrayList<>(size);
@@ -125,9 +123,9 @@ public final class GeneratedReference implements Reference {
         }
         out.writeString(formattedGeneratedExpression);
         if (version.onOrAfter(Version.V_5_1_0) && version.onOrBefore(Version.V_5_6_0)) {
-            Symbols.nullableToStream(generatedExpression, out);
+            Symbol.nullableToStream(generatedExpression, out);
         } else {
-            Symbols.toStream(generatedExpression, out);
+            Symbol.toStream(generatedExpression, out);
         }
 
         out.writeVInt(referencedReferences.size());
@@ -150,6 +148,11 @@ public final class GeneratedReference implements Reference {
 
     public List<Reference> referencedReferences() {
         return referencedReferences;
+    }
+
+    @Override
+    public boolean isDeterministic() {
+        return generatedExpression.isDeterministic();
     }
 
     @Override

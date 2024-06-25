@@ -93,7 +93,7 @@ final class DocValuesGroupByOptimizedIterator {
                                           RoutedCollectPhase collectPhase,
                                           CollectTask collectTask) {
         if (Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.SCORE)
-            || Symbols.containsColumn(collectPhase.where(), DocSysColumns.SCORE)) {
+            || collectPhase.where().hasColumn(DocSysColumns.SCORE)) {
             return null;
         }
 
