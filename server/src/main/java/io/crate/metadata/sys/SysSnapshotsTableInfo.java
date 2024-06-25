@@ -41,6 +41,7 @@ public class SysSnapshotsTableInfo {
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "snapshots");
 
     static SystemTable<SysSnapshot> INSTANCE = SystemTable.<SysSnapshot>builder(IDENT)
+        .add("id", STRING, SysSnapshot::uuid)
         .add("name", STRING, SysSnapshot::name)
         .add("repository", STRING, SysSnapshot::repository)
         .add("concrete_indices", STRING_ARRAY, SysSnapshot::concreteIndices)

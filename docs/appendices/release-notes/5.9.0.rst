@@ -86,4 +86,5 @@ None
 Administration and Operations
 -----------------------------
 
-None
+- Added ``id`` column to the :ref:`sys.snapshots <sys-snapshots>` table which
+  exposes snapshot UUID.
