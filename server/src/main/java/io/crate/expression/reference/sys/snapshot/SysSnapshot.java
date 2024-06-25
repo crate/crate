@@ -30,6 +30,7 @@ import io.crate.metadata.RelationName;
 
 public class SysSnapshot {
 
+    private final String uuid;
     private final String name;
     private final String repository;
     private final List<String> concreteIndices;
@@ -41,7 +42,8 @@ public class SysSnapshot {
 
     private final List<String> snapshotShardFailures;
 
-    public SysSnapshot(String name,
+    public SysSnapshot(String uuid,
+                       String name,
                        String repository,
                        List<String> concreteIndices,
                        List<String> partitionedTables,
@@ -50,6 +52,7 @@ public class SysSnapshot {
                        String version,
                        String state,
                        List<String> snapshotShardFailures) {
+        this.uuid = uuid;
         this.name = name;
         this.repository = repository;
         this.concreteIndices = concreteIndices;
@@ -59,6 +62,10 @@ public class SysSnapshot {
         this.version = version;
         this.state = state;
         this.snapshotShardFailures = snapshotShardFailures;
+    }
+
+    public String uuid() {
+        return uuid;
     }
 
     public String name() {

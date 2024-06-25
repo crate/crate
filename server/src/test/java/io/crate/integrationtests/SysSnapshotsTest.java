@@ -80,13 +80,14 @@ public class SysSnapshotsTest extends IntegTestCase {
         execute("select * from sys.snapshots");
         assertThat(response).hasRowCount(1);
         assertThat(response.cols()).containsExactly(
-            "concrete_indices", "failures", "finished", "name", "repository",
+            "concrete_indices", "failures", "finished", "id", "name", "repository",
             "started", "state", "table_partitions", "tables", "version");
         ArrayType<String> stringArray = new ArrayType<>(DataTypes.STRING);
         assertThat(response.columnTypes()).containsExactly(
             stringArray,
             stringArray,
             TimestampType.INSTANCE_WITH_TZ,
+            StringType.INSTANCE,
             StringType.INSTANCE,
             StringType.INSTANCE,
             TimestampType.INSTANCE_WITH_TZ,
@@ -104,13 +105,14 @@ public class SysSnapshotsTest extends IntegTestCase {
         assertThat((List<Object>) firstRow[0]).containsExactly(getFqn("tbl"));
         assertThat((List<Object>) firstRow[1]).isEmpty();
         assertThat((Long) firstRow[2]).isLessThanOrEqualTo(finishedTime);
-        assertThat(firstRow[3]).isEqualTo("s1");
-        assertThat(firstRow[4]).isEqualTo("r1");
-        assertThat((Long) firstRow[5]).isGreaterThanOrEqualTo(createdTime);
-        assertThat(firstRow[6]).isEqualTo(SnapshotState.SUCCESS.name());
-        assertThat((List<Object>) firstRow[7]).isEmpty();
-        assertThat((List<Object>) firstRow[8]).containsExactly(getFqn("tbl"));
-        assertThat(firstRow[9]).isEqualTo(Version.CURRENT.toString());
+        // firstRow[3] is UUID, not selecting it as it's random.
+        assertThat(firstRow[4]).isEqualTo("s1");
+        assertThat(firstRow[5]).isEqualTo("r1");
+        assertThat((Long) firstRow[6]).isGreaterThanOrEqualTo(createdTime);
+        assertThat(firstRow[7]).isEqualTo(SnapshotState.SUCCESS.name());
+        assertThat((List<Object>) firstRow[8]).isEmpty();
+        assertThat((List<Object>) firstRow[9]).containsExactly(getFqn("tbl"));
+        assertThat(firstRow[10]).isEqualTo(Version.CURRENT.toString());
     }
 
     @Test
