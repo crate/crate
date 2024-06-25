@@ -119,4 +119,31 @@ public class EquiJoinDetectorTest extends CrateDummyClusterServiceUnitTest {
         Symbol joinCondition = sqlExpressions.asSymbol("t1.a = t1.a AND CASE 1 WHEN t1.a THEN false ELSE t2.b in (t2.b) END");
         assertThat(EquiJoinDetector.isHashJoinPossible(JoinType.INNER, joinCondition)).isFalse();
     }
+
+    @Test
+    public void test_equality_and_many_relations_in_boolean_join_condition_hash_join_not_possible() {
+        // Nested EQ operator.
+        Symbol joinCondition = sqlExpressions.asSymbol("(t1.a >= 1) = ((t1.a = t1.a) AND (t2.b <= t2.b))");
+        assertThat(EquiJoinDetector.isHashJoinPossible(JoinType.INNER, joinCondition)).isFalse();
+
+        // Deep nested EQ operator.
+        joinCondition = sqlExpressions.asSymbol("(t1.a >= 1) = " +
+            " (t2.b < 10 AND ((t2.b < 10) = (t1.a = t1.a + 10) AND (t2.b < 7) = (t1.a = (t1.a - 5))))");
+        assertThat(EquiJoinDetector.isHashJoinPossible(JoinType.INNER, joinCondition)).isFalse();
+    }
+
+    @Test
+    public void test_inequality_in_boolean_join_condition_hash_join_possible() {
+        // Compare column with column
+        Symbol joinCondition = sqlExpressions.asSymbol("(t1.a >= 1) = (t2.b <= t2.b)");
+        assertThat(EquiJoinDetector.isHashJoinPossible(JoinType.INNER, joinCondition)).isTrue();
+
+        // Compare column with constant
+        joinCondition = sqlExpressions.asSymbol("(t1.a >= 1) = (t2.b < 10)");
+        assertThat(EquiJoinDetector.isHashJoinPossible(JoinType.INNER, joinCondition)).isTrue();
+
+        // Compare with column AND compare with constant.
+        joinCondition = sqlExpressions.asSymbol("(t1.a >= 1) = (t2.b <= t2.b AND t2.b < 10)");
+        assertThat(EquiJoinDetector.isHashJoinPossible(JoinType.INNER, joinCondition)).isTrue();
+    }
 }

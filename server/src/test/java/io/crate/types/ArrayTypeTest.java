@@ -60,6 +60,41 @@ public class ArrayTypeTest extends DataTypeTestCase<List<Object>> {
         return new DataDef<>(type, type.getTypeSignature().toString(), DataTypeTesting.getDataGenerator(type));
     }
 
+    @Override
+    @SuppressWarnings("unchecked")
+    public void test_reference_resolver_docvalues_off() throws Exception {
+        DataType<Object> randomType = (DataType<Object>) DataTypeTesting.randomTypeExcluding(
+            Set.of(FloatVectorType.INSTANCE_ONE, ObjectType.UNTYPED, BitStringType.INSTANCE_ONE, IpType.INSTANCE, BooleanType.INSTANCE,
+                GeoPointType.INSTANCE, GeoShapeType.INSTANCE)
+        );
+        DataType<List<Object>> type = new ArrayType<>(randomType);
+        String definition = type.getTypeSignature().toString() + " STORAGE WITH (columnstore=false)";
+        doReferenceResolveTest(type, definition, DataTypeTesting.getDataGenerator(type).get());
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public void test_reference_resolver_index_and_docvalues_off() throws Exception {
+        DataType<Object> randomType = (DataType<Object>) DataTypeTesting.randomTypeExcluding(
+            Set.of(FloatVectorType.INSTANCE_ONE, ObjectType.UNTYPED, BitStringType.INSTANCE_ONE, IpType.INSTANCE, BooleanType.INSTANCE,
+                GeoPointType.INSTANCE, GeoShapeType.INSTANCE)
+        );
+        DataType<List<Object>> type = new ArrayType<>(randomType);
+        String definition = type.getTypeSignature().toString() + " INDEX OFF STORAGE WITH (columnstore=false)";
+        doReferenceResolveTest(type, definition, DataTypeTesting.getDataGenerator(type).get());
+    }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public void test_reference_resolver_index_off() throws Exception {
+        DataType<Object> randomType = (DataType<Object>) DataTypeTesting.randomTypeExcluding(
+            Set.of(FloatVectorType.INSTANCE_ONE, ObjectType.UNTYPED, GeoPointType.INSTANCE, GeoShapeType.INSTANCE)
+        );
+        DataType<List<Object>> type = new ArrayType<>(randomType);
+        String definition = type.getTypeSignature().toString() + " INDEX OFF";
+        doReferenceResolveTest(type, definition, DataTypeTesting.getDataGenerator(type).get());
+    }
+
     @Test
     public void test_pg_string_array_literal_can_be_converted_to_values() {
         ArrayType<String> strArray = new ArrayType<>(DataTypes.STRING);

@@ -27,25 +27,16 @@ import static io.crate.analyze.SnapshotSettings.SCHEMA_RENAME_REPLACEMENT;
 import static io.crate.analyze.SnapshotSettings.TABLE_RENAME_PATTERN;
 import static io.crate.analyze.SnapshotSettings.TABLE_RENAME_REPLACEMENT;
 import static io.crate.analyze.SnapshotSettings.WAIT_FOR_COMPLETION;
-import static org.elasticsearch.snapshots.RestoreService.isIndexPartitionOfTable;
 
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.elasticsearch.Version;
-import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsAction;
-import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotAction;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
 import org.elasticsearch.action.support.IndicesOptions;
-import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.snapshots.SnapshotInfo;
 import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.AnalyzedRestoreSnapshot;
@@ -116,79 +107,42 @@ public class RestoreSnapshotPlan implements Plan {
             IndicesOptions.lenientExpandOpen()
         );
 
-        if (plannerContext.clusterState().nodes().getMinNodeVersion().onOrAfter(Version.V_5_6_0)) {
-            boolean includeTables = stmt.includeTables();
+        boolean includeTables = stmt.includeTables();
 
-            List<RestoreSnapshotRequest.TableOrPartition> tablesToRestore = stmt.restoreTables().stream()
-                .map(restoreTableInfo -> {
-                    String partitionIdent = null;
-                    if (restoreTableInfo.partitionName() != null) {
-                        partitionIdent = restoreTableInfo.partitionName().ident();
-                    }
-                    return new RestoreSnapshotRequest.TableOrPartition(restoreTableInfo.tableIdent(), partitionIdent);
-                })
-                .collect(Collectors.toList());
+        List<RestoreSnapshotRequest.TableOrPartition> tablesToRestore = stmt.restoreTables().stream()
+            .map(restoreTableInfo -> {
+                String partitionIdent = null;
+                if (restoreTableInfo.partitionName() != null) {
+                    partitionIdent = restoreTableInfo.partitionName().ident();
+                }
+                return new RestoreSnapshotRequest.TableOrPartition(restoreTableInfo.tableIdent(), partitionIdent);
+            })
+            .collect(Collectors.toList());
 
-            String tableRenamePattern = TABLE_RENAME_PATTERN.get(settings);
-            String tableRenameReplacement = TABLE_RENAME_REPLACEMENT.get(settings);
-            String schemaRenamePattern = SCHEMA_RENAME_PATTERN.get(settings);
-            String schemaRenameReplacement = SCHEMA_RENAME_REPLACEMENT.get(settings);
+        String tableRenamePattern = TABLE_RENAME_PATTERN.get(settings);
+        String tableRenameReplacement = TABLE_RENAME_REPLACEMENT.get(settings);
+        String schemaRenamePattern = SCHEMA_RENAME_PATTERN.get(settings);
+        String schemaRenameReplacement = SCHEMA_RENAME_REPLACEMENT.get(settings);
 
-            RestoreSnapshotRequest request = new RestoreSnapshotRequest(
-                restoreSnapshot.repository(),
-                restoreSnapshot.snapshot())
-                .tablesToRestore(tablesToRestore)
-                .tableRenamePattern(tableRenamePattern)
-                .tableRenameReplacement(tableRenameReplacement)
-                .schemaRenamePattern(schemaRenamePattern)
-                .schemaRenameReplacement(schemaRenameReplacement)
-                .indicesOptions(indicesOptions)
-                .settings(settings)
-                .waitForCompletion(WAIT_FOR_COMPLETION.get(settings))
-                .includeIndices(includeTables)
-                .includeAliases(includeTables)
-                .includeCustomMetadata(stmt.includeCustomMetadata())
-                .customMetadataTypes(stmt.customMetadataTypes())
-                .includeGlobalSettings(stmt.includeGlobalSettings())
-                .globalSettings(stmt.globalSettings());
-            dependencies.client().execute(RestoreSnapshotAction.INSTANCE, request)
-                .whenComplete(new OneRowActionListener<>(consumer, r -> new Row1(r == null ? -1L : 1L)));
-        } else {
-            // TODO: Remove BWC code.
-            resolveIndexNames(restoreSnapshot.repository(),
-                stmt.restoreTables(),
-                ignoreUnavailable,
-                dependencies.client())
-                .whenComplete((ResolveIndicesAndTemplatesContext ctx, Throwable t) -> {
-                    if (t == null) {
-                        String[] indexNames = ctx.resolvedIndices().toArray(new String[0]);
-                        String[] templateNames = stmt.includeTables() && ctx.resolvedTemplates().isEmpty()
-                            ? new String[]{ALL_TEMPLATES}
-                            : ctx.resolvedTemplates().toArray(new String[0]);
-                        boolean includeTables = stmt.includeTables() &&
-                            (indexNames.length > 0 || ctx.resolvedTemplates().isEmpty());
-
-
-
-                        RestoreSnapshotRequest request = new RestoreSnapshotRequest(
-                            restoreSnapshot.repository(),
-                            restoreSnapshot.snapshot())
-                            .indices(indexNames)
-                            .templates(templateNames)
-                            .indicesOptions(indicesOptions)
-                            .settings(settings)
-                            .waitForCompletion(WAIT_FOR_COMPLETION.get(settings))
-                            .includeIndices(includeTables)
-                            .includeAliases(includeTables)
-                            .includeCustomMetadata(stmt.includeCustomMetadata())
-                            .customMetadataTypes(stmt.customMetadataTypes())
-                            .includeGlobalSettings(stmt.includeGlobalSettings())
-                            .globalSettings(stmt.globalSettings());
-                        dependencies.client().execute(RestoreSnapshotAction.INSTANCE, request)
-                            .whenComplete(new OneRowActionListener<>(consumer, r -> new Row1(r == null ? -1L : 1L)));
-                    }
-                });
-        }
+        RestoreSnapshotRequest request = new RestoreSnapshotRequest(
+            restoreSnapshot.repository(),
+            restoreSnapshot.snapshot())
+            .tablesToRestore(tablesToRestore)
+            .tableRenamePattern(tableRenamePattern)
+            .tableRenameReplacement(tableRenameReplacement)
+            .schemaRenamePattern(schemaRenamePattern)
+            .schemaRenameReplacement(schemaRenameReplacement)
+            .indicesOptions(indicesOptions)
+            .settings(settings)
+            .waitForCompletion(WAIT_FOR_COMPLETION.get(settings))
+            .includeIndices(includeTables)
+            .includeAliases(includeTables)
+            .includeCustomMetadata(stmt.includeCustomMetadata())
+            .customMetadataTypes(stmt.customMetadataTypes())
+            .includeGlobalSettings(stmt.includeGlobalSettings())
+            .globalSettings(stmt.globalSettings());
+        dependencies.client().execute(RestoreSnapshotAction.INSTANCE, request)
+            .whenComplete(new OneRowActionListener<>(consumer, r -> new Row1(r == null ? -1L : 1L)));
     }
 
     @VisibleForTesting
@@ -248,100 +202,5 @@ public class RestoreSnapshotPlan implements Plan {
             restoreSnapshot.globalSettings(),
             settings
         );
-    }
-
-    @VisibleForTesting
-    @Deprecated
-    static CompletableFuture<ResolveIndicesAndTemplatesContext> resolveIndexNames(String repositoryName,
-                                                                                  Set<BoundRestoreSnapshot.RestoreTableInfo> restoreTables,
-                                                                                  boolean ignoreUnavailable,
-                                                                                  ElasticsearchClient elasticsearchClient) {
-        ResolveIndicesAndTemplatesContext context = new ResolveIndicesAndTemplatesContext();
-        ArrayList<BoundRestoreSnapshot.RestoreTableInfo> toResolveFromSnapshot = new ArrayList<>();
-        for (var table : restoreTables) {
-            if (table.hasPartitionInfo()) {
-                context.addIndex(table.partitionName().asIndexName());
-                context.addTemplate(table.partitionTemplate());
-            } else if (ignoreUnavailable) {
-                // If ignoreUnavailable is true, it's cheaper to simply
-                // return indexName and the partitioned wildcard instead
-                // checking if it's a partitioned table or not
-                context.addIndex(table.tableIdent().indexNameOrAlias());
-                // For the case its a partitioned table we restore all partitions and the templates
-                String templateName = table.partitionTemplate();
-                context.addIndex(templateName + "*");
-                context.addTemplate(templateName);
-            } else {
-                // index name needs to be resolved from snapshot
-                toResolveFromSnapshot.add(table);
-            }
-        }
-
-        if (toResolveFromSnapshot.isEmpty()) {
-            return CompletableFuture.completedFuture(context);
-        } else {
-            return elasticsearchClient.execute(GetSnapshotsAction.INSTANCE, new GetSnapshotsRequest(repositoryName))
-                .thenApply(response -> {
-                    resolveTablesFromSnapshots(toResolveFromSnapshot, response.getSnapshots(), context);
-                    return context;
-                });
-        }
-    }
-
-    @VisibleForTesting
-    static void resolveTablesFromSnapshots(List<BoundRestoreSnapshot.RestoreTableInfo> toResolveFromSnapshot,
-                                           List<SnapshotInfo> snapshots,
-                                           ResolveIndicesAndTemplatesContext context) throws RelationUnknown {
-        for (BoundRestoreSnapshot.RestoreTableInfo table : toResolveFromSnapshot) {
-            resolveTableFromSnapshots(table, snapshots, context);
-        }
-    }
-
-    @VisibleForTesting
-    static void resolveTableFromSnapshots(BoundRestoreSnapshot.RestoreTableInfo table,
-                                          List<SnapshotInfo> snapshots,
-                                          ResolveIndicesAndTemplatesContext context) throws RelationUnknown {
-        String name = table.tableIdent().indexNameOrAlias();
-        for (SnapshotInfo snapshot : snapshots) {
-            for (String index : snapshot.indices()) {
-                if (name.equals(index)) {
-                    context.addIndex(index);
-                    return;
-                } else if (isIndexPartitionOfTable(index, table.tableIdent())) {
-                    String templateName = table.partitionTemplate();
-                    // add a partitions wildcard
-                    // to match all partitions if a partitioned table was meant
-                    context.addIndex(templateName + "*");
-                    context.addTemplate(templateName);
-                    return;
-                }
-            }
-        }
-        context.addTemplate(table.partitionTemplate());
-    }
-
-
-
-    @VisibleForTesting
-    static class ResolveIndicesAndTemplatesContext {
-
-        private final HashSet<String> resolvedIndices = new HashSet<>();
-        private final HashSet<String> resolvedTemplates = new HashSet<>();
-
-        void addIndex(String index) {
-            resolvedIndices.add(index);
-        }
-
-        void addTemplate(String template) {
-            resolvedTemplates.add(template);
-        }
-
-        HashSet<String> resolvedIndices() {
-            return resolvedIndices;
-        }
-
-        HashSet<String> resolvedTemplates() {
-            return resolvedTemplates;
-        }
     }
 }

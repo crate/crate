@@ -395,14 +395,6 @@ public class Setting<T> implements ToXContentObject {
     }
 
     /**
-     * Validate the current setting value only without dependencies with {@link Setting.Validator#validate(Object)}.
-     * @param settings a settings object for settings that has a default value depending on another setting if available
-     */
-    void validateWithoutDependencies(Settings settings) {
-        validator.validate(get(settings, false));
-    }
-
-    /**
      * Returns the default value string representation for this setting.
      * @param settings a settings object for settings that has a default value depending on another setting if available
      */
@@ -610,7 +602,7 @@ public class Setting<T> implements ToXContentObject {
          *
          * @return the setting
          */
-        Setting getSetting();
+        Setting<?> getSetting();
 
         /**
          * Validates the dependent setting value.
@@ -901,14 +893,6 @@ public class Setting<T> implements ToXContentObject {
         }
 
         /**
-         * Returns the namespace for a concrete setting. Ie. an affix setting with prefix: {@code search.} and suffix: {@code username}
-         * will return {@code remote} as a namespace for the setting {@code cluster.remote.username}
-         */
-        public String getNamespace(Setting<T> concreteSetting) {
-            return key.getNamespace(concreteSetting.getKey());
-        }
-
-        /**
          * Returns a stream of all concrete setting instances for the given settings. AffixSetting is only a specification, concrete
          * settings depend on an actual set of setting keys.
          */
@@ -1128,17 +1112,6 @@ public class Setting<T> implements ToXContentObject {
         }
     }
 
-    public Setting<T> copyAndRename(UnaryOperator<String> keyOperator) {
-        assert (isGroupSetting() == false) : "Can only be applied to concrete settings";
-        return new Setting<>(new SimpleKey(keyOperator.apply(getKey())),
-                             fallbackSetting,
-                             defaultValue,
-                             parser,
-                             validator,
-                             type,
-                             properties.toArray(new Property[0]));
-    }
-
     public static Setting<Version> versionSetting(final String key, final Version defaultValue, Property... properties) {
         return new Setting<>(key, s -> Integer.toString(defaultValue.internalId), s -> Version.fromId(Integer.parseInt(s)), DataTypes.STRING, properties);
     }
@@ -1183,28 +1156,6 @@ public class Setting<T> implements ToXContentObject {
         );
     }
 
-    public static Setting<Integer> intSetting(String key, int defaultValue, int minValue, Validator<Integer> validator,
-                                              Property... properties) {
-        return new Setting<>(
-            key,
-            Integer.toString(defaultValue),
-            (s) -> parseInt(s, minValue, key),
-            validator,
-            DataTypes.INTEGER,
-            properties
-        );
-    }
-
-    public static Setting<Integer> intSetting(String key, Setting<Integer> fallbackSetting, int minValue, Property... properties) {
-        return new Setting<>(
-            key,
-            fallbackSetting,
-            (s) -> parseInt(s, minValue, key),
-            DataTypes.INTEGER,
-            properties
-        );
-    }
-
     public static Setting<Integer> intSetting(String key, Setting<Integer> fallbackSetting, int minValue, Validator<Integer> validator,
                                               Property... properties) {
         return new Setting<>(
@@ -1228,10 +1179,6 @@ public class Setting<T> implements ToXContentObject {
 
     public static Setting<String> simpleString(String key, Validator<String> validator, Property... properties) {
         return new Setting<>(new SimpleKey(key), null, s -> "", Function.identity(), validator, DataTypes.STRING, properties);
-    }
-
-    public static Setting<String> simpleString(String key, Validator<String> validator, Setting<String> fallback, Property... properties) {
-        return new Setting<>(new SimpleKey(key), fallback, fallback::getRaw, Function.identity(), validator, DataTypes.STRING, properties);
     }
 
     public static Setting<String> simpleString(String key, Setting<String> fallback, Property... properties) {
@@ -1286,15 +1233,6 @@ public class Setting<T> implements ToXContentObject {
                 "Failed to parse value [" + s + "] for setting [" + stripIndexPrefix(key) + "] must be >= " + minValue);
         }
         return value;
-    }
-
-    public static TimeValue parseTimeValue(String s, TimeValue minValue, String key) {
-        TimeValue timeValue = TimeValue.parseTimeValue(s, null, key);
-        if (timeValue.millis() < minValue.millis()) {
-            throw new IllegalArgumentException(
-                "Failed to parse value [" + s + "] for setting [" + stripIndexPrefix(key) + "] must be >= " + minValue);
-        }
-        return timeValue;
     }
 
     public static Setting<Integer> intSetting(String key, int defaultValue, Property... properties) {
@@ -1425,15 +1363,6 @@ public class Setting<T> implements ToXContentObject {
 
     public static <T> Setting<List<T>> listSetting(
             final String key,
-            final Function<String, T> singleValueParser,
-            final Function<Settings, List<String>> defaultStringValue,
-            final DataType<?> type,
-            final Property... properties) {
-        return listSetting(key, null, singleValueParser, defaultStringValue, type, properties);
-    }
-
-    public static <T> Setting<List<T>> listSetting(
-            final String key,
             final @Nullable Setting<List<T>> fallbackSetting,
             final Function<String, T> singleValueParser,
             final Function<Settings, List<String>> defaultStringValue,
@@ -1542,7 +1471,7 @@ public class Setting<T> implements ToXContentObject {
         }
     }
 
-    static void logSettingUpdate(Setting setting, Settings current, Settings previous, Logger logger) {
+    static void logSettingUpdate(Setting<?> setting, Settings current, Settings previous, Logger logger) {
         if (logger.isInfoEnabled()) {
             if (setting.isMasked()) {
                 logger.info("updating [{}]", setting.key);
@@ -1672,7 +1601,7 @@ public class Setting<T> implements ToXContentObject {
 
     @Override
     public int hashCode() {
-        return Objects.hash(key);
+        return key.hashCode();
     }
 
     /**
@@ -1694,12 +1623,6 @@ public class Setting<T> implements ToXContentObject {
                                                       AffixSettingDependency... dependencies) {
         BiFunction<String, String, Setting<T>> delegateFactoryWithNamespace = (ns, k) -> delegateFactory.apply(k);
         return affixKeySetting(new AffixKey(prefix, suffix), delegateFactoryWithNamespace, dependencies);
-    }
-
-    public static <T> AffixSetting<T> affixKeySetting(String prefix, String suffix, BiFunction<String, String, Setting<T>> delegateFactory,
-                                                      AffixSettingDependency... dependencies) {
-        Setting<T> delegate = delegateFactory.apply("_na_", "_na_");
-        return new AffixSetting<>(new AffixKey(prefix, suffix), delegate, delegateFactory, dependencies);
     }
 
     private static <T> AffixSetting<T> affixKeySetting(AffixKey key, BiFunction<String, String, Setting<T>> delegateFactory,
