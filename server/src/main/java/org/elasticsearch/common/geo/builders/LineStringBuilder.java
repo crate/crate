@@ -70,11 +70,6 @@ public class LineStringBuilder extends ShapeBuilder<JtsGeometry, LineStringBuild
     }
 
     @Override
-    public GeoShapeType type() {
-        return TYPE;
-    }
-
-    @Override
     public int numDimensions() {
         if (coordinates == null || coordinates.isEmpty()) {
             throw new IllegalStateException("unable to get number of dimensions, " +
@@ -88,16 +83,16 @@ public class LineStringBuilder extends ShapeBuilder<JtsGeometry, LineStringBuild
         Coordinate[] coordinates = this.coordinates.toArray(new Coordinate[this.coordinates.size()]);
         Geometry geometry;
         if (wrapdateline) {
-            ArrayList<LineString> strings = decomposeS4J(FACTORY, coordinates, new ArrayList<LineString>());
+            ArrayList<LineString> strings = decomposeS4J(GEO_FACTORY, coordinates, new ArrayList<LineString>());
             if (strings.size() == 1) {
                 geometry = strings.get(0);
             } else {
                 LineString[] linestrings = strings.toArray(new LineString[strings.size()]);
-                geometry = FACTORY.createMultiLineString(linestrings);
+                geometry = GEO_FACTORY.createMultiLineString(linestrings);
             }
 
         } else {
-            geometry = FACTORY.createLineString(coordinates);
+            geometry = GEO_FACTORY.createLineString(coordinates);
         }
         return jtsGeometry(geometry);
     }

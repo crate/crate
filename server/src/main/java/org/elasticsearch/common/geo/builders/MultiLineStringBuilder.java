@@ -25,8 +25,6 @@ import java.util.Objects;
 
 import org.apache.lucene.geo.Line;
 import org.elasticsearch.common.geo.GeoShapeType;
-import org.elasticsearch.common.geo.parsers.GeoWKTParser;
-import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.LineString;
 import org.locationtech.spatial4j.shape.jts.JtsGeometry;
@@ -46,38 +44,6 @@ public class MultiLineStringBuilder extends ShapeBuilder<JtsGeometry, MultiLineS
         return this;
     }
 
-    public Coordinate[][] coordinates() {
-        Coordinate[][] result = new Coordinate[lines.size()][];
-        for (int i = 0; i < result.length; i++) {
-            result[i] = lines.get(i).coordinates(false);
-        }
-        return result;
-    }
-
-    @Override
-    public GeoShapeType type() {
-        return TYPE;
-    }
-
-    @Override
-    protected StringBuilder contentToWKT() {
-        final StringBuilder sb = new StringBuilder();
-        if (lines.isEmpty()) {
-            sb.append(GeoWKTParser.EMPTY);
-        } else {
-            sb.append(GeoWKTParser.LPAREN);
-            if (lines.size() > 0) {
-                sb.append(ShapeBuilder.coordinateListToWKT(lines.get(0).coordinates));
-            }
-            for (int i = 1; i < lines.size(); ++i) {
-                sb.append(GeoWKTParser.COMMA);
-                sb.append(ShapeBuilder.coordinateListToWKT(lines.get(i).coordinates));
-            }
-            sb.append(GeoWKTParser.RPAREN);
-        }
-        return sb;
-    }
-
     public int numDimensions() {
         if (lines == null || lines.isEmpty()) {
             throw new IllegalStateException("unable to get number of dimensions, " +
@@ -92,21 +58,21 @@ public class MultiLineStringBuilder extends ShapeBuilder<JtsGeometry, MultiLineS
         if (wrapdateline) {
             ArrayList<LineString> parts = new ArrayList<>();
             for (LineStringBuilder line : lines) {
-                LineStringBuilder.decomposeS4J(FACTORY, line.coordinates(false), parts);
+                LineStringBuilder.decomposeS4J(GEO_FACTORY, line.coordinates(false), parts);
             }
             if (parts.size() == 1) {
                 geometry = parts.get(0);
             } else {
                 LineString[] lineStrings = parts.toArray(new LineString[parts.size()]);
-                geometry = FACTORY.createMultiLineString(lineStrings);
+                geometry = GEO_FACTORY.createMultiLineString(lineStrings);
             }
         } else {
             LineString[] lineStrings = new LineString[lines.size()];
             Iterator<LineStringBuilder> iterator = lines.iterator();
             for (int i = 0; iterator.hasNext(); i++) {
-                lineStrings[i] = FACTORY.createLineString(iterator.next().coordinates(false));
+                lineStrings[i] = GEO_FACTORY.createLineString(iterator.next().coordinates(false));
             }
-            geometry = FACTORY.createMultiLineString(lineStrings);
+            geometry = GEO_FACTORY.createMultiLineString(lineStrings);
         }
         return jtsGeometry(geometry);
     }

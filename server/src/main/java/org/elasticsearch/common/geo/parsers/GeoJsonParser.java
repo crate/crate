@@ -38,10 +38,9 @@ import org.locationtech.jts.geom.Coordinate;
  *
  * complies with geojson specification: https://tools.ietf.org/html/rfc7946
  */
-abstract class GeoJsonParser {
+public abstract class GeoJsonParser {
 
-    protected static ShapeBuilder parse(XContentParser parser)
-        throws IOException {
+    public static ShapeBuilder parse(XContentParser parser) throws IOException {
         GeoShapeType shapeType = null;
         DistanceUnit.Distance radius = null;
         CoordinateNode coordinateNode = null;

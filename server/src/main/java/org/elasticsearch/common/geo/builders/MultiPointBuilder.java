@@ -45,7 +45,7 @@ public class MultiPointBuilder extends ShapeBuilder<XShapeCollection<Point>, Mul
         //MultiPoint geometry = FACTORY.createMultiPoint(points.toArray(new Coordinate[points.size()]));
         List<Point> shapes = new ArrayList<>(coordinates.size());
         for (Coordinate coord : coordinates) {
-            shapes.add(SPATIAL_CONTEXT.makePoint(coord.x, coord.y));
+            shapes.add(SHAPE_FACTORY.pointXY(coord.x, coord.y));
         }
         XShapeCollection<Point> multiPoints = new XShapeCollection<>(shapes, SPATIAL_CONTEXT);
         multiPoints.setPointsOnly(true);
@@ -60,11 +60,6 @@ public class MultiPointBuilder extends ShapeBuilder<XShapeCollection<Point>, Mul
             points[i] = new org.apache.lucene.geo.Point(coord.y, coord.x);
         }
         return points;
-    }
-
-    @Override
-    public GeoShapeType type() {
-        return TYPE;
     }
 
     @Override

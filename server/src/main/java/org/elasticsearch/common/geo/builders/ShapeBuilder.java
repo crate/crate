@@ -22,7 +22,6 @@ package org.elasticsearch.common.geo.builders;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -31,11 +30,8 @@ import java.util.Objects;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Assertions;
-import org.elasticsearch.common.geo.GeoShapeType;
-import org.elasticsearch.common.geo.parsers.GeoWKTParser;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -43,6 +39,7 @@ import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.exception.InvalidShapeException;
 import org.locationtech.spatial4j.shape.Shape;
 import org.locationtech.spatial4j.shape.jts.JtsGeometry;
+import org.locationtech.spatial4j.shape.jts.JtsShapeFactory;
 
 /**
  * Basic class for building GeoJSON shapes like Polygons, Linestrings, etc
@@ -67,9 +64,9 @@ public abstract class ShapeBuilder<T extends Shape, E extends ShapeBuilder<T,E>>
      * coordinate at [0.0, 0.0]
      */
     public static final Coordinate ZERO_ZERO = new Coordinate(0.0, 0.0);
-    // TODO how might we use JtsSpatialContextFactory to configure the context (esp. for non-geo)?
     public static final JtsSpatialContext SPATIAL_CONTEXT = JtsSpatialContext.GEO;
-    public static final GeometryFactory FACTORY = SPATIAL_CONTEXT.getGeometryFactory();
+    public static final JtsShapeFactory SHAPE_FACTORY = SPATIAL_CONTEXT.getShapeFactory();
+    public static final GeometryFactory GEO_FACTORY = SHAPE_FACTORY.getGeometryFactory();
 
     /** We're expecting some geometries might cross the dateline. */
     protected final boolean wrapdateline = SPATIAL_CONTEXT.isGeo();
@@ -94,74 +91,6 @@ public abstract class ShapeBuilder<T extends Shape, E extends ShapeBuilder<T,E>>
             throw new IllegalArgumentException("cannot create point collection with empty set of points");
         }
         this.coordinates = coordinates;
-    }
-
-    /** ctor from serialized stream input */
-    protected ShapeBuilder(StreamInput in) throws IOException {
-        int size = in.readVInt();
-        coordinates = new ArrayList<>(size);
-        for (int i = 0; i < size; i++) {
-            coordinates.add(readFromStream(in));
-        }
-    }
-
-    protected static Coordinate readFromStream(StreamInput in) throws IOException {
-        double x = in.readDouble();
-        double y = in.readDouble();
-        Double z = in.readOptionalDouble();
-        return z == null ? new Coordinate(x, y) : new Coordinate(x, y, z);
-    }
-
-    protected static void writeCoordinateTo(Coordinate coordinate, StreamOutput out) throws IOException {
-        out.writeDouble(coordinate.x);
-        out.writeDouble(coordinate.y);
-        out.writeOptionalDouble(Double.isNaN(coordinate.z) ? null : coordinate.z);
-    }
-
-    @SuppressWarnings("unchecked")
-    private E thisRef() {
-        return (E)this;
-    }
-
-    /**
-     * Add a new coordinate to the collection
-     * @param longitude longitude of the coordinate
-     * @param latitude latitude of the coordinate
-     * @return this
-     */
-    public E coordinate(double longitude, double latitude) {
-        return this.coordinate(new Coordinate(longitude, latitude));
-    }
-
-    /**
-     * Add a new coordinate to the collection
-     * @param coordinate coordinate of the point
-     * @return this
-     */
-    public E coordinate(Coordinate coordinate) {
-        this.coordinates.add(coordinate);
-        return thisRef();
-    }
-
-    /**
-     * Add a array of coordinates to the collection
-     *
-     * @param coordinates array of {@link Coordinate}s to add
-     * @return this
-     */
-    public E coordinates(Coordinate...coordinates) {
-        return this.coordinates(Arrays.asList(coordinates));
-    }
-
-    /**
-     * Add a collection of coordinates to the collection
-     *
-     * @param coordinates array of {@link Coordinate}s to add
-     * @return this
-     */
-    public E coordinates(Collection<? extends Coordinate> coordinates) {
-        this.coordinates.addAll(coordinates);
-        return thisRef();
     }
 
     /**
@@ -212,12 +141,6 @@ public abstract class ShapeBuilder<T extends Shape, E extends ShapeBuilder<T,E>>
             return new Coordinate(-2 * dateline + coordinate.x, coordinate.y);
         }
     }
-
-    /**
-     * get the shapes type
-     * @return type of the shape
-     */
-    public abstract GeoShapeType type();
 
     /** tracks number of dimensions for this shape */
     public abstract int numDimensions();
@@ -345,47 +268,6 @@ public abstract class ShapeBuilder<T extends Shape, E extends ShapeBuilder<T,E>>
         }
     }
 
-    protected StringBuilder contentToWKT() {
-        return coordinateListToWKT(this.coordinates);
-    }
-
-    public String toWKT() {
-        StringBuilder sb = new StringBuilder();
-        sb.append(type().wktName());
-        sb.append(GeoWKTParser.SPACE);
-        sb.append(contentToWKT());
-        return sb.toString();
-    }
-
-    protected static StringBuilder coordinateListToWKT(final List<Coordinate> coordinates) {
-        final StringBuilder sb = new StringBuilder();
-
-        if (coordinates.isEmpty()) {
-            sb.append(GeoWKTParser.EMPTY);
-        } else {
-            // walk through coordinates:
-            sb.append(GeoWKTParser.LPAREN);
-            sb.append(coordinateToWKT(coordinates.get(0)));
-            for (int i = 1; i < coordinates.size(); ++i) {
-                sb.append(GeoWKTParser.COMMA);
-                sb.append(GeoWKTParser.SPACE);
-                sb.append(coordinateToWKT(coordinates.get(i)));
-            }
-            sb.append(GeoWKTParser.RPAREN);
-        }
-
-        return sb;
-    }
-
-    private static String coordinateToWKT(final Coordinate coordinate) {
-        final StringBuilder sb = new StringBuilder();
-        sb.append(coordinate.x + GeoWKTParser.SPACE + coordinate.y);
-        if (Double.isNaN(coordinate.z) == false) {
-            sb.append(GeoWKTParser.SPACE + coordinate.z);
-        }
-        return sb.toString();
-    }
-
     protected static final IntersectionOrder INTERSECTION_ORDER = new IntersectionOrder();
 
     private static final class IntersectionOrder implements Comparator<Edge> {
@@ -431,37 +313,6 @@ public abstract class ShapeBuilder<T extends Shape, E extends ShapeBuilder<T,E>>
 
     protected static final boolean debugEnabled() {
         return LOGGER.isDebugEnabled() || DEBUG;
-    }
-
-    protected static XContentBuilder toXContent(XContentBuilder builder, Coordinate coordinate) throws IOException {
-        builder.startArray().value(coordinate.x).value(coordinate.y);
-        if (Double.isNaN(coordinate.z) == false) {
-            builder.value(coordinate.z);
-        }
-        return builder.endArray();
-    }
-
-    /**
-     * builds an array of coordinates to a {@link XContentBuilder}
-     *
-     * @param builder builder to use
-     * @param closed repeat the first point at the end of the array if it's not already defines as last element of the array
-     * @return the builder
-     */
-    protected XContentBuilder coordinatesToXcontent(XContentBuilder builder, boolean closed) throws IOException {
-        builder.startArray();
-        for (Coordinate coord : coordinates) {
-            toXContent(builder, coord);
-        }
-        if (closed) {
-            Coordinate start = coordinates.get(0);
-            Coordinate end = coordinates.get(coordinates.size() - 1);
-            if (start.x != end.x || start.y != end.y) {
-                toXContent(builder, coordinates.get(0));
-            }
-        }
-        builder.endArray();
-        return builder;
     }
 
     @Override

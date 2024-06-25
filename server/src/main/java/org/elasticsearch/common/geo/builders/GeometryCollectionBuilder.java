@@ -24,10 +24,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
-import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.geo.GeoShapeType;
 import org.elasticsearch.common.geo.XShapeCollection;
-import org.elasticsearch.common.geo.parsers.GeoWKTParser;
 import org.locationtech.spatial4j.shape.Shape;
 
 public class GeometryCollectionBuilder extends ShapeBuilder {
@@ -48,80 +46,6 @@ public class GeometryCollectionBuilder extends ShapeBuilder {
     public GeometryCollectionBuilder shape(ShapeBuilder shape) {
         this.shapes.add(shape);
         return this;
-    }
-
-    public GeometryCollectionBuilder point(PointBuilder point) {
-        this.shapes.add(point);
-        return this;
-    }
-
-    public GeometryCollectionBuilder multiPoint(MultiPointBuilder multiPoint) {
-        this.shapes.add(multiPoint);
-        return this;
-    }
-
-    public GeometryCollectionBuilder line(LineStringBuilder line) {
-        this.shapes.add(line);
-        return this;
-    }
-
-    public GeometryCollectionBuilder multiLine(MultiLineStringBuilder multiLine) {
-        this.shapes.add(multiLine);
-        return this;
-    }
-
-    public GeometryCollectionBuilder polygon(PolygonBuilder polygon) {
-        this.shapes.add(polygon);
-        return this;
-    }
-
-    public GeometryCollectionBuilder multiPolygon(MultiPolygonBuilder multiPolygon) {
-        this.shapes.add(multiPolygon);
-        return this;
-    }
-
-    public GeometryCollectionBuilder envelope(EnvelopeBuilder envelope) {
-        this.shapes.add(envelope);
-        return this;
-    }
-
-    public GeometryCollectionBuilder circle(CircleBuilder circle) {
-        this.shapes.add(circle);
-        return this;
-    }
-
-    public ShapeBuilder getShapeAt(int i) {
-        if (i >= this.shapes.size() || i < 0) {
-            throw new ElasticsearchException("GeometryCollection contains " + this.shapes.size() + " shapes. + " +
-                    "No shape found at index " + i);
-        }
-        return this.shapes.get(i);
-    }
-
-    public int numShapes() {
-        return this.shapes.size();
-    }
-
-    @Override
-    protected StringBuilder contentToWKT() {
-        StringBuilder sb = new StringBuilder();
-        if (shapes.isEmpty()) {
-            sb.append(GeoWKTParser.EMPTY);
-        } else {
-            sb.append(GeoWKTParser.LPAREN);
-            sb.append(shapes.get(0).toWKT());
-            for (int i = 1; i < shapes.size(); ++i) {
-                sb.append(GeoWKTParser.COMMA);
-                sb.append(shapes.get(i).toWKT());
-            }
-            sb.append(GeoWKTParser.RPAREN);
-        }
-        return sb;
-    }
-
-    @Override
-    public GeoShapeType type() {
-        return TYPE;
     }
 
     @Override
