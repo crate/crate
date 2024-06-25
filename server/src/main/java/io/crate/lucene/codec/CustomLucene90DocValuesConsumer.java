@@ -23,10 +23,6 @@ import static io.crate.lucene.codec.CustomLucene90DocValuesFormat.NUMERIC_BLOCK_
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
 
 import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.codecs.DocValuesConsumer;
@@ -61,6 +57,9 @@ import org.apache.lucene.util.StringHelper;
 import org.apache.lucene.util.compress.LZ4;
 import org.apache.lucene.util.packed.DirectMonotonicWriter;
 import org.apache.lucene.util.packed.DirectWriter;
+
+import com.carrotsearch.hppc.LongHashSet;
+import com.carrotsearch.hppc.LongIntHashMap;
 
 import io.crate.lucene.codec.CustomLucene90DocValuesFormat.Mode;
 
@@ -212,7 +211,7 @@ final class CustomLucene90DocValuesConsumer extends DocValuesConsumer {
         MinMaxTracker minMax = new MinMaxTracker();
         MinMaxTracker blockMinMax = new MinMaxTracker();
         long gcd = 0;
-        Set<Long> uniqueValues = ords ? null : new HashSet<>();
+        LongHashSet uniqueValues = ords ? null : new LongHashSet();
         for (int doc = values.nextDoc(); doc != DocIdSetIterator.NO_MORE_DOCS; doc = values.nextDoc()) {
             for (int i = 0, count = values.docValueCount(); i < count; ++i) {
                 long v = values.nextValue();
@@ -286,7 +285,7 @@ final class CustomLucene90DocValuesConsumer extends DocValuesConsumer {
         meta.writeLong(numValues);
         final int numBitsPerValue;
         boolean doBlocks = false;
-        Map<Long, Integer> encode = null;
+        LongIntHashMap encode = null;
         long min = minMax.min;
         if (min >= max) { // meta[-1]: All values are 0
             numBitsPerValue = 0;
@@ -297,13 +296,13 @@ final class CustomLucene90DocValuesConsumer extends DocValuesConsumer {
                     && DirectWriter.unsignedBitsRequired(uniqueValues.size() - 1) < DirectWriter
                             .unsignedBitsRequired((max - min) / gcd)) {
                 numBitsPerValue = DirectWriter.unsignedBitsRequired(uniqueValues.size() - 1);
-                final Long[] sortedUniqueValues = uniqueValues.toArray(new Long[0]);
+                final long[] sortedUniqueValues = uniqueValues.toArray();
                 Arrays.sort(sortedUniqueValues);
                 meta.writeInt(sortedUniqueValues.length); // tablesize
-                for (Long v : sortedUniqueValues) {
+                for (long v : sortedUniqueValues) {
                     meta.writeLong(v); // table[] entry
                 }
-                encode = new HashMap<>();
+                encode = new LongIntHashMap();
                 for (int i = 0; i < sortedUniqueValues.length; ++i) {
                     encode.put(sortedUniqueValues[i], i);
                 }
@@ -351,7 +350,7 @@ final class CustomLucene90DocValuesConsumer extends DocValuesConsumer {
             int numBitsPerValue,
             long min,
             long gcd,
-            Map<Long, Integer> encode)
+            LongIntHashMap encode)
             throws IOException {
         DirectWriter writer = DirectWriter.getInstance(data, numValues, numBitsPerValue);
         for (int doc = values.nextDoc(); doc != DocIdSetIterator.NO_MORE_DOCS; doc = values.nextDoc()) {
