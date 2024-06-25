@@ -19,9 +19,6 @@
 
 package org.elasticsearch.common.network;
 
-import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.Constants;
-
 import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
@@ -34,6 +31,9 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
+
+import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.Constants;
 
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.Constants;
@@ -52,17 +52,13 @@ public abstract class NetworkUtils {
      * By default we bind to any addresses on an interface/name, unless restricted by :ipv4 etc.
      * This property is unrelated to that, this is about what we *publish*. Today the code pretty much
      * expects one address so this is used for the sort order.
-     * @deprecated transition mechanism only
      */
-    @Deprecated
     static final boolean PREFER_V6 = Boolean.parseBoolean(System.getProperty("java.net.preferIPv6Addresses", "false"));
 
     /**
      * True if we can bind to a v6 address. Its silly, but for *binding* we have a need to know
      * if the stack works. this can prevent scary noise on IPv4-only hosts.
-     * @deprecated transition mechanism only, do not use
      */
-    @Deprecated
     public static final boolean SUPPORTS_V6;
 
     static {
@@ -110,20 +106,14 @@ public abstract class NetworkUtils {
 
     /**
      * Sorts addresses by order of preference. This is used to pick the first one for publishing
-     * @deprecated remove this when multihoming is really correct
      */
-    @Deprecated
-    // only public because of silly multicast
     public static void sortAddresses(List<InetAddress> list) {
-        Collections.sort(list, new Comparator<InetAddress>() {
-            @Override
-            public int compare(InetAddress left, InetAddress right) {
-                int cmp = Integer.compare(sortKey(left, PREFER_V6), sortKey(right, PREFER_V6));
-                if (cmp == 0) {
-                    cmp = new BytesRef(left.getAddress()).compareTo(new BytesRef(right.getAddress()));
-                }
-                return cmp;
+        list.sort((left, right) -> {
+            int cmp = Integer.compare(sortKey(left, PREFER_V6), sortKey(right, PREFER_V6));
+            if (cmp == 0) {
+                cmp = new BytesRef(left.getAddress()).compareTo(new BytesRef(right.getAddress()));
             }
+            return cmp;
         });
     }
 
