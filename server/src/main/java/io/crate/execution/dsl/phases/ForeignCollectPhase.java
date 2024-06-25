@@ -68,10 +68,10 @@ public class ForeignCollectPhase extends AbstractProjectionsPhase implements Col
         super(in);
         this.handlerNode = in.readString();
         this.relationName = new RelationName(in);
-        this.toCollect = Symbols.listFromStream(in);
+        this.toCollect = Symbols.fromStream(in);
         this.outputTypes = extractOutputTypes(toCollect, projections);
         this.distributionInfo = new DistributionInfo(in);
-        this.query = Symbols.fromStream(in);
+        this.query = Symbol.fromStream(in);
         if (in.getVersion().onOrAfter(Version.V_5_8_0)) {
             this.executeAs = in.readOptionalString();
         } else {
@@ -86,7 +86,7 @@ public class ForeignCollectPhase extends AbstractProjectionsPhase implements Col
         relationName.writeTo(out);
         Symbols.toStream(toCollect, out);
         distributionInfo.writeTo(out);
-        Symbols.toStream(query, out);
+        Symbol.toStream(query, out);
         if (out.getVersion().onOrAfter(Version.V_5_8_0)) {
             out.writeOptionalString(executeAs);
         }

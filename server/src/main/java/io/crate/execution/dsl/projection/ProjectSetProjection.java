@@ -38,9 +38,9 @@ public final class ProjectSetProjection extends Projection {
     private final List<Symbol> outputs;
 
     public ProjectSetProjection(List<Symbol> tableFunctionsWithInputs, List<Symbol> standaloneWithInputs) {
-        assert tableFunctionsWithInputs.stream().noneMatch(Symbols.IS_COLUMN)
+        assert tableFunctionsWithInputs.stream().noneMatch(Symbol.IS_COLUMN)
             : "Cannot operate on Reference or Field: " + tableFunctionsWithInputs;
-        assert standaloneWithInputs.stream().noneMatch(Symbols.IS_COLUMN)
+        assert standaloneWithInputs.stream().noneMatch(Symbol.IS_COLUMN)
             : "Cannot operate on Reference or Field: " + standaloneWithInputs;
         this.tableFunctionsWithInputs = tableFunctionsWithInputs;
         this.standaloneWithInputs = standaloneWithInputs;
@@ -48,8 +48,8 @@ public final class ProjectSetProjection extends Projection {
     }
 
     public ProjectSetProjection(StreamInput in) throws IOException {
-        tableFunctionsWithInputs = Symbols.listFromStream(in);
-        standaloneWithInputs = Symbols.listFromStream(in);
+        tableFunctionsWithInputs = Symbols.fromStream(in);
+        standaloneWithInputs = Symbols.fromStream(in);
         outputs = Lists.concat(tableFunctionsWithInputs, standaloneWithInputs);
     }
 

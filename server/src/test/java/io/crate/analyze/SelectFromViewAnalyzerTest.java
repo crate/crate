@@ -36,7 +36,6 @@ import org.junit.Test;
 
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedView;
-import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -70,15 +69,15 @@ public class SelectFromViewAnalyzerTest extends CrateDummyClusterServiceUnitTest
 
         relation = e.analyze("select crate.doc.v1.name from crate.doc.v1");
         Assertions.assertThat(relation.outputs()).hasSize(1);
-        Assertions.assertThat(Symbols.pathFromSymbol(relation.outputs().get(0)).fqn()).isEqualTo("name");
+        Assertions.assertThat(relation.outputs().get(0).toColumn().fqn()).isEqualTo("name");
 
         relation = e.analyze("select crate.doc.v1.name from v1");
         Assertions.assertThat(relation.outputs()).hasSize(1);
-        Assertions.assertThat(Symbols.pathFromSymbol(relation.outputs().get(0)).fqn()).isEqualTo("name");
+        Assertions.assertThat(relation.outputs().get(0).toColumn().fqn()).isEqualTo("name");
 
         relation = e.analyze("select v.name from crate.doc.v1 as v");
         Assertions.assertThat(relation.outputs()).hasSize(1);
-        Assertions.assertThat(Symbols.pathFromSymbol(relation.outputs().get(0)).fqn()).isEqualTo("name");
+        Assertions.assertThat(relation.outputs().get(0).toColumn().fqn()).isEqualTo("name");
     }
 
     @Test

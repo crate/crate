@@ -29,8 +29,8 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
-
 import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
@@ -88,7 +88,7 @@ public abstract class AbstractIndexWriterProjection extends Projection {
         relationName = new RelationName(in);
 
         partitionIdent = in.readOptionalString();
-        idSymbols = Symbols.listFromStream(in);
+        idSymbols = Symbols.fromStream(in);
 
         int numPks = in.readVInt();
         primaryKeys = new ArrayList<>(numPks);
@@ -96,12 +96,8 @@ public abstract class AbstractIndexWriterProjection extends Projection {
             primaryKeys.add(ColumnIdent.of(in));
         }
 
-        partitionedBySymbols = Symbols.listFromStream(in);
-        if (in.readBoolean()) {
-            clusteredBySymbol = Symbols.fromStream(in);
-        } else {
-            clusteredBySymbol = null;
-        }
+        partitionedBySymbols = Symbols.fromStream(in);
+        clusteredBySymbol = Symbol.nullableFromStream(in);
         if (in.readBoolean()) {
             clusteredByColumn = ColumnIdent.of(in);
         }
@@ -206,12 +202,7 @@ public abstract class AbstractIndexWriterProjection extends Projection {
             primaryKey.writeTo(out);
         }
         Symbols.toStream(partitionedBySymbols, out);
-        if (clusteredBySymbol == null) {
-            out.writeBoolean(false);
-        } else {
-            out.writeBoolean(true);
-            Symbols.toStream(clusteredBySymbol, out);
-        }
+        Symbol.nullableToStream(clusteredBySymbol, out);
 
         if (clusteredByColumn == null) {
             out.writeBoolean(false);

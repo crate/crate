@@ -21,17 +21,6 @@
 
 package io.crate.execution.dsl.phases;
 
-import io.crate.common.collections.Iterables;
-import io.crate.execution.dsl.projection.Projection;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
-import io.crate.expression.symbol.Symbols;
-import io.crate.planner.distribution.DistributionInfo;
-import io.crate.sql.tree.JoinType;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
-import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashSet;
@@ -39,6 +28,17 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.common.collections.Iterables;
+import io.crate.execution.dsl.projection.Projection;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
+import io.crate.planner.distribution.DistributionInfo;
+import io.crate.sql.tree.JoinType;
 
 public abstract class JoinPhase extends AbstractProjectionsPhase implements UpstreamPhase {
 
@@ -68,7 +68,7 @@ public abstract class JoinPhase extends AbstractProjectionsPhase implements Upst
         super(jobId, executionNodeId, name, projections);
         Projection lastProjection = Iterables.getLast(projections, null);
         assert lastProjection != null : "lastProjection must not be null";
-        assert joinCondition == null || !SymbolVisitors.any(Symbols.IS_COLUMN, joinCondition)
+        assert joinCondition == null || !joinCondition.any(Symbol.IS_COLUMN)
             : "joinCondition must not contain columns: " + joinCondition;
         outputTypes = Symbols.typeView(lastProjection.outputs());
         this.leftMergePhase = leftMergePhase;
@@ -134,11 +134,7 @@ public abstract class JoinPhase extends AbstractProjectionsPhase implements Upst
         numLeftOutputs = in.readVInt();
         numRightOutputs = in.readVInt();
 
-        if (in.readBoolean()) {
-            joinCondition = Symbols.fromStream(in);
-        } else {
-            joinCondition = null;
-        }
+        joinCondition = Symbol.nullableFromStream(in);
         joinType = JoinType.values()[in.readVInt()];
     }
 
@@ -162,12 +158,7 @@ public abstract class JoinPhase extends AbstractProjectionsPhase implements Upst
         out.writeVInt(numLeftOutputs);
         out.writeVInt(numRightOutputs);
 
-        if (joinCondition == null) {
-            out.writeBoolean(false);
-        } else {
-            out.writeBoolean(true);
-            Symbols.toStream(joinCondition, out);
-        }
+        Symbol.nullableToStream(joinCondition, out);
 
         out.writeVInt(joinType.ordinal());
     }

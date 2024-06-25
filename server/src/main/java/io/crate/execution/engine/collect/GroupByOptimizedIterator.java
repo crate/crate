@@ -133,7 +133,7 @@ final class GroupByOptimizedIterator {
             return null;
         }
         if (Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.SCORE)
-            || Symbols.containsColumn(collectPhase.where(), DocSysColumns.SCORE)) {
+            || collectPhase.where().hasColumn(DocSysColumns.SCORE)) {
             // We could optimize this, but since it's assumed to be an uncommon case we fallback to generic group-by
             // to keep the optimized implementation a bit simpler
             return null;

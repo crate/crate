@@ -21,17 +21,17 @@
 
 package io.crate.execution.dsl.projection;
 
-import io.crate.expression.symbol.InputColumn;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.RowGranularity;
-import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
+
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+
+import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.RowGranularity;
+import io.crate.types.DataTypes;
 
 public abstract class DMLProjection extends Projection {
 
@@ -46,7 +46,7 @@ public abstract class DMLProjection extends Projection {
     }
 
     DMLProjection(StreamInput in) throws IOException {
-        uidSymbol = Symbols.fromStream(in);
+        uidSymbol = Symbol.fromStream(in);
     }
 
     @Override
@@ -77,7 +77,7 @@ public abstract class DMLProjection extends Projection {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        Symbols.toStream(uidSymbol, out);
+        Symbol.toStream(uidSymbol, out);
     }
 
     @Override

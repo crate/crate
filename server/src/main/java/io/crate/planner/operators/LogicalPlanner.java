@@ -70,7 +70,6 @@ import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.SelectSymbol.ResultType;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.fdw.ForeignDataWrapper;
 import io.crate.fdw.ForeignDataWrappers;
 import io.crate.fdw.ForeignTableRelation;
@@ -498,7 +497,7 @@ public class LogicalPlanner {
                 }
             );
             Symbol having = relation.having();
-            if (having != null && Symbols.containsCorrelatedSubQuery(having)) {
+            if (having != null && having.any(Symbol.IS_CORRELATED_SUBQUERY)) {
                 throw new UnsupportedOperationException("Cannot use correlated subquery in HAVING clause");
             }
             return MultiPhase.createIfNeeded(

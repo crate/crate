@@ -56,7 +56,6 @@ import io.crate.expression.symbol.RefReplacer;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
-import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
@@ -186,7 +185,7 @@ public class Collect implements LogicalPlan {
 
     private static boolean noLuceneSortSupport(OrderBy order) {
         for (Symbol sortKey : order.orderBySymbols()) {
-            if (SymbolVisitors.any(Collect::isPartitionColOrAnalyzed, sortKey)) {
+            if (sortKey.any(Collect::isPartitionColOrAnalyzed)) {
                 return true;
             }
         }
@@ -358,10 +357,10 @@ public class Collect implements LogicalPlan {
         FetchMarker fetchMarker = new FetchMarker(relation.relationName(), refsToFetch);
         for (int i = 0; i < outputs.size(); i++) {
             Symbol output = outputs.get(i);
-            if (Symbols.containsColumn(output, DocSysColumns.SCORE)) {
+            if (output.hasColumn(DocSysColumns.SCORE)) {
                 newOutputs.add(output);
                 replacedOutputs.put(output, output);
-            } else if (!SymbolVisitors.any(Symbols.IS_COLUMN, output)) {
+            } else if (!output.any(Symbol.IS_COLUMN)) {
                 newOutputs.add(output);
                 replacedOutputs.put(output, output);
             } else if (SymbolVisitors.any(output::equals, usedColumns)) {

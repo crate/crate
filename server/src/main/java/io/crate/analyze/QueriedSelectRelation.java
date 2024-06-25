@@ -35,7 +35,6 @@ import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
@@ -87,7 +86,7 @@ public class QueriedSelectRelation implements AnalyzedRelation {
     public Symbol getField(ColumnIdent column, Operation operation, boolean errorOnUnknownObjectKey) throws AmbiguousColumnException, ColumnUnknownException, UnsupportedOperationException {
         Symbol match = null;
         for (Symbol output : outputs()) {
-            ColumnIdent outputName = Symbols.pathFromSymbol(output);
+            ColumnIdent outputName = output.toColumn();
             if (outputName.equals(column)) {
                 if (match != null) {
                     throw new AmbiguousColumnException(column, output);
@@ -187,7 +186,7 @@ public class QueriedSelectRelation implements AnalyzedRelation {
     @Override
     public String toString() {
         return "SELECT "
-               + Lists.joinOn(", ", outputs(), x -> Symbols.pathFromSymbol(x).sqlFqn())
+               + Lists.joinOn(", ", outputs(), x -> x.toColumn().sqlFqn())
                + " FROM ("
                + Lists.joinOn(", ", from, x -> x.relationName().toString())
                + ')';

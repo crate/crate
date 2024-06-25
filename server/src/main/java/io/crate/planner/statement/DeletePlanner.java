@@ -52,7 +52,6 @@ import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Routing;
@@ -94,10 +93,7 @@ public final class DeletePlanner {
         Symbol query = detailedQuery.query();
         if (!detailedQuery.partitions().isEmpty()) {
             // deleting whole partitions is only valid if the query only contains filters based on partition-by cols
-            var hasNonPartitionReferences = SymbolVisitors.any(
-                s -> s instanceof Reference && table.partitionedByColumns().contains(s) == false,
-                query
-            );
+            var hasNonPartitionReferences = query.any(s -> s instanceof Reference && table.partitionedByColumns().contains(s) == false);
             if (hasNonPartitionReferences == false) {
                 return new DeletePartitions(table.ident(), detailedQuery.partitions());
             }

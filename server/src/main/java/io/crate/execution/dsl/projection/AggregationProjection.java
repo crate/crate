@@ -36,7 +36,6 @@ import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.RowGranularity;
 
@@ -53,7 +52,7 @@ public class AggregationProjection extends Projection {
         int size = in.readVInt();
         aggregations = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
-            aggregations.add((Aggregation) Symbols.fromStream(in));
+            aggregations.add((Aggregation) Symbol.fromStream(in));
         }
         contextGranularity = RowGranularity.fromStream(in);
         mode = AggregateMode.readFrom(in);
@@ -62,7 +61,7 @@ public class AggregationProjection extends Projection {
     public AggregationProjection(List<Aggregation> aggregations, RowGranularity contextGranularity, AggregateMode mode) {
         assert aggregations != null : "aggregations must not be null";
         assert aggregations.stream().noneMatch(s ->
-            SymbolVisitors.any(Symbols.IS_COLUMN.or(x -> x instanceof SelectSymbol), s))
+            s.any(Symbol.IS_COLUMN.or(x -> x instanceof SelectSymbol)))
             : "Cannot operate on Reference, Field or SelectSymbol symbols: " + aggregations;
 
         this.contextGranularity = contextGranularity;

@@ -43,7 +43,6 @@ import io.crate.common.collections.Lists;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.metadata.RelationName;
 import io.crate.planner.SubqueryPlanner.SubQueries;
 import io.crate.sql.tree.JoinType;
@@ -310,7 +309,7 @@ public class JoinPlanBuilder {
         var remainder = new ArrayList<Symbol>(values.size());
         var correlatedSubQueries = new ArrayList<Symbol>(values.size());
         for (var symbol : values) {
-            if (SymbolVisitors.any(s -> s instanceof SelectSymbol x && x.isCorrelated(), symbol)) {
+            if (symbol.any(s -> s instanceof SelectSymbol x && x.isCorrelated())) {
                 correlatedSubQueries.add(symbol);
             } else {
                 remainder.add(symbol);

@@ -37,7 +37,7 @@ import org.junit.Test;
 
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.common.collections.Lists;
-import io.crate.expression.symbol.Symbols;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
 import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnPolicy;
@@ -53,7 +53,7 @@ public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServ
         var e = SQLExecutor.of(clusterService)
             .addTable(createTableStmt);
         AnalyzedRelation analyzedRelation = e.analyze("select * from tbl");
-        return Lists.map(analyzedRelation.outputs(), Symbols::toColumnDefinition);
+        return Lists.map(analyzedRelation.outputs(), Symbol::toColumnDefinition);
     }
 
     @Test
@@ -155,7 +155,7 @@ public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServ
         AnalyzedRelation analyzedRelation = e.analyze(
             "select col_default_object from tbl"
         );
-        var actual = Lists.map(analyzedRelation.outputs(), Symbols::toColumnDefinition);
+        var actual = Lists.map(analyzedRelation.outputs(), Symbol::toColumnDefinition);
 
         assertThat(actual.get(0))
             .isColumnDefinition(
@@ -235,7 +235,7 @@ public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServ
             "from tbl";
         var analyzedRelation = e.analyze(selectStmt);
         var actual =
-            Lists.map(Objects.requireNonNull(analyzedRelation.outputs()), Symbols::toColumnDefinition);
+            Lists.map(Objects.requireNonNull(analyzedRelation.outputs()), Symbol::toColumnDefinition);
 
         assertThat(actual).satisfiesExactlyInAnyOrder(
             c -> assertThat(c).isColumnDefinition(
@@ -334,7 +334,7 @@ public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServ
             "from tbl";
         var analyzedRelation = e.analyze(selectStmt);
         var actual =
-            Lists.map(Objects.requireNonNull(analyzedRelation.outputs()), Symbols::toColumnDefinition);
+            Lists.map(Objects.requireNonNull(analyzedRelation.outputs()), Symbol::toColumnDefinition);
 
         assertThat(actual).satisfiesExactlyInAnyOrder(
             c -> assertThat(c).isColumnDefinition(
@@ -378,7 +378,7 @@ public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServ
             "from tbl_view";
         var analyzedRelation = e.analyze(selectStmt);
         var actual =
-            Lists.map(Objects.requireNonNull(analyzedRelation.outputs()), Symbols::toColumnDefinition);
+            Lists.map(Objects.requireNonNull(analyzedRelation.outputs()), Symbol::toColumnDefinition);
 
         assertThat(actual).satisfiesExactlyInAnyOrder(
             c -> assertThat(c).isColumnDefinition(
@@ -423,7 +423,7 @@ public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServ
             "   from tbl) as A";
         var analyzedRelation = e.analyze(selectStmt);
         var actual =
-            Lists.map(Objects.requireNonNull(analyzedRelation.outputs()), Symbols::toColumnDefinition);
+            Lists.map(Objects.requireNonNull(analyzedRelation.outputs()), Symbol::toColumnDefinition);
 
         assertThat(actual).satisfiesExactlyInAnyOrder(
             c -> assertThat(c).isColumnDefinition(
@@ -452,7 +452,7 @@ public class SymbolToColumnDefinitionConverterTest extends CrateDummyClusterServ
             "   cast(port['http']as boolean) from sys.nodes limit 1 ";
         var e = SQLExecutor.of(clusterService);
         var analyzedRelation = e.analyze(selectStmt);
-        var actual = Lists.map(Objects.requireNonNull(analyzedRelation.outputs()), Symbols::toColumnDefinition);
+        var actual = Lists.map(Objects.requireNonNull(analyzedRelation.outputs()), Symbol::toColumnDefinition);
 
         assertThat(actual).satisfiesExactlyInAnyOrder(
             c -> assertThat(c).isColumnDefinition(

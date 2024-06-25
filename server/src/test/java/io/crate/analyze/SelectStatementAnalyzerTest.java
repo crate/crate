@@ -32,6 +32,7 @@ import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.Asserts.toCondition;
 import static org.assertj.core.api.Assertions.anyOf;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -179,7 +180,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     private List<String> outputNames(AnalyzedRelation relation) {
-        return Lists.map(relation.outputs(), x -> Symbols.pathFromSymbol(x).sqlFqn());
+        return Lists.map(relation.outputs(), x -> x.toColumn().sqlFqn());
     }
 
     @Test

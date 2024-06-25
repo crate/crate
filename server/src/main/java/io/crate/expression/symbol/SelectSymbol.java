@@ -59,7 +59,7 @@ public class SelectSymbol implements Symbol {
         this.resultType = resultType;
         boolean[] isCorrelatedArr = new boolean[] { false };
         relation.visitSymbols(symbolTree -> {
-            if (SymbolVisitors.any(s -> s instanceof OuterColumn, symbolTree)) {
+            if (symbolTree.any(s -> s instanceof OuterColumn)) {
                 isCorrelatedArr[0] = true;
             }
         });

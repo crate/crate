@@ -22,6 +22,7 @@
 package io.crate.expression.symbol;
 
 import java.io.IOException;
+import java.util.function.Predicate;
 
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -62,6 +63,16 @@ public final class OuterColumn implements Symbol {
 
     public Symbol symbol() {
         return symbol;
+    }
+
+    @Override
+    public boolean isDeterministic() {
+        return symbol.isDeterministic();
+    }
+
+    @Override
+    public boolean any(Predicate<? super Symbol> predicate) {
+        return predicate.test(this) || symbol.any(predicate);
     }
 
     @Override

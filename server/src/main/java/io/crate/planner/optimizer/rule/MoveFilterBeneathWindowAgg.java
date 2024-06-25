@@ -34,7 +34,6 @@ import java.util.function.UnaryOperator;
 import io.crate.analyze.WindowDefinition;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
@@ -84,7 +83,7 @@ public final class MoveFilterBeneathWindowAgg implements Rule<Filter> {
         ArrayList<Symbol> windowPartitionedBasedFilters = new ArrayList<>();
 
         for (Symbol part : filterParts) {
-            if (SymbolVisitors.any(containsWindowFunction, part) == false
+            if (part.any(containsWindowFunction) == false
                 && windowDefinition.partitions().containsAll(extractColumns(part))) {
                 windowPartitionedBasedFilters.add(part);
             } else {

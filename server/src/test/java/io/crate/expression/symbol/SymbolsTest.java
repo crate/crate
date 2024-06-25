@@ -37,10 +37,10 @@ public class SymbolsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testNullableSerializationOfNull() throws IOException {
         BytesStreamOutput output = new BytesStreamOutput();
-        Symbols.nullableToStream(null, output);
+        Symbol.nullableToStream(null, output);
 
         StreamInput input = output.bytes().streamInput();
-        Symbol symbol = Symbols.nullableFromStream(input);
+        Symbol symbol = Symbol.nullableFromStream(input);
 
         assertThat(symbol).isNull();
     }
@@ -49,10 +49,10 @@ public class SymbolsTest extends CrateDummyClusterServiceUnitTest {
     public void testNullableSerialization() throws IOException {
         Literal<Long> inputSymbol = Literal.of(42L);
         BytesStreamOutput output = new BytesStreamOutput();
-        Symbols.nullableToStream(inputSymbol, output);
+        Symbol.nullableToStream(inputSymbol, output);
 
         StreamInput inputStream = output.bytes().streamInput();
-        Symbol deserialisedSymbol = Symbols.nullableFromStream(inputStream);
+        Symbol deserialisedSymbol = Symbol.nullableFromStream(inputStream);
 
         assertThat(inputSymbol).isEqualTo(deserialisedSymbol);
         assertThat(inputSymbol.hashCode()).isEqualTo(deserialisedSymbol.hashCode());

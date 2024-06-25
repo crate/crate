@@ -31,7 +31,6 @@ import org.elasticsearch.cluster.ClusterState;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
-import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Reference;
@@ -75,7 +74,7 @@ public class ViewInfoFactory {
             List<Reference> subColumns = new ArrayList<>();
             int position = 1;
             for (var field : relation.outputs()) {
-                ColumnIdent columnIdent = Symbols.pathFromSymbol(field);
+                ColumnIdent columnIdent = field.toColumn();
                 collectedColumns.add(
                     new SimpleReference(
                         new ReferenceIdent(ident, columnIdent.sqlFqn()),

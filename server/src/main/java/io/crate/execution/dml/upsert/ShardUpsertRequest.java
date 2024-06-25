@@ -134,7 +134,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
             if (returnValuesSize > 0) {
                 returnValues = new Symbol[returnValuesSize];
                 for (int i = 0; i < returnValuesSize; i++) {
-                    returnValues[i] = Symbols.fromStream(in);
+                    returnValues[i] = Symbol.fromStream(in);
                 }
             }
         }
@@ -184,7 +184,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
             if (returnValues != null) {
                 out.writeVInt(returnValues.length);
                 for (Symbol returnValue : returnValues) {
-                    Symbols.toStream(returnValue, out);
+                    Symbol.toStream(returnValue, out);
                 }
             } else {
                 out.writeVInt(0);
@@ -414,7 +414,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
                 int assignmentsSize = in.readVInt();
                 updateAssignments = new Symbol[assignmentsSize];
                 for (int i = 0; i < assignmentsSize; i++) {
-                    updateAssignments[i] = Symbols.fromStream(in);
+                    updateAssignments[i] = Symbol.fromStream(in);
                 }
             }
 
@@ -453,7 +453,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
                 out.writeBoolean(true);
                 out.writeVInt(updateAssignments.length);
                 for (Symbol updateAssignment : updateAssignments) {
-                    Symbols.toStream(updateAssignment, out);
+                    Symbol.toStream(updateAssignment, out);
                 }
             } else {
                 out.writeBoolean(false);

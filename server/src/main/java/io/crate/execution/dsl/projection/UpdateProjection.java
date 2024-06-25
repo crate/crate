@@ -21,21 +21,20 @@
 
 package io.crate.execution.dsl.projection;
 
-import io.crate.expression.symbol.InputColumn;
-import io.crate.expression.symbol.SelectSymbol;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
-import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.RowGranularity;
-import io.crate.types.DataTypes;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
-import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.RowGranularity;
+import io.crate.types.DataTypes;
 
 public class UpdateProjection extends Projection {
 
@@ -63,14 +62,14 @@ public class UpdateProjection extends Projection {
         this.assignmentsColumns = assignmentsColumns;
         this.assignments = assignments;
         this.returnValues = returnValues;
-        assert Arrays.stream(outputs).noneMatch(s -> SymbolVisitors.any(Symbols.IS_COLUMN.or(x -> x instanceof SelectSymbol), s))
+        assert Arrays.stream(outputs).noneMatch(s -> s.any(Symbol.IS_COLUMN.or(x -> x instanceof SelectSymbol)))
             : "Cannot operate on Reference, Field or SelectSymbol symbols: " + outputs;
         this.outputs = outputs;
         this.requiredVersion = requiredVersion;
     }
 
     public UpdateProjection(StreamInput in) throws IOException {
-        uidSymbol = Symbols.fromStream(in);
+        uidSymbol = Symbol.fromStream(in);
         int assignmentColumnsSize = in.readVInt();
         assignmentsColumns = new String[assignmentColumnsSize];
         for (int i = 0; i < assignmentColumnsSize; i++) {
@@ -79,7 +78,7 @@ public class UpdateProjection extends Projection {
         int assignmentsSize = in.readVInt();
         assignments = new Symbol[assignmentsSize];
         for (int i = 0; i < assignmentsSize; i++) {
-            assignments[i] = Symbols.fromStream(in);
+            assignments[i] = Symbol.fromStream(in);
         }
         requiredVersion = in.readVLong();
         if (requiredVersion == 0) {
@@ -89,13 +88,13 @@ public class UpdateProjection extends Projection {
             int outputSize = in.readVInt();
             outputs = new Symbol[outputSize];
             for (int i = 0; i < outputSize; i++) {
-                outputs[i] = Symbols.fromStream(in);
+                outputs[i] = Symbol.fromStream(in);
             }
             int returnValuesSize = in.readVInt();
             if (returnValuesSize > 0) {
                 returnValues = new Symbol[returnValuesSize];
                 for (int i = 0; i < returnValuesSize; i++) {
-                    returnValues[i] = Symbols.fromStream(in);
+                    returnValues[i] = Symbol.fromStream(in);
                 }
             }
         } else {
@@ -180,14 +179,14 @@ public class UpdateProjection extends Projection {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        Symbols.toStream(uidSymbol, out);
+        Symbol.toStream(uidSymbol, out);
         out.writeVInt(assignmentsColumns.length);
         for (int i = 0; i < assignmentsColumns.length; i++) {
             out.writeString(assignmentsColumns[i]);
         }
         out.writeVInt(assignments.length);
         for (int i = 0; i < assignments.length; i++) {
-            Symbols.toStream(assignments[i], out);
+            Symbol.toStream(assignments[i], out);
         }
         if (requiredVersion == null) {
             out.writeVLong(0);
@@ -197,12 +196,12 @@ public class UpdateProjection extends Projection {
         if (out.getVersion().onOrAfter(Version.V_4_2_0)) {
             out.writeVInt(outputs.length);
             for (int i = 0; i < outputs.length; i++) {
-                Symbols.toStream(outputs[i], out);
+                Symbol.toStream(outputs[i], out);
             }
             if (returnValues != null) {
                 out.writeVInt(returnValues.length);
                 for (int i = 0; i < returnValues.length; i++) {
-                    Symbols.toStream(returnValues[i], out);
+                    Symbol.toStream(returnValues[i], out);
                 }
             } else {
                 out.writeVInt(0);

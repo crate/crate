@@ -21,14 +21,15 @@
 
 package io.crate.expression.symbol;
 
+import java.io.IOException;
+
+import org.elasticsearch.common.io.stream.StreamOutput;
+
 import io.crate.Constants;
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.types.DataType;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
-import java.io.IOException;
 
 /**
  * A symbol that associates another symbol with a relation.
@@ -66,6 +67,11 @@ public final class ScopedSymbol implements Symbol {
     }
 
     public ColumnIdent column() {
+        return column;
+    }
+
+    @Override
+    public ColumnIdent toColumn() {
         return column;
     }
 

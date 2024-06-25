@@ -223,7 +223,7 @@ class InsertAnalyzer {
             }
         });
         for (Symbol conflictTarget : conflictTargets) {
-            if (!pkColumnIdents.contains(Symbols.pathFromSymbol(conflictTarget))) {
+            if (!pkColumnIdents.contains(conflictTarget.toColumn())) {
                 throw new IllegalArgumentException(
                     String.format(
                         Locale.ENGLISH,

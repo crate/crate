@@ -33,7 +33,6 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -72,12 +71,12 @@ public class SourceIndexWriterReturnSummaryProjection extends SourceIndexWriterP
 
     SourceIndexWriterReturnSummaryProjection(StreamInput in) throws IOException {
         super(in);
-        sourceUri = (InputColumn) Symbols.fromStream(in);
-        sourceUriFailure = (InputColumn) Symbols.fromStream(in);
-        lineNumber = (InputColumn) Symbols.fromStream(in);
+        sourceUri = (InputColumn) Symbol.fromStream(in);
+        sourceUriFailure = (InputColumn) Symbol.fromStream(in);
+        lineNumber = (InputColumn) Symbol.fromStream(in);
         // From 4.7.2 we differentiate IO and non-io failure
         // as the former is supposed to happen only once and the latter can happen multiple times per URI.
-        sourceParsingFailure = in.getVersion().before(Version.V_4_7_1) ? null : (InputColumn) Symbols.fromStream(in);
+        sourceParsingFailure = in.getVersion().before(Version.V_4_7_1) ? null : (InputColumn) Symbol.fromStream(in);
     }
 
     public InputColumn sourceUri() {
@@ -105,11 +104,11 @@ public class SourceIndexWriterReturnSummaryProjection extends SourceIndexWriterP
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        Symbols.toStream(sourceUri, out);
-        Symbols.toStream(sourceUriFailure, out);
-        Symbols.toStream(lineNumber, out);
+        Symbol.toStream(sourceUri, out);
+        Symbol.toStream(sourceUriFailure, out);
+        Symbol.toStream(lineNumber, out);
         if (out.getVersion().after(Version.V_4_7_1)) {
-            Symbols.toStream(sourceParsingFailure, out);
+            Symbol.toStream(sourceParsingFailure, out);
         }
     }
 

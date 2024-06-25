@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Predicate;
 
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
@@ -93,11 +94,11 @@ public class Function implements Symbol, Cloneable {
             generatedSignature = Signature.readFromFunctionInfo(in);
         }
         if (in.getVersion().onOrAfter(Version.V_4_1_0)) {
-            filter = Symbols.nullableFromStream(in);
+            filter = Symbol.nullableFromStream(in);
         } else {
             filter = null;
         }
-        arguments = List.copyOf(Symbols.listFromStream(in));
+        arguments = List.copyOf(Symbols.fromStream(in));
         if (in.getVersion().onOrAfter(Version.V_4_2_0)) {
             if (in.getVersion().before(Version.V_5_0_0)) {
                 in.readBoolean();
@@ -145,6 +146,35 @@ public class Function implements Symbol, Cloneable {
     }
 
     @Override
+    public boolean isDeterministic() {
+        if (!signature.isDeterministic()) {
+            return false;
+        }
+        for (var arg : arguments) {
+            if (!arg.isDeterministic()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @Override
+    public boolean any(Predicate<? super Symbol> predicate) {
+        if (predicate.test(this)) {
+            return true;
+        }
+        for (var arg : arguments) {
+            if (arg.any(predicate)) {
+                return true;
+            }
+        }
+        if (filter != null) {
+            return filter.any(predicate);
+        }
+        return false;
+    }
+
+    @Override
     public Symbol cast(DataType<?> targetType, CastMode... modes) {
         String name = signature.getName().name();
         if (targetType instanceof ArrayType && name.equals(ArrayFunction.NAME)) {
@@ -159,6 +189,14 @@ public class Function implements Symbol, Cloneable {
         } else {
             return Symbol.super.cast(targetType, modes);
         }
+    }
+
+    @Override
+    public Symbol uncast() {
+        if (isCast()) {
+            return arguments.get(0);
+        }
+        return this;
     }
 
     private Symbol castArrayElements(DataType<?> newDataType, CastMode... modes) {
@@ -221,7 +259,7 @@ public class Function implements Symbol, Cloneable {
             signature.writeAsFunctionInfo(out, Symbols.typeView(arguments));
         }
         if (out.getVersion().onOrAfter(Version.V_4_1_0)) {
-            Symbols.nullableToStream(filter, out);
+            Symbol.nullableToStream(filter, out);
         }
         Symbols.toStream(arguments, out);
         if (out.getVersion().onOrAfter(Version.V_4_2_0)) {

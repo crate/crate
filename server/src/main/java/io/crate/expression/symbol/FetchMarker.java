@@ -23,6 +23,7 @@ package io.crate.expression.symbol;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.function.Predicate;
 
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -63,6 +64,11 @@ public final class FetchMarker implements Symbol {
 
     public Reference fetchId() {
         return fetchId;
+    }
+
+    @Override
+    public boolean any(Predicate<? super Symbol> predicate) {
+        return predicate.test(this) || fetchId.any(predicate);
     }
 
     @Override

@@ -21,19 +21,6 @@
 
 package io.crate.execution.dsl.phases;
 
-import io.crate.expression.symbol.ScopedSymbol;
-import io.crate.expression.symbol.SelectSymbol;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
-import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.ColumnIdent;
-import io.crate.planner.distribution.DistributionInfo;
-import io.crate.planner.operators.PKAndVersion;
-import io.crate.types.DataType;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.index.shard.ShardId;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -42,6 +29,19 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.index.shard.ShardId;
+
+import io.crate.expression.symbol.ScopedSymbol;
+import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
+import io.crate.metadata.ColumnIdent;
+import io.crate.planner.distribution.DistributionInfo;
+import io.crate.planner.operators.PKAndVersion;
+import io.crate.types.DataType;
 
 public final class PKLookupPhase extends AbstractProjectionsPhase implements CollectPhase {
 
@@ -57,7 +57,7 @@ public final class PKLookupPhase extends AbstractProjectionsPhase implements Col
                          Map<String, Map<ShardId, List<PKAndVersion>>> idsByShardByNode) {
         super(jobId, phaseId, "pkLookup", Collections.emptyList());
         assert toCollect.stream().noneMatch(
-            st -> SymbolVisitors.any(s -> s instanceof ScopedSymbol || s instanceof SelectSymbol, st))
+            st -> st.any(s -> s instanceof ScopedSymbol || s instanceof SelectSymbol))
             : "toCollect must not contain any fields or selectSymbols: " + toCollect;
         this.partitionedByColumns = partitionedByColumns;
         this.toCollect = toCollect;
@@ -67,7 +67,7 @@ public final class PKLookupPhase extends AbstractProjectionsPhase implements Col
     public PKLookupPhase(StreamInput in) throws IOException {
         super(in);
         distInfo = new DistributionInfo(in);
-        toCollect = Symbols.listFromStream(in);
+        toCollect = Symbols.fromStream(in);
 
         int numNodes = in.readVInt();
         idsByShardByNode = new HashMap<>(numNodes);
