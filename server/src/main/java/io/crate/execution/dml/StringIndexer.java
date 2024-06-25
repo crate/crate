@@ -60,7 +60,7 @@ public class StringIndexer implements ValueIndexer<String> {
     public void indexValue(String value,
                            XContentBuilder xcontentBuilder,
                            Consumer<? super IndexableField> addField,
-                           Map<ColumnIdent, Indexer.Synthetic> synthetics,
+                           Synthetics synthetics,
                            Map<ColumnIdent, Indexer.ColumnConstraint> toValidate) throws IOException {
         xcontentBuilder.value(value);
         String name = ref.storageIdent();

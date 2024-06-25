@@ -51,7 +51,7 @@ public class LongIndexer implements ValueIndexer<Long> {
     public void indexValue(Long value,
                            XContentBuilder xcontentBuilder,
                            Consumer<? super IndexableField> addField,
-                           Map<ColumnIdent, Indexer.Synthetic> synthetics,
+                           Synthetics synthetics,
                            Map<ColumnIdent, Indexer.ColumnConstraint> toValidate) throws IOException {
         xcontentBuilder.value(value);
         long longValue = value;
