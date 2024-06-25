@@ -46,8 +46,7 @@ public final class FormatTypeFunction extends Scalar<String, Object> {
                     DataTypes.INTEGER.getTypeSignature(),
                     DataTypes.INTEGER.getTypeSignature(),
                     DataTypes.STRING.getTypeSignature()
-                ).withFeature(Feature.DETERMINISTIC)
-                .withFeature(Feature.NULLABLE),
+                ).withFeature(Feature.DETERMINISTIC),
             FormatTypeFunction::new
         );
     }
