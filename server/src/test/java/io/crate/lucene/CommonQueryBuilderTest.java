@@ -794,4 +794,11 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         Query query = convert("(y % null != 1)");
         assertThat(query).hasToString("+(+*:* -((y % NULL) = 1)) #(NOT ((y % NULL) = 1))");
     }
+
+    @Test
+    public void test_neq_on_array() {
+        Query query = convert("(y_array != [1])");
+        // (+*:* -(y_array IS NULL)))~1) is required to make sure empty arrays are not filtered by the FieldExistsQuery
+        assertThat(query).hasToString("+(+*:* -(+y_array:{1} +(y_array = [1::bigint]))) +((FieldExistsQuery [field=y_array] (+*:* -(y_array IS NULL)))~1)");
+    }
 }
