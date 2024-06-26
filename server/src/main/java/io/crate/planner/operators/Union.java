@@ -45,7 +45,6 @@ import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.LimitAndOffset;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.RelationName;
 import io.crate.planner.DependencyCarrier;
@@ -204,7 +203,7 @@ public class Union implements LogicalPlan {
     public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
         IntArrayList outputIndicesToKeep = new IntArrayList();
         for (Symbol outputToKeep : outputsToKeep) {
-            SymbolVisitors.intersection(outputToKeep, outputs, s -> {
+            Symbols.intersection(outputToKeep, outputs, s -> {
                 // Union can contain identically looking ScopedSymbols due to aliased relations. E.g.:
                 //
                 // SELECT * FROM

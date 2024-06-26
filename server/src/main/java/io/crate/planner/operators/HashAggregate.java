@@ -45,7 +45,6 @@ import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.IndexType;
@@ -187,11 +186,11 @@ public class HashAggregate extends ForwardingLogicalPlan {
     public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
         ArrayList<Function> newAggregates = new ArrayList<>();
         for (Symbol outputToKeep : outputsToKeep) {
-            SymbolVisitors.intersection(outputToKeep, aggregates, newAggregates::add);
+            Symbols.intersection(outputToKeep, aggregates, newAggregates::add);
         }
         LinkedHashSet<Symbol> toKeep = new LinkedHashSet<>();
         for (Function newAggregate : newAggregates) {
-            SymbolVisitors.intersection(newAggregate, source.outputs(), toKeep::add);
+            Symbols.intersection(newAggregate, source.outputs(), toKeep::add);
         }
         LogicalPlan newSource = source.pruneOutputsExcept(toKeep);
         if (source == newSource && newAggregates == aggregates) {

@@ -43,7 +43,6 @@ import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.FieldsVisitor;
 import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
@@ -78,10 +77,10 @@ public class Order extends ForwardingLogicalPlan {
     public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
         LinkedHashSet<Symbol> toKeep = new LinkedHashSet<>();
         for (Symbol outputToKeep : outputsToKeep) {
-            SymbolVisitors.intersection(outputToKeep, source.outputs(), toKeep::add);
+            Symbols.intersection(outputToKeep, source.outputs(), toKeep::add);
         }
         for (Symbol orderBySymbol : orderBy.orderBySymbols()) {
-            SymbolVisitors.intersection(orderBySymbol, source.outputs(), toKeep::add);
+            Symbols.intersection(orderBySymbol, source.outputs(), toKeep::add);
         }
         LogicalPlan newSource = source.pruneOutputsExcept(toKeep);
         if (newSource == source) {

@@ -396,7 +396,7 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
             // If toCollect contains a fetchId it means that this is a QueryThenFetch operation.
             // In such a case RemoteCollect cannot be used because on that node the FetchTask is missing
             // and the reader required in the fetchPhase would be missing.
-            if (Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.FETCHID)) {
+            if (Symbols.hasColumn(collectPhase.toCollect(), DocSysColumns.FETCHID)) {
                 throw Exceptions.toRuntimeException(err);
             }
             assert collectTask.completionFuture().isDone() == false : "Cannot resume a collect task that is completed";

@@ -556,7 +556,7 @@ public class Indexer {
                                         ColumnIdent column,
                                         Function<ColumnIdent, Reference> getRef) {
         for (ColumnIdent parent : column.parents()) {
-            if (synthetics.containsKey(parent) || Symbols.containsColumn(targetColumns, parent)) {
+            if (synthetics.containsKey(parent) || Symbols.hasColumn(targetColumns, parent)) {
                 continue;
             }
             Reference parentRef = table.getReference(parent);
