@@ -28,13 +28,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import io.crate.analyze.RelationNames;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
-import io.crate.planner.consumer.RelationNameCollector;
 
 /**
  * Extracts all symbols per relations from any EQ join conditions to use them for building hashes for the hash join
@@ -97,7 +97,7 @@ public final class JoinConditionSymbolsExtractor {
                     context.insideEqOperator = true;
                     int duplicatePos = 0;
                     for (Symbol arg : function.arguments()) {
-                        var relation = getFirst(RelationNameCollector.collect(arg), null);
+                        var relation = getFirst(RelationNames.getShallow(arg), null);
                         assert relation != null : "Join Condition must contain one reference to a relation";
                         List<Symbol> symbols = context.symbolsPerRelation.computeIfAbsent(relation, k -> new ArrayList<>());
                         if (symbols.contains(arg)) {

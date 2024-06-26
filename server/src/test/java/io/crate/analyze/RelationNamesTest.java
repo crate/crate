@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.consumer;
+package io.crate.analyze;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -30,13 +30,18 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.SimpleReference;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
+import io.crate.types.DataTypes;
 
-public class RelationNameCollectorTest extends CrateDummyClusterServiceUnitTest {
+public class RelationNamesTest extends CrateDummyClusterServiceUnitTest {
 
     private SqlExpressions sqlExpressions;
     private Map<RelationName, AnalyzedRelation> sources;
@@ -50,25 +55,39 @@ public class RelationNameCollectorTest extends CrateDummyClusterServiceUnitTest 
     @Test
     public void test_finding_relations() {
         Symbol constantCondition = sqlExpressions.asSymbol("true");
-        assertThat(RelationNameCollector.collect(constantCondition)).isEqualTo(Set.of());
+        assertThat(RelationNames.getShallow(constantCondition)).isEqualTo(Set.of());
 
         constantCondition = sqlExpressions.asSymbol("t1.x = 4");
-        assertThat(RelationNameCollector.collect(constantCondition)).containsExactly(new RelationName("doc", "t1"));
+        assertThat(RelationNames.getShallow(constantCondition)).containsExactly(new RelationName("doc", "t1"));
 
         constantCondition = sqlExpressions.asSymbol("t1.x < 4");
-        assertThat(RelationNameCollector.collect(constantCondition)).containsExactly(new RelationName("doc", "t1"));
+        assertThat(RelationNames.getShallow(constantCondition)).containsExactly(new RelationName("doc", "t1"));
 
         constantCondition = sqlExpressions.asSymbol("t1.x = 4 AND true");
-        assertThat(RelationNameCollector.collect(constantCondition)).containsExactly(new RelationName("doc", "t1"));
+        assertThat(RelationNames.getShallow(constantCondition)).containsExactly(new RelationName("doc", "t1"));
 
         constantCondition = sqlExpressions.asSymbol("t1.x = 1 and t1.i = 10");
-        assertThat(RelationNameCollector.collect(constantCondition)).containsExactly(new RelationName("doc", "t1"));
+        assertThat(RelationNames.getShallow(constantCondition)).containsExactly(new RelationName("doc", "t1"));
 
         constantCondition = sqlExpressions.asSymbol("t1.x = 1 and t1.i = 10 and t2.y = 3");
-        assertThat(RelationNameCollector.collect(constantCondition)).containsExactly(new RelationName("doc", "t1"), new RelationName("doc", "t2"));
+        assertThat(RelationNames.getShallow(constantCondition)).containsExactly(new RelationName("doc", "t1"), new RelationName("doc", "t2"));
 
         constantCondition = sqlExpressions.asSymbol("t1.x = t2.y AND t2.y + t2.y = 4");
-        assertThat(RelationNameCollector.collect(constantCondition)).containsExactly(new RelationName("doc", "t1"), new RelationName("doc", "t2"));
+        assertThat(RelationNames.getShallow(constantCondition)).containsExactly(new RelationName("doc", "t1"), new RelationName("doc", "t2"));
+    }
 
+    @Test
+    public void test_extract_table_ident_from_alias_symbol() {
+        RelationName tableIdent = new RelationName("doc", "t");
+        assertThat(
+        RelationNames.getDeep(
+            new AliasSymbol("r", new SimpleReference(
+                new ReferenceIdent(tableIdent, "a"),
+                RowGranularity.DOC,
+                DataTypes.SHORT,
+                0,
+                null))
+        )).isEqualTo(Set.of(tableIdent));
     }
 }
+

@@ -129,8 +129,15 @@ public interface Symbol extends Writeable, Accountable {
     }
 
     /**
+     * <p>
      * Returns true if the given predicate matches on any node in the symbol tree.
-     * Does not cross relations.
+     * </p>
+     *
+     * Does not cross relations:
+     * <ul>
+     * <li>Symbols within the relation of a SelectSymbol are not visited</li>
+     * <li>OuterColumn is visited, but its linked symbol isn't. because it belongs to a parent relation</li>
+     * </ul>
      */
     default boolean any(Predicate<? super Symbol> predicate) {
         return predicate.test(this);

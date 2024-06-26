@@ -27,6 +27,7 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 
+import io.crate.analyze.RelationNames;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
@@ -36,7 +37,6 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
-import io.crate.planner.consumer.RelationNameCollector;
 
 public class QuerySplitter {
 
@@ -93,7 +93,7 @@ public class QuerySplitter {
         final LinkedHashMap<Set<RelationName>, Symbol> parts;
 
         public Context(Symbol query) {
-            allNames = RelationNameCollector.collect(query);
+            allNames = RelationNames.getShallow(query);
             parts = new LinkedHashMap<>();
         }
     }
@@ -111,7 +111,7 @@ public class QuerySplitter {
             var signature = function.signature();
             assert signature != null : "Expecting functions signature not to be null";
             if (!signature.equals(AndOperator.SIGNATURE)) {
-                Set<RelationName> qualifiedNames = RelationNameCollector.collect(function);
+                Set<RelationName> qualifiedNames = RelationNames.getShallow(function);
                 ctx.parts.merge(qualifiedNames, function, AndOperator::of);
                 return null;
             }

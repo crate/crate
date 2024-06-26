@@ -130,7 +130,7 @@ public class JoinPlanBuilder {
         }
         joinPlan = Filter.create(joinPlan, AndOperator.join(correlatedSubQueriesFromJoin.correlatedSubQueries()));
         joinPlan = Filter.create(joinPlan, AndOperator.join(correlatedSubQueriesFromWhereClause.correlatedSubQueries()));
-        assert joinPairsByRelations.isEmpty() : "Must've applied all joinPairs";
+        assert joinPairsByRelations.isEmpty() : "Must've applied all joinPairs: " + joinPairsByRelations;
         return joinPlan;
     }
 
