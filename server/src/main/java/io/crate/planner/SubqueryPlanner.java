@@ -23,13 +23,10 @@ package io.crate.planner;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 import io.crate.analyze.AnalyzedStatement;
-import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.SelectSymbol;
-import io.crate.expression.symbol.Symbol;
 import io.crate.planner.operators.CorrelatedJoin;
 import io.crate.planner.operators.LogicalPlan;
 
@@ -58,9 +55,11 @@ public class SubqueryPlanner {
     }
 
     public SubQueries planSubQueries(AnalyzedStatement statement) {
-        Visitor visitor = new Visitor();
-        statement.visitSymbols(visitor);
-        return visitor.subQueries;
+        SubQueries subQueries = new SubQueries(new LinkedHashMap<>(), new LinkedHashMap<>());
+        statement.visitSymbols(tree ->
+            tree.visit(SelectSymbol.class, selectSymbol -> planSubquery(selectSymbol, subQueries))
+        );
+        return subQueries;
     }
 
     private void planSubquery(SelectSymbol selectSymbol, SubQueries subQueries) {
@@ -72,22 +71,6 @@ public class SubqueryPlanner {
         } else {
             LogicalPlan subPlan = planSubSelects.apply(selectSymbol);
             subQueries.uncorrelated.put(subPlan, selectSymbol);
-        }
-    }
-
-    private class Visitor extends DefaultTraversalSymbolVisitor<Symbol, Void> implements Consumer<Symbol> {
-        // The LinkedHashMaps are needed to maintain a consistent order of the corresponding tree structure of the Execution Plan.
-        private final SubQueries subQueries = new SubQueries(new LinkedHashMap<>(), new LinkedHashMap<>());
-
-        @Override
-        public Void visitSelectSymbol(SelectSymbol selectSymbol, Symbol parent) {
-            planSubquery(selectSymbol, subQueries);
-            return null;
-        }
-
-        @Override
-        public void accept(Symbol symbol) {
-            symbol.accept(this, null);
         }
     }
 }

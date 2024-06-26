@@ -156,17 +156,11 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
         } else if (context.aggregates.isEmpty() && relation.groupBy().isEmpty()) {
             toCollect.addAll(context.standalone);
         }
-        var collectOuterColumns = new DefaultTraversalSymbolVisitor<Void, Void>() {
-
-            public Void visitOuterColumn(OuterColumn outerColumn, Void ignored) {
-                toCollect.add(outerColumn.symbol());
-                return null;
-            }
-        };
         for (var selectSymbol : context.correlatedQueries) {
-            selectSymbol.relation().visitSymbols(symbol -> symbol.accept(collectOuterColumns, null));
+            selectSymbol.relation().visitSymbols(tree ->
+                tree.visit(OuterColumn.class, outerColumn -> toCollect.add(outerColumn.symbol()))
+            );
         }
-
         where.visit(Symbol.IS_COLUMN, toCollect::add);
         ArrayList<Symbol> outputs = new ArrayList<>();
         for (var output : toCollect) {

@@ -223,7 +223,7 @@ public final class CopyToPlan implements Plan {
             // TODO: remove outputNames?
             for (Symbol symbol : copyTo.columns()) {
                 assert symbol instanceof Reference : "Only references are expected here";
-                symbol.visitRefs(r -> outputNames.add(r.column().sqlFqn()));
+                symbol.visit(Reference.class, r -> outputNames.add(r.column().sqlFqn()));
                 outputs.add(DocReferences.toSourceLookup(symbol));
             }
             columnsDefined = true;

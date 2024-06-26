@@ -137,7 +137,7 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
         // Evaluate them locally and only fetch columns
         List<Reference> refs = new ArrayList<>(collect.size());
         for (var symbol : collect) {
-            symbol.visitRefs(refs::add);
+            symbol.visit(Reference.class, refs::add);
         }
 
         Settings options = server.options();

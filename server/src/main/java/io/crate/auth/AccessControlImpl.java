@@ -263,14 +263,8 @@ public final class AccessControlImpl implements AccessControl {
             for (var source : relation.from()) {
                 source.accept(this, context);
             }
-            relation.visitSymbols(tree -> {
-                tree.any(node -> {
-                    if (node instanceof SelectSymbol selectSymbol) {
-                        selectSymbol.relation().accept(this, context);
-                    }
-                    return false;
-                });
-            });
+            relation.visitSymbols(tree ->
+                tree.visit(SelectSymbol.class, selectSymbol -> selectSymbol.relation().accept(this, context)));
             return null;
         }
 

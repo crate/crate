@@ -193,7 +193,7 @@ public final class NodeStats {
         HashSet<ColumnIdent> columns = new HashSet<>();
         Consumer<Reference> addRootColumn = ref -> columns.add(ref.column().getRoot());
         for (Symbol symbol: symbols) {
-            symbol.visitRefs(addRootColumn);
+            symbol.visit(Reference.class, addRootColumn);
         }
         return columns;
     }

@@ -24,6 +24,7 @@ package io.crate.metadata.table;
 import java.util.ArrayList;
 import java.util.List;
 
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RelationName;
 
@@ -85,7 +86,7 @@ public class ConstraintInfo {
                     .filter(checkConstraint -> checkConstraint.name().equals(constraintName))
                     .map(checkConstraint -> {
                         List<Short> positions = new ArrayList<>();
-                        checkConstraint.expression().visitRefs(r -> {
+                        checkConstraint.expression().visit(Reference.class, r -> {
                             positions.add((short) r.position());
                         });
                         return positions;
