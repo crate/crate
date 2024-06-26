@@ -94,7 +94,7 @@ public final class SourceParser {
     }
 
     public void register(List<? extends Symbol> symbols) {
-        if (!Symbols.containsColumn(symbols, DocSysColumns.DOC)) {
+        if (!Symbols.hasColumn(symbols, DocSysColumns.DOC)) {
             Consumer<Reference> register = ref -> {
                 if (ref.column().isSystemColumn() == false && ref.granularity() == RowGranularity.DOC) {
                     register(DocReferences.toSourceLookup(ref).column(), ref.valueType());

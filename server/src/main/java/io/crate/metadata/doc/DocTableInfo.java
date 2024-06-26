@@ -1073,7 +1073,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         ArrayList<Reference> result = new ArrayList<>(columns);
         for (Reference ref : columns) {
             for (ColumnIdent parent : ref.column().parents()) {
-                if (!Symbols.containsColumn(result, parent)) {
+                if (!Symbols.hasColumn(result, parent)) {
                     Reference parentRef = getReference(parent);
                     if (parentRef == null) {
                         throw new UnsupportedOperationException(

@@ -55,9 +55,9 @@ public final class GroupAndAggregateSemantics {
      */
     public static void validate(List<Symbol> outputSymbols,
                                 List<Symbol> groupBy) throws IllegalArgumentException {
-        boolean containsAggregations = SymbolVisitors.any(
-            x -> x instanceof Function fn && fn.signature().getKind() == FunctionType.AGGREGATE,
-            outputSymbols
+        boolean containsAggregations = Symbols.any(
+            outputSymbols,
+            x -> x instanceof Function fn && fn.signature().getKind() == FunctionType.AGGREGATE
         );
         if (!containsAggregations && groupBy.isEmpty()) {
             return;

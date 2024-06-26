@@ -141,7 +141,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             searcher.item(),
             queryContext.query(),
             queryContext.minScore(),
-            Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.SCORE),
+            Symbols.hasColumn(collectPhase.toCollect(), DocSysColumns.SCORE),
             new CollectorContext(sharedShardContext.readerId(), table.droppedColumns(), table.lookupNameBySourceKey()),
             docCtx.topLevelInputs(),
             docCtx.expressions()
@@ -225,7 +225,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             searcher.item(),
             queryContext.query(),
             queryContext.minScore(),
-            Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.SCORE),
+            Symbols.hasColumn(collectPhase.toCollect(), DocSysColumns.SCORE),
             batchSize,
             collectTask.getRamAccounting(),
             collectorContext,

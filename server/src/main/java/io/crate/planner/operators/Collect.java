@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.SequencedCollection;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -55,7 +56,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.RefReplacer;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
@@ -333,7 +334,7 @@ public class Collect implements LogicalPlan {
     public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
         LinkedHashSet<Symbol> newOutputs = new LinkedHashSet<>();
         for (Symbol outputToKeep : outputsToKeep) {
-            SymbolVisitors.intersection(outputToKeep, outputs, needle -> {
+            Symbols.intersection(outputToKeep, outputs, needle -> {
                 int index = outputs.indexOf(needle);
                 assert index != -1 : "Consumer is called only when intersection is found";
                 newOutputs.add(outputs.get(index));
@@ -363,7 +364,7 @@ public class Collect implements LogicalPlan {
             } else if (!output.any(Symbol.IS_COLUMN)) {
                 newOutputs.add(output);
                 replacedOutputs.put(output, output);
-            } else if (SymbolVisitors.any(output::equals, usedColumns)) {
+            } else if (Symbols.any(usedColumns, (Predicate<? super Symbol>) output::equals)) {
                 newOutputs.add(output);
                 replacedOutputs.put(output, output);
             } else {

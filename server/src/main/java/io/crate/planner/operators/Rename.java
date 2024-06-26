@@ -42,7 +42,7 @@ import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.FetchMarker;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.RelationName;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
@@ -109,7 +109,7 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
         }
         ArrayList<Symbol> mappedToKeep = new ArrayList<>();
         for (Symbol outputToKeep : outputsToKeep) {
-            SymbolVisitors.intersection(outputToKeep, outputs, s -> {
+            Symbols.intersection(outputToKeep, outputs, s -> {
                 Symbol childSymbol = parentToChildMap.get(s);
                 assert childSymbol != null : "There must be a mapping available for symbol " + s;
                 mappedToKeep.add(childSymbol);
@@ -142,7 +142,7 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
         }
         ArrayList<Symbol> mappedUsedColumns = new ArrayList<>();
         for (Symbol usedColumn : usedColumns) {
-            SymbolVisitors.intersection(usedColumn, outputs, s -> {
+            Symbols.intersection(usedColumn, outputs, s -> {
                 Symbol childSymbol = parentToChildMap.get(s);
                 assert childSymbol != null : "There must be a mapping available for symbol " + s;
                 mappedUsedColumns.add(childSymbol);

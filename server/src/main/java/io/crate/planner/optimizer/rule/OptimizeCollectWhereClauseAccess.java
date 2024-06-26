@@ -53,7 +53,7 @@ public final class OptimizeCollectWhereClauseAccess implements Rule<Collect> {
             .with(collect ->
                       collect.relation() instanceof DocTableRelation
                       && collect.where().hasQuery()
-                      && !Symbols.containsColumn(collect.outputs(), DocSysColumns.FETCHID)
+                      && !Symbols.hasColumn(collect.outputs(), DocSysColumns.FETCHID)
             );
     }
 

@@ -27,12 +27,16 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.Streamer;
+import io.crate.analyze.OrderBy;
+import io.crate.analyze.WindowDefinition;
 import io.crate.common.collections.Lists;
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
@@ -78,10 +82,29 @@ public final class Symbols {
         return null;
     }
 
+    public static boolean any(List<? extends Symbol> symbols, Predicate<? super Symbol> predicate) {
+        for (int i = 0; i < symbols.size(); i++) {
+            Symbol symbol = symbols.get(i);
+            if (symbol.any(predicate)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static boolean any(Iterable<? extends Symbol> symbols, Predicate<? super Symbol> predicate) {
+        for (Symbol symbol: symbols) {
+            if (symbol.any(predicate)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
      * returns true if any of the symbols contains the given column
      */
-    public static boolean containsColumn(Iterable<? extends Symbol> symbols, ColumnIdent path) {
+    public static boolean hasColumn(Iterable<? extends Symbol> symbols, ColumnIdent path) {
         for (Symbol symbol : symbols) {
             if (symbol.hasColumn(path)) {
                 return true;
@@ -117,5 +140,149 @@ public final class Symbols {
             }
         }
         return String.format(Locale.ENGLISH, messageTmpl, formattedSymbols);
+    }
+
+    /**
+     * Calls the given `consumer` for all intersection points between `needle` and `haystack`.
+     * For example, in:
+     * <pre>
+     *     needle: x > 20 AND y = 2
+     *     haystack: [x, y = 2]
+     * </pre>
+     *
+     * The `consumer` would be called for `x` and for `y = 2`
+     */
+    public static <T> void intersection(Symbol needle, Collection<T> haystack, Consumer<T> consumer) {
+        needle.accept(new IntersectionVisitor<>(haystack, consumer), null);
+    }
+
+    // If `haystack.contains(x)` is true, then `x` has type `T`, and the call to the consumer is safe.
+    // This provides convenience for call-ees of `intersection`.
+    // If `haystack` is for example `List<Function>` they can use a `Consumer<Function>` and don't loose type information.
+    @SuppressWarnings({"SuspiciousMethodCalls", "unchecked"})
+    private static class IntersectionVisitor<T> extends SymbolVisitor<Void, Void> {
+
+        private final Collection<T> haystack;
+        private final Consumer<T> consumer;
+
+        public IntersectionVisitor(Collection<T> haystack, Consumer<T> consumer) {
+            this.haystack = haystack;
+            this.consumer = consumer;
+        }
+
+        @Override
+        public Void visitFunction(Function func, Void context) {
+            if (haystack.contains(func)) {
+                consumer.accept((T) func);
+            } else {
+                for (Symbol argument : func.arguments()) {
+                    callConsumerOrVisit(argument);
+                }
+                Symbol filter = func.filter();
+                if (filter != null) {
+                    callConsumerOrVisit(filter);
+                }
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitWindowFunction(WindowFunction windowFunc, Void context) {
+            if (haystack.contains(windowFunc)) {
+                consumer.accept((T) windowFunc);
+            } else {
+                for (Symbol argument : windowFunc.arguments()) {
+                    callConsumerOrVisit(argument);
+                }
+                Symbol filter = windowFunc.filter();
+                if (filter != null) {
+                    callConsumerOrVisit(filter);
+                }
+                WindowDefinition windowDefinition = windowFunc.windowDefinition();
+                for (Symbol partition : windowDefinition.partitions()) {
+                    callConsumerOrVisit(partition);
+                }
+                OrderBy orderBy = windowDefinition.orderBy();
+                if (orderBy != null) {
+                    for (Symbol orderBySymbol : orderBy.orderBySymbols()) {
+                        callConsumerOrVisit(orderBySymbol);
+                    }
+                }
+                Symbol startOffsetValue = windowDefinition.windowFrameDefinition().start().value();
+                if (startOffsetValue != null) {
+                    callConsumerOrVisit(startOffsetValue);
+                }
+                Symbol endOffsetValue = windowDefinition.windowFrameDefinition().end().value();
+                if (endOffsetValue != null) {
+                    callConsumerOrVisit(endOffsetValue);
+                }
+            }
+            return null;
+        }
+
+        private void callConsumerOrVisit(Symbol symbol) {
+            if (haystack.contains(symbol)) {
+                consumer.accept((T) symbol);
+            } else {
+                symbol.accept(this, null);
+            }
+        }
+
+        @Override
+        public Void visitAlias(AliasSymbol aliasSymbol, Void context) {
+            if (haystack.contains(aliasSymbol)) {
+                consumer.accept((T) aliasSymbol);
+            } else {
+                aliasSymbol.symbol().accept(this, context);
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitField(ScopedSymbol field, Void context) {
+            if (haystack.contains(field)) {
+                consumer.accept((T) field);
+            } else if (!field.column().isRoot()) {
+                // needle: `obj[x]`, haystack: [`obj`] -> `obj` is an intersection
+                ColumnIdent root = field.column().getRoot();
+                for (T t : haystack) {
+                    if (t instanceof ScopedSymbol scopedSymbol && scopedSymbol.column().equals(root)) {
+                        consumer.accept(t);
+                    }
+                }
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitReference(Reference ref, Void context) {
+            if (haystack.contains(ref)) {
+                consumer.accept((T) ref);
+            } else if (!ref.column().isRoot()) {
+                // needle: `obj[x]`, haystack: [`obj`] -> `obj` is an intersection
+                ColumnIdent root = ref.column().getRoot();
+                for (T t : haystack) {
+                    if (t instanceof Reference tRef && tRef.column().equals(root)) {
+                        consumer.accept(t);
+                        break;
+                    } else if (ref instanceof VoidReference
+                               && t instanceof ScopedSymbol tScopedSymbol
+                               && tScopedSymbol.relation().equals(ref.ident().tableIdent())
+                               && tScopedSymbol.column().equals(root)) {
+                        consumer.accept(t);
+                        break;
+                    }
+                }
+            }
+            return null;
+        }
+
+        @Override
+        protected Void visitSymbol(Symbol symbol, Void context) {
+            if (haystack.contains(symbol)) {
+                consumer.accept((T) symbol);
+            }
+            return null;
+        }
     }
 }

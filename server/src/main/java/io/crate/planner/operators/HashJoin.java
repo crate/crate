@@ -46,7 +46,6 @@ import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.RelationName;
 import io.crate.planner.DependencyCarrier;
@@ -185,20 +184,20 @@ public class HashJoin extends AbstractJoinPlan {
         LinkedHashSet<Symbol> lhsToKeep = new LinkedHashSet<>();
         LinkedHashSet<Symbol> rhsToKeep = new LinkedHashSet<>();
         for (Symbol outputToKeep : outputsToKeep) {
-            SymbolVisitors.intersection(outputToKeep, lhs.outputs(), lhsToKeep::add);
-            SymbolVisitors.intersection(outputToKeep, rhs.outputs(), rhsToKeep::add);
+            Symbols.intersection(outputToKeep, lhs.outputs(), lhsToKeep::add);
+            Symbols.intersection(outputToKeep, rhs.outputs(), rhsToKeep::add);
         }
         // If there a lookup-join in place, and the outputs belong only to the lookup side,
         // we can drop the join and return only the lookup-side
         if (lhsToKeep.isEmpty() && lookupJoin == LookUpJoin.RIGHT) {
-            SymbolVisitors.intersection(joinCondition, rhs.outputs(), rhsToKeep::add);
+            Symbols.intersection(joinCondition, rhs.outputs(), rhsToKeep::add);
             return rhs.pruneOutputsExcept(rhsToKeep);
         } else if (rhsToKeep.isEmpty() && lookupJoin == LookUpJoin.LEFT) {
-            SymbolVisitors.intersection(joinCondition, lhs.outputs(), lhsToKeep::add);
+            Symbols.intersection(joinCondition, lhs.outputs(), lhsToKeep::add);
             return lhs.pruneOutputsExcept(lhsToKeep);
         } else {
-            SymbolVisitors.intersection(joinCondition, lhs.outputs(), lhsToKeep::add);
-            SymbolVisitors.intersection(joinCondition, rhs.outputs(), rhsToKeep::add);
+            Symbols.intersection(joinCondition, lhs.outputs(), lhsToKeep::add);
+            Symbols.intersection(joinCondition, rhs.outputs(), rhsToKeep::add);
             LogicalPlan newLhs = lhs.pruneOutputsExcept(lhsToKeep);
             LogicalPlan newRhs = rhs.pruneOutputsExcept(rhsToKeep);
             if (newLhs == lhs && newRhs == rhs) {
@@ -219,11 +218,11 @@ public class HashJoin extends AbstractJoinPlan {
         LinkedHashSet<Symbol> usedFromLeft = new LinkedHashSet<>();
         LinkedHashSet<Symbol> usedFromRight = new LinkedHashSet<>();
         for (Symbol usedColumn : usedColumns) {
-            SymbolVisitors.intersection(usedColumn, lhs.outputs(), usedFromLeft::add);
-            SymbolVisitors.intersection(usedColumn, rhs.outputs(), usedFromRight::add);
+            Symbols.intersection(usedColumn, lhs.outputs(), usedFromLeft::add);
+            Symbols.intersection(usedColumn, rhs.outputs(), usedFromRight::add);
         }
-        SymbolVisitors.intersection(joinCondition, lhs.outputs(), usedFromLeft::add);
-        SymbolVisitors.intersection(joinCondition, rhs.outputs(), usedFromRight::add);
+        Symbols.intersection(joinCondition, lhs.outputs(), usedFromLeft::add);
+        Symbols.intersection(joinCondition, rhs.outputs(), usedFromRight::add);
         FetchRewrite lhsFetchRewrite = lhs.rewriteToFetch(usedFromLeft);
         FetchRewrite rhsFetchRewrite = rhs.rewriteToFetch(usedFromRight);
         if (lhsFetchRewrite == null && rhsFetchRewrite == null) {
