@@ -106,7 +106,7 @@ import io.crate.exceptions.TableScopeException;
 import io.crate.exceptions.UnauthorizedException;
 import io.crate.exceptions.UnscopedException;
 import io.crate.exceptions.UnsupportedFunctionException;
-import io.crate.expression.symbol.SymbolVisitors;
+import io.crate.expression.symbol.SelectSymbol;
 import io.crate.fdw.ForeignTableRelation;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
@@ -263,10 +263,13 @@ public final class AccessControlImpl implements AccessControl {
             for (var source : relation.from()) {
                 source.accept(this, context);
             }
-            relation.visitSymbols(symbol -> {
-                for (var rel : SymbolVisitors.extractAnalyzedRelations(symbol)) {
-                    rel.accept(this, context);
-                }
+            relation.visitSymbols(tree -> {
+                tree.any(node -> {
+                    if (node instanceof SelectSymbol selectSymbol) {
+                        selectSymbol.relation().accept(this, context);
+                    }
+                    return false;
+                });
             });
             return null;
         }
