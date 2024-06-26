@@ -145,13 +145,13 @@ public interface Symbol extends Writeable, Accountable {
     }
 
     /**
-     * Visits all {@link Reference} in a tree.
+     * Visits all instances of clazz in a tree.
      * Does not cross relations. See {@link #any(Predicate)} for details
      */
-    default void visitRefs(Consumer<? super Reference> consumer) {
+    default <T extends Symbol> void visit(Class<T> clazz, Consumer<? super T> consumer) {
         any(node -> {
-            if (node instanceof Reference ref) {
-                consumer.accept(ref);
+            if (clazz.isInstance(node)) {
+                consumer.accept(clazz.cast(node));
             }
             return false;
         });

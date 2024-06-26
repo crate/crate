@@ -52,6 +52,7 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
@@ -158,7 +159,7 @@ public class Get implements LogicalPlan {
         ArrayList<Projection> projections = new ArrayList<>();
         if (!queryHasPkSymbolsOnly) {
             var toCollectSet = new LinkedHashSet<>(boundOutputs);
-            boundQuery.visitRefs(toCollectSet::add);
+            boundQuery.visit(Reference.class, toCollectSet::add);
             toCollect = List.copyOf(toCollectSet);
             var filterProjection = ProjectionBuilder.filterProjection(toCollect, boundQuery);
             filterProjection.requiredGranularity(RowGranularity.SHARD);

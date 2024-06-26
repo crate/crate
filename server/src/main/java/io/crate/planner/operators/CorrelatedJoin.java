@@ -33,7 +33,6 @@ import io.crate.data.Row;
 import io.crate.execution.dsl.projection.CorrelatedJoinProjection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.LimitAndOffset;
-import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.OuterColumn;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
@@ -150,13 +149,9 @@ public class CorrelatedJoin implements LogicalPlan {
     @Override
     public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
         var toCollect = new LinkedHashSet<>(outputsToKeep);
-        var collectOuterColumns = new DefaultTraversalSymbolVisitor<Void, Void>() {
-            public Void visitOuterColumn(OuterColumn outerColumn, Void ignored) {
-                toCollect.add(outerColumn.symbol());
-                return null;
-            }
-        };
-        selectSymbol.relation().visitSymbols(symbol -> symbol.accept(collectOuterColumns, null));
+        selectSymbol.relation().visitSymbols(tree ->
+            tree.visit(OuterColumn.class, outerColumn -> toCollect.add(outerColumn.symbol()))
+        );
         LogicalPlan newInputPlan = inputPlan.pruneOutputsExcept(toCollect);
 
         if (inputPlan == newInputPlan) {

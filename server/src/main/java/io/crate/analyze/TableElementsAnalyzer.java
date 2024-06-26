@@ -648,7 +648,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                     builder.defaultExpression = defaultSymbol.cast(builder.type, CastMode.IMPLICIT);
                     // only used to validate; result is not used to preserve functions like `current_timestamp`
                     normalizer.normalize(builder.defaultExpression, txnCtx);
-                    builder.defaultExpression.visitRefs(x -> {
+                    builder.defaultExpression.visit(Reference.class, x -> {
                         throw new UnsupportedOperationException(
                             "Cannot reference columns in DEFAULT expression of `" + columnName + "`. " +
                                 "Maybe you wanted to use a string literal with single quotes instead: '" + x.column().name() + "'");
@@ -750,7 +750,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
         }
         var analyzedCheck = new AnalyzedCheck(expression, expressionSymbol, null);
         if (column != null) {
-            expressionSymbol.visitRefs(ref -> {
+            expressionSymbol.visit(Reference.class, ref -> {
                 if (!ref.column().equals(column)) {
                     throw new UnsupportedOperationException(
                         "CHECK constraint on column `" + column + "` cannot refer to column `" + ref.column() +

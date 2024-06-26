@@ -72,7 +72,7 @@ public final class GeneratedReference implements Reference {
                 "Cannot use table function in generated expression of column `" + ref.column().fqn() + "`");
         }
         this.referencedReferences = new ArrayList<>();
-        generatedExpression.visitRefs(referencedReferences::add);
+        generatedExpression.visit(Reference.class, referencedReferences::add);
     }
 
     public GeneratedReference(StreamInput in) throws IOException {

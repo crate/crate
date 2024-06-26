@@ -701,7 +701,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             }
             for (var checkConstraint : checkConstraints()) {
                 Set<ColumnIdent> columnsInConstraint = new HashSet<>();
-                checkConstraint.expression().visitRefs(r -> columnsInConstraint.add(r.column()));
+                checkConstraint.expression().visit(Reference.class, r -> columnsInConstraint.add(r.column()));
                 if (columnsInConstraint.size() > 1 && columnsInConstraint.contains(colToDrop)) {
                     throw new UnsupportedOperationException("Dropping column: " + colToDrop.sqlFqn() + " which " +
                         "is used in CHECK CONSTRAINT: " + checkConstraint.name() + " is not allowed");

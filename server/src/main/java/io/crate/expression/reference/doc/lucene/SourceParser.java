@@ -100,7 +100,7 @@ public final class SourceParser {
                 }
             };
             for (Symbol symbol : symbols) {
-                symbol.visitRefs(register);
+                symbol.visit(Reference.class, register);
             }
         }
     }
