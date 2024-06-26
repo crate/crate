@@ -23,8 +23,11 @@ package io.crate.expression.predicate;
 
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
+import static io.crate.testing.DataTypeTesting.ALL_STORED_TYPES_EXCEPT_ARRAYS;
+import static io.crate.testing.DataTypeTesting.getDataGenerator;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.elasticsearch.Version;
@@ -32,8 +35,13 @@ import org.junit.Test;
 
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
+import io.crate.testing.Asserts;
 import io.crate.testing.QueryTester;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.FloatVectorType;
+import io.crate.types.GeoPointType;
+import io.crate.types.GeoShapeType;
 
 public class NotPredicateTest extends ScalarTestCase {
 
@@ -74,6 +82,42 @@ public class NotPredicateTest extends ScalarTestCase {
 
             result = tester.runQuery("x", "(case when true then 2 else x end) != 2");
             assertThat(result).isEmpty();
+        }
+    }
+
+    @Test
+    public void test_neq_on_array_types_with_non_empty_array_does_not_filter_empty_array() throws Exception {
+        for (DataType<?> type : ALL_STORED_TYPES_EXCEPT_ARRAYS) {
+            if (type instanceof FloatVectorType) {
+                continue;
+            }
+            var listOfNulls = new ArrayList<Integer>();
+            listOfNulls.add(null);
+            Object[] values = new Object[] {List.of(), listOfNulls};
+
+            // ensure the test is operating on a fresh, empty cluster state (no tables)
+            resetClusterService();
+
+            String randomData;
+            if (type.id() == GeoPointType.ID) {
+                randomData = "'POINT (9.7417 47.4108)'::geo_point";
+            } else if (type.id() == GeoShapeType.ID) {
+                randomData = "'POLYGON ((5 5, 10 5, 10 10, 5 10, 5 5))'::geo_shape";
+            } else {
+                randomData = Literal.ofUnchecked(type, getDataGenerator(type).get()).toString();
+            }
+            String query = "xs != [" + randomData + "]";
+            try (QueryTester tester = new QueryTester.Builder(
+                THREAD_POOL,
+                clusterService,
+                Version.CURRENT,
+                "create table \"t_" + type.getName() + "\" (xs array(\"" + type.getName() + "\"))"
+            ).indexValues("xs", values).build()) {
+                List<Object> result = tester.runQuery("xs", query);
+                Asserts.assertThat(result)
+                    .as("QUERY: " + query + "; TYPE: " + type + " ; expects '[]' and '[null]' returned")
+                    .containsExactlyInAnyOrder(List.of(), listOfNulls);
+            }
         }
     }
 }

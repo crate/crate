@@ -68,6 +68,12 @@ Breaking Changes
   .. NOTE:: If the number of routing shards equals the number of shard,
             increasing the number of shards will not be supported.
 
+- Fixed an issue that caused ``WHERE`` clause containing ``NOT`` operator on
+  an array type against a non-empty array to incorrectly filter empty arrays,
+  e.g.::
+
+      SELECT * FROM t WHERE a != [1];
+
 Deprecations
 ============
 
