@@ -26,6 +26,7 @@ import static java.util.Objects.requireNonNull;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Predicate;
 
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
@@ -105,6 +106,22 @@ public final class Aggregation implements Symbol {
     @Override
     public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
         return visitor.visitAggregation(this, context);
+    }
+
+    @Override
+    public boolean any(Predicate<? super Symbol> predicate) {
+        if (predicate.test(this)) {
+            return true;
+        }
+        for (var input : inputs) {
+            if (input.any(predicate)) {
+                return true;
+            }
+        }
+        if (filter.any(predicate)) {
+            return true;
+        }
+        return false;
     }
 
     @Override

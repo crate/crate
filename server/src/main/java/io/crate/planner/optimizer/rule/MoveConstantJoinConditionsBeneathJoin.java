@@ -31,13 +31,13 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.function.UnaryOperator;
 
+import io.crate.analyze.RelationNames;
 import io.crate.analyze.relations.QuerySplitter;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
-import io.crate.planner.consumer.RelationNameCollector;
 import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.Rule;
@@ -150,6 +150,6 @@ public class MoveConstantJoinConditionsBeneathJoin implements Rule<JoinPlan> {
     }
 
     private static int numberOfRelationsUsed(Symbol joinCondition) {
-        return RelationNameCollector.collect(joinCondition).size();
+        return RelationNames.getShallow(joinCondition).size();
     }
 }

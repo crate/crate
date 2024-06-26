@@ -21,12 +21,12 @@
 
 package io.crate.exceptions;
 
-import io.crate.analyze.TableIdentsExtractor;
+import java.util.Locale;
+
+import io.crate.analyze.RelationNames;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
-
-import java.util.Locale;
 
 public class AmbiguousColumnException extends RuntimeException implements TableScopeException {
 
@@ -39,6 +39,6 @@ public class AmbiguousColumnException extends RuntimeException implements TableS
 
     @Override
     public Iterable<RelationName> getTableIdents() {
-        return TableIdentsExtractor.extract(columnSymbol);
+        return RelationNames.getDeep(columnSymbol);
     }
 }

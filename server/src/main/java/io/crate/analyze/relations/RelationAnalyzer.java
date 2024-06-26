@@ -42,6 +42,7 @@ import io.crate.analyze.JoinRelation;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.QueriedSelectRelation;
+import io.crate.analyze.RelationNames;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.SubqueryAnalyzer;
@@ -80,7 +81,6 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.metadata.view.ViewInfo;
 import io.crate.planner.consumer.OrderByWithAggregationValidator;
-import io.crate.planner.consumer.RelationNameCollector;
 import io.crate.role.Role;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.AliasedRelation;
@@ -291,7 +291,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
         var joinCondition = joinRelation.joinCondition();
         if (joinCondition != null) {
-            Set<RelationName> relationsInJoinConditions = RelationNameCollector.collect(joinCondition);
+            Set<RelationName> relationsInJoinConditions = RelationNames.getShallow(joinCondition);
             if (relationsInJoinConditions.size() > 1) {
                 // We have join conditions with two relations or more. The join conditions such as
                 // `t1.x = t2.x` determines which relations are joined together.
@@ -361,11 +361,11 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         var rhsRelationNames = new HashSet<RelationName>();
 
         for (Symbol symbol : lhsOutputs.values()) {
-            lhsRelationNames.addAll(RelationNameCollector.collect(symbol));
+            lhsRelationNames.addAll(RelationNames.getShallow(symbol));
         }
 
         for (Symbol symbol : rhsOutputs.values()) {
-            rhsRelationNames.addAll(RelationNameCollector.collect(symbol));
+            rhsRelationNames.addAll(RelationNames.getShallow(symbol));
         }
 
         return JoinUsing.toExpression(
