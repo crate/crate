@@ -31,14 +31,6 @@ import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.relations.TableRelation;
-import io.crate.expression.symbol.Aggregation;
-import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
-import io.crate.expression.symbol.DynamicReference;
-import io.crate.expression.symbol.FetchReference;
-import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.InputColumn;
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
@@ -48,15 +40,14 @@ import io.crate.metadata.RelationName;
 public class TableIdentsExtractor {
 
     private static final TableIdentRelationVisitor RELATION_TABLE_IDENT_EXTRACTOR = new TableIdentRelationVisitor();
-    private static final TableIdentSymbolVisitor SYMBOL_TABLE_IDENT_EXTRACTOR = new TableIdentSymbolVisitor();
 
     /**
      * Extracts all table idents from all given symbols if possible (some symbols don't provide any table ident info)
      */
     public static Collection<RelationName> extract(Iterable<? extends Symbol> symbols) {
-        Collection<RelationName> relationNames = new HashSet<>();
+        HashSet<RelationName> relationNames = new HashSet<>();
         for (Symbol symbol : symbols) {
-            symbol.accept(SYMBOL_TABLE_IDENT_EXTRACTOR, relationNames);
+            relationNames.addAll(extract(symbol));
         }
         return relationNames;
     }
@@ -64,72 +55,19 @@ public class TableIdentsExtractor {
     /**
      * Extracts all table idents from the given symbol if possible (some symbols don't provide any table ident info)
      */
-    public static Iterable<RelationName> extract(Symbol symbol) {
-        Set<RelationName> relationNames = new HashSet<>();
-        symbol.accept(SYMBOL_TABLE_IDENT_EXTRACTOR, relationNames);
+    public static Set<RelationName> extract(Symbol symbol) {
+        HashSet<RelationName> relationNames = new HashSet<>();
+        symbol.any(node -> {
+            switch (node) {
+                case ScopedSymbol scopedSymbol -> relationNames.add(scopedSymbol.relation());
+                case SelectSymbol selectSymbol -> selectSymbol.relation().accept(RELATION_TABLE_IDENT_EXTRACTOR, relationNames);
+                case Reference ref -> relationNames.add(ref.ident().tableIdent());
+                default -> {
+                }
+            }
+            return false;
+        });
         return relationNames;
-    }
-
-    private static class TableIdentSymbolVisitor extends DefaultTraversalSymbolVisitor<Collection<RelationName>, Void> {
-
-        @Override
-        protected Void visitSymbol(Symbol symbol, Collection<RelationName> context) {
-            throw new IllegalStateException(String.format(Locale.ENGLISH,
-                "Symbol '%s' not supported", Symbol.class.getName()));
-        }
-
-        @Override
-        public Void visitAggregation(Aggregation symbol, Collection<RelationName> context) {
-            context.addAll(extract(symbol.inputs()));
-            return null;
-        }
-
-        @Override
-        public Void visitReference(Reference symbol, Collection<RelationName> context) {
-            context.add(symbol.ident().tableIdent());
-            return null;
-        }
-
-        @Override
-        public Void visitDynamicReference(DynamicReference symbol, Collection<RelationName> context) {
-            return visitReference(symbol, context);
-        }
-
-        @Override
-        public Void visitFunction(Function symbol, Collection<RelationName> context) {
-            return null;
-        }
-
-        @Override
-        public Void visitLiteral(Literal<?> symbol, Collection<RelationName> context) {
-            return null;
-        }
-
-        @Override
-        public Void visitInputColumn(InputColumn inputColumn, Collection<RelationName> context) {
-            return null;
-        }
-
-        @Override
-        public Void visitField(ScopedSymbol field, Collection<RelationName> context) {
-            context.add(field.relation());
-            return null;
-        }
-
-        @Override
-        public Void visitFetchReference(FetchReference fetchReference, Collection<RelationName> context) {
-            return ((Symbol) fetchReference.ref()).accept(this, context);
-        }
-
-        @Override
-        public Void visitParameterSymbol(ParameterSymbol parameterSymbol, Collection<RelationName> context) {
-            return null;
-        }
-
-        @Override
-        public Void visitSelectSymbol(SelectSymbol selectSymbol, Collection<RelationName> context) {
-            return selectSymbol.relation().accept(RELATION_TABLE_IDENT_EXTRACTOR, context);
-        }
     }
 
     private static class TableIdentRelationVisitor extends AnalyzedRelationVisitor<Collection<RelationName>, Void> {

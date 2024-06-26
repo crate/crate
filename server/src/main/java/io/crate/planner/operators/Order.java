@@ -41,7 +41,6 @@ import io.crate.execution.dsl.projection.OrderedLimitAndOffsetProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.FieldsVisitor;
-import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
@@ -170,7 +169,7 @@ public class Order extends ForwardingLogicalPlan {
         };
         for (Symbol orderByInputColumn : orderByInputColumns) {
             FieldsVisitor.visitFields(orderByInputColumn, raiseExpressionMissingInOutputsError);
-            RefVisitor.visitRefs(orderByInputColumn, raiseExpressionMissingInOutputsError);
+            orderByInputColumn.visitRefs(raiseExpressionMissingInOutputsError);
         }
     }
 

@@ -23,49 +23,49 @@ package io.crate.analyze;
 
 import java.util.Comparator;
 import java.util.List;
-import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Consumer;
 
 import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.common.collections.Lists;
-import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.types.DataType;
 
-public class ParameterTypes extends DefaultTraversalSymbolVisitor<Set<ParameterSymbol>, Void> {
+public class ParameterTypes {
 
-    private static final ParameterTypes INSTANCE = new ParameterTypes();
+    TreeSet<ParameterSymbol> parameterSymbols = new TreeSet<>(Comparator.comparing(ParameterSymbol::index));
 
     private ParameterTypes() {
-    }
-
-    @VisibleForTesting
-    static List<DataType<?>> extract(Consumer<Consumer<? super Symbol>> consumer) {
-        TreeSet<ParameterSymbol> parameterSymbols = new TreeSet<>(Comparator.comparing(ParameterSymbol::index));
-        consumer.accept(symbol -> symbol.accept(INSTANCE, parameterSymbols));
-        if (!parameterSymbols.isEmpty() && parameterSymbols.last().index() != parameterSymbols.size() - 1) {
-            throw new IllegalStateException("The assembled list of ParameterSymbols is invalid. Missing parameters.");
-        }
-        return Lists.map(parameterSymbols, ParameterSymbol::getBoundType);
     }
 
     public static List<DataType<?>> extract(AnalyzedStatement statement) {
         return extract(consumer -> Relations.traverseDeepSymbols(statement, consumer));
     }
 
-    @Override
-    public Void visitSelectSymbol(SelectSymbol selectSymbol, Set<ParameterSymbol> parameterSymbols) {
-        Relations.traverseDeepSymbols(selectSymbol.relation(), symbol -> symbol.accept(this, parameterSymbols));
-        return null;
+    @VisibleForTesting
+    static List<DataType<?>> extract(Consumer<Consumer<? super Symbol>> consumer) {
+        ParameterTypes parameterTypes = new ParameterTypes();
+        consumer.accept(parameterTypes::onSymbolTree);
+        TreeSet<ParameterSymbol> parameterSymbols = parameterTypes.parameterSymbols;
+        if (!parameterSymbols.isEmpty() && parameterSymbols.last().index() != parameterSymbols.size() - 1) {
+            throw new IllegalStateException("The assembled list of ParameterSymbols is invalid. Missing parameters.");
+        }
+        return Lists.map(parameterSymbols, ParameterSymbol::getBoundType);
     }
 
-    @Override
-    public Void visitParameterSymbol(ParameterSymbol parameterSymbol, Set<ParameterSymbol> parameterSymbols) {
-        parameterSymbols.add(parameterSymbol);
-        return null;
+    private void onSymbolTree(Symbol tree) {
+        tree.any(this::onSymbolNode);
+    }
+
+    private boolean onSymbolNode(Symbol node) {
+        if (node instanceof ParameterSymbol parameterSymbol) {
+            parameterSymbols.add(parameterSymbol);
+        } else if (node instanceof SelectSymbol selectSymbol) {
+            Relations.traverseDeepSymbols(selectSymbol.relation(), this::onSymbolTree);
+        }
+        return false;
     }
 }

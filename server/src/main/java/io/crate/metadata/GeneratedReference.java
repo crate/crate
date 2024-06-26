@@ -34,7 +34,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.expression.scalar.cast.CastMode;
-import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.SymbolVisitor;
@@ -74,7 +73,7 @@ public final class GeneratedReference implements Reference {
                 "Cannot use table function in generated expression of column `" + ref.column().fqn() + "`");
         }
         this.referencedReferences = new ArrayList<>();
-        RefVisitor.visitRefs(generatedExpression, referencedReferences::add);
+        generatedExpression.visitRefs(referencedReferences::add);
     }
 
     public GeneratedReference(StreamInput in) throws IOException {

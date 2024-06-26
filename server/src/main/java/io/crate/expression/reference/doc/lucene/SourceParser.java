@@ -45,7 +45,6 @@ import org.elasticsearch.common.xcontent.XContentParser.Token;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
@@ -101,7 +100,7 @@ public final class SourceParser {
                 }
             };
             for (Symbol symbol : symbols) {
-                RefVisitor.visitRefs(symbol, register);
+                symbol.visitRefs(register);
             }
         }
     }

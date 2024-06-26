@@ -65,7 +65,6 @@ import io.crate.expression.symbol.FieldReplacer;
 import io.crate.expression.symbol.FieldsVisitor;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.SelectSymbol.ResultType;
@@ -481,16 +480,16 @@ public class LogicalPlanner {
                             }
                         };
                         for (Symbol symbol : splitPoints.toCollect()) {
-                            RefVisitor.visitRefs(symbol, addRefIfMatch);
+                            symbol.visitRefs(addRefIfMatch);
                             FieldsVisitor.visitFields(symbol, addFieldIfMatch);
                         }
                         FieldsVisitor.visitFields(relation.where(), addFieldIfMatch);
-                        RefVisitor.visitRefs(relation.where(), addRefIfMatch);
+                        relation.where().visitRefs(addRefIfMatch);
                         for (var joinPair : relation.joinPairs()) {
                             var condition = joinPair.condition();
                             if (condition != null) {
                                 FieldsVisitor.visitFields(condition, addFieldIfMatch);
-                                RefVisitor.visitRefs(condition, addRefIfMatch);
+                                condition.visitRefs(addRefIfMatch);
                             }
                         }
                         return rel.accept(this, List.copyOf(toCollect));
@@ -554,7 +553,7 @@ public class LogicalPlanner {
 
     public static Set<Symbol> extractColumns(Symbol symbol) {
         LinkedHashSet<Symbol> columns = new LinkedHashSet<>();
-        RefVisitor.visitRefs(symbol, columns::add);
+        symbol.visitRefs(columns::add);
         FieldsVisitor.visitFields(symbol, columns::add);
         return columns;
     }
@@ -562,7 +561,7 @@ public class LogicalPlanner {
     public static Set<Symbol> extractColumns(Collection<? extends Symbol> symbols) {
         LinkedHashSet<Symbol> columns = new LinkedHashSet<>();
         for (Symbol symbol : symbols) {
-            RefVisitor.visitRefs(symbol, columns::add);
+            symbol.visitRefs(columns::add);
             FieldsVisitor.visitFields(symbol, columns::add);
         }
         return columns;

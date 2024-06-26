@@ -33,7 +33,6 @@ import java.util.function.UnaryOperator;
 
 import io.crate.analyze.OrderBy;
 import io.crate.expression.symbol.FieldsVisitor;
-import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
@@ -93,7 +92,7 @@ public final class MoveOrderBeneathNestedLoop implements Rule<Order> {
         OrderBy orderBy = order.orderBy();
         for (Symbol orderExpr : orderBy.orderBySymbols()) {
             FieldsVisitor.visitFields(orderExpr, gatherRelationsFromField);
-            RefVisitor.visitRefs(orderExpr, gatherRelationsFromRef);
+            orderExpr.visitRefs(gatherRelationsFromRef);
         }
         if (relationsInOrderBy.size() == 1) {
             var relationInOrderBy = relationsInOrderBy.iterator().next();

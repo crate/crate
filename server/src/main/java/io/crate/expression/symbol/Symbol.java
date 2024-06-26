@@ -24,6 +24,7 @@ package io.crate.expression.symbol;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import org.apache.lucene.util.Accountable;
@@ -98,6 +99,15 @@ public interface Symbol extends Writeable, Accountable {
      */
     default boolean any(Predicate<? super Symbol> predicate) {
         return predicate.test(this);
+    }
+
+    default void visitRefs(Consumer<? super Reference> consumer) {
+        any(s -> {
+            if (s instanceof Reference ref) {
+                consumer.accept(ref);
+            }
+            return false;
+        });
     }
 
     /**
