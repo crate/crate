@@ -48,7 +48,6 @@ import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.LimitAndOffset;
 import io.crate.expression.symbol.InputColumn;
-import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.IndexParts;
@@ -159,7 +158,7 @@ public class Get implements LogicalPlan {
         ArrayList<Projection> projections = new ArrayList<>();
         if (!queryHasPkSymbolsOnly) {
             var toCollectSet = new LinkedHashSet<>(boundOutputs);
-            RefVisitor.visitRefs(boundQuery, toCollectSet::add);
+            boundQuery.visitRefs(toCollectSet::add);
             toCollect = List.copyOf(toCollectSet);
             var filterProjection = ProjectionBuilder.filterProjection(toCollect, boundQuery);
             filterProjection.requiredGranularity(RowGranularity.SHARD);

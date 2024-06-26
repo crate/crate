@@ -50,7 +50,6 @@ import io.crate.expression.operator.LteOperator;
 import io.crate.expression.operator.OrOperator;
 import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
 import io.crate.fdw.ServersMetadata.Server;
 import io.crate.metadata.Reference;
@@ -138,7 +137,7 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
         // Evaluate them locally and only fetch columns
         List<Reference> refs = new ArrayList<>(collect.size());
         for (var symbol : collect) {
-            RefVisitor.visitRefs(symbol, ref -> refs.add(ref));
+            symbol.visitRefs(refs::add);
         }
 
         Settings options = server.options();

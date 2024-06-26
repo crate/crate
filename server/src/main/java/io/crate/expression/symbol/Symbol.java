@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import org.apache.lucene.util.Accountable;
@@ -141,6 +142,32 @@ public interface Symbol extends Writeable, Accountable {
      */
     default boolean any(Predicate<? super Symbol> predicate) {
         return predicate.test(this);
+    }
+
+    /**
+     * Visits all {@link Reference} in a tree.
+     * Does not cross relations. See {@link #any(Predicate)} for details
+     */
+    default void visitRefs(Consumer<? super Reference> consumer) {
+        any(node -> {
+            if (node instanceof Reference ref) {
+                consumer.accept(ref);
+            }
+            return false;
+        });
+    }
+
+    /**
+     * Visits all nodes matching the predicate in a tree.
+     * Does not cross relations. See {@link #any(Predicate)} for details
+     */
+    default void visit(Predicate<? super Symbol> predicate, Consumer<? super Symbol> consumer) {
+        any(node -> {
+            if (predicate.test(node)) {
+                consumer.accept(node);
+            }
+            return false;
+        });
     }
 
     /**

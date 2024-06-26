@@ -76,7 +76,6 @@ import io.crate.execution.ddl.tables.MappingUtil.AllocPosition;
 import io.crate.execution.dml.TranslogIndexer;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.RefReplacer;
-import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.VoidReference;
@@ -702,7 +701,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             }
             for (var checkConstraint : checkConstraints()) {
                 Set<ColumnIdent> columnsInConstraint = new HashSet<>();
-                RefVisitor.visitRefs(checkConstraint.expression(), r -> columnsInConstraint.add(r.column()));
+                checkConstraint.expression().visitRefs(r -> columnsInConstraint.add(r.column()));
                 if (columnsInConstraint.size() > 1 && columnsInConstraint.contains(colToDrop)) {
                     throw new UnsupportedOperationException("Dropping column: " + colToDrop.sqlFqn() + " which " +
                         "is used in CHECK CONSTRAINT: " + checkConstraint.name() + " is not allowed");
