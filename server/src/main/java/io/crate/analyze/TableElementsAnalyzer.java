@@ -51,7 +51,6 @@ import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.RefReplacer;
-import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -649,7 +648,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                     builder.defaultExpression = defaultSymbol.cast(builder.type, CastMode.IMPLICIT);
                     // only used to validate; result is not used to preserve functions like `current_timestamp`
                     normalizer.normalize(builder.defaultExpression, txnCtx);
-                    RefVisitor.visitRefs(builder.defaultExpression, x -> {
+                    builder.defaultExpression.visitRefs(x -> {
                         throw new UnsupportedOperationException(
                             "Cannot reference columns in DEFAULT expression of `" + columnName + "`. " +
                                 "Maybe you wanted to use a string literal with single quotes instead: '" + x.column().name() + "'");
@@ -751,7 +750,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
         }
         var analyzedCheck = new AnalyzedCheck(expression, expressionSymbol, null);
         if (column != null) {
-            RefVisitor.visitRefs(expressionSymbol, ref -> {
+            expressionSymbol.visitRefs(ref -> {
                 if (!ref.column().equals(column)) {
                     throw new UnsupportedOperationException(
                         "CHECK constraint on column `" + column + "` cannot refer to column `" + ref.column() +

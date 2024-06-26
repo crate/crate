@@ -55,7 +55,6 @@ import io.crate.execution.engine.JobLauncher;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
 import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -224,7 +223,7 @@ public final class CopyToPlan implements Plan {
             // TODO: remove outputNames?
             for (Symbol symbol : copyTo.columns()) {
                 assert symbol instanceof Reference : "Only references are expected here";
-                RefVisitor.visitRefs(symbol, r -> outputNames.add(r.column().sqlFqn()));
+                symbol.visitRefs(r -> outputNames.add(r.column().sqlFqn()));
                 outputs.add(DocReferences.toSourceLookup(symbol));
             }
             columnsDefined = true;

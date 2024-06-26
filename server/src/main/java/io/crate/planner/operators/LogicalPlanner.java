@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
@@ -62,10 +62,8 @@ import io.crate.execution.dsl.projection.builder.SplitPoints;
 import io.crate.execution.dsl.projection.builder.SplitPointsBuilder;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
 import io.crate.expression.symbol.FieldReplacer;
-import io.crate.expression.symbol.FieldsVisitor;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.SelectSymbol.ResultType;
@@ -78,6 +76,7 @@ import io.crate.fdw.ServersMetadata.Server;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.DependencyCarrier;
@@ -469,27 +468,22 @@ public class LogicalPlanner {
                         // b) Make sure tableRelations contain all columns (incl. sys-columns) in `outputs`
 
                         var toCollect = new LinkedHashSet<Symbol>(splitPoints.toCollect().size());
-                        Consumer<Reference> addRefIfMatch = ref -> {
-                            if (ref.ident().tableIdent().equals(rel.relationName())) {
-                                toCollect.add(ref);
+                        RelationName relationName = rel.relationName();
+                        Predicate<Symbol> addFiltered = node -> {
+                            if ((node instanceof Reference ref && ref.ident().tableIdent().equals(relationName)) ||
+                                (node instanceof ScopedSymbol scopedSymbol && scopedSymbol.relation().equals(relationName))) {
+                                toCollect.add(node);
                             }
-                        };
-                        Consumer<ScopedSymbol> addFieldIfMatch = field -> {
-                            if (field.relation().equals(rel.relationName())) {
-                                toCollect.add(field);
-                            }
+                            return false;
                         };
                         for (Symbol symbol : splitPoints.toCollect()) {
-                            RefVisitor.visitRefs(symbol, addRefIfMatch);
-                            FieldsVisitor.visitFields(symbol, addFieldIfMatch);
+                            symbol.any(addFiltered);
                         }
-                        FieldsVisitor.visitFields(relation.where(), addFieldIfMatch);
-                        RefVisitor.visitRefs(relation.where(), addRefIfMatch);
+                        relation.where().any(addFiltered);
                         for (var joinPair : relation.joinPairs()) {
                             var condition = joinPair.condition();
                             if (condition != null) {
-                                FieldsVisitor.visitFields(condition, addFieldIfMatch);
-                                RefVisitor.visitRefs(condition, addRefIfMatch);
+                                condition.any(addFiltered);
                             }
                         }
                         return rel.accept(this, List.copyOf(toCollect));
@@ -553,16 +547,14 @@ public class LogicalPlanner {
 
     public static Set<Symbol> extractColumns(Symbol symbol) {
         LinkedHashSet<Symbol> columns = new LinkedHashSet<>();
-        RefVisitor.visitRefs(symbol, columns::add);
-        FieldsVisitor.visitFields(symbol, columns::add);
+        symbol.visit(Symbol.IS_COLUMN, columns::add);
         return columns;
     }
 
     public static Set<Symbol> extractColumns(Collection<? extends Symbol> symbols) {
         LinkedHashSet<Symbol> columns = new LinkedHashSet<>();
         for (Symbol symbol : symbols) {
-            RefVisitor.visitRefs(symbol, columns::add);
-            FieldsVisitor.visitFields(symbol, columns::add);
+            symbol.visit(Symbol.IS_COLUMN, columns::add);
         }
         return columns;
     }

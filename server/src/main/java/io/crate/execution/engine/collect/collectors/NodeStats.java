@@ -49,7 +49,6 @@ import io.crate.execution.support.ActionExecutor;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.StaticTableReferenceResolver;
 import io.crate.expression.reference.sys.node.NodeStatsContext;
-import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
@@ -194,7 +193,7 @@ public final class NodeStats {
         HashSet<ColumnIdent> columns = new HashSet<>();
         Consumer<Reference> addRootColumn = ref -> columns.add(ref.column().getRoot());
         for (Symbol symbol: symbols) {
-            RefVisitor.visitRefs(symbol, addRootColumn);
+            symbol.visitRefs(addRootColumn);
         }
         return columns;
     }
