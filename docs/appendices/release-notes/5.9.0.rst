@@ -45,7 +45,13 @@ Version 5.9.0 - Unreleased
 Breaking Changes
 ================
 
-None
+- Fixed an issue that caused ``WHERE`` clause containing ``NOT`` operator on
+  an array type against a non-empty array to incorrectly filter empty arrays,
+  e.g.::
+
+      SELECT * FROM t WHERE a != [1];
+
+  It is a breaking change because the fix causes performance degradations.
 
 Deprecations
 ============

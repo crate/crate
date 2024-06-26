@@ -22,6 +22,7 @@
 package io.crate.expression.predicate;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.lucene.search.BooleanClause;
@@ -31,12 +32,14 @@ import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.common.lucene.search.Queries;
 
+import io.crate.analyze.SymbolEvaluator;
 import io.crate.data.Input;
 import io.crate.expression.scalar.Ignore3vlFunction;
 import io.crate.expression.scalar.cast.ExplicitCastFunction;
 import io.crate.expression.scalar.cast.ImplicitCastFunction;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.RefReplacer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.lucene.LuceneQueryBuilder;
@@ -49,6 +52,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.ColumnPolicy;
+import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 
 public class NotPredicate extends Scalar<Boolean, Boolean> {
@@ -223,12 +227,33 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
             for (Reference nullableRef : ctx.nullableReferences()) {
                 // we can optimize with a field exist query and filter out all null values which will reduce the
                 // result set of the query
-                var refExistsQuery = IsNullPredicate.refExistsQuery(nullableRef, context, false);
+                var refExistsQuery = IsNullPredicate.refExistsQuery(
+                    nullableRef,
+                    context,
+                    countEmptyArrays(context.parentQuery(), nullableRef, context));
                 if (refExistsQuery != null) {
                     builder.add(refExistsQuery, BooleanClause.Occur.MUST);
                 }
             }
             return builder.build();
         }
+    }
+
+    /**
+     * i.e.:: countEmptyArrays('a != [1] AND a != []', a)
+     *        => [] != [1] AND [] != []
+     *        => true AND false
+     *        => false => do not need to count empty arrays since the query will evaluate it to false.
+     */
+    private static boolean countEmptyArrays(Symbol query, Reference reference, LuceneQueryBuilder.Context context) {
+        if (!DataTypes.isArray(reference.valueType())) {
+            return false;
+        }
+        var querySymbolReplacedRefs = RefReplacer.replaceRefs(
+            query,
+            r -> r.equals(reference) ? Literal.of(new ArrayType<>(r.valueType()), List.of()) : r
+        );
+        var evaluated = SymbolEvaluator.evaluateWithoutParams(context.transactionContext(), context.nodeContext(), querySymbolReplacedRefs);
+        return !(evaluated instanceof Boolean b) || b;
     }
 }

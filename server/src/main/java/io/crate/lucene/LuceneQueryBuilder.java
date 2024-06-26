@@ -104,7 +104,8 @@ public class LuceneQueryBuilder {
             queryCache,
             indexAnalyzers,
             indexName,
-            table.partitionedByColumns()
+            table.partitionedByColumns(),
+            query
         );
         ctx.query = eliminateNullsIfPossible(
             inverseSourceLookup(normalizer.normalize(query, txnCtx)),
@@ -128,6 +129,7 @@ public class LuceneQueryBuilder {
         private final IndexAnalyzers indexAnalyzers;
 
         final NodeContext nodeContext;
+        private final Symbol parentQuery;
 
         Context(DocTableInfo table,
                 TransactionContext txnCtx,
@@ -135,7 +137,8 @@ public class LuceneQueryBuilder {
                 QueryCache queryCache,
                 IndexAnalyzers indexAnalyzers,
                 String indexName,
-                List<Reference> partitionColumns) {
+                List<Reference> partitionColumns,
+                Symbol parentQuery) {
             this.table = table;
             this.nodeContext = nodeCtx;
             this.txnCtx = txnCtx;
@@ -148,6 +151,7 @@ public class LuceneQueryBuilder {
                 )
             );
             this.queryCache = queryCache;
+            this.parentQuery = parentQuery;
         }
 
         public Query query() {
@@ -208,6 +212,18 @@ public class LuceneQueryBuilder {
         @Nullable
         public Reference getRef(ColumnIdent column) {
             return table.getReadReference(column);
+        }
+
+        public TransactionContext transactionContext() {
+            return txnCtx;
+        }
+
+        public NodeContext nodeContext() {
+            return nodeContext;
+        }
+
+        public Symbol parentQuery() {
+            return parentQuery;
         }
     }
 
