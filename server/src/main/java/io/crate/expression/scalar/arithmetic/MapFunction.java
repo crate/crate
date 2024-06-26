@@ -27,8 +27,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 
 import io.crate.data.Input;
-import io.crate.metadata.FunctionName;
-import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -51,18 +49,17 @@ public class MapFunction extends Scalar<Object, Object> {
     public static final String NAME = "_map";
 
     public static final Signature SIGNATURE =
-        Signature.builder()
-            .name(new FunctionName(null, NAME))
-            .kind(FunctionType.SCALAR)
-            .typeVariableConstraints(List.of(typeVariableOfAnyType("V")))
-            .argumentTypes(TypeSignature.parse("text"), TypeSignature.parse("V"))
-            // This is not 100% correct because each variadic `V` is type independent, resulting in a return type
-            // of e.g. `object(text, int, text, geo_point, ...)`.
-            // This is *ok* as the returnType is currently not used directly, only for function description.
-            .returnType(TypeSignature.parse("object(text, V)"))
-            .variableArityGroup(List.of(TypeSignature.parse("text"), TypeSignature.parse("V")))
-            .feature(Feature.DETERMINISTIC)
-            .build();
+        Signature.scalar(
+                NAME,
+                TypeSignature.parse("text"),
+                TypeSignature.parse("V"),
+                // This is not 100% correct because each variadic `V` is type independent, resulting in a return type
+                // of e.g. `object(text, int, text, geo_point, ...)`.
+                // This is *ok* as the returnType is currently not used directly, only for function description.
+                TypeSignature.parse("object(text, V)"))
+            .withFeature(Feature.DETERMINISTIC)
+            .withTypeVariableConstraints(typeVariableOfAnyType("V"))
+            .withVariableArityGroup(List.of(TypeSignature.parse("text"), TypeSignature.parse("V")));
 
 
     public static void register(Functions.Builder module) {

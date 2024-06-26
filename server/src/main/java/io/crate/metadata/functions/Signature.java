@@ -137,15 +137,15 @@ public final class Signature implements Writeable, Accountable {
         return builder;
     }
 
-    public static Builder builder() {
+    static Builder builder() {
         return new Builder();
     }
 
-    public static Builder builder(Signature signature) {
+    private static Builder builder(Signature signature) {
         return new Builder(signature);
     }
 
-    public static class Builder {
+    protected static class Builder {
         private FunctionName name;
         private FunctionType kind;
         private List<TypeSignature> argumentTypes = Collections.emptyList();
@@ -156,10 +156,10 @@ public final class Signature implements Writeable, Accountable {
         private boolean variableArity = false;
         private boolean allowCoercion = true;
 
-        public Builder() {
+        private Builder() {
         }
 
-        public Builder(Signature signature) {
+        private Builder(Signature signature) {
             name = signature.getName();
             kind = signature.getKind();
             argumentTypes = signature.getArgumentTypes();
@@ -345,6 +345,12 @@ public final class Signature implements Writeable, Accountable {
     public Signature withVariableArity() {
         return Signature.builder(this)
             .setVariableArity(true)
+            .build();
+    }
+
+    public Signature withVariableArityGroup(List<TypeSignature> variableArityGroup) {
+        return Signature.builder(this)
+            .variableArityGroup(variableArityGroup)
             .build();
     }
 

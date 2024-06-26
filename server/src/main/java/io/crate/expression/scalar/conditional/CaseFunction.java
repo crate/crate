@@ -26,8 +26,6 @@ import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import java.util.List;
 
 import io.crate.data.Input;
-import io.crate.metadata.FunctionName;
-import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -67,15 +65,11 @@ public class CaseFunction extends Scalar<Object, Object> {
         TypeSignature t = TypeSignature.parse("T");
         TypeSignature bool = TypeSignature.parse("boolean");
         module.add(
-            Signature.builder()
-                .name(new FunctionName(null, NAME))
-                .kind(FunctionType.SCALAR)
-                .typeVariableConstraints(typeVariable("T"))
-                .argumentTypes(bool, t)
-                .returnType(t)
-                .variableArityGroup(List.of(bool, t))
-                .feature(Feature.DETERMINISTIC)
-                .build(),
+            Signature.scalar(
+                    NAME, bool, t, t)
+                .withFeature(Feature.DETERMINISTIC)
+                .withTypeVariableConstraints(typeVariable("T"))
+                .withVariableArityGroup(List.of(bool, t)),
             CaseFunction::new
         );
     }

@@ -336,13 +336,13 @@ public class Functions {
                                      List<Symbol> arguments,
                                      List<FunctionProvider> candidates) {
         List<DataType<?>> argumentTypes = Symbols.typeView(arguments);
+        List<TypeSignature> typeSignatures = new ArrayList<>(Lists.map(argumentTypes, DataType::getTypeSignature));
+        typeSignatures.add(DataTypes.UNDEFINED.getTypeSignature());
         var function = new io.crate.expression.symbol.Function(
-            Signature.builder()
-                .name(new FunctionName(suppliedSchema, name))
-                .argumentTypes(Lists.map(argumentTypes, DataType::getTypeSignature))
-                .returnType(DataTypes.UNDEFINED.getTypeSignature())
-                .kind(FunctionType.SCALAR)
-                .build(),
+            Signature.scalar(
+                new FunctionName(suppliedSchema, name),
+                typeSignatures.toArray(TypeSignature[]::new)
+            ),
             arguments,
             DataTypes.UNDEFINED
         );
