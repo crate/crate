@@ -86,7 +86,15 @@ public class EquiJoinDetector {
             String functionName = function.name();
             switch (functionName) {
                 case NotPredicate.NAME -> {
-                    return null;
+                    if (context.insideEqualOperand) {
+                        // Not a top-level expression but inside EQ operator.
+                        // We need to collect all relations.
+                        for (Symbol arg : function.arguments()) {
+                            arg.accept(this, context);
+                        }
+                    } else {
+                        return null;
+                    }
                 }
                 case OrOperator.NAME -> {
                     context.isHashJoinPossible = false;
