@@ -123,7 +123,6 @@ public class EquiJoinDetectorTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_equality_and_many_relations_in_boolean_join_condition_hash_join_not_possible() {
         // Nested EQ operator.
-        // failed before my fix not only because of = but also coincided that t1 got reset and it left t1 - t2 on top level
         Symbol joinCondition = sqlExpressions.asSymbol("(t1.a >= 1) = ((t1.a = t1.a) AND (t2.b <= t2.b))");
         assertThat(EquiJoinDetector.isHashJoinPossible(JoinType.INNER, joinCondition)).isFalse();
 
