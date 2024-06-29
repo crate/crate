@@ -48,6 +48,9 @@ See the :ref:`version_5.7.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that caused snapshots in progress to not be shown in the
+  ``sys.snapshots`` table.
+
 - Fixed an issue that caused queries to incorrectly filter out rows when the
   ``WHERE`` clause contained :ref:`scalar-format_type` function under ``NOT`` or
   ``!=`` operators.
