@@ -59,7 +59,6 @@ import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.IndexType;
@@ -107,10 +106,9 @@ public class LuceneQueryBuilder {
             indexName,
             table.partitionedByColumns()
         );
-        CoordinatorTxnCtx coordinatorTxnCtx = CoordinatorTxnCtx.systemTransactionContext();
         ctx.query = eliminateNullsIfPossible(
-            inverseSourceLookup(normalizer.normalize(query, coordinatorTxnCtx)),
-            s -> normalizer.normalize(s, coordinatorTxnCtx)
+            inverseSourceLookup(normalizer.normalize(query, txnCtx)),
+            s -> normalizer.normalize(s, txnCtx)
         ).accept(VISITOR, ctx);
         if (LOGGER.isTraceEnabled()) {
             LOGGER.trace("WHERE CLAUSE [{}] -> LUCENE QUERY [{}] ", query.toString(Style.UNQUALIFIED), ctx.query);
