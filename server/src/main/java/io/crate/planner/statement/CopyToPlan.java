@@ -73,6 +73,7 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
@@ -184,11 +185,13 @@ public final class CopyToPlan implements Plan {
         Match<Collect> match = rewriteCollectToGet.pattern().accept(collect, Captures.empty());
         if (match.isPresent()) {
             LogicalPlan plan = rewriteCollectToGet.apply(match.value(),
-                                                         match.captures(),
-                                                         planStats,
-                                                         context.transactionContext(),
-                                                         context.nodeContext(),
-                                                         UnaryOperator.identity());
+                match.captures(),
+                new Rule.Context(
+                    planStats,
+                    context.transactionContext(),
+                    context.nodeContext(),
+                    UnaryOperator.identity()
+                ));
             return plan == null ? collect : plan;
         }
         return collect;

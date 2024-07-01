@@ -22,9 +22,6 @@
 package io.crate.planner.optimizer.rule;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.util.function.UnaryOperator;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -81,10 +78,7 @@ public class RewriteFilterOnOuterJoinToInnerJoinTest extends CrateDummyClusterSe
 
         var result = rule.apply(match.value(),
             match.captures(),
-            planStats,
-            CoordinatorTxnCtx.systemTransactionContext(),
-            e.nodeCtx,
-            UnaryOperator.identity());
+            e.ruleContext());
 
         assertThat(result).hasOperators(
             "Join[INNER | (a = b)]",
@@ -114,10 +108,7 @@ public class RewriteFilterOnOuterJoinToInnerJoinTest extends CrateDummyClusterSe
 
         var result = rule.apply(match.value(),
             match.captures(),
-            planStats,
-            CoordinatorTxnCtx.systemTransactionContext(),
-            e.nodeCtx,
-            UnaryOperator.identity());
+            e.ruleContext());
 
         assertThat(result).isNull();
     }
@@ -142,10 +133,7 @@ public class RewriteFilterOnOuterJoinToInnerJoinTest extends CrateDummyClusterSe
 
         var result = rule.apply(match.value(),
             match.captures(),
-            planStats,
-            CoordinatorTxnCtx.systemTransactionContext(),
-            e.nodeCtx,
-            UnaryOperator.identity());
+            e.ruleContext());
 
         assertThat(result).isNull();
     }
@@ -170,10 +158,7 @@ public class RewriteFilterOnOuterJoinToInnerJoinTest extends CrateDummyClusterSe
 
         var result = rule.apply(match.value(),
             match.captures(),
-            planStats,
-            CoordinatorTxnCtx.systemTransactionContext(),
-            e.nodeCtx,
-            UnaryOperator.identity());
+            e.ruleContext());
 
         assertThat(result).hasOperators(
             "Join[INNER | (a = b)]",
@@ -203,10 +188,7 @@ public class RewriteFilterOnOuterJoinToInnerJoinTest extends CrateDummyClusterSe
 
         var result = rule.apply(match.value(),
             match.captures(),
-            planStats,
-            CoordinatorTxnCtx.systemTransactionContext(),
-            e.nodeCtx,
-            UnaryOperator.identity());
+            e.ruleContext());
 
         assertThat(result).isNull();
     }
@@ -231,10 +213,7 @@ public class RewriteFilterOnOuterJoinToInnerJoinTest extends CrateDummyClusterSe
 
         var result = rule.apply(match.value(),
             match.captures(),
-            planStats,
-            CoordinatorTxnCtx.systemTransactionContext(),
-            e.nodeCtx,
-            UnaryOperator.identity());
+            e.ruleContext());
 
         assertThat(result).isNull();
     }
@@ -259,10 +238,7 @@ public class RewriteFilterOnOuterJoinToInnerJoinTest extends CrateDummyClusterSe
 
         var result = rule.apply(match.value(),
             match.captures(),
-            planStats,
-            CoordinatorTxnCtx.systemTransactionContext(),
-            e.nodeCtx,
-            UnaryOperator.identity());
+            e.ruleContext());
 
         assertThat(result).hasOperators(
             "Filter[((a > 1) AND (b > 1))]",

@@ -28,20 +28,16 @@ import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Set;
-import java.util.function.UnaryOperator;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.RelationNames;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.AbstractJoinPlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.NestedLoopJoin;
 import io.crate.planner.operators.Order;
 import io.crate.planner.optimizer.Rule;
-import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
@@ -77,10 +73,7 @@ public final class MoveOrderBeneathNestedLoop implements Rule<Order> {
     @Override
     public LogicalPlan apply(Order order,
                              Captures captures,
-                             PlanStats planStats,
-                             TransactionContext txnCtx,
-                             NodeContext nodeCtx,
-                             UnaryOperator<LogicalPlan> resolvePlan) {
+                             Rule.Context ruleContext) {
         NestedLoopJoin nestedLoop = captures.get(nlCapture);
         Set<RelationName> relationsInOrderBy = Collections.newSetFromMap(new IdentityHashMap<>());
         OrderBy orderBy = order.orderBy();
