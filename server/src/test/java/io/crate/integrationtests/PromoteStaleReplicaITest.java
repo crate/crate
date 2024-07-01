@@ -21,12 +21,9 @@
 
 package io.crate.integrationtests;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
-import static io.crate.testing.TestingHelpers.printedTable;
+import static io.crate.testing.Asserts.assertThat;
 import static org.elasticsearch.env.Environment.PATH_DATA_SETTING;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
 
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.Node;
@@ -61,15 +58,12 @@ public class PromoteStaleReplicaITest extends IntegTestCase {
         String newN1 = cluster().startNode(s1);
 
         execute("select shard_id, primary, current_state from sys.allocations order by 1, 2");
-        assertThat(
-            printedTable(response.rows())).isEqualTo("0| false| UNASSIGNED\n" +
-               "0| true| UNASSIGNED\n");
+        assertThat(response).hasRows(
+            "0| false| UNASSIGNED",
+            "0| true| UNASSIGNED");
 
         execute("alter table t1 reroute promote replica shard 0 on ? with (accept_data_loss = true)", $(newN1));
         execute("select * from t1");
-        assertThat(
-            printedTable(response.rows()),
-            is("1\n")
-        );
+        assertThat(response).hasRows("1");
     }
 }

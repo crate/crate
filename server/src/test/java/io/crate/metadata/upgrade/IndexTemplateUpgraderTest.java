@@ -25,7 +25,6 @@ import static io.crate.metadata.upgrade.IndexTemplateUpgrader.TEMPLATE_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
 import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
-import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -39,7 +38,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.metadata.PartitionName;
@@ -60,7 +58,7 @@ public class IndexTemplateUpgraderTest {
         templates.put(TEMPLATE_NAME, oldTemplate);
 
         Map<String, IndexTemplateMetadata> upgradedTemplates = upgrader.apply(templates);
-        assertThat(upgradedTemplates.get(TEMPLATE_NAME), Matchers.nullValue());
+        assertThat(upgradedTemplates.get(TEMPLATE_NAME)).isNull();
     }
 
     @Test

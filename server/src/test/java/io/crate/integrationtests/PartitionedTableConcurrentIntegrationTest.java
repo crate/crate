@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
 import static io.crate.testing.Asserts.assertThat;
-import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -49,7 +48,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.test.IntegTestCase;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Test;
 
@@ -396,7 +394,9 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
 
         countDownLatch.await();
         // on a reasonable fast machine all inserts always work.
-        assertThat("At least one insert must work without timeout", numSuccessfulInserts.get(), Matchers.greaterThanOrEqualTo(1));
+        assertThat(numSuccessfulInserts.get())
+            .as("At least one insert must work without timeout")
+            .isGreaterThanOrEqualTo(1);
 
         // table info is maybe not up-to-date immediately as doc table info's are cached
         // and invalidated/rebuild on cluster state changes

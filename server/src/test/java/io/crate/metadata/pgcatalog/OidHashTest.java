@@ -27,8 +27,6 @@ import static io.crate.metadata.pgcatalog.OidHash.schemaOid;
 import static io.crate.testing.T3.T1;
 import static io.crate.testing.T3.T1_DEFINITION;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertThat;
 
 import java.util.Collections;
 import java.util.List;
@@ -60,7 +58,7 @@ public class OidHashTest extends CrateDummyClusterServiceUnitTest {
     public void testRelationOid() {
         int tableOid = relationOid(t1Info);
         int viewOid = relationOid(VIEW_INFO);
-        assertThat(tableOid, not(viewOid));
+        assertThat(tableOid).isNotEqualTo(viewOid);
         assertThat(tableOid).isEqualTo(728874843);
         assertThat(viewOid).isEqualTo(1782608760);
     }

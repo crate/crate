@@ -22,10 +22,7 @@
 package io.crate.replication.logical.action;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertThrows;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 
@@ -52,10 +49,8 @@ public class TransportAlterPublicationActionTest extends CrateDummyClusterServic
             List.of(RelationName.fromIndexName("t1"))
         );
 
-        assertThrows(
-            RelationUnknown.class,
-            () -> TransportAlterPublicationAction.updatePublication(request, metadata, pub)
-        );
+        assertThatThrownBy(() -> TransportAlterPublicationAction.updatePublication(request, metadata, pub))
+            .isExactlyInstanceOf(RelationUnknown.class);
     }
 
     @Test
@@ -77,7 +72,7 @@ public class TransportAlterPublicationActionTest extends CrateDummyClusterServic
         );
 
         var newPublication = TransportAlterPublicationAction.updatePublication(request, metadata, oldPublication);
-        assertThat(newPublication, not(oldPublication));
+        assertThat(newPublication).isNotEqualTo(oldPublication);
         assertThat(newPublication.tables()).containsExactly(RelationName.fromIndexName("t2"));
     }
 
@@ -100,8 +95,9 @@ public class TransportAlterPublicationActionTest extends CrateDummyClusterServic
         );
 
         var newPublication = TransportAlterPublicationAction.updatePublication(request, metadata, oldPublication);
-        assertThat(newPublication, not(oldPublication));
-        assertThat(newPublication.tables(), containsInAnyOrder(RelationName.fromIndexName("t1"), RelationName.fromIndexName("t2")));
+        assertThat(newPublication).isNotEqualTo(oldPublication);
+        assertThat(newPublication.tables()).containsExactlyInAnyOrder(
+            RelationName.fromIndexName("t1"), RelationName.fromIndexName("t2"));
     }
 
     @Test
@@ -127,7 +123,7 @@ public class TransportAlterPublicationActionTest extends CrateDummyClusterServic
         );
 
         var newPublication = TransportAlterPublicationAction.updatePublication(request, metadata, oldPublication);
-        assertThat(newPublication, not(oldPublication));
-        assertThat(newPublication.tables(), containsInAnyOrder(RelationName.fromIndexName("t1")));
+        assertThat(newPublication).isNotEqualTo(oldPublication);
+        assertThat(newPublication.tables()).containsExactly(RelationName.fromIndexName("t1"));
     }
 }

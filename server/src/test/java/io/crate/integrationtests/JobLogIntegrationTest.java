@@ -21,11 +21,8 @@
 
 package io.crate.integrationtests;
 
-import static io.crate.testing.TestingHelpers.printedTable;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.util.Iterator;
 
@@ -102,7 +99,7 @@ public class JobLogIntegrationTest extends IntegTestCase {
 
         execute("set global transient stats.enabled = false");
         for (JobsLogService jobsLogService : cluster().getDataNodeInstances(JobsLogService.class)) {
-            assertBusy(() -> assertThat(jobsLogService.isEnabled(), is(false)));
+            assertBusy(() -> assertThat(jobsLogService.isEnabled()).isFalse());
         }
         execute("select * from sys.jobs_log");
         assertThat(response.rowCount()).isEqualTo(0L);
@@ -173,10 +170,7 @@ public class JobLogIntegrationTest extends IntegTestCase {
         }
         assertBusy(() -> {
             execute("select stmt from sys.jobs_log where error is not null order by ended desc limit 1");
-            assertThat(
-                printedTable(response.rows()),
-                is("select * from relation_not_known\n")
-            );
+            assertThat(response).hasRows("select * from relation_not_known");
         });
     }
 }

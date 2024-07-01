@@ -18,9 +18,7 @@
  */
 package org.elasticsearch.test.test;
 
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 
@@ -48,7 +46,7 @@ public class InternalTestClusterIT extends IntegTestCase {
             final int nodesToRemain = randomIntBetween(1, cluster().size() - 1);
             logger.info("--> reducing to [{}] nodes", nodesToRemain);
             cluster().ensureAtMostNumDataNodes(nodesToRemain);
-            assertThat(cluster().size(), lessThanOrEqualTo(nodesToRemain));
+            assertThat(cluster().size()).isLessThanOrEqualTo(nodesToRemain);
         }
 
         ensureGreen();
@@ -77,7 +75,7 @@ public class InternalTestClusterIT extends IntegTestCase {
             public Settings onNodeStopped(String nodeName) throws Exception {
                 ensureGreen();
                 cluster().validateClusterFormed();
-                assertNotNull(cluster().getInstance(NodeClient.class));
+                assertThat(cluster().getInstance(NodeClient.class)).isNotNull();
                 cluster().restartRandomDataNode(new TestCluster.RestartCallback() {
                     @Override
                     public Settings onNodeStopped(String nodeName) throws Exception {

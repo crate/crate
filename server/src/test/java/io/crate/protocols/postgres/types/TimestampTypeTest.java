@@ -24,8 +24,6 @@ package io.crate.protocols.postgres.types;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 import org.junit.Test;
 
@@ -68,9 +66,7 @@ public class TimestampTypeTest extends BasePGTypeTest<Long> {
 
     @Test
     public void test_decode_ts_string() throws Exception {
-        assertThat(
-            TimestampType.INSTANCE.decodeUTF8Text("2021-01-13T14:37:17.25988".getBytes(UTF_8)),
-            is(1610548637259L)
-        );
+        assertThat(TimestampType.INSTANCE.decodeUTF8Text("2021-01-13T14:37:17.25988".getBytes(UTF_8)))
+            .isEqualTo(1610548637259L);
     }
 }
