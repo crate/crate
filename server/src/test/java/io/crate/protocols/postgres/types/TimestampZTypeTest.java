@@ -24,8 +24,6 @@ package io.crate.protocols.postgres.types;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 import org.junit.Test;
 
@@ -69,17 +67,11 @@ public class TimestampZTypeTest extends BasePGTypeTest<Long> {
 
     @Test
     public void test_decode_ts_string() throws Exception {
-        assertThat(
-            TimestampZType.INSTANCE.decodeUTF8Text("2021-01-13T14:37:17.25988Z".getBytes(UTF_8)),
-            is(1610548637259L)
-        );
-        assertThat(
-            TimestampZType.INSTANCE.decodeUTF8Text("2016-06-28 00:00:00.000+00".getBytes(UTF_8)),
-            is(1467072000000L)
-        );
-        assertThat(
-            TimestampZType.INSTANCE.decodeUTF8Text("1000-12-22 00:00:00.000+00 BC".getBytes(UTF_8)),
-            is(-93661920000000L)
-        );
+        assertThat(TimestampZType.INSTANCE.decodeUTF8Text("2021-01-13T14:37:17.25988Z".getBytes(UTF_8)))
+            .isEqualTo(1610548637259L);
+        assertThat(TimestampZType.INSTANCE.decodeUTF8Text("2016-06-28 00:00:00.000+00".getBytes(UTF_8)))
+            .isEqualTo(1467072000000L);
+        assertThat(TimestampZType.INSTANCE.decodeUTF8Text("1000-12-22 00:00:00.000+00 BC".getBytes(UTF_8)))
+            .isEqualTo(-93661920000000L);
     }
 }

@@ -23,13 +23,11 @@ package io.crate.metadata;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.exceptions.InvalidColumnNameException;
@@ -56,7 +54,7 @@ public class ColumnIdentTest {
     public void testShiftRight() throws Exception {
         assertThat(ColumnIdent.of("foo", "bar").shiftRight()).isEqualTo(ColumnIdent.of("bar"));
         assertThat(ColumnIdent.of("foo", Arrays.asList("x", "y", "z")).shiftRight()).isEqualTo(ColumnIdent.of("x", Arrays.asList("y", "z")));
-        assertThat(ColumnIdent.of("foo").shiftRight(), Matchers.nullValue());
+        assertThat(ColumnIdent.of("foo").shiftRight()).isNull();
     }
 
     @Test

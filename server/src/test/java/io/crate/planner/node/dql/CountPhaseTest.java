@@ -22,8 +22,6 @@
 package io.crate.planner.node.dql;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.assertThat;
 
 import java.util.Map;
 
@@ -62,7 +60,7 @@ public class CountPhaseTest extends ESTestCase {
         CountPhase streamedNode = new CountPhase(in);
 
         assertThat(streamedNode.phaseId()).isEqualTo(1);
-        assertThat(streamedNode.nodeIds(), containsInAnyOrder("n1", "n2"));
+        assertThat(streamedNode.nodeIds()).containsExactlyInAnyOrder("n1", "n2");
         assertThat(streamedNode.routing()).isEqualTo(routing);
         assertThat(streamedNode.distributionInfo()).isEqualTo(DistributionInfo.DEFAULT_BROADCAST);
     }

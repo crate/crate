@@ -22,6 +22,7 @@
 package org.elasticsearch.test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_WAIT_FOR_ACTIVE_SHARDS;
@@ -32,10 +33,6 @@ import static org.elasticsearch.test.XContentTestUtils.differenceBetweenMapsIgno
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertNoFailures;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertNoTimeout;
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.lang.annotation.Annotation;
@@ -134,7 +131,6 @@ import org.elasticsearch.test.disruption.NetworkDisruption;
 import org.elasticsearch.test.disruption.ServiceDisruptionScheme;
 import org.elasticsearch.test.store.MockFSIndexStore;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.hamcrest.Matchers;
 import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -625,7 +621,7 @@ public abstract class IntegTestCase extends ESTestCase {
                 assertThat(clusterHealth.getNumberOfInFlightFetch()).as("client " + client + " still has in flight fetch").isEqualTo(0);
                 var pendingTasks = FutureUtils.get(
                     client.admin().cluster().execute(PendingClusterTasksAction.INSTANCE, new PendingClusterTasksRequest().local(true)));
-                assertThat("client " + client + " still has pending tasks " + pendingTasks, pendingTasks, Matchers.emptyIterable());
+                assertThat(pendingTasks).as("client " + client + " still has pending tasks " + pendingTasks).isEmpty();
                 clusterHealth = client.admin().cluster().health(new ClusterHealthRequest().local(true)).get();
                 assertThat(clusterHealth.getNumberOfInFlightFetch()).as("client " + client + " still has in flight fetch").isEqualTo(0);
             }
@@ -720,8 +716,9 @@ public abstract class IntegTestCase extends ESTestCase {
                 pendingClusterTasks);
             fail("timed out waiting for " + color + " state");
         }
-        assertThat("Expected at least " + clusterHealthStatus + " but got " + actionGet.getStatus(),
-            actionGet.getStatus().value(), lessThanOrEqualTo(clusterHealthStatus.value()));
+        assertThat(actionGet.getStatus().value())
+            .as("Expected at least " + clusterHealthStatus + " but got " + actionGet.getStatus())
+            .isLessThanOrEqualTo(clusterHealthStatus.value());
         logger.debug("indices {} are {}", indices.length == 0 ? "[_all]" : indices, color);
         return actionGet.getStatus();
     }
@@ -884,9 +881,9 @@ public abstract class IntegTestCase extends ESTestCase {
                         // but we can compare serialization sizes - they should be the same
                         assertThat(localClusterStateSize).as("cluster state size does not match").isEqualTo(masterClusterStateSize);
                         // Compare JSON serialization
-                        assertNull(
-                            "cluster state JSON serialization does not match",
-                            differenceBetweenMapsIgnoringArrayOrder(masterStateMap, localStateMap));
+                        assertThat(differenceBetweenMapsIgnoringArrayOrder(masterStateMap, localStateMap))
+                            .as("cluster state JSON serialization does not match")
+                            .isNull();
                     } catch (AssertionError error) {
                         logger.error(
                             "Cluster state from master:\n{}\nLocal cluster state:\n{}",

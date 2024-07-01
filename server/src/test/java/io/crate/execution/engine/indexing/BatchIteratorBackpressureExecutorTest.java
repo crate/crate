@@ -21,7 +21,7 @@
 
 package io.crate.execution.engine.indexing;
 
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -34,7 +34,6 @@ import java.util.function.Predicate;
 import java.util.stream.IntStream;
 
 import org.elasticsearch.test.ESTestCase;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -91,6 +90,6 @@ public class BatchIteratorBackpressureExecutorTest extends ESTestCase {
         CompletableFuture<Integer> result = executor.consumeIteratorAndExecute();
         result.get(10, TimeUnit.SECONDS);
 
-        assertThat(numPauses.get(), Matchers.is(1));
+        assertThat(numPauses).hasValue(1);
     }
 }

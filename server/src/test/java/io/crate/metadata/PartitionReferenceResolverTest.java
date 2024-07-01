@@ -21,9 +21,8 @@
 
 package io.crate.metadata;
 
-import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.util.List;
 
@@ -45,7 +44,7 @@ public class PartitionReferenceResolverTest extends ESTestCase {
                 referenceResolver.getImplementation(refInfo);
                 fail("no assertion error thrown");
             } catch (AssertionError e) {
-                assertThat(e.getMessage(), containsString("granularity < PARTITION should have been resolved already"));
+                assertThat(e.getMessage()).contains("granularity < PARTITION should have been resolved already");
             }
         } else {
             referenceResolver.getImplementation(refInfo);
@@ -59,6 +58,4 @@ public class PartitionReferenceResolverTest extends ESTestCase {
         assert assertsEnabled = true; // Intentional side effect!!!
         return assertsEnabled;
     }
-
-
 }

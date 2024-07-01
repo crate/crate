@@ -21,15 +21,10 @@
 
 package io.crate.integrationtests;
 
+import static io.crate.testing.Asserts.assertThat;
 import static java.util.stream.Collectors.toList;
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.cluster.routing.allocation.DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_REROUTE_INTERVAL_SETTING;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -65,7 +60,6 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.common.unit.TimeValue;
-import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
@@ -114,9 +108,9 @@ public class DiskUsagesITest extends IntegTestCase {
         ensureGreen();
         assertBusy(() -> {
             var shardCountByNodeId = getShardCountByNodeId();
-            assertThat("node0 has at least 3 shards", shardCountByNodeId.get(nodeIds.get(0)), greaterThanOrEqualTo(3));
-            assertThat("node1 has at least 3 shards", shardCountByNodeId.get(nodeIds.get(1)), greaterThanOrEqualTo(3));
-            assertThat("node2 has at least 3 shards", shardCountByNodeId.get(nodeIds.get(2)), greaterThanOrEqualTo(3));
+            assertThat(shardCountByNodeId.get(nodeIds.get(0))).as("node0 has at least 3 shards").isGreaterThanOrEqualTo(3);
+            assertThat(shardCountByNodeId.get(nodeIds.get(1))).as("node1 has at least 3 shards").isGreaterThanOrEqualTo(3);
+            assertThat(shardCountByNodeId.get(nodeIds.get(2))).as("node2 has at least 3 shards").isGreaterThanOrEqualTo(3);
         });
 
 
@@ -138,9 +132,9 @@ public class DiskUsagesITest extends IntegTestCase {
 
         assertBusy(() -> {
             var shardCountByNodeId = getShardCountByNodeId();
-            assertThat("node0 has at least 3 shards", shardCountByNodeId.get(nodeIds.get(0)), greaterThanOrEqualTo(3));
-            assertThat("node1 has at least 3 shards", shardCountByNodeId.get(nodeIds.get(1)), greaterThanOrEqualTo(3));
-            assertThat("node2 has at least 3 shards", shardCountByNodeId.get(nodeIds.get(2)), greaterThanOrEqualTo(3));
+            assertThat(shardCountByNodeId.get(nodeIds.get(0))).as("node0 has 3 shards").isGreaterThanOrEqualTo(3);
+            assertThat(shardCountByNodeId.get(nodeIds.get(1))).as("node1 has 3 shards").isGreaterThanOrEqualTo(3);
+            assertThat(shardCountByNodeId.get(nodeIds.get(2))).as("node2 has 3 shards").isGreaterThanOrEqualTo(3);
         });
     }
 
@@ -198,7 +192,7 @@ public class DiskUsagesITest extends IntegTestCase {
         logger.info("waiting for shards to relocate off node [{}]", nodeIds.get(2));
 
         // must wait for relocation to start
-        assertBusy(() -> assertThat("node2 has 1 shard", getShardCountByNodeId().get(nodeIds.get(2)), is(1)));
+        assertBusy(() -> assertThat(getShardCountByNodeId().get(nodeIds.get(2))).as("node2 has 1 shard").isEqualTo(1));
 
         // ensure that relocations finished without moving any more shards
         ensureGreen();
@@ -220,7 +214,7 @@ public class DiskUsagesITest extends IntegTestCase {
 
         AtomicReference<ClusterState> masterAppliedClusterState = new AtomicReference<>();
         cluster().getCurrentMasterNodeInstance(ClusterService.class).addListener(event -> {
-            assertThat(event.state().getRoutingNodes().node(nodeIds.get(2)).size(), lessThanOrEqualTo(1));
+            assertThat(event.state().getRoutingNodes().node(nodeIds.get(2)).size()).isLessThanOrEqualTo(1);
             masterAppliedClusterState.set(event.state());
             clusterInfoService.refresh(); // so a subsequent reroute sees disk usage according to the current state
         });
@@ -453,10 +447,10 @@ public class DiskUsagesITest extends IntegTestCase {
             }
             execute("refresh table test");
         });
-        assertThat(TestingHelpers.printedTable(execute("select id from test order by 1 asc").rows())).isEqualTo(
-            "1\n" +
-            "3\n"
-        );
+        execute("select id from test order by 1 asc");
+        assertThat(response).hasRows(
+            "1",
+            "3");
     }
 
     private void assertBlocked(Runnable runnable, ClusterBlock clusterBlock) {
@@ -464,7 +458,7 @@ public class DiskUsagesITest extends IntegTestCase {
             runnable.run();
             fail("Expected ClusterBlockException");
         } catch (ClusterBlockException e) {
-            assertThat(e.blocks().size(), greaterThan(0));
+            assertThat(e.blocks()).hasSizeGreaterThan(0);
             for (var block : e.blocks()) {
                 assertThat(block.id()).isEqualTo(clusterBlock.id());
             }
