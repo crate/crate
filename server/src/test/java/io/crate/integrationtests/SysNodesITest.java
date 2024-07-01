@@ -22,11 +22,8 @@
 package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.testing.TestingHelpers.printedTable;
+import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.startsWith;
-import static org.junit.Assert.assertThat;
 
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.IntegTestCase;
@@ -61,7 +58,7 @@ public class SysNodesITest extends IntegTestCase {
     @Test
     public void testNoMatchingNode() throws Exception {
         execute("select id, name, hostname from sys.nodes where id = 'does-not-exist'");
-        assertThat(response.rowCount()).isEqualTo(0L);
+        assertThat(response).hasRowCount(0);
     }
 
     @Test
@@ -76,17 +73,18 @@ public class SysNodesITest extends IntegTestCase {
     @Test
     public void testRestUrl() throws Exception {
         execute("select rest_url from sys.nodes");
-        assertThat((String) response.rows()[0][0], startsWith("127.0.0.1:"));
+        assertThat((String) response.rows()[0][0]).startsWith("127.0.0.1:");
     }
 
     @Test
     public void test_node_attributes() throws Exception {
         execute("SELECT attributes FROM sys.nodes ORDER BY name");
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < cluster().numDataNodes(); i++) {
-            sb.append("{color=").append(getColor(i)).append(", ").append("ordinal=").append(i).append("}\n");
+        int numDataNodes = cluster().numDataNodes();
+        String[] expectedRows = new String[numDataNodes];
+        for (int i = 0; i < numDataNodes; i++) {
+            expectedRows[i] = "{color=" + getColor(i) + ", ordinal=" + i + "}";
         }
-        assertThat(printedTable(response.rows())).isEqualTo(sb.toString());
+        assertThat(response).hasRows(expectedRows);
     }
 
     @Test

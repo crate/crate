@@ -22,11 +22,10 @@
 package io.crate.metadata;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.hasEntry;
-import static org.junit.Assert.assertThat;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -97,7 +96,7 @@ public class PartitionInfosTest extends CrateDummyClusterServiceUnitTest {
         assertThat(partitioninfo.name().asIndexName()).isEqualTo(partitionName.asIndexName());
         assertThat(partitioninfo.numberOfShards()).isEqualTo(10);
         assertThat(partitioninfo.numberOfReplicas()).isEqualTo("4");
-        assertThat(partitioninfo.values(), hasEntry("col", "foo"));
+        assertThat(partitioninfo.values()).containsOnly(Map.entry("col", "foo"));
         assertThat(iter.hasNext()).isFalse();
     }
 
@@ -118,8 +117,9 @@ public class PartitionInfosTest extends CrateDummyClusterServiceUnitTest {
         assertThat(partitioninfo.name().asIndexName()).isEqualTo(partitionName.asIndexName());
         assertThat(partitioninfo.numberOfShards()).isEqualTo(10);
         assertThat(partitioninfo.numberOfReplicas()).isEqualTo("4");
-        assertThat(partitioninfo.values(), hasEntry("col", "foo"));
-        assertThat(partitioninfo.values(), hasEntry("col2", 1));
+        assertThat(partitioninfo.values()).containsExactlyInAnyOrderEntriesOf(Map.of(
+            "col", "foo",
+            "col2", 1));
         assertThat(iter.hasNext()).isFalse();
     }
 }

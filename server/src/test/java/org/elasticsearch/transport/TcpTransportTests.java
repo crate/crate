@@ -21,9 +21,7 @@ package org.elasticsearch.transport;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.io.IOException;
 import java.io.StreamCorruptedException;
@@ -32,6 +30,7 @@ import java.net.InetSocketAddress;
 import java.nio.channels.CancelledKeyException;
 import java.nio.channels.ClosedChannelException;
 import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.logging.log4j.Level;
@@ -57,7 +56,6 @@ import org.elasticsearch.test.MockLogAppender;
 import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.hamcrest.Matcher;
 import org.junit.Test;
 
 import io.netty.channel.embedded.EmbeddedChannel;
@@ -117,38 +115,37 @@ public class TcpTransportTests extends ESTestCase {
     }
 
     public void testDefaultSeedAddressesWithDefaultPort() {
-        final Matcher<Iterable<? extends String>> seedAddressMatcher = NetworkUtils.SUPPORTS_V6 ?
-            containsInAnyOrder(
+        final List<String> seedAddresses = NetworkUtils.SUPPORTS_V6 ?
+            List.of(
                 "[::1]:4300", "[::1]:4301", "[::1]:4302", "[::1]:4303", "[::1]:4304", "[::1]:4305",
                 "127.0.0.1:4300", "127.0.0.1:4301", "127.0.0.1:4302", "127.0.0.1:4303", "127.0.0.1:4304", "127.0.0.1:4305") :
-            containsInAnyOrder(
+            List.of(
                 "127.0.0.1:4300", "127.0.0.1:4301", "127.0.0.1:4302", "127.0.0.1:4303", "127.0.0.1:4304", "127.0.0.1:4305");
-        testDefaultSeedAddresses(Settings.EMPTY, seedAddressMatcher);
+        testDefaultSeedAddresses(Settings.EMPTY, seedAddresses);
     }
 
     public void testDefaultSeedAddressesWithNonstandardGlobalPortRange() {
-        final Matcher<Iterable<? extends String>> seedAddressMatcher = NetworkUtils.SUPPORTS_V6 ?
-            containsInAnyOrder(
-                "[::1]:4500", "[::1]:4501", "[::1]:4502", "[::1]:4503", "[::1]:4504", "[::1]:4505",
+        final List<String> seedAddresses = NetworkUtils.SUPPORTS_V6 ?
+            List.of("[::1]:4500", "[::1]:4501", "[::1]:4502", "[::1]:4503", "[::1]:4504", "[::1]:4505",
                 "127.0.0.1:4500", "127.0.0.1:4501", "127.0.0.1:4502", "127.0.0.1:4503", "127.0.0.1:4504", "127.0.0.1:4505") :
-            containsInAnyOrder(
+            List.of(
                 "127.0.0.1:4500", "127.0.0.1:4501", "127.0.0.1:4502", "127.0.0.1:4503", "127.0.0.1:4504", "127.0.0.1:4505");
-        testDefaultSeedAddresses(Settings.builder().put(TransportSettings.PORT.getKey(), "4500-9600").build(), seedAddressMatcher);
+        testDefaultSeedAddresses(Settings.builder().put(TransportSettings.PORT.getKey(), "4500-9600").build(), seedAddresses);
     }
 
     public void testDefaultSeedAddressesWithSmallGlobalPortRange() {
-        final Matcher<Iterable<? extends String>> seedAddressMatcher = NetworkUtils.SUPPORTS_V6 ?
-            containsInAnyOrder("[::1]:4300", "[::1]:4301", "[::1]:4302", "127.0.0.1:4300", "127.0.0.1:4301", "127.0.0.1:4302") :
-            containsInAnyOrder("127.0.0.1:4300", "127.0.0.1:4301", "127.0.0.1:4302");
-        testDefaultSeedAddresses(Settings.builder().put(TransportSettings.PORT.getKey(), "4300-4302").build(), seedAddressMatcher);
+        final List<String> seedAddresses = NetworkUtils.SUPPORTS_V6 ?
+            List.of("[::1]:4300", "[::1]:4301", "[::1]:4302", "127.0.0.1:4300", "127.0.0.1:4301", "127.0.0.1:4302") :
+            List.of("127.0.0.1:4300", "127.0.0.1:4301", "127.0.0.1:4302");
+        testDefaultSeedAddresses(Settings.builder().put(TransportSettings.PORT.getKey(), "4300-4302").build(), seedAddresses);
     }
 
     public void testDefaultSeedAddressesWithNonstandardSinglePort() {
         testDefaultSeedAddresses(Settings.builder().put(TransportSettings.PORT.getKey(), "4500").build(),
-            NetworkUtils.SUPPORTS_V6 ? containsInAnyOrder("[::1]:4500", "127.0.0.1:4500") : containsInAnyOrder("127.0.0.1:4500"));
+            NetworkUtils.SUPPORTS_V6 ? List.of("[::1]:4500", "127.0.0.1:4500") : List.of("127.0.0.1:4500"));
     }
 
-    private void testDefaultSeedAddresses(final Settings settings, Matcher<Iterable<? extends String>> seedAddressesMatcher) {
+    private void testDefaultSeedAddresses(final Settings settings, List<String> expectedAddresses) {
         final TestThreadPool testThreadPool = new TestThreadPool("test");
         try {
             final TcpTransport tcpTransport = new TcpTransport(settings, Version.CURRENT, testThreadPool,
@@ -171,7 +168,7 @@ public class TcpTransportTests extends ESTestCase {
                 }
             };
 
-            assertThat(tcpTransport.getDefaultSeedAddresses(), seedAddressesMatcher);
+            assertThat(tcpTransport.getDefaultSeedAddresses()).containsExactlyInAnyOrder(expectedAddresses.toArray(new String[]{}));
         } finally {
             testThreadPool.shutdown();
         }

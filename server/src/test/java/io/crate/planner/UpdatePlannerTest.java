@@ -29,7 +29,6 @@ import static io.crate.testing.Asserts.toCondition;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.Map;
@@ -37,7 +36,6 @@ import java.util.Map;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -70,7 +68,7 @@ import io.crate.types.DataTypes;
 public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
-    private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
+    private final TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
 
     @Before
     public void prepare() throws IOException {
@@ -105,12 +103,12 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
         Asserts.assertThat(collectPhase.where()).isSQL("true");
         assertThat(collectPhase.projections()).hasSize(1);
-        assertThat(collectPhase.projections().get(0)).isExactlyInstanceOf(UpdateProjection.class);
+        assertThat(collectPhase.projections().getFirst()).isExactlyInstanceOf(UpdateProjection.class);
         assertThat(collectPhase.toCollect()).hasSize(1);
-        assertThat(collectPhase.toCollect().get(0)).isInstanceOf(Reference.class);
-        assertThat(((Reference) collectPhase.toCollect().get(0)).column().fqn()).isEqualTo("_id");
+        assertThat(collectPhase.toCollect().getFirst()).isInstanceOf(Reference.class);
+        assertThat(((Reference) collectPhase.toCollect().getFirst()).column().fqn()).isEqualTo("_id");
 
-        UpdateProjection updateProjection = (UpdateProjection) collectPhase.projections().get(0);
+        UpdateProjection updateProjection = (UpdateProjection) collectPhase.projections().getFirst();
         assertThat(updateProjection.uidSymbol()).isExactlyInstanceOf(InputColumn.class);
 
         assertThat(updateProjection.assignmentsColumns()[0]).isEqualTo("name");
@@ -119,7 +117,7 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
 
         MergePhase mergePhase = merge.mergePhase();
         assertThat(mergePhase.projections()).hasSize(1);
-        assertThat(mergePhase.projections().get(0)).isExactlyInstanceOf(MergeCountProjection.class);
+        assertThat(mergePhase.projections().getFirst()).isExactlyInstanceOf(MergeCountProjection.class);
 
         assertThat(mergePhase.outputTypes()).hasSize(1);
     }
@@ -174,7 +172,7 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
         UpdatePlanner.Update update = e.plan("update empty_parted set name='Vogon lyric fan'");
         Collect collect = (Collect) update.createExecutionPlan.create(
             e.getPlannerContext(), Row.EMPTY, SubQueryResults.EMPTY);
-        assertThat(((RoutedCollectPhase) collect.collectPhase()).routing().nodes(), Matchers.emptyIterable());
+        assertThat(((RoutedCollectPhase) collect.collectPhase()).routing().nodes()).isEmpty();
     }
 
     @Test
