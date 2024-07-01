@@ -48,6 +48,11 @@ See the :ref:`version_5.7.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that resulted in ``ColumnUnknownException`` errors when using a
+  subscript expression on a ``object(ignored)`` column of a foreign table
+  despite having set :ref:`error_on_unknown_object_key
+  <conf-session-error_on_unknown_object_key>` to false.
+
 - Fixed an issue that caused snapshots in progress to not be shown in the
   ``sys.snapshots`` table.
 
