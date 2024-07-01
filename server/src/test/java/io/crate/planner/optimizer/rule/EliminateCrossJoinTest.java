@@ -37,7 +37,6 @@ import io.crate.analyze.relations.DocTableRelation;
 import io.crate.common.collections.Lists;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
@@ -294,10 +293,7 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
 
         var result = rule.apply(match.value(),
                                 match.captures(),
-                                e.planStats(),
-                                CoordinatorTxnCtx.systemTransactionContext(),
-                                e.nodeCtx,
-                                UnaryOperator.identity());
+                                e.ruleContext());
 
         assertThat(result).hasOperators(
             "Eval[x, y, z]",
@@ -329,11 +325,8 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(match.value()).isEqualTo(join);
 
         var result = rule.apply(match.value(),
-                                match.captures(),
-                                e.planStats(),
-                                CoordinatorTxnCtx.systemTransactionContext(),
-                                e.nodeCtx,
-                                UnaryOperator.identity());
+            match.captures(),
+            e.ruleContext());
 
         assertThat(result).isNull();
 
@@ -347,11 +340,8 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(match.value()).isEqualTo(join);
 
         result = rule.apply(match.value(),
-                            match.captures(),
-                            e.planStats(),
-                            CoordinatorTxnCtx.systemTransactionContext(),
-                            e.nodeCtx,
-                            UnaryOperator.identity());
+            match.captures(),
+            e.ruleContext());
 
         assertThat(result).isNull();
     }
@@ -375,11 +365,8 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(match.value()).isEqualTo(secondJoin);
 
         var result = rule.apply(match.value(),
-                                match.captures(),
-                                e.planStats(),
-                                CoordinatorTxnCtx.systemTransactionContext(),
-                                e.nodeCtx,
-                                UnaryOperator.identity());
+            match.captures(),
+            e.ruleContext());
 
         assertThat(result).isNull();
     }

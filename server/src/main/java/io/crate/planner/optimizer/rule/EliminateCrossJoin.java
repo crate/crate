@@ -29,7 +29,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.PriorityQueue;
-import java.util.function.UnaryOperator;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -39,15 +38,12 @@ import io.crate.exceptions.InvalidArgumentException;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.AbstractJoinPlan;
 import io.crate.planner.operators.Eval;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.Rule;
-import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.joinorder.JoinGraph;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
@@ -66,12 +62,9 @@ public class EliminateCrossJoin implements Rule<JoinPlan> {
     @Override
     public LogicalPlan apply(JoinPlan join,
                              Captures captures,
-                             PlanStats planStats,
-                             TransactionContext txnCtx,
-                             NodeContext nodeCtx,
-                             UnaryOperator<LogicalPlan> resolvePlan) {
+                             Rule.Context context) {
         if (join.relationNames().size() >= 3) {
-            var joinGraph = JoinGraph.create(join, resolvePlan);
+            var joinGraph = JoinGraph.create(join, context.resolvePlan());
             if (joinGraph.hasCrossJoin()) {
                 var newOrder = eliminateCrossJoin(joinGraph);
                 if (newOrder != null) {

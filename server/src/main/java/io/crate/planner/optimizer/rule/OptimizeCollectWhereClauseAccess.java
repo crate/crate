@@ -24,23 +24,19 @@ package io.crate.planner.optimizer.rule;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 
 import java.util.Optional;
-import java.util.function.UnaryOperator;
 
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.where.DocKeys;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.NodeContext;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.planner.WhereClauseOptimizer;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Get;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.Rule;
-import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
 
@@ -65,19 +61,16 @@ public final class OptimizeCollectWhereClauseAccess implements Rule<Collect> {
     @Override
     public LogicalPlan apply(Collect collect,
                              Captures captures,
-                             PlanStats planStats,
-                             TransactionContext txnCtx,
-                             NodeContext nodeCtx,
-                             UnaryOperator<LogicalPlan> resolvePlan) {
+                             Rule.Context context) {
         var relation = (DocTableRelation) collect.relation();
-        var normalizer = new EvaluatingNormalizer(nodeCtx, RowGranularity.CLUSTER, null, relation);
+        var normalizer = new EvaluatingNormalizer(context.nodeCtx(), RowGranularity.CLUSTER, null, relation);
         WhereClause where = collect.where();
         var detailedQuery = WhereClauseOptimizer.optimize(
             normalizer,
             where.queryOrFallback(),
             relation.tableInfo(),
-            txnCtx,
-            nodeCtx
+            context.txnCtx(),
+            context.nodeCtx()
         );
         Optional<DocKeys> docKeys = detailedQuery.docKeys();
         //noinspection OptionalIsPresent no capturing lambda allocation

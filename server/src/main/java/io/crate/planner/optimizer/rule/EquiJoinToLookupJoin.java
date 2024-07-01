@@ -26,7 +26,6 @@ import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 
 import java.util.List;
 import java.util.Map;
-import java.util.function.UnaryOperator;
 
 import io.crate.analyze.relations.PlannedRelation;
 import io.crate.expression.operator.any.AnyEqOperator;
@@ -95,13 +94,12 @@ public class EquiJoinToLookupJoin implements Rule<JoinPlan> {
     @Override
     public LogicalPlan apply(JoinPlan plan,
                              Captures captures,
-                             PlanStats planStats,
-                             TransactionContext txnCtx,
-                             NodeContext nodeCtx,
-                             UnaryOperator<LogicalPlan> resolvePlan) {
+                             Rule.Context context) {
 
         LogicalPlan lhs = plan.lhs();
         LogicalPlan rhs = plan.rhs();
+
+        PlanStats planStats = context.planStats();
 
         long lhsNumDocs = planStats.get(lhs).numDocs();
         long rhsNumDocs = planStats.get(rhs).numDocs();
@@ -123,7 +121,7 @@ public class EquiJoinToLookupJoin implements Rule<JoinPlan> {
             largerSide = lhs;
         }
 
-        smallerSide = GroupReferenceResolver.resolveFully(resolvePlan, smallerSide);
+        smallerSide = GroupReferenceResolver.resolveFully(context.resolvePlan(), smallerSide);
 
         Map<RelationName, List<Symbol>> equiJoinCondition = JoinConditionSymbolsExtractor.extract(plan.joinCondition());
         Symbol smallerRelationColumn = getOnlyElement(equiJoinCondition.get(getOnlyElement(smallerSide.relationNames())));
@@ -134,8 +132,8 @@ public class EquiJoinToLookupJoin implements Rule<JoinPlan> {
             smallerRelationColumn,
             largerSide,
             largerRelationColumn,
-            nodeCtx,
-            txnCtx
+            context.nodeCtx(),
+            context.txnCtx()
         );
 
         LogicalPlan newLhs;
