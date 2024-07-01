@@ -109,16 +109,15 @@ public abstract class ShardCollectorProvider {
                 "granularity must be DOC";
 
             boolean isOpenIndex = !indexShard.isClosed();
-            RoutedCollectPhase normalizedCollectNode = collectPhase.normalize(shardNormalizer, collectTask.txnCtx());
             if (isOpenIndex) {
-                BatchIterator<Row> fusedIterator = getProjectionFusedIterator(normalizedCollectNode, collectTask);
+                BatchIterator<Row> fusedIterator = getProjectionFusedIterator(collectPhase, collectTask);
                 if (fusedIterator != null) {
                     return fusedIterator;
                 }
             }
             final BatchIterator<Row> iterator;
-            if (isOpenIndex && WhereClause.canMatch(normalizedCollectNode.where())) {
-                iterator = getUnorderedIterator(normalizedCollectNode, requiresScroll, collectTask);
+            if (isOpenIndex && WhereClause.canMatch(collectPhase.where())) {
+                iterator = getUnorderedIterator(collectPhase, requiresScroll, collectTask);
             } else {
                 iterator = InMemoryBatchIterator.empty(SentinelRow.SENTINEL);
             }
