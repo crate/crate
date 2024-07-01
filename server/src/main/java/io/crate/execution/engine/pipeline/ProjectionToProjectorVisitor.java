@@ -28,6 +28,7 @@ import static io.crate.planner.operators.InsertFromValues.checkConstraints;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -124,11 +125,11 @@ import io.crate.expression.reference.StaticTableDefinition;
 import io.crate.expression.reference.StaticTableReferenceResolver;
 import io.crate.expression.reference.sys.SysRowUpdater;
 import io.crate.expression.reference.sys.check.node.SysNodeCheck;
-import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.IndexParts;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -139,7 +140,6 @@ import io.crate.metadata.sys.SysNodeChecksTableInfo;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.StringType;
 
 public class ProjectionToProjectorVisitor
     extends ProjectionVisitor<ProjectionToProjectorVisitor.Context, Projector> implements ProjectorFactory {
@@ -378,14 +378,17 @@ public class ProjectionToProjectorVisitor
         String uri = DataTypes.STRING.sanitizeValue(
             SymbolEvaluator.evaluate(context.txnCtx, nodeCtx, projection.uri(), Row.EMPTY, SubQueryResults.EMPTY));
         assert uri != null : "URI must not be null";
+        assert shardId != null : "ShardId must be set to use WriterProjection";
+        IndexParts indexParts = new IndexParts(shardId.getIndexName());
+        String fileName = String.format(
+            Locale.ENGLISH,
+            "%s_%s_%s.json",
+            indexParts.getTable(),
+            shardId.id(),
+            indexParts.getPartitionIdent()
+        );
 
         StringBuilder sb = new StringBuilder(uri);
-        Symbol resolvedFileName = normalizer.normalize(WriterProjection.DIRECTORY_TO_FILENAME, context.txnCtx);
-        assert resolvedFileName instanceof Literal : "resolvedFileName must be a Literal, but is: " + resolvedFileName;
-        assert resolvedFileName.valueType().id() == StringType.ID :
-            "resolvedFileName.valueType() must be " + StringType.INSTANCE;
-
-        String fileName = (String) ((Literal<?>) resolvedFileName).value();
         if (!uri.endsWith("/")) {
             sb.append("/");
         }
