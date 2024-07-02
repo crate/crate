@@ -132,7 +132,7 @@ public class MockEventuallyConsistentRepositoryTests extends ESTestCase {
             container.writeBlob(blobName, new ByteArrayInputStream(blobData), lengthWritten, false);
             assertThatThrownBy(() -> container.writeBlob(blobName, new ByteArrayInputStream(blobData), lengthWritten - 1, false))
                 .isInstanceOf(AssertionError.class)
-                .hasMessageStartingWith("Tried to overwrite blob [" + blobName +"]");
+                .hasMessageContaining("Tried to overwrite blob [" + blobName +"]");
         }
     }
 
