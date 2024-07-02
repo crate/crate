@@ -23,12 +23,6 @@ package io.crate.integrationtests.disruption.discovery;
 
 import static io.crate.metadata.IndexParts.toIndexName;
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.everyItem;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.in;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -43,7 +37,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.index.CorruptIndexException;
@@ -252,7 +245,7 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
                 indexer.interrupt();
                 indexer.join(60000);
             }
-            if (exceptedExceptions.size() > 0) {
+            if (!exceptedExceptions.isEmpty()) {
                 StringBuilder sb = new StringBuilder();
                 for (Exception e : exceptedExceptions) {
                     sb.append("\n").append(e.getMessage());
@@ -313,7 +306,7 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
     public void testSendingShardFailure() throws Exception {
         List<String> nodes = startCluster(3);
         String masterNode = cluster().getMasterName();
-        List<String> nonMasterNodes = nodes.stream().filter(node -> !node.equals(masterNode)).collect(Collectors.toList());
+        List<String> nonMasterNodes = nodes.stream().filter(node -> !node.equals(masterNode)).toList();
         String nonMasterNode = randomFrom(nonMasterNodes);
         execute("create table t (id int primary key, x string) clustered into 3 shards with (number_of_replicas = 2)");
         ensureGreen();
@@ -406,10 +399,10 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
             threads[i].start();
         }
         ensureGreen();
-        assertBusy(() -> assertThat(docID.get(), greaterThanOrEqualTo(100)));
+        assertBusy(() -> assertThat(docID.get()).isGreaterThanOrEqualTo(100));
         cluster().restartRandomDataNode(new TestCluster.RestartCallback());
         ensureGreen();
-        assertBusy(() -> assertThat(docID.get(), greaterThanOrEqualTo(200)));
+        assertBusy(() -> assertThat(docID.get()).isGreaterThanOrEqualTo(200));
         stopped.set(true);
         for (Thread thread : threads) {
             thread.join();
@@ -420,8 +413,9 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
             IndicesService indicesService = cluster().getInstance(IndicesService.class, nodeName);
             IndexShard shard = indicesService.getShardOrNull(shardRouting.shardId());
             Set<String> docs = IndexShardTestCase.getShardDocUIDs(shard);
-            assertThat("shard [" + shard.routingEntry() + "] docIds [" + docs + "] vs " + " acked docIds [" + ackedDocs + "]",
-                ackedDocs, everyItem(is(in(docs))));
+            assertThat(ackedDocs)
+                .as("shard [" + shard.routingEntry() + "] docIds [" + docs + "] vs " + " acked docIds [" + ackedDocs + "]")
+                .allSatisfy(i -> assertThat(i).isIn(docs));
         }
     }
 }

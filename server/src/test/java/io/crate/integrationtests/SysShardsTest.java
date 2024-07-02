@@ -28,15 +28,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.resolveCanonicalString;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.endsWith;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
 
 import java.nio.file.Path;
 import java.util.Arrays;
@@ -92,22 +84,24 @@ public class SysShardsTest extends IntegTestCase {
 
         // b2
         String b2Path = (String) response.rows()[1][0];
-        assertThat(b2Path, containsString(resolveCanonicalString("/nodes/")));
-        assertThat(b2Path, endsWith(resolveCanonicalString("/indices/" + indexUUID + "/0")));
+        assertThat(b2Path)
+            .contains(resolveCanonicalString("/nodes/"))
+            .endsWith(resolveCanonicalString("/indices/" + indexUUID + "/0"));
 
         String b2BlobPath = (String) response.rows()[1][1];
-        assertThat(b2BlobPath, containsString(resolveCanonicalString("/nodes/")));
-        assertThat(b2BlobPath, endsWith(resolveCanonicalString("/indices/" + indexUUID + "/0/blobs")));
+        assertThat(b2BlobPath)
+            .contains(resolveCanonicalString("/nodes/"))
+            .endsWith(resolveCanonicalString("/indices/" + indexUUID + "/0/blobs"));
         // t1
         assertThat(response.rows()[2][1]).isNull();
     }
 
     @Test
     public void testSelectGroupByWhereTable() throws Exception {
-        SQLResponse response = execute("" +
-                                       "select count(*), num_docs from sys.shards where table_name = 'characters' " +
-                                       "group by num_docs order by count(*)");
-        assertThat(response.rowCount(), greaterThan(0L));
+        SQLResponse response = execute(
+            "select count(*), num_docs from sys.shards where table_name = 'characters' " +
+                 "group by num_docs order by count(*)");
+        assertThat(response.rowCount()).isGreaterThan(0L);
     }
 
     @Test
@@ -128,11 +122,11 @@ public class SysShardsTest extends IntegTestCase {
             ensureYellow();
 
             SQLResponse response = execute("select sum(num_docs), table_name, sum(num_docs) from sys.shards group by table_name order by table_name desc limit 1000");
-            assertThat(response.rowCount()).isEqualTo(4L);
-            assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("0| t| 0\n" +
-                   "0| quotes| 0\n" +
-                   "14| characters| 14\n" +
-                   "0| blobs| 0\n");
+            assertThat(response).hasRows(
+                "0| t| 0",
+                "0| quotes| 0",
+                "14| characters| 14",
+                "0| blobs| 0");
         } finally {
             execute("drop table t");
         }
@@ -171,7 +165,7 @@ public class SysShardsTest extends IntegTestCase {
         SQLResponse response = execute("select * from sys.shards");
         assertThat(response.rowCount()).isEqualTo(26L);
         assertThat(response.cols().length).isEqualTo(21);
-        assertThat(response.cols(), arrayContaining(
+        assertThat(response.cols()).containsExactly(
             "blob_path",
             "closed",
             "flush_stats",
@@ -192,7 +186,7 @@ public class SysShardsTest extends IntegTestCase {
             "size",
             "state",
             "table_name",
-            "translog_stats"));
+            "translog_stats");
     }
 
     @Test
@@ -216,6 +210,7 @@ public class SysShardsTest extends IntegTestCase {
         assertThat(response.rowCount()).isEqualTo(8L);
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void test_translog_stats_can_be_retrieved() {
         execute("SELECT translog_stats, translog_stats['size'] FROM sys.shards " +
@@ -223,9 +218,9 @@ public class SysShardsTest extends IntegTestCase {
         Object[] resultRow = response.rows()[0];
         Map<String, Object> translogStats = (Map<String, Object>) resultRow[0];
         assertThat(((Number) translogStats.get("size")).longValue()).isEqualTo(resultRow[1]);
-        assertThat(((Number) translogStats.get("uncommitted_size")).longValue(), greaterThanOrEqualTo(0L));
-        assertThat(((Number) translogStats.get("number_of_operations")).longValue(), greaterThanOrEqualTo(0L));
-        assertThat(((Number) translogStats.get("uncommitted_operations")).longValue(), greaterThanOrEqualTo(0L));
+        assertThat(((Number) translogStats.get("uncommitted_size")).longValue()).isGreaterThanOrEqualTo(0L);
+        assertThat(((Number) translogStats.get("number_of_operations")).longValue()).isGreaterThanOrEqualTo(0L);
+        assertThat(((Number) translogStats.get("uncommitted_operations")).longValue()).isGreaterThanOrEqualTo(0L);
     }
 
     @Test
@@ -251,7 +246,7 @@ public class SysShardsTest extends IntegTestCase {
     @Test
     public void testSelectGreaterThan() throws Exception {
         SQLResponse response = execute("select * from sys.shards where num_docs > 0");
-        assertThat(response.rowCount(), greaterThan(0L));
+        assertThat(response.rowCount()).isGreaterThan(0L);
     }
 
     @Test
@@ -266,10 +261,10 @@ public class SysShardsTest extends IntegTestCase {
             "select sum(size), min(size), max(size), avg(size) from sys.shards");
         assertThat(response.rowCount()).isEqualTo(1L);
         assertThat(response.rows()[0].length).isEqualTo(4);
-        assertNotNull(response.rows()[0][0]);
-        assertNotNull(response.rows()[0][1]);
-        assertNotNull(response.rows()[0][2]);
-        assertNotNull(response.rows()[0][3]);
+        assertThat(response.rows()[0][0]).isNotNull();
+        assertThat(response.rows()[0][1]).isNotNull();
+        assertThat(response.rows()[0][2]).isNotNull();
+        assertThat(response.rows()[0][3]).isNotNull();
     }
 
     @Test
@@ -356,6 +351,7 @@ public class SysShardsTest extends IntegTestCase {
         assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("8\n");
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testSelectNodeSysExpression() throws Exception {
         SQLResponse response = execute(
@@ -384,6 +380,7 @@ public class SysShardsTest extends IntegTestCase {
         }
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testSelectRecoveryExpression() throws Exception {
         SQLResponse response = execute("select recovery, " +
@@ -391,7 +388,7 @@ public class SysShardsTest extends IntegTestCase {
                                        "recovery['size'], recovery['size']['used'], recovery['size']['reused'], recovery['size']['recovered'] " +
                                        "from sys.shards");
         for (Object[] row : response.rows()) {
-            Map recovery = (Map) row[0];
+            Map<String, Object> recovery = (Map<String, Object>) row[0];
             Map<String, Integer> files = (Map<String, Integer>) row[1];
             assertThat(((Map<String, Integer>) recovery.get("files")).entrySet()).isEqualTo(files.entrySet());
             Map<String, Long> size = (Map<String, Long>) row[5];
