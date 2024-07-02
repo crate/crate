@@ -126,7 +126,7 @@ public class TranslogIndexer {
     }
 
     private void populateLuceneFields(BytesReference source, Document doc, XContentBuilder xcontent) throws IOException {
-        Map<String, Object> docMap = sourceParser.parse(source, ignoreUnknownColumns);
+        Map<String, Object> docMap = sourceParser.parse(source, ignoreUnknownColumns == false);
 
         for (var entry : docMap.entrySet()) {
             var column = entry.getKey();
@@ -135,7 +135,7 @@ public class TranslogIndexer {
                 if (isEmpty(entry.getValue())) {
                     continue;
                 }
-                throw new TranslogMappingUpdateException();
+                throw new TranslogMappingUpdateException("Unknown column in translog entry: " + entry);
             }
 
             Object castValue = valueForInsert(indexer.dataType, entry.getValue());
