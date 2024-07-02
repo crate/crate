@@ -63,8 +63,7 @@ public class MapRowUsingInputsTest extends ESTestCase {
                     DataTypes.LONG.getTypeSignature(),
                     DataTypes.LONG.getTypeSignature()
                 )
-                .withFeatures(Scalar.DETERMINISTIC_AND_COMPARISON_REPLACEMENT)
-                .withFeature(Scalar.Feature.NULLABLE),
+                .withFeatures(Scalar.DETERMINISTIC_AND_COMPARISON_REPLACEMENT),
             List.of(new InputColumn(0, DataTypes.LONG), Literal.of(2L)),
             DataTypes.LONG
         );
