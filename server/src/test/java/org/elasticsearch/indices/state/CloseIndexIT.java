@@ -20,7 +20,6 @@ package org.elasticsearch.indices.state;
 
 import static java.util.Collections.emptySet;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertThat;
 
 import java.util.List;
 
@@ -29,7 +28,6 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.test.IntegTestCase;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.execution.ddl.tables.TransportCloseTable;
@@ -65,7 +63,7 @@ public class CloseIndexIT extends IntegTestCase {
     static void assertIndexIsClosed(final String... indices) {
         var clusterState = FutureUtils.get(client().admin().cluster().state(new ClusterStateRequest())).getState();
         var availableIndices = clusterState.metadata().indices();
-        assertThat(availableIndices.keys().toArray(String.class), Matchers.arrayContaining(indices));
+        assertThat(availableIndices.keys().toArray(String.class)).containsExactly(indices);
         for (String index : indices) {
             final IndexMetadata indexMetadata = availableIndices.get(index);
             assertThat(indexMetadata.getState()).isEqualTo(IndexMetadata.State.CLOSE);

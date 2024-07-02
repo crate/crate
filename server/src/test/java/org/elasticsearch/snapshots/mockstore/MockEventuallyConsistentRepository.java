@@ -20,9 +20,6 @@
 package org.elasticsearch.snapshots.mockstore;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.assertArrayEquals;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -51,6 +48,7 @@ import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.indices.recovery.RecoverySettings;
 import org.elasticsearch.repositories.blobstore.BlobStoreRepository;
 import org.elasticsearch.snapshots.SnapshotInfo;
+import org.elasticsearch.snapshots.SnapshotShardFailure;
 import org.jetbrains.annotations.Nullable;
 
 
@@ -205,9 +203,9 @@ public class MockEventuallyConsistentRepository extends BlobStoreRepository {
                     if (relevantActions.stream().noneMatch(a -> a.operation == Operation.PUT)) {
                         throw new NoSuchFileException(blobPath);
                     }
-                    if (relevantActions.size() == 1 && relevantActions.get(0).operation == Operation.PUT) {
+                    if (relevantActions.size() == 1 && relevantActions.getFirst().operation == Operation.PUT) {
                         // Consistent read after write
-                        return new ByteArrayInputStream(relevantActions.get(0).data);
+                        return new ByteArrayInputStream(relevantActions.getFirst().data);
                     }
                     throw new AssertionError("Inconsistent read on [" + blobPath + ']');
                 }
@@ -216,7 +214,7 @@ public class MockEventuallyConsistentRepository extends BlobStoreRepository {
             private List<BlobStoreAction> relevantActions(String blobPath) {
                 assert Thread.holdsLock(context.actions);
                 final List<BlobStoreAction> relevantActions = new ArrayList<>(
-                    context.actions.stream().filter(action -> blobPath.equals(action.path)).collect(Collectors.toList()));
+                    context.actions.stream().filter(action -> blobPath.equals(action.path)).toList());
                 for (int i = relevantActions.size() - 1; i > 0; i--) {
                     if (relevantActions.get(i).operation == Operation.GET) {
                         relevantActions.remove(i);
@@ -315,7 +313,7 @@ public class MockEventuallyConsistentRepository extends BlobStoreRepository {
                     final List<BlobStoreAction> relevantActions = relevantActions(blobPath);
                     // We do some checks in case there is a consistent state for a blob to prevent turning it inconsistent.
                     final boolean hasConsistentContent =
-                        relevantActions.size() == 1 && relevantActions.get(0).operation == Operation.PUT;
+                        relevantActions.size() == 1 && relevantActions.getFirst().operation == Operation.PUT;
                     if (BlobStoreRepository.INDEX_LATEST_BLOB.equals(blobName)
                         || blobName.startsWith(BlobStoreRepository.METADATA_PREFIX)) {
                         // TODO: Ensure that it is impossible to ever decrement the generation id stored in index.latest then assert that
@@ -337,7 +335,8 @@ public class MockEventuallyConsistentRepository extends BlobStoreRepository {
                                         assertThat(existingInfo.totalShards()).isEqualTo(updatedInfo.totalShards());
                                         assertThat(existingInfo.successfulShards()).isEqualTo(updatedInfo.successfulShards());
                                         assertThat(
-                                            existingInfo.shardFailures(), containsInAnyOrder(updatedInfo.shardFailures().toArray()));
+                                            existingInfo.shardFailures()).containsExactlyInAnyOrder(
+                                                updatedInfo.shardFailures().toArray(new SnapshotShardFailure[]{}));
                                         assertThat(existingInfo.indices()).isEqualTo(updatedInfo.indices());
                                         return; // No need to add a write for this since we didn't change content
                                     } catch (Exception e) {
@@ -355,7 +354,9 @@ public class MockEventuallyConsistentRepository extends BlobStoreRepository {
                         }
                     } else {
                         if (hasConsistentContent) {
-                            assertArrayEquals("Tried to overwrite blob [" + blobName + "]", relevantActions.get(0).data, data);
+                            assertThat(relevantActions.getFirst().data)
+                                .as("Tried to overwrite blob [" + blobName + "]")
+                                .isEqualTo(data);
                             return; // No need to add a write for this since we didn't change content
                         }
                     }

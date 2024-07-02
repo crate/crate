@@ -24,12 +24,9 @@ import static java.util.Collections.singleton;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.monitor.StatusInfo.Status.HEALTHY;
 import static org.elasticsearch.transport.TransportService.HANDSHAKE_ACTION_NAME;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -83,6 +80,7 @@ import org.elasticsearch.transport.TransportService;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Test;
 
 public class NodeJoinTests extends ESTestCase {
 
@@ -274,6 +272,7 @@ public class NodeJoinTests extends ESTestCase {
         FutureUtils.get(fut);
     }
 
+    @Test
     public void testJoinWithHigherTermElectsLeader() {
         DiscoveryNode node0 = newNode(0, true);
         DiscoveryNode node1 = newNode(1, true);
@@ -283,18 +282,19 @@ public class NodeJoinTests extends ESTestCase {
             VotingConfiguration.of(randomFrom(node0, node1))),
             () -> new StatusInfo(HEALTHY, "healthy-info"));
         assertThat(isLocalNodeElectedMaster()).isFalse();
-        assertNull(coordinator.getStateForMasterService().nodes().getMasterNodeId());
+        assertThat(coordinator.getStateForMasterService().nodes().getMasterNodeId()).isNull();
         long newTerm = initialTerm + randomLongBetween(1, 10);
         SimpleFuture fut = joinNodeAsync(new JoinRequest(node1, newTerm,
             Optional.of(new Join(node1, node0, newTerm, initialTerm, initialVersion))));
         assertThat(coordinator.getMode()).isEqualTo(Coordinator.Mode.LEADER);
-        assertNull(coordinator.getStateForMasterService().nodes().getMasterNodeId());
+        assertThat(coordinator.getStateForMasterService().nodes().getMasterNodeId()).isNull();
         deterministicTaskQueue.runAllRunnableTasks();
         assertThat(fut.isDone()).isTrue();
         assertThat(isLocalNodeElectedMaster()).isTrue();
         assertThat(coordinator.getStateForMasterService().nodes().isLocalNodeElectedMaster()).isTrue();
     }
 
+    @Test
     public void testJoinWithHigherTermButBetterStateGetsRejected() {
         DiscoveryNode node0 = newNode(0, true);
         DiscoveryNode node1 = newNode(1, true);
@@ -311,6 +311,7 @@ public class NodeJoinTests extends ESTestCase {
         assertThat(isLocalNodeElectedMaster()).isFalse();
     }
 
+    @Test
     public void testJoinWithHigherTermButBetterStateStillElectsMasterThroughSelfJoin() {
         DiscoveryNode node0 = newNode(0, true);
         DiscoveryNode node1 = newNode(1, true);
@@ -325,6 +326,7 @@ public class NodeJoinTests extends ESTestCase {
         assertThat(isLocalNodeElectedMaster()).isTrue();
     }
 
+    @Test
     public void testJoinElectedLeader() {
         DiscoveryNode node0 = newNode(0, true);
         DiscoveryNode node1 = newNode(1, true);
@@ -342,6 +344,7 @@ public class NodeJoinTests extends ESTestCase {
         assertThat(clusterStateHasNode(node1)).isTrue();
     }
 
+    @Test
     public void testJoinElectedLeaderWithHigherTerm() {
         DiscoveryNode node0 = newNode(0, true);
         DiscoveryNode node1 = newNode(1, true);
@@ -356,10 +359,11 @@ public class NodeJoinTests extends ESTestCase {
 
         long newerTerm = newTerm + randomLongBetween(1, 10);
         joinNodeAndRun(new JoinRequest(node1, newerTerm, Optional.empty()));
-        assertThat(coordinator.getCurrentTerm(), greaterThanOrEqualTo(newerTerm));
+        assertThat(coordinator.getCurrentTerm()).isGreaterThanOrEqualTo(newerTerm);
         assertThat(isLocalNodeElectedMaster()).isTrue();
     }
 
+    @Test
     public void testJoinAccumulation() {
         DiscoveryNode node0 = newNode(0, true);
         DiscoveryNode node1 = newNode(1, true);
@@ -388,6 +392,7 @@ public class NodeJoinTests extends ESTestCase {
         FutureUtils.get(futNode1);
     }
 
+    @Test
     public void testJoinFollowerWithHigherTerm() throws Exception {
         DiscoveryNode node0 = newNode(0, true);
         DiscoveryNode node1 = newNode(1, true);
@@ -404,6 +409,7 @@ public class NodeJoinTests extends ESTestCase {
         assertThat(isLocalNodeElectedMaster()).isTrue();
     }
 
+    @Test
     public void testJoinUpdateVotingConfigExclusion() throws Exception {
         DiscoveryNode initialNode = newNode(0, true);
         long initialTerm = randomLongBetween(1, 10);
@@ -484,6 +490,7 @@ public class NodeJoinTests extends ESTestCase {
         assertThat(coordinator.getMode()).isEqualTo(Coordinator.Mode.FOLLOWER);
     }
 
+    @Test
     public void testJoinFollowerFails() throws Exception {
         DiscoveryNode node0 = newNode(0, true);
         DiscoveryNode node1 = newNode(1, true);
@@ -500,6 +507,7 @@ public class NodeJoinTests extends ESTestCase {
         assertThat(isLocalNodeElectedMaster()).isFalse();
     }
 
+    @Test
     public void testBecomeFollowerFailsPendingJoin() throws Exception {
         DiscoveryNode node0 = newNode(0, true);
         DiscoveryNode node1 = newNode(1, true);
@@ -521,14 +529,15 @@ public class NodeJoinTests extends ESTestCase {
         assertThat(isLocalNodeElectedMaster()).isFalse();
     }
 
+    @Test
     public void testConcurrentJoining() {
         List<DiscoveryNode> masterNodes = IntStream.rangeClosed(1, randomIntBetween(2, 5))
-            .mapToObj(nodeId -> newNode(nodeId, true)).collect(Collectors.toList());
+            .mapToObj(nodeId -> newNode(nodeId, true)).toList();
         List<DiscoveryNode> otherNodes = IntStream.rangeClosed(masterNodes.size() + 1, masterNodes.size() + 1 + randomIntBetween(0, 5))
-            .mapToObj(nodeId -> newNode(nodeId, false)).collect(Collectors.toList());
-        List<DiscoveryNode> allNodes = Stream.concat(masterNodes.stream(), otherNodes.stream()).collect(Collectors.toList());
+            .mapToObj(nodeId -> newNode(nodeId, false)).toList();
+        List<DiscoveryNode> allNodes = Stream.concat(masterNodes.stream(), otherNodes.stream()).toList();
 
-        DiscoveryNode localNode = masterNodes.get(0);
+        DiscoveryNode localNode = masterNodes.getFirst();
         VotingConfiguration votingConfiguration = new VotingConfiguration(randomValueOtherThan(singletonList(localNode),
             () -> randomSubsetOf(randomIntBetween(1, masterNodes.size()), masterNodes)).stream()
             .map(DiscoveryNode::getId).collect(Collectors.toSet()));
@@ -544,14 +553,14 @@ public class NodeJoinTests extends ESTestCase {
         List<DiscoveryNode> successfulNodes;
         do {
             successfulNodes = randomSubsetOf(allNodes);
-        } while (votingConfiguration.hasQuorum(successfulNodes.stream().map(DiscoveryNode::getId).collect(Collectors.toList()))
+        } while (votingConfiguration.hasQuorum(successfulNodes.stream().map(DiscoveryNode::getId).toList())
             == false);
 
         logger.info("Successful voting nodes: {}", successfulNodes);
 
         List<JoinRequest> correctJoinRequests = successfulNodes.stream().map(
             node -> new JoinRequest(node, newTerm, Optional.of(new Join(node, localNode, newTerm, initialTerm, initialVersion))))
-            .collect(Collectors.toList());
+            .toList();
 
         List<DiscoveryNode> possiblyUnsuccessfulNodes = new ArrayList<>(allNodes);
         possiblyUnsuccessfulNodes.removeAll(successfulNodes);
@@ -606,7 +615,7 @@ public class NodeJoinTests extends ESTestCase {
                 } catch (CoordinationStateRejectedException e) {
                     // ignore - these requests are expected to fail
                 }
-            }, "process " + joinRequest))).collect(Collectors.toList());
+            }, "process " + joinRequest))).toList();
 
         assertionThread.start();
         joinThreads.forEach(Thread::start);

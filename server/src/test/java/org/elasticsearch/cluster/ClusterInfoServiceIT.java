@@ -20,10 +20,6 @@
 package org.elasticsearch.cluster;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
 
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -69,33 +65,33 @@ public class ClusterInfoServiceIT extends IntegTestCase {
             .getInstance(ClusterInfoService.class, internalTestCluster.getMasterName());
         infoService.setUpdateFrequency(TimeValue.timeValueMillis(200));
         ClusterInfo info = infoService.refresh();
-        assertNotNull("info should not be null", info);
+        assertThat(info).as("info should not be null").isNotNull();
         ImmutableOpenMap<String, DiskUsage> leastUsages = info.getNodeLeastAvailableDiskUsages();
         ImmutableOpenMap<String, DiskUsage> mostUsages = info.getNodeMostAvailableDiskUsages();
         ImmutableOpenMap<String, Long> shardSizes = info.shardSizes;
-        assertNotNull(leastUsages);
-        assertNotNull(shardSizes);
+        assertThat(leastUsages).isNotNull();
+        assertThat(shardSizes).isNotNull();
         assertThat(leastUsages.values())
             .as("some usages are populated")
             .hasSize(2);
-        assertThat("some shard sizes are populated", shardSizes.values().size(), greaterThan(0));
+        assertThat(shardSizes.values().size()).as("some shard sizes are populated").isGreaterThan(0);
         for (ObjectCursor<DiskUsage> usage : leastUsages.values()) {
             logger.info("--> usage: {}", usage.value);
-            assertThat("usage has be retrieved", usage.value.getFreeBytes(), greaterThan(0L));
+            assertThat(usage.value.getFreeBytes()).as("usage has be retrieved").isGreaterThan(0L);
         }
         for (ObjectCursor<DiskUsage> usage : mostUsages.values()) {
             logger.info("--> usage: {}", usage.value);
-            assertThat("usage has be retrieved", usage.value.getFreeBytes(), greaterThan(0L));
+            assertThat(usage.value.getFreeBytes()).as("usage has be retrieved").isGreaterThan(0L);
         }
         for (ObjectCursor<Long> size : shardSizes.values()) {
             logger.info("--> shard size: {}", size.value);
-            assertThat("shard size is greater than 0", size.value, greaterThanOrEqualTo(0L));
+            assertThat(size.value).as("shard size is greater than 0:").isGreaterThanOrEqualTo(0L);
         }
         ClusterService clusterService = internalTestCluster.getInstance(ClusterService.class, internalTestCluster.getMasterName());
         ClusterState state = clusterService.state();
         for (ShardRouting shard : state.routingTable().allShards()) {
             String dataPath = info.getDataPath(shard);
-            assertNotNull(dataPath);
+            assertThat(dataPath).isNotNull();
 
             String nodeId = shard.currentNodeId();
             DiscoveryNode discoveryNode = state.nodes().get(nodeId);

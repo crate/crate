@@ -29,12 +29,10 @@ import static io.crate.testing.TestingHelpers.createReference;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 
 import java.util.List;
+import java.util.function.Consumer;
 
-import org.hamcrest.Matcher;
 import org.junit.Test;
 
 import io.crate.auth.AccessControl;
@@ -54,42 +52,46 @@ public class ErrorMappingTest {
 
     @Test
     public void test_ambiguous_column_exception_error_mapping() {
-        isError(new AmbiguousColumnException(ColumnIdent.of("x"), createReference("x", DataTypes.STRING)),
-                is("Column \"x\" is ambiguous"),
-                AMBIGUOUS_COLUMN,
-                BAD_REQUEST,
-                4006);
+        isError(
+            new AmbiguousColumnException(ColumnIdent.of("x"), createReference("x", DataTypes.STRING)),
+            msg -> assertThat(msg).isEqualTo("Column \"x\" is ambiguous"),
+            AMBIGUOUS_COLUMN,
+            BAD_REQUEST,
+            4006);
     }
 
     @Test
     public void test_invalid_schema_name_exception_error_mapping() {
-        isError(new InvalidSchemaNameException("invalid"),
-                is("schema name \"invalid\" is invalid."),
-                INVALID_SCHEMA_NAME,
-                BAD_REQUEST,
-                4002);
+        isError(
+            new InvalidSchemaNameException("invalid"),
+            msg -> assertThat(msg).isEqualTo("schema name \"invalid\" is invalid."),
+            INVALID_SCHEMA_NAME,
+            BAD_REQUEST,
+            4002);
     }
 
     @Test
     public void test_ambiguous_column_alias_exception_error_mapping() {
-        isError(new AmbiguousColumnAliasException("x", List.of(createReference("x", DataTypes.STRING))),
-                is("Column alias \"x\" is ambiguous"),
-                AMBIGUOUS_ALIAS,
-                BAD_REQUEST,
-                4006);
+        isError(
+            new AmbiguousColumnAliasException("x", List.of(createReference("x", DataTypes.STRING))),
+            msg -> assertThat(msg).isEqualTo("Column alias \"x\" is ambiguous"),
+            AMBIGUOUS_ALIAS,
+            BAD_REQUEST,
+            4006);
     }
 
     @Test
     public void test_user_defined_function_unknown_exception_error_mapping() {
-        isError(new UserDefinedFunctionUnknownException("schema", "foo", List.of(DataTypes.STRING)),
-                is("Cannot resolve user defined function: 'schema.foo(text)'"),
-                UNDEFINED_FUNCTION,
-                NOT_FOUND,
-                4049);
+        isError(
+            new UserDefinedFunctionUnknownException("schema", "foo", List.of(DataTypes.STRING)),
+            msg -> assertThat(msg).isEqualTo("Cannot resolve user defined function: 'schema.foo(text)'"),
+            UNDEFINED_FUNCTION,
+            NOT_FOUND,
+            4049);
     }
 
     private void isError(Throwable t,
-                         Matcher<String> msg,
+                         Consumer<String> msgAssertion,
                          PGErrorStatus pgErrorStatus,
                          HttpResponseStatus httpResponseStatus,
                          int errorCode) {
@@ -97,11 +99,11 @@ public class ErrorMappingTest {
 
         var pgError = PGError.fromThrowable(throwable);
         assertThat(pgError.status()).isEqualTo(pgErrorStatus);
-        assertThat(pgError.message(), msg);
+        assertThat(pgError.message()).satisfies(msgAssertion);
 
         var httpError = HttpError.fromThrowable(throwable);
         assertThat(httpError.errorCode()).isEqualTo(errorCode);
         assertThat(httpError.httpResponseStatus()).isEqualTo(httpResponseStatus);
-        assertThat(httpError.message(), msg);
+        assertThat(httpError.message()).satisfies(msgAssertion);
     }
 }

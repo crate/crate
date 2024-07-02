@@ -19,9 +19,6 @@
 package org.elasticsearch.cluster.coordination;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.hasItem;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertThat;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -60,7 +57,7 @@ public class VotingConfigurationIT extends IntegTestCase {
         client().execute(AddVotingConfigExclusionsAction.INSTANCE,
             new AddVotingConfigExclusionsRequest(new String[]{originalMaster})).get();
         FutureUtils.get(client().admin().cluster().health(new ClusterHealthRequest().waitForEvents(Priority.LANGUID)));
-        assertNotEquals(originalMaster, cluster().getMasterName());
+        assertThat(cluster().getMasterName()).isNotEqualTo(originalMaster);
     }
 
     public void testElectsNodeNotInVotingConfiguration() throws Exception {
@@ -88,7 +85,7 @@ public class VotingConfigurationIT extends IntegTestCase {
         final Set<String> votingConfiguration = clusterState.getLastCommittedConfiguration().getNodeIds();
         assertThat(votingConfiguration).hasSize(3);
         assertThat(clusterState.nodes().getSize()).isEqualTo(4);
-        assertThat(votingConfiguration, hasItem(clusterState.nodes().getMasterNodeId()));
+        assertThat(votingConfiguration).contains(clusterState.nodes().getMasterNodeId());
         for (DiscoveryNode discoveryNode : clusterState.nodes()) {
             if (votingConfiguration.contains(discoveryNode.getId()) == false) {
                 assertThat(excludedNodeName).isNull();
@@ -128,6 +125,7 @@ public class VotingConfigurationIT extends IntegTestCase {
                 .metadata(true)
             ).get().getState();
         assertThat(newClusterState.nodes().getMasterNode().getName()).isEqualTo(excludedNodeName);
-        assertThat(newClusterState.getLastCommittedConfiguration().getNodeIds(), hasItem(newClusterState.nodes().getMasterNodeId()));
+        assertThat(newClusterState.getLastCommittedConfiguration().getNodeIds()).contains(
+            newClusterState.nodes().getMasterNodeId());
     }
 }

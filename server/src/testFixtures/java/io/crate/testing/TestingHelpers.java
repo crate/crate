@@ -194,7 +194,7 @@ public class TestingHelpers {
 
     @SuppressWarnings("unchecked")
     private static Collection<?> sortRecursive(Collection<?> collection) {
-        if (collection.size() == 0) {
+        if (collection.isEmpty()) {
             return collection;
         }
         Object firstElement = collection.iterator().next();

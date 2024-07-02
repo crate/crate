@@ -20,9 +20,6 @@ package org.elasticsearch.snapshots;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -243,9 +240,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         assertThat(
             FutureUtils.get(threadPool.generic().submit(() ->
                 snapshotsService.minCompatibleVersion(Version.CURRENT, getRepositoryData(repository), null)
-            )),
-            is(SnapshotsService.OLD_SNAPSHOT_FORMAT)
-        );
+            ))).isEqualTo(SnapshotsService.OLD_SNAPSHOT_FORMAT);
 
         logger.info("--> verify that snapshot with missing root level metadata can be deleted");
         execute("drop snapshot test.\"" + snapshotToCorrupt.getName() + "\"");
@@ -254,9 +249,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         assertThat(
             FutureUtils.get(threadPool.generic().submit(() ->
                 snapshotsService.minCompatibleVersion(Version.CURRENT, getRepositoryData(repository), null)
-            )),
-            is(Version.CURRENT)
-        );
+            ))).isEqualTo(Version.CURRENT);
         final RepositoryData finalRepositoryData = getRepositoryData(repository);
         for (SnapshotId snapshotId : finalRepositoryData.getSnapshotIds()) {
             assertThat(finalRepositoryData.getVersion(snapshotId)).isEqualTo(Version.CURRENT);
@@ -473,7 +466,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
                 .get().getSnapshotInfo();
         assertThat(snapshotInfo.state()).isEqualTo(SnapshotState.SUCCESS);
         final int successfulShards = snapshotInfo.successfulShards();
-        assertThat(successfulShards, greaterThan(0));
+        assertThat(successfulShards).isGreaterThan(0);
         assertThat(successfulShards).isEqualTo(snapshotInfo.totalShards());
     }
 

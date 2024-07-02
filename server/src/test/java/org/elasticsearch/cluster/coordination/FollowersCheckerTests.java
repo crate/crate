@@ -19,6 +19,7 @@
 package org.elasticsearch.cluster.coordination;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.cluster.coordination.FollowersChecker.FOLLOWER_CHECK_ACTION_NAME;
 import static org.elasticsearch.cluster.coordination.FollowersChecker.FOLLOWER_CHECK_INTERVAL_SETTING;
 import static org.elasticsearch.cluster.coordination.FollowersChecker.FOLLOWER_CHECK_RETRY_COUNT_SETTING;
@@ -27,10 +28,6 @@ import static org.elasticsearch.monitor.StatusInfo.Status.HEALTHY;
 import static org.elasticsearch.monitor.StatusInfo.Status.UNHEALTHY;
 import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
 import static org.elasticsearch.transport.TransportService.HANDSHAKE_ACTION_NAME;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.empty;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -44,7 +41,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.elasticsearch.ElasticsearchException;
@@ -120,8 +116,8 @@ public class FollowersCheckerTests extends ESTestCase {
         followersChecker.setCurrentNodes(discoveryNodesHolder[0]);
         deterministicTaskQueue.runAllTasks();
 
-        assertThat(checkedNodes, empty());
-        assertThat(followersChecker.getFaultyNodes(), empty());
+        assertThat(checkedNodes).isEmpty();
+        assertThat(followersChecker.getFaultyNodes()).isEmpty();
 
         final DiscoveryNode otherNode1 = new DiscoveryNode("other-node-1", buildNewFakeTransportAddress(), Version.CURRENT);
         followersChecker.setCurrentNodes(discoveryNodesHolder[0] = DiscoveryNodes.builder(discoveryNodesHolder[0]).add(otherNode1).build());
@@ -133,7 +129,7 @@ public class FollowersCheckerTests extends ESTestCase {
             }
         }
         assertThat(checkedNodes).containsExactly(otherNode1);
-        assertThat(followersChecker.getFaultyNodes(), empty());
+        assertThat(followersChecker.getFaultyNodes()).isEmpty();
 
         checkedNodes.clear();
         checkCount.set(0);
@@ -146,8 +142,8 @@ public class FollowersCheckerTests extends ESTestCase {
                 deterministicTaskQueue.advanceTime();
             }
         }
-        assertThat(checkedNodes, containsInAnyOrder(otherNode1, otherNode2));
-        assertThat(followersChecker.getFaultyNodes(), empty());
+        assertThat(checkedNodes).containsExactlyInAnyOrder(otherNode1, otherNode2);
+        assertThat(followersChecker.getFaultyNodes()).isEmpty();
 
         checkedNodes.clear();
         checkCount.set(0);
@@ -161,12 +157,12 @@ public class FollowersCheckerTests extends ESTestCase {
             }
         }
         assertThat(checkedNodes).containsExactly(otherNode2);
-        assertThat(followersChecker.getFaultyNodes(), empty());
+        assertThat(followersChecker.getFaultyNodes()).isEmpty();
 
         checkedNodes.clear();
         followersChecker.clearCurrentNodes();
         deterministicTaskQueue.runAllTasks();
-        assertThat(checkedNodes, empty());
+        assertThat(checkedNodes).isEmpty();
     }
 
     public void testFailsNodeThatDoesNotRespond() {
@@ -361,7 +357,7 @@ public class FollowersCheckerTests extends ESTestCase {
         // remove the faulty node and see that it is removed
         discoveryNodes = DiscoveryNodes.builder(discoveryNodes).remove(otherNode).build();
         followersChecker.setCurrentNodes(discoveryNodes);
-        assertThat(followersChecker.getFaultyNodes(), empty());
+        assertThat(followersChecker.getFaultyNodes()).isEmpty();
         deterministicTaskQueue.runAllRunnableTasks();
         deterministicTaskQueue.advanceTime();
         deterministicTaskQueue.runAllRunnableTasks();
@@ -375,7 +371,7 @@ public class FollowersCheckerTests extends ESTestCase {
         discoveryNodes = DiscoveryNodes.builder(discoveryNodes).add(otherNode).build();
         followersChecker.setCurrentNodes(discoveryNodes);
         nodeFailed.set(false);
-        assertThat(followersChecker.getFaultyNodes(), empty());
+        assertThat(followersChecker.getFaultyNodes()).isEmpty();
         deterministicTaskQueue.runAllTasksInTimeOrder();
         assertThat(nodeFailed.get()).isTrue();
         assertThat(followersChecker.getFaultyNodes()).containsExactly(otherNode);
@@ -635,7 +631,7 @@ public class FollowersCheckerTests extends ESTestCase {
         },() -> new StatusInfo(HEALTHY, "healthy-info"));
         followersChecker.setCurrentNodes(discoveryNodes);
         List<DiscoveryNode> followerTargets = Stream.of(capturingTransport.getCapturedRequestsAndClear())
-            .map(cr -> cr.node).collect(Collectors.toList());
+            .map(cr -> cr.node).toList();
         List<DiscoveryNode> sortedFollowerTargets = new ArrayList<>(followerTargets);
         Collections.sort(sortedFollowerTargets, Comparator.comparing(n -> n.isMasterEligibleNode() == false));
         assertThat(followerTargets).isEqualTo(sortedFollowerTargets);
@@ -700,6 +696,5 @@ public class FollowersCheckerTests extends ESTestCase {
         public TransportResponse.Empty read(StreamInput in) {
             return TransportResponse.Empty.INSTANCE;
         }
-
     }
 }
