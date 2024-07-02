@@ -778,6 +778,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                 ifPrimaryTerm
             );
         } catch (TranslogMappingUpdateException e) {
+            logger.warn("Error replaying translog", e);
             return new Engine.IndexResult();
         } catch (Exception e) {
             // We treat any exception during parsing and or mapping update as a document level failure
