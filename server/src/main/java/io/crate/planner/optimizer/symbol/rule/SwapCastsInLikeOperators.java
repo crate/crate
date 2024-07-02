@@ -24,7 +24,6 @@ package io.crate.planner.optimizer.symbol.rule;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 import io.crate.expression.operator.LikeOperators;
@@ -52,7 +51,7 @@ public class SwapCastsInLikeOperators implements Rule<Function> {
         this.pattern = typeOf(Function.class)
             .with(f -> LIKE_OPERATORS.contains(f.name()))
             .with(f -> f.arguments().get(1).symbolType().isValueOrParameterSymbol())
-            .with(f -> Optional.of(f.arguments().get(0)), typeOf(Function.class).capturedAs(castCapture)
+            .with(f -> f.arguments().get(0), typeOf(Function.class).capturedAs(castCapture)
                 .with(f -> f.isCast())
                 .with(f -> f.arguments().get(0) instanceof Reference ref && ref.valueType().id() == StringType.ID)
             );
