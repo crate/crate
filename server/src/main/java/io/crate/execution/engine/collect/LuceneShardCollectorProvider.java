@@ -194,8 +194,6 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                                                    SharedShardContext sharedShardContext,
                                                    CollectTask collectTask,
                                                    boolean requiresRepeat) {
-        RoutedCollectPhase collectPhase = phase.normalize(shardNormalizer, collectTask.txnCtx());
-
         CollectorContext collectorContext;
         InputFactory.Context<? extends LuceneCollectorExpression<?>> ctx;
         var searcher = sharedShardContext.acquireSearcher("ordered-collector: " + formatSource(phase));
@@ -203,34 +201,34 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         IndexService indexService = sharedShardContext.indexService();
         DocTableInfo table = nodeCtx.schemas().getTableInfo(relationName);
         final var queryContext = luceneQueryBuilder.convert(
-            collectPhase.where(),
+            phase.where(),
             collectTask.txnCtx(),
             indexShard.shardId().getIndexName(),
             indexService.indexAnalyzers(),
             table,
             indexService.cache()
         );
-        ctx = docInputFactory.extractImplementations(collectTask.txnCtx(), collectPhase);
+        ctx = docInputFactory.extractImplementations(collectTask.txnCtx(), phase);
         collectorContext = new CollectorContext(sharedShardContext.readerId(), table.droppedColumns(), table.lookupNameBySourceKey());
-        int batchSize = collectPhase.shardQueueSize(localNodeId.get());
+        int batchSize = phase.shardQueueSize(localNodeId.get());
         if (LOGGER.isTraceEnabled()) {
             LOGGER.trace("[{}][{}] creating LuceneOrderedDocCollector. Expected number of rows to be collected: {}",
                 indexShard.routingEntry().currentNodeId(),
                 indexShard.shardId(),
                 batchSize);
         }
-        var optimizeQueryForSearchAfter = new OptimizeQueryForSearchAfter(collectPhase.orderBy());
+        var optimizeQueryForSearchAfter = new OptimizeQueryForSearchAfter(phase.orderBy());
         return new LuceneOrderedDocCollector(
             indexShard.shardId(),
             searcher.item(),
             queryContext.query(),
             queryContext.minScore(),
-            Symbols.hasColumn(collectPhase.toCollect(), DocSysColumns.SCORE),
+            Symbols.hasColumn(phase.toCollect(), DocSysColumns.SCORE),
             batchSize,
             collectTask.getRamAccounting(),
             collectorContext,
             optimizeQueryForSearchAfter,
-            LuceneSort.generate(collectTask.txnCtx(), collectorContext, collectPhase.orderBy(), docInputFactory),
+            LuceneSort.generate(collectTask.txnCtx(), collectorContext, phase.orderBy(), docInputFactory),
             ctx.topLevelInputs(),
             ctx.expressions()
         );

@@ -106,9 +106,8 @@ public class BlobShardCollectorProvider extends ShardCollectorProvider {
                                                    SharedShardContext sharedShardContext,
                                                    CollectTask collectTask,
                                                    boolean requiresRepeat) {
-        RoutedCollectPhase normalizedCollectPhase = collectPhase.normalize(shardNormalizer, collectTask.txnCtx());
         return new BlobOrderedDocCollector(
             blobShard.indexShard().shardId(),
-            getBlobRows(collectTask.txnCtx(), normalizedCollectPhase, requiresRepeat));
+            getBlobRows(collectTask.txnCtx(), collectPhase, requiresRepeat));
     }
 }
