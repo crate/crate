@@ -24,7 +24,6 @@ package io.crate.planner.optimizer.symbol.rule;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 
 import java.util.List;
-import java.util.Optional;
 
 import io.crate.expression.operator.any.AnyEqOperator;
 import io.crate.expression.operator.any.AnyNeqOperator;
@@ -52,7 +51,7 @@ public class MoveReferenceCastToLiteralCastOnAnyOperatorsWhenRightIsReference im
         this.pattern = typeOf(Function.class)
             .with(f -> AnyOperator.OPERATOR_NAMES.contains(f.name()))
             .with(f -> f.arguments().get(0).symbolType().isValueOrParameterSymbol())
-            .with(f -> Optional.of(f.arguments().get(1)), typeOf(Function.class).capturedAs(castCapture)
+            .with(f -> f.arguments().get(1), typeOf(Function.class).capturedAs(castCapture)
                 .with(f -> f.isCast())
                 .with(f -> f.arguments().get(0).symbolType() == SymbolType.REFERENCE)
             );

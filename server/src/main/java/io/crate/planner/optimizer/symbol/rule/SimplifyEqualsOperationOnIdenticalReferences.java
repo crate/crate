@@ -25,7 +25,6 @@ package io.crate.planner.optimizer.symbol.rule;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 
 import java.util.List;
-import java.util.Optional;
 
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.predicate.IsNullPredicate;
@@ -48,7 +47,7 @@ public class SimplifyEqualsOperationOnIdenticalReferences implements Rule<Functi
     public SimplifyEqualsOperationOnIdenticalReferences() {
         this.pattern = typeOf(Function.class)
             .with(f -> EqOperator.NAME.equals(f.name()))
-            .with(f -> Optional.of(f.arguments()), typeOf(List.class)
+            .with(f -> f.arguments(), typeOf(List.class)
                 .with(list -> list.get(0) instanceof Reference left &&
                               list.get(1) instanceof Reference right &&
                               left.equals(right))

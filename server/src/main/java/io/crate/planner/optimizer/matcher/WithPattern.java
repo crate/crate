@@ -21,7 +21,6 @@
 
 package io.crate.planner.optimizer.matcher;
 
-import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
@@ -30,10 +29,10 @@ import io.crate.planner.operators.LogicalPlan;
 class WithPattern<T, U, V> extends Pattern<T> {
 
     private final Pattern<T> firstPattern;
-    private final Function<? super T, Optional<U>> getProperty;
+    private final Function<? super T, U> getProperty;
     private final Pattern<V> propertyPattern;
 
-    WithPattern(Pattern<T> firstPattern, Function<? super T, Optional<U>> getProperty, Pattern<V> propertyPattern) {
+    WithPattern(Pattern<T> firstPattern, Function<? super T, U> getProperty, Pattern<V> propertyPattern) {
         this.firstPattern = firstPattern;
         this.getProperty = getProperty;
         this.propertyPattern = propertyPattern;
@@ -43,12 +42,13 @@ class WithPattern<T, U, V> extends Pattern<T> {
     public Match<T> accept(Object object, Captures captures, UnaryOperator<LogicalPlan> resolvePlan) {
         Match<T> match = firstPattern.accept(object, captures, resolvePlan);
         return match.flatMap(matchedValue -> {
-            Optional<?> optProperty = getProperty.apply(matchedValue)
-                .map(value -> value instanceof LogicalPlan logicalPlan ? resolvePlan.apply(logicalPlan) : value);
-            Match<V> propertyMatch = optProperty
-                .map(property -> propertyPattern.accept(property, match.captures(), resolvePlan))
-                .orElse(Match.empty());
-            return propertyMatch.map(ignored -> match.value());
+            Object value = getProperty.apply(matchedValue);
+            if (value == null) {
+                return match;
+            }
+            value = value instanceof LogicalPlan logicalPlan ? resolvePlan.apply(logicalPlan) : value;
+            return propertyPattern.accept(value, match.captures(), resolvePlan)
+                .map(ignored -> match.value());
         });
     }
 }

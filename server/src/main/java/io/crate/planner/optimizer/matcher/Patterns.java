@@ -21,19 +21,18 @@
 
 package io.crate.planner.optimizer.matcher;
 
-import io.crate.planner.operators.LogicalPlan;
-
-import java.util.Optional;
 import java.util.function.Function;
+
+import io.crate.planner.operators.LogicalPlan;
 
 public final class Patterns {
 
     private Patterns() {
     }
 
-    public static Function<LogicalPlan, Optional<LogicalPlan>> source() {
+    public static Function<LogicalPlan, LogicalPlan> source() {
         return plan -> plan.sources().size() == 1
-            ? Optional.of(plan.sources().get(0))
-            : Optional.empty();
+            ? plan.sources().get(0)
+            : null;
     }
 }
