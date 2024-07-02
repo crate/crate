@@ -226,6 +226,12 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
                 var refExistsQuery = IsNullPredicate.refExistsQuery(nullableRef, context, false);
                 if (refExistsQuery != null) {
                     builder.add(refExistsQuery, BooleanClause.Occur.MUST);
+                } else {
+                    // fall back to less efficient query
+                    return new BooleanQuery.Builder()
+                        .add(notX, Occur.MUST)
+                        .add(LuceneQueryBuilder.genericFunctionFilter(input, context), Occur.FILTER)
+                        .build();
                 }
             }
             return builder.build();
