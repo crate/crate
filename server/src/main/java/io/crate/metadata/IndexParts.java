@@ -131,19 +131,16 @@ public class IndexParts {
      * Encodes the given parts to a CrateDB index name.
      */
     public static String toIndexName(String schema, String table, @Nullable String partitionIdent) {
-        StringBuilder stringBuilder = new StringBuilder();
-        final boolean isPartitioned = partitionIdent != null;
-        if (!schema.equals(Schemas.DOC_SCHEMA_NAME)) {
-            stringBuilder.append(schema).append(".");
+        if (partitionIdent == null) {
+            if (schema.equals(Schemas.DOC_SCHEMA_NAME)) {
+                return table;
+            }
+            return schema + "." + table;
         }
-        if (isPartitioned) {
-            stringBuilder.append(PARTITIONED_TABLE_PART);
+        if (schema.equals(Schemas.DOC_SCHEMA_NAME)) {
+            return IndexParts.PARTITIONED_TABLE_PART + table + "." + partitionIdent;
         }
-        stringBuilder.append(table);
-        if (isPartitioned) {
-            stringBuilder.append(".").append(partitionIdent);
-        }
-        return stringBuilder.toString();
+        return schema + "." + IndexParts.PARTITIONED_TABLE_PART + table + "." + partitionIdent;
     }
 
     /**

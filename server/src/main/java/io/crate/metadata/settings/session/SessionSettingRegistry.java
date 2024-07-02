@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
+import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.joda.time.Period;
@@ -45,8 +46,6 @@ import io.crate.metadata.settings.SessionSettings;
 import io.crate.protocols.postgres.PostgresWireProtocol;
 import io.crate.types.BooleanType;
 import io.crate.types.DataTypes;
-
-import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
 
 @Singleton
 public class SessionSettingRegistry {
@@ -279,7 +278,7 @@ public class SessionSettingRegistry {
                 case "SQL",
                      "POSTGRES",
                       "GERMAN":
-                    throw new IllegalArgumentException("Invalid value for parameter \"" + DATE_STYLE + "\": \"" +
+                    throw new IllegalArgumentException("Invalid value for parameter \"" + DATE_STYLE.name() + "\": \"" +
                                                         dateStyle + "\". Valid values include: [\"ISO\"].");
                 // date order style
                 case "MDY",
@@ -292,7 +291,7 @@ public class SessionSettingRegistry {
                      "YMD":
                     break;
                 default:
-                    throw new IllegalArgumentException("Invalid value for parameter \"" + DATE_STYLE + "\": \"" +
+                    throw new IllegalArgumentException("Invalid value for parameter \"" + DATE_STYLE.name() + "\": \"" +
                                                        dateStyle + "\". Valid values include: [\"ISO\"].");
             }
         }

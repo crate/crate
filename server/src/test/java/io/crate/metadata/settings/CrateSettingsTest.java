@@ -23,8 +23,6 @@ package io.crate.metadata.settings;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.assertThat;
 
 import java.util.Map;
 
@@ -55,12 +53,11 @@ public class CrateSettingsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSettingsByNamePrefix() {
-        assertThat(CrateSettings.settingNamesByPrefix("stats.jobs_log"), containsInAnyOrder(
+        assertThat(CrateSettings.settingNamesByPrefix("stats.jobs_log")).containsExactlyInAnyOrder(
             JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getKey(),
             JobsLogService.STATS_JOBS_LOG_FILTER.getKey(),
             JobsLogService.STATS_JOBS_LOG_PERSIST_FILTER.getKey(),
-            JobsLogService.STATS_JOBS_LOG_EXPIRATION_SETTING.getKey()
-            ));
+            JobsLogService.STATS_JOBS_LOG_EXPIRATION_SETTING.getKey());
     }
 
     @Test

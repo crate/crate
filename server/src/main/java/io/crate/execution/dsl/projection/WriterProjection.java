@@ -35,55 +35,18 @@ import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.expression.eval.EvaluatingNormalizer;
-import io.crate.expression.scalar.FormatFunction;
-import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
-import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.SimpleReference;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.types.DataTypes;
-import io.crate.types.IntegerType;
-import io.crate.types.StringType;
 
 public class WriterProjection extends Projection {
 
     // number of lines written
     private static final List<Symbol> OUTPUTS = List.of(new InputColumn(0, DataTypes.LONG));
-
-    private static final SimpleReference SHARD_ID_REF = new SimpleReference(
-        new ReferenceIdent(SysShardsTableInfo.IDENT, SysShardsTableInfo.Columns.ID),
-        RowGranularity.SHARD,
-        IntegerType.INSTANCE,
-        0,
-        null
-    );
-    private static final SimpleReference TABLE_NAME_REF = new SimpleReference(
-        new ReferenceIdent(SysShardsTableInfo.IDENT, SysShardsTableInfo.Columns.TABLE_NAME),
-        RowGranularity.SHARD,
-        StringType.INSTANCE,
-        0,
-        null
-    );
-    private static final SimpleReference PARTITION_IDENT_REF = new SimpleReference(
-        new ReferenceIdent(SysShardsTableInfo.IDENT, SysShardsTableInfo.Columns.PARTITION_IDENT),
-        RowGranularity.SHARD,
-        StringType.INSTANCE,
-        0,
-        null
-    );
-
-
-    public static final Symbol DIRECTORY_TO_FILENAME = new Function(
-        FormatFunction.SIGNATURE,
-        List.of(Literal.of("%s_%s_%s.json"), TABLE_NAME_REF, SHARD_ID_REF, PARTITION_IDENT_REF),
-        DataTypes.STRING
-    );
 
     private final Symbol uri;
     private final List<Symbol> inputs;

@@ -223,7 +223,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     public Map<String, Object> readValueFrom(StreamInput in) throws IOException {
         if (in.readBoolean()) {
             int size = in.readInt();
-            LinkedHashMap<String, Object> m = new LinkedHashMap<>(size);
+            LinkedHashMap<String, Object> m = LinkedHashMap.newLinkedHashMap(size);
             for (int i = 0; i < size; i++) {
                 String key = in.readString();
                 DataType innerType = innerTypes.getOrDefault(key, UndefinedType.INSTANCE);

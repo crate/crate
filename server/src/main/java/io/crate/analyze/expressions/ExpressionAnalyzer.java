@@ -120,6 +120,7 @@ import io.crate.sql.tree.BitString;
 import io.crate.sql.tree.BitwiseExpression;
 import io.crate.sql.tree.BooleanLiteral;
 import io.crate.sql.tree.Cast;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.ComparisonExpression;
 import io.crate.sql.tree.CurrentTime;
 import io.crate.sql.tree.DoubleLiteral;
@@ -729,7 +730,7 @@ public class ExpressionAnalyzer {
                     List.of(),
                     operation,
                     context.errorOnUnknownObjectKey());
-                if (base instanceof Reference) {
+                if (base instanceof Reference ref && ref.columnPolicy() != ColumnPolicy.IGNORED) {
                     throw e;
                 }
                 return allocateFunction(

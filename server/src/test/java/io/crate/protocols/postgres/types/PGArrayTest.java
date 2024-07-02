@@ -22,15 +22,12 @@
 package io.crate.protocols.postgres.types;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.netty.buffer.ByteBuf;
@@ -98,11 +95,11 @@ public class PGArrayTest extends BasePGTypeTest<List<Object>> {
         String s = "{\"{\\\"names\\\":[\\\"Arthur\\\",\\\"Trillian\\\"]}\",\"{\\\"names\\\":[\\\"Ford\\\",\\\"Slarti\\\"]}\"}";
         List<Object> values = PGArray.JSON_ARRAY.decodeUTF8Text(s.getBytes(StandardCharsets.UTF_8));
 
-        List<String> names = (List<String>) ((Map) values.get(0)).get("names");
-        assertThat(names, Matchers.contains("Arthur", "Trillian"));
+        List<String> names = (List<String>) ((Map<?, ?>) values.get(0)).get("names");
+        assertThat(names).containsExactly("Arthur", "Trillian");
 
-        names = (List<String>) ((Map) values.get(1)).get("names");
-        assertThat(names, Matchers.contains("Ford", "Slarti"));
+        names = (List<String>) ((Map<?, ?>) values.get(1)).get("names");
+        assertThat(names).containsExactly("Ford", "Slarti");
 
         // Encode
         byte[] bytes = PGArray.JSON_ARRAY.encodeAsUTF8Text(values);
@@ -177,14 +174,13 @@ public class PGArrayTest extends BasePGTypeTest<List<Object>> {
 
         // 3-dimension array
         o = pgArray.decodeUTF8Text("{{{\"1\",NULL,\"2\"},{NULL,\"3\",\"4\"}},{{\"5\",NULL,\"6\"},{\"7\"}}}".getBytes(StandardCharsets.UTF_8));
-        assertThat(o, is(List.of(
+        assertThat(o).isEqualTo(List.of(
             List.of(
                 Arrays.asList(1, null, 2),
                 Arrays.asList(null, 3, 4)),
             List.of(
                 Arrays.asList(5, null, 6),
-                List.of(7))))
-        );
+                List.of(7))));
     }
 
     @Test

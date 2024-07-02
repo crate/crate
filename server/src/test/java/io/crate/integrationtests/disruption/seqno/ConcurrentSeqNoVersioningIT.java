@@ -22,9 +22,7 @@
 package io.crate.integrationtests.disruption.seqno;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -45,7 +43,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -173,7 +170,7 @@ public class ConcurrentSeqNoVersioningIT extends AbstractDisruptionTestCase {
                     Version version = new Version(primaryTerm, seqNo);
                     return new Partition(id, version);
                 })
-                .collect(Collectors.toList());
+                .toList();
 
         int threadCount = randomIntBetween(3, 20);
         CyclicBarrier roundBarrier = new CyclicBarrier(threadCount + 1); // +1 for main thread.
@@ -181,7 +178,7 @@ public class ConcurrentSeqNoVersioningIT extends AbstractDisruptionTestCase {
         List<CASUpdateThread> threads =
             IntStream.range(0, threadCount)
                 .mapToObj(i -> new CASUpdateThread(i, roundBarrier, partitions, disruptTimeSeconds + 1))
-                .collect(Collectors.toList());
+                .toList();
 
         logger.info("--> Starting {} threads", threadCount);
         threads.forEach(Thread::start);
@@ -208,7 +205,7 @@ public class ConcurrentSeqNoVersioningIT extends AbstractDisruptionTestCase {
         } catch (InterruptedException | BrokenBarrierException | TimeoutException e) {
             logger.error("Timed out, dumping stack traces of all threads:");
             threads.forEach(
-                thread -> logger.info(thread.toString() + ":\n" + Exceptions.formatStackTrace(thread.getStackTrace())));
+                thread -> logger.info("{}:%n{}", thread, Exceptions.formatStackTrace(thread.getStackTrace())));
             throw new RuntimeException(e);
         } finally {
             logger.info("--> terminating test");
@@ -289,8 +286,8 @@ public class ConcurrentSeqNoVersioningIT extends AbstractDisruptionTestCase {
                                 historyResponse.accept(historyOutput);
                                 // validate version and seqNo strictly increasing for successful CAS to avoid that overhead during
                                 // linearizability checking.
-                                assertThat(historyOutput.outputVersion, greaterThan(version));
-                                assertThat(historyOutput.outputVersion.seqNo, greaterThan(version.seqNo));
+                                assertThat(historyOutput.outputVersion).isGreaterThan(version);
+                                assertThat(historyOutput.outputVersion.seqNo).isGreaterThan(version.seqNo);
                             } else {
                                 // if we supplied an input version <= latest successful version, we can safely assume that any failed
                                 // operation will no longer be able to complete after the next successful write and we can therefore terminate

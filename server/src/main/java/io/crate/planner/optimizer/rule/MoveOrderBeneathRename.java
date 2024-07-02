@@ -26,18 +26,14 @@ import static io.crate.planner.optimizer.matcher.Patterns.source;
 
 import java.util.List;
 import java.util.function.Function;
-import java.util.function.UnaryOperator;
 
 import io.crate.analyze.OrderBy;
 import io.crate.expression.symbol.FieldReplacer;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.Order;
 import io.crate.planner.operators.Rename;
 import io.crate.planner.optimizer.Rule;
-import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
@@ -80,10 +76,7 @@ public final class MoveOrderBeneathRename implements Rule<Order> {
     @Override
     public LogicalPlan apply(Order plan,
                              Captures captures,
-                             PlanStats planStats,
-                             TransactionContext txnCtx,
-                             NodeContext nodeCtx,
-                             UnaryOperator<LogicalPlan> resolvePlan) {
+                             Rule.Context context) {
         Rename rename = captures.get(renameCapture);
         Function<? super Symbol, ? extends Symbol> mapField = FieldReplacer.bind(rename::resolveField);
         OrderBy mappedOrderBy = plan.orderBy().map(mapField);

@@ -24,10 +24,7 @@ package io.crate.metadata.settings.session;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.fail;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -122,7 +119,7 @@ public class SessionSettingRegistryTest extends ESTestCase {
     @Test
     public void test_search_path_session_setting() {
         SessionSetting<?> setting = new SessionSettingRegistry(Set.of(LoadedRules.INSTANCE)).settings().get("search_path");
-        assertThat(setting.defaultValue(),is("doc"));
+        assertThat(setting.defaultValue()).isEqualTo("doc");
         setting.apply(SESSION_SETTINGS, generateInput("a_schema"), EVAL);
         assertThat(setting.getValue(SESSION_SETTINGS)).isEqualTo("a_schema");
         setting.apply(SESSION_SETTINGS, generateInput("a_schema,  pg_catalog ,b_schema", " c_schema "), EVAL);
@@ -132,22 +129,22 @@ public class SessionSettingRegistryTest extends ESTestCase {
     @Test
     public void test_date_style_session_setting() {
         SessionSetting<?> setting = new SessionSettingRegistry(Set.of(LoadedRules.INSTANCE)).settings().get(SessionSettingRegistry.DATE_STYLE.name());
-        assertThat(setting.defaultValue(),is("ISO"));
+        assertThat(setting.defaultValue()).isEqualTo("ISO");
         setting.apply(SESSION_SETTINGS, generateInput("iso"), EVAL);
         assertThat(SESSION_SETTINGS.dateStyle()).isEqualTo("ISO");
         setting.apply(SESSION_SETTINGS, generateInput("MDY"), EVAL);
         assertThat(SESSION_SETTINGS.dateStyle()).isEqualTo("ISO");
         setting.apply(SESSION_SETTINGS, generateInput("ISO, MDY"), EVAL);
         assertThat(SESSION_SETTINGS.dateStyle()).isEqualTo("ISO");
-        assertThrows(IllegalArgumentException.class,
-                     () -> setting.apply(SESSION_SETTINGS, generateInput("ISO, YDM"), EVAL),
-                     "Invalid value for parameter \"datestyle\": \"YDM\". Valid values include: [\"ISO\"].");
-        assertThrows(IllegalArgumentException.class,
-                     () -> setting.apply(SESSION_SETTINGS, generateInput("German,ISO"), EVAL),
-                     "Invalid value for parameter \"datestyle\": \"GERMAN\". Valid values include: [\"ISO\"].");
-        assertThrows(IllegalArgumentException.class,
-                     () -> setting.apply(SESSION_SETTINGS, generateInput("SQL, MDY"), EVAL),
-                     "Invalid value for parameter \"datestyle\": \"SQL\". Valid values include: [\"ISO\"].");
+        assertThatThrownBy(() -> setting.apply(SESSION_SETTINGS, generateInput("ISO, YDM"), EVAL))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid value for parameter \"datestyle\": \"YDM\". Valid values include: [\"ISO\"].");
+        assertThatThrownBy(() -> setting.apply(SESSION_SETTINGS, generateInput("German,ISO"), EVAL))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid value for parameter \"datestyle\": \"GERMAN\". Valid values include: [\"ISO\"].");
+        assertThatThrownBy(() -> setting.apply(SESSION_SETTINGS, generateInput("SQL, MDY"), EVAL))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid value for parameter \"datestyle\": \"SQL\". Valid values include: [\"ISO\"].");
     }
 
     @Test

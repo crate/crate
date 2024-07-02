@@ -25,15 +25,10 @@ import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 import static io.crate.planner.optimizer.rule.Util.transpose;
 
-import java.util.function.UnaryOperator;
-
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.Limit;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.Rename;
 import io.crate.planner.optimizer.Rule;
-import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
@@ -57,10 +52,7 @@ public class MoveLimitBeneathRename implements Rule<Limit> {
     @Override
     public LogicalPlan apply(Limit limit,
                              Captures captures,
-                             PlanStats planStats,
-                             TransactionContext txnCtx,
-                             NodeContext nodeCtx,
-                             UnaryOperator<LogicalPlan> resolvePlan) {
+                             Rule.Context ruleContext) {
         Rename rename = captures.get(renameCapture);
         return transpose(limit, rename);
     }

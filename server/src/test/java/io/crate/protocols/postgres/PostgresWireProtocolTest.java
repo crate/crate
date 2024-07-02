@@ -23,8 +23,6 @@ package io.crate.protocols.postgres;
 
 import static io.crate.protocols.postgres.PostgresWireProtocol.PG_SERVER_VERSION;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.isOneOf;
-import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -441,7 +439,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
 
         // ...and continue unencrypted (no ssl handler)
         for (Map.Entry<String, ChannelHandler> entry : channel.pipeline()) {
-            assertThat(entry.getValue(), isOneOf(ctx.decoder, ctx.handler));
+            assertThat(entry.getValue()).isIn(ctx.decoder, ctx.handler);
         }
     }
 
