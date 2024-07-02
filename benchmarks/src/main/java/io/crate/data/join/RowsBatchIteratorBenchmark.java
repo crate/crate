@@ -197,7 +197,8 @@ public class RowsBatchIteratorBenchmark {
         RowCollectExpression input = new RowCollectExpression(0);
         BatchIterator<Row> batchIterator = WindowFunctionBatchIterator.of(
             new InMemoryBatchIterator<>(rows, SENTINEL, false),
-            ignored -> {},
+            _ -> {},
+            _ -> {},
             new NoRowAccounting<>(),
             (partitionStart, partitionEnd, currentIndex, sortedRows) -> 0,
             (partitionStart, partitionEnd, currentIndex, sortedRows) -> currentIndex,

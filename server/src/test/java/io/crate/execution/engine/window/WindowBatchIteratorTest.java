@@ -74,7 +74,8 @@ public class WindowBatchIteratorTest {
                 Comparator<Object[]> cmpOrderBy = OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 0, false, false);
                 return WindowFunctionBatchIterator.of(
                     TestingBatchIterators.range(0, 10),
-                    ignored -> {},
+                    _ -> {},
+                    _ -> {},
                     new IgnoreRowAccounting(),
                     getComputeFrameStart(cmpOrderBy, FrameBound.Type.UNBOUNDED_PRECEDING),
                     getComputeFrameEnd(cmpOrderBy, FrameBound.Type.CURRENT_ROW),
@@ -99,7 +100,8 @@ public class WindowBatchIteratorTest {
                 Comparator<Object[]> cmpOrderBy = OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 0, false, false);
                 return WindowFunctionBatchIterator.of(
                     new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 10), 4, 2, null),
-                    ignored -> {},
+                    _ -> {},
+                    _ -> {},
                     new IgnoreRowAccounting(),
                     getComputeFrameStart(cmpOrderBy, FrameBound.Type.UNBOUNDED_PRECEDING),
                     getComputeFrameEnd(cmpOrderBy, FrameBound.Type.CURRENT_ROW),
@@ -339,7 +341,8 @@ public class WindowBatchIteratorTest {
         RamAccounting ramAccounting = ConcurrentRamAccounting.forCircuitBreaker("test", new NoopCircuitBreaker("dummy"), 0);
         BatchIterator<Row> iterator = WindowFunctionBatchIterator.of(
             TestingBatchIterators.range(0, 10),
-            ignored -> {},
+            _ -> {},
+            _ -> {},
             new TypedRowAccounting(List.of(DataTypes.INTEGER), ramAccounting, 32),
             (_, _, _, _) -> 0,
             (_, _, currentIndex, _) -> currentIndex,

@@ -23,6 +23,7 @@ package io.crate.execution.engine.window;
 
 import static io.crate.analyze.SymbolEvaluator.evaluateWithoutParams;
 import static io.crate.execution.engine.sort.Comparators.createComparator;
+import static org.apache.lucene.util.RamUsageEstimator.NUM_BYTES_OBJECT_REF;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -32,6 +33,7 @@ import java.util.function.BiFunction;
 import java.util.function.IntSupplier;
 import java.util.function.Supplier;
 
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.jetbrains.annotations.Nullable;
 
@@ -155,6 +157,8 @@ public class WindowProjector {
         return sourceRows -> WindowFunctionBatchIterator.of(
             sourceRows,
             ramAccounting::addBytes,
+            // Same as RamUsageEstimator.shallowSizeOf(array) but without NUM_BYTES_ARRAY_HEADER as we are accounting only for expansion.
+            (deltaLength) -> ramAccounting.addBytes(RamUsageEstimator.alignObjectSize((long) NUM_BYTES_OBJECT_REF * deltaLength)),
             accounting,
             computeFrameStart,
             computeFrameEnd,

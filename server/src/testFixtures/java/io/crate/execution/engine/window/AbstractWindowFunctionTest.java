@@ -173,6 +173,7 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
             InMemoryBatchIterator.of(Arrays.stream(inputRows).map(RowN::new).toList(), SENTINEL,
                 true),
             allocateBytes,
+            _ -> {}, // TODO: add tests
             new IgnoreRowAccounting(),
             WindowProjector.createComputeStartFrameBoundary(numCellsInSourceRows, txnCtx, sqlExpressions.nodeCtx, mappedWindowDef, cmpOrderBy),
             WindowProjector.createComputeEndFrameBoundary(numCellsInSourceRows, txnCtx, sqlExpressions.nodeCtx, mappedWindowDef, cmpOrderBy),
