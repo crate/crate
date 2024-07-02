@@ -22,20 +22,16 @@
 package io.crate.monitor;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.core.AnyOf.anyOf;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
 import java.util.List;
 
 import org.elasticsearch.test.ESTestCase;
-import org.hamcrest.core.AnyOf;
 import org.junit.Test;
 
 public class SysInfoUtilTest extends ESTestCase {
 
     private static final SysInfo.Builder SYSINFO_BUILDER = new SysInfo.Builder();
-    private static final AnyOf<String> X86_64 = anyOf(is("x86_64"), is("amd64"), is("x64"));
+    private static final String[] X86_64 = new String[] {"x86_64", "amd64", "x64"};
 
     private void assertVendorVersionFromGenericLine(String line, String expectedVersionString) {
         SysInfo sysInfo = new SysInfo();
@@ -62,7 +58,7 @@ public class SysInfoUtilTest extends ESTestCase {
             .gather();
         assertThat(sysInfo.arch()).isEqualTo("x86_64");
         assertThat(sysInfo.description()).isEqualTo("Microsoft Windows 10");
-        assertThat(sysInfo.machine(), X86_64);
+        assertThat(sysInfo.machine()).isIn(X86_64);
         assertThat(sysInfo.name()).isEqualTo("Win32");
         assertThat(sysInfo.patchLevel()).isEqualTo("");
         assertThat(sysInfo.vendor()).isEqualTo("Microsoft");
@@ -81,7 +77,7 @@ public class SysInfoUtilTest extends ESTestCase {
             .gather();
         assertThat(sysInfo.arch()).isEqualTo("x86_64");
         assertThat(sysInfo.description()).isEqualTo("Mac OS X (Sierra)");
-        assertThat(sysInfo.machine(), X86_64);
+        assertThat(sysInfo.machine()).isIn(X86_64);
         assertThat(sysInfo.name()).isEqualTo("MacOSX");
         assertThat(sysInfo.patchLevel()).isEqualTo("");
         assertThat(sysInfo.vendor()).isEqualTo("Apple");
@@ -100,7 +96,7 @@ public class SysInfoUtilTest extends ESTestCase {
             .gather();
         assertThat(sysInfo.arch()).isEqualTo("x86_64");
         assertThat(sysInfo.description()).isEqualTo("Mac OS X (Sierra)");
-        assertThat(sysInfo.machine(), X86_64);
+        assertThat(sysInfo.machine()).isIn(X86_64);
         assertThat(sysInfo.name()).isEqualTo("MacOSX");
         assertThat(sysInfo.patchLevel()).isEqualTo("");
         assertThat(sysInfo.vendor()).isEqualTo("Apple");
@@ -147,6 +143,6 @@ public class SysInfoUtilTest extends ESTestCase {
     public void testFailedSysCall() {
         // by default sys call filter is enabled, so any Runtime.getRuntime().exec(...) will fail
         List<String> result = SysInfo.sysCall(new String[]{"undefined"}, "default");
-        assertThat(result.get(0)).isEqualTo("default");
+        assertThat(result.getFirst()).isEqualTo("default");
     }
 }
