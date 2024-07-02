@@ -23,12 +23,8 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.SQLTransportExecutor.REQUEST_TIMEOUT;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.indices.ShardLimitValidator.SETTING_CLUSTER_MAX_SHARDS_PER_NODE;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -349,7 +345,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
                 nodes.remove(nodeName);
                 logger.info("--> stopped node[{}], remaining nodes {}", nodeName, nodes);
                 assert nodes.size() > 0;
-                final String otherNode = nodes.get(0);
+                final String otherNode = nodes.getFirst();
                 logger.info("--> delete index and verify it is deleted");
                 var clientProvider = new SQLTransportExecutor.ClientProvider() {
                     @Override
@@ -463,11 +459,11 @@ public class GatewayIndexStateIT extends IntegTestCase {
                 .get()
                 .getState().routingTable();
             final IndexRoutingTable indexRoutingTable = routingTable.index(tableName);
-            assertNotNull(indexRoutingTable);
+            assertThat(indexRoutingTable).isNotNull();
             for (IndexShardRoutingTable shardRoutingTable : indexRoutingTable) {
                 assertThat(shardRoutingTable.primaryShard().unassigned()).isTrue();
                 assertThat(shardRoutingTable.primaryShard().unassignedInfo().getLastAllocationStatus()).isEqualTo(UnassignedInfo.AllocationStatus.DECIDERS_NO);
-                assertThat(shardRoutingTable.primaryShard().unassignedInfo().getNumFailedAllocations(), greaterThan(0));
+                assertThat(shardRoutingTable.primaryShard().unassignedInfo().getNumFailedAllocations()).isGreaterThan(0);
             }
         }, 60, TimeUnit.SECONDS);
         execute("alter table test close");
@@ -529,9 +525,9 @@ public class GatewayIndexStateIT extends IntegTestCase {
         ).get(REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS);
 
         state = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
-        assertNull(state.metadata().persistentSettings().get("archived.this.is.unknown"));
-        assertNull(state.metadata().persistentSettings().get("archived."
-            + SETTING_CLUSTER_MAX_SHARDS_PER_NODE.getKey()));
+        assertThat(state.metadata().persistentSettings().get("archived.this.is.unknown")).isNull();
+        assertThat(state.metadata().persistentSettings().get("archived."
+            + SETTING_CLUSTER_MAX_SHARDS_PER_NODE.getKey())).isNull();
         execute("select id from test");
         assertThat(response.rowCount()).isEqualTo(1L);
     }

@@ -20,11 +20,7 @@
 package org.elasticsearch.index.seqno;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.emptyCollectionOf;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.io.Closeable;
 import java.util.ArrayList;
@@ -60,7 +56,6 @@ import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.AbstractSimpleTransportTestCase;
 import org.elasticsearch.transport.TransportService;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Test;
 
@@ -234,8 +229,10 @@ public class RetentionLeaseIT extends IntegTestCase  {
                 final IndexShard replica = cluster()
                         .getInstance(IndicesService.class, replicaShardNodeName)
                         .getShardOrNull(new ShardId(resolveIndex("tbl"), 0));
-                assertThat(RetentionLeaseUtils.toMapExcludingPeerRecoveryRetentionLeases(replica.getRetentionLeases()).values(),
-                           Matchers.anyOf(contains(currentRetentionLease), emptyCollectionOf(RetentionLease.class)));
+                assertThat(RetentionLeaseUtils.toMapExcludingPeerRecoveryRetentionLeases(replica.getRetentionLeases()))
+                    .satisfiesAnyOf(
+                        l -> assertThat(l).containsValue(currentRetentionLease),
+                        l -> assertThat(l).isEmpty());
             }
 
             // update the index for retention leases to short a long time, to force expiration
@@ -245,7 +242,8 @@ public class RetentionLeaseIT extends IntegTestCase  {
             final long later = System.nanoTime();
             Thread.sleep(Math.max(0, retentionLeaseTimeToLive.millis() - TimeUnit.NANOSECONDS.toMillis(later - now)));
             assertBusy(() -> assertThat(
-                RetentionLeaseUtils.toMapExcludingPeerRecoveryRetentionLeases(primary.getRetentionLeases()).entrySet(), empty()));
+                RetentionLeaseUtils.toMapExcludingPeerRecoveryRetentionLeases(primary.getRetentionLeases()).entrySet())
+                    .isEmpty());
 
             // now that all retention leases are expired should have been synced to all replicas
             assertBusy(() -> {
@@ -257,7 +255,8 @@ public class RetentionLeaseIT extends IntegTestCase  {
                         .getShardOrNull(new ShardId(resolveIndex("tbl"), 0));
 
                     assertThat(
-                        RetentionLeaseUtils.toMapExcludingPeerRecoveryRetentionLeases(replica.getRetentionLeases()).entrySet(), empty());
+                        RetentionLeaseUtils.toMapExcludingPeerRecoveryRetentionLeases(replica.getRetentionLeases()).entrySet())
+                            .isEmpty();
                 }
             });
         }
@@ -440,8 +439,8 @@ public class RetentionLeaseIT extends IntegTestCase  {
                          * implies that the background sync was able to execute under a block.
                          */
                         assertBusy(() -> assertThat(
-                            RetentionLeaseUtils.toMapExcludingPeerRecoveryRetentionLeases(primary.loadRetentionLeases()).values(),
-                            contains(retentionLease.get())));
+                            RetentionLeaseUtils.toMapExcludingPeerRecoveryRetentionLeases(primary.loadRetentionLeases()).values())
+                                .containsExactly(retentionLease.get()));
                     } catch (final Exception e) {
                         fail(e.toString());
                     }
@@ -554,8 +553,8 @@ public class RetentionLeaseIT extends IntegTestCase  {
                          * implies that the background sync was able to execute despite wait for shards being set on the index.
                          */
                         assertBusy(() -> assertThat(
-                            RetentionLeaseUtils.toMapExcludingPeerRecoveryRetentionLeases(primary.loadRetentionLeases()).values(),
-                            contains(retentionLease.get())));
+                            RetentionLeaseUtils.toMapExcludingPeerRecoveryRetentionLeases(primary.loadRetentionLeases()).values())
+                                .contains(retentionLease.get()));
                     } catch (final Exception e) {
                         fail(e.toString());
                     }

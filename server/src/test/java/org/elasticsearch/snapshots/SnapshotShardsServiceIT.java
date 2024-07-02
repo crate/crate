@@ -21,9 +21,6 @@ package org.elasticsearch.snapshots;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.everyItem;
-import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -109,7 +106,7 @@ public class SnapshotShardsServiceIT extends AbstractSnapshotIntegTestCase {
             List<IndexShardSnapshotStatus.Stage> stages = snapshotShardsService.currentSnapshotShards(snapshot)
                 .values().stream().map(status -> status.asCopy().getStage()).collect(Collectors.toList());
             assertThat(stages).hasSize(shards);
-            assertThat(stages, everyItem(equalTo(IndexShardSnapshotStatus.Stage.DONE)));
+            assertThat(stages).allSatisfy(s -> assertThat(s).isEqualTo(IndexShardSnapshotStatus.Stage.DONE));
         }, 30L, TimeUnit.SECONDS);
 
         logger.info("--> stop disrupting cluster");

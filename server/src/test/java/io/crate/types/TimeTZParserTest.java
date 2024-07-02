@@ -24,8 +24,8 @@ package io.crate.types;
 import static io.crate.types.TimeTZParser.parse;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+
+import java.util.function.Consumer;
 
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
@@ -33,36 +33,36 @@ import org.junit.Test;
 
 public class TimeTZParserTest extends ESTestCase {
 
-    private static org.hamcrest.Matcher<TimeTZ> isTZ(long value, int zoneOffset) {
-        return is(new TimeTZ(value, zoneOffset));
+    private static Consumer<TimeTZ> isTZ(long value, int zoneOffset) {
+        return timeTZ -> assertThat(timeTZ).isEqualTo(new TimeTZ(value, zoneOffset));
     }
 
     @Test
     public void test_parse_time_correct_syntax_no_colon() {
-        assertThat(parse("12"), isTZ(43200000000L, 0));
-        assertThat(parse("12.000001"), isTZ(43200000001L, 0));
-        assertThat(parse("1200"), isTZ(43200000000L, 0));
-        assertThat(parse("1200.002"), isTZ(43200002000L, 0));
-        assertThat(parse("120000"), isTZ(43200000000L, 0));
-        assertThat(parse("120000.000003"), isTZ(43200000003L, 0));
+        assertThat(parse("12")).satisfies(isTZ(43200000000L, 0));
+        assertThat(parse("12.000001")).satisfies(isTZ(43200000001L, 0));
+        assertThat(parse("1200")).satisfies(isTZ(43200000000L, 0));
+        assertThat(parse("1200.002")).satisfies(isTZ(43200002000L, 0));
+        assertThat(parse("120000")).satisfies(isTZ(43200000000L, 0));
+        assertThat(parse("120000.000003")).satisfies(isTZ(43200000003L, 0));
     }
 
     @Test
     public void test_parse_time_correct_syntax_colon() {
-        assertThat(parse("12:00"), isTZ(43200000000L, 0));
-        assertThat(parse("12:00.999"), isTZ(43200999000L, 0));
-        assertThat(parse("12:00:00"), isTZ(43200000000L, 0));
-        assertThat(parse("12:00:00.003"), isTZ(43200003000L, 0));
+        assertThat(parse("12:00")).satisfies(isTZ(43200000000L, 0));
+        assertThat(parse("12:00.999")).satisfies(isTZ(43200999000L, 0));
+        assertThat(parse("12:00:00")).satisfies(isTZ(43200000000L, 0));
+        assertThat(parse("12:00:00.003")).satisfies(isTZ(43200003000L, 0));
     }
 
     @Test
     public void test_parse_time_correct_syntax_tz() {
-        assertThat(parse("00+12"), isTZ(0L, 12 * 3600));
-        assertThat(parse("00+1200"), isTZ(0L, 12 * 3600));
-        assertThat(parse("00-12:00"), isTZ(0L, -12 * 3600));
-        assertThat(parse("00.0+12"), isTZ(0L, 12 * 3600));
-        assertThat(parse("00.0+1200"), isTZ(0L, 12 * 3600));
-        assertThat(parse("00.000001  +12:00"), isTZ(1L, 12 * 3600));
+        assertThat(parse("00+12")).satisfies(isTZ(0L, 12 * 3600));
+        assertThat(parse("00+1200")).satisfies(isTZ(0L, 12 * 3600));
+        assertThat(parse("00-12:00")).satisfies(isTZ(0L, -12 * 3600));
+        assertThat(parse("00.0+12")).satisfies(isTZ(0L, 12 * 3600));
+        assertThat(parse("00.0+1200")).satisfies(isTZ(0L, 12 * 3600));
+        assertThat(parse("00.000001  +12:00")).satisfies(isTZ(1L, 12 * 3600));
     }
 
     @Test
@@ -130,7 +130,7 @@ public class TimeTZParserTest extends ESTestCase {
 
     @Test
     public void test_parse_time() {
-        assertThat(parse("04"), isTZ(4 * 60 * 60 * 1000_000L, 0));
+        assertThat(parse("04")).satisfies(isTZ(4 * 60 * 60 * 1000_000L, 0));
         assertThat(parse("0400")).isEqualTo(parse("04"));
         assertThat(parse("04:00")).isEqualTo(parse("04"));
         assertThat(parse("040000")).isEqualTo(parse("04"));

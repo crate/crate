@@ -20,11 +20,7 @@
 package org.elasticsearch.cluster.node;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -69,7 +65,7 @@ public class DiscoveryNodesTests extends ESTestCase {
             if (matchingNodeIds.size() == 0) {
                 assertThat(e.getMessage()).isEqualTo("failed to resolve [" + nodeSelector.selector + "], no matching nodes");
             } else if (matchingNodeIds.size() > 1) {
-                assertThat(e.getMessage(), containsString("where expected to be resolved to a single node"));
+                assertThat(e.getMessage()).contains("where expected to be resolved to a single node");
             } else {
                 fail("resolveNode shouldn't have failed for [" + nodeSelector.selector + "]");
             }
@@ -81,9 +77,9 @@ public class DiscoveryNodesTests extends ESTestCase {
 
         final String[] allNodes =
                 StreamSupport.stream(discoveryNodes.spliterator(), false).map(DiscoveryNode::getId).toArray(String[]::new);
-        assertThat(discoveryNodes.resolveNodes(), arrayContainingInAnyOrder(allNodes));
-        assertThat(discoveryNodes.resolveNodes(new String[0]), arrayContainingInAnyOrder(allNodes));
-        assertThat(discoveryNodes.resolveNodes("_all"), arrayContainingInAnyOrder(allNodes));
+        assertThat(discoveryNodes.resolveNodes()).containsExactlyInAnyOrder(allNodes);
+        assertThat(discoveryNodes.resolveNodes(new String[0])).containsExactlyInAnyOrder(allNodes);
+        assertThat(discoveryNodes.resolveNodes("_all")).containsExactlyInAnyOrder(allNodes);
 
         final String[] nonMasterNodes =
                 StreamSupport.stream(discoveryNodes.getNodes().values().spliterator(), false)
@@ -91,9 +87,9 @@ public class DiscoveryNodesTests extends ESTestCase {
                         .filter(n -> n.isMasterEligibleNode() == false)
                         .map(DiscoveryNode::getId)
                         .toArray(String[]::new);
-        assertThat(discoveryNodes.resolveNodes("_all", "master:false"), arrayContainingInAnyOrder(nonMasterNodes));
+        assertThat(discoveryNodes.resolveNodes("_all", "master:false")).containsExactlyInAnyOrder(nonMasterNodes);
 
-        assertThat(discoveryNodes.resolveNodes("master:false", "_all"), arrayContainingInAnyOrder(allNodes));
+        assertThat(discoveryNodes.resolveNodes("master:false", "_all")).containsExactlyInAnyOrder(allNodes);
     }
 
     public void testCoordinatorOnlyNodes() {
@@ -113,10 +109,10 @@ public class DiscoveryNodesTests extends ESTestCase {
                     .map(DiscoveryNode::getId)
                     .toArray(String[]::new);
 
-        assertThat(discoveryNodes.resolveNodes("coordinating_only:true"), arrayContainingInAnyOrder(coordinatorOnlyNodes));
-        assertThat(discoveryNodes.resolveNodes("_all", "data:false", "ingest:false", "master:false"),
-            arrayContainingInAnyOrder(coordinatorOnlyNodes));
-        assertThat(discoveryNodes.resolveNodes("_all", "coordinating_only:false"), arrayContainingInAnyOrder(nonCoordinatorOnlyNodes));
+        assertThat(discoveryNodes.resolveNodes("coordinating_only:true")).containsExactlyInAnyOrder(coordinatorOnlyNodes);
+        assertThat(discoveryNodes.resolveNodes("_all", "data:false", "ingest:false", "master:false"))
+            .containsExactlyInAnyOrder(coordinatorOnlyNodes);
+        assertThat(discoveryNodes.resolveNodes("_all", "coordinating_only:false")).containsExactlyInAnyOrder(nonCoordinatorOnlyNodes);
     }
 
     public void testResolveNodesIds() {
@@ -224,13 +220,13 @@ public class DiscoveryNodesTests extends ESTestCase {
         Set<DiscoveryNode> newNodes = new HashSet<>(nodesB);
         newNodes.removeAll(nodesA);
         assertThat(delta.added()).isEqualTo(newNodes.isEmpty() == false);
-        assertThat(delta.addedNodes(), containsInAnyOrder(newNodes.stream().toList().toArray()));
+        assertThat(delta.addedNodes()).containsExactlyInAnyOrder(newNodes.toArray(new DiscoveryNode[]{}));
         assertThat(delta.addedNodes()).hasSize(newNodes.size());
 
         Set<DiscoveryNode> removedNodes = new HashSet<>(nodesA);
         removedNodes.removeAll(nodesB);
         assertThat(delta.removed()).isEqualTo(removedNodes.isEmpty() == false);
-        assertThat(delta.removedNodes(), containsInAnyOrder(removedNodes.stream().toList().toArray()));
+        assertThat(delta.removedNodes()).containsExactlyInAnyOrder(removedNodes.toArray(new DiscoveryNode[]{}));
         assertThat(delta.removedNodes()).hasSize(removedNodes.size());
     }
 

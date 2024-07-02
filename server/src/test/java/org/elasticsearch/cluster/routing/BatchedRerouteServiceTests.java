@@ -19,9 +19,7 @@
 package org.elasticsearch.cluster.routing;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.lessThan;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -83,7 +81,7 @@ public class BatchedRerouteServiceTests extends ESTestCase {
                 ActionListener.wrap(countDownLatch::countDown));
         }
         countDownLatch.await(10, TimeUnit.SECONDS);
-        assertThat(rerouteCountBeforeReroute, lessThan(rerouteCount.get()));
+        assertThat(rerouteCountBeforeReroute).isLessThan(rerouteCount.get());
     }
 
     public void testBatchesReroutesTogetherAtPriorityOfHighestSubmittedReroute() throws BrokenBarrierException, InterruptedException {

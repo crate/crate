@@ -20,9 +20,6 @@ package org.elasticsearch.env;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -118,12 +115,12 @@ public class OverrideNodeVersionCommandTests extends ESTestCase {
             new OverrideNodeVersionCommand().processNodePaths(mockTerminal, nodePaths, noOptions, environment)
         ).isExactlyInstanceOf(ElasticsearchException.class)
             .hasMessage("aborted by user");
-        assertThat(mockTerminal.getOutput(), allOf(
-            containsString("too old"),
-            containsString("data loss"),
-            containsString("You should not use this tool"),
-            containsString(Version.CURRENT.toString()),
-            containsString(nodeVersion.toString())));
+        assertThat(mockTerminal.getOutput())
+            .contains("too old")
+            .contains("data loss")
+            .contains("You should not use this tool")
+            .contains(Version.CURRENT.toString())
+            .contains(nodeVersion.toString());
         assertThatThrownBy(() -> mockTerminal.readText(""))
             .isExactlyInstanceOf(IllegalStateException.class);
 
@@ -141,11 +138,11 @@ public class OverrideNodeVersionCommandTests extends ESTestCase {
             new OverrideNodeVersionCommand().processNodePaths(mockTerminal, nodePaths, noOptions, environment)
         ).isExactlyInstanceOf(ElasticsearchException.class)
             .hasMessage("aborted by user");
-        assertThat(mockTerminal.getOutput(), allOf(
-            containsString("data loss"),
-            containsString("You should not use this tool"),
-            containsString(Version.CURRENT.toString()),
-            containsString(nodeVersion.toString())));
+        assertThat(mockTerminal.getOutput())
+            .contains("data loss")
+            .contains("You should not use this tool")
+            .contains(Version.CURRENT.toString())
+            .contains(nodeVersion.toString());
         assertThatThrownBy(() -> mockTerminal.readText(""))
             .isExactlyInstanceOf(IllegalStateException.class);
 
@@ -160,13 +157,13 @@ public class OverrideNodeVersionCommandTests extends ESTestCase {
         final MockTerminal mockTerminal = new MockTerminal();
         mockTerminal.addTextInput(randomFrom("y", "Y"));
         new OverrideNodeVersionCommand().processNodePaths(mockTerminal, nodePaths, noOptions, environment);
-        assertThat(mockTerminal.getOutput(), allOf(
-            containsString("too old"),
-            containsString("data loss"),
-            containsString("You should not use this tool"),
-            containsString(Version.CURRENT.toString()),
-            containsString(nodeVersion.toString()),
-            containsString(OverrideNodeVersionCommand.SUCCESS_MESSAGE)));
+        assertThat(mockTerminal.getOutput())
+            .contains("too old")
+            .contains("data loss")
+            .contains("You should not use this tool")
+            .contains(Version.CURRENT.toString())
+            .contains(nodeVersion.toString())
+            .contains(OverrideNodeVersionCommand.SUCCESS_MESSAGE);
         assertThatThrownBy(() -> mockTerminal.readText(""))
             .isExactlyInstanceOf(IllegalStateException.class);
 
@@ -181,12 +178,12 @@ public class OverrideNodeVersionCommandTests extends ESTestCase {
         final MockTerminal mockTerminal = new MockTerminal();
         mockTerminal.addTextInput(randomFrom("y", "Y"));
         new OverrideNodeVersionCommand().processNodePaths(mockTerminal, nodePaths, noOptions, environment);
-        assertThat(mockTerminal.getOutput(), allOf(
-            containsString("data loss"),
-            containsString("You should not use this tool"),
-            containsString(Version.CURRENT.toString()),
-            containsString(nodeVersion.toString()),
-            containsString(OverrideNodeVersionCommand.SUCCESS_MESSAGE)));
+        assertThat(mockTerminal.getOutput())
+            .contains("data loss")
+            .contains("You should not use this tool")
+            .contains(Version.CURRENT.toString())
+            .contains(nodeVersion.toString())
+            .contains(OverrideNodeVersionCommand.SUCCESS_MESSAGE);
         assertThatThrownBy(() -> mockTerminal.readText(""))
             .isExactlyInstanceOf(IllegalStateException.class);
 
