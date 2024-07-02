@@ -23,8 +23,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.index.seqno.SequenceNumbers.NO_OPS_PERFORMED;
 import static org.elasticsearch.index.translog.TranslogDeletionPolicies.createTranslogDeletionPolicy;
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -148,7 +146,7 @@ public class CombinedDeletionPolicyTests extends ESTestCase {
                 assertThat(indexPolicy.releaseCommit(snapshot)).isEqualTo(pendingSnapshots == 0 && snapshot.equals(lastCommit) == false && snapshot.equals(safeCommit) == false);
             }
             // Snapshotting commits must not be deleted.
-            snapshottingCommits.forEach(snapshot -> assertThat(snapshot.isDeleted(), equalTo(false)));
+            snapshottingCommits.forEach(snapshot -> assertThat(snapshot.isDeleted()).isFalse());
             // We don't need to retain translog for snapshotting commits.
             assertThat(translogPolicy.getLocalCheckpointOfSafeCommit()).isEqualTo(getLocalCheckpoint(commitList.get(safeIndex)));
             assertThat(softDeletesPolicy.getMinRetainedSeqNo()).isEqualTo(

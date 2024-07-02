@@ -19,12 +19,9 @@
 package org.elasticsearch.action.admin.cluster.state;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider.CLUSTER_ROUTING_REBALANCE_ENABLE_SETTING;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -59,6 +56,7 @@ public class TransportClusterStateActionDisruptionIT extends IntegTestCase {
         return Collections.singletonList(MockTransportService.TestPlugin.class);
     }
 
+    @Test
     public void testNonLocalRequestAlwaysFindsMaster() throws Exception {
         runRepeatedlyWhileChangingMaster(() -> {
             ClusterStateRequest request = new ClusterStateRequest()
@@ -71,10 +69,13 @@ public class TransportClusterStateActionDisruptionIT extends IntegTestCase {
             } catch (MasterNotDiscoveredException e) {
                 return; // ok, we hit the disconnected node
             }
-            assertNotNull("should always contain a master node", clusterStateResponse.getState().nodes().getMasterNodeId());
+            assertThat(clusterStateResponse.getState().nodes().getMasterNodeId())
+                .as("should always contain a master node")
+                .isNotNull();
         });
     }
 
+    @Test
     public void testLocalRequestAlwaysSucceeds() throws Exception {
         runRepeatedlyWhileChangingMaster(() -> {
             final String node = randomFrom(cluster().getNodeNames());
@@ -117,12 +118,17 @@ public class TransportClusterStateActionDisruptionIT extends IntegTestCase {
             }
             if (clusterStateResponse.isWaitForTimedOut() == false) {
                 final ClusterState state = clusterStateResponse.getState();
-                assertNotNull("should always contain a master node", state.nodes().getMasterNodeId());
-                assertThat("waited for metadata version", state.metadata().version(), greaterThanOrEqualTo(waitForMetadataVersion));
+                assertThat(state.nodes().getMasterNodeId())
+                    .as("should always contain a master node")
+                    .isNotNull();
+                assertThat(state.metadata().version())
+                    .as("waited for metadata version")
+                    .isGreaterThanOrEqualTo(waitForMetadataVersion);
             }
         });
     }
 
+    @Test
     public void testLocalRequestWaitsForMetadata() throws Exception {
         runRepeatedlyWhileChangingMaster(() -> {
             final String node = randomFrom(cluster().getNodeNames());
@@ -141,8 +147,7 @@ public class TransportClusterStateActionDisruptionIT extends IntegTestCase {
                 ));
             if (clusterStateResponse.isWaitForTimedOut() == false) {
                 final Metadata metadata = clusterStateResponse.getState().metadata();
-                assertThat("waited for metadata version " + waitForMetadataVersion + " with node " + node,
-                    metadata.version(), greaterThanOrEqualTo(waitForMetadataVersion));
+                assertThat(metadata.version()).isGreaterThanOrEqualTo(waitForMetadataVersion);
             }
         });
     }
@@ -215,5 +220,4 @@ public class TransportClusterStateActionDisruptionIT extends IntegTestCase {
         updatingThread.join();
         cluster().close();
     }
-
 }

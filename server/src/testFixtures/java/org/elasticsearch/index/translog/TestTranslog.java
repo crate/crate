@@ -22,8 +22,6 @@ package org.elasticsearch.index.translog;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.index.translog.Translog.CHECKPOINT_FILE_NAME;
 import static org.elasticsearch.index.translog.Translog.TRANSLOG_FILE_SUFFIX;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.greaterThan;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -147,9 +145,13 @@ public class TestTranslog {
      * to a random (strictly shorter) length, or by deleting the file.
      */
     static void corruptFile(Logger logger, Random random, Path fileToCorrupt, boolean maybeDelete) throws IOException {
-        assertThat(fileToCorrupt + " should be a regular file", Files.isRegularFile(fileToCorrupt));
+        assertThat(Files.isRegularFile(fileToCorrupt))
+            .as(fileToCorrupt + " should be a regular file")
+            .isTrue();
         final long fileSize = Files.size(fileToCorrupt);
-        assertThat(fileToCorrupt + " should not be an empty file", fileSize, greaterThan(0L));
+        assertThat(fileSize)
+            .as(fileToCorrupt + " should not be an empty file")
+            .isGreaterThan(0L);
 
         if (maybeDelete && random.nextBoolean() && random.nextBoolean()) {
             logger.info("corruptFile: deleting file {}", fileToCorrupt);

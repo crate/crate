@@ -21,9 +21,6 @@ package org.elasticsearch.index.translog;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertThat;
 
 import java.nio.channels.FileChannel;
 import java.nio.file.Path;
@@ -69,9 +66,12 @@ public class TranslogHeaderTests extends ESTestCase {
                 throw new TranslogCorruptedException(translogFile.toString(), "adjusted translog version");
             } catch (IllegalStateException e) {
                 // corruption corrupted the version byte making this look like a v2, v1 or v0 translog
-                assertThat("version " + TranslogHeader.VERSION_CHECKPOINTS + "-or-earlier translog",
-                    e.getMessage(), anyOf(containsString("pre-2.0 translog found"), containsString("pre-1.4 translog found"),
-                        containsString("pre-6.3 translog found")));
+                assertThat(e.getMessage())
+                    .as("version " + TranslogHeader.VERSION_CHECKPOINTS + "-or-earlier translog")
+                    .satisfiesAnyOf(
+                        m -> assertThat(m).contains("pre-1.4 translog found"),
+                        m -> assertThat(m).contains("pre-2.0 translog found"),
+                        m -> assertThat(m).contains("pre-6.3 translog found"));
                 throw new TranslogCorruptedException(translogFile.toString(), "adjusted translog version", e);
             }
         }).isExactlyInstanceOf(TranslogCorruptedException.class)

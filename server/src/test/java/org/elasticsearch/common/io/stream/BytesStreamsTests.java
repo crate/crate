@@ -21,11 +21,6 @@ package org.elasticsearch.common.io.stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.closeTo;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -45,6 +40,7 @@ import java.util.stream.IntStream;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.Constants;
+import org.assertj.core.data.Offset;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
@@ -82,7 +78,7 @@ public class BytesStreamsTests extends ESTestCase {
         // write single byte
         out.writeByte(expectedData[0]);
         assertThat(out.size()).isEqualTo(expectedSize);
-        assertArrayEquals(expectedData, BytesReference.toBytes(out.bytes()));
+        assertThat(BytesReference.toBytes(out.bytes())).isEqualTo(expectedData);
 
         out.close();
     }
@@ -99,7 +95,7 @@ public class BytesStreamsTests extends ESTestCase {
         }
 
         assertThat(out.size()).isEqualTo(expectedSize);
-        assertArrayEquals(expectedData, BytesReference.toBytes(out.bytes()));
+        assertThat(BytesReference.toBytes(out.bytes())).isEqualTo(expectedData);
 
         out.close();
     }
@@ -121,14 +117,14 @@ public class BytesStreamsTests extends ESTestCase {
         byte[] expectedData = randomizedByteArrayWithSize(expectedSize);
         out.writeBytes(expectedData);
         assertThat(out.size()).isEqualTo(expectedSize);
-        assertArrayEquals(expectedData, BytesReference.toBytes(out.bytes()));
+        assertThat(BytesReference.toBytes(out.bytes())).isEqualTo(expectedData);
 
         // bulk-write again with actual bytes
         expectedSize = 10;
         expectedData = randomizedByteArrayWithSize(expectedSize);
         out.writeBytes(expectedData);
         assertThat(out.size()).isEqualTo(expectedSize);
-        assertArrayEquals(expectedData, BytesReference.toBytes(out.bytes()));
+        assertThat(BytesReference.toBytes(out.bytes())).isEqualTo(expectedData);
 
         out.close();
     }
@@ -143,7 +139,7 @@ public class BytesStreamsTests extends ESTestCase {
         out.writeBytes(expectedData);
 
         assertThat(out.size()).isEqualTo(expectedSize);
-        assertArrayEquals(expectedData, BytesReference.toBytes(out.bytes()));
+        assertThat(BytesReference.toBytes(out.bytes())).isEqualTo(expectedData);
 
         out.close();
     }
@@ -162,7 +158,7 @@ public class BytesStreamsTests extends ESTestCase {
         // now write the rest - more than fits into the remaining first page
         out.writeBytes(expectedData, initialOffset, additionalLength);
         assertThat(out.size()).isEqualTo(expectedData.length);
-        assertArrayEquals(expectedData, BytesReference.toBytes(out.bytes()));
+        assertThat(BytesReference.toBytes(out.bytes())).isEqualTo(expectedData);
 
         out.close();
     }
@@ -181,7 +177,7 @@ public class BytesStreamsTests extends ESTestCase {
         // ie. we cross over into a third
         out.writeBytes(expectedData, initialOffset, additionalLength);
         assertThat(out.size()).isEqualTo(expectedData.length);
-        assertArrayEquals(expectedData, BytesReference.toBytes(out.bytes()));
+        assertThat(BytesReference.toBytes(out.bytes())).isEqualTo(expectedData);
 
         out.close();
     }
@@ -198,7 +194,7 @@ public class BytesStreamsTests extends ESTestCase {
         }
 
         assertThat(out.size()).isEqualTo(expectedSize);
-        assertArrayEquals(expectedData, BytesReference.toBytes(out.bytes()));
+        assertThat(BytesReference.toBytes(out.bytes())).isEqualTo(expectedData);
 
         out.close();
     }
@@ -215,7 +211,7 @@ public class BytesStreamsTests extends ESTestCase {
         }
 
         assertThat(out.size()).isEqualTo(expectedSize);
-        assertArrayEquals(expectedData, BytesReference.toBytes(out.bytes()));
+        assertThat(BytesReference.toBytes(out.bytes())).isEqualTo(expectedData);
 
         out.close();
     }
@@ -232,7 +228,7 @@ public class BytesStreamsTests extends ESTestCase {
         }
 
         assertThat(out.size()).isEqualTo(expectedSize);
-        assertArrayEquals(expectedData, BytesReference.toBytes(out.bytes()));
+        assertThat(BytesReference.toBytes(out.bytes())).isEqualTo(expectedData);
 
         out.close();
     }
@@ -324,8 +320,8 @@ public class BytesStreamsTests extends ESTestCase {
         assertThat(in.readLong()).isEqualTo(-3L);
         assertThat(in.readVLong()).isEqualTo(4L);
         assertThat(in.readOptionalLong()).isEqualTo(11234234L);
-        assertThat((double)in.readFloat(), closeTo(1.1, 0.0001));
-        assertThat(in.readDouble(), closeTo(2.2, 0.0001));
+        assertThat((double)in.readFloat()).isCloseTo(1.1, Offset.offset(0.0001));
+        assertThat(in.readDouble()).isCloseTo(2.2, Offset.offset(0.0001));
         assertThat(in.readGenericValue()).isEqualTo((Object) intArray);
         assertThat(in.readVIntArray()).isEqualTo(vIntArray);
         assertThat(in.readGenericValue()).isEqualTo((Object)longArray);
@@ -338,11 +334,11 @@ public class BytesStreamsTests extends ESTestCase {
         assertThat(in.readStringArray()).isEqualTo(new String[] {"a", "b", "cat"});
         assertThat(in.readBytesReference()).isEqualTo(new BytesArray("test"));
         assertThat(in.readOptionalBytesReference()).isEqualTo(new BytesArray("test"));
-        assertNull(in.readOptionalDouble());
-        assertThat(in.readOptionalDouble(), closeTo(1.2, 0.0001));
+        assertThat(in.readOptionalDouble()).isNull();
+        assertThat(in.readOptionalDouble()).isCloseTo(1.2, Offset.offset(0.0001));
         assertThat(in.readTimeZone()).isEqualTo(DateTimeZone.forID("CET"));
         assertThat(in.readOptionalTimeZone()).isEqualTo(DateTimeZone.getDefault());
-        assertNull(in.readOptionalTimeZone());
+        assertThat(in.readOptionalTimeZone()).isNull();
         Object dt = in.readGenericValue();
         assertThat(dt).isEqualTo(dtOut);
         assertThat(in.available()).isEqualTo(0);
@@ -681,10 +677,10 @@ public class BytesStreamsTests extends ESTestCase {
         Map<String, Object> reverseMap = new TreeMap<>(Collections.reverseOrder());
         reverseMap.putAll(map);
 
-        List<String> mapKeys = map.entrySet().stream().map(Map.Entry::getKey).collect(Collectors.toList());
-        List<String> reverseMapKeys = reverseMap.entrySet().stream().map(Map.Entry::getKey).collect(Collectors.toList());
+        List<String> mapKeys = map.keySet().stream().toList();
+        List<String> reverseMapKeys = reverseMap.keySet().stream().toList();
 
-        assertNotEquals(mapKeys, reverseMapKeys);
+        assertThat(reverseMapKeys).isNotEqualTo(mapKeys);
 
         try (BytesStreamOutput output = new BytesStreamOutput(); BytesStreamOutput reverseMapOutput = new BytesStreamOutput()) {
             output.writeMapWithConsistentOrder(map);

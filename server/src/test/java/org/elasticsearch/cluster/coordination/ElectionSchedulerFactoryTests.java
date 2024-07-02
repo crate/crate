@@ -27,11 +27,6 @@ import static org.elasticsearch.cluster.coordination.ElectionSchedulerFactory.EL
 import static org.elasticsearch.cluster.coordination.ElectionSchedulerFactory.ELECTION_MAX_TIMEOUT_SETTING;
 import static org.elasticsearch.cluster.coordination.ElectionSchedulerFactory.toPositiveLongAtMost;
 import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -57,7 +52,7 @@ public class ElectionSchedulerFactoryTests extends ESTestCase {
         final AtomicBoolean electionStarted = new AtomicBoolean();
 
         try (Releasable ignored = electionSchedulerFactory.startElectionScheduler(initialGracePeriod,
-            () -> assertTrue(electionStarted.compareAndSet(false, true)))) {
+            () -> assertThat(electionStarted.compareAndSet(false, true)).isTrue())) {
 
             long lastElectionFinishTime = deterministicTaskQueue.getCurrentTimeMillis();
             int electionCount = 0;
@@ -79,19 +74,19 @@ public class ElectionSchedulerFactoryTests extends ESTestCase {
                     final long electionDelay = thisElectionStartTime - lastElectionFinishTime;
 
                     // Check grace period
-                    assertThat(electionDelay, greaterThanOrEqualTo(initialGracePeriod.millis()));
+                    assertThat(electionDelay).isGreaterThanOrEqualTo(initialGracePeriod.millis());
 
                     // Check upper bound
-                    assertThat(electionDelay, lessThanOrEqualTo(initialTimeout + initialGracePeriod.millis()));
-                    assertThat(electionDelay, lessThanOrEqualTo(maxTimeout + initialGracePeriod.millis()));
+                    assertThat(electionDelay).isLessThanOrEqualTo(initialTimeout + initialGracePeriod.millis());
+                    assertThat(electionDelay).isLessThanOrEqualTo(maxTimeout + initialGracePeriod.millis());
 
                 } else {
 
                     final long electionDelay = thisElectionStartTime - lastElectionFinishTime;
 
                     // Check upper bound
-                    assertThat(electionDelay, lessThanOrEqualTo(initialTimeout + backOffTime * (electionCount - 1)));
-                    assertThat(electionDelay, lessThanOrEqualTo(maxTimeout));
+                    assertThat(electionDelay).isLessThanOrEqualTo(initialTimeout + backOffTime * (electionCount - 1));
+                    assertThat(electionDelay).isLessThanOrEqualTo(maxTimeout);
 
                     // Run until we get a delay close to the maximum to show that backing off does work
                     if (electionCount >= 1000) {
@@ -237,8 +232,8 @@ public class ElectionSchedulerFactoryTests extends ESTestCase {
         for (long input : new long[]{0, 1, -1, Long.MIN_VALUE, Long.MAX_VALUE, randomLong()}) {
             for (long upperBound : new long[]{1, 2, 3, 100, Long.MAX_VALUE}) {
                 long l = toPositiveLongAtMost(input, upperBound);
-                assertThat(l, greaterThan(0L));
-                assertThat(l, lessThanOrEqualTo(upperBound));
+                assertThat(l).isGreaterThan(0L);
+                assertThat(l).isLessThanOrEqualTo(upperBound);
             }
         }
     }

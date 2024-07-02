@@ -23,15 +23,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.env.NodeRepurposeCommand.NO_CLEANUP;
 import static org.elasticsearch.env.NodeRepurposeCommand.NO_DATA_TO_CLEAN_UP_FOUND;
 import static org.elasticsearch.env.NodeRepurposeCommand.NO_SHARD_DATA_TO_CLEAN_UP_FOUND;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import org.elasticsearch.ElasticsearchException;
@@ -51,7 +48,6 @@ import org.elasticsearch.gateway.PersistedClusterStateService;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.test.ESTestCase;
-import org.hamcrest.Matcher;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -100,13 +96,13 @@ public class NodeRepurposeCommandTests extends ESTestCase {
     public void testEarlyExitNoCleanup() throws Exception {
         createIndexDataFiles(dataMasterSettings, randomInt(10), randomBoolean());
 
-        verifyNoQuestions(dataMasterSettings, containsString(NO_CLEANUP));
-        verifyNoQuestions(dataNoMasterSettings, containsString(NO_CLEANUP));
+        verifyNoQuestions(dataMasterSettings, s -> assertThat(s).contains(NO_CLEANUP));
+        verifyNoQuestions(dataNoMasterSettings, s -> assertThat(s).contains(NO_CLEANUP));
     }
 
     public void testNothingToCleanup() throws Exception {
-        verifyNoQuestions(noDataNoMasterSettings, containsString(NO_DATA_TO_CLEAN_UP_FOUND));
-        verifyNoQuestions(noDataMasterSettings, containsString(NO_SHARD_DATA_TO_CLEAN_UP_FOUND));
+        verifyNoQuestions(noDataNoMasterSettings, s -> assertThat(s).contains(NO_DATA_TO_CLEAN_UP_FOUND));
+        verifyNoQuestions(noDataMasterSettings, s -> assertThat(s).contains(NO_SHARD_DATA_TO_CLEAN_UP_FOUND));
 
         Environment environment = TestEnvironment.newEnvironment(noDataMasterSettings);
         if (randomBoolean()) {
@@ -118,12 +114,12 @@ public class NodeRepurposeCommandTests extends ESTestCase {
             }
         }
 
-        verifyNoQuestions(noDataNoMasterSettings, containsString(NO_DATA_TO_CLEAN_UP_FOUND));
-        verifyNoQuestions(noDataMasterSettings, containsString(NO_SHARD_DATA_TO_CLEAN_UP_FOUND));
+        verifyNoQuestions(noDataNoMasterSettings, s -> assertThat(s).contains(NO_DATA_TO_CLEAN_UP_FOUND));
+        verifyNoQuestions(noDataMasterSettings, s -> assertThat(s).contains(NO_SHARD_DATA_TO_CLEAN_UP_FOUND));
 
         createIndexDataFiles(dataMasterSettings, 0, randomBoolean());
 
-        verifyNoQuestions(noDataMasterSettings, containsString(NO_SHARD_DATA_TO_CLEAN_UP_FOUND));
+        verifyNoQuestions(noDataMasterSettings, s -> assertThat(s).contains(NO_SHARD_DATA_TO_CLEAN_UP_FOUND));
 
     }
 
@@ -148,11 +144,11 @@ public class NodeRepurposeCommandTests extends ESTestCase {
             environment.dataFiles().length*shardCount,
             0);
 
-        Matcher<String> outputMatcher = allOf(
-            containsString(messageText),
-            conditionalNot(containsString("testIndex"), verbose == false || hasClusterState == false),
-            conditionalNot(containsString("no name for uuid: testUUID"), verbose == false || hasClusterState)
-        );
+        Consumer<String> outputMatcher = s -> assertThat(s)
+            .contains(messageText)
+            .satisfies(
+                conditionalNot("testIndex", verbose == false || hasClusterState == false),
+                conditionalNot("no name for uuid: testUUID", verbose == false || hasClusterState));
 
         verifyUnchangedOnAbort(noDataNoMasterSettings, outputMatcher, verbose);
 
@@ -172,12 +168,12 @@ public class NodeRepurposeCommandTests extends ESTestCase {
         boolean hasClusterState = randomBoolean();
         createIndexDataFiles(dataMasterSettings, shardCount, hasClusterState);
 
-        Matcher<String> matcher = allOf(
-            containsString(NodeRepurposeCommand.shardMessage(environment.dataFiles().length * shardCount, 1)),
-            conditionalNot(containsString("testUUID"), verbose == false),
-            conditionalNot(containsString("testIndex"), verbose == false || hasClusterState == false),
-            conditionalNot(containsString("no name for uuid: testUUID"), verbose == false || hasClusterState)
-        );
+        Consumer<String> matcher = s -> assertThat(s)
+            .contains(NodeRepurposeCommand.shardMessage(environment.dataFiles().length * shardCount, 1))
+            .satisfies(
+                conditionalNot("testUUID", verbose == false),
+                conditionalNot("testIndex", verbose == false || hasClusterState == false),
+                conditionalNot("no name for uuid: testUUID", verbose == false || hasClusterState));
 
         verifyUnchangedOnAbort(noDataMasterSettings, matcher, verbose);
 
@@ -191,15 +187,15 @@ public class NodeRepurposeCommandTests extends ESTestCase {
         new NodeEnvironment(noDataMasterSettings, environment).close();
     }
 
-    static void verifySuccess(Settings settings, Matcher<String> outputMatcher, boolean verbose) throws Exception {
+    static void verifySuccess(Settings settings, Consumer<String> outputMatcher, boolean verbose) throws Exception {
         withTerminal(verbose, outputMatcher, terminal -> {
             terminal.addTextInput(randomFrom("y", "Y"));
             executeRepurposeCommand(terminal, settings, 0);
-            assertThat(terminal.getOutput(), containsString("Node successfully repurposed"));
+            assertThat(terminal.getOutput()).contains("Node successfully repurposed");
         });
     }
 
-    private void verifyUnchangedOnAbort(Settings settings, Matcher<String> outputMatcher, boolean verbose) throws Exception {
+    private void verifyUnchangedOnAbort(Settings settings, Consumer<String> outputMatcher, boolean verbose) throws Exception {
         withTerminal(verbose, outputMatcher, terminal -> {
             terminal.addTextInput(randomFrom("yy", "Yy", "n", "yes", "true", "N", "no"));
             verifyUnchangedDataFiles(() -> {
@@ -210,13 +206,14 @@ public class NodeRepurposeCommandTests extends ESTestCase {
         });
     }
 
-    private void verifyNoQuestions(Settings settings, Matcher<String> outputMatcher) throws Exception {
+    private void verifyNoQuestions(Settings settings, Consumer<String> outputMatcher) throws Exception {
         withTerminal(false, outputMatcher, terminal -> {
             executeRepurposeCommand(terminal, settings, 0);
         });
     }
 
-    private static void withTerminal(boolean verbose, Matcher<String> outputMatcher,
+    private static void withTerminal(boolean verbose,
+                                     Consumer<String> outputMatcher,
                                      CheckedConsumer<MockTerminal, Exception> consumer) throws Exception {
         MockTerminal terminal = new MockTerminal();
         if (verbose) {
@@ -225,7 +222,7 @@ public class NodeRepurposeCommandTests extends ESTestCase {
 
         consumer.accept(terminal);
 
-        assertThat(terminal.getOutput(), outputMatcher);
+        assertThat(terminal.getOutput()).satisfies(outputMatcher);
 
         assertThatThrownBy(() -> terminal.readText(""))
             .as("Must consume input")
@@ -310,7 +307,7 @@ public class NodeRepurposeCommandTests extends ESTestCase {
         return result;
     }
 
-    static <T> Matcher<T> conditionalNot(Matcher<T> matcher, boolean condition) {
-        return condition ? not(matcher) : matcher;
+    private static Consumer<String> conditionalNot(String containedStr, boolean condition) {
+        return condition ? s -> assertThat(s).doesNotContain(containedStr) : s -> assertThat(s).contains(containedStr);
     }
 }

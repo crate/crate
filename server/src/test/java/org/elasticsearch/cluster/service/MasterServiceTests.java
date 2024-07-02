@@ -21,13 +21,7 @@ package org.elasticsearch.cluster.service;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasKey;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -428,8 +422,9 @@ public class MasterServiceTests extends ESTestCase {
             public ClusterTasksResult<Task> execute(ClusterState currentState, List<Task> tasks) throws Exception {
                 for (Set<Task> expectedSet : taskGroups) {
                     long count = tasks.stream().filter(expectedSet::contains).count();
-                    assertThat("batched set should be executed together or not at all. Expected " + expectedSet + "s. Executing " + tasks,
-                        count, anyOf(equalTo(0L), equalTo((long) expectedSet.size())));
+                    assertThat(count)
+                        .as("batched set should be executed together or not at all. Expected " + expectedSet + "s. Executing " + tasks)
+                        .isIn(0L, (long) expectedSet.size());
                 }
                 tasks.forEach(Task::execute);
                 counter.addAndGet(tasks.size());
@@ -555,8 +550,10 @@ public class MasterServiceTests extends ESTestCase {
 
             // assert the correct number of clusterStateProcessed events were triggered
             for (Map.Entry<String, AtomicInteger> entry : processedStates.entrySet()) {
-                assertThat(submittedTasksPerThread, hasKey(entry.getKey()));
-                assertThat(submittedTasksPerThread.get(entry.getKey()).get()).as("not all tasks submitted by " + entry.getKey() + " received a processed event").isEqualTo(entry.getValue().get());
+                assertThat(submittedTasksPerThread).containsKey(entry.getKey());
+                assertThat(submittedTasksPerThread.get(entry.getKey()).get())
+                    .as("not all tasks submitted by " + entry.getKey() + " received a processed event")
+                    .isEqualTo(entry.getValue().get());
             }
         }
     }
@@ -601,8 +598,8 @@ public class MasterServiceTests extends ESTestCase {
             );
 
             latch.await();
-            assertNotNull(assertionRef.get());
-            assertThat(assertionRef.get().getMessage(), containsString("Reason: [Blocking operation]"));
+            assertThat(assertionRef.get()).isNotNull();
+            assertThat(assertionRef.get().getMessage()).contains("Reason: [Blocking operation]");
         }
     }
 

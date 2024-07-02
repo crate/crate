@@ -23,8 +23,6 @@ import static java.util.Collections.emptySet;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.common.util.concurrent.EsExecutors.PROCESSORS_SETTING;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -380,7 +378,9 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
 
         assertThat(imc.availableShards().size()).isEqualTo(1);
         assertThat(recoverFromStore(shard)).isTrue();
-        assertThat("we should have flushed in IMC at least once", flushes.get(), greaterThanOrEqualTo(1));
+        assertThat(flushes.get())
+            .as("we should have flushed in IMC at least once")
+            .isGreaterThanOrEqualTo(1);
         closeShards(shard);
     }
 

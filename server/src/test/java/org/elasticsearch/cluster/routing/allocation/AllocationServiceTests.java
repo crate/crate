@@ -24,10 +24,6 @@ import static org.elasticsearch.cluster.routing.UnassignedInfo.AllocationStatus.
 import static org.elasticsearch.cluster.routing.allocation.decider.ThrottlingAllocationDecider.CLUSTER_ROUTING_ALLOCATION_NODE_CONCURRENT_INCOMING_RECOVERIES_SETTING;
 import static org.elasticsearch.cluster.routing.allocation.decider.ThrottlingAllocationDecider.CLUSTER_ROUTING_ALLOCATION_NODE_CONCURRENT_OUTGOING_RECOVERIES_SETTING;
 import static org.elasticsearch.cluster.routing.allocation.decider.ThrottlingAllocationDecider.CLUSTER_ROUTING_ALLOCATION_NODE_INITIAL_PRIMARIES_RECOVERIES_SETTING;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -35,7 +31,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.elasticsearch.Version;
@@ -72,46 +67,48 @@ public class AllocationServiceTests extends ESTestCase {
 
     @Test
     public void testFirstListElementsToCommaDelimitedStringReportsAllElementsIfShort() {
-        List<String> strings = IntStream.range(0, between(0, 10)).mapToObj(i -> randomAlphaOfLength(10)).collect(Collectors.toList());
+        List<String> strings = IntStream.range(0, between(0, 10)).mapToObj(i -> randomAlphaOfLength(10)).toList();
         assertAllElementsReported(strings, randomBoolean());
     }
 
     @Test
     public void testFirstListElementsToCommaDelimitedStringReportsAllElementsIfDebugEnabled() {
-        List<String> strings = IntStream.range(0, between(0, 100)).mapToObj(i -> randomAlphaOfLength(10)).collect(Collectors.toList());
+        List<String> strings = IntStream.range(0, between(0, 100)).mapToObj(i -> randomAlphaOfLength(10)).toList();
         assertAllElementsReported(strings, true);
     }
 
     private void assertAllElementsReported(List<String> strings, boolean isDebugEnabled) {
         final String abbreviated = AllocationService.firstListElementsToCommaDelimitedString(strings, Function.identity(), isDebugEnabled);
         for (String string : strings) {
-            assertThat(abbreviated, containsString(string));
+            assertThat(abbreviated).contains(string);
         }
-        assertThat(abbreviated, not(containsString("...")));
+        assertThat(abbreviated).doesNotContain("...");
     }
 
     @Test
     public void testFirstListElementsToCommaDelimitedStringReportsFirstElementsIfLong() {
         List<String> strings = IntStream.range(0, between(11, 100)).mapToObj(i -> randomAlphaOfLength(10))
-            .distinct().collect(Collectors.toList());
+            .distinct().toList();
         final String abbreviated = AllocationService.firstListElementsToCommaDelimitedString(strings, Function.identity(), false);
         for (int i = 0; i < strings.size(); i++) {
             if (i < 10) {
-                assertThat(abbreviated, containsString(strings.get(i)));
+                assertThat(abbreviated).contains(strings.get(i));
             } else {
-                assertThat(abbreviated, not(containsString(strings.get(i))));
+                assertThat(abbreviated).doesNotContain(strings.get(i));
             }
         }
-        assertThat(abbreviated, containsString("..."));
-        assertThat(abbreviated, containsString("[" + strings.size() + " items in total]"));
+        assertThat(abbreviated)
+            .contains("...")
+            .contains("[" + strings.size() + " items in total]");
     }
 
     @Test
     public void testFirstListElementsToCommaDelimitedStringUsesFormatterNotToString() {
-        List<String> strings = IntStream.range(0, between(1, 100)).mapToObj(i -> "original").collect(Collectors.toList());
+        List<String> strings = IntStream.range(0, between(1, 100)).mapToObj(i -> "original").toList();
         final String abbreviated = AllocationService.firstListElementsToCommaDelimitedString(strings, s -> "formatted", randomBoolean());
-        assertThat(abbreviated, containsString("formatted"));
-        assertThat(abbreviated, not(containsString("original")));
+        assertThat(abbreviated)
+            .contains("formatted")
+            .doesNotContain("original");
     }
 
     public void testAssignsPrimariesInPriorityOrderThenReplicas() {
@@ -202,34 +199,34 @@ public class AllocationServiceTests extends ESTestCase {
         final RoutingTable routingTable1 = reroutedState1.routingTable();
         // the test harness only permits one recovery per node, so we must have allocated all the high-priority primaries and one of the
         // medium-priority ones
-        assertThat(routingTable1.shardsWithState(ShardRoutingState.INITIALIZING), empty());
-        assertThat(routingTable1.shardsWithState(ShardRoutingState.RELOCATING), empty());
+        assertThat(routingTable1.shardsWithState(ShardRoutingState.INITIALIZING)).isEmpty();
+        assertThat(routingTable1.shardsWithState(ShardRoutingState.RELOCATING)).isEmpty();
         assertThat(routingTable1.shardsWithState(ShardRoutingState.STARTED).stream().allMatch(ShardRouting::primary)).isTrue();
         assertThat(routingTable1.index("highPriority").primaryShardsActive()).isEqualTo(2);
         assertThat(routingTable1.index("mediumPriority").primaryShardsActive()).isEqualTo(1);
-        assertThat(routingTable1.index("lowPriority").shardsWithState(ShardRoutingState.STARTED), empty());
-        assertThat(routingTable1.index("invalid").shardsWithState(ShardRoutingState.STARTED), empty());
+        assertThat(routingTable1.index("lowPriority").shardsWithState(ShardRoutingState.STARTED)).isEmpty();
+        assertThat(routingTable1.index("invalid").shardsWithState(ShardRoutingState.STARTED)).isEmpty();
 
         final ClusterState reroutedState2 = rerouteAndStartShards(allocationService, reroutedState1);
         final RoutingTable routingTable2 = reroutedState2.routingTable();
         // this reroute starts the one remaining medium-priority primary and both of the low-priority ones, but no replicas
-        assertThat(routingTable2.shardsWithState(ShardRoutingState.INITIALIZING), empty());
-        assertThat(routingTable2.shardsWithState(ShardRoutingState.RELOCATING), empty());
+        assertThat(routingTable2.shardsWithState(ShardRoutingState.INITIALIZING)).isEmpty();
+        assertThat(routingTable2.shardsWithState(ShardRoutingState.RELOCATING)).isEmpty();
         assertThat(routingTable2.shardsWithState(ShardRoutingState.STARTED).stream().allMatch(ShardRouting::primary)).isTrue();
         assertThat(routingTable2.index("highPriority").allPrimaryShardsActive()).isTrue();
         assertThat(routingTable2.index("mediumPriority").allPrimaryShardsActive()).isTrue();
         assertThat(routingTable2.index("lowPriority").allPrimaryShardsActive()).isTrue();
-        assertThat(routingTable2.index("invalid").shardsWithState(ShardRoutingState.STARTED), empty());
+        assertThat(routingTable2.index("invalid").shardsWithState(ShardRoutingState.STARTED)).isEmpty();
 
         final ClusterState reroutedState3 = rerouteAndStartShards(allocationService, reroutedState2);
         final RoutingTable routingTable3 = reroutedState3.routingTable();
         // this reroute starts the two medium-priority replicas since their allocator permits this
-        assertThat(routingTable3.shardsWithState(ShardRoutingState.INITIALIZING), empty());
-        assertThat(routingTable3.shardsWithState(ShardRoutingState.RELOCATING), empty());
+        assertThat(routingTable3.shardsWithState(ShardRoutingState.INITIALIZING)).isEmpty();
+        assertThat(routingTable3.shardsWithState(ShardRoutingState.RELOCATING)).isEmpty();
         assertThat(routingTable3.index("highPriority").allPrimaryShardsActive()).isTrue();
-        assertThat(routingTable3.index("mediumPriority").shardsWithState(ShardRoutingState.UNASSIGNED), empty());
+        assertThat(routingTable3.index("mediumPriority").shardsWithState(ShardRoutingState.UNASSIGNED)).isEmpty();
         assertThat(routingTable3.index("lowPriority").allPrimaryShardsActive()).isTrue();
-        assertThat(routingTable3.index("invalid").shardsWithState(ShardRoutingState.STARTED), empty());
+        assertThat(routingTable3.index("invalid").shardsWithState(ShardRoutingState.STARTED)).isEmpty();
     }
 
     public void testExplainsNonAllocationOfShardWithUnknownAllocator() {

@@ -22,13 +22,7 @@
 package org.elasticsearch.common.settings;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.hasEntry;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -79,7 +73,7 @@ public class SettingsTests extends ESTestCase {
     @Test
     public void testReplacePropertiesPlaceholderSystemVariablesHaveNoEffect() {
         final String value = System.getProperty("java.home");
-        assertNotNull(value);
+        assertThat(value).isNotNull();
         assertThatThrownBy(() -> Settings.builder()
             .put("setting1", "${java.home}")
             .replacePropertyPlaceholders()
@@ -130,18 +124,18 @@ public class SettingsTests extends ESTestCase {
         Settings secondLevelSetting = firstLevelSettings.getByPrefix("2.");
         assertThat(secondLevelSetting.isEmpty()).isFalse();
         assertThat(secondLevelSetting.size()).isEqualTo(2);
-        assertNull(secondLevelSetting.get("2.3.4"));
-        assertNull(secondLevelSetting.get("1.2.3.4"));
-        assertNull(secondLevelSetting.get("1.2.3"));
+        assertThat(secondLevelSetting.get("2.3.4")).isNull();
+        assertThat(secondLevelSetting.get("1.2.3.4")).isNull();
+        assertThat(secondLevelSetting.get("1.2.3")).isNull();
         assertThat(secondLevelSetting.get("3.4")).isEqualTo("abc");
         assertThat(secondLevelSetting.get("3")).isEqualTo("hello world");
 
         Settings thirdLevelSetting = secondLevelSetting.getByPrefix("3.");
         assertThat(thirdLevelSetting.isEmpty()).isFalse();
         assertThat(thirdLevelSetting.size()).isEqualTo(1);
-        assertNull(thirdLevelSetting.get("2.3.4"));
-        assertNull(thirdLevelSetting.get("3.4"));
-        assertNull(thirdLevelSetting.get("1.2.3"));
+        assertThat(thirdLevelSetting.get("2.3.4")).isNull();
+        assertThat(thirdLevelSetting.get("3.4")).isNull();
+        assertThat(thirdLevelSetting.get("1.2.3")).isNull();
         assertThat(thirdLevelSetting.get("4")).isEqualTo("abc");
     }
 
@@ -315,7 +309,7 @@ public class SettingsTests extends ESTestCase {
         builder.put("a.b.c.d", "ab3");
 
 
-        Settings filteredSettings = builder.build().filter((k) -> k.startsWith("a.b"));
+        Settings filteredSettings = builder.build().filter(k -> k.startsWith("a.b"));
         assertThat(filteredSettings.size()).isEqualTo(3);
         int numKeys = 0;
         for (String k : filteredSettings.keySet()) {
@@ -416,11 +410,11 @@ public class SettingsTests extends ESTestCase {
         Map<String, Settings> groups = settings.getGroups("test");
         assertThat(groups.size()).isEqualTo(2);
         Settings key1 = groups.get("key1");
-        assertNotNull(key1);
-        assertThat(key1.names(), containsInAnyOrder("baz", "other"));
+        assertThat(key1).isNotNull();
+        assertThat(key1.names()).containsExactlyInAnyOrder("baz", "other");
         Settings key2 = groups.get("key2");
-        assertNotNull(key2);
-        assertThat(key2.names(), containsInAnyOrder("baz", "else"));
+        assertThat(key2).isNotNull();
+        assertThat(key2.names()).containsExactlyInAnyOrder("baz", "else");
     }
 
     @Test
@@ -442,9 +436,9 @@ public class SettingsTests extends ESTestCase {
         assertThat(filteredSettings.keySet().contains("a.b.c.d")).isFalse();
         assertThatThrownBy(() -> filteredSettings.keySet().remove("a.b"))
             .isExactlyInstanceOf(UnsupportedOperationException.class);
-        assertNull(filteredSettings.get("a.b"));
-        assertNull(filteredSettings.get("a.b.c"));
-        assertNull(filteredSettings.get("a.b.c.d"));
+        assertThat(filteredSettings.get("a.b")).isNull();
+        assertThat(filteredSettings.get("a.b.c")).isNull();
+        assertThat(filteredSettings.get("a.b.c.d")).isNull();
 
         Iterator<String> iterator = filteredSettings.keySet().iterator();
         for (int i = 0; i < 10; i++) {
@@ -472,7 +466,7 @@ public class SettingsTests extends ESTestCase {
         Settings settings = Settings.readSettingsFromStream(in);
         assertThat(settings.size()).isEqualTo(3);
         assertThat(settings.get("test.key1.baz")).isEqualTo("blah1");
-        assertNull(settings.get("test.key3.bar"));
+        assertThat(settings.get("test.key3.bar")).isNull();
         assertThat(settings.keySet().contains("test.key3.bar")).isTrue();
         assertThat(settings.getAsList("test.key4.foo")).isEqualTo(Arrays.asList("1", "2"));
     }
@@ -510,7 +504,7 @@ public class SettingsTests extends ESTestCase {
         assertThat(build.getAsInt("foo.foobar", 0).intValue()).isEqualTo(2);
         assertThat(build.get("rootfoo")).isEqualTo("test");
         assertThat(build.get("foo.baz")).isEqualTo("1,2,3,4");
-        assertNull(build.get("foo.null.baz"));
+        assertThat(build.get("foo.null.baz")).isNull();
     }
 
     @Test
@@ -525,8 +519,8 @@ public class SettingsTests extends ESTestCase {
         assertThat(settings.getAsInt("test1.test2.value3", -1)).isEqualTo(2);
 
         // check array
-        assertNull(settings.get("test1.test3.0"));
-        assertNull(settings.get("test1.test3.1"));
+        assertThat(settings.get("test1.test3.0")).isNull();
+        assertThat(settings.get("test1.test3.1")).isNull();
         assertThat(settings.getAsList("test1.test3")).hasSize(2);
         assertThat(settings.getAsList("test1.test3").get(0)).isEqualTo("test3-1");
         assertThat(settings.getAsList("test1.test3").get(1)).isEqualTo("test3-2");
@@ -575,7 +569,7 @@ public class SettingsTests extends ESTestCase {
         StreamInput in = StreamInput.wrap(BytesReference.toBytes(output.bytes()));
         Settings build = Settings.readSettingsFromStream(in);
         assertThat(build.size()).isEqualTo(2);
-        assertThat(Arrays.asList("0", "1", "2", "3")).isEqualTo(build.getAsList("foo.bar"));
+        assertThat(build.getAsList("foo.bar")).isEqualTo(Arrays.asList("0", "1", "2", "3"));
         assertThat("baz").isEqualTo(build.get("foo.bar.baz"));
     }
 
@@ -585,7 +579,7 @@ public class SettingsTests extends ESTestCase {
             "test").build();
         assertThat(Settings.builder().copy("foo.bar", settings).build().getAsList("foo.bar")).isEqualTo(Arrays.asList("0", "1", "2", "3"));
         assertThat(Settings.builder().copy("foo.bar.baz", settings).build().get("foo.bar.baz")).isEqualTo("baz");
-        assertNull(Settings.builder().copy("foo.bar.baz", settings).build().get("test"));
+        assertThat(Settings.builder().copy("foo.bar.baz", settings).build().get("test")).isNull();
         assertThat(Settings.builder().copy("test", settings).build().keySet().contains("test")).isTrue();
         assertThatThrownBy(() -> Settings.builder().copy("not_there", settings))
             .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -599,7 +593,7 @@ public class SettingsTests extends ESTestCase {
             .build();
 
         Map<String, Object> map = settings.getAsStructuredMap(Set.of());
-        assertThat(map, hasEntry("masked", "masked_value"));
+        assertThat(map).containsEntry("masked", "masked_value");
     }
 
     @Test
@@ -609,6 +603,6 @@ public class SettingsTests extends ESTestCase {
             .build();
 
         Map<String, Object> map = settings.getAsStructuredMap(Set.of("masked"));
-        assertThat(map, hasEntry("masked", Settings.MASKED_VALUE));
+        assertThat(map).containsEntry("masked", Settings.MASKED_VALUE);
     }
 }
