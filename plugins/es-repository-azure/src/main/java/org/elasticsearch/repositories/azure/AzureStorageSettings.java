@@ -32,7 +32,7 @@ import org.elasticsearch.common.settings.SettingsException;
 
 import com.microsoft.azure.storage.LocationMode;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.unit.TimeValue;
 
 public final class AzureStorageSettings {

@@ -51,7 +51,7 @@ public class SwapCastsInComparisonOperators implements Rule<Function> {
         this.castCapture = new Capture<>();
         this.pattern = typeOf(Function.class)
             .with(f -> COMPARISON_OPERATORS.contains(f.name()))
-            .with(f -> f.arguments().get(1).symbolType() == SymbolType.LITERAL)
+            .with(f -> f.arguments().get(1).symbolType().isValueOrParameterSymbol())
             .with(f -> Optional.of(f.arguments().get(0)), typeOf(Function.class).capturedAs(castCapture)
                 // We have to respect explicit casts, see https://github.com/crate/crate/issues/12135
                 .with(f -> f.name().equals(ImplicitCastFunction.NAME) || f.name().equals(TryCastFunction.NAME))
@@ -69,13 +69,13 @@ public class SwapCastsInComparisonOperators implements Rule<Function> {
                         Captures captures,
                         NodeContext nodeCtx,
                         Symbol parentNode) {
-        var literal = operator.arguments().get(1);
+        var literalOrParam = operator.arguments().get(1);
         var castFunction = captures.get(castCapture);
         var reference = castFunction.arguments().get(0);
         DataType<?> targetType = reference.valueType();
         CastMode castMode = castFunction.castMode();
         assert castMode != null : "Pattern matched, function must be a cast";
-        Symbol castedLiteral = literal.cast(targetType, castMode);
+        Symbol castedLiteral = literalOrParam.cast(targetType, castMode);
         // Can't use functionResolver here because it would attempt to re-resolve the function
         // and re-add casts if there is a text/varchar(n) missmatch.
         return new Function(operator.signature(), List.of(reference, castedLiteral), operator.valueType());

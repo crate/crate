@@ -31,11 +31,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-public class PgArrayParserTest {
+class PgArrayParserTest {
 
     private final Function<byte[], Object> toDouble = v -> Double.parseDouble(new String(v, UTF_8));
     private final Function<byte[], Object> toInteger = v -> Integer.parseInt(new String(v, UTF_8));
@@ -55,44 +55,44 @@ public class PgArrayParserTest {
     }
 
     @Test
-    public void test_string_array() {
+    void test_string_array() {
         assertThat(parse("{\"a,\", \"ab\"}", String::new)).isEqualTo(List.of("a,", "ab"));
     }
 
     @Test
-    public void test_empty_string_array() {
+    void test_empty_string_array() {
         assertThat(parse("{}", String::new)).isEqualTo(List.of());
     }
 
     @Test
-    public void test_string_array_with_null_items() {
+    void test_string_array_with_null_items() {
         assertThat(parse("{\"a\", NULL, NULL}", String::new)).isEqualTo(Arrays.asList("a", null, null));
     }
 
     @Test
-    public void test_quoted_string_can_contain_curly_brackets() {
+    void test_quoted_string_can_contain_curly_brackets() {
         assertThat(parse("{\"}}}{{{\"}", String::new)).isEqualTo(List.of("}}}{{{"));
     }
 
     @Test
-    public void test_string_array_with_digits_and_no_quotes() {
+    void test_string_array_with_digits_and_no_quotes() {
         assertThat(parse("{23ab-38cd,42xy}", String::new)).isEqualTo(Arrays.asList("23ab-38cd", "42xy"));
     }
 
     @Test
-    public void test_dash_and_underline_are_allowed_in_unquoted_strings() {
+    void test_dash_and_underline_are_allowed_in_unquoted_strings() {
         assertThat(parse("{catalog_name,end-exec}", String::new)).containsExactly("catalog_name", "end-exec");
     }
 
     @Test
-    public void test_two_dimensional_string_array() {
+    void test_two_dimensional_string_array() {
         assertThat(parse("{{\"a\", \"b\"}, {\"c\", \"d\"}}", String::new)).isEqualTo(List.of(
             List.of("a", "b"),
             List.of("c", "d")));
     }
 
     @Test
-    public void test_three_dimensional_string_array() {
+    void test_three_dimensional_string_array() {
         assertThat(parse("{{{\"1\",\"2\"},{\"3\",\"4\"}},{{\"5\",\"6\"},{\"7\"}}}", String::new)).isEqualTo(List.of(
             List.of(
                 List.of("1", "2"),
@@ -103,58 +103,58 @@ public class PgArrayParserTest {
     }
 
     @Test
-    public void test_integer_array() {
+    void test_integer_array() {
         assertThat(parse("{1, 2}", toInteger)).isEqualTo(List.of(1, 2));
     }
 
     @Test
-    public void test_integer_array_with_quoted_items() {
+    void test_integer_array_with_quoted_items() {
         assertThat(parse("{\"2\", \"1\"}", toInteger)).isEqualTo(List.of(2, 1));
     }
 
     @Test
-    public void test_decimal_array() {
+    void test_decimal_array() {
         assertThat(parse("{-1.1, 2.3}", toDouble)).isEqualTo(List.of(-1.1, 2.3));
     }
 
     @Test
-    public void test_decimal_array_with_quoted_items() {
+    void test_decimal_array_with_quoted_items() {
         assertThat(parse("{\"1.1\", \"-2.3\"}", toDouble)).isEqualTo(List.of(1.1, -2.3));
     }
 
     @Test
-    public void test_bool_array() {
+    void test_bool_array() {
         assertThat(parse("{true, false}", toBoolean)).isEqualTo(List.of(true, false));
     }
 
     @Test
-    public void test_bool_array_with_quoted_items() {
+    void test_bool_array_with_quoted_items() {
         assertThat(parse("{\"false\",\"true\"}", toBoolean)).isEqualTo(List.of(false, true));
     }
 
     @Test
-    public void test_unquoted_string_can_contain_whitespace() {
+    void test_unquoted_string_can_contain_whitespace() {
         assertThat(parse("{foo bar}", String::new)).isEqualTo(List.of("foo bar"));
     }
 
     @Test
-    public void test_unquoted_string_trailing_whitespace_is_removed() {
+    void test_unquoted_string_trailing_whitespace_is_removed() {
         assertThat(parse("{foo  }", String::new)).isEqualTo(List.of("foo"));
     }
 
     @Test
-    public void test_unquoted_string_leading_whitespace_is_removed() {
+    void test_unquoted_string_leading_whitespace_is_removed() {
         assertThat(parse("{  foo}", String::new)).isEqualTo(List.of("foo"));
     }
 
     @Test
-    public void test_json_array() {
+    void test_json_array() {
         assertThat(parse("{\"{\\\"x\\\": 10.1}\",\"{\\\"y\\\": 20.2}\"}", toMap)).isEqualTo(List.of(Map.of("x", 10.1),
                                                                                                     Map.of("y", 20.2)));
     }
 
     @Test
-    public void test_two_dimensional_json_array() {
+    void test_two_dimensional_json_array() {
         assertThat(parse(
             "{" +
             "   {" +
@@ -169,7 +169,7 @@ public class PgArrayParserTest {
     }
 
     @Test
-    public void test_three_dimensional_json_array() {
+    void test_three_dimensional_json_array() {
         assertThat(parse(
             "{" +
             "   {" +
@@ -187,13 +187,13 @@ public class PgArrayParserTest {
     }
 
     @Test
-    public void test_point_format_string_array_parsed_as_string() {
+    void test_point_format_string_array_parsed_as_string() {
         assertThat(parse("{\"(1.3, 2.1)\", \"(3.4, 5.1)\"}", String::new)).isEqualTo(List.of("(1.3, 2.1)",
                                                                                              "(3.4, 5.1)"));
     }
 
     @Test
-    public void test_unquoted_item_can_contain_dots() {
+    void test_unquoted_item_can_contain_dots() {
         assertThat(parse("{foo.bar,two}", String::new)).isEqualTo(List.of(
             "foo.bar",
             "two"

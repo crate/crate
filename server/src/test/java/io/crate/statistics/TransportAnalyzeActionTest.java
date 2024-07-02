@@ -21,16 +21,13 @@
 
 package io.crate.statistics;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import io.crate.data.Row1;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
@@ -45,15 +42,16 @@ public class TransportAnalyzeActionTest extends ESTestCase {
 
     @Test
     public void test_create_stats_for_tables_with_array_columns_with_nulls() {
-        var rows = new ArrayList<String>();
-        rows.add(null);
 
         ArrayType<String> type = DataTypes.STRING_ARRAY;
+        var col1 = type.columnStatsSupport().sketchBuilder();
+        var col2 = type.columnStatsSupport().sketchBuilder();
+        col1.add(null);
+        col2.add(null);
         var samples = new Samples(
-            List.of(new Row1(rows), new Row1(rows)),
-            List.of(type.streamer()),
+            List.of(col1, col2),
             2,
-            type.valueBytes(rows)
+            10
         );
         var references = List.<Reference>of(
             new SimpleReference(
@@ -63,7 +61,7 @@ public class TransportAnalyzeActionTest extends ESTestCase {
                 0,
                 null)
         );
-        var stats = TransportAnalyzeAction.createTableStats(samples, references);
-        assertThat(stats.numDocs, is(2L));
+        var stats = samples.createTableStats(references);
+        assertThat(stats.numDocs).isEqualTo(2L);
     }
 }

@@ -21,6 +21,11 @@
 
 package io.crate.analyze;
 
+import java.util.Collections;
+import java.util.List;
+
+import org.jetbrains.annotations.NotNull;
+
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.exceptions.AmbiguousColumnException;
@@ -29,28 +34,24 @@ import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
+import io.crate.metadata.table.TableInfo;
 import io.crate.types.DataTypes;
 
-import org.jetbrains.annotations.NotNull;
-import java.util.Collections;
-import java.util.List;
+public class AnalyzedShowCreateTable implements AnalyzedRelation {
 
-public class AnalyzedShowCreateTable implements AnalyzedStatement, AnalyzedRelation {
-
-    private final DocTableInfo tableInfo;
+    private final TableInfo tableInfo;
     private final List<ScopedSymbol> fields;
     private final RelationName relationName;
 
-    public AnalyzedShowCreateTable(DocTableInfo tableInfo) {
+    public AnalyzedShowCreateTable(TableInfo tableInfo) {
         String columnName = "SHOW CREATE TABLE " + tableInfo.ident().fqn();
         relationName = new RelationName(null, "SHOW CREATE TABLE");
-        this.fields = Collections.singletonList(new ScopedSymbol(relationName, new ColumnIdent(columnName), DataTypes.STRING));
+        this.fields = Collections.singletonList(new ScopedSymbol(relationName, ColumnIdent.of(columnName), DataTypes.STRING));
         this.tableInfo = tableInfo;
     }
 
-    public DocTableInfo tableInfo() {
+    public TableInfo tableInfo() {
         return tableInfo;
     }
 

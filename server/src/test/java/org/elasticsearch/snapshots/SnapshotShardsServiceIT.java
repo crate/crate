@@ -19,12 +19,10 @@
 
 package org.elasticsearch.snapshots;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.everyItem;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
@@ -110,7 +108,7 @@ public class SnapshotShardsServiceIT extends AbstractSnapshotIntegTestCase {
             final Snapshot snapshot = new Snapshot("repo", snapshotId);
             List<IndexShardSnapshotStatus.Stage> stages = snapshotShardsService.currentSnapshotShards(snapshot)
                 .values().stream().map(status -> status.asCopy().getStage()).collect(Collectors.toList());
-            assertThat(stages, hasSize(shards));
+            assertThat(stages).hasSize(shards);
             assertThat(stages, everyItem(equalTo(IndexShardSnapshotStatus.Stage.DONE)));
         }, 30L, TimeUnit.SECONDS);
 
@@ -120,9 +118,9 @@ public class SnapshotShardsServiceIT extends AbstractSnapshotIntegTestCase {
 
         assertBusy(() -> {
             execute("select state, array_length(failures,0) from sys.snapshots where name='snapshot'");
-            assertThat(response.rowCount(), is(1L));
-            assertThat(response.rows()[0][0], is("SUCCESS"));
-            assertThat(response.rows()[0][1], is(nullValue()));
+            assertThat(response.rowCount()).isEqualTo(1L);
+            assertThat(response.rows()[0][0]).isEqualTo("SUCCESS");
+            assertThat(response.rows()[0][1]).isNull();
         }, 30L, TimeUnit.SECONDS);
     }
 }

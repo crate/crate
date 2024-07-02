@@ -19,6 +19,7 @@
 package org.elasticsearch.cluster.coordination;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -55,9 +56,8 @@ public class JoinTaskExecutorTests extends ESTestCase {
         Metadata metadata = metaBuilder.build();
         JoinTaskExecutor.ensureIndexCompatibility(Version.CURRENT, metadata);
 
-        expectThrows(IllegalStateException.class, () ->
-        JoinTaskExecutor.ensureIndexCompatibility(VersionUtils.getPreviousMinorVersion(),
-            metadata));
+        assertThatThrownBy(() -> JoinTaskExecutor.ensureIndexCompatibility(VersionUtils.getPreviousMinorVersion(), metadata))
+            .isExactlyInstanceOf(IllegalStateException.class);
     }
 
     public void testSuccess() {

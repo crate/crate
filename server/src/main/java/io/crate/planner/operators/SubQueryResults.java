@@ -29,7 +29,6 @@ import com.carrotsearch.hppc.ObjectIntHashMap;
 import com.carrotsearch.hppc.ObjectIntMap;
 
 import io.crate.data.Row;
-import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.OuterColumn;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
@@ -75,25 +74,40 @@ public class SubQueryResults {
 
     public SubQueryResults forCorrelation(SelectSymbol correlatedSubQuery, List<Symbol> subQueryOutputs) {
         ObjectIntHashMap<OuterColumn> outerColumnPositions = new ObjectIntHashMap<>();
-        var visitor = new DefaultTraversalSymbolVisitor<Void, Void>() {
-
-            @Override
-            public Void visitOuterColumn(OuterColumn outerColumn, Void context) {
-                int index = subQueryOutputs.indexOf(outerColumn.symbol());
-                if (index < 0) {
-                    throw new IllegalStateException(
-                        "OuterColumn `" + outerColumn + "` must appear in input of CorrelatedJoin");
-                }
-                outerColumnPositions.put(outerColumn, index);
-                return null;
+        correlatedSubQuery.relation().visitSymbols(tree -> tree.visit(OuterColumn.class, outerColumn -> {
+            int index = subQueryOutputs.indexOf(outerColumn.symbol());
+            if (index < 0) {
+                throw new IllegalStateException(
+                    "OuterColumn `" + outerColumn + "` must appear in input of CorrelatedJoin");
             }
-        };
-
-        correlatedSubQuery.relation().visitSymbols(symbol -> symbol.accept(visitor, null));
+            outerColumnPositions.put(outerColumn, index);
+        }));
         return new SubQueryResults(this.valuesBySubQuery, outerColumnPositions);
     }
 
     public void bindOuterColumnInputRow(Row inputRow) {
         this.inputRow = inputRow;
+    }
+
+    public static SubQueryResults merge(SubQueryResults subQueryResults1, SubQueryResults subQueryResults2) {
+        // Correlated subquery related fields.
+        Row mergedRow = subQueryResults1.inputRow;
+        ObjectIntMap<OuterColumn> mergedBoundOuterColumns = subQueryResults1.boundOuterColumns;
+        if (mergedRow.equals(Row.EMPTY)) {
+            mergedRow = subQueryResults2.inputRow;
+        }
+        if (mergedBoundOuterColumns.equals(EMPTY_OUTER_COLUMNS)) {
+            mergedBoundOuterColumns = subQueryResults2.boundOuterColumns;
+        }
+
+        // Regular sub-select field.
+        Map<SelectSymbol, Object> mergedValuesBySubQuery = subQueryResults1.valuesBySubQuery;
+        if (mergedValuesBySubQuery.isEmpty()) {
+            mergedValuesBySubQuery = subQueryResults2.valuesBySubQuery;
+        }
+
+        SubQueryResults combinedSubQueryResults = new SubQueryResults(mergedValuesBySubQuery, mergedBoundOuterColumns);
+        combinedSubQueryResults.bindOuterColumnInputRow(mergedRow);
+        return combinedSubQueryResults;
     }
 }

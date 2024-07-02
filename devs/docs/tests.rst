@@ -19,6 +19,11 @@ For example::
 
     $ ./mvnw test -pl server
 
+To run tests for `server` module and build any dependency module beforehand, but
+skip running tests on those modules, you can run::
+
+    $ ./mvnw -Pserver test
+
 Run tests using multiple forks::
 
     $ ./mvnw test -DforkCount=4
@@ -65,7 +70,8 @@ value for the remainder of your terminal session.
 
 Filter tests::
 
-    $ ./mvnw '-Dtest=PlannerTest#testSet*' test -pl server
+    $ ./mvnw test -pl server -Dtest=PlannerTest -Dtests.method=testSetTimeZone
+    $ ./mvnw test -pl server -Dtest=PlannerTest '-Dtests.method=testSetTime*'
 
 Extra options::
 

@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.VectorSimilarityFunction;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.util.RamUsageEstimator;
@@ -58,7 +57,7 @@ public class FloatVectorType extends DataType<float[]> implements Streamer<float
     private static final EqQuery<float[]> EQ_QUERY = new EqQuery<>() {
 
         @Override
-        public Query termQuery(String field, float[] value) {
+        public Query termQuery(String field, float[] value, boolean hasDocValues, boolean isIndexed) {
             return null;
         }
 
@@ -68,7 +67,13 @@ public class FloatVectorType extends DataType<float[]> implements Streamer<float
                                 float[] upperTerm,
                                 boolean includeLower,
                                 boolean includeUpper,
-                                boolean hasDocValues) {
+                                boolean hasDocValues,
+                                boolean isIndexed) {
+            return null;
+        }
+
+        @Override
+        public Query termsQuery(String field, List<float[]> nonNullValues, boolean hasDocValues, boolean isIndexed) {
             return null;
         }
     };
@@ -81,9 +86,8 @@ public class FloatVectorType extends DataType<float[]> implements Streamer<float
         @Override
         public ValueIndexer<? super float[]> valueIndexer(RelationName table,
                                                           Reference ref,
-                                                          Function<String, FieldType> getFieldType,
                                                           Function<ColumnIdent, Reference> getRef) {
-            return new FloatVectorIndexer(ref, getFieldType.apply(ref.storageIdent()));
+            return new FloatVectorIndexer(ref);
         }
     };
 

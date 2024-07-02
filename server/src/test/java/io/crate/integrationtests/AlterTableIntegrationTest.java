@@ -26,17 +26,17 @@ import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_COLUMN;
 import static io.crate.testing.Asserts.assertSQLError;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseNewCluster;
+import java.util.Locale;
+
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.testing.Asserts;
-
-import java.util.Locale;
+import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseNewCluster;
 
 public class AlterTableIntegrationTest extends IntegTestCase {
 
@@ -47,18 +47,6 @@ public class AlterTableIntegrationTest extends IntegTestCase {
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
             .hasMessageContaining("Creating tables with soft-deletes disabled is no longer supported.");
-    }
-
-    // Drop column
-    @Test
-    public void test_alter_table_drop_column_used_meanwhile_in_generated_col() {
-        execute("CREATE TABLE t(a int, b int)");
-        PlanForNode plan = plan("ALTER TABLE t DROP b");
-        execute("ALTER TABLE t ADD COLUMN c GENERATED ALWAYS AS (b + 1)");
-        assertSQLError(() -> execute(plan).getResult())
-            .hasPGError(INTERNAL_ERROR)
-            .hasHTTPError(INTERNAL_SERVER_ERROR, 5000)
-            .hasMessageContaining("Dropping column: b which is used to produce values for generated column is not allowed");
     }
 
     @Test
@@ -207,6 +195,26 @@ public class AlterTableIntegrationTest extends IntegTestCase {
     }
 
     @Test
+    public void test_drop_sub_column_readd_and_update() {
+        execute("CREATE TABLE t1 (id int, obj object as (x int, y int))");
+        execute("INSERT INTO t1 (id, obj) VALUES (1, {x=11, y=21})");
+        refresh();
+        execute("SELECT id, obj FROM t1");
+        assertThat(response).hasRows("1| {x=11, y=21}");
+
+        execute("ALTER TABLE t1 DROP COLUMN obj['y']");
+        execute("SELECT id, obj FROM t1");
+        assertThat(response).hasRows("1| {x=11}");
+
+        execute("ALTER TABLE t1 ADD COLUMN obj['y'] TEXT");
+        execute("UPDATE t1 SET obj['y'] = 'foo'");
+        assertThat(response.rowCount()).isEqualTo(1L);
+        refresh();
+        execute("SELECT id, obj FROM t1");
+        assertThat(response).hasRows("1| {x=11, y=foo}");
+    }
+
+    @Test
     @UseNewCluster
     public void test_alter_table_drop_column_can_add_again() {
         execute("create table t(a integer, b integer, o object AS(a int, oo object AS(a int)))");
@@ -288,5 +296,48 @@ public class AlterTableIntegrationTest extends IntegTestCase {
         );
     }
 
+    @Test
+    public void test_rename_columns() {
+        execute("""
+            create table doc.t (
+                a int primary key,
+                o object as (a int primary key, b int),
+                c int generated always as (abs(a + o['a'])),
+                constraint c_1 check (o['a'] < a + c)
+            ) partitioned by (a, o['a'])
+            """);
+        execute("insert into doc.t(a, o) values (1, {a=2})");
+        execute("insert into doc.t(a, o) values (4, {a=5})");
+        refresh();
 
+        execute("alter table doc.t rename column a to a2");
+        execute("alter table doc.t rename column o to o2");
+        execute("alter table doc.t rename column o2['a'] to o2['a22']");
+
+        execute("show create table doc.t");
+        assertThat((String) response.rows()[0][0]).contains(
+                """
+                    CREATE TABLE IF NOT EXISTS "doc"."t" (
+                       "a2" INTEGER NOT NULL,
+                       "o2" OBJECT(DYNAMIC) AS (
+                          "a22" INTEGER NOT NULL,
+                          "b" INTEGER
+                       ),
+                       "c" INTEGER GENERATED ALWAYS AS abs(("a2" + "o2"['a22'])),
+                       PRIMARY KEY ("a2", "o2"['a22']),
+                       CONSTRAINT c_1 CHECK("o2"['a22'] < ("a2" + "c"))
+                    )
+                    """.stripIndent())
+            .contains("PARTITIONED BY (\"a2\", \"o2\"['a22'])");
+
+        execute("select * from doc.t order by a2");
+        assertThat(response.cols()).isEqualTo(new String[]{"a2", "o2", "c"});
+        assertThat(response).hasRows("1| {a22=2}| 3", "4| {a22=5}| 9");
+
+        execute("select attname from pg_attribute where attrelid = 'doc.t'::regclass");
+        assertThat(response).hasRows("a2", "o2", "o2['a22']", "o2['b']", "c");
+
+        execute("select column_name from information_schema.columns where table_name = 't'");
+        assertThat(response).hasRows("a2", "o2", "o2['a22']", "o2['b']", "c");
+    }
 }

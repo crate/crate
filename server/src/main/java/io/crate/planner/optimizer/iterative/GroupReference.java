@@ -24,12 +24,12 @@ package io.crate.planner.optimizer.iterative;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedCollection;
 import java.util.Set;
 
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.SelectSymbol;
@@ -76,7 +76,7 @@ public class GroupReference implements LogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
         throw new UnsupportedOperationException(ERROR_MESSAGE);
     }
 
@@ -91,7 +91,7 @@ public class GroupReference implements LogicalPlan {
     }
 
     @Override
-    public List<RelationName> getRelationNames() {
+    public List<RelationName> relationNames() {
         return relationNames;
     }
 
@@ -112,11 +112,6 @@ public class GroupReference implements LogicalPlan {
     @Override
     public List<Symbol> outputs() {
         return outputs;
-    }
-
-    @Override
-    public List<AbstractTableRelation<?>> baseTables() {
-        throw new UnsupportedOperationException(ERROR_MESSAGE);
     }
 
     @Override

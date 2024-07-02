@@ -24,8 +24,6 @@ package io.crate.integrationtests;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
 import static io.crate.testing.Asserts.assertThat;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -50,7 +48,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.test.IntegTestCase;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Test;
 
@@ -197,43 +194,43 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
     @Test
     public void testExecuteDeleteAllPartitions_PartitionsAreDeletedMeanwhile() throws Exception {
         Bucket bucket = deletePartitionsAndExecutePlan("delete from t");
-        assertThat(bucket.size(), is(1));
+        assertThat(bucket).hasSize(1);
         Row row = bucket.iterator().next();
-        assertThat(row.numColumns(), is(1));
-        assertThat(row.get(0), is(-1L));
+        assertThat(row.numColumns()).isEqualTo(1);
+        assertThat(row.get(0)).isEqualTo(-1L);
     }
 
     @Test
     public void testExecuteDeleteSomePartitions_PartitionsAreDeletedMeanwhile() throws Exception {
         Bucket bucket = deletePartitionsAndExecutePlan("delete from t where name = 'Trillian'");
-        assertThat(bucket.size(), is(1));
+        assertThat(bucket).hasSize(1);
         Row row = bucket.iterator().next();
-        assertThat(row.numColumns(), is(1));
-        assertThat(row.get(0), is(0L));
+        assertThat(row.numColumns()).isEqualTo(1);
+        assertThat(row.get(0)).isEqualTo(0L);
     }
 
     @Test
     public void testExecuteDeleteByQuery_PartitionsAreDeletedMeanwhile() throws Exception {
         Bucket bucket = deletePartitionsAndExecutePlan("delete from t where p = 'a'");
-        assertThat(bucket.size(), is(1));
+        assertThat(bucket).hasSize(1);
         Row row = bucket.iterator().next();
-        assertThat(row.numColumns(), is(1));
-        assertThat(row.get(0), is(-1L));
+        assertThat(row.numColumns()).isEqualTo(1);
+        assertThat(row.get(0)).isEqualTo(-1L);
     }
 
     @Test
     public void testExecuteUpdate_PartitionsAreDeletedMeanwhile() throws Exception {
         Bucket bucket = deletePartitionsAndExecutePlan("update t set name = 'BoyceCodd'");
-        assertThat(bucket.size(), is(1));
+        assertThat(bucket).hasSize(1);
         Row row = bucket.iterator().next();
-        assertThat(row.numColumns(), is(1));
-        assertThat(row.get(0), is(0L));
+        assertThat(row.numColumns()).isEqualTo(1);
+        assertThat(row.get(0)).isEqualTo(0L);
     }
 
     @Test
     public void testTableUnknownExceptionIsNotRaisedIfPartitionsAreDeletedAfterPlan() throws Exception {
         Bucket bucket = deletePartitionsAndExecutePlan("select * from t");
-        assertThat(bucket.size(), is(0));
+        assertThat(bucket).hasSize(0);
     }
 
     @Test
@@ -241,13 +238,13 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
         // with a sinlge node, this test leads to empty shard collectors
         cluster().ensureAtMostNumDataNodes(1);
         Bucket bucket = deletePartitionsAndExecutePlan("select * from t");
-        assertThat(bucket.size(), is(0));
+        assertThat(bucket).hasSize(0);
     }
 
     @Test
     public void testTableUnknownExceptionNotRaisedIfPartitionsDeletedAfterCountPlan() throws Exception {
         Bucket bucket = deletePartitionsAndExecutePlan("select count(*) from t");
-        assertThat(bucket.iterator().next().get(0), is(0L));
+        assertThat(bucket.iterator().next().get(0)).isEqualTo(0L);
     }
 
     @Test
@@ -397,13 +394,15 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
 
         countDownLatch.await();
         // on a reasonable fast machine all inserts always work.
-        assertThat("At least one insert must work without timeout", numSuccessfulInserts.get(), Matchers.greaterThanOrEqualTo(1));
+        assertThat(numSuccessfulInserts.get())
+            .as("At least one insert must work without timeout")
+            .isGreaterThanOrEqualTo(1);
 
         // table info is maybe not up-to-date immediately as doc table info's are cached
         // and invalidated/rebuild on cluster state changes
         assertBusy(() -> {
             execute("select count(*) from information_schema.columns where table_name = 'dyn_parted'");
-            assertThat(response.rows()[0][0], is(3L + numCols * numSuccessfulInserts.get()));
+            assertThat(response.rows()[0][0]).isEqualTo(3L + numCols * numSuccessfulInserts.get());
         }, 10L, TimeUnit.SECONDS);
     }
 

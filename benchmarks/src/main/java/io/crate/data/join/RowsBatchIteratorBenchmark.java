@@ -27,11 +27,12 @@ import static io.crate.window.NthValueFunctions.LAST_VALUE_NAME;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.common.settings.Settings;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Mode;
@@ -41,7 +42,7 @@ import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.infra.Blackhole;
 
-import io.crate.breaker.RowCellsAccountingWithEstimators;
+import io.crate.breaker.TypedCellsAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Input;
@@ -56,8 +57,9 @@ import io.crate.execution.engine.join.HashInnerJoinBatchIterator;
 import io.crate.execution.engine.window.WindowFunction;
 import io.crate.execution.engine.window.WindowFunctionBatchIterator;
 import io.crate.metadata.Functions;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
-import io.crate.module.ExtraFunctionsModule;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
 
@@ -66,30 +68,30 @@ import io.crate.types.TypeSignature;
 @State(Scope.Benchmark)
 public class RowsBatchIteratorBenchmark {
 
-    private final RowCellsAccountingWithEstimators rowAccounting = new RowCellsAccountingWithEstimators(
+    private final TypedCellsAccounting rowAccounting = new TypedCellsAccounting(
         List.of(DataTypes.INTEGER), RamAccounting.NO_ACCOUNTING, 0);
 
-    private List<Row> rows;
+    private List<RowN> rows;
 
     // used with  RowsBatchIterator without any state/error handling to establish a performance baseline.
-    private final List<Row1> oneThousandRows = IntStream.range(0, 1000).mapToObj(Row1::new).collect(Collectors.toList());
-    private final List<Row1> tenThousandRows = IntStream.range(0, 10000).mapToObj(Row1::new).collect(Collectors.toList());
+    private final List<Row1> oneThousandRows = IntStream.range(0, 1000).mapToObj(Row1::new).toList();
+    private final List<Row1> tenThousandRows = IntStream.range(0, 10000).mapToObj(Row1::new).toList();
 
     private WindowFunction lastValueIntFunction;
 
     @Setup
     public void setup() {
         rows = IntStream.range(0, 10_000_000)
-            .mapToObj(i -> new RowN(i))
-            .collect(Collectors.toList());
-        Functions functions = new ModulesBuilder().add(new ExtraFunctionsModule())
-            .createInjector().getInstance(Functions.class);
+            .mapToObj(RowN::new)
+            .toList();
+        Functions functions = Functions.load(Settings.EMPTY, new SessionSettingRegistry(Set.of()));
         lastValueIntFunction = (WindowFunction) functions.getQualified(
             Signature.window(
-                LAST_VALUE_NAME,
-                TypeSignature.parse("E"),
-                TypeSignature.parse("E")
-            ).withTypeVariableConstraints(typeVariable("E")),
+                    LAST_VALUE_NAME,
+                    TypeSignature.parse("E"),
+                    TypeSignature.parse("E")
+                ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withTypeVariableConstraints(typeVariable("E")),
             List.of(DataTypes.INTEGER),
             DataTypes.INTEGER
         );
@@ -130,7 +132,7 @@ public class RowsBatchIteratorBenchmark {
             InMemoryBatchIterator.of(oneThousandRows, SENTINEL, true),
             InMemoryBatchIterator.of(tenThousandRows, SENTINEL, true),
             new CombinedRow(1, 1),
-            () -> 1000,
+            ignored -> 1000,
             new NoRowAccounting<>()
         );
         while (crossJoin.moveNext()) {
@@ -161,7 +163,7 @@ public class RowsBatchIteratorBenchmark {
             row -> Objects.equals(row.get(0), row.get(1)),
             row -> Objects.hash(row.get(0)),
             row -> Objects.hash(row.get(0)),
-            () -> 1000
+            ignored -> 1000
         );
         while (leftJoin.moveNext()) {
             blackhole.consume(leftJoin.currentElement().get(0));
@@ -183,7 +185,7 @@ public class RowsBatchIteratorBenchmark {
                 return value < 500 ? value : (value % 100) + 500;
             },
             row -> (Integer) row.get(0) % 500,
-            () -> 1000
+            ignored -> 1000
         );
         while (leftJoin.moveNext()) {
             blackhole.consume(leftJoin.currentElement().get(0));
@@ -195,6 +197,7 @@ public class RowsBatchIteratorBenchmark {
         RowCollectExpression input = new RowCollectExpression(0);
         BatchIterator<Row> batchIterator = WindowFunctionBatchIterator.of(
             new InMemoryBatchIterator<>(rows, SENTINEL, false),
+            ignored -> {},
             new NoRowAccounting<>(),
             (partitionStart, partitionEnd, currentIndex, sortedRows) -> 0,
             (partitionStart, partitionEnd, currentIndex, sortedRows) -> currentIndex,
@@ -217,12 +220,12 @@ public class RowsBatchIteratorBenchmark {
     private static class NoRowAccounting<T> implements RowAccounting<T> {
 
         @Override
-        public void accountForAndMaybeBreak(T row) {
+        public long accountForAndMaybeBreak(T row) {
+            return 42L;
         }
 
         @Override
         public void release() {
-
         }
     }
 }

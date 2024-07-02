@@ -21,11 +21,11 @@
 
 package io.crate.sql.tree;
 
-import io.crate.common.collections.Lists2;
-
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
+
+import io.crate.common.collections.Lists;
 
 public class ResetStatement<T> extends Statement {
 
@@ -41,7 +41,7 @@ public class ResetStatement<T> extends Statement {
 
     public <U> ResetStatement<U> map(Function<? super T, ? extends U> mapper) {
         return new ResetStatement<>(
-            Lists2.map(columns, mapper)
+            Lists.map(columns, mapper)
         );
     }
 

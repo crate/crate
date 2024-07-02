@@ -19,8 +19,8 @@
 
 package org.elasticsearch.index.engine;
 
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
@@ -34,22 +34,15 @@ import java.util.stream.Collectors;
 
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.translog.SnapshotMatchers;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.test.IndexSettingsModule;
-import org.junit.Before;
+import org.junit.Test;
 
 import io.crate.common.io.IOUtils;
 
 public class LuceneChangesSnapshotTests extends EngineTestCase {
-    private MapperService mapperService;
-
-    @Before
-    public void createMapper() throws Exception {
-        mapperService = createMapperService("test");
-    }
 
     @Override
     protected Settings indexSettings() {
@@ -62,12 +55,12 @@ public class LuceneChangesSnapshotTests extends EngineTestCase {
         long fromSeqNo = randomNonNegativeLong();
         long toSeqNo = randomLongBetween(fromSeqNo, Long.MAX_VALUE);
         // Empty engine
-        try (Translog.Snapshot snapshot = engine.newChangesSnapshot("test", mapperService, fromSeqNo, toSeqNo, true)) {
-            IllegalStateException error = expectThrows(IllegalStateException.class, () -> drainAll(snapshot));
-            assertThat(error.getMessage(),
-                       containsString("Not all operations between from_seqno [" + fromSeqNo + "] and to_seqno [" + toSeqNo + "] found"));
+        try (Translog.Snapshot snapshot = engine.newChangesSnapshot("test", fromSeqNo, toSeqNo, true)) {
+            assertThatThrownBy(() -> drainAll(snapshot))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Not all operations between from_seqno [" + fromSeqNo + "] and to_seqno [" + toSeqNo + "] found");
         }
-        try (Translog.Snapshot snapshot = engine.newChangesSnapshot("test", mapperService, fromSeqNo, toSeqNo, false)) {
+        try (Translog.Snapshot snapshot = engine.newChangesSnapshot("test", fromSeqNo, toSeqNo, false)) {
             assertThat(snapshot, SnapshotMatchers.size(0));
         }
         int numOps = between(1, 100);
@@ -95,7 +88,7 @@ public class LuceneChangesSnapshotTests extends EngineTestCase {
 
             Engine.Searcher searcher = engine.acquireSearcher("test", Engine.SearcherScope.INTERNAL);
             try (Translog.Snapshot snapshot = new LuceneChangesSnapshot(
-                searcher, mapperService, between(1, LuceneChangesSnapshot.DEFAULT_BATCH_SIZE), fromSeqNo, toSeqNo, false)) {
+                searcher, between(1, LuceneChangesSnapshot.DEFAULT_BATCH_SIZE), fromSeqNo, toSeqNo, false)) {
                 searcher = null;
                 assertThat(snapshot, SnapshotMatchers.size(0));
             } finally {
@@ -104,11 +97,11 @@ public class LuceneChangesSnapshotTests extends EngineTestCase {
 
             searcher = engine.acquireSearcher("test", Engine.SearcherScope.INTERNAL);
             try (Translog.Snapshot snapshot = new LuceneChangesSnapshot(
-                searcher, mapperService, between(1, LuceneChangesSnapshot.DEFAULT_BATCH_SIZE), fromSeqNo, toSeqNo, true)) {
+                searcher, between(1, LuceneChangesSnapshot.DEFAULT_BATCH_SIZE), fromSeqNo, toSeqNo, true)) {
                 searcher = null;
-                IllegalStateException error = expectThrows(IllegalStateException.class, () -> drainAll(snapshot));
-                assertThat(error.getMessage(),
-                           containsString("Not all operations between from_seqno [" + fromSeqNo + "] and to_seqno [" + toSeqNo + "] found"));
+                assertThatThrownBy(() -> drainAll(snapshot))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("Not all operations between from_seqno [" + fromSeqNo + "] and to_seqno [" + toSeqNo + "] found");
             }finally {
                 IOUtils.close(searcher);
             }
@@ -117,7 +110,7 @@ public class LuceneChangesSnapshotTests extends EngineTestCase {
             toSeqNo = randomLongBetween(refreshedSeqNo + 1, numOps * 2);
             Engine.Searcher searcher = engine.acquireSearcher("test", Engine.SearcherScope.INTERNAL);
             try (Translog.Snapshot snapshot = new LuceneChangesSnapshot(
-                searcher, mapperService, between(1, LuceneChangesSnapshot.DEFAULT_BATCH_SIZE), fromSeqNo, toSeqNo, false)) {
+                searcher, between(1, LuceneChangesSnapshot.DEFAULT_BATCH_SIZE), fromSeqNo, toSeqNo, false)) {
                 searcher = null;
                 assertThat(snapshot, SnapshotMatchers.containsSeqNoRange(fromSeqNo, refreshedSeqNo));
             } finally {
@@ -125,18 +118,18 @@ public class LuceneChangesSnapshotTests extends EngineTestCase {
             }
             searcher = engine.acquireSearcher("test", Engine.SearcherScope.INTERNAL);
             try (Translog.Snapshot snapshot = new LuceneChangesSnapshot(
-                searcher, mapperService, between(1, LuceneChangesSnapshot.DEFAULT_BATCH_SIZE), fromSeqNo, toSeqNo, true)) {
+                searcher, between(1, LuceneChangesSnapshot.DEFAULT_BATCH_SIZE), fromSeqNo, toSeqNo, true)) {
                 searcher = null;
-                IllegalStateException error = expectThrows(IllegalStateException.class, () -> drainAll(snapshot));
-                assertThat(error.getMessage(),
-                           containsString("Not all operations between from_seqno [" + fromSeqNo + "] and to_seqno [" + toSeqNo + "] found"));
-            }finally {
+                assertThatThrownBy(() -> drainAll(snapshot))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("Not all operations between from_seqno [" + fromSeqNo + "] and to_seqno [" + toSeqNo + "] found");
+            } finally {
                 IOUtils.close(searcher);
             }
             toSeqNo = randomLongBetween(fromSeqNo, refreshedSeqNo);
             searcher = engine.acquireSearcher("test", Engine.SearcherScope.INTERNAL);
             try (Translog.Snapshot snapshot = new LuceneChangesSnapshot(
-                searcher, mapperService, between(1, LuceneChangesSnapshot.DEFAULT_BATCH_SIZE), fromSeqNo, toSeqNo, true)) {
+                searcher, between(1, LuceneChangesSnapshot.DEFAULT_BATCH_SIZE), fromSeqNo, toSeqNo, true)) {
                 searcher = null;
                 assertThat(snapshot, SnapshotMatchers.containsSeqNoRange(fromSeqNo, toSeqNo));
             } finally {
@@ -146,7 +139,7 @@ public class LuceneChangesSnapshotTests extends EngineTestCase {
         // Get snapshot via engine will auto refresh
         fromSeqNo = randomLongBetween(0, numOps - 1);
         toSeqNo = randomLongBetween(fromSeqNo, numOps - 1);
-        try (Translog.Snapshot snapshot = engine.newChangesSnapshot("test", mapperService, fromSeqNo, toSeqNo, randomBoolean())) {
+        try (Translog.Snapshot snapshot = engine.newChangesSnapshot("test", fromSeqNo, toSeqNo, randomBoolean())) {
             assertThat(snapshot, SnapshotMatchers.containsSeqNoRange(fromSeqNo, toSeqNo));
         }
     }
@@ -177,13 +170,13 @@ public class LuceneChangesSnapshotTests extends EngineTestCase {
         long maxSeqNo = engine.getLocalCheckpointTracker().getMaxSeqNo();
         engine.refresh("test");
         Engine.Searcher searcher = engine.acquireSearcher("test", Engine.SearcherScope.INTERNAL);
-        try (Translog.Snapshot snapshot = new LuceneChangesSnapshot(searcher, mapperService, between(1, 100), 0, maxSeqNo, false)) {
-            assertThat(snapshot.totalOperations(), equalTo(seqNoToTerm.size()));
+        try (Translog.Snapshot snapshot = new LuceneChangesSnapshot(searcher, between(1, 100), 0, maxSeqNo, false)) {
+            assertThat(snapshot.totalOperations()).isEqualTo(seqNoToTerm.size());
             Translog.Operation op;
             while ((op = snapshot.next()) != null) {
-                assertThat(op.toString(), op.primaryTerm(), equalTo(seqNoToTerm.get(op.seqNo())));
+                assertThat(op.primaryTerm()).as(op.toString()).isEqualTo(seqNoToTerm.get(op.seqNo()));
             }
-            assertThat(snapshot.skippedOperations(), equalTo(0));
+            assertThat(snapshot.skippedOperations()).isEqualTo(0);
         }
     }
 
@@ -220,7 +213,7 @@ public class LuceneChangesSnapshotTests extends EngineTestCase {
         readyLatch.countDown();
         readyLatch.await();
         concurrentlyApplyOps(operations, engine);
-        assertThat(engine.getLocalCheckpointTracker().getProcessedCheckpoint(), equalTo(operations.size() - 1L));
+        assertThat(engine.getLocalCheckpointTracker().getProcessedCheckpoint()).isEqualTo(operations.size() - 1L);
         isDone.set(true);
         for (Follower follower : followers) {
             follower.join();
@@ -239,7 +232,7 @@ public class LuceneChangesSnapshotTests extends EngineTestCase {
             this.leader = leader;
             this.isDone = isDone;
             this.readLatch = readLatch;
-            this.translogHandler = new TranslogHandler(xContentRegistry(), IndexSettingsModule.newIndexSettings(shardId.getIndexName(),
+            this.translogHandler = new TranslogHandler(IndexSettingsModule.newIndexSettings(shardId.getIndexName(),
                                                                                                                 leader.engineConfig.getIndexSettings().getSettings()));
             this.engine = createEngine(createStore(), createTempDir());
         }
@@ -251,7 +244,7 @@ public class LuceneChangesSnapshotTests extends EngineTestCase {
                 long fromSeqNo = followerCheckpoint + 1;
                 long batchSize = randomLongBetween(0, 100);
                 long toSeqNo = Math.min(fromSeqNo + batchSize, leaderCheckpoint);
-                try (Translog.Snapshot snapshot = leader.newChangesSnapshot("test", mapperService, fromSeqNo, toSeqNo, true)) {
+                try (Translog.Snapshot snapshot = leader.newChangesSnapshot("test", fromSeqNo, toSeqNo, true)) {
                     translogHandler.run(follower, snapshot);
                 }
             }
@@ -267,7 +260,7 @@ public class LuceneChangesSnapshotTests extends EngineTestCase {
                        leader.getLocalCheckpointTracker().getProcessedCheckpoint()) {
                     pullOperations(engine);
                 }
-                assertConsistentHistoryBetweenTranslogAndLuceneIndex(engine, mapperService);
+                assertConsistentHistoryBetweenTranslogAndLuceneIndex(engine);
                 // have to verify without source since we are randomly testing without _source
                 List<DocIdSeqNoAndSource> docsWithoutSourceOnFollower = getDocIds(engine, true).stream()
                     .map(d -> new DocIdSeqNoAndSource(d.getId(), null, d.getSeqNo(), d.getPrimaryTerm(), d.getVersion()))
@@ -275,7 +268,7 @@ public class LuceneChangesSnapshotTests extends EngineTestCase {
                 List<DocIdSeqNoAndSource> docsWithoutSourceOnLeader = getDocIds(leader, true).stream()
                     .map(d -> new DocIdSeqNoAndSource(d.getId(), null, d.getSeqNo(), d.getPrimaryTerm(), d.getVersion()))
                     .collect(Collectors.toList());
-                assertThat(docsWithoutSourceOnFollower, equalTo(docsWithoutSourceOnLeader));
+                assertThat(docsWithoutSourceOnFollower).isEqualTo(docsWithoutSourceOnLeader);
             } catch (Exception ex) {
                 throw new AssertionError(ex);
             }
@@ -294,13 +287,14 @@ public class LuceneChangesSnapshotTests extends EngineTestCase {
         return operations;
     }
 
+    @Test
     public void testOverFlow() throws Exception {
         long fromSeqNo = randomLongBetween(0, 5);
         long toSeqNo = randomLongBetween(Long.MAX_VALUE - 5, Long.MAX_VALUE);
-        try (Translog.Snapshot snapshot = engine.newChangesSnapshot("test", mapperService, fromSeqNo, toSeqNo, true)) {
-            IllegalStateException error = expectThrows(IllegalStateException.class, () -> drainAll(snapshot));
-            assertThat(error.getMessage(),
-                       containsString("Not all operations between from_seqno [" + fromSeqNo + "] and to_seqno [" + toSeqNo + "] found"));
+        try (Translog.Snapshot snapshot = engine.newChangesSnapshot("test", fromSeqNo, toSeqNo, true)) {
+            assertThatThrownBy(() -> drainAll(snapshot))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Not all operations between from_seqno [" + fromSeqNo + "] and to_seqno [" + toSeqNo + "] found");
         }
     }
 }

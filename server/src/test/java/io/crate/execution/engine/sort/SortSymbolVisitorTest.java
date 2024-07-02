@@ -22,8 +22,7 @@
 package io.crate.execution.engine.sort;
 
 import static io.crate.testing.TestingHelpers.createReference;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.instanceOf;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.apache.lucene.search.SortedSetSortField;
 import org.elasticsearch.index.fielddata.NullValueOrder;
@@ -47,7 +46,7 @@ public class SortSymbolVisitorTest {
     @Test
     public void test_character_type_reference_can_be_mapped_to_sort_field() {
         var ref = createReference("c", ColumnIdent.fromPath("c"), CharacterType.INSTANCE);
-        var sortField = SortSymbolVisitor.mappedSortField(ref, false, NullValueOrder.FIRST);
-        assertThat(sortField, instanceOf(SortedSetSortField.class));
+        var sortField = LuceneSort.mappedSortField(ref, false, NullValueOrder.FIRST);
+        assertThat(sortField).isExactlyInstanceOf(SortedSetSortField.class);
     }
 }

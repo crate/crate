@@ -21,120 +21,48 @@
 
 package io.crate.metadata.doc;
 
-import static io.crate.metadata.SearchPath.pathWithPGCatalogAndDoc;
 import static io.crate.metadata.doc.DocSchemaInfo.getTablesAffectedByPublicationsChange;
 import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-
-import javax.script.ScriptException;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
-import org.hamcrest.Matchers;
-import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.common.collections.Lists2;
-import io.crate.data.Input;
-import io.crate.expression.udf.UDFLanguage;
-import io.crate.expression.udf.UserDefinedFunctionMetadata;
-import io.crate.expression.udf.UserDefinedFunctionService;
-import io.crate.expression.udf.UserDefinedFunctionsMetadata;
+import io.crate.analyze.relations.RelationAnalyzer;
+import io.crate.common.collections.Lists;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.Schemas;
-import io.crate.metadata.TransactionContext;
-import io.crate.metadata.functions.BoundSignature;
-import io.crate.metadata.functions.Signature;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.view.ViewInfoFactory;
 import io.crate.replication.logical.metadata.Publication;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.types.DataTypes;
 
 public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
 
     private DocSchemaInfo docSchemaInfo;
-    private UserDefinedFunctionService udfService;
     private NodeContext nodeCtx;
 
     @Before
     public void setup() throws Exception {
         nodeCtx = createNodeContext();
-        var docTableFactory = new DocTableInfoFactory(nodeCtx);
-        udfService = new UserDefinedFunctionService(clusterService, docTableFactory, nodeCtx);
-        udfService.registerLanguage(new UDFLanguage() {
-            @Override
-            public Scalar createFunctionImplementation(UserDefinedFunctionMetadata metadata,
-                                                       Signature signature,
-                                                       BoundSignature boundSignature) throws ScriptException {
-                String error = validate(metadata);
-                if (error != null) {
-                    throw new ScriptException("this is not Burlesque");
-                }
-                return new Scalar<>(signature, boundSignature) {
-                    @Override
-                    public Object evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input[] args) {
-                        return null;
-                    }
-                };
-            }
-
-            @Override
-            @Nullable
-            public String validate(UserDefinedFunctionMetadata metadata) {
-                if (!metadata.definition().equals("\"Hello, World!\"Q")) {
-                    return "this is not Burlesque";
-                }
-                return null;
-            }
-
-            @Override
-            public String name() {
-                return "burlesque";
-            }
-        });
         docSchemaInfo = new DocSchemaInfo(
             "doc",
             clusterService,
-            nodeCtx,
-            udfService,
-            new ViewInfoFactory(() -> null),
+            new ViewInfoFactory(new RelationAnalyzer(nodeCtx)),
             new DocTableInfoFactory(nodeCtx)
         );
-    }
-
-    @Test
-    public void testInvalidFunction() throws Exception {
-        UserDefinedFunctionMetadata invalid = new UserDefinedFunctionMetadata(
-            "my_schema", "invalid", List.of(), DataTypes.INTEGER,
-            "burlesque", "this is not valid burlesque code"
-        );
-        UserDefinedFunctionMetadata valid = new UserDefinedFunctionMetadata(
-            "my_schema", "valid", List.of(), DataTypes.INTEGER,
-            "burlesque", "\"Hello, World!\"Q"
-        );
-        UserDefinedFunctionsMetadata metadata = UserDefinedFunctionsMetadata.of(invalid, valid);
-        // if a functionImpl can't be created, it won't be registered
-
-        udfService.updateImplementations("my_schema", metadata.functionsMetadata().stream());
-
-        assertThat(nodeCtx.functions().get("my_schema", "valid", List.of(), pathWithPGCatalogAndDoc()), Matchers.notNullValue());
-
-        expectedException.expectMessage("Unknown function: my_schema.invalid()");
-        nodeCtx.functions().get("my_schema", "invalid", List.of(), pathWithPGCatalogAndDoc());
     }
 
     @Test
@@ -150,7 +78,8 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
         var state = docTablesByName("t1", "t2", "t3", "t4");
         var publishNewTables = publicationsMetadata("pub1", false, List.of("t1", "t2"));
 
-        assertThat(getTablesAffectedByPublicationsChange(null, publishNewTables, state), containsInAnyOrder("t1", "t2"));
+        assertThat(getTablesAffectedByPublicationsChange(null, publishNewTables, state))
+            .containsExactlyInAnyOrder("t1", "t2");
     }
 
     @Test
@@ -158,7 +87,8 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
         var state = docTablesByName("t1", "t2", "t3", "t4");
         var publishAllTables = publicationsMetadata("pub1", true, List.of());
 
-        assertThat(getTablesAffectedByPublicationsChange(null, publishAllTables, state), containsInAnyOrder("t1", "t2", "t3", "t4"));
+        assertThat(getTablesAffectedByPublicationsChange(null, publishAllTables, state))
+            .containsExactlyInAnyOrder("t1", "t2", "t3", "t4");
     }
 
     @Test
@@ -167,7 +97,8 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
         var prevMetadata = publicationsMetadata("pub1", true, List.of());
         var newMetadata = publicationsMetadata("pub1", false, List.of());
 
-        assertThat(getTablesAffectedByPublicationsChange(prevMetadata, newMetadata, state), containsInAnyOrder("t1", "t2", "t3", "t4"));
+        assertThat(getTablesAffectedByPublicationsChange(prevMetadata, newMetadata, state))
+            .containsExactlyInAnyOrder("t1", "t2", "t3", "t4");
     }
 
     @Test
@@ -177,13 +108,15 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
         var prevMetadata = publicationsMetadata("pub1", false, List.of("t1", "t2"));
         var newMetadata = publicationsMetadata("pub1", false, List.of("t1", "t2", "t3", "t4"));
 
-        assertThat(getTablesAffectedByPublicationsChange(prevMetadata, newMetadata, state), containsInAnyOrder("t3", "t4"));
+        assertThat(getTablesAffectedByPublicationsChange(prevMetadata, newMetadata, state))
+            .containsExactlyInAnyOrder("t3", "t4");
 
         // publish t3, t4 drop t2
         prevMetadata = publicationsMetadata("pub1", false, List.of("t1", "t2"));
         newMetadata = publicationsMetadata("pub1", false, List.of("t1", "t3", "t4"));
 
-        assertThat(getTablesAffectedByPublicationsChange(prevMetadata, newMetadata, state), containsInAnyOrder("t2", "t3", "t4"));
+        assertThat(getTablesAffectedByPublicationsChange(prevMetadata, newMetadata, state))
+            .containsExactlyInAnyOrder("t2", "t3", "t4");
     }
 
     @Test
@@ -193,7 +126,8 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
         var prevMetadata = publicationsMetadata("pub1", false, List.of("t1", "t2"));
         var newMetadata = publicationsMetadata("pub1", true, List.of());
 
-        assertThat(getTablesAffectedByPublicationsChange(prevMetadata, newMetadata, state), containsInAnyOrder("t3", "t4"));
+        assertThat(getTablesAffectedByPublicationsChange(prevMetadata, newMetadata, state))
+            .containsExactlyInAnyOrder("t3", "t4");
     }
 
     @Test
@@ -202,7 +136,8 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
         var prevMetadata = publicationsMetadata("pub1", false, List.of("t1", "t2"));
         var newMetadata = publicationsMetadata("pub1", false, List.of());
 
-        assertThat(getTablesAffectedByPublicationsChange(prevMetadata, newMetadata, state), containsInAnyOrder("t1", "t2"));
+        assertThat(getTablesAffectedByPublicationsChange(prevMetadata, newMetadata, state))
+            .containsExactlyInAnyOrder("t1", "t2");
     }
 
     @Test
@@ -211,7 +146,8 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
         var prevMetadata = publicationsMetadata("pub1", false, List.of("t1", "t2"));
         var newMetadata = publicationsMetadata("pub1", false, List.of());
 
-        assertThat(getTablesAffectedByPublicationsChange(prevMetadata, newMetadata, state), containsInAnyOrder("t1", "t2"));
+        assertThat(getTablesAffectedByPublicationsChange(prevMetadata, newMetadata, state))
+            .containsExactlyInAnyOrder("t1", "t2");
     }
 
     @Test
@@ -220,12 +156,12 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
         var prevMetadata = publicationsMetadata("pub1", false, List.of("t1", "t2"));
         var newMetadata = publicationsMetadata("pub1", false, List.of("t1", "t2"));
 
-        assertThat(getTablesAffectedByPublicationsChange(prevMetadata, newMetadata, state), containsInAnyOrder());
-        assertThat(getTablesAffectedByPublicationsChange(null, null, state), containsInAnyOrder());
+        assertThat(getTablesAffectedByPublicationsChange(prevMetadata, newMetadata, state)).isEmpty();
+        assertThat(getTablesAffectedByPublicationsChange(null, null, state)).isEmpty();
     }
 
     private PublicationsMetadata publicationsMetadata(String name, boolean allTables, List<String> tables) {
-        var relationNames = Lists2.map(tables, x -> new RelationName(Schemas.DOC_SCHEMA_NAME, x));
+        var relationNames = Lists.map(tables, x -> new RelationName(Schemas.DOC_SCHEMA_NAME, x));
         var publications = Map.of(name, new Publication("user1", allTables, relationNames));
         return new PublicationsMetadata(publications);
     }
@@ -241,30 +177,23 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
     private DocTableInfo docTableInfo(String name) {
         return new DocTableInfo(
             new RelationName(Schemas.DOC_SCHEMA_NAME, name),
-            List.of(),
-            Set.of(),
-            List.of(),
-            List.of(),
-            List.of(),
             Map.of(),
             Map.of(),
             Map.of(),
+            null,
             List.of(),
             List.of(),
             null,
-            true,
-            new String[0],
-            new String[0],
-            5,
-            "0",
-            Settings.EMPTY,
-            List.of(),
+            Settings.builder()
+                .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 5)
+                .build(),
             List.of(),
             ColumnPolicy.DYNAMIC,
             Version.CURRENT,
             null,
             false,
-            Operation.ALL
+            Operation.ALL,
+            0
         );
     }
 }

@@ -30,8 +30,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.geo.builders.ShapeBuilder;
 import org.elasticsearch.common.geo.parsers.ShapeParser;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
@@ -52,7 +54,6 @@ import org.locationtech.spatial4j.exception.InvalidShapeException;
 import org.locationtech.spatial4j.shape.Shape;
 import org.locationtech.spatial4j.shape.ShapeCollection;
 
-import io.crate.common.collections.ForEach;
 import io.crate.types.GeoPointType;
 
 public class GeoJSONUtils {
@@ -88,6 +89,26 @@ public class GeoJSONUtils {
     );
 
     private static final GeoJSONMapConverter GEOJSON_CONVERTER = new GeoJSONMapConverter();
+
+    /**
+     * Invoke a consumer for each elements of a collection or an array
+     *
+     * @param arrayOrCollection a collection, a primitive or non-primitive array
+     * @param consumer          called for every element of <code>arrayOrCollection</code> as Object
+     */
+    private static void forEach(Object arrayOrCollection, Consumer<Object> consumer) {
+        if (arrayOrCollection.getClass().isArray()) {
+            int arrayLength = Array.getLength(arrayOrCollection);
+            for (int i = 0; i < arrayLength; i++) {
+                Object elem = Array.get(arrayOrCollection, i);
+                consumer.accept(elem);
+            }
+        } else if (arrayOrCollection instanceof Collection<?> collection) {
+            collection.forEach(consumer);
+        } else {
+            throw new AssertionError("argument is neither an array nor a collection");
+        }
+    }
 
     public static Map<String, Object> shape2Map(Shape shape) {
         if (shape instanceof ShapeCollection) {
@@ -126,31 +147,37 @@ public class GeoJSONUtils {
         return shape2Map(wkt2Shape(wkt));
     }
 
+    public static Shape map2Shape(Map<String, Object> geoJSONMap) {
+        return geoJSONString2ShapeBuilder(geoJSONMap).buildS4J();
+    }
+
+    public static Object map2LuceneShape(Map<String, Object> geoJSONMap) {
+        return geoJSONString2ShapeBuilder(geoJSONMap).buildLucene();
+    }
+
     /*
      * TODO: avoid parsing to XContent and back to shape
      */
-    public static Shape map2Shape(Map<String, Object> geoJSONMap) {
+    private static ShapeBuilder geoJSONString2ShapeBuilder(Map<String, Object> geoJSONMap) {
+        String geoJSON;
         try {
-            return geoJSONString2Shape(Strings.toString(JsonXContent.builder().map(geoJSONMap)));
+            geoJSON = Strings.toString(JsonXContent.builder().map(geoJSONMap));;
         } catch (Throwable e) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "Cannot convert Map \"%s\" to shape", geoJSONMap), e);
         }
-    }
-
-    private static Shape geoJSONString2Shape(String geoJSON) {
         try {
             XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
                 NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, geoJSON);
             parser.nextToken();
-            return ShapeParser.parse(parser).build();
+            return ShapeParser.parse(parser);
         } catch (Throwable t) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "Cannot convert GeoJSON \"%s\" to shape", geoJSON), t);
         }
     }
 
-    public static void validateGeoJson(Map value) {
+    public static void validateGeoJson(Map<?, ?> value) {
         String type = BytesRefs.toString(value.get(TYPE_FIELD));
         if (type == null) {
             throw new IllegalArgumentException(invalidGeoJSON("type field missing"));
@@ -167,11 +194,11 @@ public class GeoJSONUtils {
                 throw new IllegalArgumentException(invalidGeoJSON("geometries field missing"));
             }
 
-            ForEach.forEach(geometries, input -> {
-                if (!(input instanceof Map)) {
+            forEach(geometries, input -> {
+                if (!(input instanceof Map<?, ?> map)) {
                     throw new IllegalArgumentException(invalidGeoJSON("invalid GeometryCollection"));
                 } else {
-                    validateGeoJson((Map) input);
+                    validateGeoJson(map);
                 }
             });
         } else {
@@ -202,7 +229,7 @@ public class GeoJSONUtils {
     }
 
     private static void validateCoordinates(Object coordinates, final int depth) {
-        ForEach.forEach(coordinates, input -> {
+        forEach(coordinates, input -> {
             if (depth > 1) {
                 validateCoordinates(input, depth - 1);
             } else {

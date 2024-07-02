@@ -22,32 +22,37 @@
 package io.crate.types;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Function;
 
-import org.apache.lucene.document.FieldType;
+import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.index.Term;
+import org.apache.lucene.search.FieldExistsQuery;
+import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.TermInSetQuery;
 import org.apache.lucene.search.TermQuery;
-import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.Streamer;
+import io.crate.common.collections.Lists;
 import io.crate.execution.dml.BooleanIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.statistics.ColumnStatsSupport;
 
 public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>, FixedWidthType {
 
     public static final int ID = 3;
     public static final BooleanType INSTANCE = new BooleanType();
 
-    private static EqQuery<Boolean> EQ_QUERY = new EqQuery<>() {
+    private static final EqQuery<Boolean> EQ_QUERY = new EqQuery<>() {
 
         private static BytesRef indexedValue(Boolean value) {
             if (value == null) {
@@ -57,8 +62,15 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
         }
 
         @Override
-        public Query termQuery(String field, Boolean value) {
-            return new TermQuery(new Term(field, indexedValue(value)));
+        public Query termQuery(String field, Boolean value, boolean hasDocValues, boolean isIndexed) {
+            if (isIndexed) {
+                return new TermQuery(new Term(field, indexedValue(value)));
+            } else {
+                assert hasDocValues == true : "hasDocValues must be true for Boolean types since 'columnstore=false' is not supported.";
+                return SortedNumericDocValuesField.newSlowExactQuery(
+                    field,
+                    value ? 1 : 0);
+            }
         }
 
         @Override
@@ -67,9 +79,68 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
                                 Boolean upperTerm,
                                 boolean includeLower,
                                 boolean includeUpper,
-                                boolean hasDocValues) {
-            return new TermRangeQuery(
-                field, indexedValue(lowerTerm), indexedValue(upperTerm), includeLower, includeUpper);
+                                boolean hasDocValues,
+                                boolean isIndexed) {
+            assert isIndexed || hasDocValues == true : "hasDocValues must be true for Boolean types since 'columnstore=false' is not supported.";
+
+            if (upperTerm == null) {
+                includeUpper = true;
+                upperTerm = true;
+            }
+            if (lowerTerm == null) {
+                includeLower = true;
+                lowerTerm = false;
+            }
+
+            boolean matchTrue = true;
+            boolean matchFalse = true;
+
+            if (includeLower) {
+                if (lowerTerm) {
+                    matchFalse = false;
+                }
+            } else {
+                if (lowerTerm) {
+                    matchFalse = false;
+                    matchTrue = false;
+                } else {
+                    matchFalse = false;
+                }
+            }
+            if (includeUpper) {
+                if (!upperTerm) {
+                    matchTrue = false;
+                }
+            } else {
+                if (!upperTerm) {
+                    matchTrue = false;
+                    matchFalse = false;
+                } else {
+                    matchTrue = false;
+                }
+            }
+
+            if (matchTrue && matchFalse) {
+                return new FieldExistsQuery(field);
+            } else if (matchTrue) {
+                return termQuery(field, Boolean.TRUE, hasDocValues, isIndexed);
+            } else if (matchFalse) {
+                return termQuery(field, Boolean.FALSE, hasDocValues, isIndexed);
+            } else {
+                return new MatchNoDocsQuery();
+            }
+        }
+
+        @Override
+        public Query termsQuery(String field, List<Boolean> nonNullValues, boolean hasDocValues, boolean isIndexed) {
+            if (isIndexed) {
+                return new TermInSetQuery(field, Lists.map(nonNullValues, v -> indexedValue(v)));
+            } else {
+                assert hasDocValues == true : "hasDocValues must be true for Boolean types since 'columnstore=false' is not supported.";
+                return SortedNumericDocValuesField.newSlowSetQuery(
+                    field,
+                    nonNullValues.stream().mapToLong(v -> v ? 1 : 0).toArray());
+            }
         }
     };
 
@@ -81,9 +152,8 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
         @Override
         public ValueIndexer<Boolean> valueIndexer(RelationName table,
                                                   Reference ref,
-                                                  Function<String, FieldType> getFieldType,
                                                   Function<ColumnIdent, Reference> getRef) {
-            return new BooleanIndexer(ref, getFieldType.apply(ref.storageIdent()));
+            return new BooleanIndexer(ref);
         }
     };
 
@@ -196,5 +266,10 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
     @Override
     public StorageSupport<Boolean> storageSupport() {
         return STORAGE;
+    }
+
+    @Override
+    public ColumnStatsSupport<Boolean> columnStatsSupport() {
+        return ColumnStatsSupport.singleValued(Boolean.class, BooleanType.this);
     }
 }

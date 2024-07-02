@@ -28,20 +28,21 @@ import java.util.Collection;
 import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.SequencedCollection;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.FieldResolver;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.FetchMarker;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.RelationName;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
@@ -96,7 +97,7 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
         /* In `SELECT * FROM (SELECT t1.*, t2.* FROM tbl AS t1, tbl AS t2) AS tjoin`
          * The `ScopedSymbol`s are ambiguous; To map them correctly this uses a IdentityHashMap
          */
@@ -108,7 +109,7 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
         }
         ArrayList<Symbol> mappedToKeep = new ArrayList<>();
         for (Symbol outputToKeep : outputsToKeep) {
-            SymbolVisitors.intersection(outputToKeep, outputs, s -> {
+            Symbols.intersection(outputToKeep, outputs, s -> {
                 Symbol childSymbol = parentToChildMap.get(s);
                 assert childSymbol != null : "There must be a mapping available for symbol " + s;
                 mappedToKeep.add(childSymbol);
@@ -141,7 +142,7 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
         }
         ArrayList<Symbol> mappedUsedColumns = new ArrayList<>();
         for (Symbol usedColumn : usedColumns) {
-            SymbolVisitors.intersection(usedColumn, outputs, s -> {
+            Symbols.intersection(usedColumn, outputs, s -> {
                 Symbol childSymbol = parentToChildMap.get(s);
                 assert childSymbol != null : "There must be a mapping available for symbol " + s;
                 mappedUsedColumns.add(childSymbol);
@@ -168,7 +169,7 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
             }
         }
         LinkedHashMap<Symbol, Symbol> replacedOutputs = new LinkedHashMap<>();
-        Function<Symbol, Symbol> convertChildrenToScopedSymbols = s -> MapBackedSymbolReplacer.convert(s, childToParentMap);
+        UnaryOperator<Symbol> convertChildrenToScopedSymbols = s -> MapBackedSymbolReplacer.convert(s, childToParentMap);
         for (var entry : fetchRewrite.replacedOutputs().entrySet()) {
             Symbol key = entry.getKey();
             Symbol value = entry.getValue();
@@ -199,7 +200,7 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new Rename(outputs, name, fieldResolver, Lists2.getOnlyElement(sources));
+        return new Rename(outputs, name, fieldResolver, Lists.getOnlyElement(sources));
     }
 
     @Override
@@ -214,7 +215,7 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
     }
 
     @Override
-    public List<RelationName> getRelationNames() {
+    public List<RelationName> relationNames() {
         return List.of(name);
     }
 
@@ -222,7 +223,7 @@ public final class Rename extends ForwardingLogicalPlan implements FieldResolver
     public void print(PrintContext printContext) {
         printContext
             .text("Rename[")
-            .text(Lists2.joinOn(", ", outputs, Symbol::toString))
+            .text(Lists.joinOn(", ", outputs, Symbol::toString))
             .text("] AS ")
             .text(name.toString());
         printStats(printContext);

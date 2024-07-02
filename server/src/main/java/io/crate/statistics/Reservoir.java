@@ -21,6 +21,7 @@
 
 package io.crate.statistics;
 
+import java.util.Arrays;
 import java.util.Random;
 
 import com.carrotsearch.hppc.LongArrayList;
@@ -30,11 +31,31 @@ import com.carrotsearch.hppc.LongArrayList;
  */
 public final class Reservoir {
 
+    /**
+     * This number is from PostgreSQL, they chose this based on the paper
+     * "Random sampling for histogram construction: how much is enough?"
+     *
+     * > Their Corollary 1 to Theorem 5 says that for table size n, histogram size k,
+     * > maximum relative error in bin size f, and error probability gamma, the minimum random sample size is
+     * >    r = 4 * k * ln(2*n/gamma) / f^2
+     * > Taking f = 0.5, gamma = 0.01, n = 10^6 rows, we obtain r = 305.82 * k
+     * > Note that because of the log function, the dependence on n is quite weak;
+     * > even at n = 10^12, a 300*k sample gives <= 0.66 bin size error with probability 0.99.
+     * > So there's no real need to scale for n, which is a good thing because we don't necessarily know it at this point.
+     *
+     * In PostgreSQL `k` is configurable (per column). We don't support changing k, we default it to 100
+     */
+    public static final int NUM_SAMPLES = 30_000;
+
     private final LongArrayList samples;
     private final int maxSamples;
     private final Random random;
 
     private int itemsSeen = 0;
+
+    public Reservoir(Random random) {
+        this(NUM_SAMPLES, random);
+    }
 
     public Reservoir(int maxSamples, Random random) {
         this.samples = new LongArrayList(maxSamples);
@@ -56,6 +77,7 @@ public final class Reservoir {
     }
 
     public LongArrayList samples() {
+        Arrays.sort(samples.buffer, 0, samples.elementsCount);
         return samples;
     }
 }

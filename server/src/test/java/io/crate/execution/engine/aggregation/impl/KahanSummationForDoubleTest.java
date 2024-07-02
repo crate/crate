@@ -21,7 +21,8 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import static org.junit.Assert.assertEquals;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
 
@@ -33,7 +34,7 @@ public class KahanSummationForDoubleTest extends AggregationTestCase {
     @Test
     public void shouldSumTwoValues() {
         var kahanSummation = new KahanSummationForDouble();
-        assertEquals(kahanSummation.sum(1.0d, 2.0d), 3.0d, 0.0d);
+        assertThat(kahanSummation.sum(1.0d, 2.0d)).isEqualTo(3.0d);
     }
 
     @Test
@@ -45,6 +46,6 @@ public class KahanSummationForDoubleTest extends AggregationTestCase {
         }
 
         // The same operations using '+' returns 1.9999999999999998
-        assertEquals(2.0d, total, 0.0d);
+        assertThat(total).isEqualTo(2.0d);
     }
 }

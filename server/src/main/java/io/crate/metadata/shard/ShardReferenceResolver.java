@@ -52,8 +52,10 @@ import io.crate.metadata.sys.SysShardsTableInfo;
 public class ShardReferenceResolver implements ReferenceResolver<NestableInput<?>> {
 
     private static final Logger LOGGER = LogManager.getLogger(ShardReferenceResolver.class);
+    // Use a dummy Roles (List::of) here, as we resolve privileges at a table level, not a shard level,
+    // and the shards need to only be protected (resolve privileges) in SysShardsTableInfo (sys.shards)
     private static final StaticTableReferenceResolver<ShardRowContext> SHARD_REFERENCE_RESOLVER_DELEGATE =
-        new StaticTableReferenceResolver<>(SysShardsTableInfo.create().expressions());
+        new StaticTableReferenceResolver<>(SysShardsTableInfo.create(List::of).expressions());
     private static final ReferenceResolver<NestableInput<?>> EMPTY_RESOLVER =
         new MapBackedRefResolver(Collections.emptyMap());
 
@@ -66,7 +68,7 @@ public class ShardReferenceResolver implements ReferenceResolver<NestableInput<?
                 "Unable to load PARTITIONED BY columns from partition %s", index.getName()), e);
         }
         RelationName relationName = partitionName.relationName();
-        MapBuilder<ColumnIdent, NestableInput> builder = MapBuilder.newMapBuilder();
+        MapBuilder<ColumnIdent, NestableInput<?>> builder = MapBuilder.newMapBuilder();
         try {
             DocTableInfo info = schemas.getTableInfo(relationName);
             assert info.isPartitioned() : "table must be partitioned";

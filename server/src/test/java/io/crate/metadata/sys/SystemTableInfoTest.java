@@ -23,6 +23,7 @@ package io.crate.metadata.sys;
 
 import static org.junit.Assert.assertThat;
 
+import java.util.List;
 import java.util.Locale;
 
 import org.junit.Before;
@@ -39,7 +40,7 @@ public class SystemTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() {
-        sysSchemaInfo = new SysSchemaInfo(this.clusterService);
+        sysSchemaInfo = new SysSchemaInfo(this.clusterService, List::of);
     }
 
     @Test

@@ -21,14 +21,12 @@
 
 package io.crate.planner;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collections;
 import java.util.List;
 
 import org.elasticsearch.common.Randomness;
-import org.hamcrest.CoreMatchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -54,9 +52,10 @@ public class RoutingBuilderTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, Randomness.get(), List.of())
-            .addTable("create table custom.t1 (id int)")
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable("create table custom.t1 (id int)");
         tableInfo = e.schemas().getTableInfo(relationName);
     }
 
@@ -66,7 +65,7 @@ public class RoutingBuilderTest extends CrateDummyClusterServiceUnitTest {
         WhereClause whereClause = new WhereClause(
             new Function(
                 EqOperator.SIGNATURE,
-                List.of(tableInfo.getReference(new ColumnIdent("id")), Literal.of(2)),
+                List.of(tableInfo.getReference(ColumnIdent.of("id")), Literal.of(2)),
                 EqOperator.RETURN_TYPE
             ));
 
@@ -77,13 +76,13 @@ public class RoutingBuilderTest extends CrateDummyClusterServiceUnitTest {
 
         // 2 routing allocations with different where clause must result in 2 allocated routings
         List<Routing> tableRoutings = routingBuilder.routingListByTableStack.pop().get(relationName);
-        assertThat(tableRoutings.size(), is(2));
+        assertThat(tableRoutings).hasSize(2);
 
         // The routings are the same because the RoutingProvider enforces this - this test doesn't reflect that fact
         // currently because the used routing are stubbed via the TestingTableInfo
         Routing routing1 = tableRoutings.get(0);
         Routing routing2 = tableRoutings.get(1);
-        assertThat(routing1, is(routing2));
+        assertThat(routing1).isEqualTo(routing2);
     }
 
     @Test
@@ -95,23 +94,23 @@ public class RoutingBuilderTest extends CrateDummyClusterServiceUnitTest {
         ReaderAllocations readerAllocations = routingBuilder.buildReaderAllocations();
         routingBuilder.newAllocations();
 
-        assertThat(readerAllocations.indices().size(), is(1));
-        assertThat(readerAllocations.indices().get(0), is(relationName.indexNameOrAlias()));
-        assertThat(readerAllocations.nodeReaders().size(), is(2));
+        assertThat(readerAllocations.indices()).hasSize(1);
+        assertThat(readerAllocations.indices().get(0)).isEqualTo(relationName.indexNameOrAlias());
+        assertThat(readerAllocations.nodeReaders()).hasSize(2);
 
         IntSet n1 = readerAllocations.nodeReaders().get("n1");
-        assertThat(n1.size(), is(2));
-        assertThat(n1.contains(0), is(true));
-        assertThat(n1.contains(2), is(true));
+        assertThat(n1).hasSize(2);
+        assertThat(n1.contains(0)).isTrue();
+        assertThat(n1.contains(2)).isTrue();
 
         IntSet n2 = readerAllocations.nodeReaders().get("n2");
-        assertThat(n2.size(), is(2));
-        assertThat(n2.contains(1), is(true));
-        assertThat(n2.contains(3), is(true));
+        assertThat(n2).hasSize(2);
+        assertThat(n2.contains(1)).isTrue();
+        assertThat(n2.contains(3)).isTrue();
 
-        assertThat(readerAllocations.bases().get(relationName.indexNameOrAlias()), is(0));
+        assertThat(readerAllocations.bases().get(relationName.indexNameOrAlias())).isEqualTo(0);
 
         ReaderAllocations readerAllocations2 = routingBuilder.buildReaderAllocations();
-        assertThat(readerAllocations, CoreMatchers.not(is(readerAllocations2)));
+        assertThat(readerAllocations).isNotEqualTo(readerAllocations2);
     }
 }

@@ -6,7 +6,7 @@
   <parent>
     <groupId>io.crate</groupId>
     <artifactId>crate</artifactId>
-    <version>5.5.0</version>
+    <version>5.8.0</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
 
@@ -22,6 +22,11 @@
       <groupId>org.jetbrains</groupId>
       <artifactId>annotations</artifactId>
       <version>${versions.annotations}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.amazonaws</groupId>
+      <artifactId>aws-java-sdk-s3</artifactId>
+      <version>${versions.aws}</version>
     </dependency>
 
     <dependency>

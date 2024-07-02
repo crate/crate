@@ -21,25 +21,27 @@
 
 package io.crate.expression.symbol;
 
+import static io.crate.metadata.FunctionType.AGGREGATE;
+import static io.crate.metadata.FunctionType.WINDOW;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Objects;
+import java.util.function.Predicate;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.analyze.FrameBoundDefinition;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WindowDefinition;
 import io.crate.analyze.WindowFrameDefinition;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
-import org.jetbrains.annotations.Nullable;
-import java.io.IOException;
-import java.util.List;
-import java.util.Objects;
-
-import static io.crate.metadata.FunctionType.AGGREGATE;
-import static io.crate.metadata.FunctionType.WINDOW;
 
 public class WindowFunction extends Function {
 
@@ -80,6 +82,36 @@ public class WindowFunction extends Function {
     }
 
     @Override
+    public boolean any(Predicate<? super Symbol> predicate) {
+        if (super.any(predicate)) {
+            return true;
+        }
+        OrderBy orderBy = windowDefinition.orderBy();
+        if (orderBy != null) {
+            for (var orderSymbol : orderBy.orderBySymbols()) {
+                if (orderSymbol.any(predicate)) {
+                    return true;
+                }
+            }
+        }
+        for (Symbol partition : windowDefinition.partitions()) {
+            if (partition.any(predicate)) {
+                return true;
+            }
+        }
+        WindowFrameDefinition frame = windowDefinition.windowFrameDefinition();
+        Symbol frameStart = frame.start().value();
+        if (frameStart != null && frameStart.any(predicate)) {
+            return true;
+        }
+        Symbol frameEnd = frame.end().value();
+        if (frameEnd != null && frameEnd.any(predicate)) {
+            return true;
+        }
+        return false;
+    }
+
+    @Override
     public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
         return visitor.visitWindowFunction(this, context);
     }
@@ -115,7 +147,10 @@ public class WindowFunction extends Function {
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), windowDefinition, ignoreNulls);
+        int result = super.hashCode();
+        result = 31 * result + windowDefinition.hashCode();
+        result = 31 * result + (ignoreNulls == null ? 0 : ignoreNulls.hashCode());
+        return result;
     }
 
     @Override
@@ -138,7 +173,7 @@ public class WindowFunction extends Function {
         var partitions = windowDefinition.partitions();
         if (!partitions.isEmpty()) {
             builder.append("PARTITION BY ");
-            builder.append(Lists2.joinOn(", ", partitions, x -> x.toString(style)));
+            builder.append(Lists.joinOn(", ", partitions, x -> x.toString(style)));
         }
         var orderBy = windowDefinition.orderBy();
         if (orderBy != null) {

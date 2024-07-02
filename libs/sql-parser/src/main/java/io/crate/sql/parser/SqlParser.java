@@ -67,7 +67,7 @@ public class SqlParser {
         this(new SqlParserOptions().allowIdentifierSymbol(IdentifierSymbol.AT_SIGN));
     }
 
-    public SqlParser(SqlParserOptions options) {
+    SqlParser(SqlParserOptions options) {
         requireNonNull(options, "options is null");
         allowedIdentifierSymbols = EnumSet.copyOf(options.getAllowedIdentifierSymbols());
     }
@@ -89,10 +89,6 @@ public class SqlParser {
                         null
                 )
         )).statements();
-    }
-
-    private Statement generateStatements(String sql) {
-        return (Statement) invokeParser("statements", sql, SqlBaseParser::statements, null);
     }
 
     private Statement generateStatement(String sql) {

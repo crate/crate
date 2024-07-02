@@ -21,6 +21,14 @@
 
 package io.crate.execution.engine.window;
 
+import static io.crate.execution.engine.window.WindowFrameState.isLowerBoundIncreasing;
+
+import java.util.List;
+import java.util.function.LongConsumer;
+
+import org.elasticsearch.Version;
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.data.ArrayRow;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -35,12 +43,6 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
-import org.elasticsearch.Version;
-
-import org.jetbrains.annotations.Nullable;
-import java.util.List;
-
-import static io.crate.execution.engine.window.WindowFrameState.isLowerBoundIncreasing;
 
 public class AggregateToWindowFunctionAdapter implements WindowFunction {
 
@@ -92,11 +94,12 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
     }
 
     @Override
-    public Object execute(int idxInPartition,
+    public Object execute(LongConsumer allocateBytes,
+                          int idxInPartition,
                           WindowFrameState frame,
                           List<? extends CollectExpression<Row, ?>> expressions,
                           @Nullable Boolean ignoreNulls,
-                          Input... args) {
+                          Input<?> ... args) {
         assert ignoreNulls == null;
         if (idxInPartition == 0) {
             recomputeFunction(frame, expressions, args);
@@ -121,7 +124,7 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
 
     private void removeSeenRowsFromAccumulatedState(WindowFrameState frame,
                                                     List<? extends CollectExpression<Row, ?>> expressions,
-                                                    Input[] args) {
+                                                    Input<?> ... args) {
         var row = new ArrayRow();
         for (int i = seenFrameLowerBound; i < frame.lowerBound(); i++) {
             Object[] cells = frame.getRowInPartitionAtIndexOrNull(i);
@@ -142,7 +145,7 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
 
     private void recomputeFunction(WindowFrameState frame,
                                    List<? extends CollectExpression<Row, ?>> expressions,
-                                   Input[] args) {
+                                   Input<?> ... args) {
         accumulatedState = aggregationFunction.newState(
             ramAccounting,
             indexVersionCreated,
@@ -156,7 +159,7 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
 
     private void executeAggregateForFrame(WindowFrameState frame,
                                           List<? extends CollectExpression<Row, ?>> expressions,
-                                          Input... inputs) {
+                                          Input<?> ... inputs) {
         /*
          * If the window is not shrinking (eg. UNBOUNDED PRECEDING - CURRENT_ROW) the successive frames will have
          * overlapping rows. In this case we want to accumulate the rows we haven't processed yet (the difference
@@ -172,7 +175,7 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
     private void accumulateAndExecuteStartingWithIndex(int indexInFrame,
                                                        WindowFrameState frame,
                                                        List<? extends CollectExpression<Row, ?>> expressions,
-                                                       Input[] inputs) {
+                                                       Input<?> ... inputs) {
         var row = new ArrayRow();
         for (int i = indexInFrame; i < frame.upperBoundExclusive(); i++) {
             Object[] cells = frame.getRowInFrameAtIndexOrNull(i);

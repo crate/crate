@@ -6,7 +6,6 @@ on:
       - '**.java'
       - 'pom.xml'
       - '**/pom.xml'
-      - 'gradle/version.properties'
   push:
     branches:
       - master
@@ -24,28 +23,35 @@ jobs:
         os: [ubuntu-latest]
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Gradle Java
+      - name: Setup Maven Java
         uses: actions/setup-java@v3
         with:
-          java-version: "20"
+          java-version: "22"
           distribution: "temurin"
           cache: maven
 
       - name: Run tests on ${{ matrix.os }}
         env:
           CRATE_TESTS_SQL_REQUEST_TIMEOUT: "20"
-        run: mvn test -Dtests.crate.run-windows-incompatible=true -Dcheckstyle.skip -DforkCount=2
-
+        run: |
+          mvn test \
+            -Dtests.crate.run-windows-incompatible=true \
+            -DforkCount=2 \
+            -DthreadCount=2 \
+            -Dcheckstyle.skip \
+            -Dforbiddenapis.skip=true \
+            -Dmaven.javadoc.skip=true \
+            -Djacoco.skip=true
 
   forbiddenApis:
     name: forbiddenApis
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Gradle Java
+      - name: Setup Maven Java
         uses: actions/setup-java@v3
         with:
-          java-version: "17"
+          java-version: "22"
           distribution: "temurin"
           cache: maven
       - name: Run forbiddenapis:check
@@ -57,7 +63,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Setup Gradle Java
+      - name: Setup Maven Java
         uses: actions/setup-java@v3
         with:
           java-version: 17

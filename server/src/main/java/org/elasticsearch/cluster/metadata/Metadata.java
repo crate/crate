@@ -69,7 +69,11 @@ import org.jetbrains.annotations.Nullable;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
+import io.crate.fdw.ForeignTablesMetadata;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.view.ViewsMetadata;
 
 public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, ToXContentFragment {
 
@@ -303,8 +307,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
     }
 
     @Nullable
-    public IndexMetadata index(String index) {
-        return indices.get(index);
+    public IndexMetadata index(String indexName) {
+        return indices.get(indexName);
     }
 
     @Nullable
@@ -353,6 +357,10 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
         return (T) customs.get(type);
     }
 
+    @SuppressWarnings("unchecked")
+    public <T extends Custom> T custom(String type, T defaultValue) {
+        return (T) customs.getOrDefault(type, defaultValue);
+    }
 
     /**
      * Gets the total number of shards from all indices, including replicas and
@@ -501,8 +509,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
                 out.writeLong(columnOID);
             }
             coordinationMetadata.writeTo(out);
-            Settings.writeSettingsToStream(transientSettings, out);
-            Settings.writeSettingsToStream(persistentSettings, out);
+            Settings.writeSettingsToStream(out, transientSettings);
+            Settings.writeSettingsToStream(out, persistentSettings);
             indices.writeTo(out);
             templates.writeTo(out);
             customs.writeTo(out);
@@ -563,8 +571,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
         out.writeString(clusterUUID);
         out.writeBoolean(clusterUUIDCommitted);
         coordinationMetadata.writeTo(out);
-        writeSettingsToStream(transientSettings, out);
-        writeSettingsToStream(persistentSettings, out);
+        writeSettingsToStream(out, transientSettings);
+        writeSettingsToStream(out, persistentSettings);
         out.writeVInt(indices.size());
         for (IndexMetadata indexMetadata : this) {
             indexMetadata.writeTo(out);
@@ -1104,5 +1112,23 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
                 return Builder.fromXContent(parser, preserveUnknownCustoms);
             }
         };
+    }
+
+    public boolean contains(RelationName tableName) {
+        if (indices.containsKey(tableName.indexNameOrAlias())) {
+            return true;
+        }
+        if (templates.containsKey(PartitionName.templateName(tableName.schema(), tableName.name()))) {
+            return true;
+        }
+        ViewsMetadata views = custom(ViewsMetadata.TYPE);
+        if (views != null && views.contains(tableName)) {
+            return true;
+        }
+        ForeignTablesMetadata foreignTables = custom(ForeignTablesMetadata.TYPE, ForeignTablesMetadata.EMPTY);
+        if (foreignTables.contains(tableName)) {
+            return true;
+        }
+        return false;
     }
 }

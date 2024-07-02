@@ -21,9 +21,7 @@
 
 package io.crate.protocols.postgres;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.sameInstance;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -32,7 +30,6 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.transport.ConnectTransportException;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.action.sql.BaseResultReceiver;
@@ -56,11 +53,11 @@ public class RetryOnFailureResultReceiverTest extends CrateDummyClusterServiceUn
 
         // Must have a different cluster state then the initial state to trigger a retry
         clusterService.submitStateUpdateTask("dummy", new DummyUpdate());
-        assertBusy(() -> assertThat(initialState, Matchers.not(sameInstance(clusterService.state()))));
+        assertBusy(() -> assertThat(initialState).isNotSameAs(clusterService.state()));
 
         retryOnFailureResultReceiver.fail(new ConnectTransportException(null, "node not connected"));
 
-        assertThat(numRetries.get(), is(1));
+        assertThat(numRetries.get()).isEqualTo(1);
     }
 
     @Test
@@ -79,11 +76,11 @@ public class RetryOnFailureResultReceiverTest extends CrateDummyClusterServiceUn
 
         // Must have a different cluster state then the initial state to trigger a retry
         clusterService.submitStateUpdateTask("dummy", new DummyUpdate());
-        assertBusy(() -> assertThat(initialState, Matchers.not(sameInstance(clusterService.state()))));
+        assertBusy(() -> assertThat(initialState).isNotSameAs(clusterService.state()));
 
         retryOnFailureResultReceiver.fail(new IndexNotFoundException("t1"));
 
-        assertThat(numRetries.get(), is(1));
+        assertThat(numRetries.get()).isEqualTo(1);
     }
 
     private static class DummyUpdate extends ClusterStateUpdateTask {

@@ -21,6 +21,29 @@
 
 package io.crate.operation.aggregation;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
+import java.util.stream.IntStream;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.common.hash.MurmurHash3;
+import org.elasticsearch.common.settings.Settings;
+import org.openjdk.jmh.annotations.Benchmark;
+import org.openjdk.jmh.annotations.BenchmarkMode;
+import org.openjdk.jmh.annotations.Fork;
+import org.openjdk.jmh.annotations.Mode;
+import org.openjdk.jmh.annotations.OutputTimeUnit;
+import org.openjdk.jmh.annotations.Scope;
+import org.openjdk.jmh.annotations.Setup;
+import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.annotations.TearDown;
+import org.openjdk.jmh.annotations.Warmup;
+
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -34,31 +57,10 @@ import io.crate.expression.symbol.Literal;
 import io.crate.memory.OffHeapMemoryManager;
 import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.Functions;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
-import io.crate.module.ExtraFunctionsModule;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.types.DataTypes;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.hash.MurmurHash3;
-import org.elasticsearch.common.inject.ModulesBuilder;
-import org.openjdk.jmh.annotations.Benchmark;
-import org.openjdk.jmh.annotations.BenchmarkMode;
-import org.openjdk.jmh.annotations.Fork;
-import org.openjdk.jmh.annotations.Mode;
-import org.openjdk.jmh.annotations.OutputTimeUnit;
-import org.openjdk.jmh.annotations.Scope;
-import org.openjdk.jmh.annotations.Setup;
-import org.openjdk.jmh.annotations.State;
-import org.openjdk.jmh.annotations.TearDown;
-import org.openjdk.jmh.annotations.Warmup;
-
-import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.function.BiConsumer;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
@@ -67,7 +69,7 @@ import java.util.stream.IntStream;
 @State(Scope.Benchmark)
 public class HyperLogLogDistinctAggregationBenchmark {
 
-    private final List<Row> rows = IntStream.range(0, 10_000).mapToObj(i -> new Row1(String.valueOf(i))).collect(Collectors.toList());
+    private final List<Row1> rows = IntStream.range(0, 10_000).mapToObj(i -> new Row1(String.valueOf(i))).toList();
 
     private HyperLogLogPlusPlus hyperLogLogPlusPlus;
     private AggregateCollector onHeapCollector;
@@ -76,19 +78,18 @@ public class HyperLogLogDistinctAggregationBenchmark {
     private AggregateCollector offHeapCollector;
     private MurmurHash3.Hash128 hash;
 
+    @SuppressWarnings("unchecked")
     @Setup
     public void setUp() throws Exception {
         hash = new MurmurHash3.Hash128();
         final RowCollectExpression inExpr0 = new RowCollectExpression(0);
-        Functions functions = new ModulesBuilder()
-            .add(new ExtraFunctionsModule())
-            .createInjector().getInstance(Functions.class);
+        Functions functions = Functions.load(Settings.EMPTY, new SessionSettingRegistry(Set.of()));
         final HyperLogLogDistinctAggregation hllAggregation = (HyperLogLogDistinctAggregation) functions.getQualified(
             Signature.aggregate(
-                HyperLogLogDistinctAggregation.NAME,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.LONG.getTypeSignature()
-            ),
+                    HyperLogLogDistinctAggregation.NAME,
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.LONG.getTypeSignature())
+                .withFeature(Scalar.Feature.DETERMINISTIC),
             List.of(DataTypes.STRING),
             DataTypes.STRING
         );

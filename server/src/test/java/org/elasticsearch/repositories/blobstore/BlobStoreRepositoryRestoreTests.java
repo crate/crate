@@ -19,19 +19,16 @@
 
 package org.elasticsearch.repositories.blobstore;
 
-import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 import org.apache.lucene.store.Directory;
@@ -106,7 +103,7 @@ public class BlobStoreRepositoryRestoreTests extends IndexShardTestCase {
 
             // capture current store files
             final Store.MetadataSnapshot storeFiles = shard.snapshotStoreMetadata();
-            assertFalse(storeFiles.asMap().isEmpty());
+            assertThat(storeFiles.asMap().isEmpty()).isFalse();
 
             // close the shard
             closeShards(shard);
@@ -143,8 +140,8 @@ public class BlobStoreRepositoryRestoreTests extends IndexShardTestCase {
 
             for (StoreFileMetadata storeFile : storeFiles) {
                 String fileName = storeFile.name();
-                assertTrue("File [" + fileName + "] does not exist in store directory", directoryFiles.contains(fileName));
-                assertEquals(storeFile.length(), shard.store().directory().fileLength(fileName));
+                assertThat(directoryFiles.contains(fileName)).as("File [" + fileName + "] does not exist in store directory").isTrue();
+                assertThat(shard.store().directory().fileLength(fileName)).isEqualTo(storeFile.length());
             }
         } finally {
             if (shard != null && shard.state() != IndexShardState.CLOSED) {
@@ -190,10 +187,10 @@ public class BlobStoreRepositoryRestoreTests extends IndexShardTestCase {
                     new SnapshotInfo(snapshot.getSnapshotId(), shardGenerations.indices().stream()
                         .map(IndexId::getName).collect(Collectors.toList()), 0L, null, 1L, 6,
                         Collections.emptyList(), true),
-                    Version.CURRENT, Function.identity(), f));
-            IndexShardSnapshotFailedException isfe = expectThrows(IndexShardSnapshotFailedException.class,
-                                                                  () -> snapshotShard(shard, snapshotWithSameName, repository));
-            assertThat(isfe.getMessage(), containsString("Duplicate snapshot name"));
+                    Version.CURRENT, UnaryOperator.identity(), f));
+            assertThatThrownBy(() -> snapshotShard(shard, snapshotWithSameName, repository))
+                .isExactlyInstanceOf(IndexShardSnapshotFailedException.class)
+                .hasMessageContaining("Duplicate snapshot name");
         } finally {
             if (shard != null && shard.state() != IndexShardState.CLOSED) {
                 try {

@@ -21,11 +21,8 @@
 
 package io.crate.integrationtests.disruption.discovery;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.not;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -33,8 +30,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-
-import org.jetbrains.annotations.Nullable;
 
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.cluster.ClusterState;
@@ -62,6 +57,7 @@ import org.elasticsearch.test.disruption.ServiceDisruptionScheme;
 import org.elasticsearch.test.disruption.SlowClusterStateProcessing;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.transport.TransportSettings;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 
 import io.crate.common.unit.TimeValue;
@@ -170,8 +166,7 @@ public abstract class AbstractDisruptionTestCase extends IntegTestCase {
             assertNull("node [" + node + "] still has [" + nodes.getMasterNode() + "] as master", nodes.getMasterNode());
             if (expectedBlocks != null) {
                 for (ClusterBlockLevel level : expectedBlocks.levels()) {
-                    assertTrue("node [" + node + "] does have level [" + level + "] in it's blocks",
-                        state.blocks().hasGlobalBlockWithLevel(level));
+                    assertThat(state.blocks().hasGlobalBlockWithLevel(level)).as("node [" + node + "] does have level [" + level + "] in it's blocks").isTrue();
                 }
             }
         }, maxWaitTime.millis(), TimeUnit.MILLISECONDS);
@@ -185,8 +180,9 @@ public abstract class AbstractDisruptionTestCase extends IntegTestCase {
                 masterNode = state.nodes().getMasterNode().getName();
             }
             logger.trace("[{}] master is [{}]", node, state.nodes().getMasterNode());
-            assertThat("node [" + node + "] still has [" + masterNode + "] as master",
-                       oldMasterNode, not(equalTo(masterNode)));
+            assertThat(oldMasterNode)
+                .as("node [" + node + "] still has [" + masterNode + "] as master")
+                .isNotEqualTo(masterNode);
         }, 30, TimeUnit.SECONDS);
     }
 
@@ -195,14 +191,10 @@ public abstract class AbstractDisruptionTestCase extends IntegTestCase {
             for (String node : nodes) {
                 ClusterState state = getNodeClusterState(node);
                 String failMsgSuffix = "cluster_state:\n" + state;
-                assertThat("wrong node count on [" + node + "]. " + failMsgSuffix,
-                           state.nodes().getSize(),
-                           equalTo(nodes.size()));
+                assertThat(state.nodes().getSize()).as("wrong node count on [" + node + "]. " + failMsgSuffix).isEqualTo(nodes.size());
                 String otherMasterNodeName =
                     state.nodes().getMasterNode() != null ? state.nodes().getMasterNode().getName() : null;
-                assertThat("wrong master on node [" + node + "]. " + failMsgSuffix,
-                           otherMasterNodeName,
-                           equalTo(masterNode));
+                assertThat(otherMasterNodeName).as("wrong master on node [" + node + "]. " + failMsgSuffix).isEqualTo(masterNode);
             }
         });
     }

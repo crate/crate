@@ -28,5 +28,5 @@ import org.jetbrains.annotations.Nullable;
 public interface Authentication {
 
     @Nullable
-    AuthenticationMethod resolveAuthenticationType(String user, ConnectionProperties connectionProperties);
+    AuthenticationMethod resolveAuthenticationType(@Nullable String user, ConnectionProperties connectionProperties);
 }

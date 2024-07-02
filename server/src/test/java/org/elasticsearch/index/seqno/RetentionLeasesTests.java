@@ -19,14 +19,10 @@
 
 package org.elasticsearch.index.seqno;
 
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsString;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasToString;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -43,18 +39,16 @@ public class RetentionLeasesTests extends ESTestCase {
 
     public void testPrimaryTermOutOfRange() {
         final long primaryTerm = randomLongBetween(Long.MIN_VALUE, 0);
-        final IllegalArgumentException e = expectThrows(
-                IllegalArgumentException.class,
-                () -> new RetentionLeases(primaryTerm, randomNonNegativeLong(), Collections.emptyList()));
-        assertThat(e, hasToString(containsString("primary term must be positive but was [" + primaryTerm + "]")));
+        assertThatThrownBy(() -> new RetentionLeases(primaryTerm, randomNonNegativeLong(), Collections.emptyList()))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("primary term must be positive but was [" + primaryTerm + "]");
     }
 
     public void testVersionOutOfRange() {
         final long version = randomLongBetween(Long.MIN_VALUE, -1);
-        final IllegalArgumentException e = expectThrows(
-                IllegalArgumentException.class,
-                () -> new RetentionLeases(randomLongBetween(1, Long.MAX_VALUE), version, Collections.emptyList()));
-        assertThat(e, hasToString(containsString("version must be non-negative but was [" + version + "]")));
+        assertThatThrownBy(() -> new RetentionLeases(randomLongBetween(1, Long.MAX_VALUE), version, Collections.emptyList()))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("version must be non-negative but was [" + version + "]");
     }
 
     public void testSupersedesByPrimaryTerm() {
@@ -62,10 +56,10 @@ public class RetentionLeasesTests extends ESTestCase {
         final RetentionLeases left = new RetentionLeases(lowerPrimaryTerm, randomLongBetween(1, Long.MAX_VALUE), Collections.emptyList());
         final long higherPrimaryTerm = randomLongBetween(lowerPrimaryTerm + 1, Long.MAX_VALUE);
         final RetentionLeases right = new RetentionLeases(higherPrimaryTerm, randomLongBetween(1, Long.MAX_VALUE), Collections.emptyList());
-        assertTrue(right.supersedes(left));
-        assertTrue(right.supersedes(left.primaryTerm(), left.version()));
-        assertFalse(left.supersedes(right));
-        assertFalse(left.supersedes(right.primaryTerm(), right.version()));
+        assertThat(right.supersedes(left)).isTrue();
+        assertThat(right.supersedes(left.primaryTerm(), left.version())).isTrue();
+        assertThat(left.supersedes(right)).isFalse();
+        assertThat(left.supersedes(right.primaryTerm(), right.version())).isFalse();
     }
 
     public void testSupersedesByVersion() {
@@ -74,22 +68,21 @@ public class RetentionLeasesTests extends ESTestCase {
         final long higherVersion = randomLongBetween(lowerVersion + 1, Long.MAX_VALUE);
         final RetentionLeases left = new RetentionLeases(primaryTerm, lowerVersion, Collections.emptyList());
         final RetentionLeases right = new RetentionLeases(primaryTerm, higherVersion, Collections.emptyList());
-        assertTrue(right.supersedes(left));
-        assertTrue(right.supersedes(left.primaryTerm(), left.version()));
-        assertFalse(left.supersedes(right));
-        assertFalse(left.supersedes(right.primaryTerm(), right.version()));
+        assertThat(right.supersedes(left)).isTrue();
+        assertThat(right.supersedes(left.primaryTerm(), left.version())).isTrue();
+        assertThat(left.supersedes(right)).isFalse();
+        assertThat(left.supersedes(right.primaryTerm(), right.version())).isFalse();
     }
 
     public void testRetentionLeasesRejectsDuplicates() {
         final RetentionLeases retentionLeases = randomRetentionLeases(false);
         final RetentionLease retentionLease = randomFrom(retentionLeases.leases());
-        final IllegalStateException e = expectThrows(
-                IllegalStateException.class,
-                () -> new RetentionLeases(
+        assertThatThrownBy(() -> new RetentionLeases(
                         retentionLeases.primaryTerm(),
                         retentionLeases.version(),
-                        Stream.concat(retentionLeases.leases().stream(), Stream.of(retentionLease)).collect(Collectors.toList())));
-        assertThat(e, hasToString(containsString("duplicate retention lease ID [" + retentionLease.id() + "]")));
+                        Stream.concat(retentionLeases.leases().stream(), Stream.of(retentionLease)).collect(Collectors.toList()))
+        ).isExactlyInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("duplicate retention lease ID [" + retentionLease.id() + "]");
     }
 
     public void testLeasesPreservesIterationOrder() {
@@ -97,7 +90,7 @@ public class RetentionLeasesTests extends ESTestCase {
         if (retentionLeases.leases().isEmpty()) {
             assertThat(retentionLeases.leases(), empty());
         } else {
-            assertThat(retentionLeases.leases(), contains(retentionLeases.leases().toArray(new RetentionLease[0])));
+            assertThat(retentionLeases.leases()).containsExactly(retentionLeases.leases().toArray(new RetentionLease[0]));
         }
     }
 
@@ -105,7 +98,7 @@ public class RetentionLeasesTests extends ESTestCase {
         final Path path = createTempDir();
         final RetentionLeases retentionLeases = randomRetentionLeases(true);
         RetentionLeases.FORMAT.writeAndCleanup(retentionLeases, path);
-        assertThat(RetentionLeases.FORMAT.loadLatestState(logger, NamedXContentRegistry.EMPTY, path), equalTo(retentionLeases));
+        assertThat(RetentionLeases.FORMAT.loadLatestState(logger, NamedXContentRegistry.EMPTY, path)).isEqualTo(retentionLeases);
     }
 
     private RetentionLeases randomRetentionLeases(boolean allowEmpty) {

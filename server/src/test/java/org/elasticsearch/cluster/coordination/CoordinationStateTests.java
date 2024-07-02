@@ -22,8 +22,6 @@ import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -124,7 +122,8 @@ public class CoordinationStateTests extends ESTestCase {
 
         StartJoinRequest startJoinRequest2 = new StartJoinRequest(randomFrom(node1, node2),
             randomLongBetween(0, startJoinRequest1.getTerm()));
-        expectThrows(CoordinationStateRejectedException.class, () -> cs1.handleStartJoin(startJoinRequest2));
+        assertThatThrownBy(() -> cs1.handleStartJoin(startJoinRequest2))
+            .isExactlyInstanceOf(CoordinationStateRejectedException.class);
     }
 
     public void testStartJoinAfterBootstrap() {
@@ -251,7 +250,7 @@ public class CoordinationStateTests extends ESTestCase {
         assertThat(cs1.containsJoinVoteFor(node1)).isTrue();
         assertThat(cs1.containsJoin(join)).isTrue();
         assertThat(cs1.containsJoinVoteFor(node2)).isFalse();
-        assertEquals(cs1.getLastPublishedVersion(), cs1.getLastAcceptedVersion());
+        assertThat(cs1.getLastAcceptedVersion()).isEqualTo(cs1.getLastPublishedVersion());
         assertThat(cs1.handleJoin(join)).isFalse();
     }
 
@@ -272,7 +271,7 @@ public class CoordinationStateTests extends ESTestCase {
         assertThat(cs1.electionWon()).isTrue();
         assertThat(cs1.containsJoinVoteFor(node1)).isTrue();
         assertThat(cs1.containsJoinVoteFor(node2)).isFalse();
-        assertEquals(cs1.getLastPublishedVersion(), cs1.getLastAcceptedVersion());
+        assertThat(cs1.getLastAcceptedVersion()).isEqualTo(cs1.getLastPublishedVersion());
         assertThat(cs1.handleJoin(join)).isFalse();
     }
 
@@ -291,7 +290,7 @@ public class CoordinationStateTests extends ESTestCase {
         Join join = new Join(node2, node1, v1.getTerm(), randomLongBetween(0, state2.term()), randomLongBetween(0, state2.version()));
         assertThat(cs1.handleJoin(join)).isTrue();
         assertThat(cs1.electionWon()).isFalse();
-        assertEquals(cs1.getLastPublishedVersion(), 0L);
+        assertThat(0L).isEqualTo(cs1.getLastPublishedVersion());
         assertThat(cs1.handleJoin(join)).isFalse();
     }
 
@@ -305,7 +304,7 @@ public class CoordinationStateTests extends ESTestCase {
         Join join = cs1.handleStartJoin(startJoinRequest);
         assertThat(cs1.handleJoin(join)).isTrue();
         assertThat(cs1.electionWon()).isFalse();
-        assertEquals(cs1.getLastPublishedVersion(), 0L);
+        assertThat(0L).isEqualTo(cs1.getLastPublishedVersion());
         assertThat(cs1.handleJoin(join)).isFalse();
     }
 
@@ -319,7 +318,7 @@ public class CoordinationStateTests extends ESTestCase {
         Join join = cs1.handleStartJoin(startJoinRequest);
         assertThat(cs1.handleJoin(join)).isTrue();
         assertThat(cs1.electionWon()).isFalse();
-        assertEquals(cs1.getLastPublishedVersion(), 0L);
+        assertThat(0L).isEqualTo(cs1.getLastPublishedVersion());
         assertThat(cs1.handleJoin(join)).isFalse();
     }
 
@@ -757,8 +756,8 @@ public class CoordinationStateTests extends ESTestCase {
         final CoordinationState.VoteCollection voteCollection = new CoordinationState.VoteCollection();
         assertThat(voteCollection.isEmpty()).isTrue();
 
-        assertFalse(voteCollection.addVote(
-            new DiscoveryNode("master-ineligible", buildNewFakeTransportAddress(), emptyMap(), emptySet(), Version.CURRENT)));
+        assertThat(voteCollection.addVote(
+            new DiscoveryNode("master-ineligible", buildNewFakeTransportAddress(), emptyMap(), emptySet(), Version.CURRENT))).isFalse();
         assertThat(voteCollection.isEmpty()).isTrue();
 
         voteCollection.addVote(node1);

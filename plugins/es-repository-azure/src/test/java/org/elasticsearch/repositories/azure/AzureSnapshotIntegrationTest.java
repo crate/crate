@@ -30,7 +30,6 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collection;
 
-import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
@@ -61,7 +60,7 @@ public class AzureSnapshotIntegrationTest extends IntegTestCase {
     public void setUp() throws Exception {
         super.setUp();
         handler = new AzureHttpHandler(CONTAINER_NAME);
-        httpServer = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 10001), 0);
+        httpServer = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
         httpServer.createContext("/" + CONTAINER_NAME, handler);
         httpServer.start();
     }
@@ -166,11 +165,11 @@ public class AzureSnapshotIntegrationTest extends IntegTestCase {
 
     private String httpServerUrl() {
         InetSocketAddress address = httpServer.getAddress();
-        return "http://" + InetAddresses.toUriString(address.getAddress()) + ":" + address.getPort();
+        return "http://" + address.getAddress().getCanonicalHostName() + ":" + address.getPort();
     }
 
     private String invalidHttpServerUrl() {
         InetSocketAddress address = httpServer.getAddress();
-        return "http://dummy.invalid:" + address.getPort();
+        return "http://invalid." + address.getAddress().getCanonicalHostName() + ":" + address.getPort();
     }
 }

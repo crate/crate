@@ -21,8 +21,7 @@
 
 package io.crate.execution.engine.collect;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.lang.reflect.Field;
 import java.util.List;
@@ -49,7 +48,7 @@ public class ShardCollectorProviderTest extends IntegTestCase {
             try {
                 //noinspection unchecked
                 Map<ShardId, ShardCollectorProvider> shardMap = (Map<ShardId, ShardCollectorProvider>) shards.get(shardCollectSource);
-                assertThat(shardMap.size(), is(numberOfShards));
+                assertThat(shardMap).hasSize(numberOfShards);
             } catch (IllegalAccessException e) {
                 throw new RuntimeException(e);
             }

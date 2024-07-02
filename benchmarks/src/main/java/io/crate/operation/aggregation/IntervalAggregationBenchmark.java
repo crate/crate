@@ -23,14 +23,14 @@ package io.crate.operation.aggregation;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.common.settings.Settings;
 import org.joda.time.Period;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -49,7 +49,6 @@ import io.crate.data.Row1;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregateCollector;
 import io.crate.execution.engine.aggregation.AggregationFunction;
-import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
 import io.crate.execution.engine.aggregation.impl.IntervalSumAggregation;
 import io.crate.execution.engine.aggregation.impl.average.AverageAggregation;
 import io.crate.execution.engine.aggregation.impl.average.IntervalAverageAggregation;
@@ -58,7 +57,9 @@ import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.Functions;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.types.DataTypes;
 
 @BenchmarkMode(Mode.AverageTime)
@@ -68,7 +69,7 @@ import io.crate.types.DataTypes;
 @State(Scope.Benchmark)
 public class IntervalAggregationBenchmark {
 
-    private final List<Row> rows = IntStream.range(0, 10_000)
+    private final List<Row1> rows = IntStream.range(0, 10_000)
         .mapToObj(i -> {
             int mod = i % 3;
             if (mod == 0) {
@@ -78,7 +79,7 @@ public class IntervalAggregationBenchmark {
             } else {
                 return new Row1(Period.days(i).withHours(i + 1).withMinutes(i + 2).withSeconds(i + 3));
             }
-        }).collect(Collectors.toList());
+        }).toList();
 
     private OnHeapMemoryManager onHeapMemoryManager;
     private AggregateCollector onHeapCollectorSum;
@@ -88,24 +89,24 @@ public class IntervalAggregationBenchmark {
     @SuppressWarnings("unchecked")
     public void setUp() throws Exception {
         final RowCollectExpression inExpr0 = new RowCollectExpression(0);
-        Functions functions = new ModulesBuilder()
-            .add(new AggregationImplModule())
-            .createInjector().getInstance(Functions.class);
+        Functions functions = Functions.load(Settings.EMPTY, new SessionSettingRegistry(Set.of()));
 
         final IntervalSumAggregation intervalSumAggregation = (IntervalSumAggregation) functions.getQualified(
-                Signature.aggregate(
+            Signature.aggregate(
                     IntervalSumAggregation.NAME,
                     DataTypes.INTERVAL.getTypeSignature(),
-                    DataTypes.INTERVAL.getTypeSignature()),
-                List.of(DataTypes.INTERVAL),
+                    DataTypes.INTERVAL.getTypeSignature())
+                .withFeature(Scalar.Feature.DETERMINISTIC),
+            List.of(DataTypes.INTERVAL),
                 DataTypes.INTERVAL
             );
 
         final IntervalAverageAggregation intervalAvgAggregation = (IntervalAverageAggregation) functions.getQualified(
             Signature.aggregate(
-                AverageAggregation.NAME,
-                DataTypes.INTERVAL.getTypeSignature(),
-                DataTypes.INTERVAL.getTypeSignature()),
+                    AverageAggregation.NAME,
+                    DataTypes.INTERVAL.getTypeSignature(),
+                    DataTypes.INTERVAL.getTypeSignature())
+                .withFeature(Scalar.Feature.DETERMINISTIC),
             List.of(DataTypes.INTERVAL),
             DataTypes.INTERVAL
         );

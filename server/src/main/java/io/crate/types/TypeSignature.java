@@ -156,6 +156,10 @@ public class TypeSignature implements Writeable, Accountable {
         return parameters;
     }
 
+    public boolean hasNumericParameters() {
+        return parameters.stream().anyMatch(t -> t instanceof IntegerLiteralTypeSignature);
+    }
+
     /**
      * Create the concrete {@link DataType} for this type signature.
      * Only `array` and `object` parameterized type signatures are supported.
@@ -201,7 +205,8 @@ public class TypeSignature implements Writeable, Accountable {
                 if (!parameter.type().equals(TypeSignatureType.INTEGER_LITERAL_SIGNATURE)) {
                     throw new IllegalArgumentException(
                         "The signature type of the based data type parameters can only be: "
-                        + TypeSignatureType.INTEGER_LITERAL_SIGNATURE.toString());
+                        + TypeSignatureType.INTEGER_LITERAL_SIGNATURE
+                        + " but was " + parameter.type());
                 }
                 integerLiteralParameters.add(((IntegerLiteralTypeSignature) parameter).value());
             }
@@ -231,6 +236,10 @@ public class TypeSignature implements Writeable, Accountable {
         }
         typeName.append(")");
         return typeName.toString();
+    }
+
+    public boolean equalsIgnoringParameters(TypeSignature o) {
+        return Objects.equals(baseTypeName, o.baseTypeName);
     }
 
     @Override

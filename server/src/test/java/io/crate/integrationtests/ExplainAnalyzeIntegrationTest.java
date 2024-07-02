@@ -21,14 +21,7 @@
 
 package io.crate.integrationtests;
 
-import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.hasItems;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,8 +30,6 @@ import java.util.Map;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.test.IntegTestCase;
-import org.hamcrest.Matcher;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -52,6 +43,7 @@ public class ExplainAnalyzeIntegrationTest extends IntegTestCase {
         execute("refresh table locations");
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testExplainAnalyzeReportsExecutionTimesOnBothNodesInclQueryBreakdown() {
         execute("explain analyze select * from locations where name like 'a%' or name = 'foo' order by date desc");
@@ -59,39 +51,41 @@ public class ExplainAnalyzeIntegrationTest extends IntegTestCase {
         Map<String, Object> analysis = (Map<String, Object>) response.rows()[0][0];
         Map<String, Object> executeAnalysis = (Map<String, Object>) analysis.get("Execute");
 
-        assertThat(executeAnalysis, is(notNullValue()));
-        assertTrue(executeAnalysis.keySet().contains("Total"));
+        assertThat(executeAnalysis).containsKeys("Phases", "Total");
 
         Map<String, Map<String, Object>> phasesAnalysis = (Map<String, Map<String, Object>>) executeAnalysis.get("Phases");
-        assertThat(phasesAnalysis, is(notNullValue()));
-        assertThat(phasesAnalysis.keySet(), contains("0-collect", "1-mergeOnHandler", "2-fetchPhase"));
+        assertThat(phasesAnalysis).isNotNull();
+        assertThat(phasesAnalysis.keySet()).containsExactly("0-collect", "1-mergeOnHandler", "2-fetchPhase");
 
         DiscoveryNodes nodes = clusterService().state().nodes();
         for (DiscoveryNode discoveryNode : nodes) {
             if (discoveryNode.isDataNode()) {
                 Object actual = executeAnalysis.get(discoveryNode.getId());
-                assertThat(actual, instanceOf(Map.class));
+                assertThat(actual).isInstanceOf(Map.class);
 
-                Map<String, Object> timings = (Map) actual;
-                assertThat(timings, Matchers.hasKey("QueryBreakdown"));
+                Map<String, Object> timings = (Map<String, Object>) actual;
+                assertThat(timings).containsOnlyKeys("QueryBreakdown");
 
-                Map<String, String> queryBreakdown = ((Map) ((List) timings.get("QueryBreakdown")).get(0));
-                assertThat(queryBreakdown, Matchers.hasEntry(is("QueryName"), is("ConstantScoreQuery")));
+                Map<String, String> queryBreakdown = ((List<Map<String, String>>) timings.get("QueryBreakdown")).getFirst();
+                assertThat(queryBreakdown).containsEntry("QueryName", "ConstantScoreQuery");
             }
         }
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testExplainSelectWithoutJobExecutionContexts() {
         execute("explain analyze select 1");
         Map<String, Object> analysis = (Map<String, Object>) response.rows()[0][0];
         Map<String, Object> executeAnalysis = (Map<String, Object>) analysis.get("Execute");
-        assertTrue(executeAnalysis.keySet().contains("Total"));
+        assertThat(executeAnalysis).containsKeys("Phases", "Total");
         DiscoveryNodes nodes = clusterService().state().nodes();
-        List<Matcher<String>> nodeIds = new ArrayList<>(nodes.getSize());
+        List<String> nodeIds = new ArrayList<>(nodes.getSize());
         for (DiscoveryNode discoveryNode : nodes) {
-            nodeIds.add(is(discoveryNode.getId()));
+            nodeIds.add(discoveryNode.getId());
         }
-        assertThat(executeAnalysis.keySet(), hasItems(is("Total"), anyOf(nodeIds.toArray(new Matcher[]{}))));
+        assertThat(executeAnalysis)
+            .containsKeys("Total")
+            .satisfies(m -> assertThat(m.keySet()).containsAnyOf(nodeIds.toArray(new String[] {})));
     }
 }

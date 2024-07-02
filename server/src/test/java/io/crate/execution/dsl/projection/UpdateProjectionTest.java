@@ -21,9 +21,7 @@
 
 package io.crate.execution.dsl.projection;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
@@ -47,9 +45,9 @@ public class UpdateProjectionTest {
         UpdateProjection u2 = new UpdateProjection(
             Literal.of(1), new String[]{"foo"}, new Symbol[]{Literal.of(1)},new Symbol[]{new InputColumn(0, DataTypes.STRING)}, null, null);
 
-        assertThat(u2.equals(u1), is(true));
-        assertThat(u1.equals(u2), is(true));
-        assertThat(u1.hashCode(), is(u2.hashCode()));
+        assertThat(u2.equals(u1)).isTrue();
+        assertThat(u1.equals(u2)).isTrue();
+        assertThat(u1.hashCode()).isEqualTo(u2.hashCode());
 
     }
 
@@ -70,7 +68,7 @@ public class UpdateProjectionTest {
         StreamInput in = out.bytes().streamInput();
         UpdateProjection result = new UpdateProjection(in);
 
-        assertThat(result, equalTo(expected));
+        assertThat(result).isEqualTo(expected);
     }
 
     @Test
@@ -92,14 +90,14 @@ public class UpdateProjectionTest {
         in.setVersion(Version.V_4_0_0);
         UpdateProjection result = new UpdateProjection(in);
 
-        assertThat(result.uidSymbol, equalTo(expected.uidSymbol));
-        assertThat(result.assignments(), equalTo(expected.assignments()));
-        assertThat(result.assignmentsColumns(), equalTo(expected.assignmentsColumns()));
-        assertThat(result.requiredVersion(), equalTo(expected.requiredVersion()));
+        assertThat(result.uidSymbol).isEqualTo(expected.uidSymbol);
+        assertThat(result.assignments()).isEqualTo(expected.assignments());
+        assertThat(result.assignmentsColumns()).isEqualTo(expected.assignmentsColumns());
+        assertThat(result.requiredVersion()).isEqualTo(expected.requiredVersion());
 
         //Pre 4.1 versions of UpdateProjection have default output fields set to a long representing
         //a count which need to set when reading from an pre 4.1 node.
-        assertThat(result.outputs(), equalTo(List.of(new InputColumn(0, DataTypes.LONG))));
-        assertThat(result.returnValues(), equalTo(null));
+        assertThat(result.outputs()).isEqualTo(List.of(new InputColumn(0, DataTypes.LONG)));
+        assertThat(result.returnValues()).isEqualTo(null);
     }
 }

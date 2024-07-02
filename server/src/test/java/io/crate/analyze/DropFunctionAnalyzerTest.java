@@ -21,9 +21,7 @@
 
 package io.crate.analyze;
 
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -34,7 +32,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
-import io.crate.user.User;
+import io.crate.role.Role;
 
 public class DropFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -48,47 +46,49 @@ public class DropFunctionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testDropFunctionSimple() throws Exception {
         AnalyzedStatement analyzedStatement = e.analyze("DROP FUNCTION bar(long, object)");
-        assertThat(analyzedStatement, instanceOf(AnalyzedDropFunction.class));
+        assertThat(analyzedStatement).isExactlyInstanceOf(AnalyzedDropFunction.class);
 
         AnalyzedDropFunction analysis = (AnalyzedDropFunction) analyzedStatement;
-        assertThat(analysis.schema(), is("doc"));
-        assertThat(analysis.name(), is("bar"));
-        assertThat(analysis.ifExists(), is(false));
-        assertThat(analysis.argumentTypes().get(0), is(DataTypes.LONG));
-        assertThat(analysis.argumentTypes().get(1).id(), is(ObjectType.ID));
+        assertThat(analysis.schema()).isEqualTo("doc");
+        assertThat(analysis.name()).isEqualTo("bar");
+        assertThat(analysis.ifExists()).isFalse();
+        assertThat(analysis.argumentTypes()).satisfiesExactly(
+            x -> assertThat(x).isEqualTo(DataTypes.LONG),
+            x -> assertThat(x.id()).isEqualTo(ObjectType.ID));
     }
 
     @Test
     public void testDropFunctionWithSessionSetSchema() throws Exception {
         AnalyzedDropFunction analysis = (AnalyzedDropFunction) e.analyzer.analyze(
             SqlParser.createStatement("DROP FUNCTION bar(long, object)"),
-            new CoordinatorSessionSettings(User.CRATE_USER, "my_schema"),
+            new CoordinatorSessionSettings(Role.CRATE_USER, "my_schema"),
             ParamTypeHints.EMPTY,
             e.cursors
         );
 
-        assertThat(analysis.schema(), is("my_schema"));
-        assertThat(analysis.name(), is("bar"));
+        assertThat(analysis.schema()).isEqualTo("my_schema");
+        assertThat(analysis.name()).isEqualTo("bar");
     }
 
     @Test
     public void testDropFunctionExplicitSchemaSupersedesSessionSchema() throws Exception {
         AnalyzedDropFunction analysis = (AnalyzedDropFunction) e.analyzer.analyze(
-            SqlParser.createStatement("DROP FUNCTION my_other_schema.bar(long, object)"), new CoordinatorSessionSettings(User.CRATE_USER, "my_schema"), ParamTypeHints.EMPTY, e.cursors);
+            SqlParser.createStatement("DROP FUNCTION my_other_schema.bar(long, object)"), new CoordinatorSessionSettings(Role.CRATE_USER, "my_schema"), ParamTypeHints.EMPTY, e.cursors);
 
-        assertThat(analysis.schema(), is("my_other_schema"));
-        assertThat(analysis.name(), is("bar"));
+        assertThat(analysis.schema()).isEqualTo("my_other_schema");
+        assertThat(analysis.name()).isEqualTo("bar");
     }
 
     @Test
     public void testDropFunctionIfExists() throws Exception {
         AnalyzedStatement analyzedStatement = e.analyze("DROP FUNCTION IF EXISTS bar(arg_long long, arg_obj object)");
-        assertThat(analyzedStatement, instanceOf(AnalyzedDropFunction.class));
+        assertThat(analyzedStatement).isExactlyInstanceOf(AnalyzedDropFunction.class);
 
         AnalyzedDropFunction analysis = (AnalyzedDropFunction) analyzedStatement;
-        assertThat(analysis.name(), is("bar"));
-        assertThat(analysis.ifExists(), is(true));
-        assertThat(analysis.argumentTypes().get(0), is(DataTypes.LONG));
-        assertThat(analysis.argumentTypes().get(1).id(), is(ObjectType.ID));
+        assertThat(analysis.name()).isEqualTo("bar");
+        assertThat(analysis.ifExists()).isTrue();
+        assertThat(analysis.argumentTypes()).satisfiesExactly(
+            x -> assertThat(x).isEqualTo(DataTypes.LONG),
+            x -> assertThat(x.id()).isEqualTo(ObjectType.ID));
     }
 }

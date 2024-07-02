@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.Set;
 import java.util.function.Predicate;
 
+import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.cluster.routing.allocation.ExistingShardsAllocator;
@@ -36,11 +37,11 @@ import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.MergePolicyConfig;
 import org.elasticsearch.index.MergeSchedulerConfig;
 import org.elasticsearch.index.engine.EngineConfig;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.store.FsDirectoryFactory;
 import org.elasticsearch.index.store.Store;
 
 import io.crate.blob.v2.BlobIndicesService;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.replication.logical.LogicalReplicationSettings;
 
 /**
@@ -61,7 +62,7 @@ public final class IndexScopedSettings extends AbstractScopedSettings {
         IndexMetadata.INDEX_ROUTING_EXCLUDE_GROUP_SETTING,
         IndexMetadata.INDEX_ROUTING_INCLUDE_GROUP_SETTING,
         IndexMetadata.INDEX_ROUTING_REQUIRE_GROUP_SETTING,
-        IndexMetadata.INDEX_AUTO_EXPAND_REPLICAS_SETTING,
+        AutoExpandReplicas.SETTING,
         IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING,
         IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING,
         IndexMetadata.INDEX_ROUTING_PARTITION_SIZE_SETTING,
@@ -85,7 +86,6 @@ public final class IndexScopedSettings extends AbstractScopedSettings {
         MergePolicyConfig.INDEX_MERGE_POLICY_SEGMENTS_PER_TIER_SETTING,
         MergePolicyConfig.INDEX_MERGE_POLICY_RECLAIM_DELETES_WEIGHT_SETTING,
         IndexSettings.INDEX_TRANSLOG_DURABILITY_SETTING,
-        IndexSettings.INDEX_WARMER_ENABLED_SETTING,
         IndexSettings.INDEX_REFRESH_INTERVAL_SETTING,
         IndexSettings.MAX_NGRAM_DIFF_SETTING,
         IndexSettings.MAX_SHINGLE_DIFF_SETTING,
@@ -107,8 +107,8 @@ public final class IndexScopedSettings extends AbstractScopedSettings {
         IndexSettings.INDEX_TRANSLOG_RETENTION_SIZE_SETTING,
         IndexSettings.INDEX_SEARCH_IDLE_AFTER,
         Store.INDEX_STORE_STATS_REFRESH_INTERVAL_SETTING,
-        MapperService.INDEX_MAPPING_TOTAL_FIELDS_LIMIT_SETTING,
-        MapperService.INDEX_MAPPING_DEPTH_LIMIT_SETTING,
+        DocTableInfo.TOTAL_COLUMNS_LIMIT,
+        DocTableInfo.DEPTH_LIMIT_SETTING,
         IndexModule.INDEX_STORE_TYPE_SETTING,
         IndexModule.INDEX_QUERY_CACHE_ENABLED_SETTING,
         FsDirectoryFactory.INDEX_LOCK_FACTOR_SETTING,

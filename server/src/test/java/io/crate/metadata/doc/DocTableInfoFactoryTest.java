@@ -23,6 +23,7 @@ package io.crate.metadata.doc;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
 import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Collections;
 import java.util.Locale;
@@ -76,14 +77,15 @@ public class DocTableInfoFactoryTest extends ESTestCase {
                 "  }" +
                 "}");
         Metadata metadata = Metadata.builder()
-            .put(indexMetadataBuilder)
-            .build();
+                .put(indexMetadataBuilder)
+                .build();
 
         ClusterState state = ClusterState.builder(ClusterName.DEFAULT).metadata(metadata).build();
         DocTableInfoFactory docTableInfoFactory = new DocTableInfoFactory(nodeCtx);
 
-        expectedException.expect(RelationUnknown.class);
-        expectedException.expectMessage(String.format(Locale.ENGLISH, "Relation '%s.test' unknown", schemaName));
-        docTableInfoFactory.create(new RelationName(schemaName, "test"), state);
+        assertThatThrownBy(() ->
+                docTableInfoFactory.create(new RelationName(schemaName, "test"), state.metadata()))
+            .isExactlyInstanceOf(RelationUnknown.class)
+            .hasMessage(String.format(Locale.ENGLISH, "Relation '%s.test' unknown", schemaName));
     }
 }

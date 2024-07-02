@@ -115,4 +115,9 @@ public class SubscriptFunctionTest extends ScalarTestCase {
         sqlExpressions.setErrorOnUnknownObjectKey(false);
         assertEvaluateNull("{}['y']");
     }
+
+    @Test
+    public void test_lookup_by_name_with_missing_key_returns_null_if_type_information_are_available() throws Exception {
+        assertEvaluateNull("{}::object(strict) as (y int)['y']");
+    }
 }

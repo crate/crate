@@ -21,7 +21,7 @@
 
 package io.crate.execution.dsl.projection.builder;
 
-import static io.crate.common.collections.Lists2.mapTail;
+import static io.crate.common.collections.Lists.mapTail;
 import static io.crate.expression.symbol.Symbols.lookupValueByColumn;
 
 import java.util.ArrayList;
@@ -36,7 +36,6 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.expression.scalar.SubscriptObjectFunction;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.AliasSymbol;
-import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.FetchMarker;
 import io.crate.expression.symbol.FetchReference;
 import io.crate.expression.symbol.FetchStub;
@@ -49,6 +48,7 @@ import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
+import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
@@ -58,7 +58,7 @@ import io.crate.types.DataType;
 /**
  * Provides functions to create {@link InputColumn}s
  */
-public final class InputColumns extends DefaultTraversalSymbolVisitor<InputColumns.SourceSymbols, Symbol> {
+public final class InputColumns extends SymbolVisitor<InputColumns.SourceSymbols, Symbol> {
 
     private static final InputColumns INSTANCE = new InputColumns();
 

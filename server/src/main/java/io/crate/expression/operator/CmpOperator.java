@@ -28,6 +28,7 @@ import org.apache.lucene.search.Query;
 
 import io.crate.data.Input;
 import io.crate.expression.symbol.Literal;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
@@ -75,19 +76,42 @@ public final class CmpOperator extends Operator<Object> {
         }
         EqQuery eqQuery = storageSupport.eqQuery();
         if (eqQuery == null) {
-            // For types that do not support EqQuery, a `x [>, >=, <, <=] <value>` is always considered a no-match
-            return new MatchNoDocsQuery("column does not exist in this index");
+            return new MatchNoDocsQuery("For types that do not support EqQuery, a `x [>, >=, <, <=] <value>` is always considered a no-match");
         }
         String field = ref.storageIdent();
         return switch (functionName) {
             case GtOperator.NAME -> eqQuery.rangeQuery(
-                    field, value, null, false, false, ref.hasDocValues());
+                field,
+                value,
+                null,
+                false,
+                false,
+                ref.hasDocValues(),
+                ref.indexType() != IndexType.NONE);
             case GteOperator.NAME -> eqQuery.rangeQuery(
-                    field, value, null, true, false, ref.hasDocValues());
-            case LtOperator.NAME ->
-                    eqQuery.rangeQuery(field, null, value, false, false, ref.hasDocValues());
-            case LteOperator.NAME ->
-                    eqQuery.rangeQuery(field, null, value, false, true, ref.hasDocValues());
+                field,
+                value,
+                null,
+                true,
+                false,
+                ref.hasDocValues(),
+                ref.indexType() != IndexType.NONE);
+            case LtOperator.NAME -> eqQuery.rangeQuery(
+                field,
+                null,
+                value,
+                false,
+                false,
+                ref.hasDocValues(),
+                ref.indexType() != IndexType.NONE);
+            case LteOperator.NAME -> eqQuery.rangeQuery(
+                field,
+                null,
+                value,
+                false,
+                true,
+                ref.hasDocValues(),
+                ref.indexType() != IndexType.NONE);
             default -> throw new IllegalArgumentException(functionName + " is not a supported comparison operator");
         };
     }

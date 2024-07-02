@@ -21,6 +21,19 @@
 
 package io.crate.planner;
 
+import java.util.concurrent.ScheduledExecutorService;
+
+import org.elasticsearch.client.ElasticsearchClient;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Provider;
+import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
+import org.elasticsearch.node.Node;
+import org.elasticsearch.threadpool.ThreadPool;
+
 import io.crate.action.sql.DCLStatementDispatcher;
 import io.crate.analyze.repositories.RepositoryParamValidator;
 import io.crate.execution.ddl.RepositoryService;
@@ -43,19 +56,6 @@ import io.crate.replication.logical.action.TransportCreatePublicationAction;
 import io.crate.replication.logical.action.TransportCreateSubscriptionAction;
 import io.crate.replication.logical.action.TransportDropPublicationAction;
 import io.crate.statistics.TransportAnalyzeAction;
-import org.elasticsearch.action.admin.indices.create.TransportCreateIndexAction;
-import org.elasticsearch.client.ElasticsearchClient;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Provider;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.node.Node;
-import org.elasticsearch.threadpool.ThreadPool;
-
-import java.util.concurrent.ScheduledExecutorService;
 
 /**
  * AKA Godzilla
@@ -75,7 +75,6 @@ public class DependencyCarrier {
     private final TransportCreateViewAction createViewAction;
     private final TransportDropViewAction dropViewAction;
     private final TransportSwapRelationsAction swapRelationsAction;
-    private final TransportCreateIndexAction createIndexAction;
     private final TransportCreateUserDefinedFunctionAction createFunctionAction;
     private final TransportDropUserDefinedFunctionAction dropFunctionAction;
     private final Provider<TransportAnalyzeAction> analyzeAction;
@@ -97,7 +96,6 @@ public class DependencyCarrier {
                              Node node,
                              PhasesTaskFactory phasesTaskFactory,
                              ThreadPool threadPool,
-                             Schemas schemas,
                              NodeContext nodeCtx,
                              ClusterService clusterService,
                              NodeLimits nodeLimits,
@@ -107,7 +105,6 @@ public class DependencyCarrier {
                              TransportCreateViewAction createViewAction,
                              TransportDropViewAction dropViewAction,
                              TransportSwapRelationsAction swapRelationsAction,
-                             TransportCreateIndexAction createIndexAction,
                              TransportCreateUserDefinedFunctionAction createFunctionAction,
                              TransportDropUserDefinedFunctionAction dropFunctionAction,
                              Provider<TransportAnalyzeAction> analyzeAction,
@@ -124,8 +121,8 @@ public class DependencyCarrier {
         this.client = node.client();
         this.phasesTaskFactory = phasesTaskFactory;
         this.threadPool = threadPool;
-        this.schemas = schemas;
         this.nodeCtx = nodeCtx;
+        this.schemas = nodeCtx.schemas();
         this.clusterService = clusterService;
         this.nodeLimits = nodeLimits;
         this.circuitBreakerService = circuitBreakerService;
@@ -135,7 +132,6 @@ public class DependencyCarrier {
         this.createViewAction = createViewAction;
         this.dropViewAction = dropViewAction;
         this.swapRelationsAction = swapRelationsAction;
-        this.createIndexAction = createIndexAction;
         this.createFunctionAction = createFunctionAction;
         this.dropFunctionAction = dropFunctionAction;
         this.analyzeAction = analyzeAction;
@@ -204,10 +200,6 @@ public class DependencyCarrier {
 
     public TransportDropViewAction dropViewAction() {
         return dropViewAction;
-    }
-
-    public TransportCreateIndexAction createIndexAction() {
-        return createIndexAction;
     }
 
     public TransportCreateUserDefinedFunctionAction createFunctionAction() {

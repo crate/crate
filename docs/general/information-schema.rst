@@ -72,6 +72,10 @@ number of replicas.
     | doc                | quotes                  | BASE TABLE |                2 | 0                  |
     | information_schema | character_sets          | BASE TABLE |             NULL | NULL               |
     | information_schema | columns                 | BASE TABLE |             NULL | NULL               |
+    | information_schema | foreign_server_options  | BASE TABLE |             NULL | NULL               |
+    | information_schema | foreign_servers         | BASE TABLE |             NULL | NULL               |
+    | information_schema | foreign_table_options   | BASE TABLE |             NULL | NULL               |
+    | information_schema | foreign_tables          | BASE TABLE |             NULL | NULL               |
     | information_schema | key_column_usage        | BASE TABLE |             NULL | NULL               |
     | information_schema | referential_constraints | BASE TABLE |             NULL | NULL               |
     | information_schema | routines                | BASE TABLE |             NULL | NULL               |
@@ -80,6 +84,8 @@ number of replicas.
     | information_schema | table_constraints       | BASE TABLE |             NULL | NULL               |
     | information_schema | table_partitions        | BASE TABLE |             NULL | NULL               |
     | information_schema | tables                  | BASE TABLE |             NULL | NULL               |
+    | information_schema | user_mapping_options    | BASE TABLE |             NULL | NULL               |
+    | information_schema | user_mappings           | BASE TABLE |             NULL | NULL               |
     | information_schema | views                   | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_am                   | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_attrdef              | BASE TABLE |             NULL | NULL               |
@@ -88,11 +94,14 @@ number of replicas.
     | pg_catalog         | pg_constraint           | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_cursors              | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_database             | BASE TABLE |             NULL | NULL               |
+    | pg_catalog         | pg_depend               | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_description          | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_enum                 | BASE TABLE |             NULL | NULL               |
+    | pg_catalog         | pg_event_trigger        | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_index                | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_indexes              | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_locks                | BASE TABLE |             NULL | NULL               |
+    | pg_catalog         | pg_matviews             | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_namespace            | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_proc                 | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_publication          | BASE TABLE |             NULL | NULL               |
@@ -121,6 +130,7 @@ number of replicas.
     | sys                | operations_log          | BASE TABLE |             NULL | NULL               |
     | sys                | privileges              | BASE TABLE |             NULL | NULL               |
     | sys                | repositories            | BASE TABLE |             NULL | NULL               |
+    | sys                | roles                   | BASE TABLE |             NULL | NULL               |
     | sys                | segments                | BASE TABLE |             NULL | NULL               |
     | sys                | shards                  | BASE TABLE |             NULL | NULL               |
     | sys                | snapshot_restore        | BASE TABLE |             NULL | NULL               |
@@ -128,7 +138,7 @@ number of replicas.
     | sys                | summits                 | BASE TABLE |             NULL | NULL               |
     | sys                | users                   | BASE TABLE |             NULL | NULL               |
     +--------------------+-------------------------+------------+------------------+--------------------+
-    SELECT 61 rows in set (... sec)
+    SELECT 71 rows in set (... sec)
 
 
 The table also contains additional information such as the specified
@@ -859,19 +869,201 @@ In CrateDB there is always a single entry listing `UTF8`::
       - Not implemented, this column is always null.
     * - ``character_set_name``
       - ``TEXT``
-      - Name of the character set
+      - Name of the character set.
     * - ``character_repertoire``
       - ``TEXT``
-      - Character repertoire
+      - Character repertoire.
     * - ``form_of_use``
       - ``TEXT``
-      - Character encoding form, same as ``character_set_name``
+      - Character encoding form, same as ``character_set_name``.
     * - ``default_collate_catalog``
       - ``TEXT``
-      - Name of the database containing the default collation (Always ``crate``)
+      - Name of the database containing the default collation (Always ``crate``).
     * - ``default_collate_schema``
       - ``TEXT``
-      - Name of the schema containing the default collation (Always ``NULL``)
+      - Name of the schema containing the default collation (Always ``NULL``).
     * - ``default_collate_name``
       - ``TEXT``
-      - Name of the default collation (Always ``NULL``)
+      - Name of the default collation (Always ``NULL``).
+
+
+.. _foreign_servers:
+
+``foreign_servers``
+-------------------
+
+Lists foreign servers created using :ref:`ref-create-server`.
+See :ref:`administration-fdw`.
+
+.. list-table::
+   :header-rows: 1
+
+   * - Column Name
+     - Return Type
+     - Description
+   * - ``foreign_server_catalog``
+     - ``TEXT``
+     - Name of the database of the foreign server. Always ``crate``.
+   * - ``foreign_server_name``
+     - ``TEXT``
+     - Name of the foreign server.
+   * - ``foreign_data_wrapper_catalog``
+     - ``TEXT``
+     - Name of the database that contains the foreign-data wrapper. Always
+       ``crate``.
+   * - ``foreign_data_wrapper_name``
+     - ``TEXT``
+     - Name of the foreign-data wrapper used by the foreign server.
+   * - ``foreign_server_type``
+     - ``TEXT``
+     - Foreign server type information. Always ``null``.
+   * - ``foreign_server_version``
+     - ``TEXT``
+     - Foreign server version information. Always ``null``.
+   * - ``authorization_identifier``
+     - ``TEXT``
+     - Name of the user who created the server.
+
+.. _foreign_server_options:
+
+``foreign_server_options``
+--------------------------
+
+Lists options of foreign servers created using :ref:`ref-create-server`.
+See :ref:`administration-fdw`.
+
+.. list-table::
+   :header-rows: 1
+
+   * - Column Name
+     - Return Type
+     - Description
+   * - ``foreign_server_catalog``
+     - ``TEXT``
+     - Name of the database that the foreign server is defined in. Always ``crate``.
+   * - ``foreign_server_name``
+     - ``TEXT``
+     - Name of the foreign server.
+   * - ``option_name``
+     - ``TEXT``
+     - Name of an option.
+   * - ``option_value``
+     - ``TEXT``
+     - Value of the option cast to string.
+
+.. _foreign_tables:
+
+``foreign_tables``
+------------------
+
+Lists foreign tables created using :ref:`ref-create-foreign-table`.
+See :ref:`administration-fdw`.
+
+.. list-table::
+   :header-rows: 1
+
+   * - Column Name
+     - Return Type
+     - Description
+   * - ``foreign_table_catalog``
+     - ``TEXT``
+     - Name of the database where the foreign table is defined in. Always
+       ``crate``.
+   * - ``foreign_table_schema``
+     - ``TEXT``
+     - Name of the schema that contains the foreign table.
+   * - ``foreign_table_name``
+     - ``TEXT``
+     - Name of the foreign table.
+   * - ``foreign_server_catalog``
+     - ``TEXT``
+     - Name of the database where the foreign server is defined in. Always
+       ``crate``.
+   * - ``foreign_server_name``
+     - ``TEXT``
+     - Name of the foreign server.
+
+.. _foreign_table_options:
+
+``foreign_table_options``
+-------------------------
+
+Lists options for foreign tables created using :ref:`ref-create-foreign-table`.
+See :ref:`administration-fdw`.
+
+.. list-table::
+   :header-rows: 1
+
+   * - Column Name
+     - Return Type
+     - Description
+   * - ``foreign_table_catalog``
+     - ``TEXT``
+     - Name of the database that contains the foreign table. Always ``crate``.
+   * - ``foreign_table_schema``
+     - ``TEXT``
+     - Name of the schema that contains the foreign table.
+   * - ``foreign_table_name``
+     - ``TEXT``
+     - Name of the foreign table.
+   * - ``option_name``
+     - ``TEXT``
+     - Name of an option.
+   * - ``option_value``
+     - ``TEXT``
+     - Value of the option cast to string.
+
+.. _user_mappings:
+
+``user_mappings``
+-----------------
+
+Lists user mappings created for foreign servers.
+See :ref:`administration-fdw`.
+
+.. list-table::
+   :header-rows: 1
+
+   * - Column Name
+     - Return Type
+     - Description
+   * - ``authorization_identifier``
+     - ``TEXT``
+     - Name of the user being mapped.
+   * - ``foreign_server_catalog``
+     - ``TEXT``
+     - Name of the database of the foreign server. Always ``crate``.
+   * - ``foreign_server_name``
+     - ``TEXT``
+     - Name of the foreign server for this user mapping.
+
+.. _user_mapping_options:
+
+``user_mapping_options``
+------------------------
+
+Lists the options for user mappings created for foreign servers.
+See :ref:`administration-fdw`.
+
+.. list-table::
+   :header-rows: 1
+
+   * - Column Name
+     - Return Type
+     - Description
+   * - ``authorization_identifier``
+     - ``TEXT``
+     - Name of the user being mapped.
+   * - ``foreign_server_catalog``
+     - ``TEXT``
+     - Name of the database of the foreign server. Always ``crate``.
+   * - ``foreign_server_name``
+     - ``TEXT``
+     - Name of the foreign server for this user mapping.
+   * - ``option_name``
+     - ``TEXT``
+     - Name of an option.
+   * - ``option_value``
+     - ``TEXT``
+     - Value of the option. The value is visible only to the user being mapped
+       and to superusers otherwise it will show as a ``NULL``.

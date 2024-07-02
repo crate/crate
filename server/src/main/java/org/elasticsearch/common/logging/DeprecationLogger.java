@@ -28,9 +28,9 @@ import java.util.Set;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.SuppressLoggerChecks;
-import org.elasticsearch.common.util.CollectionUtils;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
+import io.crate.common.collections.Lists;
 import io.crate.common.collections.RingBuffer;
 
 /**
@@ -93,7 +93,7 @@ public class DeprecationLogger {
     }
 
     public static List<String> getRecentWarnings() {
-        return CollectionUtils.iterableAsArrayList(RECENT_WARNINGS.get());
+        return Lists.of(RECENT_WARNINGS.get());
     }
 
     public static void resetWarnings() {

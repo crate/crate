@@ -27,14 +27,11 @@ import static io.crate.planner.optimizer.matcher.Patterns.source;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
 
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.planner.node.fetch.FetchSource;
 import io.crate.planner.operators.Collect;
@@ -46,7 +43,6 @@ import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.Order;
 import io.crate.planner.operators.Rename;
 import io.crate.planner.optimizer.Rule;
-import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
 import io.crate.planner.optimizer.matcher.Pattern;
@@ -77,11 +73,8 @@ public final class RewriteToQueryThenFetch implements Rule<Limit> {
     @Override
     public LogicalPlan apply(Limit limit,
                              Captures captures,
-                             PlanStats planStats,
-                             TransactionContext txnCtx,
-                             NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
-        if (Symbols.containsColumn(limit.outputs(), DocSysColumns.FETCHID)) {
+                             Rule.Context context) {
+        if (Symbols.hasColumn(limit.outputs(), DocSysColumns.FETCHID)) {
             return null;
         }
         FetchRewrite fetchRewrite = limit.source().rewriteToFetch(Set.of());

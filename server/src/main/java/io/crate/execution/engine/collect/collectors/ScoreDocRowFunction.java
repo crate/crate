@@ -28,13 +28,12 @@ import java.util.Collection;
 import java.util.List;
 import java.util.function.Function;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.ReaderUtil;
 import org.apache.lucene.search.FieldDoc;
 import org.apache.lucene.search.ScoreDoc;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -47,7 +46,7 @@ class ScoreDocRowFunction implements Function<ScoreDoc, Row> {
 
     private final List<OrderByCollectorExpression> orderByCollectorExpressions = new ArrayList<>();
     private final IndexReader indexReader;
-    private final LuceneCollectorExpression[] expressions;
+    private final LuceneCollectorExpression<?>[] expressions;
     private final DummyScorer scorer;
     private final InputRow inputRow;
     private final Runnable onScoreDoc;

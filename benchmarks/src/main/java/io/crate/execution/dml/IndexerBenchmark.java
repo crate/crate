@@ -27,12 +27,11 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
-import org.elasticsearch.index.mapper.NumberFieldMapper;
 import org.elasticsearch.node.Node;
-import org.elasticsearch.transport.Netty4Plugin;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -55,7 +54,6 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
 
 @BenchmarkMode(Mode.AverageTime)
@@ -79,7 +77,7 @@ public class IndexerBenchmark {
         Environment environment = new Environment(settings, tempDir);
         node = new Node(
             environment,
-            List.of(Netty4Plugin.class),
+            List.of(),
             true
         );
         node.start();
@@ -94,18 +92,17 @@ public class IndexerBenchmark {
         session.quickExec(statement, resultReceiver, Row.EMPTY);
         resultReceiver.completionFuture().get(5, TimeUnit.SECONDS);
 
-        Schemas schemas = injector.getInstance(Schemas.class);
-        DocTableInfo table = schemas.getTableInfo(new RelationName("doc", "tbl"));
+        NodeContext nodeContext = injector.getInstance(NodeContext.class);
+        DocTableInfo table = nodeContext.schemas().getTableInfo(new RelationName("doc", "tbl"));
 
         indexer = new Indexer(
-            table.concreteIndices()[0],
+            table.concreteIndices(Metadata.EMPTY_METADATA)[0],
             table,
             new CoordinatorTxnCtx(session.sessionSettings()),
             injector.getInstance(NodeContext.class),
-            column -> NumberFieldMapper.FIELD_TYPE,
             List.of(
-                table.getReference(new ColumnIdent("x")),
-                table.getReference(new ColumnIdent("y"))
+                table.getReference(ColumnIdent.of("x")),
+                table.getReference(ColumnIdent.of("y"))
             ),
             null
         );

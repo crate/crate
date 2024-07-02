@@ -21,33 +21,11 @@
 
 package io.crate.execution.engine.collect.sources;
 
-import com.carrotsearch.hppc.IntIndexedContainer;
-import io.crate.common.collections.Iterables;
-import io.crate.data.BatchIterator;
-import io.crate.data.InMemoryBatchIterator;
-import io.crate.data.Row;
-import io.crate.data.SentinelRow;
-import io.crate.execution.dsl.phases.CollectPhase;
-import io.crate.execution.dsl.phases.ExecutionPhaseVisitor;
-import io.crate.execution.dsl.phases.FileUriCollectPhase;
-import io.crate.execution.dsl.phases.RoutedCollectPhase;
-import io.crate.execution.dsl.phases.TableFunctionCollectPhase;
-import io.crate.execution.engine.collect.CollectTask;
-import io.crate.execution.engine.pipeline.ProjectionToProjectorVisitor;
-import io.crate.execution.engine.pipeline.ProjectorFactory;
-import io.crate.execution.jobs.NodeLimits;
-import io.crate.expression.InputFactory;
-import io.crate.expression.eval.EvaluatingNormalizer;
-import io.crate.metadata.IndexParts;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.Schemas;
-import io.crate.metadata.TransactionContext;
-import io.crate.metadata.information.InformationSchemaInfo;
-import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
-import io.crate.metadata.sys.SysNodesTableInfo;
-import io.crate.metadata.sys.SysSchemaInfo;
-import io.crate.metadata.table.TableInfo;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -56,10 +34,35 @@ import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
+import com.carrotsearch.hppc.IntIndexedContainer;
+
+import io.crate.common.collections.Iterables;
+import io.crate.data.BatchIterator;
+import io.crate.data.InMemoryBatchIterator;
+import io.crate.data.Row;
+import io.crate.data.SentinelRow;
+import io.crate.execution.dsl.phases.CollectPhase;
+import io.crate.execution.dsl.phases.ExecutionPhaseVisitor;
+import io.crate.execution.dsl.phases.FileUriCollectPhase;
+import io.crate.execution.dsl.phases.ForeignCollectPhase;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.execution.dsl.phases.TableFunctionCollectPhase;
+import io.crate.execution.engine.collect.CollectTask;
+import io.crate.execution.engine.pipeline.ProjectionToProjectorVisitor;
+import io.crate.execution.engine.pipeline.ProjectorFactory;
+import io.crate.execution.jobs.NodeLimits;
+import io.crate.expression.InputFactory;
+import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.fdw.ForeignDataWrappers;
+import io.crate.metadata.IndexParts;
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TransactionContext;
+import io.crate.metadata.information.InformationSchemaInfo;
+import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
+import io.crate.metadata.sys.SysNodesTableInfo;
+import io.crate.metadata.sys.SysSchemaInfo;
+import io.crate.metadata.table.TableInfo;
 
 @Singleton
 public class CollectSourceResolver {
@@ -71,10 +74,10 @@ public class CollectSourceResolver {
     private final ClusterService clusterService;
     private final CollectPhaseVisitor visitor;
     private final ProjectorSetupCollectSource tableFunctionSource;
+    private final CollectSource foreignDataWrappers;
 
     @Inject
     public CollectSourceResolver(ClusterService clusterService,
-                                 Schemas schemas,
                                  NodeLimits nodeJobsCounter,
                                  CircuitBreakerService circuitBreakerService,
                                  NodeContext nodeCtx,
@@ -88,13 +91,13 @@ public class CollectSourceResolver {
                                  FileCollectSource fileCollectSource,
                                  TableFunctionCollectSource tableFunctionCollectSource,
                                  SystemCollectSource systemCollectSource,
-                                 NodeStatsCollectSource nodeStatsCollectSource) {
+                                 NodeStatsCollectSource nodeStatsCollectSource,
+                                 ForeignDataWrappers foreignDataWrappers) {
         this.clusterService = clusterService;
 
         EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(nodeCtx);
         ProjectorFactory projectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
-            schemas,
             nodeJobsCounter,
             circuitBreakerService,
             nodeCtx,
@@ -110,6 +113,7 @@ public class CollectSourceResolver {
         this.fileCollectSource = new ProjectorSetupCollectSource(fileCollectSource, projectorFactory);
         this.tableFunctionSource = new ProjectorSetupCollectSource(tableFunctionCollectSource, projectorFactory);
         this.emptyCollectSource = new ProjectorSetupCollectSource(new VoidCollectSource(), projectorFactory);
+        this.foreignDataWrappers = new ProjectorSetupCollectSource(foreignDataWrappers, projectorFactory);
 
         ProjectorSetupCollectSource sysSource = new ProjectorSetupCollectSource(systemCollectSource, projectorFactory);
         for (TableInfo tableInfo : sysSchemaInfo.getTables()) {
@@ -128,6 +132,7 @@ public class CollectSourceResolver {
     }
 
     private class CollectPhaseVisitor extends ExecutionPhaseVisitor<Void, CollectSource> {
+
         @Override
         public CollectSource visitFileUriCollectPhase(FileUriCollectPhase phase, Void context) {
             return fileCollectSource;
@@ -136,6 +141,11 @@ public class CollectSourceResolver {
         @Override
         public CollectSource visitTableFunctionCollect(TableFunctionCollectPhase phase, Void context) {
             return tableFunctionSource;
+        }
+
+        @Override
+        public CollectSource visitForeignCollect(ForeignCollectPhase phase, Void context) {
+            return foreignDataWrappers;
         }
 
         @Override

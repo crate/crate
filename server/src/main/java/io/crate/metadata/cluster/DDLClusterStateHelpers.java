@@ -21,17 +21,14 @@
 
 package io.crate.metadata.cluster;
 
-import static io.crate.execution.ddl.TransportSchemaUpdateAction.populateColumnPositions;
-
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.cluster.metadata.ColumnPositionResolver;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -42,10 +39,13 @@ import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.elasticsearch.index.mapper.ContentPath;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.Constants;
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.collections.MapBuilder;
+import io.crate.common.collections.Maps;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.server.xcontent.XContentHelper;
@@ -150,6 +150,48 @@ public class DDLClusterStateHelpers {
             return parser.map();
         } catch (IOException e) {
             throw new ElasticsearchException("failed to parse mapping");
+        }
+    }
+
+    public static boolean populateColumnPositions(Map<String, Object> mapping) {
+        var columnPositionResolver = new ColumnPositionResolver<Map<String, Object>>();
+        int[] maxColumnPosition = new int[]{0};
+        populateColumnPositions(mapping, new ContentPath(), columnPositionResolver, maxColumnPosition);
+        columnPositionResolver.updatePositions(maxColumnPosition[0]);
+        return columnPositionResolver.numberOfColumnsToReposition() > 0;
+    }
+
+    private static void populateColumnPositions(Map<String, Object> mapping,
+                                                ContentPath contentPath,
+                                                ColumnPositionResolver<Map<String, Object>> columnPositionResolver,
+                                                int[] maxColumnPosition) {
+
+        Map<String, Object> properties = Maps.get(mapping, "properties");
+        if (properties == null) {
+            return;
+        }
+        for (var e : properties.entrySet()) {
+            String name = e.getKey();
+            contentPath.add(name);
+            Map<String, Object> columnProperties = (Map<String, Object>) e.getValue();
+            columnProperties = Maps.getOrDefault(columnProperties, "inner", columnProperties);
+            assert columnProperties.containsKey("inner") || (columnProperties.containsKey("position") && columnProperties.get("position") != null)
+                : "Column position is missing: " + name;
+            // BWC compatibility with nodes < 5.1, position could be NULL if column is created on that nodes
+            Integer position = (Integer) columnProperties.get("position");
+            if (position != null) {
+                if (position < 0) {
+                    columnPositionResolver.addColumnToReposition(contentPath.pathAsText(""),
+                        position,
+                        columnProperties,
+                        (cp, p) -> cp.put("position", p),
+                        contentPath.currentDepth());
+                } else {
+                    maxColumnPosition[0] = Math.max(maxColumnPosition[0], position);
+                }
+            }
+            populateColumnPositions(columnProperties, contentPath, columnPositionResolver, maxColumnPosition);
+            contentPath.remove();
         }
     }
 }

@@ -19,13 +19,8 @@
 
 package org.elasticsearch.gateway;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -42,7 +37,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.tests.store.MockDirectoryWrapper;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
@@ -71,6 +65,7 @@ import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import io.crate.common.exceptions.Exceptions;
 import io.crate.common.io.IOUtils;
 
 public class GatewayMetaStatePersistedStateTests extends ESTestCase {
@@ -101,7 +96,7 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
         final MockGatewayMetaState gateway = new MockGatewayMetaState(localNode, bigArrays);
         gateway.start(settings, nodeEnvironment, xContentRegistry());
         final CoordinationState.PersistedState persistedState = gateway.getPersistedState();
-        assertThat(persistedState, instanceOf(GatewayMetaState.LucenePersistedState.class));
+        assertThat(persistedState).isExactlyInstanceOf(GatewayMetaState.LucenePersistedState.class);
         return persistedState;
     }
 
@@ -118,13 +113,13 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
         try {
             gateway = newGatewayPersistedState();
             ClusterState state = gateway.getLastAcceptedState();
-            assertThat(state.getClusterName(), equalTo(clusterName));
-            assertTrue(Metadata.isGlobalStateEquals(state.metadata(), Metadata.EMPTY_METADATA));
-            assertThat(state.version(), equalTo(Manifest.empty().getClusterStateVersion()));
-            assertThat(state.nodes().getLocalNode(), equalTo(localNode));
+            assertThat(state.getClusterName()).isEqualTo(clusterName);
+            assertThat(Metadata.isGlobalStateEquals(state.metadata(), Metadata.EMPTY_METADATA)).isTrue();
+            assertThat(state.version()).isEqualTo(Manifest.empty().getClusterStateVersion());
+            assertThat(state.nodes().getLocalNode()).isEqualTo(localNode);
 
             long currentTerm = gateway.getCurrentTerm();
-            assertThat(currentTerm, equalTo(Manifest.empty().getCurrentTerm()));
+            assertThat(currentTerm).isEqualTo(Manifest.empty().getCurrentTerm());
         } finally {
             IOUtils.close(gateway);
         }
@@ -139,7 +134,7 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
                 final long currentTerm = randomNonNegativeLong();
                 gateway.setCurrentTerm(currentTerm);
                 gateway = maybeNew(gateway);
-                assertThat(gateway.getCurrentTerm(), equalTo(currentTerm));
+                assertThat(gateway.getCurrentTerm()).isEqualTo(currentTerm);
             }
         } finally {
             IOUtils.close(gateway);
@@ -182,10 +177,10 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
     }
 
     private void assertClusterStateEqual(ClusterState expected, ClusterState actual) {
-        assertThat(actual.version(), equalTo(expected.version()));
-        assertTrue(Metadata.isGlobalStateEquals(actual.metadata(), expected.metadata()));
+        assertThat(actual.version()).isEqualTo(expected.version());
+        assertThat(Metadata.isGlobalStateEquals(actual.metadata(), expected.metadata())).isTrue();
         for (IndexMetadata indexMetadata : expected.metadata()) {
-            assertThat(actual.metadata().index(indexMetadata.getIndex()), equalTo(indexMetadata));
+            assertThat(actual.metadata().index(indexMetadata.getIndex())).isEqualTo(indexMetadata);
         }
     }
 
@@ -240,7 +235,7 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
             gateway.setLastAcceptedState(newClusterState);
 
             gateway = maybeNew(gateway);
-            assertThat(gateway.getLastAcceptedState().metadata().index(indexName), equalTo(newIndexMetadata));
+            assertThat(gateway.getLastAcceptedState().metadata().index(indexName)).isEqualTo(newIndexMetadata);
         } finally {
             IOUtils.close(gateway);
         }
@@ -259,8 +254,8 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
                                                             Metadata.builder().coordinationMetadata(CoordinationMetadata.builder().term(term).build()).build()));
 
             gateway = maybeNew(gateway);
-            assertThat(gateway.getCurrentTerm(), equalTo(currentTerm));
-            assertThat(gateway.getLastAcceptedState().coordinationMetadata().term(), equalTo(term));
+            assertThat(gateway.getCurrentTerm()).isEqualTo(currentTerm);
+            assertThat(gateway.getLastAcceptedState().coordinationMetadata().term()).isEqualTo(term);
         } finally {
             IOUtils.close(gateway);
         }
@@ -283,8 +278,7 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
             gateway.setLastAcceptedState(state);
 
             gateway = maybeNew(gateway);
-            assertThat(gateway.getLastAcceptedState().getLastAcceptedConfiguration(),
-                       not(equalTo(gateway.getLastAcceptedState().getLastCommittedConfiguration())));
+            assertThat(gateway.getLastAcceptedState().getLastAcceptedConfiguration()).isNotEqualTo(gateway.getLastAcceptedState().getLastCommittedConfiguration());
             gateway.markLastAcceptedStateAsCommitted();
 
             CoordinationMetadata expectedCoordinationMetadata = CoordinationMetadata.builder(coordinationMetadata)
@@ -329,8 +323,8 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
                     new PersistedClusterStateService(nodeEnvironment, xContentRegistry(), getBigArrays(),
                         new ClusterSettings(settings, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS), () -> 0L);
                 final PersistedClusterStateService.OnDiskState onDiskState = newPersistedClusterStateService.loadBestOnDiskState();
-                assertFalse("Path should not be empty: " + path.toAbsolutePath(), onDiskState.empty());
-                assertThat(onDiskState.currentTerm, equalTo(42L));
+                assertThat(onDiskState.empty()).as("Path should not be empty: " + path.toAbsolutePath()).isFalse();
+                assertThat(onDiskState.currentTerm).isEqualTo(42L);
                 assertClusterStateEqual(state,
                                         ClusterState.builder(ClusterName.DEFAULT)
                                             .version(onDiskState.lastAcceptedVersion)
@@ -357,7 +351,7 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
         gateway.start(settings, transportService, clusterService,
                       new MetaStateService(nodeEnvironment, xContentRegistry()), null, null, persistedClusterStateService);
         final CoordinationState.PersistedState persistedState = gateway.getPersistedState();
-        assertThat(persistedState, instanceOf(GatewayMetaState.AsyncLucenePersistedState.class));
+        assertThat(persistedState).isExactlyInstanceOf(GatewayMetaState.AsyncLucenePersistedState.class);
 
         //generate random coordinationMetadata with different lastAcceptedConfiguration and lastCommittedConfiguration
         CoordinationMetadata coordinationMetadata;
@@ -371,14 +365,11 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
         persistedState.setLastAcceptedState(state);
         assertBusy(() -> assertTrue(gateway.allPendingAsyncStatesWritten()));
 
-        assertThat(persistedState.getLastAcceptedState().getLastAcceptedConfiguration(),
-                   not(equalTo(persistedState.getLastAcceptedState().getLastCommittedConfiguration())));
+        assertThat(persistedState.getLastAcceptedState().getLastAcceptedConfiguration()).isNotEqualTo(persistedState.getLastAcceptedState().getLastCommittedConfiguration());
         CoordinationMetadata persistedCoordinationMetadata =
             persistedClusterStateService.loadBestOnDiskState().metadata.coordinationMetadata();
-        assertThat(persistedCoordinationMetadata.getLastAcceptedConfiguration(),
-                   equalTo(GatewayMetaState.AsyncLucenePersistedState.STALE_STATE_CONFIG));
-        assertThat(persistedCoordinationMetadata.getLastCommittedConfiguration(),
-                   equalTo(GatewayMetaState.AsyncLucenePersistedState.STALE_STATE_CONFIG));
+        assertThat(persistedCoordinationMetadata.getLastAcceptedConfiguration()).isEqualTo(GatewayMetaState.AsyncLucenePersistedState.STALE_STATE_CONFIG);
+        assertThat(persistedCoordinationMetadata.getLastCommittedConfiguration()).isEqualTo(GatewayMetaState.AsyncLucenePersistedState.STALE_STATE_CONFIG);
 
         persistedState.markLastAcceptedStateAsCommitted();
         assertBusy(() -> assertTrue(gateway.allPendingAsyncStatesWritten()));
@@ -391,11 +382,9 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
 
         assertClusterStateEqual(expectedClusterState, persistedState.getLastAcceptedState());
         persistedCoordinationMetadata = persistedClusterStateService.loadBestOnDiskState().metadata.coordinationMetadata();
-        assertThat(persistedCoordinationMetadata.getLastAcceptedConfiguration(),
-                   equalTo(GatewayMetaState.AsyncLucenePersistedState.STALE_STATE_CONFIG));
-        assertThat(persistedCoordinationMetadata.getLastCommittedConfiguration(),
-                   equalTo(GatewayMetaState.AsyncLucenePersistedState.STALE_STATE_CONFIG));
-        assertTrue(persistedClusterStateService.loadBestOnDiskState().metadata.clusterUUIDCommitted());
+        assertThat(persistedCoordinationMetadata.getLastAcceptedConfiguration()).isEqualTo(GatewayMetaState.AsyncLucenePersistedState.STALE_STATE_CONFIG);
+        assertThat(persistedCoordinationMetadata.getLastCommittedConfiguration()).isEqualTo(GatewayMetaState.AsyncLucenePersistedState.STALE_STATE_CONFIG);
+        assertThat(persistedClusterStateService.loadBestOnDiskState().metadata.clusterUUIDCommitted()).isTrue();
 
         // generate a series of updates and check if batching works
         final String indexName = randomAlphaOfLength(10);
@@ -415,14 +404,14 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
                 persistedState.setLastAcceptedState(state);
             }
         }
-        assertEquals(currentTerm, persistedState.getCurrentTerm());
+        assertThat(persistedState.getCurrentTerm()).isEqualTo(currentTerm);
         assertClusterStateEqual(state, persistedState.getLastAcceptedState());
         assertBusy(() -> assertTrue(gateway.allPendingAsyncStatesWritten()));
 
         gateway.close();
 
         try (CoordinationState.PersistedState reloadedPersistedState = newGatewayPersistedState()) {
-            assertEquals(currentTerm, reloadedPersistedState.getCurrentTerm());
+            assertThat(reloadedPersistedState.getCurrentTerm()).isEqualTo(currentTerm);
             assertClusterStateEqual(GatewayMetaState.AsyncLucenePersistedState.resetVotingConfiguration(state),
                                     reloadedPersistedState.getLastAcceptedState());
             assertNotNull(reloadedPersistedState.getLastAcceptedState().metadata().index(indexName));
@@ -465,7 +454,7 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
                     currentTerm = newTerm;
                 }
             } catch (IOError | Exception e) {
-                assertNotNull(ExceptionsHelper.unwrap(e, IOException.class));
+                assertNotNull(Exceptions.firstCause(e, IOException.class));
             }
 
             ioExceptionRate.set(0.0d);
@@ -492,14 +481,14 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
                 }
             }
 
-            assertEquals(state, persistedState.getLastAcceptedState());
-            assertEquals(currentTerm, persistedState.getCurrentTerm());
+            assertThat(persistedState.getLastAcceptedState()).isEqualTo(state);
+            assertThat(persistedState.getCurrentTerm()).isEqualTo(currentTerm);
 
         } catch (IOError | Exception e) {
             if (ioExceptionRate.get() == 0.0d) {
                 throw e;
             }
-            assertNotNull(ExceptionsHelper.unwrap(e, IOException.class));
+            assertNotNull(Exceptions.firstCause(e, IOException.class));
             return;
         }
 
@@ -515,8 +504,8 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
                     new PersistedClusterStateService(nodeEnvironment, xContentRegistry(), getBigArrays(),
                         new ClusterSettings(settings, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS), () -> 0L);
                 final PersistedClusterStateService.OnDiskState onDiskState = newPersistedClusterStateService.loadBestOnDiskState();
-                assertFalse(onDiskState.empty());
-                assertThat(onDiskState.currentTerm, equalTo(currentTerm));
+                assertThat(onDiskState.empty()).isFalse();
+                assertThat(onDiskState.currentTerm).isEqualTo(currentTerm);
                 assertClusterStateEqual(state,
                                         ClusterState.builder(ClusterName.DEFAULT)
                                             .version(onDiskState.lastAcceptedVersion)

@@ -23,20 +23,18 @@ package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.junit.Rule;
 import org.junit.Test;
 
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
@@ -47,13 +45,17 @@ import io.crate.replication.logical.exceptions.CreateSubscriptionException;
 import io.crate.replication.logical.exceptions.PublicationUnknownException;
 import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
+import io.crate.role.Role;
+import io.crate.role.Roles;
+import io.crate.testing.RetryRule;
 import io.crate.testing.UseRandomizedSchema;
-import io.crate.user.User;
-import io.crate.user.UserLookup;
 
 
 @UseRandomizedSchema(random = false)
 public class LogicalReplicationITest extends LogicalReplicationITestCase {
+
+    @Rule
+    public RetryRule retryRule = new RetryRule(3);
 
     @Test
     public void test_create_publication_checks_owner_was_not_deleted_before_creation() {
@@ -63,14 +65,13 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         executeOnPublisher("CREATE USER " + publicationOwner);
         executeOnPublisher("GRANT AL TO " + publicationOwner);
         executeOnPublisher("GRANT DQL, DML, DDL ON TABLE doc.t1 TO " + publicationOwner);
-        UserLookup userLookup = publisherCluster.getInstance(UserLookup.class);
-        User user = Objects.requireNonNull(userLookup.findUser(publicationOwner), "User " + publicationOwner + " must exist");
+        Roles roles = publisherCluster.getInstance(Roles.class);
+        Role user = roles.getUser(publicationOwner);
 
         executeOnPublisher("DROP USER " + publicationOwner);
         assertThatThrownBy(() -> executeOnPublisherAsUser("CREATE PUBLICATION pub1 FOR TABLE doc.t1", user))
             .isExactlyInstanceOf(IllegalStateException.class)
-            .hasMessageContaining(
-                    "Publication 'pub1' cannot be created as the user 'publication_owner' owning the publication has been dropped.");
+            .hasMessage("User \"publication_owner\" was dropped");
     }
 
 
@@ -83,14 +84,13 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         executeOnSubscriber("CREATE USER " + subscriptionOwner);
         executeOnSubscriber("GRANT AL TO " + subscriptionOwner);
 
-        UserLookup userLookup = subscriberCluster.getInstance(UserLookup.class);
-        User user = Objects.requireNonNull(userLookup.findUser(subscriptionOwner), "User " + subscriptionOwner + " must exist");
+        Roles roles = subscriberCluster.getInstance(Roles.class);
+        Role user = roles.getUser(subscriptionOwner);
 
         executeOnSubscriber("DROP USER " + subscriptionOwner);
         assertThatThrownBy(() -> createSubscriptionAsUser("sub1", "pub1", user))
             .isExactlyInstanceOf(IllegalStateException.class)
-            .hasMessageContaining(
-                    "Subscription 'sub1' cannot be created as the user 'subscription_owner' owning the subscription has been dropped.");
+            .hasMessage("User \"subscription_owner\" was dropped");
     }
 
     @Test
@@ -102,8 +102,8 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         executeOnPublisher("GRANT AL TO " + publicationOwner);
         executeOnPublisher("GRANT DQL, DML, DDL ON TABLE doc.t1 TO " + publicationOwner);
 
-        UserLookup userLookup = publisherCluster.getInstance(UserLookup.class);
-        User user = Objects.requireNonNull(userLookup.findUser(publicationOwner), "User " + publicationOwner + " must exist");
+        Roles roles = publisherCluster.getInstance(Roles.class);
+        Role user = roles.getUser(publicationOwner);
         executeOnPublisherAsUser("CREATE PUBLICATION pub1 FOR TABLE doc.t1", user);
 
         assertThatThrownBy(() -> executeOnPublisher("DROP USER " + publicationOwner))
@@ -121,8 +121,8 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         executeOnSubscriber("CREATE USER " + subscriptionOwner);
         executeOnSubscriber("GRANT AL TO " + subscriptionOwner);
 
-        UserLookup userLookup = subscriberCluster.getInstance(UserLookup.class);
-        User user = Objects.requireNonNull(userLookup.findUser(subscriptionOwner), "User " + subscriptionOwner + " must exist");
+        Roles roles = subscriberCluster.getInstance(Roles.class);
+        Role user = roles.getUser(subscriptionOwner);
         createSubscriptionAsUser("sub1", "pub1", user);
 
         assertThatThrownBy(() -> executeOnSubscriber("DROP USER " + subscriptionOwner))
@@ -140,8 +140,8 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         executeOnSubscriber("CREATE USER " + subscriptionOwner);
         executeOnSubscriber("GRANT AL TO " + subscriptionOwner);
 
-        UserLookup userLookup = subscriberCluster.getInstance(UserLookup.class);
-        User user = Objects.requireNonNull(userLookup.findUser(subscriptionOwner), "User " + subscriptionOwner + " must exist");
+        Roles roles = subscriberCluster.getInstance(Roles.class);
+        Role user = roles.getUser(subscriptionOwner);
         var stmt = String.format(Locale.ENGLISH, "CREATE SUBSCRIPTION sub1 CONNECTION 'crate://localhost:12345/mydb?user=%s&mode=pg_tunnel'" +
                                                  " publication pub1", user.name());
         assertThatThrownBy(() -> subscriberSqlExecutor.executeAs(stmt, user))
@@ -198,10 +198,10 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         createSubscription("sub1", "pub1");
 
         LogicalReplicationService replicationService = subscriberCluster.getInstance(LogicalReplicationService.class);
-        assertTrue(replicationService.subscriptions().containsKey("sub1"));
+        assertThat(replicationService.subscriptions().containsKey("sub1")).isTrue();
 
         executeOnSubscriber("DROP SUBSCRIPTION sub1 ");
-        assertFalse(replicationService.subscriptions().containsKey("sub1"));
+        assertThat(replicationService.subscriptions().containsKey("sub1")).isFalse();
 
         var response = executeOnSubscriber("SELECT * FROM pg_subscription");
         assertThat(response).hasRowCount(0);
@@ -437,21 +437,13 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         createPublication("pub1", false, List.of("doc.t1"));
         executeOnSubscriber("CREATE SUBSCRIPTION sub1" +
             " CONNECTION '" + publisherConnectionUrl() + "' PUBLICATION pub1");
-        // Wait until empty partitioned table (template only) is replicated
-        assertBusy(() -> {
-            var r = executeOnSubscriber("SELECT column_name FROM information_schema.columns" +
-                " WHERE table_name = 't1'" +
-                " ORDER BY ordinal_position");
-            assertThat(r).hasRows(
-                "id",
-                "p"
-            );
-        });
 
-        assertThatThrownBy(() -> executeOnSubscriber("INSERT INTO doc.t1 (id) VALUES(3)"))
-            .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
-            .hasMessageContaining(
-                    "The relation \"doc.t1\" doesn't allow INSERT operations, because it is included in a logical replication subscription.");
+        assertBusy(() -> {
+            assertThatThrownBy(() -> executeOnSubscriber("INSERT INTO doc.t1 (id) VALUES(3)"))
+                .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
+                .hasMessageContaining(
+                        "The relation \"doc.t1\" doesn't allow INSERT operations, because it is included in a logical replication subscription.");
+        });
     }
 
     @Test

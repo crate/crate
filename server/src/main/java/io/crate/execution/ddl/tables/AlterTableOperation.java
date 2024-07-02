@@ -50,13 +50,13 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.action.FutureActionListener;
 import io.crate.action.sql.CollectingResultReceiver;
 import io.crate.action.sql.Sessions;
-import io.crate.analyze.AnalyzedAlterTableRename;
+import io.crate.analyze.AnalyzedAlterTableRenameTable;
 import io.crate.analyze.BoundAlterTable;
-import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Row;
 import io.crate.execution.ddl.index.SwapAndDropIndexRequest;
 import io.crate.execution.ddl.index.TransportSwapAndDropIndexNameAction;
@@ -141,7 +141,7 @@ public class AlterTableOperation {
         return transportAddColumnAction.execute(addColumnRequest).thenApply(resp -> -1L);
     }
 
-    public CompletableFuture<Long> executeAlterTableDropColumn(DropColumnRequest dropColumnRequest) {
+    public CompletableFuture<Long> dropColumn(DropColumnRequest dropColumnRequest) {
         return transportDropColumnAction.execute(dropColumnRequest).thenApply(resp -> -1L);
     }
 
@@ -160,9 +160,9 @@ public class AlterTableOperation {
         return rowCountReceiver.completionFuture();
     }
 
-    public CompletableFuture<Long> executeAlterTableOpenClose(RelationName relationName,
-                                                              boolean openTable,
-                                                              @Nullable PartitionName partitionName) {
+    public CompletableFuture<Long> closeOrOpen(RelationName relationName,
+                                               boolean openTable,
+                                               @Nullable PartitionName partitionName) {
         String partitionIndexName = null;
         if (partitionName != null) {
             partitionIndexName = partitionName.asIndexName();
@@ -179,7 +179,7 @@ public class AlterTableOperation {
         }
     }
 
-    public CompletableFuture<Long> executeAlterTable(BoundAlterTable analysis) {
+    public CompletableFuture<Long> setSettingsOrResize(BoundAlterTable analysis) {
         validateSettingsForPublishedTables(analysis.table().ident(),
                                            analysis.tableParameter().settings(),
                                            logicalReplicationService.publications(),
@@ -194,12 +194,12 @@ public class AlterTableOperation {
             if (settings.size() > 1) {
                 throw new IllegalArgumentException("Setting [number_of_shards] cannot be combined with other settings");
             }
-            return executeAlterTableChangeNumberOfShards(analysis);
+            return resize(analysis);
         }
-        return executeAlterTableSetOrReset(analysis);
+        return setSettings(analysis);
     }
 
-    private CompletableFuture<Long> executeAlterTableSetOrReset(BoundAlterTable analysis) {
+    private CompletableFuture<Long> setSettings(BoundAlterTable analysis) {
         try {
             AlterTableRequest request = new AlterTableRequest(
                 analysis.table().ident(),
@@ -215,7 +215,7 @@ public class AlterTableOperation {
         }
     }
 
-    private CompletableFuture<Long> executeAlterTableChangeNumberOfShards(BoundAlterTable analysis) {
+    private CompletableFuture<Long> resize(BoundAlterTable analysis) {
         final TableInfo table = analysis.table();
         final boolean isPartitioned = analysis.isPartitioned();
         String sourceIndexName;
@@ -383,12 +383,12 @@ public class AlterTableOperation {
         });
     }
 
-    public CompletableFuture<Long> executeAlterTableRenameTable(AnalyzedAlterTableRename renameTable) {
+    public CompletableFuture<Long> rename(AnalyzedAlterTableRenameTable renameTable) {
         var request = new RenameTableRequest(renameTable.sourceName(), renameTable.targetName(), renameTable.isPartitioned());
         return transportRenameTableAction.execute(request, r -> -1L);
     }
 
-    public CompletableFuture<Long> executeAlterTableDropConstraint(DropConstraintRequest request) {
+    public CompletableFuture<Long> dropConstraint(DropConstraintRequest request) {
         return transportDropConstraintAction.execute(request).thenApply(resp -> -1L);
     }
 

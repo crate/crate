@@ -21,8 +21,8 @@
 
 package io.crate.expression.scalar.formatting;
 
-import io.crate.common.StringUtils;
-import io.crate.common.collections.Lists2;
+import static io.crate.common.StringUtils.padEnd;
+import static org.elasticsearch.common.Strings.padStart;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -39,8 +39,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import static io.crate.common.StringUtils.padEnd;
-import static org.elasticsearch.common.Strings.padStart;
+import io.crate.common.StringUtils;
+import io.crate.common.collections.Lists;
 
 public class DateTimeFormatter {
 
@@ -70,6 +70,7 @@ public class DateTimeFormatter {
         P_M_LOWER("p.m."),
         YEAR_WITH_COMMA("Y,YYY"),
         YEAR_YYYY("YYYY"),
+        YEAR_LOWER_YYYY("yyyy"),
         YEAR_YYY("YYY"),
         YEAR_YY("YY"),
         YEAR_Y("Y"),
@@ -256,7 +257,7 @@ public class DateTimeFormatter {
     }
 
     public String format(LocalDateTime datetime) {
-        return Lists2.joinOn("", this.tokens, x -> {
+        return Lists.joinOn("", this.tokens, x -> {
             if (x instanceof Token) {
                 return getElement((Token) x, datetime);
             } else {
@@ -300,7 +301,7 @@ public class DateTimeFormatter {
                 String s = String.valueOf(datetime.getYear());
                 yield s.substring(0, 1) + "," + s.substring(1);
             }
-            case YEAR_YYYY -> padStart(String.valueOf(datetime.getYear()), 4, '0');
+            case YEAR_YYYY, YEAR_LOWER_YYYY -> padStart(String.valueOf(datetime.getYear()), 4, '0');
             case YEAR_YYY -> {
                 String s = padStart(String.valueOf(datetime.getYear()), 4, '0');
                 yield s.substring(s.length() - 3);

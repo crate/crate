@@ -18,7 +18,8 @@
  */
 package org.elasticsearch.test.disruption;
 
-import static org.junit.Assert.assertFalse;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Random;
 
@@ -90,6 +91,6 @@ public abstract class SingleNodeDisruption implements ServiceDisruptionScheme {
                 .waitForNodes(String.valueOf(cluster.size()))
                 .waitForNoRelocatingShards(true)
             )).isTimedOut();
-        assertFalse("cluster failed to form after disruption was healed", timedOut);
+        assertThat(timedOut).as("cluster failed to form after disruption was healed").isFalse();
     }
 }

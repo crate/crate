@@ -28,9 +28,8 @@ import static io.crate.testing.DataTypeTesting.getDataGenerator;
 import static io.crate.testing.DataTypeTesting.randomType;
 import static io.crate.types.DataTypes.GEO_POINT;
 import static io.crate.types.DataTypes.GEO_SHAPE;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 import java.math.BigDecimal;
 import java.util.HashMap;
@@ -48,6 +47,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.Style;
 import io.crate.geo.GeoJSONUtils;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -213,7 +213,7 @@ public class CastFunctionTest extends ScalarTestCase {
     @SuppressWarnings("unchecked")
     public void test_cast_wkt_point_string_array_to_geo_shape_array() {
         Symbol funcSymbol = sqlExpressions.asSymbol("['POINT(2 3)']::array(geo_shape)");
-        assertThat(funcSymbol.valueType(), is(new ArrayType<>(GEO_SHAPE)));
+        assertThat(funcSymbol.valueType()).isEqualTo(new ArrayType<>(GEO_SHAPE));
         var geoShapes = (List<Map<String, Object>>) ((Literal<?>) funcSymbol).value();
         assertThat(
             GEO_SHAPE.compare(
@@ -221,7 +221,7 @@ public class CastFunctionTest extends ScalarTestCase {
                 Map.of(
                     GeoJSONUtils.TYPE_FIELD, GeoJSONUtils.POINT,
                     GeoJSONUtils.COORDINATES_FIELD, new Double[]{2.0, 3.0})
-            ), is(0));
+            )).isEqualTo(0);
     }
 
     /**
@@ -247,18 +247,19 @@ public class CastFunctionTest extends ScalarTestCase {
             .build();
 
         var signature = Signature.scalar(
-            ExplicitCastFunction.NAME,
-            TypeSignature.parse("E"),
-            TypeSignature.parse("V"),
-            TypeSignature.parse("V")
-        ).withTypeVariableConstraints(typeVariable("E"), typeVariable("V"));
+                ExplicitCastFunction.NAME,
+                TypeSignature.parse("E"),
+                TypeSignature.parse("V"),
+                TypeSignature.parse("V")
+            ).withFeature(Scalar.Feature.DETERMINISTIC)
+            .withTypeVariableConstraints(typeVariable("E"), typeVariable("V"));
         var functionImpl = sqlExpressions.nodeCtx.functions().getQualified(
             signature,
             List.of(DataTypes.UNTYPED_OBJECT, returnType),
             returnType
         );
 
-        assertThat(functionImpl.boundSignature().returnType(), is(returnType));
+        assertThat(functionImpl.boundSignature().returnType()).isEqualTo(returnType);
     }
 
     @Test

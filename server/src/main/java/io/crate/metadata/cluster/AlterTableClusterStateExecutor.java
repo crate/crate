@@ -21,7 +21,6 @@
 
 package io.crate.metadata.cluster;
 
-import static io.crate.metadata.table.ColumnPolicies.ES_MAPPING_NAME;
 import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
 
 import java.io.IOException;
@@ -52,18 +51,17 @@ import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
-import org.elasticsearch.index.mapper.DocumentMapper;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.InvalidIndexTemplateException;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.TableParameters;
-import io.crate.common.annotations.VisibleForTesting;
 import io.crate.execution.ddl.tables.AlterTableRequest;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfoFactory;
+import io.crate.sql.tree.ColumnPolicy;
 
 public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<AlterTableRequest> {
 
@@ -133,7 +131,7 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
         }
 
         // ensure the new table can still be parsed into a DocTableInfo to avoid breaking the table.
-        new DocTableInfoFactory(nodeContext).create(request.tableIdent(), currentState);
+        new DocTableInfoFactory(nodeContext).create(request.tableIdent(), currentState.metadata());
 
         return currentState;
     }
@@ -155,19 +153,12 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
             final IndexMetadata indexMetadata = currentState.metadata().getIndexSafe(index);
 
             Map<String, Object> indexMapping = indexMetadata.mapping().sourceAsMap();
-            if (indexMapping.get(ES_MAPPING_NAME).equals(mappingDelta.get(ES_MAPPING_NAME))) {
+            if (indexMapping.get(ColumnPolicy.MAPPING_KEY).equals(mappingDelta.get(ColumnPolicy.MAPPING_KEY))) {
                 return currentState;
             }
-            indexMapping.put(ES_MAPPING_NAME, mappingDelta.get(ES_MAPPING_NAME));
-
-
-            MapperService mapperService = indicesService.createIndexMapperService(indexMetadata);
-
-            mapperService.merge(indexMapping, MapperService.MergeReason.MAPPING_UPDATE);
-            DocumentMapper mapper = mapperService.documentMapper();
-
+            indexMapping.put(ColumnPolicy.MAPPING_KEY, mappingDelta.get(ColumnPolicy.MAPPING_KEY));
             IndexMetadata.Builder imBuilder = IndexMetadata.builder(indexMetadata);
-            imBuilder.putMapping(new MappingMetadata(mapper.mappingSource())).mappingVersion(1 + imBuilder.mappingVersion());
+            imBuilder.putMapping(new MappingMetadata(indexMapping)).mappingVersion(1 + imBuilder.mappingVersion());
             metadataBuilder.put(imBuilder); // implicitly increments metadata version.
         }
 

@@ -22,8 +22,8 @@
 package io.crate.protocols.postgres.types;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
 
@@ -43,9 +43,9 @@ public class TimestampZTypeTest extends BasePGTypeTest<Long> {
             long value = 1467072000000L;
             int written = pgType.writeAsBinary(buffer, value);
             int length = buffer.readInt();
-            assertThat(written - 4, is(length));
+            assertThat(written - 4).isEqualTo(length);
             long readValue = (long) pgType.readBinaryValue(buffer, length);
-            assertThat(readValue, is(value));
+            assertThat(readValue).isEqualTo(value);
         } finally {
             buffer.release();
         }
@@ -53,32 +53,25 @@ public class TimestampZTypeTest extends BasePGTypeTest<Long> {
 
     @Test
     public void testEncodeAsUTF8Text() {
-        assertThat(new String(TimestampZType.INSTANCE.encodeAsUTF8Text(1467072000000L), UTF_8),
-            is("2016-06-28 00:00:00.000+00"));
-        assertThat(new String(TimestampZType.INSTANCE.encodeAsUTF8Text(-93661920000000L), UTF_8),
-            is("1000-12-22 00:00:00.000+00 BC"));
+        assertThat(new String(TimestampZType.INSTANCE.encodeAsUTF8Text(1467072000000L), UTF_8)).isEqualTo("2016-06-28 00:00:00.000+00");
+        assertThat(new String(TimestampZType.INSTANCE.encodeAsUTF8Text(-93661920000000L), UTF_8)).isEqualTo("1000-12-22 00:00:00.000+00 BC");
     }
 
     @Test
     public void testDecodeUTF8TextWithUnexpectedNumberOfFractionDigits() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Cannot parse more than 9 digits for fraction of a second");
-        TimestampZType.INSTANCE.decodeUTF8Text("2016-06-28 00:00:00.0000000001+05:00".getBytes(UTF_8));
+        assertThatThrownBy(() ->
+                TimestampZType.INSTANCE.decodeUTF8Text("2016-06-28 00:00:00.0000000001+05:00".getBytes(UTF_8)))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Cannot parse more than 9 digits for fraction of a second");
     }
 
     @Test
     public void test_decode_ts_string() throws Exception {
-        assertThat(
-            TimestampZType.INSTANCE.decodeUTF8Text("2021-01-13T14:37:17.25988Z".getBytes(UTF_8)),
-            is(1610548637259L)
-        );
-        assertThat(
-            TimestampZType.INSTANCE.decodeUTF8Text("2016-06-28 00:00:00.000+00".getBytes(UTF_8)),
-            is(1467072000000L)
-        );
-        assertThat(
-            TimestampZType.INSTANCE.decodeUTF8Text("1000-12-22 00:00:00.000+00 BC".getBytes(UTF_8)),
-            is(-93661920000000L)
-        );
+        assertThat(TimestampZType.INSTANCE.decodeUTF8Text("2021-01-13T14:37:17.25988Z".getBytes(UTF_8)))
+            .isEqualTo(1610548637259L);
+        assertThat(TimestampZType.INSTANCE.decodeUTF8Text("2016-06-28 00:00:00.000+00".getBytes(UTF_8)))
+            .isEqualTo(1467072000000L);
+        assertThat(TimestampZType.INSTANCE.decodeUTF8Text("1000-12-22 00:00:00.000+00 BC".getBytes(UTF_8)))
+            .isEqualTo(-93661920000000L);
     }
 }

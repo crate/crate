@@ -21,10 +21,9 @@
 
 package io.crate.execution.engine.distribution;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -32,23 +31,21 @@ import static org.mockito.Mockito.verify;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.test.ESTestCase;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.invocation.InvocationOnMock;
+import org.mockito.Mockito;
 
 import io.crate.Streamer;
-import io.crate.action.FutureActionListener;
 import io.crate.data.CollectionBucket;
 import io.crate.data.Row;
 import io.crate.data.breaker.RamAccounting;
@@ -96,15 +93,15 @@ public class DistributingConsumerTest extends ESTestCase {
             distributingConsumer.accept(batchSimulatingIterator, null);
 
             List<Object[]> result = collectingConsumer.getResult();
-            assertThat(TestingHelpers.printedTable(new CollectionBucket(result)),
-                is("0\n" +
+            assertThat(TestingHelpers.printedTable(new CollectionBucket(result))).isEqualTo(
+                "0\n" +
                    "1\n" +
                    "2\n" +
                    "3\n" +
-                   "4\n"));
+                   "4\n");
 
             // pageSize=2 and 5 rows causes 3x pushResult
-            verify(distributedResultAction, times(3)).doExecute(any(), any());
+            verify(distributedResultAction, times(3)).execute(any());
         } finally {
             executorService.shutdown();
             executorService.awaitTermination(10, TimeUnit.SECONDS);
@@ -121,9 +118,9 @@ public class DistributingConsumerTest extends ESTestCase {
 
         distributingConsumer.accept(null, new CompletionException(new IllegalArgumentException("foobar")));
 
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("foobar");
-        collectingConsumer.getResult();
+        assertThatThrownBy(() -> collectingConsumer.getResult())
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("foobar");
     }
 
     @Test
@@ -136,8 +133,8 @@ public class DistributingConsumerTest extends ESTestCase {
 
         distributingConsumer.accept(FailingBatchIterator.failOnAllLoaded(), null);
 
-        expectedException.expect(InterruptedException.class);
-        collectingConsumer.getResult();
+        assertThatThrownBy(() -> collectingConsumer.getResult())
+            .isExactlyInstanceOf(InterruptedException.class);
     }
 
     @Test
@@ -161,8 +158,8 @@ public class DistributingConsumerTest extends ESTestCase {
             };
         distributingConsumer.accept(batchSimulatingIterator, null);
 
-        expectedException.expect(CircuitBreakingException.class);
-        collectingConsumer.getResult();
+        assertThatThrownBy(() -> collectingConsumer.getResult())
+            .isExactlyInstanceOf(CircuitBreakingException.class);
     }
 
     private DistributingConsumer createDistributingConsumer(Streamer<?>[] streamers, TransportDistributedResultAction distributedResultAction) {
@@ -174,11 +171,7 @@ public class DistributingConsumerTest extends ESTestCase {
             (byte) 0,
             0,
             Collections.singletonList("n1"),
-            req -> {
-                FutureActionListener listener = FutureActionListener.newInstance();
-                distributedResultAction.doExecute(req, listener);
-                return listener;
-            },
+            distributedResultAction::execute,
             2 // pageSize
         );
     }
@@ -202,26 +195,26 @@ public class DistributingConsumerTest extends ESTestCase {
         );
     }
 
+    @SuppressWarnings("unchecked")
     private TransportDistributedResultAction createFakeTransport(Streamer<?>[] streamers, DistResultRXTask distResultRXTask) {
         TransportDistributedResultAction distributedResultAction = mock(TransportDistributedResultAction.class);
-        doAnswer((InvocationOnMock invocationOnMock) -> {
-            Object[] args = invocationOnMock.getArguments();
+        Mockito.when(distributedResultAction.execute(any())).then(invocation -> {
+            Object[] args = invocation.getArguments();
             DistributedResultRequest resultRequest = ((NodeRequest<DistributedResultRequest>) args[0]).innerRequest();
-            ActionListener<DistributedResultResponse> listener = (ActionListener<DistributedResultResponse>) args[1];
             Throwable throwable = resultRequest.throwable();
             PageBucketReceiver bucketReceiver = distResultRXTask.getBucketReceiver(resultRequest.executionPhaseInputId());
-            assertThat(bucketReceiver, Matchers.notNullValue());
+            CompletableFuture<DistributedResultResponse> result = new CompletableFuture<>();
             if (throwable == null) {
                 bucketReceiver.setBucket(
                     resultRequest.bucketIdx(),
                     resultRequest.readRows(streamers),
                     resultRequest.isLast(),
-                    needMore -> listener.onResponse(new DistributedResultResponse(needMore)));
+                    needMore -> result.complete(new DistributedResultResponse(needMore)));
             } else {
                 bucketReceiver.kill(throwable);
             }
-            return null;
-        }).when(distributedResultAction).doExecute(any(), any());
+            return result;
+        });
         return distributedResultAction;
     }
 }

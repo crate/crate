@@ -58,48 +58,48 @@ Changelog
 Fixes
 -----
 
- - Allow ``GROUP BY`` on any :ref:`scalar functions <scalar-functions>`, e.g.::
+- Allow ``GROUP BY`` on any :ref:`scalar functions <scalar-functions>`, e.g.::
 
-     SELECT id + 1 FROM t GROUP BY id
+    SELECT id + 1 FROM t GROUP BY id
 
- - Added support for conditionals with ``NULL`` arguments.
+- Added support for conditionals with ``NULL`` arguments.
 
- - Do not include Lucene indices (metadata) of ``BLOB`` tables in snapshot when
-   using ``CREATE SNAPSHOT`` with ``ALL``, because the actual binary files of
-   ``BLOB`` tables cannot be backed up using ``SNAPSHOT/RESTORE``
-   functionality.
+- Do not include Lucene indices (metadata) of ``BLOB`` tables in snapshot when
+  using ``CREATE SNAPSHOT`` with ``ALL``, because the actual binary files of
+  ``BLOB`` tables cannot be backed up using ``SNAPSHOT/RESTORE``
+  functionality.
 
- - Fixed rename table operation for empty partitioned tables.
+- Fixed rename table operation for empty partitioned tables.
 
- - Fixed an issue which resulted in an exception when using the same global
-   aggregation symbol twice as a select item on a join query.
+- Fixed an issue which resulted in an exception when using the same global
+  aggregation symbol twice as a select item on a join query.
 
- - Fixed an issue that caused wrong results to be returned for global
-   aggregation on ``JOINS`` when :ref:`literal expression <sql-literal-value>`
-   in ``WHERE`` clause is :ref:`evaluated <gloss-evaluation>` to false, e.g.::
+- Fixed an issue that caused wrong results to be returned for global
+  aggregation on ``JOINS`` when :ref:`literal expression <sql-literal-value>`
+  in ``WHERE`` clause is :ref:`evaluated <gloss-evaluation>` to false, e.g.::
 
-     SELECT COUNT(*) FROM t1, t2 WHERE 1=2
+    SELECT COUNT(*) FROM t1, t2 WHERE 1=2
 
- - Provide comprehensive error message when using a ``NULL`` literal in ``GROUP
-   BY``.
+- Provide comprehensive error message when using a ``NULL`` literal in ``GROUP
+  BY``.
 
- - Allow ``DISTINCT`` to operate on literals, e.g.::
+- Allow ``DISTINCT`` to operate on literals, e.g.::
 
-     SELECT DISTINCT ['val1', 'val2'], col1, col2, ... FROM t
+    SELECT DISTINCT ['val1', 'val2'], col1, col2, ... FROM t
 
- - Allow ``GROUP BY`` on any literal, e.g.::
+- Allow ``GROUP BY`` on any literal, e.g.::
 
-     SELECT {a=1, b=2}, COUNT(*) FROM t GROUP BY 1
+    SELECT {a=1, b=2}, COUNT(*) FROM t GROUP BY 1
 
- - Fixed an issue that can hang the nodes when running an insert from query
-   statement for a large dataset when the target table is an empty partitioned
-   table.
+- Fixed an issue that can hang the nodes when running an insert from query
+  statement for a large dataset when the target table is an empty partitioned
+  table.
 
- - Fixed a race condition which could cause ``UPDATE`` or ``DELETE`` statements
-   to get stuck.
+- Fixed a race condition which could cause ``UPDATE`` or ``DELETE`` statements
+  to get stuck.
 
- - Fixed a ClassCastException that could occur on certain queries if connected
-   via the PostgreSQL protocol.
+- Fixed a ClassCastException that could occur on certain queries if connected
+  via the PostgreSQL protocol.
 
- - Fixed an issue that could cause the ``_score >= <minScore>`` filter to not
-   work correctly if used in a query with an ``ORDER BY`` clause.
+- Fixed an issue that could cause the ``_score >= <minScore>`` filter to not
+  work correctly if used in a query with an ``ORDER BY`` clause.

@@ -429,4 +429,74 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             assertThat(result.getInt(1)).isEqualTo(1);
         }
     }
+
+    @Test
+    public void test_correlated_subquery_together_with_join() throws Exception {
+        // https://github.com/crate/crate/issues/14671
+        execute(
+            """
+            SELECT
+                n.nspname AS schema,
+                t.typname AS typename,
+                t.oid::int4 AS typeid
+            FROM
+                pg_type t
+                LEFT JOIN pg_catalog.pg_namespace n ON n.oid = t.typnamespace
+            WHERE
+                EXISTS (
+                    SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem);
+            """);
+        assertThat(response).hasRowCount(24L);
+    }
+
+    /**
+     * Tests a bug https://github.com/crate/crate/issues/15398.
+     */
+    @Test
+    public void test_can_mix_correlated_qubquery_and_sub_select() {
+        execute("CREATE TABLE tbl(x int)");
+        execute("INSERT INTO tbl(x) VALUES (1)");
+        refresh();
+        execute(
+            """
+           SELECT (
+               SELECT x FROM tbl
+                  WHERE t.x = tbl.x
+                AND
+                  tbl.x IN (SELECT generate_series from generate_series(1, 1))
+          ) FROM tbl t
+            """);
+        assertThat(response).hasRows("1");
+    }
+
+
+    /*
+     * https://github.com/crate/crate/issues/16124
+     */
+    @Test
+    public void test_scalar_in_projection_with_correlated_sub_query() {
+        execute("create table table1 (field1 int)");
+        execute("insert into table1(field1) values (1)");
+        execute("create table table2 (field1 int);");
+        execute("insert into table2(field1) values (1)");
+        execute("create table table3 (field1 int,field2 text)");
+        execute("insert into table3(field1,field2) values (1,'abc')");
+        execute("refresh table table1, table2, table3");
+        execute("""
+            SELECT (
+             SELECT CONCAT (
+                                table2.field1::TEXT,(
+                                                      SELECT table3.field2
+                                                             FROM table3
+                                                             WHERE table3.field1 = table2.field1 limit 1
+                                                     )
+                                )
+                FROM table2
+                WHERE table2.field1 = table1.field1
+                ) AS table2_Details
+                FROM table1;
+             """);
+
+        assertThat(response).hasRows("1abc");
+    }
 }

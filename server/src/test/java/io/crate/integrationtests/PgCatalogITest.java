@@ -22,8 +22,8 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
-import io.crate.testing.TestingHelpers;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -32,8 +32,15 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.action.sql.Sessions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.pgcatalog.OidHash;
+import io.crate.metadata.table.SchemaInfo;
+import io.crate.metadata.view.ViewInfo;
+import io.crate.role.Roles;
+import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseNewCluster;
@@ -54,15 +61,37 @@ public class PgCatalogITest extends IntegTestCase {
     }
 
     @After
-    public void dropView() {
-        execute("drop view doc.v1");
+    public void dropViews() {
+        Schemas schemas = cluster().getInstance(NodeContext.class).schemas();
+        List<String> fqQuotedViews = new ArrayList<>();
+        for (SchemaInfo schema : schemas) {
+            for (ViewInfo view : schema.getViews()) {
+                fqQuotedViews.add(view.ident().sqlFqn());
+            }
+        }
+        execute("drop view " + String.join(", ", fqQuotedViews));
+    }
+
+    @After
+    public void dropAllUsers() {
+        // clean all created users and roles
+        execute("SELECT name FROM sys.users WHERE superuser = FALSE");
+        for (Object[] objects : response.rows()) {
+            String user = (String) objects[0];
+            execute("DROP user \"" + user + "\"");
+        }
+        execute("SELECT name FROM sys.roles");
+        for (Object[] objects : response.rows()) {
+            String role = (String) objects[0];
+            execute("DROP ROLE \"" + role + "\"");
+        }
     }
 
     @Test
     public void testPgClassTable() {
         execute("select * from pg_catalog.pg_class where relname in ('t1', 'v1', 'tables', 'nodes') order by relname");
         assertThat(response).hasRows(
-            "-1420189195| NULL| 0| 0| 0| 0| false| 0| false| false| false| false| false| true| false| r| 0| nodes| -458336339| 18| 0| NULL| 0| 0| NULL| p| p| 0| false| 0| 0| -1.0| 0",
+            "-1420189195| NULL| 0| 0| 0| 0| false| 0| false| false| false| false| false| true| false| r| 0| nodes| -458336339| 17| 0| NULL| 0| 0| NULL| p| p| 0| false| 0| 0| -1.0| 0",
             "728874843| NULL| 0| 0| 0| 0| false| 0| false| false| false| false| false| true| false| r| 0| t1| -2048275947| 4| 0| NULL| 0| 0| NULL| p| p| 0| false| 0| 0| -1.0| 0",
             "-1689918046| NULL| 0| 0| 0| 0| false| 0| false| false| false| false| false| true| false| r| 0| tables| 204690627| 16| 0| NULL| 0| 0| NULL| p| p| 0| false| 0| 0| -1.0| 0",
             "845171032| NULL| 0| 0| 0| 0| false| 0| false| false| false| false| false| true| false| v| 0| v1| -2048275947| 1| 0| NULL| 0| 0| NULL| p| p| 0| false| 0| 0| -1.0| 0");
@@ -86,6 +115,37 @@ public class PgCatalogITest extends IntegTestCase {
     }
 
     @Test
+    public void testPgNamespaceTable_shows_namespace_if_user_can_see_a_table() {
+        execute("create table vip.tbl (x int)");
+        execute("create user hoschi");
+        execute("grant dql on table doc.t1 to hoschi");
+
+        Roles roles = cluster().getInstance(Roles.class);
+        Sessions sessions = cluster().getInstance(Sessions.class);
+        try (var session = sessions.newSession("doc", roles.getUser("hoschi"))) {
+            execute("select nspname from pg_catalog.pg_namespace order by nspname", session);
+            // shows doc due to table permission, but not vip
+            assertThat(response).hasRows(
+                "doc",
+                "information_schema",
+                "pg_catalog"
+            );
+        }
+
+        execute("create view vip.v1 as select 1");
+        execute("grant dql on view vip.v1 to hoschi");
+        try (var session = sessions.newSession("doc", roles.getUser("hoschi"))) {
+            execute("select nspname from pg_catalog.pg_namespace order by nspname", session);
+            assertThat(response).hasRows(
+                "doc",
+                "information_schema",
+                "pg_catalog",
+                "vip"
+            );
+        }
+    }
+
+    @Test
     public void testPgAttributeTable() {
         execute(
             "select a.* from pg_catalog.pg_attribute as a join pg_catalog.pg_class as c on a.attrelid = c.oid where" +
@@ -101,7 +161,7 @@ public class PgCatalogITest extends IntegTestCase {
     @Test
     public void testPgIndexTable() {
         execute("select count(*) from pg_catalog.pg_index");
-        assertThat(response).hasRows("23");
+        assertThat(response).hasRows("24");
     }
 
     @Test
@@ -169,11 +229,13 @@ public class PgCatalogITest extends IntegTestCase {
             "memory.operation_limit| 0| Memory limit in bytes for an individual operation. 0 by-passes the operation limit, relying entirely on the global circuit breaker limits| NULL| NULL",
             "optimizer_deduplicate_order| true| Indicates if the optimizer rule DeduplicateOrder is activated.| NULL| NULL",
             "optimizer_eliminate_cross_join| true| Indicates if the optimizer rule EliminateCrossJoin is activated.| NULL| NULL",
+            "optimizer_equi_join_to_lookup_join| false| Indicates if the optimizer rule EquiJoinToLookupJoin is activated.| NULL| NULL",
             "optimizer_merge_aggregate_and_collect_to_count| true| Indicates if the optimizer rule MergeAggregateAndCollectToCount is activated.| NULL| NULL",
             "optimizer_merge_aggregate_rename_and_collect_to_count| true| Indicates if the optimizer rule MergeAggregateRenameAndCollectToCount is activated.| NULL| NULL",
             "optimizer_merge_filter_and_collect| true| Indicates if the optimizer rule MergeFilterAndCollect is activated.| NULL| NULL",
+            "optimizer_merge_filter_and_foreign_collect| true| Indicates if the optimizer rule MergeFilterAndForeignCollect is activated.| NULL| NULL",
             "optimizer_merge_filters| true| Indicates if the optimizer rule MergeFilters is activated.| NULL| NULL",
-            "optimizer_move_constant_join_conditions_beneath_nested_loop| true| Indicates if the optimizer rule MoveConstantJoinConditionsBeneathNestedLoop is activated.| NULL| NULL",
+            "optimizer_move_constant_join_conditions_beneath_join| true| Indicates if the optimizer rule MoveConstantJoinConditionsBeneathJoin is activated.| NULL| NULL",
             "optimizer_move_filter_beneath_correlated_join| true| Indicates if the optimizer rule MoveFilterBeneathCorrelatedJoin is activated.| NULL| NULL",
             "optimizer_move_filter_beneath_eval| true| Indicates if the optimizer rule MoveFilterBeneathEval is activated.| NULL| NULL",
             "optimizer_move_filter_beneath_group_by| true| Indicates if the optimizer rule MoveFilterBeneathGroupBy is activated.| NULL| NULL",
@@ -185,17 +247,16 @@ public class PgCatalogITest extends IntegTestCase {
             "optimizer_move_filter_beneath_window_agg| true| Indicates if the optimizer rule MoveFilterBeneathWindowAgg is activated.| NULL| NULL",
             "optimizer_move_limit_beneath_eval| true| Indicates if the optimizer rule MoveLimitBeneathEval is activated.| NULL| NULL",
             "optimizer_move_limit_beneath_rename| true| Indicates if the optimizer rule MoveLimitBeneathRename is activated.| NULL| NULL",
-            "optimizer_move_order_beneath_fetch_or_eval| true| Indicates if the optimizer rule MoveOrderBeneathFetchOrEval is activated.| NULL| NULL",
+            "optimizer_move_order_beneath_eval| true| Indicates if the optimizer rule MoveOrderBeneathEval is activated.| NULL| NULL",
             "optimizer_move_order_beneath_nested_loop| true| Indicates if the optimizer rule MoveOrderBeneathNestedLoop is activated.| NULL| NULL",
             "optimizer_move_order_beneath_rename| true| Indicates if the optimizer rule MoveOrderBeneathRename is activated.| NULL| NULL",
             "optimizer_move_order_beneath_union| true| Indicates if the optimizer rule MoveOrderBeneathUnion is activated.| NULL| NULL",
             "optimizer_optimize_collect_where_clause_access| true| Indicates if the optimizer rule OptimizeCollectWhereClauseAccess is activated.| NULL| NULL",
-            "optimizer_remove_redundant_fetch_or_eval| true| Indicates if the optimizer rule RemoveRedundantFetchOrEval is activated.| NULL| NULL",
+            "optimizer_remove_redundant_eval| true| Indicates if the optimizer rule RemoveRedundantEval is activated.| NULL| NULL",
             "optimizer_reorder_hash_join| true| Indicates if the optimizer rule ReorderHashJoin is activated.| NULL| NULL",
             "optimizer_reorder_nested_loop_join| true| Indicates if the optimizer rule ReorderNestedLoopJoin is activated.| NULL| NULL",
             "optimizer_rewrite_filter_on_outer_join_to_inner_join| true| Indicates if the optimizer rule RewriteFilterOnOuterJoinToInnerJoin is activated.| NULL| NULL",
             "optimizer_rewrite_group_by_keys_limit_to_limit_distinct| true| Indicates if the optimizer rule RewriteGroupByKeysLimitToLimitDistinct is activated.| NULL| NULL",
-            "optimizer_rewrite_nested_loop_join_to_hash_join| true| Indicates if the optimizer rule RewriteNestedLoopJoinToHashJoin is activated.| NULL| NULL",
             "optimizer_rewrite_to_query_then_fetch| true| Indicates if the optimizer rule RewriteToQueryThenFetch is activated.| NULL| NULL",
             "search_path| doc| Sets the schema search order.| NULL| NULL",
             "server_version| 14.0| Reports the emulated PostgreSQL version number| NULL| NULL",
@@ -405,5 +466,35 @@ public class PgCatalogITest extends IntegTestCase {
             o['oo']['a']| 7| false
             """;
         assertThat(TestingHelpers.printedTable(response.rows())).isEqualToIgnoringWhitespace(pgAttributeRows);
+    }
+
+    @Test
+    public void test_named_primary_key_constraint_names_are_visible() {
+        execute("create table t (aa int constraint c_aa primary key)");
+        execute("select conname from pg_catalog.pg_constraint where conname = 'c_aa'");
+        assertThat(response).hasRows("c_aa");
+    }
+
+    @Test
+    public void test_pg_roles() {
+        execute("CREATE USER \"Arthur\" WITH (password='foo')");
+        execute("CREATE USER \"John\"");
+        execute("CREATE ROLE \"SuperDooper\"");
+        execute("GRANT AL TO \"SuperDooper\"");
+
+        execute("SELECT rolname, rolpassword, rolsuper, rolinherit, rolcreaterole, rolcanlogin, " +
+            "rolreplication, rolconnlimit, rolcreatedb, rolvaliduntil, rolbypassrls, rolconfig " +
+            "FROM pg_catalog.pg_roles ORDER BY rolname");
+        assertThat(response).hasRows(
+            "Arthur| ********| false| true| false| true| false| -1| NULL| NULL| NULL| NULL",
+            "John| NULL| false| true| false| true| false| -1| NULL| NULL| NULL| NULL",
+            "SuperDooper| NULL| false| true| true| false| true| -1| NULL| NULL| NULL| NULL",
+            "crate| NULL| true| true| true| true| true| -1| NULL| NULL| NULL| NULL");
+
+        execute("SELECT oid FROM pg_catalog.pg_roles");
+        assertThat(response).hasRowCount(4);
+        for (int i = 0; i < response.rowCount(); i++) {
+            assertThat(response.rows()[i][0]).isNotNull();
+        }
     }
 }

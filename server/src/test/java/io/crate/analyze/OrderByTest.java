@@ -21,9 +21,7 @@
 
 package io.crate.analyze;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.List;
 
@@ -57,10 +55,10 @@ public class OrderByTest extends ESTestCase {
         StreamInput in = out.bytes().streamInput();
         OrderBy orderBy2 = new OrderBy(in);
 
-        assertEquals(orderBy.orderBySymbols(), orderBy2.orderBySymbols());
-        assertThat(orderBy2.reverseFlags().length, is(1));
-        assertThat(orderBy2.reverseFlags()[0], is(true));
-        assertThat(orderBy2.nullsFirst().length, is(1));
-        assertThat(orderBy2.nullsFirst()[0], is(true));
+        assertThat(orderBy2.orderBySymbols()).isEqualTo(orderBy.orderBySymbols());
+        assertThat(orderBy2.reverseFlags().length).isEqualTo(1);
+        assertThat(orderBy2.reverseFlags()[0]).isTrue();
+        assertThat(orderBy2.nullsFirst().length).isEqualTo(1);
+        assertThat(orderBy2.nullsFirst()[0]).isTrue();
     }
 }

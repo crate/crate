@@ -28,23 +28,16 @@ import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Consumer;
-import java.util.function.Function;
 
 import io.crate.analyze.OrderBy;
-import io.crate.expression.symbol.FieldsVisitor;
-import io.crate.expression.symbol.RefVisitor;
-import io.crate.expression.symbol.ScopedSymbol;
+import io.crate.analyze.RelationNames;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.TransactionContext;
+import io.crate.planner.operators.AbstractJoinPlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.NestedLoopJoin;
 import io.crate.planner.operators.Order;
 import io.crate.planner.optimizer.Rule;
-import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
@@ -80,23 +73,16 @@ public final class MoveOrderBeneathNestedLoop implements Rule<Order> {
     @Override
     public LogicalPlan apply(Order order,
                              Captures captures,
-                             PlanStats planStats,
-                             TransactionContext txnCtx,
-                             NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
+                             Rule.Context ruleContext) {
         NestedLoopJoin nestedLoop = captures.get(nlCapture);
-        Set<RelationName> relationsInOrderBy =
-            Collections.newSetFromMap(new IdentityHashMap<>());
-        Consumer<ScopedSymbol> gatherRelationsFromField = f -> relationsInOrderBy.add(f.relation());
-        Consumer<Reference> gatherRelationsFromRef = r -> relationsInOrderBy.add(r.ident().tableIdent());
+        Set<RelationName> relationsInOrderBy = Collections.newSetFromMap(new IdentityHashMap<>());
         OrderBy orderBy = order.orderBy();
         for (Symbol orderExpr : orderBy.orderBySymbols()) {
-            FieldsVisitor.visitFields(orderExpr, gatherRelationsFromField);
-            RefVisitor.visitRefs(orderExpr, gatherRelationsFromRef);
+            relationsInOrderBy.addAll(RelationNames.getShallow(orderExpr));
         }
         if (relationsInOrderBy.size() == 1) {
             var relationInOrderBy = relationsInOrderBy.iterator().next();
-            var topMostLeftRelation = nestedLoop.getRelationNames().get(0);
+            var topMostLeftRelation = nestedLoop.relationNames().get(0);
             if (relationInOrderBy.equals(topMostLeftRelation)) {
                 LogicalPlan lhs = nestedLoop.sources().get(0);
                 LogicalPlan newLhs = order.replaceSources(List.of(lhs));
@@ -107,8 +93,8 @@ public final class MoveOrderBeneathNestedLoop implements Rule<Order> {
                     nestedLoop.joinCondition(),
                     nestedLoop.isFiltered(),
                     true,
-                    false,
-                    nestedLoop.isRewriteNestedLoopJoinToHashJoinDone()
+                    nestedLoop.isRewriteNestedLoopJoinToHashJoinDone(),
+                    AbstractJoinPlan.LookUpJoin.NONE
                 );
             }
         }

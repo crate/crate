@@ -28,13 +28,14 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.crate.data.testing.BatchIteratorTester;
+import io.crate.data.testing.BatchIteratorTester.ResultOrder;
 import io.crate.data.testing.BatchSimulatingIterator;
 import io.crate.data.testing.TestingBatchIterators;
 
-public class CompositeBatchIteratorTest {
+class CompositeBatchIteratorTest {
 
     private static final List<Object[]> EXPECTED_RESULT = IntStream.concat(IntStream.range(0, 5),
                                                                            IntStream.range(5, 10))
@@ -42,7 +43,7 @@ public class CompositeBatchIteratorTest {
         .collect(Collectors.toList());
 
     @Test
-    public void testDataRowInputsCanBeRetrievedEagerly() {
+    void testDataRowInputsCanBeRetrievedEagerly() {
         BatchIterator<Row> iterator = CompositeBatchIterator.seqComposite(
             TestingBatchIterators.range(0, 1),
             TestingBatchIterators.range(1, 2)
@@ -55,17 +56,17 @@ public class CompositeBatchIteratorTest {
     }
 
     @Test
-    public void testCompositeBatchIterator() throws Exception {
+    void testCompositeBatchIterator() throws Exception {
         var tester = BatchIteratorTester.forRows(
             () -> CompositeBatchIterator.seqComposite(
                 TestingBatchIterators.range(0, 5),
-                TestingBatchIterators.range(5, 10))
+                TestingBatchIterators.range(5, 10)), ResultOrder.EXACT
         );
         tester.verifyResultAndEdgeCaseBehaviour(EXPECTED_RESULT);
     }
 
     @Test
-    public void testCompositeBatchIteratorWithBatchedSources() throws Exception {
+    void testCompositeBatchIteratorWithBatchedSources() throws Exception {
         List<Object[]> expectedResult = new ArrayList<>();
         // consumes the unbatched/loaded iterator first
         expectedResult.add(new Object[] { 5 });
@@ -82,7 +83,7 @@ public class CompositeBatchIteratorTest {
             () -> CompositeBatchIterator.seqComposite(
                 new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 5), 2, 6, null),
                 TestingBatchIterators.range(5, 10)
-            )
+            ), ResultOrder.EXACT
         );
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }

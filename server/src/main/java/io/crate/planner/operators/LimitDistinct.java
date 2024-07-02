@@ -23,17 +23,16 @@ package io.crate.planner.operators;
 
 import static io.crate.analyze.SymbolEvaluator.evaluate;
 
-import java.util.Collection;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.SequencedCollection;
 import java.util.Set;
 import java.util.function.Consumer;
 
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.ExecutionPhases;
 import io.crate.execution.dsl.projection.EvalProjection;
@@ -44,7 +43,6 @@ import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.LimitAndOffset;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.DependencyCarrier;
@@ -157,12 +155,12 @@ public final class LimitDistinct extends ForwardingLogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
-        HashSet<Symbol> toKeep = new LinkedHashSet<>();
+    public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
+        LinkedHashSet<Symbol> toKeep = new LinkedHashSet<>();
         Consumer<Symbol> keep = toKeep::add;
         // Pruning unused outputs would change semantics. Need to keep all in any case
         for (var output : outputs) {
-            SymbolVisitors.intersection(output, source.outputs(), keep);
+            Symbols.intersection(output, source.outputs(), keep);
         }
         LogicalPlan prunedSource = source.pruneOutputsExcept(toKeep);
         if (prunedSource == source) {
@@ -173,7 +171,7 @@ public final class LimitDistinct extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        var source = Lists2.getOnlyElement(sources);
+        var source = Lists.getOnlyElement(sources);
         return new LimitDistinct(source, limit, offset, outputs);
     }
 
@@ -190,7 +188,7 @@ public final class LimitDistinct extends ForwardingLogicalPlan {
             .text(";")
             .text(offset.toString())
             .text(" | [")
-            .text(Lists2.joinOn(", ", outputs, Symbol::toString))
+            .text(Lists.joinOn(", ", outputs, Symbol::toString))
             .text("]]");
         printStats(printContext);
         printContext.nest(source::print);

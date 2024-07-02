@@ -23,15 +23,10 @@ package io.crate.planner.optimizer.rule;
 
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 
-import java.util.function.Function;
-
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.Eval;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.NestedLoopJoin;
 import io.crate.planner.optimizer.Rule;
-import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
 
@@ -49,12 +44,10 @@ public class ReorderNestedLoopJoin implements Rule<NestedLoopJoin> {
     @Override
     public LogicalPlan apply(NestedLoopJoin nestedLoop,
                              Captures captures,
-                             PlanStats planStats,
-                             TransactionContext txnCtx,
-                             NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
+                             Rule.Context context) {
         // We move the smaller table to the right side since benchmarking
         // revealed that this improves performance in most cases.
+        var planStats = context.planStats();
         var lhStats = planStats.get(nestedLoop.lhs());
         var rhStats = planStats.get(nestedLoop.rhs());
         boolean expectedRowsAvailable = lhStats.numDocs() != -1 && rhStats.numDocs() != -1;
@@ -70,8 +63,8 @@ public class ReorderNestedLoopJoin implements Rule<NestedLoopJoin> {
                         nestedLoop.joinCondition(),
                         nestedLoop.isFiltered(),
                         nestedLoop.orderByWasPushedDown(),
-                        nestedLoop.isJoinConditionOptimised(),
-                        nestedLoop.isRewriteNestedLoopJoinToHashJoinDone()
+                        nestedLoop.isRewriteNestedLoopJoinToHashJoinDone(),
+                        nestedLoop.lookUpJoin().invert()
                     ),
                     nestedLoop.outputs());
             }

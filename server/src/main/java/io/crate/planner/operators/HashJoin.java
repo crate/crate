@@ -30,12 +30,15 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.SequencedCollection;
 import java.util.Set;
 
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.OrderBy;
-import io.crate.common.collections.Lists2;
+import io.crate.analyze.relations.QuerySplitter;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.HashJoinPhase;
 import io.crate.execution.dsl.phases.MergePhase;
@@ -43,8 +46,8 @@ import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
+import io.crate.metadata.RelationName;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
@@ -59,7 +62,14 @@ public class HashJoin extends AbstractJoinPlan {
     public HashJoin(LogicalPlan lhs,
                     LogicalPlan rhs,
                     Symbol joinCondition) {
-        super(lhs, rhs, joinCondition, JoinType.INNER);
+        super(lhs, rhs, joinCondition, JoinType.INNER, LookUpJoin.NONE);
+    }
+
+    public HashJoin(LogicalPlan lhs,
+                    LogicalPlan rhs,
+                    Symbol joinCondition,
+                    LookUpJoin lookUpJoin) {
+        super(lhs, rhs, joinCondition, JoinType.INNER, lookUpJoin);
     }
 
     @Override
@@ -79,40 +89,10 @@ public class HashJoin extends AbstractJoinPlan {
             executor, plannerContext, hints, projectionBuilder, NO_LIMIT, 0, null, null, params, subQueryResults);
 
         SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
-        var hashSymbols = HashJoinConditionSymbolsExtractor.extract(joinCondition);
-        /* It is important here to process the hashSymbols in order as there values are used for building the
-         *  hash codes. For example:
-         *
-         *      join-condition:     t1.a = t2.c AND t1.b = t2.d
-         *      left hashSymbols:   [t1.a, t1.b]
-         *      right hashSymbols:  [t2.c, t2.d]
-         *
-         *      with rows:          left ->     [1, 3]
-         *                          right ->    [1, 3]
-         *
-         * if the order is not guaranteed, one side may use [3, 1] for hash code generation which yields different results
-         *
-         */
-        var rhsHashSymbols = new ArrayList<Symbol>();
-        var lhsHashSymbols = new ArrayList<Symbol>();
-        var rightRelationNames = rhs.getRelationNames();
-        var leftRelationNames = lhs.getRelationNames();
-        for (var entry : hashSymbols.entrySet()) {
-            var relationName = entry.getKey();
-            var symbols = entry.getValue();
-            if (symbols == null) {
-                continue;
-            }
-            if (rightRelationNames.contains(relationName)) {
-                for (Symbol symbol : symbols) {
-                    rhsHashSymbols.add(paramBinder.apply(symbol));
-                }
-            } else if (leftRelationNames.contains(relationName)) {
-                for (Symbol symbol : symbols) {
-                    lhsHashSymbols.add(paramBinder.apply(symbol));
-                }
-            }
-        }
+        var hashSymbols = createHashSymbols(lhs.relationNames(), rhs.relationNames(), joinCondition);
+
+        var lhsHashSymbols = hashSymbols.lhsHashSymbols();
+        var rhsHashSymbols = hashSymbols.rhsHashSymbols();
 
         ResultDescription leftResultDesc = leftExecutionPlan.resultDescription();
         ResultDescription rightResultDesc = rightExecutionPlan.resultDescription();
@@ -138,7 +118,7 @@ public class HashJoin extends AbstractJoinPlan {
             isDistributed = false;
         }
         if (joinExecutionNodes.size() == 1
-            && Lists2.equals(joinExecutionNodes, rightResultDesc.nodeIds())
+            && Lists.equals(joinExecutionNodes, rightResultDesc.nodeIds())
             && !rightResultDesc.hasRemainingLimitOrOffset()) {
             // If the left and the right plan are executed on the same single node the mergePhase
             // should be omitted. This is the case if the left and right table have only one shards which
@@ -160,7 +140,7 @@ public class HashJoin extends AbstractJoinPlan {
             rightMerge = buildMergePhaseForJoin(plannerContext, rightResultDesc, joinExecutionNodes);
         }
 
-        List<Symbol> joinOutputs = Lists2.concat(leftOutputs, rightOutputs);
+        List<Symbol> joinOutputs = Lists.concat(leftOutputs, rightOutputs);
         var lhStats = plannerContext.planStats().get(lhs);
         HashJoinPhase joinPhase = new HashJoinPhase(
             plannerContext.jobId(),
@@ -176,8 +156,8 @@ public class HashJoin extends AbstractJoinPlan {
             InputColumns.create(lhsHashSymbols, new InputColumns.SourceSymbols(leftOutputs)),
             InputColumns.create(rhsHashSymbols, new InputColumns.SourceSymbols(rightOutputs)),
             Symbols.typeView(leftOutputs),
-            lhStats.estimateSizeForColumns(leftOutputs),
-            lhStats.numDocs());
+            lhStats.estimateSizeForColumns(leftOutputs)
+        );
         return new Join(
             joinPhase,
             leftExecutionPlan,
@@ -194,30 +174,42 @@ public class HashJoin extends AbstractJoinPlan {
         return new HashJoin(
             sources.get(0),
             sources.get(1),
-            joinCondition
+            joinCondition,
+            lookupJoin
         );
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
         LinkedHashSet<Symbol> lhsToKeep = new LinkedHashSet<>();
         LinkedHashSet<Symbol> rhsToKeep = new LinkedHashSet<>();
         for (Symbol outputToKeep : outputsToKeep) {
-            SymbolVisitors.intersection(outputToKeep, lhs.outputs(), lhsToKeep::add);
-            SymbolVisitors.intersection(outputToKeep, rhs.outputs(), rhsToKeep::add);
+            Symbols.intersection(outputToKeep, lhs.outputs(), lhsToKeep::add);
+            Symbols.intersection(outputToKeep, rhs.outputs(), rhsToKeep::add);
         }
-        SymbolVisitors.intersection(joinCondition, lhs.outputs(), lhsToKeep::add);
-        SymbolVisitors.intersection(joinCondition, rhs.outputs(), rhsToKeep::add);
-        LogicalPlan newLhs = lhs.pruneOutputsExcept(lhsToKeep);
-        LogicalPlan newRhs = rhs.pruneOutputsExcept(rhsToKeep);
-        if (newLhs == lhs && newRhs == rhs) {
-            return this;
+        // If there a lookup-join in place, and the outputs belong only to the lookup side,
+        // we can drop the join and return only the lookup-side
+        if (lhsToKeep.isEmpty() && lookupJoin == LookUpJoin.RIGHT) {
+            Symbols.intersection(joinCondition, rhs.outputs(), rhsToKeep::add);
+            return rhs.pruneOutputsExcept(rhsToKeep);
+        } else if (rhsToKeep.isEmpty() && lookupJoin == LookUpJoin.LEFT) {
+            Symbols.intersection(joinCondition, lhs.outputs(), lhsToKeep::add);
+            return lhs.pruneOutputsExcept(lhsToKeep);
+        } else {
+            Symbols.intersection(joinCondition, lhs.outputs(), lhsToKeep::add);
+            Symbols.intersection(joinCondition, rhs.outputs(), rhsToKeep::add);
+            LogicalPlan newLhs = lhs.pruneOutputsExcept(lhsToKeep);
+            LogicalPlan newRhs = rhs.pruneOutputsExcept(rhsToKeep);
+            if (newLhs == lhs && newRhs == rhs) {
+                return this;
+            }
+            return new HashJoin(
+                newLhs,
+                newRhs,
+                joinCondition,
+                lookupJoin
+            );
         }
-        return new HashJoin(
-            newLhs,
-            newRhs,
-            joinCondition
-        );
     }
 
     @Nullable
@@ -226,11 +218,11 @@ public class HashJoin extends AbstractJoinPlan {
         LinkedHashSet<Symbol> usedFromLeft = new LinkedHashSet<>();
         LinkedHashSet<Symbol> usedFromRight = new LinkedHashSet<>();
         for (Symbol usedColumn : usedColumns) {
-            SymbolVisitors.intersection(usedColumn, lhs.outputs(), usedFromLeft::add);
-            SymbolVisitors.intersection(usedColumn, rhs.outputs(), usedFromRight::add);
+            Symbols.intersection(usedColumn, lhs.outputs(), usedFromLeft::add);
+            Symbols.intersection(usedColumn, rhs.outputs(), usedFromRight::add);
         }
-        SymbolVisitors.intersection(joinCondition, lhs.outputs(), usedFromLeft::add);
-        SymbolVisitors.intersection(joinCondition, rhs.outputs(), usedFromRight::add);
+        Symbols.intersection(joinCondition, lhs.outputs(), usedFromLeft::add);
+        Symbols.intersection(joinCondition, rhs.outputs(), usedFromRight::add);
         FetchRewrite lhsFetchRewrite = lhs.rewriteToFetch(usedFromLeft);
         FetchRewrite rhsFetchRewrite = rhs.rewriteToFetch(usedFromRight);
         if (lhsFetchRewrite == null && rhsFetchRewrite == null) {
@@ -244,7 +236,9 @@ public class HashJoin extends AbstractJoinPlan {
             new HashJoin(
                 lhsFetchRewrite == null ? lhs : lhsFetchRewrite.newPlan(),
                 rhsFetchRewrite == null ? rhs : rhsFetchRewrite.newPlan(),
-                joinCondition)
+                joinCondition,
+                lookupJoin
+            )
         );
     }
 
@@ -291,4 +285,43 @@ public class HashJoin extends AbstractJoinPlan {
         executionPlan.addProjection(evalProjection);
         return projectionOutputs;
     }
+
+    @VisibleForTesting
+    static HashSymbols createHashSymbols(List<RelationName> lhsRelationNames,
+                                         List<RelationName> rhsRelationNames,
+                                         Symbol symbol) {
+        /* It is important here to process the hashSymbols in order as there values are used for building the
+         *  hash codes. For example:
+         *
+         *      join-condition:     t1.a = t2.c AND t1.b = t2.d
+         *      left hashSymbols:   [t1.a, t1.b]
+         *      right hashSymbols:  [t2.c, t2.d]
+         *
+         *      with rows:          left ->     [1, 3]
+         *                          right ->    [1, 3]
+         *
+         * if the order is not guaranteed, one side may use [3, 1] for hash code generation which yields different results
+         *
+         */
+        var lhsHashSymbols = new ArrayList<Symbol>();
+        var rhsHashSymbols = new ArrayList<Symbol>();
+        for (var condition : QuerySplitter.split(symbol).entrySet()) {
+            for (var entry : JoinConditionSymbolsExtractor.extract(condition.getValue()).entrySet()) {
+                var relationName = entry.getKey();
+                var symbols = entry.getValue();
+                if (symbols != null) {
+                    if (rhsRelationNames.contains(relationName)) {
+                        rhsHashSymbols.addAll(symbols);
+                    } else if (lhsRelationNames.contains(relationName)) {
+                        lhsHashSymbols.addAll(symbols);
+                    }
+                }
+            }
+        }
+        assert rhsHashSymbols.size() == lhsHashSymbols.size() : "Number of hash values for left and right hand side of a hash-join must be equal";
+        return new HashSymbols(lhsHashSymbols, rhsHashSymbols);
+    }
+
+    record HashSymbols(List<Symbol> lhsHashSymbols, List<Symbol> rhsHashSymbols) { }
+
 }

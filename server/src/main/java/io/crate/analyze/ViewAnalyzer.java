@@ -21,11 +21,12 @@
 
 package io.crate.analyze;
 
+import java.util.ArrayList;
+
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.RelationsUnknown;
-import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
@@ -36,8 +37,6 @@ import io.crate.sql.tree.CreateView;
 import io.crate.sql.tree.DropView;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.Query;
-
-import java.util.ArrayList;
 
 public final class ViewAnalyzer {
 
@@ -76,7 +75,7 @@ public final class ViewAnalyzer {
         // on an outdated cluster check, leading to a potential race condition.
         // The "masterOperation" which will update the clusterState will do a real-time verification
 
-        if (query.outputs().stream().map(f -> Symbols.pathFromSymbol(f).sqlFqn()).distinct().count() != query.outputs().size()) {
+        if (query.outputs().stream().map(f -> f.toColumn().sqlFqn()).distinct().count() != query.outputs().size()) {
             throw new IllegalArgumentException("Query in CREATE VIEW must not have duplicate column names");
         }
         return new CreateViewStmt(
@@ -94,7 +93,7 @@ public final class ViewAnalyzer {
         ArrayList<RelationName> missing = new ArrayList<>();
         for (QualifiedName qualifiedName : dropView.names()) {
             try {
-                views.add(schemas.resolveView(qualifiedName, txnCtx.sessionSettings().searchPath()).name());
+                views.add(schemas.findView(qualifiedName, txnCtx.sessionSettings().searchPath()).name());
             } catch (RelationUnknown e) {
                 if (!dropView.ifExists()) {
                     missing.add(RelationName.of(qualifiedName, txnCtx.sessionSettings().searchPath().currentSchema()));

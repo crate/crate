@@ -26,21 +26,7 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.endsWith;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.hasKey;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
-import static org.hamcrest.Matchers.startsWith;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
@@ -52,7 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.apache.lucene.util.Constants;
 import org.elasticsearch.Build;
@@ -64,14 +50,15 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.IntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
@@ -99,16 +86,16 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
             .hasMessageContaining("Relation 'suess.cluster' unknown");
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testSelectDoc() throws Exception {
         new Setup(sqlExecutor).groupBySetup();
         SQLResponse response = execute("select _doc from characters order by name desc limit 1");
-        assertArrayEquals(new String[]{"_doc"}, response.cols());
-        Map<String, Object> _doc = new TreeMap<>((Map) response.rows()[0][0]);
-        assertEquals(
+        assertThat(response.cols()).containsExactly("_doc");
+        Map<String, Object> _doc = new TreeMap<>((Map<String, Object>) response.rows()[0][0]);
+        assertThat(_doc.toString()).isEqualTo(
             "{age=32, birthdate=276912000000, details={job=Mathematician}, " +
-            "gender=female, name=Trillian, race=Human}",
-            _doc.toString());
+            "gender=female, name=Trillian, race=Human}");
     }
 
     @Test
@@ -116,9 +103,9 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
         new Setup(sqlExecutor).groupBySetup();
         SQLResponse response = execute("select _raw from characters order by name desc limit 1");
 
-        var schemas = cluster().getDataNodeInstance(Schemas.class);
+        var schemas = cluster().getDataNodeInstance(NodeContext.class).schemas();
         DocTableInfo table = schemas.getTableInfo(new RelationName(sqlExecutor.getCurrentSchema(), "characters"));
-        Function<String, String> mapName = s -> {
+        UnaryOperator<String> mapName = s -> {
             var ref = table.getReference(ColumnIdent.fromPath(s));
             return ref.storageIdent();
         };
@@ -127,10 +114,10 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
         Map<String, Object> rawMap = JsonXContent.JSON_XCONTENT.createParser(
             NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, (String) raw).map();
 
-        assertThat(rawMap.get(mapName.apply("race")), is("Human"));
-        assertThat(rawMap.get(mapName.apply("gender")), is("female"));
-        assertThat(rawMap.get(mapName.apply("age")), is(32));
-        assertThat(rawMap.get(mapName.apply("name")), is("Trillian"));
+        assertThat(rawMap.get(mapName.apply("race"))).isEqualTo("Human");
+        assertThat(rawMap.get(mapName.apply("gender"))).isEqualTo("female");
+        assertThat(rawMap.get(mapName.apply("age"))).isEqualTo(32);
+        assertThat(rawMap.get(mapName.apply("name"))).isEqualTo("Trillian");
     }
 
     @Test
@@ -139,9 +126,9 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
         SQLResponse response = execute("select name, _raw from characters " +
                                        "group by _raw, name order by name desc limit 1");
 
-        var schemas = cluster().getDataNodeInstance(Schemas.class);
+        var schemas = cluster().getDataNodeInstance(NodeContext.class).schemas();
         DocTableInfo table = schemas.getTableInfo(new RelationName(sqlExecutor.getCurrentSchema(), "characters"));
-        Function<String, String> mapName = s -> {
+        UnaryOperator<String> mapName = s -> {
             var ref = table.getReference(ColumnIdent.fromPath(s));
             return ref.storageIdent();
         };
@@ -150,10 +137,10 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
         Map<String, Object> rawMap = JsonXContent.JSON_XCONTENT.createParser(
             NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, (String) raw).map();
 
-        assertThat(rawMap.get(mapName.apply("race")), is("Human"));
-        assertThat(rawMap.get(mapName.apply("gender")), is("female"));
-        assertThat(rawMap.get(mapName.apply("age")), is(32));
-        assertThat(rawMap.get(mapName.apply("name")), is("Trillian"));
+        assertThat(rawMap.get(mapName.apply("race"))).isEqualTo("Human");
+        assertThat(rawMap.get(mapName.apply("gender"))).isEqualTo("female");
+        assertThat(rawMap.get(mapName.apply("age"))).isEqualTo(32);
+        assertThat(rawMap.get(mapName.apply("name"))).isEqualTo("Trillian");
     }
 
     @Test
@@ -161,25 +148,25 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
         new Setup(sqlExecutor).groupBySetup();
         SQLResponse response = execute("select max(age) from characters");
 
-        assertEquals(1, response.rowCount());
-        assertEquals("max(age)", response.cols()[0]);
-        assertEquals(112, response.rows()[0][0]);
+        assertThat(response.rowCount()).isEqualTo(1);
+        assertThat(response.cols()[0]).isEqualTo("max(age)");
+        assertThat(response.rows()[0][0]).isEqualTo(112);
 
         response = execute("select min(name) from characters");
 
-        assertEquals(1, response.rowCount());
-        assertEquals("min(name)", response.cols()[0]);
-        assertEquals("Anjie", response.rows()[0][0]);
+        assertThat(response.rowCount()).isEqualTo(1);
+        assertThat(response.cols()[0]).isEqualTo("min(name)");
+        assertThat(response.rows()[0][0]).isEqualTo("Anjie");
 
         response = execute("select avg(age) as median_age from characters");
-        assertEquals(1, response.rowCount());
-        assertEquals("median_age", response.cols()[0]);
-        assertEquals(55.25d, response.rows()[0][0]);
+        assertThat(response.rowCount()).isEqualTo(1);
+        assertThat(response.cols()[0]).isEqualTo("median_age");
+        assertThat(response.rows()[0][0]).isEqualTo(55.25d);
 
         response = execute("select sum(age) as sum_age from characters");
-        assertEquals(1, response.rowCount());
-        assertEquals("sum_age", response.cols()[0]);
-        assertEquals(221L, response.rows()[0][0]);
+        assertThat(response.rowCount()).isEqualTo(1);
+        assertThat(response.cols()[0]).isEqualTo("sum_age");
+        assertThat(response.rows()[0][0]).isEqualTo(221L);
     }
 
     @Test
@@ -188,14 +175,12 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
         SQLResponse firstResp = execute("select sum(age) from characters");
         SQLResponse secondResp = execute("select sum(age) from characters where age is not null");
 
-        assertEquals(
-            firstResp.rowCount(),
-            secondResp.rowCount()
-        );
-        assertEquals(
-            firstResp.rows()[0][0],
-            secondResp.rows()[0][0]
-        );
+        assertThat(secondResp.rowCount()
+        ).isEqualTo(
+            firstResp.rowCount());
+        assertThat(secondResp.rows()[0][0]
+        ).isEqualTo(
+            firstResp.rows()[0][0]);
     }
 
     @Test
@@ -203,23 +188,23 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
         new Setup(sqlExecutor).groupBySetup();
         SQLResponse response = execute(
             "select sum(age), avg(age) from characters where characters.age > 112");
-        assertEquals(1, response.rowCount());
-        assertNull(response.rows()[0][0]);
-        assertNull(response.rows()[0][1]);
+        assertThat(response.rowCount()).isEqualTo(1);
+        assertThat(response.rows()[0][0]).isNull();
+        assertThat(response.rows()[0][1]).isNull();
 
         response = execute("select sum(age) from characters limit 0");
-        assertEquals(0, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(0);
     }
 
     @Test
     public void testGlobalAggregateMany() throws Exception {
         new Setup(sqlExecutor).groupBySetup();
         SQLResponse response = execute("select sum(age), min(age), max(age), avg(age) from characters");
-        assertEquals(1, response.rowCount());
-        assertEquals(221L, response.rows()[0][0]);
-        assertEquals(32, response.rows()[0][1]);
-        assertEquals(112, response.rows()[0][2]);
-        assertEquals(55.25d, response.rows()[0][3]);
+        assertThat(response.rowCount()).isEqualTo(1);
+        assertThat(response.rows()[0][0]).isEqualTo(221L);
+        assertThat(response.rows()[0][1]).isEqualTo(32);
+        assertThat(response.rows()[0][2]).isEqualTo(112);
+        assertThat(response.rows()[0][3]).isEqualTo(55.25d);
     }
 
     @Test
@@ -235,13 +220,13 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
         new Setup(sqlExecutor).groupBySetup();
         SQLResponse response = execute("select count(*), details['job'] from characters " +
                                        "group by details['job'] order by count(*), details['job']");
-        assertEquals(3, response.rowCount());
-        assertEquals(1L, response.rows()[0][0]);
-        assertEquals("Mathematician", response.rows()[0][1]);
-        assertEquals(1L, response.rows()[1][0]);
-        assertEquals("Sandwitch Maker", response.rows()[1][1]);
-        assertEquals(5L, response.rows()[2][0]);
-        assertNull(null, response.rows()[2][1]);
+        assertThat(response.rowCount()).isEqualTo(3);
+        assertThat(response.rows()[0][0]).isEqualTo(1L);
+        assertThat(response.rows()[0][1]).isEqualTo("Mathematician");
+        assertThat(response.rows()[1][0]).isEqualTo(1L);
+        assertThat(response.rows()[1][1]).isEqualTo("Sandwitch Maker");
+        assertThat(response.rows()[2][0]).isEqualTo(5L);
+        assertThat(response.rows()[2][1]).isNull();
     }
 
     @Test
@@ -250,11 +235,11 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
         SQLResponse response = execute(
             "select count(*), race from characters group by race order by race desc limit 2");
 
-        assertEquals(2L, response.rowCount());
-        assertEquals(2L, response.rows()[0][0]);
-        assertEquals("Vogon", response.rows()[0][1]);
-        assertEquals(4L, response.rows()[1][0]);
-        assertEquals("Human", response.rows()[1][1]);
+        assertThat(response.rowCount()).isEqualTo(2L);
+        assertThat(response.rows()[0][0]).isEqualTo(2L);
+        assertThat(response.rows()[0][1]).isEqualTo("Vogon");
+        assertThat(response.rows()[1][0]).isEqualTo(4L);
+        assertThat(response.rows()[1][1]).isEqualTo("Human");
     }
 
     @Test
@@ -263,11 +248,11 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
         SQLResponse response = execute(
             "select count(*), race from characters group by race order by race asc limit 2");
 
-        assertEquals(2, response.rowCount());
-        assertEquals(1L, response.rows()[0][0]);
-        assertEquals("Android", response.rows()[0][1]);
-        assertEquals(4L, response.rows()[1][0]);
-        assertEquals("Human", response.rows()[1][1]);
+        assertThat(response.rowCount()).isEqualTo(2);
+        assertThat(response.rows()[0][0]).isEqualTo(1L);
+        assertThat(response.rows()[0][1]).isEqualTo("Android");
+        assertThat(response.rows()[1][0]).isEqualTo(4L);
+        assertThat(response.rows()[1][1]).isEqualTo("Human");
     }
 
     @Test
@@ -275,7 +260,7 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
     public void testCountWithGroupByNullArgs() throws Exception {
         new Setup(sqlExecutor).groupBySetup();
         SQLResponse response = execute("select count(*), race from characters group by race", new Object[]{null});
-        assertEquals(3, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(3);
     }
 
     @Test
@@ -283,11 +268,11 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
         new Setup(sqlExecutor).groupBySetup();
         SQLResponse response = execute(
             "select characters.race as test_race from characters group by characters.race order by characters.race");
-        assertEquals(3, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(3);
 
         response = execute(
             "select characters.race as test_race from characters group by characters.race order by test_race");
-        assertEquals(3, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(3);
     }
 
     @Test
@@ -295,7 +280,7 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
         new Setup(sqlExecutor).groupBySetup();
         SQLResponse response = execute(
             "select count(*), race from characters where race = 'Human' group by race");
-        assertEquals(1, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1);
     }
 
     @Test
@@ -305,11 +290,11 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
                                        "group by race order by count(*) asc limit ?",
             new Object[]{2});
 
-        assertEquals(2, response.rowCount());
-        assertEquals(1L, response.rows()[0][0]);
-        assertEquals("Android", response.rows()[0][1]);
-        assertEquals(2L, response.rows()[1][0]);
-        assertEquals("Vogon", response.rows()[1][1]);
+        assertThat(response.rowCount()).isEqualTo(2);
+        assertThat(response.rows()[0][0]).isEqualTo(1L);
+        assertThat(response.rows()[0][1]).isEqualTo("Android");
+        assertThat(response.rows()[1][0]).isEqualTo(2L);
+        assertThat(response.rows()[1][1]).isEqualTo("Vogon");
     }
 
     @Test
@@ -318,13 +303,13 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
         SQLResponse response = execute("select count(*), gender, race from characters " +
                                        "group by race, gender order by count(*) desc, race, gender asc limit 2");
 
-        assertEquals(2L, response.rowCount());
-        assertEquals(2L, response.rows()[0][0]);
-        assertEquals("female", response.rows()[0][1]);
-        assertEquals("Human", response.rows()[0][2]);
-        assertEquals(2L, response.rows()[1][0]);
-        assertEquals("male", response.rows()[1][1]);
-        assertEquals("Human", response.rows()[1][2]);
+        assertThat(response.rowCount()).isEqualTo(2L);
+        assertThat(response.rows()[0][0]).isEqualTo(2L);
+        assertThat(response.rows()[0][1]).isEqualTo("female");
+        assertThat(response.rows()[0][2]).isEqualTo("Human");
+        assertThat(response.rows()[1][0]).isEqualTo(2L);
+        assertThat(response.rows()[1][1]).isEqualTo("male");
+        assertThat(response.rows()[1][2]).isEqualTo("Human");
     }
 
     @Test
@@ -333,13 +318,13 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
         SQLResponse response = execute("select count(*), gender, race from characters " +
                                        "group by race, gender order by count(*) desc, race asc limit 2 offset 2");
 
-        assertEquals(2, response.rowCount());
-        assertEquals(2L, response.rows()[0][0]);
-        assertEquals("male", response.rows()[0][1]);
-        assertEquals("Vogon", response.rows()[0][2]);
-        assertEquals(1L, response.rows()[1][0]);
-        assertEquals("male", response.rows()[1][1]);
-        assertEquals("Android", response.rows()[1][2]);
+        assertThat(response.rowCount()).isEqualTo(2);
+        assertThat(response.rows()[0][0]).isEqualTo(2L);
+        assertThat(response.rows()[0][1]).isEqualTo("male");
+        assertThat(response.rows()[0][2]).isEqualTo("Vogon");
+        assertThat(response.rows()[1][0]).isEqualTo(1L);
+        assertThat(response.rows()[1][1]).isEqualTo("male");
+        assertThat(response.rows()[1][2]).isEqualTo("Android");
     }
 
     @Test
@@ -348,8 +333,8 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
         SQLResponse response = execute("select count(*), gender, race from characters " +
                                        "group by race, gender order by count(*) desc, race asc limit 2 offset 20");
 
-        assertEquals(0, response.rows().length);
-        assertEquals(0, response.rowCount());
+        assertThat(response.rows().length).isEqualTo(0);
+        assertThat(response.rowCount()).isEqualTo(0);
     }
 
     @Test
@@ -358,18 +343,18 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
         SQLResponse response = execute(
             "select count(*), race from characters group by race order by count(*) desc limit 2");
 
-        assertEquals(2, response.rowCount());
-        assertEquals(4L, response.rows()[0][0]);
-        assertEquals("Human", response.rows()[0][1]);
-        assertEquals(2L, response.rows()[1][0]);
-        assertEquals("Vogon", response.rows()[1][1]);
+        assertThat(response.rowCount()).isEqualTo(2);
+        assertThat(response.rows()[0][0]).isEqualTo(4L);
+        assertThat(response.rows()[0][1]).isEqualTo("Human");
+        assertThat(response.rows()[1][0]).isEqualTo(2L);
+        assertThat(response.rows()[1][1]).isEqualTo("Vogon");
     }
 
     @Test
     public void testDateRange() throws Exception {
         new Setup(sqlExecutor).groupBySetup();
         SQLResponse response = execute("select * from characters where birthdate > '1970-01-01'");
-        assertThat(response.rowCount(), Matchers.is(2L));
+        assertThat(response.rowCount()).isEqualTo(2);
     }
 
     @Test
@@ -377,19 +362,19 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
         new Setup(sqlExecutor).partitionTableSetup();
         String uriTemplate = Paths.get(folder.getRoot().toURI()).toUri().toString();
         SQLResponse response = execute("copy parted partition (date='2014-01-01') to DIRECTORY ?", $(uriTemplate));
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response.rowCount()).isEqualTo(2L);
 
         List<String> lines = new ArrayList<>(2);
         DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(folder.getRoot().toURI()), "*.json");
         for (Path entry : stream) {
             lines.addAll(Files.readAllLines(entry, StandardCharsets.UTF_8));
         }
-        assertThat(lines.size(), is(2));
+        assertThat(lines).hasSize(2);
         for (String line : lines) {
-            assertTrue(line.contains("2") || line.contains("1"));
-            assertFalse(line.contains("1388534400000"));  // date column not included in export
-            assertThat(line, startsWith("{"));
-            assertThat(line, endsWith("}"));
+            assertThat(line.contains("2") || line.contains("1")).isTrue();
+            assertThat(line.contains("1388534400000")).isFalse();  // date column not included in export
+            assertThat(line).startsWith("{");
+            assertThat(line).endsWith("}");
         }
     }
 
@@ -398,39 +383,39 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
         new Setup(sqlExecutor).partitionTableSetup();
         String uriTemplate = Paths.get(folder.getRoot().toURI()).toUri().toString();
         SQLResponse response = execute("copy parted to DIRECTORY ?", $(uriTemplate));
-        assertThat(response.rowCount(), is(4L));
+        assertThat(response.rowCount()).isEqualTo(4L);
 
         List<String> lines = new ArrayList<>(4);
         DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(folder.getRoot().toURI()), "*.json");
         for (Path entry : stream) {
             lines.addAll(Files.readAllLines(entry, StandardCharsets.UTF_8));
         }
-        assertThat(lines.size(), is(4));
+        assertThat(lines).hasSize(4);
         for (String line : lines) {
             // date column included in output
             if (!line.contains("1388534400000")) {
-                assertTrue(line.contains("1391212800000"));
+                assertThat(line.contains("1391212800000")).isTrue();
             }
-            assertThat(line, startsWith("{"));
-            assertThat(line, endsWith("}"));
+            assertThat(line).startsWith("{");
+            assertThat(line).endsWith("}");
         }
     }
 
     @Test
     public void testArithmeticFunctions() throws Exception {
         execute("select ((2 * 4 - 2 + 1) / 2) % 3 from sys.cluster");
-        assertThat(response.cols()[0], is("0"));
-        assertThat(response.rows()[0][0], is(0));
+        assertThat(response.cols()[0]).isEqualTo("0");
+        assertThat(response.rows()[0][0]).isEqualTo(0);
 
         execute("select ((2 * 4.0 - 2 + 1) / 2) % 3 from sys.cluster");
-        assertThat(response.rows()[0][0], is(0.5));
+        assertThat(response.rows()[0][0]).isEqualTo(0.5);
 
         execute("select ? + 2 from sys.cluster", $(1));
-        assertThat(response.rows()[0][0], is(3));
+        assertThat(response.rows()[0][0]).isEqualTo(3);
 
         if (!Constants.WINDOWS) {
             response = execute("select load['1'] + load['5'], load['1'], load['5'] from sys.nodes limit 1");
-            assertEquals(response.rows()[0][0], (Double) response.rows()[0][1] + (Double) response.rows()[0][2]);
+            assertThat((Double) response.rows()[0][1] + (Double) response.rows()[0][2]).isEqualTo(response.rows()[0][0]);
         }
     }
 
@@ -438,28 +423,28 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
     public void testSetMultipleStatement() throws Exception {
         SQLResponse response = execute(
             "select settings['stats']['operations_log_size'], settings['stats']['enabled'] from sys.cluster");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((Integer) response.rows()[0][0], is(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault(Settings.EMPTY)));
-        assertThat((Boolean) response.rows()[0][1], is(JobsLogService.STATS_ENABLED_SETTING.getDefault(Settings.EMPTY)));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat((Integer) response.rows()[0][0]).isEqualTo(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault(Settings.EMPTY));
+        assertThat((Boolean) response.rows()[0][1]).isEqualTo(JobsLogService.STATS_ENABLED_SETTING.getDefault(Settings.EMPTY));
 
         response = execute("set global persistent stats.operations_log_size=1024, stats.enabled=false");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
 
         response = execute(
             "select settings['stats']['operations_log_size'], settings['stats']['enabled'] from sys.cluster");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((Integer) response.rows()[0][0], is(1024));
-        assertThat((Boolean) response.rows()[0][1], is(false));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat((Integer) response.rows()[0][0]).isEqualTo(1024);
+        assertThat((Boolean) response.rows()[0][1]).isFalse();
 
         response = execute("reset global stats.operations_log_size, stats.enabled");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
         waitNoPendingTasksOnAll();
 
         response = execute(
             "select settings['stats']['operations_log_size'], settings['stats']['enabled'] from sys.cluster");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((Integer) response.rows()[0][0], is(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault(Settings.EMPTY)));
-        assertThat((Boolean) response.rows()[0][1], is(JobsLogService.STATS_ENABLED_SETTING.getDefault(Settings.EMPTY)));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat((Integer) response.rows()[0][0]).isEqualTo(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault(Settings.EMPTY));
+        assertThat((Boolean) response.rows()[0][1]).isEqualTo(JobsLogService.STATS_ENABLED_SETTING.getDefault(Settings.EMPTY));
     }
 
     @Test
@@ -470,8 +455,8 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
             .hasMessageContaining("Failed to parse value [-1024] for setting [stats.operations_log_size] must be >= 0");
 
         SQLResponse response = execute("select settings['stats']['operations_log_size'] from sys.cluster");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((Integer) response.rows()[0][0], is(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault(Settings.EMPTY)));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat((Integer) response.rows()[0][0]).isEqualTo(JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault(Settings.EMPTY));
     }
 
     @Test
@@ -482,7 +467,7 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
         execute(
             "select count(*), race from characters group by race order by count(*) desc limit 2");
         SQLResponse resp = execute("select count(*) from sys.operations_log");
-        assertThat((Long) resp.rows()[0][0], is(0L));
+        assertThat((Long) resp.rows()[0][0]).isEqualTo(0L);
 
         execute("set global transient stats.enabled = true, stats.operations_log_size=10");
         waitNoPendingTasksOnAll();
@@ -497,7 +482,7 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
             for (Object[] objects : response.rows()) {
                 names.add((String) objects[4]);
             }
-            assertThat(names, Matchers.anyOf(
+            Assert.assertThat(names, Matchers.anyOf(
                 Matchers.hasItems("distributing collect", "distributing collect"),
                 Matchers.hasItems("collect", "localMerge"),
 
@@ -509,7 +494,7 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
         execute("set global transient stats.enabled = false");
         waitNoPendingTasksOnAll();
         resp = execute("select count(*) from sys.operations_log");
-        assertThat((Long) resp.rows()[0][0], is(0L));
+        assertThat((Long) resp.rows()[0][0]).isEqualTo(0L);
     }
 
     @Test
@@ -563,44 +548,50 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
     public void testIsNullOnObjects() throws Exception {
         new Setup(sqlExecutor).groupBySetup();
         SQLResponse resp = execute("select name from characters where details is null order by name");
-        assertThat(resp.rowCount(), is(5L));
+        assertThat(resp.rowCount()).isEqualTo(5L);
         List<String> names = new ArrayList<>(5);
         for (Object[] objects : resp.rows()) {
             names.add((String) objects[0]);
         }
-        assertThat(names, Matchers.contains("Anjie", "Ford Perfect", "Jeltz", "Kwaltz", "Marving"));
+        assertThat(names).containsExactly("Anjie", "Ford Perfect", "Jeltz", "Kwaltz", "Marving");
 
         resp = execute("select count(*) from characters where details is not null");
-        assertThat((Long) resp.rows()[0][0], is(2L));
+        assertThat((Long) resp.rows()[0][0]).isEqualTo(2L);
     }
 
     @Test
     public void testDistanceQueryOnSysTable() throws Exception {
         SQLResponse response = execute(
             "select Distance('POINT (10 20)', 'POINT (11 21)') from sys.cluster");
-        assertThat(response.rows()[0][0], is(152354.3209044634));
+        assertThat(response.rows()[0][0]).isEqualTo(152354.3209044634);
     }
 
     @Test
     public void testCreateTableWithInvalidAnalyzer() throws Exception {
         Asserts.assertSQLError(() -> execute("create table t (content string index using fulltext with (analyzer='foobar'))"))
             .hasPGError(INTERNAL_ERROR)
-            .hasHTTPError(BAD_REQUEST, 4003)
-            .hasMessageContaining("Failed to parse mapping: analyzer [foobar] not found for field [content]");
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining("Analyzer \"foobar\" not found for column \"content\"");
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testSysNodesVersionFromMultipleNodes() throws Exception {
         SQLResponse response = execute("select version, version['number'], " +
                                        "version['build_hash'], version['build_snapshot'] " +
                                        "from sys.nodes");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response.rowCount()).isEqualTo(2L);
         for (int i = 0; i <= 1; i++) {
-            assertThat(response.rows()[i][0], instanceOf(Map.class));
-            assertThat((Map<String, Object>) response.rows()[i][0], allOf(hasKey("number"), hasKey("build_hash"), hasKey("build_snapshot")));
-            assertThat((String) response.rows()[i][1], Matchers.is(Version.CURRENT.externalNumber()));
-            assertThat((String) response.rows()[i][2], is(Build.CURRENT.hash()));
-            assertThat((Boolean) response.rows()[i][3], is(Version.CURRENT.isSnapshot()));
+            assertThat(response.rows()[i][0]).isInstanceOf(Map.class);
+            assertThat((Map<String, Object>) response.rows()[i][0]).containsOnlyKeys(
+                "number",
+                "build_hash",
+                "build_snapshot",
+                "minimum_index_compatibility_version",
+                "minimum_wire_compatibility_version");
+            assertThat((String) response.rows()[i][1]).isEqualTo(Version.CURRENT.externalNumber());
+            assertThat((String) response.rows()[i][2]).isEqualTo(Build.CURRENT.hash());
+            assertThat((Boolean) response.rows()[i][3]).isEqualTo(Version.CURRENT.isSnapshot());
         }
     }
 
@@ -609,16 +600,18 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
         long before = System.currentTimeMillis();
         SQLResponse response = execute("select current_timestamp(3) from sys.cluster");
         long after = System.currentTimeMillis();
-        assertThat(response.cols(), arrayContaining("current_timestamp(3)"));
-        assertThat((long) response.rows()[0][0], allOf(greaterThanOrEqualTo(before), lessThanOrEqualTo(after)));
+        assertThat(response.cols()).containsExactly("current_timestamp(3)");
+        assertThat((long) response.rows()[0][0])
+            .isGreaterThanOrEqualTo(before)
+            .isLessThanOrEqualTo(after);
     }
 
     @Test
     public void selectWhereEqualCurrentTimestamp() throws Exception {
         SQLResponse response = execute("select * from sys.cluster where current_timestamp = current_timestamp");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
 
         SQLResponse newResponse = execute("select * from sys.cluster where current_timestamp > current_timestamp");
-        assertThat(newResponse.rowCount(), is(0L));
+        assertThat(newResponse.rowCount()).isEqualTo(0L);
     }
 }

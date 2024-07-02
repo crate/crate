@@ -26,17 +26,15 @@ import static io.crate.data.SentinelRow.SENTINEL;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.index.IndexNotFoundException;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.AnalyzedDropTable;
-import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.ddl.tables.DropTableRequest;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.TableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
@@ -52,11 +50,6 @@ public class DropTablePlan implements Plan {
 
     public DropTablePlan(AnalyzedDropTable<?> dropTable) {
         this.dropTable = dropTable;
-    }
-
-    @VisibleForTesting
-    public TableInfo tableInfo() {
-        return dropTable.table();
     }
 
     @VisibleForTesting
@@ -76,23 +69,7 @@ public class DropTablePlan implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) {
-        TableInfo table = dropTable.table();
-        DropTableRequest request;
-        if (table == null) {
-            if (dropTable.maybeCorrupt()) {
-                // setting isPartitioned=true should be safe.
-                // It will delete a template if it exists, and if there is no template it shouldn't do any harm
-                request = new DropTableRequest(dropTable.tableName(), true);
-            } else {
-                // no-op, table is already gone
-                assert dropTable.dropIfExists() : "If table is null, IF EXISTS flag must have been present";
-                consumer.accept(InMemoryBatchIterator.of(ROW_ZERO, SENTINEL), null);
-                return;
-            }
-        } else {
-            boolean isPartitioned = table instanceof DocTableInfo && ((DocTableInfo) table).isPartitioned();
-            request = new DropTableRequest(table.ident(), isPartitioned);
-        }
+        var request = new DropTableRequest(dropTable.tableName());
         dependencies.transportDropTableAction().execute(request).whenComplete((response, err) -> {
             if (err == null) {
                 if (!response.isAcknowledged() && LOGGER.isWarnEnabled()) {

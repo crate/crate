@@ -23,7 +23,6 @@ package io.crate.plugin;
 
 import java.lang.management.ManagementFactory;
 
-import org.jetbrains.annotations.Nullable;
 import javax.management.InstanceAlreadyExistsException;
 import javax.management.MBeanRegistrationException;
 import javax.management.MBeanServer;
@@ -40,6 +39,7 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.action.sql.Sessions;
 import io.crate.beans.CircuitBreakers;
@@ -49,7 +49,6 @@ import io.crate.beans.NodeStatus;
 import io.crate.beans.QueryStats;
 import io.crate.beans.ThreadPools;
 import io.crate.execution.engine.collect.stats.JobsLogs;
-import io.crate.protocols.ConnectionStats;
 import io.crate.protocols.postgres.PostgresNetty;
 
 public class CrateMonitor {
@@ -73,8 +72,8 @@ public class CrateMonitor {
         registerMBean(NodeInfo.NAME, new NodeInfo(clusterService::state, new NodeInfo.ShardStateAndSizeProvider(indicesService)));
         registerMBean(Connections.NAME, new Connections(
             () -> httpServerTransport == null ? null : httpServerTransport.stats(),
-            () -> new ConnectionStats(postgresNetty.openConnections(), postgresNetty.totalConnections()),
-            () -> transportService.stats().serverOpen()
+            postgresNetty::stats,
+            transportService::stats
         ));
         registerMBean(ThreadPools.NAME, new ThreadPools(threadPool));
         registerMBean(CircuitBreakers.NAME, new CircuitBreakers(breakerService));

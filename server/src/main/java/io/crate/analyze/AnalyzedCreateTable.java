@@ -21,11 +21,13 @@
 
 package io.crate.analyze;
 
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -33,10 +35,9 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
 
 import io.crate.analyze.TableElementsAnalyzer.RefBuilder;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.IndexReference;
@@ -74,7 +75,7 @@ public record AnalyzedCreateTable(
         for (AnalyzedCheck check : checks.values()) {
             consumer.accept(check.check());
         }
-        properties.properties().values().forEach(consumer);
+        properties.forValues(consumer);
         partitionedBy.ifPresent(x -> x.columns().forEach(consumer));
         clusteredBy.ifPresent(x -> {
             x.column().ifPresent(consumer);
@@ -108,6 +109,7 @@ public record AnalyzedCreateTable(
 
         Map<ColumnIdent, Reference> references = new LinkedHashMap<>();
         LinkedHashSet<Reference> primaryKeys = new LinkedHashSet<>();
+        Set<String> pkConstraintNames = new HashSet<>();
         for (var entry : columns.entrySet()) {
             ColumnIdent columnIdent = entry.getKey();
             RefBuilder column = entry.getValue();
@@ -115,6 +117,7 @@ public record AnalyzedCreateTable(
             references.put(columnIdent, reference);
             if (column.isPrimaryKey()) {
                 primaryKeys.add(reference);
+                pkConstraintNames.add(column.pkConstraintName());
             }
             if (reference instanceof IndexReference indexRef) {
                 String analyzer = indexRef.analyzer();
@@ -124,20 +127,34 @@ public record AnalyzedCreateTable(
                 }
             }
         }
+        String pkConstraintName = null;
+        if (!pkConstraintNames.isEmpty()) {
+            // CrateDB allows 'create table t (a int constraint c1 primary key, b int constraint c2 primary key);',
+            // making sure that c1 == c2.
+            if (pkConstraintNames.size() > 1) {
+                throw new IllegalArgumentException(
+                    "More than one name for PRIMARY KEY constraint provided: " + String.join(",", pkConstraintNames));
+            }
+            pkConstraintName = pkConstraintNames.iterator().next();
+            if ("".equals(pkConstraintName)) {
+                throw new IllegalArgumentException(
+                    "The name of primary key constraint must not be empty, please either use a name or remove the CONSTRAINT keyword");
+            }
+        }
 
         TableProperties.analyze(
             tableParameter, TableParameters.TABLE_CREATE_PARAMETER_INFO, properties.map(toValue), true);
 
         Optional<ColumnIdent> optClusteredBy = clusteredBy
             .flatMap(ClusteredBy::column)
-            .map(Symbols::pathFromSymbol);
+            .map(Symbol::toColumn);
         optClusteredBy.ifPresent(c -> {
             if (!primaryKeys.isEmpty() && Reference.indexOf(primaryKeys, c) < 0) {
                 throw new IllegalArgumentException(
-                    "Clustered by column `" + c + "` must be part of primary keys: " + Lists2.map(primaryKeys, Reference::column));
+                    "Clustered by column `" + c + "` must be part of primary keys: " + Lists.map(primaryKeys, Reference::column));
             }
         });
-        ColumnIdent routingColumn = optClusteredBy.orElse(DocSysColumns.ID);
+        ColumnIdent routingColumn = optClusteredBy.orElse(DocSysColumns.ID.COLUMN);
 
         List<Symbol> partitionedByColumns = partitionedBy
             .map(PartitionedBy::columns)
@@ -145,6 +162,7 @@ public record AnalyzedCreateTable(
 
         return new BoundCreateTable(
             relationName,
+            pkConstraintName,
             ifNotExists,
             references,
             tableParameter,

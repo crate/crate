@@ -30,7 +30,6 @@ import io.crate.execution.engine.export.FileOutputFactory;
 import io.crate.execution.jobs.NodeLimits;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Schemas;
 import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -51,7 +50,6 @@ import static io.crate.blob.v2.BlobIndex.isBlobIndex;
 @Singleton
 public class ShardCollectorProviderFactory {
 
-    private final Schemas schemas;
     private final ClusterService clusterService;
     private final ThreadPool threadPool;
     private final ElasticsearchClient elasticsearchClient;
@@ -69,7 +67,6 @@ public class ShardCollectorProviderFactory {
     public ShardCollectorProviderFactory(ClusterService clusterService,
                                          CircuitBreakerService circuitBreakerService,
                                          Settings settings,
-                                         Schemas schemas,
                                          ThreadPool threadPool,
                                          Node node,
                                          BlobIndicesService blobIndicesService,
@@ -80,7 +77,6 @@ public class ShardCollectorProviderFactory {
                                          Map<String, FileOutputFactory> fileOutputFactoryMap) {
         this.settings = settings;
         this.circuitBreakerService = circuitBreakerService;
-        this.schemas = schemas;
         this.clusterService = clusterService;
         this.threadPool = threadPool;
         this.elasticsearchClient = node.client();
@@ -98,7 +94,6 @@ public class ShardCollectorProviderFactory {
             return new BlobShardCollectorProvider(
                 blobShard,
                 clusterService,
-                schemas,
                 nodeJobsCounter,
                 circuitBreakerService,
                 nodeCtx,
@@ -109,7 +104,6 @@ public class ShardCollectorProviderFactory {
             );
         } else {
             return new LuceneShardCollectorProvider(
-                schemas,
                 luceneQueryBuilder,
                 clusterService,
                 nodeJobsCounter,

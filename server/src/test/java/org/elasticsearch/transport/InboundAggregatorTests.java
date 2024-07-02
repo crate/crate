@@ -19,14 +19,8 @@
 
 package org.elasticsearch.transport;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -97,17 +91,17 @@ public class InboundAggregatorTests extends ESTestCase {
         // Signal EOS
         InboundMessage aggregated = aggregator.finishAggregation();
 
-        assertThat(aggregated, notNullValue());
-        assertFalse(aggregated.isPing());
-        assertTrue(aggregated.getHeader().isRequest());
-        assertThat(aggregated.getHeader().getRequestId(), equalTo(requestId));
-        assertThat(aggregated.getHeader().getVersion(), equalTo(Version.CURRENT));
+        assertThat(aggregated).isNotNull();
+        assertThat(aggregated.isPing()).isFalse();
+        assertThat(aggregated.getHeader().isRequest()).isTrue();
+        assertThat(aggregated.getHeader().getRequestId()).isEqualTo(requestId);
+        assertThat(aggregated.getHeader().getVersion()).isEqualTo(Version.CURRENT);
         for (ReleasableBytesReference reference : references) {
-            assertEquals(1, reference.refCount());
+            assertThat(reference.refCount()).isEqualTo(1);
         }
         aggregated.close();
         for (ReleasableBytesReference reference : references) {
-            assertEquals(0, reference.refCount());
+            assertThat(reference.refCount()).isEqualTo(0);
         }
     }
 
@@ -123,14 +117,14 @@ public class InboundAggregatorTests extends ESTestCase {
         final ReleasableBytesReference content = ReleasableBytesReference.wrap(bytes);
         aggregator.aggregate(content);
         content.close();
-        assertEquals(0, content.refCount());
+        assertThat(content.refCount()).isEqualTo(0);
 
         // Signal EOS
         InboundMessage aggregated = aggregator.finishAggregation();
 
-        assertThat(aggregated, notNullValue());
-        assertTrue(aggregated.isShortCircuit());
-        assertThat(aggregated.getException(), instanceOf(ActionNotFoundTransportException.class));
+        assertThat(aggregated).isNotNull();
+        assertThat(aggregated.isShortCircuit()).isTrue();
+        assertThat(aggregated.getException()).isExactlyInstanceOf(ActionNotFoundTransportException.class);
         assertNotNull(aggregated.takeBreakerReleaseControl());
     }
 
@@ -151,10 +145,10 @@ public class InboundAggregatorTests extends ESTestCase {
         // Signal EOS
         InboundMessage aggregated1 = aggregator.finishAggregation();
 
-        assertEquals(0, content1.refCount());
-        assertThat(aggregated1, notNullValue());
-        assertTrue(aggregated1.isShortCircuit());
-        assertThat(aggregated1.getException(), instanceOf(CircuitBreakingException.class));
+        assertThat(content1.refCount()).isEqualTo(0);
+        assertThat(aggregated1).isNotNull();
+        assertThat(aggregated1.isShortCircuit()).isTrue();
+        assertThat(aggregated1.getException()).isExactlyInstanceOf(CircuitBreakingException.class);
 
         // Actions marked as unbreakable are not broken
         Header unbreakableHeader = new Header(randomInt(), randomNonNegativeLong(), TransportStatus.setRequest((byte) 0), Version.CURRENT);
@@ -170,9 +164,9 @@ public class InboundAggregatorTests extends ESTestCase {
         // Signal EOS
         InboundMessage aggregated2 = aggregator.finishAggregation();
 
-        assertEquals(1, content2.refCount());
-        assertThat(aggregated2, notNullValue());
-        assertFalse(aggregated2.isShortCircuit());
+        assertThat(content2.refCount()).isEqualTo(1);
+        assertThat(aggregated2).isNotNull();
+        assertThat(aggregated2.isShortCircuit()).isFalse();
 
         // Handshakes are not broken
         final byte handshakeStatus = TransportStatus.setHandshake(TransportStatus.setRequest((byte) 0));
@@ -189,9 +183,9 @@ public class InboundAggregatorTests extends ESTestCase {
         // Signal EOS
         InboundMessage aggregated3 = aggregator.finishAggregation();
 
-        assertEquals(1, content3.refCount());
-        assertThat(aggregated3, notNullValue());
-        assertFalse(aggregated3.isShortCircuit());
+        assertThat(content3.refCount()).isEqualTo(1);
+        assertThat(aggregated3).isNotNull();
+        assertThat(aggregated3.isShortCircuit()).isFalse();
     }
 
     public void testCloseWillCloseContent() {
@@ -223,7 +217,7 @@ public class InboundAggregatorTests extends ESTestCase {
         aggregator.close();
 
         for (ReleasableBytesReference reference : references) {
-            assertEquals(0, reference.refCount());
+            assertThat(reference.refCount()).isEqualTo(0);
         }
     }
 
@@ -252,15 +246,15 @@ public class InboundAggregatorTests extends ESTestCase {
             // Signal EOS
             InboundMessage aggregated = aggregator.finishAggregation();
 
-            assertThat(aggregated, notNullValue());
-            assertFalse(header.needsToReadVariableHeader());
-            assertEquals(actionName, header.getActionName());
+            assertThat(aggregated).isNotNull();
+            assertThat(header.needsToReadVariableHeader()).isFalse();
+            assertThat(header.getActionName()).isEqualTo(actionName);
             if (unknownAction) {
-                assertEquals(0, content.refCount());
-                assertTrue(aggregated.isShortCircuit());
+                assertThat(content.refCount()).isEqualTo(0);
+                assertThat(aggregated.isShortCircuit()).isTrue();
             } else {
-                assertEquals(1, content.refCount());
-                assertFalse(aggregated.isShortCircuit());
+                assertThat(content.refCount()).isEqualTo(1);
+                assertThat(aggregated.isShortCircuit()).isFalse();
             }
         }
     }

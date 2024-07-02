@@ -24,7 +24,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.DefaultShardOperationFailedException;
@@ -37,6 +36,7 @@ import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.routing.IndexRoutingTable;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -45,6 +45,8 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.transport.TransportService;
 
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
+
+import io.crate.exceptions.SQLExceptions;
 
 /**
  * Base class for requests that should be executed on all shards of an index or several indices.
@@ -98,7 +100,7 @@ public abstract class TransportBroadcastReplicationAction<Request extends Broadc
                     if (TransportActions.isShardNotAvailableException(e)) {
                         failures = new ReplicationResponse.ShardInfo.Failure[0];
                     } else {
-                        ReplicationResponse.ShardInfo.Failure failure = new ReplicationResponse.ShardInfo.Failure(shardId, null, e, ExceptionsHelper.status(e), true);
+                        ReplicationResponse.ShardInfo.Failure failure = new ReplicationResponse.ShardInfo.Failure(shardId, null, e, SQLExceptions.status(e), true);
                         failures = new ReplicationResponse.ShardInfo.Failure[totalNumCopies];
                         Arrays.fill(failures, failure);
                     }
@@ -127,7 +129,8 @@ public abstract class TransportBroadcastReplicationAction<Request extends Broadc
         for (String index : concreteIndices) {
             IndexMetadata indexMetadata = clusterState.metadata().indices().get(index);
             if (indexMetadata != null) {
-                for (IntObjectCursor<IndexShardRoutingTable> shardRouting : clusterState.routingTable().indicesRouting().get(index).getShards()) {
+                IndexRoutingTable indexRoutingTable = clusterState.routingTable().indicesRouting().get(index);
+                for (IntObjectCursor<IndexShardRoutingTable> shardRouting : indexRoutingTable.getShards()) {
                     shardIds.add(shardRouting.value.shardId());
                 }
             }
@@ -139,7 +142,7 @@ public abstract class TransportBroadcastReplicationAction<Request extends Broadc
 
     protected abstract ShardRequest newShardRequest(Request request, ShardId shardId);
 
-    private void finishAndNotifyListener(ActionListener listener, CopyOnWriteArrayList<ShardResponse> shardsResponses) {
+    private void finishAndNotifyListener(ActionListener<Response> listener, CopyOnWriteArrayList<ShardResponse> shardsResponses) {
         logger.trace("{}: got all shard responses", actionName);
         int successfulShards = 0;
         int failedShards = 0;
@@ -164,6 +167,8 @@ public abstract class TransportBroadcastReplicationAction<Request extends Broadc
         listener.onResponse(newResponse(successfulShards, failedShards, totalNumCopies, shardFailures));
     }
 
-    protected abstract BroadcastResponse newResponse(int successfulShards, int failedShards, int totalNumCopies,
-                                                     List<DefaultShardOperationFailedException> shardFailures);
+    protected abstract Response newResponse(int successfulShards,
+                                            int failedShards,
+                                            int totalNumCopies,
+                                            List<DefaultShardOperationFailedException> shardFailures);
 }

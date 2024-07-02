@@ -21,10 +21,8 @@
 
 package io.crate.expression.tablefunctions;
 
-import static org.hamcrest.CoreMatchers.instanceOf;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.Matchers.contains;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 
@@ -97,32 +95,28 @@ public class ValuesFunctionTest extends AbstractTableFunctionsTest {
     @Test
     public void test_function_return_type_of_the_next_nested_item() {
         Function function = (Function) sqlExpressions.asSymbol("_values([['a', 'b']])");
-
         var funcImplementation = (TableFunctionImplementation<?>) sqlExpressions.nodeCtx.functions().getQualified(
-            function
-        );
+            function);
 
-        assertThat(funcImplementation.returnType(), instanceOf(RowType.class));
-        assertThat(funcImplementation.returnType().fieldTypes(), contains(DataTypes.STRING_ARRAY));
+        assertThat(funcImplementation.returnType()).isExactlyInstanceOf(RowType.class);
+        assertThat(funcImplementation.returnType().fieldTypes()).containsExactly(DataTypes.STRING_ARRAY);
 
     }
 
     @Test
     public void test_function_arguments_must_have_array_types() {
-        expectedException.expect(UnsupportedFunctionException.class);
-        expectedException.expectMessage("Unknown function: _values(200)," +
-                                        " no overload found for matching argument types: (integer).");
-        assertExecute("_values(200)", "");
+        assertThatThrownBy(() -> assertExecute("_values(200)", ""))
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessageStartingWith("Unknown function: _values(200), " +
+                                    "no overload found for matching argument types: (integer).");
     }
 
     @Test
     public void test_bound_signature_return_type_resolves_correct_row_type_parameters() {
         var function = (Function) sqlExpressions.asSymbol("_values([1], ['a'], [{}])");
         var functionImplementation = (TableFunctionImplementation<?>) sqlExpressions.nodeCtx.functions().getQualified(
-            function
-        );
-        assertThat(
-            functionImplementation.boundSignature().returnType().getTypeParameters(),
-            is(List.of(DataTypes.INTEGER, DataTypes.STRING, DataTypes.UNTYPED_OBJECT)));
+            function);
+        assertThat(functionImplementation.boundSignature().returnType().getTypeParameters())
+            .isEqualTo(List.of(DataTypes.INTEGER, DataTypes.STRING, DataTypes.UNTYPED_OBJECT));
     }
 }

@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.SocketTimeoutException;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -43,6 +44,7 @@ import java.util.Map;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
@@ -55,6 +57,7 @@ import org.mockito.ArgumentCaptor;
 
 import io.crate.data.BatchIterator;
 import io.crate.data.testing.BatchIteratorTester;
+import io.crate.data.testing.BatchIteratorTester.ResultOrder;
 import io.crate.execution.engine.collect.files.FileReadingIterator.LineCursor;
 
 public class FileReadingIteratorTest extends ESTestCase {
@@ -87,7 +90,9 @@ public class FileReadingIteratorTest extends ESTestCase {
         Path tempFile2 = createTempFile("tempfile2", ".csv");
         List<String> lines2 = List.of("name,id,age", "Trillian,5,33");
         Files.write(tempFile2, lines2);
-        List<String> fileUris = List.of(tempFile1.toUri().toString(), tempFile2.toUri().toString());
+        List<URI> fileUris = Stream.of(tempFile1.toUri().toString(), tempFile2.toUri().toString())
+            .map(FileReadingIterator::toURI)
+            .toList();
 
         Supplier<BatchIterator<LineCursor>> batchIteratorSupplier =
             () -> new FileReadingIterator(
@@ -126,7 +131,7 @@ public class FileReadingIteratorTest extends ESTestCase {
             "name,id,age",
             "Trillian,5,33"
         );
-        var tester = new BatchIteratorTester<>(() -> batchIteratorSupplier.get().map(LineCursor::line));
+        var tester = new BatchIteratorTester<>(() -> batchIteratorSupplier.get().map(LineCursor::line), ResultOrder.EXACT);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 
@@ -139,7 +144,8 @@ public class FileReadingIteratorTest extends ESTestCase {
         Path tempFile = createTempFile("tempfile1", ".csv");
         List<String> lines = List.of("id", "1", "2", "3", "4", "5");
         Files.write(tempFile, lines);
-        List<String> fileUris = List.of(tempFile.toUri().toString());
+        List<URI> fileUris = Stream.of(tempFile.toUri().toString())
+            .map(FileReadingIterator::toURI).toList();
 
         Supplier<BatchIterator<LineCursor>> batchIteratorSupplier =
             () -> new FileReadingIterator(
@@ -173,7 +179,7 @@ public class FileReadingIteratorTest extends ESTestCase {
                 }
             };
 
-        var tester = new BatchIteratorTester<>(() -> batchIteratorSupplier.get().map(LineCursor::line));
+        var tester = new BatchIteratorTester<>(() -> batchIteratorSupplier.get().map(LineCursor::line), ResultOrder.EXACT);
         tester.verifyResultAndEdgeCaseBehaviour(lines);
     }
 
@@ -213,7 +219,8 @@ public class FileReadingIteratorTest extends ESTestCase {
         Files.write(tempFile, List.of("1", "2", "3"));
         Path tempFile2 = createTempFile("tempfile2", ".csv");
         Files.write(tempFile2, List.of("4", "5", "6"));
-        List<String> fileUris = List.of(tempFile.toUri().toString(), tempFile2.toUri().toString());
+        List<URI> fileUris = Stream.of(tempFile.toUri().toString(), tempFile2.toUri().toString())
+            .map(FileReadingIterator::toURI).toList();
 
         var fi = new FileReadingIterator(
             fileUris,
@@ -246,23 +253,23 @@ public class FileReadingIteratorTest extends ESTestCase {
             }
         };
 
-        assertThat(fi.moveNext()).isEqualTo(true);
+        assertThat(fi.moveNext()).isTrue();
         assertThat(fi.currentElement().line()).isEqualTo("1");
-        assertThat(fi.moveNext()).isEqualTo(true);
+        assertThat(fi.moveNext()).isTrue();
         assertThat(fi.currentElement().line()).isEqualTo("2");
-        assertThat(fi.moveNext()).isEqualTo(false);
-        assertThat(fi.allLoaded()).isEqualTo(false);
+        assertThat(fi.moveNext()).isFalse();
+        assertThat(fi.allLoaded()).isFalse();
         assertThat(fi.loadNextBatch()).succeedsWithin(5, TimeUnit.SECONDS)
             .satisfies(x -> {
                 assertThat(fi.currentElement().line()).isEqualTo("2");
                 assertThat(fi.watermark).isEqualTo(3);
-                assertThat(fi.moveNext()).isEqualTo(true);
+                assertThat(fi.moveNext()).isTrue();
                 // the watermark helped 'fi' to recover the state right before the exception then cleared
                 assertThat(fi.watermark).isEqualTo(0);
                 assertThat(fi.currentElement().line()).isEqualTo("3");
 
                 // verify the exception did not prevent reading the next URI
-                assertThat(fi.moveNext()).isEqualTo(true);
+                assertThat(fi.moveNext()).isTrue();
                 assertThat(fi.currentElement().line()).isEqualTo("4");
             });
     }

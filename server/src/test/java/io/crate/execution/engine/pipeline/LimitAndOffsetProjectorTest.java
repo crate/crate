@@ -22,9 +22,8 @@
 package io.crate.execution.engine.pipeline;
 
 import static io.crate.data.SentinelRow.SENTINEL;
-import static org.hamcrest.Matchers.emptyIterable;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.stream.StreamSupport;
 
@@ -55,10 +54,10 @@ public class LimitAndOffsetProjectorTest extends ESTestCase {
         consumer.accept(batchIterator, null);
 
         Bucket projected = consumer.getBucket();
-        assertThat(projected.size(), is(10));
+        assertThat(projected).hasSize(10);
 
         long iterateLength = StreamSupport.stream(consumer.getBucket().spliterator(), false).count();
-        assertThat(iterateLength, is(10L));
+        assertThat(iterateLength).isEqualTo(10L);
     }
 
     @Test
@@ -68,10 +67,10 @@ public class LimitAndOffsetProjectorTest extends ESTestCase {
         consumer.accept(batchIterator, null);
 
         Bucket projected = consumer.getBucket();
-        assertThat(projected.size(), is(5));
+        assertThat(projected).hasSize(5);
 
         long iterateLength = StreamSupport.stream(consumer.getBucket().spliterator(), false).count();
-        assertThat(iterateLength, is(5L));
+        assertThat(iterateLength).isEqualTo(5L);
     }
 
     @Test
@@ -80,10 +79,10 @@ public class LimitAndOffsetProjectorTest extends ESTestCase {
         BatchIterator<Row> batchIterator = projector.apply(TestingBatchIterators.range(0, 10));
         consumer.accept(batchIterator, null);
         Bucket projected = consumer.getBucket();
-        assertThat(projected.size(), is(10));
+        assertThat(projected).hasSize(10);
 
         long iterateLength = StreamSupport.stream(consumer.getBucket().spliterator(), false).count();
-        assertThat(iterateLength, is(10L));
+        assertThat(iterateLength).isEqualTo(10L);
 
     }
 
@@ -93,10 +92,10 @@ public class LimitAndOffsetProjectorTest extends ESTestCase {
         consumer.accept(projector.apply(InMemoryBatchIterator.empty(SENTINEL)), null);
 
         Bucket projected = consumer.getBucket();
-        assertThat(projected, emptyIterable());
+        assertThat(projected).isEmpty();
 
         long iterateLength = StreamSupport.stream(consumer.getBucket().spliterator(), false).count();
-        assertThat(iterateLength, is(0L));
+        assertThat(iterateLength).isEqualTo(0L);
     }
 
     @Test
@@ -106,10 +105,10 @@ public class LimitAndOffsetProjectorTest extends ESTestCase {
         consumer.accept(batchIterator, null);
 
         Bucket projected = consumer.getBucket();
-        assertThat(projected.size(), is(1));
+        assertThat(projected).hasSize(1);
 
         long iterateLength = StreamSupport.stream(consumer.getBucket().spliterator(), false).count();
-        assertThat(iterateLength, is(1L));
+        assertThat(iterateLength).isEqualTo(1L);
     }
 
     @Test
@@ -119,24 +118,24 @@ public class LimitAndOffsetProjectorTest extends ESTestCase {
         consumer.accept(batchIterator, null);
 
         Bucket projected = consumer.getBucket();
-        assertThat(projected.size(), is(90));
+        assertThat(projected).hasSize(90);
 
         long iterateLength = StreamSupport.stream(consumer.getBucket().spliterator(), false).count();
-        assertThat(iterateLength, is(90L));
+        assertThat(iterateLength).isEqualTo(90L);
     }
 
     @Test
     public void testNegativeOffset() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid OFFSET");
-        new LimitAndOffsetProjector(10, -10);
+        assertThatThrownBy(() -> new LimitAndOffsetProjector(10, -10))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid OFFSET: value must be >= 0; got: -10");
     }
 
     @Test
     public void testNegativeLimit() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid LIMIT");
-        new LimitAndOffsetProjector(-100, LimitAndOffset.NO_OFFSET);
+        assertThatThrownBy(() -> new LimitAndOffsetProjector(-100, LimitAndOffset.NO_OFFSET))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid LIMIT: value must be >= 0; got: -100");
     }
 
     @Test
@@ -145,10 +144,10 @@ public class LimitAndOffsetProjectorTest extends ESTestCase {
         BatchIterator<Row> batchIterator = projector.apply(TestingBatchIterators.range(0, 12));
         consumer.accept(batchIterator, null);
         Bucket projected = consumer.getBucket();
-        assertThat(projected.size(), is(10));
+        assertThat(projected).hasSize(10);
 
         long iterateLength = StreamSupport.stream(consumer.getBucket().spliterator(), false).count();
-        assertThat(iterateLength, is(10L));
+        assertThat(iterateLength).isEqualTo(10L);
     }
 
     @Test
@@ -157,10 +156,10 @@ public class LimitAndOffsetProjectorTest extends ESTestCase {
         BatchIterator<Row> batchIterator = projector.apply(TestingBatchIterators.range(0, 5));
         consumer.accept(batchIterator, null);
         Bucket projected = consumer.getBucket();
-        assertThat(projected.size(), is(5));
+        assertThat(projected).hasSize(5);
 
         long iterateLength = StreamSupport.stream(consumer.getBucket().spliterator(), false).count();
-        assertThat(iterateLength, is(5L));
+        assertThat(iterateLength).isEqualTo(5L);
     }
 
 
@@ -169,7 +168,7 @@ public class LimitAndOffsetProjectorTest extends ESTestCase {
         Projector projector = prepareProjector(10, LimitAndOffset.NO_OFFSET);
         consumer.accept(projector.apply(InMemoryBatchIterator.empty(SENTINEL)), null);
         Bucket projected = consumer.getBucket();
-        assertThat(projected, emptyIterable());
+        assertThat(projected).isEmpty();
     }
 
     @Test
@@ -178,17 +177,16 @@ public class LimitAndOffsetProjectorTest extends ESTestCase {
         BatchIterator<Row> batchIterator = projector.apply(TestingBatchIterators.range(0, 100));
         consumer.accept(batchIterator, null);
         Bucket projected = consumer.getBucket();
-        assertThat(projected.size(), is(90));
+        assertThat(projected).hasSize(90);
 
         long iterateLength = StreamSupport.stream(consumer.getBucket().spliterator(), false).count();
-        assertThat(iterateLength, is(90L));
+        assertThat(iterateLength).isEqualTo(90L);
     }
 
     @Test
     public void testProjectNoLimitNoOffset() throws Throwable {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid LIMIT");
-
-        prepareProjector(LimitAndOffset.NO_LIMIT, LimitAndOffset.NO_OFFSET);
+        assertThatThrownBy(() -> prepareProjector(LimitAndOffset.NO_LIMIT, LimitAndOffset.NO_OFFSET))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid LIMIT: value must be >= 0; got: -1");
     }
 }

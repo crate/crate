@@ -23,14 +23,17 @@ package io.crate.sql.tree;
 
 import java.util.List;
 
-public class DenyPrivilege extends PrivilegeStatement {
+public final class DenyPrivilege extends PrivilegeStatement {
 
-    public DenyPrivilege(List<String> userNames, String clazz, List<QualifiedName> tableOrSchemaNames) {
-        super(userNames, clazz, tableOrSchemaNames);
+    public DenyPrivilege(List<String> userNames, String securable, List<QualifiedName> tableOrSchemaNames) {
+        super(userNames, securable, tableOrSchemaNames);
     }
 
-    public DenyPrivilege(List<String> userNames, List<String> privilegeTypes, String clazz, List<QualifiedName> tableOrSchemaNames) {
-        super(userNames, privilegeTypes, clazz, tableOrSchemaNames);
+    public DenyPrivilege(List<String> userNames,
+                         List<String> permissions,
+                         String securable,
+                         List<QualifiedName> tableOrSchemaNames) {
+        super(userNames, permissions, securable, tableOrSchemaNames);
     }
 
 
@@ -43,7 +46,7 @@ public class DenyPrivilege extends PrivilegeStatement {
     public String toString() {
         return "DenyPrivilege{" +
                "allPrivileges=" + all +
-               "privilegeTypes=" + privilegeTypes +
+               "permissions=" + permissions +
                ", userNames=" + userNames +
                '}';
     }

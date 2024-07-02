@@ -21,22 +21,24 @@
 
 package io.crate.expression.scalar.object;
 
-import io.crate.expression.scalar.ScalarFunctionModule;
+import java.util.ArrayList;
+
 import io.crate.expression.scalar.UnaryScalar;
+import io.crate.metadata.Functions;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
-import java.util.ArrayList;
-
 public final class ObjectKeysFunction {
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder module) {
+        module.add(
             Signature.scalar(
                 "object_keys",
                 DataTypes.UNTYPED_OBJECT.getTypeSignature(),
                 DataTypes.STRING_ARRAY.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
             new UnaryScalar<>(
                 signature,

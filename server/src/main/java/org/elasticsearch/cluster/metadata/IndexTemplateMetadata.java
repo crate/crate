@@ -26,8 +26,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.AbstractDiffable;
@@ -43,6 +41,7 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 
@@ -105,24 +104,11 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
     }
 
     @Nullable
-    public Integer getVersion() {
-        return version();
-    }
-
-    @Nullable
     public Integer version() {
         return version;
     }
 
-    public String getName() {
-        return this.name;
-    }
-
     public List<String> patterns() {
-        return this.patterns;
-    }
-
-    public List<String> getPatterns() {
         return this.patterns;
     }
 
@@ -130,19 +116,11 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
         return this.settings;
     }
 
-    public Settings getSettings() {
-        return settings();
-    }
-
     public CompressedXContent mapping() {
         return this.mapping;
     }
 
     public ImmutableOpenMap<String, AliasMetadata> aliases() {
-        return this.aliases;
-    }
-
-    public ImmutableOpenMap<String, AliasMetadata> getAliases() {
         return this.aliases;
     }
 
@@ -215,7 +193,7 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
             out.writeInt(1);
         }
         out.writeStringCollection(patterns);
-        Settings.writeSettingsToStream(settings, out);
+        Settings.writeSettingsToStream(out, settings);
         if (out.getVersion().onOrAfter(Version.V_5_2_0)) {
             mapping.writeTo(out);
         } else {
@@ -309,7 +287,6 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
             return new IndexTemplateMetadata(name, version, indexPatterns, settings, mapping, aliases.build());
         }
 
-        @SuppressWarnings("unchecked")
         public static void toXContent(IndexTemplateMetadata indexTemplateMetadata, XContentBuilder builder, ToXContent.Params params)
                 throws IOException {
             builder.startObject(indexTemplateMetadata.name());

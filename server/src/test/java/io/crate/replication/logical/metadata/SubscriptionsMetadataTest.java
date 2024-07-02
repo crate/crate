@@ -21,9 +21,7 @@
 
 package io.crate.replication.logical.metadata;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.core.IsNull.nullValue;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -81,7 +79,7 @@ public class SubscriptionsMetadataTest extends ESTestCase {
 
         StreamInput in = out.bytes().streamInput();
         var subs2 = new SubscriptionsMetadata(in);
-        assertThat(subs2, is(subs));
+        assertThat(subs2).isEqualTo(subs);
 
     }
 
@@ -102,9 +100,9 @@ public class SubscriptionsMetadataTest extends ESTestCase {
             BytesReference.toBytes(BytesReference.bytes(builder)));
         parser.nextToken(); // start object
         var subs2 = SubscriptionsMetadata.fromXContent(parser);
-        assertThat(subs2, is(subs));
+        assertThat(subs2).isEqualTo(subs);
 
         // a metadata custom must consume the surrounded END_OBJECT token, no token must be left
-        assertThat(parser.nextToken(), nullValue());
+        assertThat(parser.nextToken()).isNull();
     }
 }

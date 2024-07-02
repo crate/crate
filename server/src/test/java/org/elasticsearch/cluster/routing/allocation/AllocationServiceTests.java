@@ -18,6 +18,7 @@
  */
 package org.elasticsearch.cluster.routing.allocation;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
 import static org.elasticsearch.cluster.routing.UnassignedInfo.AllocationStatus.DECIDERS_NO;
 import static org.elasticsearch.cluster.routing.allocation.decider.ThrottlingAllocationDecider.CLUSTER_ROUTING_ALLOCATION_NODE_CONCURRENT_INCOMING_RECOVERIES_SETTING;
@@ -25,10 +26,8 @@ import static org.elasticsearch.cluster.routing.allocation.decider.ThrottlingAll
 import static org.elasticsearch.cluster.routing.allocation.decider.ThrottlingAllocationDecider.CLUSTER_ROUTING_ALLOCATION_NODE_INITIAL_PRIMARIES_RECOVERIES_SETTING;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -133,7 +132,7 @@ public class AllocationServiceTests extends ESTestCase {
                 public void allocate(RoutingAllocation allocation) {
                     // all primaries are handled by existing shards allocators in these tests; even the invalid allocator prevents shards
                     // from falling through to here
-                    assertThat(allocation.routingNodes().unassigned().getNumPrimaries(), equalTo(0));
+                    assertThat(allocation.routingNodes().unassigned().getNumPrimaries()).isEqualTo(0);
                 }
 
                 @Override
@@ -205,9 +204,9 @@ public class AllocationServiceTests extends ESTestCase {
         // medium-priority ones
         assertThat(routingTable1.shardsWithState(ShardRoutingState.INITIALIZING), empty());
         assertThat(routingTable1.shardsWithState(ShardRoutingState.RELOCATING), empty());
-        assertTrue(routingTable1.shardsWithState(ShardRoutingState.STARTED).stream().allMatch(ShardRouting::primary));
-        assertThat(routingTable1.index("highPriority").primaryShardsActive(), equalTo(2));
-        assertThat(routingTable1.index("mediumPriority").primaryShardsActive(), equalTo(1));
+        assertThat(routingTable1.shardsWithState(ShardRoutingState.STARTED).stream().allMatch(ShardRouting::primary)).isTrue();
+        assertThat(routingTable1.index("highPriority").primaryShardsActive()).isEqualTo(2);
+        assertThat(routingTable1.index("mediumPriority").primaryShardsActive()).isEqualTo(1);
         assertThat(routingTable1.index("lowPriority").shardsWithState(ShardRoutingState.STARTED), empty());
         assertThat(routingTable1.index("invalid").shardsWithState(ShardRoutingState.STARTED), empty());
 
@@ -216,10 +215,10 @@ public class AllocationServiceTests extends ESTestCase {
         // this reroute starts the one remaining medium-priority primary and both of the low-priority ones, but no replicas
         assertThat(routingTable2.shardsWithState(ShardRoutingState.INITIALIZING), empty());
         assertThat(routingTable2.shardsWithState(ShardRoutingState.RELOCATING), empty());
-        assertTrue(routingTable2.shardsWithState(ShardRoutingState.STARTED).stream().allMatch(ShardRouting::primary));
-        assertTrue(routingTable2.index("highPriority").allPrimaryShardsActive());
-        assertTrue(routingTable2.index("mediumPriority").allPrimaryShardsActive());
-        assertTrue(routingTable2.index("lowPriority").allPrimaryShardsActive());
+        assertThat(routingTable2.shardsWithState(ShardRoutingState.STARTED).stream().allMatch(ShardRouting::primary)).isTrue();
+        assertThat(routingTable2.index("highPriority").allPrimaryShardsActive()).isTrue();
+        assertThat(routingTable2.index("mediumPriority").allPrimaryShardsActive()).isTrue();
+        assertThat(routingTable2.index("lowPriority").allPrimaryShardsActive()).isTrue();
         assertThat(routingTable2.index("invalid").shardsWithState(ShardRoutingState.STARTED), empty());
 
         final ClusterState reroutedState3 = rerouteAndStartShards(allocationService, reroutedState2);
@@ -227,9 +226,9 @@ public class AllocationServiceTests extends ESTestCase {
         // this reroute starts the two medium-priority replicas since their allocator permits this
         assertThat(routingTable3.shardsWithState(ShardRoutingState.INITIALIZING), empty());
         assertThat(routingTable3.shardsWithState(ShardRoutingState.RELOCATING), empty());
-        assertTrue(routingTable3.index("highPriority").allPrimaryShardsActive());
+        assertThat(routingTable3.index("highPriority").allPrimaryShardsActive()).isTrue();
         assertThat(routingTable3.index("mediumPriority").shardsWithState(ShardRoutingState.UNASSIGNED), empty());
-        assertTrue(routingTable3.index("lowPriority").allPrimaryShardsActive());
+        assertThat(routingTable3.index("lowPriority").allPrimaryShardsActive()).isTrue();
         assertThat(routingTable3.index("invalid").shardsWithState(ShardRoutingState.STARTED), empty());
     }
 
@@ -260,21 +259,19 @@ public class AllocationServiceTests extends ESTestCase {
         final ShardAllocationDecision shardAllocationDecision
             = allocationService.explainShardAllocation(clusterState.routingTable().index("index").shard(0).primaryShard(), allocation);
 
-        assertTrue(shardAllocationDecision.isDecisionTaken());
-        assertThat(shardAllocationDecision.getAllocateDecision().getAllocationStatus(),
-            equalTo(UnassignedInfo.AllocationStatus.NO_VALID_SHARD_COPY));
-        assertThat(shardAllocationDecision.getAllocateDecision().getAllocationDecision(),
-            equalTo(AllocationDecision.NO_VALID_SHARD_COPY));
-        assertThat(shardAllocationDecision.getAllocateDecision().getExplanation(), equalTo("cannot allocate because a previous copy of " +
-            "the primary shard existed but can no longer be found on the nodes in the cluster"));
+        assertThat(shardAllocationDecision.isDecisionTaken()).isTrue();
+        assertThat(shardAllocationDecision.getAllocateDecision().getAllocationStatus()).isEqualTo(UnassignedInfo.AllocationStatus.NO_VALID_SHARD_COPY);
+        assertThat(shardAllocationDecision.getAllocateDecision().getAllocationDecision()).isEqualTo(AllocationDecision.NO_VALID_SHARD_COPY);
+        assertThat(shardAllocationDecision.getAllocateDecision().getExplanation()).isEqualTo("cannot allocate because a previous copy of " +
+            "the primary shard existed but can no longer be found on the nodes in the cluster");
 
         for (NodeAllocationResult nodeAllocationResult : shardAllocationDecision.getAllocateDecision().nodeDecisions) {
-            assertThat(nodeAllocationResult.getNodeDecision(), equalTo(AllocationDecision.NO));
-            assertThat(nodeAllocationResult.getCanAllocateDecision().type(), equalTo(Decision.Type.NO));
-            assertThat(nodeAllocationResult.getCanAllocateDecision().label(), equalTo("allocator_plugin"));
-            assertThat(nodeAllocationResult.getCanAllocateDecision().getExplanation(), equalTo("finding the previous copies of this " +
+            assertThat(nodeAllocationResult.getNodeDecision()).isEqualTo(AllocationDecision.NO);
+            assertThat(nodeAllocationResult.getCanAllocateDecision().type()).isEqualTo(Decision.Type.NO);
+            assertThat(nodeAllocationResult.getCanAllocateDecision().label()).isEqualTo("allocator_plugin");
+            assertThat(nodeAllocationResult.getCanAllocateDecision().getExplanation()).isEqualTo("finding the previous copies of this " +
                 "shard requires an allocator called [unknown] but that allocator was not found; perhaps the corresponding plugin is " +
-                "not installed"));
+                "not installed");
         }
     }
 

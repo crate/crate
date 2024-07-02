@@ -23,14 +23,16 @@ package io.crate.metadata;
 
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import io.crate.sql.tree.ColumnPolicy;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataTypes;
+import io.crate.types.GeoShapeType;
 
 public class GeoReferenceTest extends ESTestCase {
 
@@ -82,5 +84,41 @@ public class GeoReferenceTest extends ESTestCase {
         GeoReference geoReferenceInfo4 = Reference.fromStream(in);
 
         assertThat(geoReferenceInfo4).isEqualTo(geoReferenceInfo3);
+    }
+
+    @Test
+    public void test_settings_not_applicable_to_bkd_tree_indexes() {
+        assertThatThrownBy(() -> newGeoReferenceWithTreeParameters(GeoShapeType.Names.TREE_BKD, "1", null, null))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("The parameters precision, tree_levels, and distance_error_pct are not applicable to BKD tree indexes.");
+        assertThatThrownBy(() -> newGeoReferenceWithTreeParameters(GeoShapeType.Names.TREE_BKD, null, 2, null))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("The parameters precision, tree_levels, and distance_error_pct are not applicable to BKD tree indexes.");
+        assertThatThrownBy(() -> newGeoReferenceWithTreeParameters(GeoShapeType.Names.TREE_BKD, null, null, 0.25))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("The parameters precision, tree_levels, and distance_error_pct are not applicable to BKD tree indexes.");
+    }
+
+    private static GeoReference newGeoReferenceWithTreeParameters(String tree,
+                                                                  String precision,
+                                                                  Integer treeLevels,
+                                                                  Double distanceErrorPct) {
+        RelationName relationName = new RelationName("doc", "test");
+        ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "geo_column");
+        return new GeoReference(
+            referenceIdent,
+            DataTypes.GEO_SHAPE,
+            ColumnPolicy.DYNAMIC,
+            IndexType.PLAIN,
+            false,
+            2,
+            10,
+            true,
+            null,
+            tree,
+            precision,
+            treeLevels,
+            distanceErrorPct
+        );
     }
 }

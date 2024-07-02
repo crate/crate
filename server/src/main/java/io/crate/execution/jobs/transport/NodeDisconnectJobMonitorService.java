@@ -37,14 +37,14 @@ import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportConnectionListener;
 import org.elasticsearch.transport.TransportService;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.execution.jobs.NodeLimits;
 import io.crate.execution.jobs.TasksService;
 import io.crate.execution.jobs.kill.KillJobsNodeAction;
 import io.crate.execution.jobs.kill.KillJobsNodeRequest;
 import io.crate.execution.jobs.kill.KillResponse;
 import io.crate.execution.support.ActionExecutor;
-import io.crate.user.User;
+import io.crate.role.Role;
 
 /**
  * service that listens to node-disconnected-events and kills jobContexts that were started by the nodes that got disconnected
@@ -138,7 +138,7 @@ public class NodeDisconnectJobMonitorService extends AbstractLifecycleComponent 
         KillJobsNodeRequest killRequest = new KillJobsNodeRequest(
             excludedNodeIds,
             affectedJobs,
-            User.CRATE_USER.name(),
+            Role.CRATE_USER.name(),
             "Participating node=" + deadNode.getName() + " disconnected."
         );
         killNodeAction
@@ -174,7 +174,7 @@ public class NodeDisconnectJobMonitorService extends AbstractLifecycleComponent 
         }
         tasksService.killJobs(
             jobsStartedByDeadNode,
-            User.CRATE_USER.name(),
+            Role.CRATE_USER.name(),
             "Participating node=" + deadNode.getName() + " disconnected."
         );
         if (LOGGER.isDebugEnabled()) {

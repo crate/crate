@@ -21,8 +21,8 @@
 
 package io.crate.protocols.postgres;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.net.InetAddress;
 import java.util.List;
@@ -34,31 +34,38 @@ import org.junit.Test;
 import io.crate.auth.AlwaysOKAuthentication;
 import io.crate.auth.Authentication;
 import io.crate.auth.AuthenticationMethod;
+import io.crate.auth.Credentials;
 import io.crate.auth.Protocol;
-import io.crate.user.User;
+import io.crate.role.Role;
 
 
 public class AuthenticationContextTest extends ESTestCase {
 
-    private static final Authentication AUTHENTICATION = new AlwaysOKAuthentication(() -> List.of(User.CRATE_USER));
+    private static final Authentication AUTHENTICATION = new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER));
 
     @Test
     public void testAuthenticationContextCycle() throws Exception {
         String userName = "crate";
         char[] passwd = "passwd".toCharArray();
+        var credentials = new Credentials(userName, passwd);
         ConnectionProperties connProperties = new ConnectionProperties(
-            InetAddress.getByName("127.0.0.1"), Protocol.POSTGRES, null);
+            credentials,
+            InetAddress.getByName("127.0.0.1"),
+            Protocol.POSTGRES,
+            null);
         AuthenticationMethod authMethod = AUTHENTICATION.resolveAuthenticationType(userName, connProperties);
         AuthenticationContext authContext = new AuthenticationContext(
-            authMethod, connProperties, userName, LogManager.getLogger(AuthenticationContextTest.class));
+            authMethod, connProperties, new Credentials(userName, null),
+            LogManager.getLogger(AuthenticationContextTest.class));
         authContext.setSecurePassword(passwd);
-        assertThat(authContext.authenticate(), is(User.CRATE_USER));
-        assertThat(authContext.password().getChars(), is(passwd));
+        assertThat(authContext.authenticate()).isEqualTo(Role.CRATE_USER);
+        assertThat(authContext.password().getChars()).isEqualTo(passwd);
         authContext.close();
 
-        // once the authContext has been closed it must not been re-used for authenticating a user
-        expectedException.expect(IllegalStateException.class);
-        expectedException.expectMessage("SecureString has already been closed");
-        authContext.password().getChars();
+        // once the authContext has been closed it must not been re-used for
+        // authenticating a user
+        assertThatThrownBy(() -> authContext.password().getChars())
+            .isExactlyInstanceOf(IllegalStateException.class)
+            .hasMessage("SecureString has already been closed");
     }
 }

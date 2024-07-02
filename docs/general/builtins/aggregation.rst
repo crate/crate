@@ -744,7 +744,7 @@ exceeded an ``ArithmeticException`` will be raised.
 ::
 
     cr> select sum(name), kind from locations group by kind order by sum(name) desc;
-    SQLParseException[Cannot cast value `North West Ripple` to type `byte`]
+    SQLParseException[Cannot cast value `Aldebaran` to type `byte`]
 
 If the ``sum`` aggregation on a numeric data type with the fixed length can
 potentially exceed its range it is possible to handle the overflow by casting

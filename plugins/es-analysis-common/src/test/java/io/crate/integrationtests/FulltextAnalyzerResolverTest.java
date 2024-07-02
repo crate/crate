@@ -28,7 +28,6 @@ import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKEN_FILTER
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -106,7 +105,7 @@ public class FulltextAnalyzerResolverTest extends IntegTestCase {
     public void resolveSimpleAnalyzerSettings() {
         execute("CREATE ANALYZER a1 (tokenizer lowercase)");
         Settings fullAnalyzerSettings = fulltextAnalyzerResolver.resolveFullCustomAnalyzerSettings("a1");
-        assertThat(fullAnalyzerSettings.size()).isEqualTo(2);
+        assertThat(fullAnalyzerSettings).hasSize(2);
         assertThat(fullAnalyzerSettings)
             .hasEntry(ANALYZER.buildSettingChildName("a1", "type"), "custom");
         assertThat(fullAnalyzerSettings)

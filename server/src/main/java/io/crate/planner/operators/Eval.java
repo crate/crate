@@ -25,20 +25,20 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.SequencedCollection;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.FetchMarker;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
@@ -95,11 +95,11 @@ public final class Eval extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new Eval(Lists2.getOnlyElement(sources), outputs);
+        return new Eval(Lists.getOnlyElement(sources), outputs);
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
         LogicalPlan newSource = source.pruneOutputsExcept(outputsToKeep);
         if (source == newSource) {
             return this;
@@ -115,7 +115,7 @@ public final class Eval extends ForwardingLogicalPlan {
             return null;
         }
         LogicalPlan newSource = fetchRewrite.newPlan();
-        Function<Symbol, Symbol> mapToFetchStubs = fetchRewrite.mapToFetchStubs();
+        UnaryOperator<Symbol> mapToFetchStubs = fetchRewrite.mapToFetchStubs();
         LinkedHashMap<Symbol, Symbol> newReplacedOutputs = new LinkedHashMap<>();
         ArrayList<Symbol> newOutputs = new ArrayList<>();
         for (Symbol sourceOutput : newSource.outputs()) {
@@ -125,7 +125,7 @@ public final class Eval extends ForwardingLogicalPlan {
         }
         for (Symbol output : outputs) {
             newReplacedOutputs.put(output, mapToFetchStubs.apply(output));
-            if (SymbolVisitors.any(newSource.outputs()::contains, output)) {
+            if (output.any(newSource.outputs()::contains)) {
                 newOutputs.add(output);
             }
         }
@@ -139,14 +139,14 @@ public final class Eval extends ForwardingLogicalPlan {
         PositionalOrderBy orderBy = executionPlan.resultDescription().orderBy();
         PositionalOrderBy newOrderBy = null;
         SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryResults);
-        List<Symbol> boundOutputs = Lists2.map(outputs, binder);
+        List<Symbol> boundOutputs = Lists.map(outputs, binder);
         if (orderBy != null) {
             newOrderBy = orderBy.tryMapToNewOutputs(source.outputs(), boundOutputs);
             if (newOrderBy == null) {
                 executionPlan = Merge.ensureOnHandler(executionPlan, plannerContext);
             }
         }
-        InputColumns.SourceSymbols ctx = new InputColumns.SourceSymbols(Lists2.map(source.outputs(), binder));
+        InputColumns.SourceSymbols ctx = new InputColumns.SourceSymbols(Lists.map(source.outputs(), binder));
         EvalProjection projection = new EvalProjection(InputColumns.create(boundOutputs, ctx));
         executionPlan.addProjection(
             projection,

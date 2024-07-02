@@ -19,6 +19,9 @@
 
 package org.elasticsearch.cluster.service;
 
+import java.util.Collections;
+import java.util.Map;
+
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateApplier;
@@ -37,9 +40,6 @@ import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.ThreadPool;
-
-import java.util.Collections;
-import java.util.Map;
 
 public class ClusterService extends AbstractLifecycleComponent {
     private final MasterService masterService;
@@ -236,7 +236,8 @@ public class ClusterService extends AbstractLifecycleComponent {
      * @param <T>      the type of the cluster state update task state
      *
      */
-    public <T> void submitStateUpdateTask(String source, T task,
+    public <T> void submitStateUpdateTask(String source,
+                                          T task,
                                           ClusterStateTaskConfig config,
                                           ClusterStateTaskExecutor<T> executor,
                                           ClusterStateTaskListener listener) {
@@ -257,7 +258,8 @@ public class ClusterService extends AbstractLifecycleComponent {
      *
      */
     public <T> void submitStateUpdateTasks(final String source,
-                                           final Map<T, ClusterStateTaskListener> tasks, final ClusterStateTaskConfig config,
+                                           final Map<T, ClusterStateTaskListener> tasks,
+                                           final ClusterStateTaskConfig config,
                                            final ClusterStateTaskExecutor<T> executor) {
         masterService.submitStateUpdateTasks(source, tasks, config, executor);
     }

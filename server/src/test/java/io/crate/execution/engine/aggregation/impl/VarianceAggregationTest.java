@@ -21,10 +21,8 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 
@@ -32,6 +30,7 @@ import org.junit.Test;
 
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.symbol.Literal;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.functions.Signature;
 import io.crate.operation.aggregation.AggregationTestCase;
@@ -46,7 +45,7 @@ public class VarianceAggregationTest extends AggregationTestCase {
                 VarianceAggregation.NAME,
                 argumentType.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.DETERMINISTIC),
             data,
             List.of()
         );
@@ -69,66 +68,63 @@ public class VarianceAggregationTest extends AggregationTestCase {
                 List.of(Literal.of(dataType, null)),
                 SearchPath.pathWithPGCatalogAndDoc()
             );
-            assertThat(
-                varianceFunction.boundSignature().returnType(),
-                is(DataTypes.DOUBLE)
-            );
+            assertThat(varianceFunction.boundSignature().returnType()).isEqualTo(DataTypes.DOUBLE);
         }
     }
 
     @Test
     public void withNullArg() throws Exception {
         Object result = executeAggregation(DataTypes.DOUBLE, new Object[][]{{null}, {null}});
-        assertNull(result);
+        assertThat(result).isNull();
     }
 
     @Test
     public void testDouble() throws Exception {
         Object result = executeAggregation(DataTypes.DOUBLE, new Object[][]{{1.0d}, {1.0d}, {1.0d}, {null}});
 
-        assertEquals(0.0d, result);
+        assertThat(result).isEqualTo(0.0d);
     }
 
     @Test
     public void testFloat() throws Exception {
         Object result = executeAggregation(DataTypes.FLOAT, new Object[][]{{0.7f}, {0.3f}, {0.7f}});
 
-        assertEquals(0.035555551317003165d, result);
+        assertThat(result).isEqualTo(0.035555551317003165d);
     }
 
     @Test
     public void testInteger() throws Exception {
         Object result = executeAggregation(DataTypes.INTEGER, new Object[][]{{7}, {3}});
 
-        assertEquals(4d, result);
+        assertThat(result).isEqualTo(4d);
     }
 
     @Test
     public void testLong() throws Exception {
         Object result = executeAggregation(DataTypes.LONG, new Object[][]{{7L}, {3L}});
 
-        assertEquals(4d, result);
+        assertThat(result).isEqualTo(4d);
     }
 
     @Test
     public void testShort() throws Exception {
         Object result = executeAggregation(DataTypes.SHORT, new Object[][]{{(short) 7}, {(short) 3}});
 
-        assertEquals(4d, result);
+        assertThat(result).isEqualTo(4d);
     }
 
     @Test
     public void test_variance_with_byte_argument_type() throws Exception {
         Object result = executeAggregation(DataTypes.BYTE, new Object[][]{{(byte) 1}, {(byte) 1}});
 
-        assertEquals(0d, result);
+        assertThat(result).isEqualTo(0d);
     }
 
     @Test
     public void testUnsupportedType() throws Exception {
-        expectedException.expect(UnsupportedFunctionException.class);
-        expectedException.expectMessage("Unknown function: variance(INPUT(0))," +
-                                        " no overload found for matching argument types: (geo_point).");
-        executeAggregation(DataTypes.GEO_POINT, new Object[][]{});
+        assertThatThrownBy(() -> executeAggregation(DataTypes.GEO_POINT, new Object[][] {}))
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessageStartingWith("Unknown function: variance(INPUT(0))," +
+                    " no overload found for matching argument types: (geo_point).");
     }
 }

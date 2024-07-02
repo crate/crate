@@ -21,19 +21,18 @@
 
 package io.crate.replication.logical.analyze;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertThrows;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.assertj.core.api.Assertions;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Setting;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.analyze.ParamTypeHints;
 import io.crate.exceptions.InvalidArgumentException;
+import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.UnauthorizedException;
 import io.crate.metadata.RelationName;
@@ -42,33 +41,28 @@ import io.crate.replication.logical.exceptions.PublicationAlreadyExistsException
 import io.crate.replication.logical.exceptions.PublicationUnknownException;
 import io.crate.replication.logical.exceptions.SubscriptionAlreadyExistsException;
 import io.crate.replication.logical.exceptions.SubscriptionUnknownException;
+import io.crate.role.metadata.RolesHelper;
 import io.crate.sql.parser.SqlParser;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-import io.crate.user.User;
 
 public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_create_publication_with_unknown_table_raise_error() {
-        var e = SQLExecutor.builder(clusterService).build();
-        assertThrows(
-            RelationUnknown.class,
-            () -> e.analyze("CREATE PUBLICATION pub1 FOR TABLE non_existing")
-        );
+        var e = SQLExecutor.of(clusterService);
+        assertThatThrownBy(() -> e.analyze("CREATE PUBLICATION pub1 FOR TABLE non_existing"))
+            .isExactlyInstanceOf(RelationUnknown.class);
     }
 
     @Test
     public void test_create_publication_which_already_exists_raises_error() throws Exception {
-        var e = SQLExecutor.builder(clusterService)
+        var e = SQLExecutor.of(clusterService)
             .addTable("create table doc.t1 (x int)")
-            .addPublication("pub1", false, new RelationName("doc", "t1"))
-            .build();
+            .addPublication("pub1", false, new RelationName("doc", "t1"));
 
-        assertThrows(
-            PublicationAlreadyExistsException.class,
-            () -> e.analyze("CREATE PUBLICATION pub1 FOR TABLE doc.t1")
-        );
+        assertThatThrownBy(() -> e.analyze("CREATE PUBLICATION pub1 FOR TABLE doc.t1"))
+            .isExactlyInstanceOf(PublicationAlreadyExistsException.class);
     }
 
     /**
@@ -78,18 +72,18 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
      */
     @Test
     public void test_create_publication_for_all_tables_results_in_empty_table_list() {
-        var e = SQLExecutor.builder(clusterService).build();
+        var e = SQLExecutor.of(clusterService);
         AnalyzedCreatePublication stmt = e.analyze("CREATE PUBLICATION pub1 FOR ALL TABLES");
-        assertThat(stmt.tables(), Matchers.empty());
-        assertThat(stmt.isForAllTables(), is(true));
+        assertThat(stmt.tables()).isEmpty();
+        assertThat(stmt.isForAllTables()).isTrue();
     }
 
     @Test
     public void test_create_publication_without_any_table_specification() {
-        var e = SQLExecutor.builder(clusterService).build();
+        var e = SQLExecutor.of(clusterService);
         AnalyzedCreatePublication stmt = e.analyze("CREATE PUBLICATION pub1");
-        assertThat(stmt.tables(), Matchers.empty());
-        assertThat(stmt.isForAllTables(), is(false));
+        assertThat(stmt.tables()).isEmpty();
+        assertThat(stmt.isForAllTables()).isFalse();
     }
 
     @Test
@@ -99,9 +93,8 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
                                                   Metadata.EMPTY_METADATA,
                                                   Version.V_4_8_0);
 
-        var e = SQLExecutor.builder(clusterService).addTable(
-                "create table doc.t1 (x int) with (\"soft_deletes.enabled\" = false)")
-            .build();
+        var e = SQLExecutor.of(clusterService).addTable(
+                "create table doc.t1 (x int) with (\"soft_deletes.enabled\" = false)");
         Assertions.assertThatThrownBy(() -> e.analyze("CREATE PUBLICATION pub1 FOR TABLE doc.t1"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessageContaining(
@@ -111,30 +104,27 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
 
     @Test
     public void test_drop_unknown_publication_raises_error() {
-        var e = SQLExecutor.builder(clusterService).build();
-        assertThrows(
-            PublicationUnknownException.class,
-            () -> e.analyze("DROP PUBLICATION pub1")
-        );
+        var e = SQLExecutor.of(clusterService);
+        assertThatThrownBy(() -> e.analyze("DROP PUBLICATION pub1"))
+            .isExactlyInstanceOf(PublicationUnknownException.class);
     }
 
     @Test
     public void test_drop_publication_if_exists_with_unknown_publication_does_not_raise_error() {
-        var e = SQLExecutor.builder(clusterService).build();
+        var e = SQLExecutor.of(clusterService);
         AnalyzedDropPublication stmt = e.analyze("DROP PUBLICATION IF EXISTS pub1");
-        assertThat(stmt.ifExists(), is(true));
-        assertThat(stmt.name(), is("pub1"));
+        assertThat(stmt.ifExists()).isTrue();
+        assertThat(stmt.name()).isEqualTo("pub1");
     }
 
     @Test
     public void test_drop_publication_as_non_superuser_and_non_owner_raises_error() {
-        var e = SQLExecutor.builder(clusterService)
-            .setUser(User.of("owner"))
-            .addPublication("pub1", true)
-            .build();
+        var e = SQLExecutor.of(clusterService)
+            .setUser(RolesHelper.userOf("owner"))
+            .addPublication("pub1", true);
         Assertions.assertThatThrownBy(() -> e.analyzer.analyze(
                         SqlParser.createStatement("DROP PUBLICATION pub1"),
-                        new CoordinatorSessionSettings(User.of("other_user")),
+                        new CoordinatorSessionSettings(RolesHelper.userOf("other_user")),
                         ParamTypeHints.EMPTY,
                         e.cursors
             ))
@@ -144,31 +134,25 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
 
     @Test
     public void test_alter_unknown_publication_raises_error() {
-        var e = SQLExecutor.builder(clusterService).build();
-        assertThrows(
-            PublicationUnknownException.class,
-            () -> e.analyze("ALTER PUBLICATION pub1 SET TABLE t1")
-        );
+        var e = SQLExecutor.of(clusterService);
+        assertThatThrownBy(() -> e.analyze("ALTER PUBLICATION pub1 SET TABLE t1"))
+            .isExactlyInstanceOf(PublicationUnknownException.class);
     }
 
     @Test
     public void test_alter_publication_with_unknown_table_raise_error() throws Exception {
-        var e = SQLExecutor.builder(clusterService)
+        var e = SQLExecutor.of(clusterService)
             .addTable("create table doc.t1 (x int)")
-            .addPublication("pub1", false, new RelationName("doc", "t1"))
-            .build();
-        assertThrows(
-            RelationUnknown.class,
-            () -> e.analyze("ALTER PUBLICATION pub1 ADD TABLE non_existing")
-        );
+            .addPublication("pub1", false, new RelationName("doc", "t1"));
+        assertThatThrownBy(() -> e.analyze("ALTER PUBLICATION pub1 ADD TABLE non_existing"))
+            .isExactlyInstanceOf(RelationUnknown.class);
     }
 
     @Test
     public void test_alter_publication_for_all_tables_raise_error() throws Exception {
-        var e = SQLExecutor.builder(clusterService)
+        var e = SQLExecutor.of(clusterService)
             .addTable("create table doc.t1 (x int)")
-            .addPublication("pub1", true)
-            .build();
+            .addPublication("pub1", true);
         Assertions.assertThatThrownBy(() -> e.analyze("ALTER PUBLICATION pub1 ADD TABLE doc.t1"))
             .isExactlyInstanceOf(InvalidArgumentException.class)
             .hasMessageContaining(
@@ -177,13 +161,12 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
 
     @Test
     public void test_alter_publication_as_non_superuser_and_non_owner_raises_error() {
-        var e = SQLExecutor.builder(clusterService)
-            .setUser(User.of("owner"))
-            .addPublication("pub1", false, new RelationName("doc", "t1"))
-            .build();
+        var e = SQLExecutor.of(clusterService)
+            .setUser(RolesHelper.userOf("owner"))
+            .addPublication("pub1", false, new RelationName("doc", "t1"));
         Assertions.assertThatThrownBy(() -> e.analyzer.analyze(
                         SqlParser.createStatement("ALTER PUBLICATION pub1 ADD TABLE doc.t2"),
-                        new CoordinatorSessionSettings(User.of("other_user")),
+                        new CoordinatorSessionSettings(RolesHelper.userOf("other_user")),
                         ParamTypeHints.EMPTY,
                         e.cursors
             ))
@@ -193,41 +176,35 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
 
     @Test
     public void test_create_subscription_which_already_exists_raises_error() {
-        var e = SQLExecutor.builder(clusterService)
-            .addSubscription("sub1", "pub1")
-            .build();
-        assertThrows(
-            SubscriptionAlreadyExistsException.class,
-            () -> e.analyze("CREATE SUBSCRIPTION sub1 CONNECTION 'crate://localhost' PUBLICATION pub1")
-        );
+        var e = SQLExecutor.of(clusterService)
+            .addSubscription("sub1", "pub1");
+        assertThatThrownBy(() -> e.analyze("CREATE SUBSCRIPTION sub1 CONNECTION 'crate://localhost' PUBLICATION pub1"))
+            .isExactlyInstanceOf(SubscriptionAlreadyExistsException.class);
     }
 
     @Test
     public void test_drop_unknown_subscription_raises_error() {
-        var e = SQLExecutor.builder(clusterService).build();
-        assertThrows(
-            SubscriptionUnknownException.class,
-            () -> e.analyze("DROP SUBSCRIPTION sub1")
-        );
+        var e = SQLExecutor.of(clusterService);
+        assertThatThrownBy(() -> e.analyze("DROP SUBSCRIPTION sub1"))
+            .isExactlyInstanceOf(SubscriptionUnknownException.class);
     }
 
     @Test
     public void test_drop_unknown_subscription_using_if_exists_does_not_raise_error() {
-        var e = SQLExecutor.builder(clusterService).build();
+        var e = SQLExecutor.of(clusterService);
         AnalyzedDropSubscription stmt = e.analyze("DROP SUBSCRIPTION IF EXISTS sub1");
-        assertThat(stmt.ifExists(), is(true));
-        assertThat(stmt.name(), is("sub1"));
+        assertThat(stmt.ifExists()).isTrue();
+        assertThat(stmt.name()).isEqualTo("sub1");
     }
 
     @Test
     public void test_drop_subscription_as_non_superuser_and_non_owner_raises_error() {
-        var e = SQLExecutor.builder(clusterService)
-            .setUser(User.of("owner"))
-            .addSubscription("sub1", "pub1")
-            .build();
+        var e = SQLExecutor.of(clusterService)
+            .setUser(RolesHelper.userOf("owner"))
+            .addSubscription("sub1", "pub1");
         Assertions.assertThatThrownBy(() -> e.analyzer.analyze(
                         SqlParser.createStatement("DROP SUBSCRIPTION sub1"),
-                        new CoordinatorSessionSettings(User.of("other_user")),
+                        new CoordinatorSessionSettings(RolesHelper.userOf("other_user")),
                         ParamTypeHints.EMPTY,
                         e.cursors
             ))
@@ -237,13 +214,12 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
 
     @Test
     public void test_alter_subscription_as_non_superuser_and_non_owner_raises_error() {
-        var e = SQLExecutor.builder(clusterService)
-            .setUser(User.of("owner"))
-            .addSubscription("sub1", "pub1")
-            .build();
+        var e = SQLExecutor.of(clusterService)
+            .setUser(RolesHelper.userOf("owner"))
+            .addSubscription("sub1", "pub1");
         Assertions.assertThatThrownBy(() -> e.analyzer.analyze(
                         SqlParser.createStatement("ALTER SUBSCRIPTION sub1 DISABLE"),
-                        new CoordinatorSessionSettings(User.of("other_user")),
+                        new CoordinatorSessionSettings(RolesHelper.userOf("other_user")),
                         ParamTypeHints.EMPTY,
                         e.cursors
             ))
@@ -253,10 +229,16 @@ public class LogicalReplicationAnalyzerTest extends CrateDummyClusterServiceUnit
 
     @Test
     public void test_alter_unknown_subscription_raises_error() {
-        var e = SQLExecutor.builder(clusterService).build();
-        assertThrows(
-            SubscriptionUnknownException.class,
-            () -> e.analyze("ALTER SUBSCRIPTION sub1 DISABLE")
-        );
+        var e = SQLExecutor.of(clusterService);
+        assertThatThrownBy(() -> e.analyze("ALTER SUBSCRIPTION sub1 DISABLE"))
+            .isExactlyInstanceOf(SubscriptionUnknownException.class);
+    }
+
+    @Test
+    public void test_cannot_create_publication_for_system_table() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService);
+        assertThatThrownBy(() -> e.plan("create publication pub1 for table sys.summits"))
+            .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
+            .hasMessage("The relation \"sys.summits\" doesn't support or allow CREATE PUBLICATION operations");
     }
 }

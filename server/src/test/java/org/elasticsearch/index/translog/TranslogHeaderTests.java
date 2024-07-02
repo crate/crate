@@ -19,16 +19,13 @@
 
 package org.elasticsearch.index.translog;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.either;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertThat;
 
 import java.nio.channels.FileChannel;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 
@@ -47,29 +44,28 @@ public class TranslogHeaderTests extends ESTestCase {
         final Path translogFile = createTempDir().resolve(Translog.getFilename(generation));
         try (FileChannel channel = FileChannel.open(translogFile, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)) {
             outHeader.write(channel);
-            assertThat(outHeader.sizeInBytes(), equalTo((int)channel.position()));
+            assertThat(outHeader.sizeInBytes()).isEqualTo((int)channel.position());
         }
         try (FileChannel channel = FileChannel.open(translogFile, StandardOpenOption.READ)) {
             final TranslogHeader inHeader = TranslogHeader.read(translogUUID, translogFile, channel);
-            assertThat(inHeader.getTranslogUUID(), equalTo(translogUUID));
-            assertThat(inHeader.getPrimaryTerm(), equalTo(outHeader.getPrimaryTerm()));
-            assertThat(inHeader.sizeInBytes(), equalTo((int)channel.position()));
+            assertThat(inHeader.getTranslogUUID()).isEqualTo(translogUUID);
+            assertThat(inHeader.getPrimaryTerm()).isEqualTo(outHeader.getPrimaryTerm());
+            assertThat(inHeader.sizeInBytes()).isEqualTo((int)channel.position());
         }
-        final TranslogCorruptedException mismatchUUID = expectThrows(TranslogCorruptedException.class, () -> {
+        assertThatThrownBy(() -> {
             try (FileChannel channel = FileChannel.open(translogFile, StandardOpenOption.READ)) {
                 TranslogHeader.read(randomValueOtherThan(translogUUID, UUIDs::randomBase64UUID), translogFile, channel);
             }
-        });
-        assertThat(mismatchUUID.getMessage(), containsString("this translog file belongs to a different translog"));
+        }).isExactlyInstanceOf(TranslogCorruptedException.class)
+            .hasMessageContaining("this translog file belongs to a different translog");
         TestTranslog.corruptFile(logger, random(), translogFile, false);
-        final TranslogCorruptedException corruption = expectThrows(TranslogCorruptedException.class, () -> {
+        assertThatThrownBy(() -> {
             try (FileChannel channel = FileChannel.open(translogFile, StandardOpenOption.READ)) {
                 TranslogHeader.read(randomBoolean() ? outHeader.getTranslogUUID() : UUIDs.randomBase64UUID(), translogFile, channel);
                 final TranslogHeader translogHeader = TranslogHeader.read(outHeader.getTranslogUUID(), translogFile, channel);
                 // succeeds if the corruption corrupted the version byte making this look like a v2 translog, because we don't check the
                 // checksum on this version
-                assertThat("version " + TranslogHeader.VERSION_CHECKPOINTS + " translog",
-                           translogHeader.getPrimaryTerm(), equalTo(SequenceNumbers.UNASSIGNED_PRIMARY_TERM));
+                assertThat(translogHeader.getPrimaryTerm()).as("version " + TranslogHeader.VERSION_CHECKPOINTS + " translog").isEqualTo(SequenceNumbers.UNASSIGNED_PRIMARY_TERM);
                 throw new TranslogCorruptedException(translogFile.toString(), "adjusted translog version");
             } catch (IllegalStateException e) {
                 // corruption corrupted the version byte making this look like a v2, v1 or v0 translog
@@ -78,8 +74,8 @@ public class TranslogHeaderTests extends ESTestCase {
                         containsString("pre-6.3 translog found")));
                 throw new TranslogCorruptedException(translogFile.toString(), "adjusted translog version", e);
             }
-        });
-        assertThat(corruption.getMessage(), not(containsString("this translog file belongs to a different translog")));
+        }).isExactlyInstanceOf(TranslogCorruptedException.class)
+            .hasMessageNotContaining("this translog file belongs to a different translog");
     }
 
     @Test
@@ -91,28 +87,13 @@ public class TranslogHeaderTests extends ESTestCase {
         final Path translogFile = translogLocation.resolve(Translog.getFilename(generation));
         try (FileChannel channel = FileChannel.open(translogFile, StandardOpenOption.CREATE_NEW, StandardOpenOption.WRITE)) {
             outHeader.write(channel);
-            assertThat(outHeader.sizeInBytes(), equalTo((int) channel.position()));
+            assertThat(outHeader.sizeInBytes()).isEqualTo((int) channel.position());
         }
         TestTranslog.corruptFile(logger, random(), translogFile, false);
-        final Exception error = expectThrows(Exception.class, () -> {
+        assertThatThrownBy(() -> {
             try (FileChannel channel = FileChannel.open(translogFile, StandardOpenOption.READ)) {
                 TranslogHeader.read(randomValueOtherThan(translogUUID, UUIDs::randomBase64UUID), translogFile, channel);
             }
-        });
-        assertThat(error, either(instanceOf(IllegalStateException.class)).or(instanceOf(TranslogCorruptedException.class)));
-    }
-
-    private <E extends Exception> void checkFailsToOpen(String file, Class<E> expectedErrorType, String expectedMessage) {
-        final Path translogFile = getDataPath(file);
-        assertThat("test file [" + translogFile + "] should exist", Files.exists(translogFile), equalTo(true));
-        final E error = expectThrows(expectedErrorType, () -> {
-            final Checkpoint checkpoint = new Checkpoint(Files.size(translogFile), 1, 1,
-                SequenceNumbers.NO_OPS_PERFORMED, SequenceNumbers.NO_OPS_PERFORMED,
-                SequenceNumbers.NO_OPS_PERFORMED, 1, SequenceNumbers.NO_OPS_PERFORMED);
-            try (FileChannel channel = FileChannel.open(translogFile, StandardOpenOption.READ)) {
-                TranslogReader.open(channel, translogFile, checkpoint, null);
-            }
-        });
-        assertThat(error.getMessage(), containsString(expectedMessage));
+        }).isInstanceOfAny(IllegalStateException.class, TranslogCorruptedException.class);
     }
 }

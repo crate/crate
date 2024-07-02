@@ -22,23 +22,24 @@
 package io.crate.analyze;
 
 
-import io.crate.common.collections.Lists2;
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
+import static io.crate.sql.tree.FrameBound.Type.CURRENT_ROW;
+import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_PRECEDING;
+import static io.crate.sql.tree.WindowFrame.Mode.RANGE;
 
-import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 
-import static io.crate.sql.tree.FrameBound.Type.CURRENT_ROW;
-import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_PRECEDING;
-import static io.crate.sql.tree.WindowFrame.Mode.RANGE;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.common.collections.Lists;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 
 /**
  * Representation of a window used to describe the window function calls target.
@@ -57,7 +58,7 @@ public class WindowDefinition implements Writeable {
     private final WindowFrameDefinition windowFrameDefinition;
 
     public WindowDefinition(StreamInput in) throws IOException {
-        partitions = Symbols.listFromStream(in);
+        partitions = Symbols.fromStream(in);
         orderBy = in.readOptionalWriteable(OrderBy::new);
         windowFrameDefinition = new WindowFrameDefinition(in);
     }
@@ -76,7 +77,7 @@ public class WindowDefinition implements Writeable {
 
     public WindowDefinition map(Function<? super Symbol, ? extends Symbol> mapper) {
         return new WindowDefinition(
-            Lists2.map(partitions, mapper),
+            Lists.map(partitions, mapper),
             orderBy != null ? orderBy.map(mapper) : null,
             windowFrameDefinition.map(mapper)
         );
@@ -95,7 +96,7 @@ public class WindowDefinition implements Writeable {
     public void writeTo(StreamOutput out) throws IOException {
         out.writeVInt(partitions.size());
         for (Symbol partition : partitions) {
-            Symbols.toStream(partition, out);
+            Symbol.toStream(partition, out);
         }
         out.writeOptionalWriteable(orderBy);
         windowFrameDefinition.writeTo(out);

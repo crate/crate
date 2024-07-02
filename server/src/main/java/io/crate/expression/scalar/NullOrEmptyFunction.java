@@ -35,6 +35,7 @@ import io.crate.expression.predicate.IsNullPredicate;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder.Context;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
@@ -50,21 +51,24 @@ import io.crate.types.TypeSignature;
 
 public final class NullOrEmptyFunction extends Scalar<Boolean, Object> {
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder module) {
+        module.add(
             Signature.scalar(
-                "null_or_empty",
-                DataTypes.UNTYPED_OBJECT.getTypeSignature(),
-                DataTypes.BOOLEAN.getTypeSignature()
-            ),
+                    "null_or_empty",
+                    DataTypes.UNTYPED_OBJECT.getTypeSignature(),
+                    DataTypes.BOOLEAN.getTypeSignature())
+                .withFeature(Feature.DETERMINISTIC)
+                .withFeature(Feature.NON_NULLABLE),
             NullOrEmptyFunction::new
         );
-        module.register(
+        module.add(
             Signature.scalar(
-                "null_or_empty",
-                TypeSignature.parse("array(E)"),
-                DataTypes.BOOLEAN.getTypeSignature()
-            ).withTypeVariableConstraints(TypeVariableConstraint.typeVariableOfAnyType("E")),
+                    "null_or_empty",
+                    TypeSignature.parse("array(E)"),
+                    DataTypes.BOOLEAN.getTypeSignature()
+                ).withTypeVariableConstraints(TypeVariableConstraint.typeVariableOfAnyType("E"))
+                .withFeature(Feature.DETERMINISTIC)
+                .withFeature(Feature.NON_NULLABLE),
             NullOrEmptyFunction::new
         );
     }

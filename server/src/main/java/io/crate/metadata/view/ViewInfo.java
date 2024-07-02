@@ -23,20 +23,21 @@ package io.crate.metadata.view;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
-import io.crate.common.annotations.VisibleForTesting;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.SearchPath;
 import io.crate.metadata.table.Operation;
 
 public class ViewInfo implements RelationInfo {
@@ -44,14 +45,23 @@ public class ViewInfo implements RelationInfo {
     private final RelationName ident;
     private final String definition;
     private final List<Reference> columns;
+    private final List<Reference> references;
     private final String owner;
+    private final SearchPath searchPath;
 
     @VisibleForTesting
-    public ViewInfo(RelationName ident, String definition, List<Reference> columns, @Nullable String owner) {
+    public ViewInfo(RelationName ident, String definition, List<Reference> references, @Nullable String owner, SearchPath searchPath) {
         this.ident = ident;
         this.definition = definition;
-        this.columns = columns;
+        this.references = references
+            .stream()
+            .sorted(Reference.CMP_BY_POSITION_THEN_NAME)
+            .toList();
+        this.columns = this.references.stream()
+            .filter(r -> r.column().isRoot())
+            .toList();
         this.owner = owner;
+        this.searchPath = searchPath;
     }
 
     @Override
@@ -81,7 +91,7 @@ public class ViewInfo implements RelationInfo {
 
     @Override
     public Set<Operation> supportedOperations() {
-        return Operation.READ_ONLY;
+        return EnumSet.of(Operation.READ, Operation.ALTER_TABLE_RENAME);
     }
 
     @Override
@@ -91,7 +101,7 @@ public class ViewInfo implements RelationInfo {
 
     @Override
     public Iterator<Reference> iterator() {
-        return columns.iterator();
+        return references.iterator();
     }
 
     @Override
@@ -106,5 +116,9 @@ public class ViewInfo implements RelationInfo {
     @Nullable
     public String owner() {
         return owner;
+    }
+
+    public SearchPath searchPath() {
+        return searchPath;
     }
 }

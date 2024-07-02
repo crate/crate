@@ -28,7 +28,7 @@ import java.util.List;
 
 import org.junit.Test;
 
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -41,8 +41,7 @@ public class CreateTableAsAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     @Test
     public void testSimpleCompareAgainstAnalyzedCreateTable() throws IOException {
-
-        SQLExecutor e = SQLExecutor.builder(clusterService)
+        SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable(
                 "create table tbl (" +
                 "   col_default_object object as (" +
@@ -52,8 +51,7 @@ public class CreateTableAsAnalyzerTest extends CrateDummyClusterServiceUnitTest 
                 "       )" +
                 "   )" +
                 ")"
-            )
-            .build();
+            );
 
         var expected = ((AnalyzedCreateTable) e.analyze(
             "create table cpy (" +
@@ -85,10 +83,47 @@ public class CreateTableAsAnalyzerTest extends CrateDummyClusterServiceUnitTest 
             SubQueryResults.EMPTY
         );
 
+        assertThat(actual.ifNotExists()).isFalse();
         assertThat(expected.tableName()).isEqualTo(actual.tableName());
         assertThat(expected.columns().keySet()).containsExactlyElementsOf(actual.columns().keySet());
-        List<DataType<?>> expectedTypes = Lists2.map(expected.columns().values(), Symbol::valueType);
-        List<DataType<?>> actualTypes = Lists2.map(actual.columns().values(), Symbol::valueType);
+        List<DataType<?>> expectedTypes = Lists.map(expected.columns().values(), Symbol::valueType);
+        List<DataType<?>> actualTypes = Lists.map(actual.columns().values(), Symbol::valueType);
         assertThat(expectedTypes).containsExactlyElementsOf(actualTypes);
+    }
+
+    @Test
+    public void testAnalyzedCreateTableAsWithNotExists() throws IOException {
+
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (a int)");
+
+        var expected = ((AnalyzedCreateTable) e.analyze("create table cpy (a int)"))
+            .bind(
+                new NumberOfShards(clusterService),
+                e.fulltextAnalyzerResolver(),
+                e.nodeCtx,
+                CoordinatorTxnCtx.systemTransactionContext(),
+                Row.EMPTY,
+                SubQueryResults.EMPTY
+        );
+
+        AnalyzedCreateTableAs analyzedCreateTableAs = e.analyze(
+            "create table if not exists cpy as select * from  tbl"
+        );
+        var actual = analyzedCreateTableAs.analyzedCreateTable().bind(
+            new NumberOfShards(clusterService),
+            e.fulltextAnalyzerResolver(),
+            e.nodeCtx,
+            CoordinatorTxnCtx.systemTransactionContext(),
+            Row.EMPTY,
+            SubQueryResults.EMPTY
+        );
+
+        assertThat(actual.ifNotExists()).isTrue();
+        assertThat(actual.tableName()).isEqualTo(expected.tableName());
+        assertThat(actual.columns().keySet()).containsExactlyElementsOf(expected.columns().keySet());
+        List<DataType<?>> expectedTypes = Lists.map(expected.columns().values(), Symbol::valueType);
+        List<DataType<?>> actualTypes = Lists.map(actual.columns().values(), Symbol::valueType);
+        assertThat(actualTypes).containsExactlyElementsOf(expectedTypes);
     }
 }

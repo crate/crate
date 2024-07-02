@@ -19,7 +19,7 @@
 
 package io.crate.server.inject;
 
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.fail;
 
 import java.lang.annotation.Annotation;
@@ -57,14 +57,14 @@ public abstract class ModuleTestCase extends ESTestCase {
                 InstanceBinding binding = (InstanceBinding) element;
                 if (to.equals(binding.getKey().getTypeLiteral().getType())) {
                     if (annotation == null || annotation.equals(binding.getKey().getAnnotationType())) {
-                        assertTrue(tester.test(to.cast(binding.getInstance())));
+                        assertThat(tester.test(to.cast(binding.getInstance()))).isTrue();
                         return;
                     }
                 }
             } else if (element instanceof ProviderInstanceBinding) {
                 ProviderInstanceBinding binding = (ProviderInstanceBinding) element;
                 if (to.equals(binding.getKey().getTypeLiteral().getType())) {
-                    assertTrue(tester.test(to.cast(binding.getProviderInstance().get())));
+                    assertThat(tester.test(to.cast(binding.getProviderInstance().get()))).isTrue();
                     return;
                 }
             }

@@ -32,20 +32,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.AnalyzedCopyTo;
 import io.crate.analyze.BoundCopyTo;
-import io.crate.analyze.PartitionPropertiesAnalyzer;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import io.crate.exceptions.PartitionUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.dsl.phases.NodeOperationTree;
 import io.crate.execution.dsl.projection.MergeCountProjection;
@@ -55,13 +55,13 @@ import io.crate.execution.engine.JobLauncher;
 import io.crate.execution.engine.NodeOperationTreeGenerator;
 import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
@@ -73,6 +73,7 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
@@ -113,7 +114,9 @@ public final class CopyToPlan implements Plan {
             plannerContext.transactionContext(),
             plannerContext.nodeContext(),
             params,
-            subQueryResults);
+            subQueryResults,
+            plannerContext.clusterState().metadata()
+        );
 
         ExecutionPlan executionPlan = planCopyToExecution(
             executor,
@@ -182,11 +185,13 @@ public final class CopyToPlan implements Plan {
         Match<Collect> match = rewriteCollectToGet.pattern().accept(collect, Captures.empty());
         if (match.isPresent()) {
             LogicalPlan plan = rewriteCollectToGet.apply(match.value(),
-                                                         match.captures(),
-                                                         planStats,
-                                                         context.transactionContext(),
-                                                         context.nodeContext(),
-                                                         Function.identity());
+                match.captures(),
+                new Rule.Context(
+                    planStats,
+                    context.transactionContext(),
+                    context.nodeContext(),
+                    UnaryOperator.identity()
+                ));
             return plan == null ? collect : plan;
         }
         return collect;
@@ -197,7 +202,8 @@ public final class CopyToPlan implements Plan {
                                    CoordinatorTxnCtx txnCtx,
                                    NodeContext nodeCtx,
                                    Row parameters,
-                                   SubQueryResults subQueryResults) {
+                                   SubQueryResults subQueryResults,
+                                   Metadata metadata) {
         Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(
             txnCtx,
             nodeCtx,
@@ -208,9 +214,9 @@ public final class CopyToPlan implements Plan {
         DocTableInfo table = (DocTableInfo) copyTo.tableInfo();
 
         List<String> partitions = resolvePartitions(
-            Lists2.map(copyTo.table().partitionProperties(), x -> x.map(eval)),
-            table
-        );
+            Lists.map(copyTo.table().partitionProperties(), x -> x.map(eval)),
+            table,
+            metadata);
 
         List<Symbol> outputs = new ArrayList<>();
         Map<ColumnIdent, Symbol> overwrites = null;
@@ -220,7 +226,7 @@ public final class CopyToPlan implements Plan {
             // TODO: remove outputNames?
             for (Symbol symbol : copyTo.columns()) {
                 assert symbol instanceof Reference : "Only references are expected here";
-                RefVisitor.visitRefs(symbol, r -> outputNames.add(r.column().sqlFqn()));
+                symbol.visit(Reference.class, r -> outputNames.add(r.column().sqlFqn()));
                 outputs.add(DocReferences.toSourceLookup(symbol));
             }
             columnsDefined = true;
@@ -275,16 +281,12 @@ public final class CopyToPlan implements Plan {
     }
 
     private static List<String> resolvePartitions(List<Assignment<Object>> partitionProperties,
-                                                  DocTableInfo table) {
+                                                  DocTableInfo table,
+                                                  Metadata metadata) {
         if (partitionProperties.isEmpty()) {
             return Collections.emptyList();
         }
-        var partitionName = PartitionPropertiesAnalyzer.toPartitionName(
-            table,
-            partitionProperties);
-        if (!table.partitions().contains(partitionName)) {
-            throw new PartitionUnknownException(partitionName);
-        }
+        var partitionName = PartitionName.ofAssignments(table, partitionProperties, metadata);
         return List.of(partitionName.asIndexName());
     }
 }

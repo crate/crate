@@ -32,33 +32,44 @@ import org.junit.Test;
 
 import io.crate.Constants;
 import io.crate.exceptions.MissingPrivilegeException;
+import io.crate.exceptions.RoleUnknownException;
 import io.crate.metadata.pgcatalog.OidHash;
+import io.crate.role.Permission;
+import io.crate.role.Policy;
+import io.crate.role.Privilege;
+import io.crate.role.Role;
+import io.crate.role.Securable;
+import io.crate.role.metadata.RolesHelper;
 import io.crate.testing.Asserts;
 import io.crate.testing.SqlExpressions;
-import io.crate.user.Privilege;
-import io.crate.user.User;
 
 public class HasDatabasePrivilegeFunctionTest extends ScalarTestCase {
 
-    private static final User TEST_USER = User.of("test");
-    private static final User TEST_USER_WITH_CREATE =
-        User.of("testWithCreate",
-                Set.of(new Privilege(Privilege.State.GRANT, Privilege.Type.DDL, Privilege.Clazz.SCHEMA, "doc", User.CRATE_USER.name())),
-                null);
-    private static final User TEST_USER_WITH_AL_ON_CLUSTER =
-        User.of("testUserWithClusterAL",
-                Set.of(new Privilege(Privilege.State.GRANT, Privilege.Type.AL, Privilege.Clazz.CLUSTER, "crate", User.CRATE_USER.name())),
-                null);
-    private static final User TEST_USER_WITH_DQL_ON_SYS =
-        User.of("testUserWithSysDQL",
-                Set.of(new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.TABLE, "sys.privileges", User.CRATE_USER.name())),
-                null);
+    private static final Role TEST_USER = RolesHelper.userOf("test");
+    private static final Role TEST_USER_WITH_CREATE =
+        RolesHelper.userOf("testWithCreate", Set.of(
+            new Privilege(Policy.GRANT, Permission.DDL, Securable.SCHEMA, "doc", Role.CRATE_USER.name())),
+            null);
+    private static final Role TEST_USER_WITH_AL_ON_CLUSTER =
+        RolesHelper.userOf("testUserWithClusterAL", Set.of(
+            new Privilege(Policy.GRANT, Permission.AL, Securable.CLUSTER, "crate", Role.CRATE_USER.name())),
+            null);
+    private static final Role TEST_USER_WITH_DQL_ON_SYS =
+        RolesHelper.userOf("testUserWithSysDQL", Set.of(
+            new Privilege(Policy.GRANT, Permission.DQL, Securable.TABLE, "sys.privileges", Role.CRATE_USER.name())),
+            null);
 
     @Before
     public void prepare() {
         sqlExpressions = new SqlExpressions(
-            tableSources, null, randomFrom(User.CRATE_USER, TEST_USER_WITH_AL_ON_CLUSTER, TEST_USER_WITH_DQL_ON_SYS),
-            List.of(User.CRATE_USER, TEST_USER, TEST_USER_WITH_CREATE));
+            tableSources, null, randomFrom(Role.CRATE_USER, TEST_USER_WITH_AL_ON_CLUSTER, TEST_USER_WITH_DQL_ON_SYS),
+            List.of(Role.CRATE_USER, TEST_USER, TEST_USER_WITH_CREATE), null);
+    }
+
+    @Test
+    public void test_function_registered_under_pg_catalog() {
+        sqlExpressions = new SqlExpressions(tableSources, null, Role.CRATE_USER);
+        assertEvaluate("pg_catalog.has_database_privilege('crate', 'crate', 'CONNECT')", true);
     }
 
     @Test
@@ -83,8 +94,8 @@ public class HasDatabasePrivilegeFunctionTest extends ScalarTestCase {
     public void test_throws_error_when_user_is_not_found() {
         assertThatThrownBy(
             () -> assertEvaluate("has_database_privilege('not_existing_user', 'crate', ' CONNECT')", null))
-            .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("User not_existing_user does not exist");
+            .isExactlyInstanceOf(RoleUnknownException.class)
+            .hasMessage("Role 'not_existing_user' does not exist");
     }
 
     @Test
@@ -92,16 +103,16 @@ public class HasDatabasePrivilegeFunctionTest extends ScalarTestCase {
         assertThatThrownBy(
             () -> assertEvaluate("has_database_privilege('test', 'pg_catalog', 'TEMP , CREATE , SELECT')", null))
             .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Unrecognized privilege type: select");
+            .hasMessage("Unrecognized permission: select");
         assertThatThrownBy(
             () -> assertEvaluate("has_database_privilege('test', 'pg_catalog', '')", null))
             .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Unrecognized privilege type: ");
+            .hasMessage("Unrecognized permission: ");
     }
 
     @Test
     public void test_throws_error_when_user_is_not_super_user_checking_for_other_user() {
-        sqlExpressions = new SqlExpressions(tableSources, null, TEST_USER, List.of(TEST_USER_WITH_AL_ON_CLUSTER));
+        sqlExpressions = new SqlExpressions(tableSources, null, TEST_USER, List.of(TEST_USER_WITH_AL_ON_CLUSTER), null);
         assertThatThrownBy(
             () -> assertEvaluate("has_database_privilege('testUserWithClusterAL', 'crate', 'CREATE')", null))
             .isExactlyInstanceOf(MissingPrivilegeException.class)
@@ -110,7 +121,7 @@ public class HasDatabasePrivilegeFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_throws_error_when_user_is_not_super_user_checking_for_other_user_for_compiled() {
-        sqlExpressions = new SqlExpressions(tableSources, null, TEST_USER, List.of(TEST_USER_WITH_AL_ON_CLUSTER));
+        sqlExpressions = new SqlExpressions(tableSources, null, TEST_USER, List.of(TEST_USER_WITH_AL_ON_CLUSTER), null);
         assertThatThrownBy(
             () -> assertCompile("has_database_privilege('testUserWithClusterAL', name, 'CREATE')",
                                 TEST_USER, () -> List.of(TEST_USER, TEST_USER_WITH_AL_ON_CLUSTER),
@@ -145,7 +156,7 @@ public class HasDatabasePrivilegeFunctionTest extends ScalarTestCase {
         assertEvaluate("has_database_privilege('testWithCreate', 'crate', 'CONNECT, temp, CREATE, TEMP')", true);
 
         // Same as above but with session user
-        sqlExpressions = new SqlExpressions(tableSources, null, User.CRATE_USER);
+        sqlExpressions = new SqlExpressions(tableSources, null, Role.CRATE_USER);
         assertEvaluate("has_database_privilege('crate', 'CREATE')", true);
         sqlExpressions = new SqlExpressions(tableSources, null, TEST_USER_WITH_CREATE);
         assertEvaluate("has_database_privilege('crate', 'CONNECT')", true);
@@ -158,7 +169,7 @@ public class HasDatabasePrivilegeFunctionTest extends ScalarTestCase {
     public void test_same_results_for_name_and_oid() {
         int dbOid = Constants.DB_OID;
         int userOid = OidHash.userOid("test");
-        int crateUserOid = OidHash.userOid(User.CRATE_USER.name());
+        int crateUserOid = OidHash.userOid(Role.CRATE_USER.name());
         // Testing all 6 possible signatures, for a normal user but also for superuser.
         assertEvaluate("has_database_privilege('crate', 'crate', 'CREATE')", true);
         assertEvaluate("has_database_privilege('test', 'crate', 'CREATE')", false);
@@ -170,7 +181,7 @@ public class HasDatabasePrivilegeFunctionTest extends ScalarTestCase {
         assertEvaluate("has_database_privilege(" + crateUserOid + "," + dbOid + ", 'CREATE')", true);
         assertEvaluate("has_database_privilege(" + userOid + "," + dbOid + ", 'CONNECT')", true);
 
-        sqlExpressions = new SqlExpressions(tableSources, null, User.CRATE_USER);
+        sqlExpressions = new SqlExpressions(tableSources, null, Role.CRATE_USER);
         assertEvaluate("has_database_privilege('crate', 'CREATE')", true);
         assertEvaluate("has_database_privilege(" + dbOid + ", 'CREATE')", true);
 

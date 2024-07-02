@@ -58,8 +58,8 @@ public final class AnyLikeOperator extends AnyOperator {
     @Override
     boolean matches(Object probe, Object candidate) {
         // Accept both sides of arguments to be patterns
-        return LikeOperators.matches((String) probe, (String) candidate, caseSensitivity) ||
-               LikeOperators.matches((String) candidate, (String) probe, caseSensitivity);
+        return LikeOperators.matches((String) probe, (String) candidate, LikeOperators.DEFAULT_ESCAPE, caseSensitivity) ||
+               LikeOperators.matches((String) candidate, (String) probe, LikeOperators.DEFAULT_ESCAPE, caseSensitivity);
     }
 
     @Override
@@ -73,7 +73,7 @@ public final class AnyLikeOperator extends AnyOperator {
             if (value == null) {
                 continue;
             }
-            var likeQuery = caseSensitivity.likeQuery(fqn, (String) value, probe.indexType() != IndexType.NONE);
+            var likeQuery = caseSensitivity.likeQuery(fqn, (String) value, LikeOperators.DEFAULT_ESCAPE, probe.indexType() != IndexType.NONE);
             if (likeQuery == null) {
                 return null;
             }
@@ -84,6 +84,6 @@ public final class AnyLikeOperator extends AnyOperator {
 
     @Override
     protected Query literalMatchesAnyArrayRef(Function any, Literal<?> probe, Reference candidates, Context context) {
-        return caseSensitivity.likeQuery(candidates.storageIdent(), (String) probe.value(), candidates.indexType() != IndexType.NONE);
+        return caseSensitivity.likeQuery(candidates.storageIdent(), (String) probe.value(), LikeOperators.DEFAULT_ESCAPE, candidates.indexType() != IndexType.NONE);
     }
 }

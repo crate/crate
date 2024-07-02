@@ -51,9 +51,8 @@ import org.elasticsearch.Version;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.ObjectArray;
+import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
-import org.elasticsearch.index.mapper.MappedFieldType;
-import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.jetbrains.annotations.Nullable;
@@ -81,7 +80,6 @@ import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
-import io.crate.lucene.FieldTypeLookup;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.DocReferences;
@@ -115,7 +113,6 @@ final class GroupByOptimizedIterator {
     static BatchIterator<Row> tryOptimizeSingleStringKey(IndexShard indexShard,
                                                          DocTableInfo table,
                                                          LuceneQueryBuilder luceneQueryBuilder,
-                                                         FieldTypeLookup fieldTypeLookup,
                                                          BigArrays bigArrays,
                                                          InputFactory inputFactory,
                                                          DocInputFactory docInputFactory,
@@ -132,17 +129,16 @@ final class GroupByOptimizedIterator {
             return null; // group by on non-reference
         }
         keyRef = (Reference) DocReferences.inverseSourceLookup(keyRef);
-        MappedFieldType keyFieldType = fieldTypeLookup.get(keyRef.column().fqn());
-        if (keyFieldType == null || !keyFieldType.hasDocValues()) {
+        if (!keyRef.hasDocValues()) {
             return null;
         }
-        if (Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.SCORE)
-            || Symbols.containsColumn(collectPhase.where(), DocSysColumns.SCORE)) {
+        if (Symbols.hasColumn(collectPhase.toCollect(), DocSysColumns.SCORE)
+            || collectPhase.where().hasColumn(DocSysColumns.SCORE)) {
             // We could optimize this, but since it's assumed to be an uncommon case we fallback to generic group-by
             // to keep the optimized implementation a bit simpler
             return null;
         }
-        if (hasHighCardinalityRatio(() -> indexShard.acquireSearcher("group-by-cardinality-check"), keyFieldType.name())) {
+        if (hasHighCardinalityRatio(() -> indexShard.acquireSearcher("group-by-cardinality-check"), keyRef.storageIdent())) {
             return null;
         }
 
@@ -151,7 +147,7 @@ final class GroupByOptimizedIterator {
         var searcher = sharedShardContext.acquireSearcher("group-by-ordinals:" + formatSource(collectPhase));
         collectTask.addSearcher(sharedShardContext.readerId(), searcher);
 
-        final QueryShardContext queryShardContext = sharedShardContext.indexService().newQueryShardContext();
+        IndexService indexService = sharedShardContext.indexService();
 
         InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx = docInputFactory.getCtx(collectTask.txnCtx());
         docCtx.add(collectPhase.toCollect().stream()::iterator);
@@ -171,17 +167,16 @@ final class GroupByOptimizedIterator {
         LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(
             collectPhase.where(),
             collectTask.txnCtx(),
-            indexShard.mapperService(),
             indexShard.shardId().getIndexName(),
-            queryShardContext,
+            indexService.indexAnalyzers(),
             table,
-            sharedShardContext.indexService().cache()
+            indexService.cache()
         );
 
         return getIterator(
             bigArrays,
             searcher.item(),
-            keyRef.column().fqn(),
+            keyRef.storageIdent(),
             aggregations,
             expressions,
             aggExpressions,

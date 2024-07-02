@@ -21,9 +21,7 @@
 
 package io.crate.planner.node;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -38,8 +36,8 @@ import org.junit.Test;
 
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.projection.GroupProjection;
-import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
+import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Aggregation;
@@ -87,11 +85,11 @@ public class MergeNodeTest extends ESTestCase {
         StreamInput input = output.bytes().streamInput();
         MergePhase node2 = new MergePhase(input);
 
-        assertThat(node.numUpstreams(), is(node2.numUpstreams()));
-        assertThat(node.nodeIds(), is(node2.nodeIds()));
-        assertThat(node.jobId(), is(node2.jobId()));
-        assertEquals(node.inputTypes(), node2.inputTypes());
-        assertThat(node.phaseId(), is(node2.phaseId()));
-        assertThat(node.distributionInfo(), is(node2.distributionInfo()));
+        assertThat(node.numUpstreams()).isEqualTo(node2.numUpstreams());
+        assertThat(node.nodeIds()).isEqualTo(node2.nodeIds());
+        assertThat(node.jobId()).isEqualTo(node2.jobId());
+        assertThat(node2.inputTypes()).isEqualTo(node.inputTypes());
+        assertThat(node.phaseId()).isEqualTo(node2.phaseId());
+        assertThat(node.distributionInfo()).isEqualTo(node2.distributionInfo());
     }
 }

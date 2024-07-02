@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -53,15 +53,14 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addBlobTable("create blob table blobs;")
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .addPartitionedTable(
                 TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION,
                 TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS
-            )
-            .build();
-        plannerContext = e.getPlannerContext(clusterService.state());
+            );
+        plannerContext = e.getPlannerContext();
     }
 
     @SuppressWarnings("unchecked")
@@ -81,7 +80,8 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
                     Map.of(),
                     Set.of(),
                     Version.CURRENT))
-                .build()
+                .build(),
+            plannerContext.clusterState().metadata()
         );
     }
 
@@ -90,7 +90,7 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
         assertThatThrownBy(() -> analyze("ALTER TABLE sys.cluster REROUTE MOVE SHARD 0 FROM 'n1' TO 'n2'"))
             .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
             .hasMessage("The relation \"sys.cluster\" doesn't support or" +
-                        " allow ALTER REROUTE operations, as it is read-only.");
+                        " allow ALTER REROUTE operations");
     }
 
     @Test

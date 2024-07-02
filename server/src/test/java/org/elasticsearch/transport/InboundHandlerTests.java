@@ -20,7 +20,6 @@
 package org.elasticsearch.transport;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -124,8 +123,8 @@ public class InboundHandlerTests extends ESTestCase {
         handler.inboundMessage(channel, new InboundMessage(null, true));
         if (channel.isServerChannel()) {
             ByteBuf ping = (ByteBuf) embeddedChannel.outboundMessages().poll();
-            assertEquals('E', ping.getByte(0));
-            assertEquals(6, ping.readableBytes());
+            assertThat((char) ping.getByte(0)).isEqualTo('E');
+            assertThat(ping.readableBytes()).isEqualTo(6);
         }
     }
 

@@ -24,7 +24,6 @@ package io.crate.types;
 
 import java.util.function.Function;
 
-import org.apache.lucene.document.FieldType;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.execution.dml.ValueIndexer;
@@ -55,13 +54,11 @@ public abstract class StorageSupport<T> {
 
 
     /**
-     * @param getFieldType returns a {@link FieldType} for the column or null in
-     *                     case the column gets dynamically created.
+     * Creates a valueIndexer
      */
     public abstract ValueIndexer<? super T> valueIndexer(
         RelationName table,
         Reference ref,
-        Function<String, FieldType> getFieldType,
         Function<ColumnIdent, Reference> getRef);
 
 
@@ -73,6 +70,7 @@ public abstract class StorageSupport<T> {
         return supportsDocValuesOff;
     }
 
+    @Nullable
     public EqQuery<T> eqQuery() {
         return eqQuery;
     }

@@ -22,23 +22,22 @@
 package io.crate.planner.operators;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.SequencedCollection;
 import java.util.Set;
 
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.ProjectSetProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.FunctionType;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
@@ -98,7 +97,7 @@ public class ProjectSet extends ForwardingLogicalPlan {
 
     private ProjectSet(LogicalPlan source, List<Function> tableFunctions, List<Symbol> standalone) {
         super(source);
-        this.outputs = Lists2.concat(tableFunctions, standalone);
+        this.outputs = Lists.concat(tableFunctions, standalone);
         this.tableFunctions = tableFunctions;
         this.standalone = standalone;
     }
@@ -132,7 +131,7 @@ public class ProjectSet extends ForwardingLogicalPlan {
         SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
 
         InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(source.outputs());
-        List<Symbol> tableFunctionsWithInputs = InputColumns.create(Lists2.map(this.tableFunctions, paramBinder), sourceSymbols);
+        List<Symbol> tableFunctionsWithInputs = InputColumns.create(Lists.map(this.tableFunctions, paramBinder), sourceSymbols);
         List<Symbol> standaloneWithInputs = InputColumns.create(this.standalone, sourceSymbols);
         sourcePlan.addProjection(new ProjectSetProjection(tableFunctionsWithInputs, standaloneWithInputs));
         return sourcePlan;
@@ -148,14 +147,14 @@ public class ProjectSet extends ForwardingLogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
-        HashSet<Symbol> toKeep = new LinkedHashSet<>();
+    public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
+        LinkedHashSet<Symbol> toKeep = new LinkedHashSet<>();
         LinkedHashSet<Symbol> newStandalone = new LinkedHashSet<>();
         for (Symbol outputToKeep : outputsToKeep) {
-            SymbolVisitors.intersection(outputToKeep, standalone, newStandalone::add);
+            Symbols.intersection(outputToKeep, standalone, newStandalone::add);
         }
         for (Function tableFunction : tableFunctions) {
-            SymbolVisitors.intersection(tableFunction, source.outputs(), toKeep::add);
+            Symbols.intersection(tableFunction, source.outputs(), toKeep::add);
         }
         toKeep.addAll(newStandalone);
         LogicalPlan newSource = source.pruneOutputsExcept(toKeep);
@@ -167,7 +166,7 @@ public class ProjectSet extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new ProjectSet(Lists2.getOnlyElement(sources), tableFunctions, standalone);
+        return new ProjectSet(Lists.getOnlyElement(sources), tableFunctions, standalone);
     }
 
     @Override

@@ -50,14 +50,14 @@ public class AnalyzedCopyFromReturnSummary extends AnalyzedCopyFrom implements A
                                   Symbol uri) {
         super(tableInfo, targetColumns, table, properties, uri);
         this.fields = List.of(
-            new ScopedSymbol(tableInfo.ident(), new ColumnIdent("node"), ObjectType.builder()
+            new ScopedSymbol(tableInfo.ident(), ColumnIdent.of("node"), ObjectType.builder()
                 .setInnerType("id", DataTypes.STRING)
                 .setInnerType("name", DataTypes.STRING)
                 .build()),
-            new ScopedSymbol(tableInfo.ident(), new ColumnIdent("uri"), DataTypes.STRING),
-            new ScopedSymbol(tableInfo.ident(), new ColumnIdent("success_count"), DataTypes.LONG),
-            new ScopedSymbol(tableInfo.ident(), new ColumnIdent("error_count"), DataTypes.LONG),
-            new ScopedSymbol(tableInfo.ident(), new ColumnIdent("errors"), DataTypes.UNTYPED_OBJECT)
+            new ScopedSymbol(tableInfo.ident(), ColumnIdent.of("uri"), DataTypes.STRING),
+            new ScopedSymbol(tableInfo.ident(), ColumnIdent.of("success_count"), DataTypes.LONG),
+            new ScopedSymbol(tableInfo.ident(), ColumnIdent.of("error_count"), DataTypes.LONG),
+            new ScopedSymbol(tableInfo.ident(), ColumnIdent.of("errors"), DataTypes.UNTYPED_OBJECT)
         );
     }
 

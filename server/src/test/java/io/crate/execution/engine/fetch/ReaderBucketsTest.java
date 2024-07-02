@@ -21,8 +21,7 @@
 
 package io.crate.execution.engine.fetch;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Map;
@@ -33,7 +32,7 @@ import org.junit.Test;
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntObjectHashMap;
 
-import io.crate.breaker.EstimateCellsSize;
+import io.crate.breaker.CellsSizeEstimator;
 import io.crate.data.Bucket;
 import io.crate.data.CollectionBucket;
 import io.crate.data.RowN;
@@ -52,9 +51,8 @@ public class ReaderBucketsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_reader_bucket_accounts_memory_for_added_rows() throws Exception {
-        var e = SQLExecutor.builder(clusterService)
-            .addTable("create table t1 (x text)")
-            .build();
+        var e = SQLExecutor.of(clusterService)
+            .addTable("create table t1 (x text)");
         var t1 = e.resolveTableInfo("t1");
         var x = (Reference) e.asSymbol("x");
         var fetchSource = new FetchSource();
@@ -78,14 +76,14 @@ public class ReaderBucketsTest extends CrateDummyClusterServiceUnitTest {
         var readerBuckets = new ReaderBuckets(
             fetchRows,
             reader -> fetchSource,
-            new EstimateCellsSize(List.of(DataTypes.LONG, DataTypes.INTEGER)),
+            CellsSizeEstimator.forColumns(List.of(DataTypes.LONG, DataTypes.INTEGER)),
             ramAccounting
         );
         long fetchId = FetchId.encode(readerId, 1);
         readerBuckets.add(new RowN(fetchId, 42));
 
-        assertThat(bytesAccounted.get(), is(1024L));
-        assertThat(readerBuckets.ramBytesUsed(), is(40L));
+        assertThat(bytesAccounted.get()).isEqualTo(1024L);
+        assertThat(readerBuckets.ramBytesUsed()).isEqualTo(40L);
 
         IntObjectHashMap<Bucket> bucketsByReader = new IntObjectHashMap<>();
         bucketsByReader.put(readerId, new CollectionBucket(List.<Object[]>of(
@@ -95,14 +93,12 @@ public class ReaderBucketsTest extends CrateDummyClusterServiceUnitTest {
         readerIds.add(readerId);
         readerBuckets.generateToFetch(readerIds);
         try (var outputRows = readerBuckets.getOutputRows(List.of(bucketsByReader))) {
-            assertThat(bytesAccounted.get(), is(1024L));
-            assertThat(readerBuckets.ramBytesUsed(), is(136L));
+            assertThat(bytesAccounted.get()).isEqualTo(1024L);
+            assertThat(readerBuckets.ramBytesUsed()).isEqualTo(136L);
         }
 
-        assertThat(
-            "After outputRows are closed the readerBuckets are released",
-            readerBuckets.ramBytesUsed(),
-            is(0L)
-        );
+        assertThat(readerBuckets.ramBytesUsed())
+            .as("After outputRows are closed the readerBuckets are released")
+            .isZero();
     }
 }

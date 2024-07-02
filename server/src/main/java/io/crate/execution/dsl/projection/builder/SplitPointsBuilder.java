@@ -31,13 +31,10 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
-import io.crate.expression.symbol.FieldsVisitor;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.OuterColumn;
-import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.FunctionType;
 
@@ -159,22 +156,15 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
         } else if (context.aggregates.isEmpty() && relation.groupBy().isEmpty()) {
             toCollect.addAll(context.standalone);
         }
-        var collectOuterColumns = new DefaultTraversalSymbolVisitor<Void, Void>() {
-
-            public Void visitOuterColumn(OuterColumn outerColumn, Void ignored) {
-                toCollect.add(outerColumn.symbol());
-                return null;
-            }
-        };
         for (var selectSymbol : context.correlatedQueries) {
-            selectSymbol.relation().visitSymbols(symbol -> symbol.accept(collectOuterColumns, null));
+            selectSymbol.relation().visitSymbols(tree ->
+                tree.visit(OuterColumn.class, outerColumn -> toCollect.add(outerColumn.symbol()))
+            );
         }
-
-        RefVisitor.visitRefs(where, toCollect::add);
-        FieldsVisitor.visitFields(where, toCollect::add);
+        where.visit(Symbol.IS_COLUMN, toCollect::add);
         ArrayList<Symbol> outputs = new ArrayList<>();
         for (var output : toCollect) {
-            if (Symbols.containsCorrelatedSubQuery(output)) {
+            if (output.any(Symbol.IS_CORRELATED_SUBQUERY)) {
                 outputs.addAll(extractColumns(output));
             } else {
                 outputs.add(output);

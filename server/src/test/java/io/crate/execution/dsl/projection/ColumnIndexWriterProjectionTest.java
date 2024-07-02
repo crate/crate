@@ -21,8 +21,7 @@
 
 package io.crate.execution.dsl.projection;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -56,7 +55,7 @@ public class ColumnIndexWriterProjectionTest {
         int numColumns = 200;
         ArrayList<Reference> targetColumns = new ArrayList<>(numColumns);
         for (int i = 0; i < numColumns; i++) {
-            var ident = new ColumnIdent(String.valueOf(i));
+            var ident = ColumnIdent.of(String.valueOf(i));
             targetColumns.add(ref(ident, DataTypes.INTEGER));
         }
         var projection = new ColumnIndexWriterProjection(
@@ -82,14 +81,10 @@ public class ColumnIndexWriterProjectionTest {
         StreamInput in = out.bytes().streamInput();
         ColumnIndexWriterProjection p2 = (ColumnIndexWriterProjection) Projection.fromStream(in);
 
-        assertThat(p2, is(projection));
+        assertThat(p2).isEqualTo(projection);
     }
 
     private Reference ref(ColumnIdent column, DataType<?> type) {
         return new SimpleReference(new ReferenceIdent(relationName, column), RowGranularity.DOC, type, 0, null);
-    }
-
-    private Reference partitionRef(ColumnIdent column, DataType<?> type) {
-        return new SimpleReference(new ReferenceIdent(relationName, column), RowGranularity.PARTITION, type, 0, null);
     }
 }

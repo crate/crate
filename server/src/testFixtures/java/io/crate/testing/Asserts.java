@@ -30,6 +30,7 @@ import org.assertj.core.api.Condition;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.assertj.core.data.Offset;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.mapper.ParsedDocument;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -43,6 +44,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Scalar;
 import io.crate.planner.operators.LogicalPlan;
+import io.crate.role.Policy;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Node;
@@ -104,6 +106,14 @@ public class Asserts extends Assertions {
 
     public static JoinPairAssert assertThat(JoinPair actual) {
         return new JoinPairAssert(actual);
+    }
+
+    public static ParsedDocumentAssert assertThat(ParsedDocument actual) {
+        return new ParsedDocumentAssert(actual);
+    }
+
+    public static PrivilegeResolutionAssert assertThat(Policy actual) {
+        return new PrivilegeResolutionAssert(actual);
     }
 
     // generic helper methods
@@ -189,6 +199,10 @@ public class Asserts extends Assertions {
 
     public static Consumer<Symbol> isScopedSymbol(String expectedName) {
         return s -> assertThat(s).isScopedSymbol(expectedName);
+    }
+
+    public static Consumer<Symbol> isSQL(String expectedName) {
+        return s -> assertThat(s).isSQL(expectedName);
     }
 
     public static Consumer<Symbol> isFetchStub(String expectedName) {

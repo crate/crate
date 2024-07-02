@@ -20,13 +20,11 @@ package org.elasticsearch.indices;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.common.util.concurrent.EsExecutors.PROCESSORS_SETTING;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -125,12 +123,12 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
 
         @Override
         public void activateThrottling(IndexShard shard) {
-            assertTrue(throttled.add(shard));
+            assertThat(throttled.add(shard)).isTrue();
         }
 
         @Override
         public void deactivateThrottling(IndexShard shard) {
-            assertTrue(throttled.remove(shard));
+            assertThat(throttled.remove(shard)).isTrue();
         }
 
         public void doneWriting(IndexShard shard) {
@@ -142,15 +140,15 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
             if (actual == null) {
                 actual = 0L;
             }
-            assertEquals(expectedMB * 1024 * 1024, actual.longValue());
+            assertThat(actual.longValue()).isEqualTo(expectedMB * 1024 * 1024);
         }
 
         public void assertThrottled(IndexShard shard) {
-            assertTrue(throttled.contains(shard));
+            assertThat(throttled.contains(shard)).isTrue();
         }
 
         public void assertNotThrottled(IndexShard shard) {
-            assertFalse(throttled.contains(shard));
+            assertThat(throttled.contains(shard)).isFalse();
         }
 
         public void assertWriting(IndexShard shard, int expectedMB) {
@@ -158,7 +156,7 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
             if (actual == null) {
                 actual = 0L;
             }
-            assertEquals(expectedMB * 1024 * 1024, actual.longValue());
+            assertThat(actual.longValue()).isEqualTo(expectedMB * 1024 * 1024);
         }
 
         public void simulateIndexing(IndexShard shard) {
@@ -251,40 +249,41 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
                                                            .put("indices.memory.index_buffer_size", "0.001%")
                                                            .put("indices.memory.min_index_buffer_size", "6mb").build());
 
-        assertThat(controller.indexingBufferSize(), equalTo(new ByteSizeValue(6, ByteSizeUnit.MB)));
+        assertThat(controller.indexingBufferSize()).isEqualTo(new ByteSizeValue(6, ByteSizeUnit.MB));
     }
 
     public void testNegativeMinIndexBufferSize() {
-        Exception e = expectThrows(IllegalArgumentException.class,
-                                   () -> new MockController(Settings.builder()
-                                                                .put("indices.memory.min_index_buffer_size", "-6mb").build()));
-        assertEquals("failed to parse setting [indices.memory.min_index_buffer_size] with value [-6mb] as a size in bytes", e.getMessage());
+        assertThatThrownBy(() -> new MockController(Settings.builder()
+            .put("indices.memory.min_index_buffer_size", "-6mb").build())
+        ).isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("failed to parse setting [indices.memory.min_index_buffer_size] with value [-6mb] as a size in bytes");
 
     }
 
     public void testNegativeInterval() {
-        Exception e = expectThrows(IllegalArgumentException.class,
-                                   () -> new MockController(Settings.builder()
-                                                                .put("indices.memory.interval", "-42s").build()));
-        assertEquals("failed to parse setting [indices.memory.interval] with value " +
-            "[-42s] as a time value: negative durations are not supported", e.getMessage());
+        assertThatThrownBy(() -> new MockController(Settings.builder()
+                .put("indices.memory.interval", "-42s").build())
+        ).isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage(
+                "failed to parse setting [indices.memory.interval] with value " +
+                "[-42s] as a time value: negative durations are not supported");
 
     }
 
     public void testNegativeShardInactiveTime() {
-        Exception e = expectThrows(IllegalArgumentException.class,
-                                   () -> new MockController(Settings.builder()
-                                                                .put("indices.memory.shard_inactive_time", "-42s").build()));
-        assertEquals("failed to parse setting [indices.memory.shard_inactive_time] with value " +
-            "[-42s] as a time value: negative durations are not supported", e.getMessage());
+        assertThatThrownBy(() -> new MockController(Settings.builder()
+            .put("indices.memory.shard_inactive_time", "-42s").build())
+        ).isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage(
+                "failed to parse setting [indices.memory.shard_inactive_time] with value " +
+                "[-42s] as a time value: negative durations are not supported");
     }
 
     public void testNegativeMaxIndexBufferSize() {
-        Exception e = expectThrows(IllegalArgumentException.class,
-                                   () -> new MockController(Settings.builder()
-                                                                .put("indices.memory.max_index_buffer_size", "-6mb").build()));
-        assertEquals("failed to parse setting [indices.memory.max_index_buffer_size] with value [-6mb] as a size in bytes", e.getMessage());
-
+        assertThatThrownBy(() -> new MockController(Settings.builder()
+                .put("indices.memory.max_index_buffer_size", "-6mb").build()))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("failed to parse setting [indices.memory.max_index_buffer_size] with value [-6mb] as a size in bytes");
     }
 
     public void testMaxBufferSizes() {
@@ -292,7 +291,7 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
                                                            .put("indices.memory.index_buffer_size", "90%")
                                                            .put("indices.memory.max_index_buffer_size", "6mb").build());
 
-        assertThat(controller.indexingBufferSize(), equalTo(new ByteSizeValue(6, ByteSizeUnit.MB)));
+        assertThat(controller.indexingBufferSize()).isEqualTo(new ByteSizeValue(6, ByteSizeUnit.MB));
     }
 
     public void testThrottling() throws Exception {
@@ -368,19 +367,19 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
         IndexingMemoryController imc = new IndexingMemoryController(settings, threadPool, iterable) {
             @Override
             protected void writeIndexingBufferAsync(IndexShard shard) {
-                assertEquals(shard, shardRef.get());
+                assertThat(shardRef.get()).isEqualTo(shard);
                 flushes.incrementAndGet();
                 shard.writeIndexingBuffer();
             }
         };
         shard = reinitShard(shard, imc);
         shardRef.set(shard);
-        assertEquals(0, imc.availableShards().size());
+        assertThat(imc.availableShards().size()).isEqualTo(0);
         DiscoveryNode localNode = new DiscoveryNode("foo", buildNewFakeTransportAddress(), emptyMap(), emptySet(), Version.CURRENT);
         shard.markAsRecovering("store", new RecoveryState(shard.routingEntry(), localNode, null));
 
-        assertEquals(1, imc.availableShards().size());
-        assertTrue(recoverFromStore(shard));
+        assertThat(imc.availableShards().size()).isEqualTo(1);
+        assertThat(recoverFromStore(shard)).isTrue();
         assertThat("we should have flushed in IMC at least once", flushes.get(), greaterThanOrEqualTo(1));
         closeShards(shard);
     }
@@ -390,7 +389,7 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
         internalRefreshListener.add(listener);
         return new EngineConfig(config.getShardId(), config.getThreadPool(),
                                 config.getIndexSettings(), config.getStore(), config.getMergePolicy(), config.getAnalyzer(),
-                                new CodecService(null, logger), config.getEventListener(), config.getQueryCache(),
+                                new CodecService(), config.getEventListener(), config.getQueryCache(),
                                 config.getQueryCachingPolicy(), config.getTranslogConfig(), config.getFlushMergesAfter(),
                                 config.getExternalRefreshListener(), internalRefreshListener,
                                 config.getCircuitBreakerService(), config.getGlobalCheckpointSupplier(), config.retentionLeasesSupplier(),
@@ -456,13 +455,13 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
 
         assertBusy(() -> {
             ThreadPoolStats.Stats stats = getRefreshThreadPoolStats();
-            assertThat(stats.getCompleted(), equalTo(beforeStats.getCompleted() + iterations - 1));
+            assertThat(stats.getCompleted()).isEqualTo(beforeStats.getCompleted() + iterations - 1);
         });
 
         refreshLatch.get().countDown(); // allow refresh
         assertBusy(() -> {
             ThreadPoolStats.Stats stats = getRefreshThreadPoolStats();
-            assertThat(stats.getCompleted(), equalTo(beforeStats.getCompleted() + iterations));
+            assertThat(stats.getCompleted()).isEqualTo(beforeStats.getCompleted() + iterations);
         });
         closeShards(shard);
     }

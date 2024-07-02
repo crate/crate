@@ -22,11 +22,12 @@
 package io.crate.expression.scalar.systeminformation;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 
 import io.crate.data.Input;
-import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.FunctionName;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -40,13 +41,13 @@ public class CurrentSchemasFunction extends Scalar<List<String>, Boolean> {
     public static final String NAME = "current_schemas";
     private static final FunctionName FQN = new FunctionName(PgCatalogSchemaInfo.NAME, NAME);
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder module) {
+        module.add(
             Signature.scalar(
                 FQN,
                 DataTypes.BOOLEAN.getTypeSignature(),
                 DataTypes.STRING_ARRAY.getTypeSignature()
-            ).withFeatures(NO_FEATURES),
+            ).withFeatures(EnumSet.of(Feature.NON_NULLABLE)),
             CurrentSchemasFunction::new
         );
     }

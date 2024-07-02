@@ -1,0 +1,79 @@
+.. _version_5.6.5:
+
+=============
+Version 5.6.5
+=============
+
+
+Released on 2024-05-02.
+
+.. NOTE::
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 5.6.5.
+
+    We recommend that you upgrade to the latest 5.5 release before moving to
+    5.6.5.
+
+    A rolling upgrade from 5.5.x to 5.6.5 is supported.
+
+    Before upgrading, you should `back up your data`_.
+
+.. WARNING::
+
+    Tables that were created before CrateDB 4.x will not function with 5.x
+    and must be recreated before moving to 5.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+.. rubric:: Table of contents
+
+.. contents::
+   :local:
+
+See the :ref:`version_5.6.0` release notes for a full list of changes in the
+5.6 series.
+
+Fixes
+=====
+
+- Fixed an issue that could result in completed jobs to not be marked with an
+  ``ended`` timestamp and be moved to ``sys.jobs_log``, but stay "forever"
+  (until node restart) in :ref:`sys-jobs` table.
+
+- Fixed an issue that allowed creating tables named ``_all``, which is a
+  reversed name that has special effects - like expanding to *all* table names.
+  Because of these special semantics, statements like ``DROP TABLE _all`` would
+  delete all tables instead of only ``_all``.
+
+- Fixed an issue that could prevent a :ref:`sql-restore-snapshot` from
+  restoring a partition if using the ``TABLE PARTITION (...)`` clause to restore
+  an individual partition of a table with more than one partition column.
+
+- Fixed an issue that allowed ``INSERT INTO`` statements to create more shards
+  than allowed by :ref:`cluster.max_shards_per_node
+  <cluster.max_shards_per_node>` if the statement resulted in the creation of
+  many partitions at once.
+
+- Fixed an issue that resulted on the garbage collection logging environment
+  variables being ignored in Windows.
+
+- Fixed an issue that caused assigning a wrong number of replicas to closed
+  tables after cluster was re-balanced (for example by adding a node), if
+  tables were created with :ref:`sql-create-table-number-of-replicas` specified
+  as a range.
+
+- Fixed an issue that caused queries on partitioned tables via prepared
+  statements to return invalid results if the partitions of the table changed
+  after preparing the statements.
+
+- Fixed an issue that caused prepared statements to cache values of
+  non-deterministic functions and use the same value for each execution.
+
+- Improved ingestion performance for partitioned tables where no primary keys
+  are defined by using an append only optimized ingestion strategy. The
+  performance improvement increases with the size of each shard.

@@ -21,9 +21,7 @@
 
 package io.crate.protocols.postgres;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.Matchers.sameInstance;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -46,7 +44,6 @@ import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.elasticsearch.transport.Transport.Connection;
 import org.elasticsearch.transport.TransportService;
 import org.elasticsearch.transport.netty4.Netty4Transport;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Test;
 
@@ -60,9 +57,9 @@ import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.replication.logical.metadata.ConnectionInfo;
+import io.crate.role.Role;
+import io.crate.role.StubRoleManager;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.user.StubUserManager;
-import io.crate.user.User;
 
 public class PgClientTest extends CrateDummyClusterServiceUnitTest {
 
@@ -75,7 +72,7 @@ public class PgClientTest extends CrateDummyClusterServiceUnitTest {
             lifecycleComponent.close();
         }
         assertBusy(() -> {
-            assertThat(pgClient.nettyBootstrap.workerIsShutdown(), is(true));
+            assertThat(pgClient.nettyBootstrap.workerIsShutdown()).isTrue();
         });
     }
 
@@ -97,7 +94,7 @@ public class PgClientTest extends CrateDummyClusterServiceUnitTest {
         var networkService = new NetworkService(List.of());
         var namedWriteableRegistry = new NamedWriteableRegistry(List.of());
         var circuitBreakerService = new NoneCircuitBreakerService();
-        Authentication authentication = new AlwaysOKAuthentication(() -> List.of(User.CRATE_USER));
+        Authentication authentication = new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER));
         var sslContextProvider = new SslContextProvider(serverNodeSettings);
         var serverTransport = new Netty4Transport(
             serverNodeSettings,
@@ -125,14 +122,13 @@ public class PgClientTest extends CrateDummyClusterServiceUnitTest {
             sslContextProvider
         ); // clientTransport is closed via clientTransportService
         var sqlOperations = mock(Sessions.class);
-        when(sqlOperations.newSession(any(String.class), any(User.class))).thenReturn(mock(Session.class));
+        when(sqlOperations.newSession(any(String.class), any(Role.class))).thenReturn(mock(Session.class));
         PostgresNetty postgresNetty = new PostgresNetty(
             serverNodeSettings,
             new SessionSettingRegistry(Set.of()),
             sqlOperations,
-            new StubUserManager(),
+            new StubRoleManager(),
             networkService,
-            null,
             authentication,
             nettyBootstrap,
             serverTransport,
@@ -169,7 +165,7 @@ public class PgClientTest extends CrateDummyClusterServiceUnitTest {
 
         CompletableFuture<Connection> connect = pgClient.ensureConnected();
         Connection connection = connect.get(120, TimeUnit.SECONDS);
-        assertThat(connection.getNode().getAddress(), is(serverAddress));
+        assertThat(connection.getNode().getAddress()).isEqualTo(serverAddress);
 
         // Must be able to call ensureConnected again
         CompletableFuture<Connection> conn2 = pgClient.ensureConnected();
@@ -178,17 +174,17 @@ public class PgClientTest extends CrateDummyClusterServiceUnitTest {
         conn2.get(120, TimeUnit.SECONDS);
         conn3.get(120, TimeUnit.SECONDS);
 
-        assertThat(connect, sameInstance(conn2));
-        assertThat(conn2, sameInstance(conn3));
+        assertThat(connect).isSameAs(conn2);
+        assertThat(conn2).isSameAs(conn3);
         connection.close();
 
         // if a connection failed, calling ensureConnected again should return a new connection
         connect.obtrudeException(new IllegalStateException("test"));
         CompletableFuture<Connection> conn4 = pgClient.ensureConnected();
-        assertThat(conn4, Matchers.is(Matchers.not(conn3)));
+        assertThat(conn4).isNotEqualTo(conn3);
         connection = conn4.get(120, TimeUnit.SECONDS);
 
         pgClient.close();
-        assertThat("pgClient.close must close connection", connection.isClosed(), is(true));
+        assertThat(connection.isClosed()).as("pgClient.close must close connection").isTrue();
     }
 }

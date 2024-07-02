@@ -32,7 +32,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.analyze.WindowDefinition;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.common.collections.MapBuilder;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -50,9 +50,9 @@ public class WindowAggProjection extends Projection {
                                List<WindowFunction> windowFunctions,
                                List<Symbol> standaloneWithInputs) {
         this.windowFunctions = windowFunctions;
-        assert windowFunctions.stream().noneMatch(Symbols.IS_COLUMN)
+        assert windowFunctions.stream().noneMatch(Symbol.IS_COLUMN)
             : "Cannot operate on Reference or Field: " + windowFunctions;
-        assert standaloneWithInputs.stream().noneMatch(Symbols.IS_COLUMN)
+        assert standaloneWithInputs.stream().noneMatch(Symbol.IS_COLUMN)
             : "Cannot operate on Reference or Field: " + standaloneWithInputs;
         this.windowDefinition = windowDefinition;
         this.standaloneWithInputs = standaloneWithInputs;
@@ -63,23 +63,23 @@ public class WindowAggProjection extends Projection {
     @SuppressWarnings({"unchecked", "rawtypes"})
     WindowAggProjection(StreamInput in) throws IOException {
         windowDefinition = new WindowDefinition(in);
-        standaloneWithInputs = Symbols.listFromStream(in);
+        standaloneWithInputs = Symbols.fromStream(in);
 
         Version version = in.getVersion();
         if (version.onOrAfter(Version.V_4_2_1)) {
-            windowFunctions = (List<WindowFunction>) (List)Symbols.listFromStream(in);
+            windowFunctions = (List<WindowFunction>) (List)Symbols.fromStream(in);
         } else {
             boolean onOrAfter4_1_0 = version.onOrAfter(Version.V_4_1_0);
             int functionsCount = in.readVInt();
             windowFunctions = new ArrayList<>();
             for (int i = 0; i < functionsCount; i++) {
-                WindowFunction function = (WindowFunction) Symbols.fromStream(in);
+                WindowFunction function = (WindowFunction) Symbol.fromStream(in);
                 if (onOrAfter4_1_0) {
                     // used to be the filter
                     Symbols.fromStream(in);
                 }
                 // used to be the inputs (arguments of the window function)
-                Symbols.listFromStream(in);
+                Symbols.fromStream(in);
                 windowFunctions.add(function);
             }
         }
@@ -150,10 +150,10 @@ public class WindowAggProjection extends Projection {
             boolean onOrAfter4_1_0 = version.onOrAfter(Version.V_4_1_0);
             out.writeVInt(windowFunctions.size());
             for (var windowFunction : windowFunctions) {
-                Symbols.toStream(windowFunction, out);
+                Symbol.toStream(windowFunction, out);
                 if (onOrAfter4_1_0) {
                     Symbol filter = windowFunction.filter();
-                    Symbols.toStream(filter == null ? Literal.BOOLEAN_TRUE : filter, out);
+                    Symbol.toStream(filter == null ? Literal.BOOLEAN_TRUE : filter, out);
                 }
                 Symbols.toStream(windowFunction.arguments(), out);
             }
@@ -164,7 +164,7 @@ public class WindowAggProjection extends Projection {
     public Map<String, Object> mapRepresentation() {
         return MapBuilder.<String, Object>newMapBuilder()
             .put("type", "WindowAggregation")
-            .put("windowFunctions", Lists2.joinOn(", ", windowFunctions, Symbol::toString))
+            .put("windowFunctions", Lists.joinOn(", ", windowFunctions, Symbol::toString))
             .map();
     }
 }

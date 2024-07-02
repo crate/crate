@@ -26,7 +26,7 @@ import java.util.function.Function;
 
 public class PromoteReplica<T> extends RerouteOption {
 
-    private T node;
+    private final T node;
     private final T shardId;
     private final GenericProperties<T> properties;
 

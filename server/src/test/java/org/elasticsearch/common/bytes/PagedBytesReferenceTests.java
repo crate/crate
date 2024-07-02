@@ -19,19 +19,17 @@
 
 package org.elasticsearch.common.bytes;
 
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.util.ByteArray;
-import org.hamcrest.Matchers;
 
 public class PagedBytesReferenceTests extends AbstractBytesReferenceTestCase {
 
@@ -46,13 +44,13 @@ public class PagedBytesReferenceTests extends AbstractBytesReferenceTestCase {
         for (int i = 0; i < length; i++) {
             byteArray.set(i, (byte) random().nextInt(1 << 8));
         }
-        assertThat(byteArray.size(), Matchers.equalTo((long) length));
+        assertThat(byteArray.size()).isEqualTo(length);
         BytesReference ref = BytesReference.fromByteArray(byteArray, length);
-        assertThat(ref.length(), Matchers.equalTo(length));
+        assertThat(ref.length()).isEqualTo(length);
         if (byteArray.hasArray()) {
-            assertThat(ref, Matchers.instanceOf(BytesArray.class));
+            assertThat(ref).isExactlyInstanceOf(BytesArray.class);
         } else {
-            assertThat(ref, Matchers.instanceOf(PagedBytesReference.class));
+            assertThat(ref).isExactlyInstanceOf(PagedBytesReference.class);
         }
         return ref;
     }
@@ -68,8 +66,8 @@ public class PagedBytesReferenceTests extends AbstractBytesReferenceTestCase {
         BytesArray ba2 = new BytesArray(pbr.toBytesRef());
         assertNotNull(ba);
         assertNotNull(ba2);
-        assertEquals(pbr.length(), ba.length());
-        assertEquals(ba.length(), ba2.length());
+        assertThat(ba.length()).isEqualTo(pbr.length());
+        assertThat(ba2.length()).isEqualTo(ba.length());
         // ensure no single-page optimization
         assertNotSame(ba.array(), ba2.array());
     }
@@ -85,7 +83,7 @@ public class PagedBytesReferenceTests extends AbstractBytesReferenceTestCase {
                 assertNotNull(page);
                 byte[] array = page.bytes;
                 assertNotNull(array);
-                assertEquals(sizes[i], array.length);
+                assertThat(array.length).isEqualTo(sizes[i]);
                 assertSame(array, page.bytes);
             } else {
                 BytesRef page = getSinglePageOrNull(pbr);
@@ -102,7 +100,7 @@ public class PagedBytesReferenceTests extends AbstractBytesReferenceTestCase {
         for (int i = 0; i < sizes.length; i++) {
             BytesReference pbr = newBytesReference(sizes[i]);
             byte[] bytes = BytesReference.toBytes(pbr);
-            assertEquals(sizes[i], bytes.length);
+            assertThat(bytes.length).isEqualTo(sizes[i]);
             // verify that toBytes() is cheap for small payloads
             if (sizes[i] <= PAGE_SIZE) {
                 assertSame(bytes, BytesReference.toBytes(pbr));
@@ -116,7 +114,7 @@ public class PagedBytesReferenceTests extends AbstractBytesReferenceTestCase {
         int length = randomIntBetween(10, PAGE_SIZE * randomIntBetween(1, 3));
         BytesReference pbr = newBytesReference(length);
         // must return true for <= pagesize
-        assertEquals(length <= PAGE_SIZE, getNumPages(pbr) == 1);
+        assertThat(getNumPages(pbr) == 1).isEqualTo(length <= PAGE_SIZE);
     }
 
     public void testEquals() {
@@ -132,7 +130,7 @@ public class PagedBytesReferenceTests extends AbstractBytesReferenceTestCase {
         // get refs & compare
         BytesReference pbr = BytesReference.fromByteArray(ba1, length);
         BytesReference pbr2 = BytesReference.fromByteArray(ba2, length);
-        assertEquals(pbr, pbr2);
+        assertThat(pbr2).isEqualTo(pbr);
         int offsetToFlip = randomIntBetween(0, length - 1);
         int value = ~Byte.toUnsignedInt(ba1.get(offsetToFlip));
         ba2.set(offsetToFlip, (byte)value);

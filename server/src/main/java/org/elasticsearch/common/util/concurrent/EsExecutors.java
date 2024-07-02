@@ -19,14 +19,6 @@
 
 package org.elasticsearch.common.util.concurrent;
 
-import io.crate.common.SuppressForbidden;
-import org.elasticsearch.ExceptionsHelper;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Setting.Property;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.node.Node;
-
-import java.util.Arrays;
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CancellationException;
@@ -39,7 +31,14 @@ import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
+
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Setting.Property;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.node.Node;
+
+import io.crate.common.SuppressForbidden;
+import io.crate.common.exceptions.Exceptions;
 
 public class EsExecutors {
 
@@ -92,9 +91,9 @@ public class EsExecutors {
     public static EsThreadPoolExecutor newFixed(String name, int size, int queueCapacity, ThreadFactory threadFactory) {
         BlockingQueue<Runnable> queue;
         if (queueCapacity < 0) {
-            queue = ConcurrentCollections.newBlockingQueue();
+            queue = new LinkedTransferQueue<>();
         } else {
-            queue = new SizeBlockingQueue<>(ConcurrentCollections.<Runnable>newBlockingQueue(), queueCapacity);
+            queue = new SizeBlockingQueue<>(new LinkedTransferQueue<>(), queueCapacity);
         }
         return new EsThreadPoolExecutor(
             name,
@@ -117,9 +116,9 @@ public class EsExecutors {
      * @return non fatal exception or null if no exception.
      */
     public static Throwable rethrowErrors(Runnable runnable) {
-        if (runnable instanceof RunnableFuture) {
+        if (runnable instanceof RunnableFuture<?> runnableFuture) {
             try {
-                ((RunnableFuture) runnable).get();
+                runnableFuture.get();
             } catch (final Exception e) {
                 /*
                  * In theory, Future#get can only throw a cancellation exception, an interrupted exception, or an execution
@@ -131,7 +130,7 @@ public class EsExecutors {
                 assert e instanceof CancellationException
                     || e instanceof InterruptedException
                     || e instanceof ExecutionException : e;
-                final Optional<Error> maybeError = ExceptionsHelper.maybeError(e);
+                final Optional<Error> maybeError = Exceptions.maybeError(e);
                 if (maybeError.isPresent()) {
                     // throw this error where it will propagate to the uncaught exception handler
                     throw maybeError.get();
@@ -173,15 +172,6 @@ public class EsExecutors {
         return DIRECT_EXECUTOR;
     }
 
-    public static String threadName(Settings settings, String ... names) {
-        String namePrefix =
-                Arrays
-                        .stream(names)
-                        .filter(name -> name != null)
-                        .collect(Collectors.joining(".", "[", "]"));
-        return threadName(settings, namePrefix);
-    }
-
     public static String threadName(Settings settings, String namePrefix) {
         if (Node.NODE_NAME_SETTING.exists(settings)) {
             return threadName(Node.NODE_NAME_SETTING.get(settings), namePrefix);
@@ -203,10 +193,6 @@ public class EsExecutors {
     public static ThreadFactory daemonThreadFactory(String nodeName, String namePrefix) {
         assert nodeName != null && false == nodeName.isEmpty();
         return daemonThreadFactory(threadName(nodeName, namePrefix));
-    }
-
-    public static ThreadFactory daemonThreadFactory(Settings settings, String ... names) {
-        return daemonThreadFactory(threadName(settings, names));
     }
 
     public static ThreadFactory daemonThreadFactory(String namePrefix) {
@@ -270,6 +256,22 @@ public class EsExecutors {
             }
         }
 
+        // Methods below are due to https://bugs.openjdk.org/browse/JDK-8323659
+
+        @Override
+        public void put(E e) {
+            super.offer(e);
+        }
+
+        @Override
+        public boolean add(E e) {
+            return super.offer(e);
+        }
+
+        @Override
+        public boolean offer(E e, long timeout, TimeUnit unit) {
+            return super.offer(e);
+        }
     }
 
     /**

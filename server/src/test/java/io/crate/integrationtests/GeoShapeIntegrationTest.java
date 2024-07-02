@@ -23,11 +23,8 @@ package io.crate.integrationtests;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.startsWith;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Map;
@@ -38,6 +35,9 @@ import org.junit.Test;
 
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseRandomizedSchema;
+import io.crate.types.ArrayType;
+import io.crate.types.DataTypes;
+import io.crate.types.JsonType;
 
 public class GeoShapeIntegrationTest extends IntegTestCase {
 
@@ -61,32 +61,52 @@ public class GeoShapeIntegrationTest extends IntegTestCase {
         execute("CREATE TABLE shaped (" +
                 "  id long primary key," +
                 "  shape geo_shape," +
-                "  shapes array(geo_shape)" +
+                "  shapes array(geo_shape)," +
+                "  bkd_shape geo_shape INDEX USING bkdtree," +
+                "  bkd_shapes array(geo_shape) INDEX USING bkdtree" +
                 ") with (number_of_replicas=0)");
         ensureGreen();
-        execute("INSERT INTO shaped (id, shape) VALUES (?, ?)", $$($(1L, "POINT (13.0 52.4)"), $(2L, GEO_SHAPE1)));
-        execute("INSERT INTO shaped (id, shapes) VALUES (?, ?)", $(3, new Object[]{GEO_SHAPE1, GEO_SHAPE2}));
+        execute("INSERT INTO shaped (id, shape, bkd_shape) VALUES (?, ?, ?)",
+            $$(
+                $(1L, "POINT (13.0 52.4)", "POINT (13.0 52.4)"),
+                $(2L, GEO_SHAPE1, GEO_SHAPE1)
+            )
+        );
+        execute("INSERT INTO shaped (id, shapes, bkd_shapes) VALUES (?, ?, ?)",
+            $(3, new Object[]{GEO_SHAPE1, GEO_SHAPE2}, new Object[]{GEO_SHAPE1, GEO_SHAPE2})
+        );
         execute("REFRESH TABLE shaped");
     }
 
     @Test
     public void testSelectGeoShapeFromSource() throws Exception {
-        execute("select shape from shaped where id in (1, 2) order by id");
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
-            "{coordinates=[13.0, 52.4], type=Point}\n" +
-            "{coordinates=[[0.0, 0.0], [1.0, 1.0]], type=LineString}\n"));
-//TODO: Re-enable once SQLResponse also includes the data types for the columns
-//        assertThat(response.columnTypes()[0], is((DataType) DataTypes.GEO_SHAPE));
-        assertThat(response.rows()[0][0], instanceOf(Map.class));
-        assertThat(response.rows()[1][0], instanceOf(Map.class));
+        for (var columnName : List.of("shape", "bkd_shape")) {
+            execute("select " + columnName + " from shaped where id in (1, 2) order by id");
+            assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
+                "{coordinates=[13.0, 52.4], type=Point}\n" +
+                "{coordinates=[[0.0, 0.0], [1.0, 1.0]], type=LineString}\n");
+            // PGTypes maps geo-shape to JSON
+            assertThat(response.columnTypes()[0]).satisfiesAnyOf(
+                x -> assertThat(x).isEqualTo(DataTypes.GEO_SHAPE),
+                x -> assertThat(x).isEqualTo(JsonType.INSTANCE)
+            );
+            assertThat(response.rows()[0][0]).isInstanceOf(Map.class);
+            assertThat(response.rows()[1][0]).isInstanceOf(Map.class);
+        }
 
-        execute("select shapes from shaped where id = 3");
-        assertThat(TestingHelpers.printedTable(response.rows()), is(
-            "[{coordinates=[[0.0, 0.0], [1.0, 1.0]], type=LineString}, " +
-            "{coordinates=[[2.0, 2.0], [3.0, 3.0]], type=LineString}]\n"));
-//TODO: Re-enable once SQLResponse also includes the data types for the columns
-//        assertThat(response.columnTypes()[0], is((DataType) new ArrayType(DataTypes.GEO_SHAPE)));
-        assertThat(response.rows()[0][0], instanceOf(List.class));
+        for (var columnName : List.of("shapes", "bkd_shapes")) {
+            execute("select " + columnName + " from shaped where id = 3");
+            assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(
+                "[{coordinates=[[0.0, 0.0], [1.0, 1.0]], type=LineString}, " +
+                "{coordinates=[[2.0, 2.0], [3.0, 3.0]], type=LineString}]\n");
+
+            // PGTypes maps geo-shape to JSON
+            assertThat(response.columnTypes()[0]).satisfiesAnyOf(
+                x -> assertThat(x).isEqualTo(new ArrayType<>(DataTypes.GEO_SHAPE)),
+                x -> assertThat(x).isEqualTo(new ArrayType<>(JsonType.INSTANCE))
+            );
+            assertThat(response.rows()[0][0]).isInstanceOf(List.class);
+        }
     }
 
     @Test
@@ -101,13 +121,13 @@ public class GeoShapeIntegrationTest extends IntegTestCase {
         String expected = "CREATE TABLE IF NOT EXISTS \"doc\".\"test\" (\n" +
                           "   \"col1\" GEO_SHAPE INDEX USING QUADTREE WITH (\n" +
                           "      distance_error_pct = 0.25,\n" +
-                          "      precision = '1.0m'\n" +
+                          "      precision = '1m'\n" +
                           "   )\n" +
                           ")\n" +
                           "CLUSTERED INTO 1 SHARDS\n" +
                           "WITH (\n";
-        assertEquals(response.rowCount(), 1L);
-        assertThat((String) response.rows()[0][0], startsWith(expected));
+        assertThat(response).hasRowCount(1);
+        assertThat((String) response.rows()[0][0]).startsWith(expected);
 
         // execute the statement again and compare it with the SHOW CREATE TABLE result
         String stmt = (String) response.rows()[0][0];
@@ -115,7 +135,7 @@ public class GeoShapeIntegrationTest extends IntegTestCase {
         execute(stmt);
         ensureYellow();
         execute("show create table test");
-        assertEquals(response.rows()[0][0], stmt);
+        assertThat(response).hasRows(stmt);
     }
 
     @Test
@@ -132,8 +152,8 @@ public class GeoShapeIntegrationTest extends IntegTestCase {
                           ")\n" +
                           "CLUSTERED INTO 1 SHARDS\n" +
                           "WITH (\n";
-        assertEquals(response.rowCount(), 1L);
-        assertThat((String) response.rows()[0][0], startsWith(expected));
+        assertThat(response).hasRowCount(1);
+        assertThat((String) response.rows()[0][0]).startsWith(expected);
     }
 
     @Test
@@ -144,8 +164,8 @@ public class GeoShapeIntegrationTest extends IntegTestCase {
                 "13.002265691757202 52.39927416492016," +
                 "12.998725175857544 52.39927416492016," +
                 "12.998725175857544 52.40087142225922))')");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(((long) response.rows()[0][0]), is(1L));
+        assertThat(response).hasRowCount(1);
+        assertThat(response).hasRows("1");
 
         execute("delete from shaped where match(shape, " +
                 "{" +
@@ -157,23 +177,49 @@ public class GeoShapeIntegrationTest extends IntegTestCase {
         execute("refresh table shaped");
 
         execute("select count(*) from shaped");
-        assertThat(((long) response.rows()[0][0]), is(2L));
+        assertThat(response).hasRows("2");
+    }
+
+    @Test
+    public void test_geo_match_for_bkdtree() {
+        execute("select id from shaped where match(bkd_shape, " +
+                "'POLYGON((12.998725175857544 52.40087142225922," +
+                "13.002265691757202 52.40087142225922," +
+                "13.002265691757202 52.39927416492016," +
+                "12.998725175857544 52.39927416492016," +
+                "12.998725175857544 52.40087142225922))')");
+        assertThat(response).hasRowCount(1);
+        assertThat(response).hasRows("1");
+
+        execute("delete from shaped where match(bkd_shape, " +
+                "{" +
+                "   type='Polygon', " +
+                "   coordinates=[[[12.998725175857544, 52.40087142225922], " +
+                "                 [13.002265691757202, 52.40087142225922], " +
+                "                 [12.998725175857544, 52.39927416492016], " +
+                "                 [12.998725175857544, 52.40087142225922]]]})");
+        execute("refresh table shaped");
+
+        execute("select count(*) from shaped");
+        assertThat(response).hasRows("2");
     }
 
     @Test
     public void testSelectWhereIntersects() throws Exception {
-        execute("select id from shaped where intersects(shape, ?) order by id",
-            $("POLYGON(" +
-              "(12.995452 52.417497," +
-              " 13.051071 52.424407," +
-              " 13.053474 52.403047," +
-              " 13.046951 52.400743," +
-              " 13.069953 52.391944," +
-              " 13.024635 52.354425," +
-              " 12.970390 52.347714," +
-              " 12.995452 52.417497))"));
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows()[0][0], is((Object) 1L));
+        for (var columnName : List.of("shape", "bkd_shape")) {
+            execute("select id from shaped where intersects(" + columnName + ", ?) order by id",
+                $("POLYGON(" +
+                  "(12.995452 52.417497," +
+                  " 13.051071 52.424407," +
+                  " 13.053474 52.403047," +
+                  " 13.046951 52.400743," +
+                  " 13.069953 52.391944," +
+                  " 13.024635 52.354425," +
+                  " 12.970390 52.347714," +
+                  " 12.995452 52.417497))"));
+            assertThat(response).hasRowCount(1);
+            assertThat(response).hasRows("1");
+        }
     }
 
     @Test
@@ -190,6 +236,6 @@ public class GeoShapeIntegrationTest extends IntegTestCase {
                 "-0.129776 51.533736, -0.130462 51.53395, -0.130805 51.53395, -0.131149 51.534163, " +
                 "-0.131835 51.534804, -0.131835 51.535017, -0.131492 51.535444, -0.129776 51.536512, " +
                 "-0.129089 51.536726))')");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response).hasRowCount(0);
     }
 }

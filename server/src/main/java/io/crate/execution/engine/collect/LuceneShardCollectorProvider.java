@@ -31,7 +31,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
@@ -48,7 +47,7 @@ import io.crate.execution.engine.collect.collectors.LuceneOrderedDocCollector;
 import io.crate.execution.engine.collect.collectors.OptimizeQueryForSearchAfter;
 import io.crate.execution.engine.collect.collectors.OrderedDocCollector;
 import io.crate.execution.engine.export.FileOutputFactory;
-import io.crate.execution.engine.sort.LuceneSortGenerator;
+import io.crate.execution.engine.sort.LuceneSort;
 import io.crate.execution.jobs.NodeLimits;
 import io.crate.execution.jobs.SharedShardContext;
 import io.crate.expression.InputFactory;
@@ -57,11 +56,9 @@ import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.reference.sys.shard.ShardRowContext;
 import io.crate.expression.symbol.Symbols;
-import io.crate.lucene.FieldTypeLookup;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 
@@ -74,13 +71,11 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
     private final NodeContext nodeCtx;
     private final DocInputFactory docInputFactory;
     private final BigArrays bigArrays;
-    private final FieldTypeLookup fieldTypeLookup;
     private final RelationName relationName;
 
     private final LuceneReferenceResolver referenceResolver;
 
-    public LuceneShardCollectorProvider(Schemas schemas,
-                                        LuceneQueryBuilder luceneQueryBuilder,
+    public LuceneShardCollectorProvider(LuceneQueryBuilder luceneQueryBuilder,
                                         ClusterService clusterService,
                                         NodeLimits nodeJobsCounter,
                                         CircuitBreakerService circuitBreakerService,
@@ -94,7 +89,6 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         super(
             clusterService,
             circuitBreakerService,
-            schemas,
             nodeJobsCounter,
             nodeCtx,
             threadPool,
@@ -107,17 +101,10 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         this.luceneQueryBuilder = luceneQueryBuilder;
         this.nodeCtx = nodeCtx;
         this.localNodeId = () -> clusterService.localNode().getId();
-        var mapperService = indexShard.mapperService();
-        if (mapperService == null) {
-            fieldTypeLookup = name -> null;
-        } else {
-            fieldTypeLookup = mapperService::fieldType;
-        }
         this.relationName = RelationName.fromIndexName(indexShard.shardId().getIndexName());
-        DocTableInfo table = schemas.getTableInfo(relationName);
+        DocTableInfo table = nodeCtx.schemas().getTableInfo(relationName);
         this.referenceResolver = new LuceneReferenceResolver(
             indexShard.shardId().getIndexName(),
-            fieldTypeLookup,
             table.partitionedByColumns()
         );
         this.docInputFactory = new DocInputFactory(nodeCtx, referenceResolver);
@@ -132,23 +119,20 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         SharedShardContext sharedShardContext = collectTask.sharedShardContexts().getOrCreateContext(shardId);
         var searcher = sharedShardContext.acquireSearcher("unordered-iterator: " + formatSource(collectPhase));
         collectTask.addSearcher(sharedShardContext.readerId(), searcher);
-        IndexShard sharedShardContextShard = sharedShardContext.indexShard();
         // A closed shard has no mapper service and cannot be queried with lucene,
         // therefore skip it
-        boolean isClosed = sharedShardContextShard.mapperService() == null;
-        if (isClosed) {
+        if (indexShard.isClosed()) {
             return InMemoryBatchIterator.empty(SentinelRow.SENTINEL);
         }
-        QueryShardContext queryShardContext = sharedShardContext.indexService().newQueryShardContext();
-        DocTableInfo table = schemas.getTableInfo(relationName);
+        IndexService indexService = sharedShardContext.indexService();
+        DocTableInfo table = nodeCtx.schemas().getTableInfo(relationName);
         LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(
             collectPhase.where(),
             collectTask.txnCtx(),
-            sharedShardContextShard.mapperService(),
-            sharedShardContextShard.shardId().getIndexName(),
-            queryShardContext,
+            indexShard.shardId().getIndexName(),
+            indexService.indexAnalyzers(),
             table,
-            sharedShardContext.indexService().cache()
+            indexService.cache()
         );
         InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx =
             docInputFactory.extractImplementations(collectTask.txnCtx(), collectPhase);
@@ -157,7 +141,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             searcher.item(),
             queryContext.query(),
             queryContext.minScore(),
-            Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.SCORE),
+            Symbols.hasColumn(collectPhase.toCollect(), DocSysColumns.SCORE),
             new CollectorContext(sharedShardContext.readerId(), table.droppedColumns(), table.lookupNameBySourceKey()),
             docCtx.topLevelInputs(),
             docCtx.expressions()
@@ -167,12 +151,11 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
     @Nullable
     @Override
     protected BatchIterator<Row> getProjectionFusedIterator(RoutedCollectPhase normalizedPhase, CollectTask collectTask) {
-        DocTableInfo table = schemas.getTableInfo(relationName);
+        DocTableInfo table = nodeCtx.schemas().getTableInfo(relationName);
         var it = GroupByOptimizedIterator.tryOptimizeSingleStringKey(
             indexShard,
             table,
             luceneQueryBuilder,
-            fieldTypeLookup,
             bigArrays,
             new InputFactory(nodeCtx),
             docInputFactory,
@@ -188,7 +171,6 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             indexShard,
             table,
             luceneQueryBuilder,
-            fieldTypeLookup,
             docInputFactory,
             normalizedPhase,
             collectTask
@@ -219,14 +201,12 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         var searcher = sharedShardContext.acquireSearcher("ordered-collector: " + formatSource(phase));
         collectTask.addSearcher(sharedShardContext.readerId(), searcher);
         IndexService indexService = sharedShardContext.indexService();
-        QueryShardContext queryShardContext = indexService.newQueryShardContext();
-        DocTableInfo table = schemas.getTableInfo(relationName);
+        DocTableInfo table = nodeCtx.schemas().getTableInfo(relationName);
         final var queryContext = luceneQueryBuilder.convert(
             collectPhase.where(),
             collectTask.txnCtx(),
-            indexService.mapperService(),
             indexShard.shardId().getIndexName(),
-            queryShardContext,
+            indexService.indexAnalyzers(),
             table,
             indexService.cache()
         );
@@ -235,8 +215,8 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
         int batchSize = collectPhase.shardQueueSize(localNodeId.get());
         if (LOGGER.isTraceEnabled()) {
             LOGGER.trace("[{}][{}] creating LuceneOrderedDocCollector. Expected number of rows to be collected: {}",
-                sharedShardContext.indexShard().routingEntry().currentNodeId(),
-                sharedShardContext.indexShard().shardId(),
+                indexShard.routingEntry().currentNodeId(),
+                indexShard.shardId(),
                 batchSize);
         }
         var optimizeQueryForSearchAfter = new OptimizeQueryForSearchAfter(collectPhase.orderBy());
@@ -245,12 +225,12 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             searcher.item(),
             queryContext.query(),
             queryContext.minScore(),
-            Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.SCORE),
+            Symbols.hasColumn(collectPhase.toCollect(), DocSysColumns.SCORE),
             batchSize,
             collectTask.getRamAccounting(),
             collectorContext,
             optimizeQueryForSearchAfter,
-            LuceneSortGenerator.generateLuceneSort(collectTask.txnCtx(), collectorContext, collectPhase.orderBy(), docInputFactory, fieldTypeLookup),
+            LuceneSort.generate(collectTask.txnCtx(), collectorContext, collectPhase.orderBy(), docInputFactory),
             ctx.topLevelInputs(),
             ctx.expressions()
         );

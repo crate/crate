@@ -27,52 +27,28 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.Streamer;
-import io.crate.common.collections.Lists2;
+import io.crate.analyze.OrderBy;
+import io.crate.analyze.WindowDefinition;
+import io.crate.common.collections.Lists;
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.FunctionType;
-import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
-import io.crate.sql.tree.ColumnDefinition;
-import io.crate.sql.tree.ColumnPolicy;
-import io.crate.sql.tree.Expression;
 import io.crate.types.DataType;
-import io.crate.types.TypeSignature;
 
-public class Symbols {
+public final class Symbols {
 
-    private static final HasColumnVisitor HAS_COLUMN_VISITOR = new HasColumnVisitor();
-
-    public static final Predicate<Symbol> IS_COLUMN = s -> s instanceof ScopedSymbol || s instanceof Reference;
-    public static final Predicate<Symbol> IS_GENERATED_COLUMN = input -> input instanceof GeneratedReference;
-    public static final Predicate<Symbol> IS_CORRELATED_SUBQUERY = Symbols::isCorrelatedSubQuery;
-
-    public static boolean isCorrelatedSubQuery(Symbol symbol) {
-        return symbol instanceof SelectSymbol selectSymbol && selectSymbol.isCorrelated();
-    }
-
-    public static boolean containsCorrelatedSubQuery(Symbol symbol) {
-        return SymbolVisitors.any(IS_CORRELATED_SUBQUERY, symbol);
-    }
-
-    public static boolean isAggregate(Symbol s) {
-        return s instanceof Function fn && fn.signature().getKind() == FunctionType.AGGREGATE;
-    }
+    private Symbols() {}
 
     public static List<DataType<?>> typeView(List<? extends Symbol> symbols) {
-        return Lists2.mapLazy(symbols, Symbol::valueType);
-    }
-
-    public static List<TypeSignature> typeSignatureView(List<? extends Symbol> symbols) {
-        return Lists2.mapLazy(symbols, s -> s.valueType().getTypeSignature());
+        return Lists.mapLazy(symbols, Symbol::valueType);
     }
 
     public static Streamer<?>[] streamerArray(Symbol[] symbols) {
@@ -106,23 +82,31 @@ public class Symbols {
         return null;
     }
 
-    /**
-     * returns true if the symbol contains the given columnIdent.
-     * If symbol is a Function the function tree will be traversed
-     */
-    public static boolean containsColumn(@Nullable Symbol symbol, ColumnIdent path) {
-        if (symbol == null) {
-            return false;
+    public static boolean any(List<? extends Symbol> symbols, Predicate<? super Symbol> predicate) {
+        for (int i = 0; i < symbols.size(); i++) {
+            Symbol symbol = symbols.get(i);
+            if (symbol.any(predicate)) {
+                return true;
+            }
         }
-        return symbol.accept(HAS_COLUMN_VISITOR, path);
+        return false;
+    }
+
+    public static boolean any(Iterable<? extends Symbol> symbols, Predicate<? super Symbol> predicate) {
+        for (Symbol symbol: symbols) {
+            if (symbol.any(predicate)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
      * returns true if any of the symbols contains the given column
      */
-    public static boolean containsColumn(Iterable<? extends Symbol> symbols, ColumnIdent path) {
+    public static boolean hasColumn(Iterable<? extends Symbol> symbols, ColumnIdent path) {
         for (Symbol symbol : symbols) {
-            if (containsColumn(symbol, path)) {
+            if (symbol.hasColumn(path)) {
                 return true;
             }
         }
@@ -132,74 +116,14 @@ public class Symbols {
     public static void toStream(Collection<? extends Symbol> symbols, StreamOutput out) throws IOException {
         out.writeVInt(symbols.size());
         for (Symbol symbol : symbols) {
-            toStream(symbol, out);
+            Symbol.toStream(symbol, out);
         }
     }
 
-    public static void nullableToStream(@Nullable Symbol symbol, StreamOutput out) throws IOException {
-        if (symbol == null) {
-            out.writeBoolean(false);
-        } else {
-            out.writeBoolean(true);
-            out.writeVInt(symbol.symbolType().ordinal());
-            symbol.writeTo(out);
-        }
+    public static List<Symbol> fromStream(StreamInput in) throws IOException {
+        return in.readList(Symbol::fromStream);
     }
 
-    public static void toStream(Symbol symbol, StreamOutput out) throws IOException {
-        if (out.getVersion().before(Version.V_4_2_0) && symbol instanceof AliasSymbol aliasSymbol) {
-            toStream(aliasSymbol.symbol(), out);
-        } else {
-            int ordinal = symbol.symbolType().ordinal();
-            out.writeVInt(ordinal);
-            symbol.writeTo(out);
-        }
-    }
-
-    public static List<Symbol> listFromStream(StreamInput in) throws IOException {
-        return in.readList(Symbols::fromStream);
-    }
-
-    @Nullable
-    public static Symbol nullableFromStream(StreamInput in) throws IOException {
-        boolean valuePresent = in.readBoolean();
-        if (!valuePresent) {
-            return null;
-        }
-        return fromStream(in);
-    }
-
-    public static Symbol fromStream(StreamInput in) throws IOException {
-        return SymbolType.VALUES.get(in.readVInt()).newInstance(in);
-    }
-
-    public static ColumnIdent pathFromSymbol(Symbol symbol) {
-        if (symbol instanceof AliasSymbol aliasSymbol) {
-            return new ColumnIdent(aliasSymbol.alias());
-        } else if (symbol instanceof ScopedSymbol scopedSymbol) {
-            return scopedSymbol.column();
-        } else if (symbol instanceof Reference ref) {
-            return ref.column();
-        }
-        return new ColumnIdent(symbol.toString(Style.UNQUALIFIED));
-    }
-
-    public static boolean isDeterministic(Symbol symbol) {
-        boolean[] isDeterministic = new boolean[] { true };
-        symbol.accept(new DefaultTraversalSymbolVisitor<boolean[], Void>() {
-
-            @Override
-            public Void visitFunction(io.crate.expression.symbol.Function func,
-                                      boolean[] isDeterministic) {
-                if (!func.signature().isDeterministic()) {
-                    isDeterministic[0] = false;
-                    return null;
-                }
-                return super.visitFunction(func, isDeterministic);
-            }
-        }, isDeterministic);
-        return isDeterministic[0];
-    }
 
     /**
      * format symbols in simple style and use the formatted symbols as {@link String#format(Locale, String, Object...)} arguments
@@ -218,57 +142,147 @@ public class Symbols {
         return String.format(Locale.ENGLISH, messageTmpl, formattedSymbols);
     }
 
-    public static Symbol unwrapReferenceFromCast(Symbol symbol) {
-        if (symbol instanceof Function fn && fn.isCast()) {
-            return fn.arguments().get(0);
-        }
-        return symbol;
+    /**
+     * Calls the given `consumer` for all intersection points between `needle` and `haystack`.
+     * For example, in:
+     * <pre>
+     *     needle: x > 20 AND y = 2
+     *     haystack: [x, y = 2]
+     * </pre>
+     *
+     * The `consumer` would be called for `x` and for `y = 2`
+     */
+    public static <T> void intersection(Symbol needle, Collection<T> haystack, Consumer<T> consumer) {
+        needle.accept(new IntersectionVisitor<>(haystack, consumer), null);
     }
 
-    private static class HasColumnVisitor extends SymbolVisitor<ColumnIdent, Boolean> {
+    // If `haystack.contains(x)` is true, then `x` has type `T`, and the call to the consumer is safe.
+    // This provides convenience for call-ees of `intersection`.
+    // If `haystack` is for example `List<Function>` they can use a `Consumer<Function>` and don't loose type information.
+    @SuppressWarnings({"SuspiciousMethodCalls", "unchecked"})
+    private static class IntersectionVisitor<T> extends SymbolVisitor<Void, Void> {
 
-        @Override
-        protected Boolean visitSymbol(Symbol symbol, ColumnIdent column) {
-            return false;
+        private final Collection<T> haystack;
+        private final Consumer<T> consumer;
+
+        public IntersectionVisitor(Collection<T> haystack, Consumer<T> consumer) {
+            this.haystack = haystack;
+            this.consumer = consumer;
         }
 
         @Override
-        public Boolean visitFunction(Function symbol, ColumnIdent column) {
-            for (Symbol arg : symbol.arguments()) {
-                if (arg.accept(this, column)) {
-                    return true;
+        public Void visitFunction(Function func, Void context) {
+            if (haystack.contains(func)) {
+                consumer.accept((T) func);
+            } else {
+                for (Symbol argument : func.arguments()) {
+                    callConsumerOrVisit(argument);
+                }
+                Symbol filter = func.filter();
+                if (filter != null) {
+                    callConsumerOrVisit(filter);
                 }
             }
-            return false;
+            return null;
         }
 
         @Override
-        public Boolean visitFetchReference(FetchReference fetchReference, ColumnIdent column) {
-            if (((Symbol) fetchReference.fetchId()).accept(this, column)) {
-                return true;
+        public Void visitWindowFunction(WindowFunction windowFunc, Void context) {
+            if (haystack.contains(windowFunc)) {
+                consumer.accept((T) windowFunc);
+            } else {
+                for (Symbol argument : windowFunc.arguments()) {
+                    callConsumerOrVisit(argument);
+                }
+                Symbol filter = windowFunc.filter();
+                if (filter != null) {
+                    callConsumerOrVisit(filter);
+                }
+                WindowDefinition windowDefinition = windowFunc.windowDefinition();
+                for (Symbol partition : windowDefinition.partitions()) {
+                    callConsumerOrVisit(partition);
+                }
+                OrderBy orderBy = windowDefinition.orderBy();
+                if (orderBy != null) {
+                    for (Symbol orderBySymbol : orderBy.orderBySymbols()) {
+                        callConsumerOrVisit(orderBySymbol);
+                    }
+                }
+                Symbol startOffsetValue = windowDefinition.windowFrameDefinition().start().value();
+                if (startOffsetValue != null) {
+                    callConsumerOrVisit(startOffsetValue);
+                }
+                Symbol endOffsetValue = windowDefinition.windowFrameDefinition().end().value();
+                if (endOffsetValue != null) {
+                    callConsumerOrVisit(endOffsetValue);
+                }
             }
-            return fetchReference.ref().accept(this, column);
+            return null;
+        }
+
+        private void callConsumerOrVisit(Symbol symbol) {
+            if (haystack.contains(symbol)) {
+                consumer.accept((T) symbol);
+            } else {
+                symbol.accept(this, null);
+            }
         }
 
         @Override
-        public Boolean visitField(ScopedSymbol field, ColumnIdent column) {
-            return field.column().equals(column);
+        public Void visitAlias(AliasSymbol aliasSymbol, Void context) {
+            if (haystack.contains(aliasSymbol)) {
+                consumer.accept((T) aliasSymbol);
+            } else {
+                aliasSymbol.symbol().accept(this, context);
+            }
+            return null;
         }
 
         @Override
-        public Boolean visitReference(Reference symbol, ColumnIdent column) {
-            return column.equals(symbol.column());
+        public Void visitField(ScopedSymbol field, Void context) {
+            if (haystack.contains(field)) {
+                consumer.accept((T) field);
+            } else if (!field.column().isRoot()) {
+                // needle: `obj[x]`, haystack: [`obj`] -> `obj` is an intersection
+                ColumnIdent root = field.column().getRoot();
+                for (T t : haystack) {
+                    if (t instanceof ScopedSymbol scopedSymbol && scopedSymbol.column().equals(root)) {
+                        consumer.accept(t);
+                    }
+                }
+            }
+            return null;
         }
-    }
 
-    public static ColumnDefinition<Expression> toColumnDefinition(Symbol symbol) {
-        return new ColumnDefinition<>(
-            pathFromSymbol(symbol).sqlFqn(), // allow ObjectTypes to return col name in subscript notation
-            null,
-            null,
-            symbol.valueType().toColumnType(
-                symbol instanceof Reference reference ? reference.columnPolicy() : ColumnPolicy.DYNAMIC,
-                null),
-            List.of());
+        @Override
+        public Void visitReference(Reference ref, Void context) {
+            if (haystack.contains(ref)) {
+                consumer.accept((T) ref);
+            } else if (!ref.column().isRoot()) {
+                // needle: `obj[x]`, haystack: [`obj`] -> `obj` is an intersection
+                ColumnIdent root = ref.column().getRoot();
+                for (T t : haystack) {
+                    if (t instanceof Reference tRef && tRef.column().equals(root)) {
+                        consumer.accept(t);
+                        break;
+                    } else if (ref instanceof VoidReference
+                               && t instanceof ScopedSymbol tScopedSymbol
+                               && tScopedSymbol.relation().equals(ref.ident().tableIdent())
+                               && tScopedSymbol.column().equals(root)) {
+                        consumer.accept(t);
+                        break;
+                    }
+                }
+            }
+            return null;
+        }
+
+        @Override
+        protected Void visitSymbol(Symbol symbol, Void context) {
+            if (haystack.contains(symbol)) {
+                consumer.accept((T) symbol);
+            }
+            return null;
+        }
     }
 }

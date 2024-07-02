@@ -21,8 +21,7 @@
 
 package io.crate.integrationtests;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -30,20 +29,21 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.testing.TestingHelpers;
-import io.crate.user.Privilege;
-import io.crate.user.UserManager;
+import io.crate.role.Permission;
+import io.crate.role.Policy;
+import io.crate.role.Privilege;
+import io.crate.role.RoleManager;
+import io.crate.role.Securable;
 
-public class SysPrivilegesIntegrationTest extends BaseUsersIntegrationTest {
+public class SysPrivilegesIntegrationTest extends BaseRolesIntegrationTest {
 
     private static final Set<Privilege> PRIVILEGES = new HashSet<>(Arrays.asList(
-        new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.CLUSTER, null, "crate"),
-        new Privilege(Privilege.State.GRANT, Privilege.Type.DML, Privilege.Clazz.CLUSTER, null, "crate")));
-    private static final List<String> USERNAMES = Arrays.asList("ford", "arthur", "normal");
+        new Privilege(Policy.GRANT, Permission.DQL, Securable.CLUSTER, null, "crate"),
+        new Privilege(Policy.GRANT, Permission.DML, Securable.CLUSTER, null, "crate")));
+    private static final List<String> USERNAMES = Arrays.asList("ford", "arthur");
 
 
     @Before
@@ -52,49 +52,41 @@ public class SysPrivilegesIntegrationTest extends BaseUsersIntegrationTest {
             executeAsSuperuser("create user " + userName);
         }
 
-        UserManager userManager = cluster().getInstance(UserManager.class);
-        Long rowCount = userManager.applyPrivileges(USERNAMES, PRIVILEGES).get(5, TimeUnit.SECONDS);
-        assertThat(rowCount, is(6L));
-    }
-
-    @After
-    public void dropUsersAndPrivileges() {
-        for (String userName : USERNAMES) {
-            executeAsSuperuser("drop user " + userName);
-        }
+        RoleManager roleManager = cluster().getInstance(RoleManager.class);
+        Long rowCount = roleManager.applyPrivileges(USERNAMES, PRIVILEGES, null).get(5, TimeUnit.SECONDS);
+        assertThat(rowCount).isEqualTo(4);
     }
 
     @Test
     public void testTableColumns() {
         executeAsSuperuser("select column_name, data_type from information_schema.columns" +
                 " where table_name='privileges' and table_schema='sys'");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("class| text\n" +
-                                                                    "grantee| text\n" +
-                                                                    "grantor| text\n" +
-                                                                    "ident| text\n" +
-                                                                    "state| text\n" +
-                                                                    "type| text\n"));
+        assertThat(response).hasRows(
+            "class| text",
+            "grantee| text",
+            "grantor| text",
+            "ident| text",
+            "state| text",
+            "type| text");
     }
 
     @Test
     public void testListingAsSuperUser() {
         executeAsSuperuser("select * from sys.privileges order by grantee, type");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("CLUSTER| arthur| crate| NULL| GRANT| DML\n" +
-                                                                    "CLUSTER| arthur| crate| NULL| GRANT| DQL\n" +
-                                                                    "CLUSTER| ford| crate| NULL| GRANT| DML\n" +
-                                                                    "CLUSTER| ford| crate| NULL| GRANT| DQL\n" +
-                                                                    "CLUSTER| normal| crate| NULL| GRANT| DML\n" +
-                                                                    "CLUSTER| normal| crate| NULL| GRANT| DQL\n"));
+        assertThat(response).hasRows(
+            "CLUSTER| arthur| crate| NULL| GRANT| DML",
+            "CLUSTER| arthur| crate| NULL| GRANT| DQL",
+            "CLUSTER| ford| crate| NULL| GRANT| DML",
+            "CLUSTER| ford| crate| NULL| GRANT| DQL");
     }
 
     @Test
     public void testListingAsUserWithPrivilege() {
         executeAsSuperuser("select * from sys.privileges order by grantee, type");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("CLUSTER| arthur| crate| NULL| GRANT| DML\n" +
-                                                                    "CLUSTER| arthur| crate| NULL| GRANT| DQL\n" +
-                                                                    "CLUSTER| ford| crate| NULL| GRANT| DML\n" +
-                                                                    "CLUSTER| ford| crate| NULL| GRANT| DQL\n" +
-                                                                    "CLUSTER| normal| crate| NULL| GRANT| DML\n" +
-                                                                    "CLUSTER| normal| crate| NULL| GRANT| DQL\n"));
+        assertThat(response).hasRows(
+            "CLUSTER| arthur| crate| NULL| GRANT| DML",
+            "CLUSTER| arthur| crate| NULL| GRANT| DQL",
+            "CLUSTER| ford| crate| NULL| GRANT| DML",
+            "CLUSTER| ford| crate| NULL| GRANT| DQL");
     }
 }

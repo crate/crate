@@ -29,10 +29,9 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -43,9 +42,9 @@ import io.crate.Streamer;
 import io.crate.execution.engine.aggregation.impl.HyperLogLogPlusPlus;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.functions.Signature;
-import io.crate.module.ExtraFunctionsModule;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -54,16 +53,16 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTestCase {
 
     @Before
     public void prepareFunctions() {
-        nodeCtx = createNodeContext(new ExtraFunctionsModule());
+        nodeCtx = createNodeContext(null, null);
     }
 
     private Object executeAggregation(DataType<?> argumentType, Object[][] data) throws Exception {
         return executeAggregation(
             Signature.aggregate(
-                HyperLogLogDistinctAggregation.NAME,
-                argumentType.getTypeSignature(),
-                DataTypes.LONG.getTypeSignature()
-            ),
+                    HyperLogLogDistinctAggregation.NAME,
+                    argumentType.getTypeSignature(),
+                    DataTypes.LONG.getTypeSignature())
+                .withFeature(Scalar.Feature.DETERMINISTIC),
             data,
             List.of()
         );
@@ -72,11 +71,11 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTestCase {
     private Object executeAggregationWithPrecision(DataType<?> argumentType, Object[][] data, List<Literal<?>> optionalParams) throws Exception {
         return executeAggregation(
             Signature.aggregate(
-                HyperLogLogDistinctAggregation.NAME,
-                argumentType.getTypeSignature(),
-                DataTypes.INTEGER.getTypeSignature(),
-                DataTypes.LONG.getTypeSignature()
-            ),
+                    HyperLogLogDistinctAggregation.NAME,
+                    argumentType.getTypeSignature(),
+                    DataTypes.INTEGER.getTypeSignature(),
+                    DataTypes.LONG.getTypeSignature())
+                .withFeature(Scalar.Feature.DETERMINISTIC),
             data,
             optionalParams
         );

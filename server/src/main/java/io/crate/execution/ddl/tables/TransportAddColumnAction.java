@@ -21,17 +21,19 @@
 
 package io.crate.execution.ddl.tables;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.execution.ddl.AbstractDDLTransportAction;
 import io.crate.metadata.NodeContext;
@@ -39,14 +41,22 @@ import io.crate.metadata.NodeContext;
 @Singleton
 public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColumnRequest, AcknowledgedResponse> {
 
+    @VisibleForTesting
+    public static final AlterTableTask.AlterTableOperator<AddColumnRequest> ADD_COLUMN_OPERATOR =
+        (req, doctableInfo, metadataBuilder, nodeCtx) -> doctableInfo.addColumns(
+            nodeCtx,
+            doctableInfo.versionCreated().onOrAfter(Version.V_5_5_0) ?
+                metadataBuilder.columnOidSupplier() :
+                () -> Metadata.COLUMN_OID_UNASSIGNED,
+            req.references(),
+            req.pKeyIndices(),
+            req.checkConstraints());
     private static final String ACTION_NAME = "internal:crate:sql/table/add_column";
     private final NodeContext nodeContext;
-    private final IndicesService indicesService;
 
     @Inject
     public TransportAddColumnAction(TransportService transportService,
                                     ClusterService clusterService,
-                                    IndicesService indicesService,
                                     ThreadPool threadPool,
                                     NodeContext nodeContext) {
         super(ACTION_NAME,
@@ -58,12 +68,11 @@ public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColu
             AcknowledgedResponse::new,
             "add-column");
         this.nodeContext = nodeContext;
-        this.indicesService = indicesService;
     }
 
     @Override
     public ClusterStateTaskExecutor<AddColumnRequest> clusterStateTaskExecutor(AddColumnRequest request) {
-        return new AddColumnTask(nodeContext, indicesService::createIndexMapperService);
+        return new AlterTableTask<>(nodeContext, request.relationName(), ADD_COLUMN_OPERATOR);
     }
 
 

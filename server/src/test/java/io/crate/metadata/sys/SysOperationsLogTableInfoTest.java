@@ -21,12 +21,11 @@
 
 package io.crate.metadata.sys;
 
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.UUID;
 import java.util.function.LongSupplier;
 
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 
 import io.crate.expression.reference.sys.operation.OperationContext;
@@ -37,8 +36,8 @@ public class SysOperationsLogTableInfoTest {
 
     @Test
     public void test_job_id_returns_job_id_of_operation_context_log() {
-        var table = SysOperationsLogTableInfo.create();
-        var expressionFactory = table.expressions().get(new ColumnIdent("job_id"));
+        var table = SysOperationsLogTableInfo.INSTANCE;
+        var expressionFactory = table.expressions().get(ColumnIdent.of("job_id"));
         var expression = expressionFactory.create();
 
         int id = 1;
@@ -49,6 +48,6 @@ public class SysOperationsLogTableInfoTest {
         String errorMessage = null;
         expression.setNextRow(new OperationContextLog(new OperationContext(id, jobId, name, started, bytesUsed), errorMessage));
         Object value = (String) expression.value();
-        assertThat(value, Matchers.is(jobId.toString()));
+        assertThat(value).isEqualTo(jobId.toString());
     }
 }

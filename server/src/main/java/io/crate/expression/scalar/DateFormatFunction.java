@@ -27,6 +27,7 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
 import io.crate.data.Input;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -40,38 +41,41 @@ public class DateFormatFunction extends Scalar<String, Object> {
     public static final String NAME = "date_format";
     public static final String DEFAULT_FORMAT = "%Y-%m-%dT%H:%i:%s.%fZ";
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(Functions.Builder module) {
         List<DataType<?>> supportedTimestampTypes = List.of(
             DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMP, DataTypes.LONG);
         for (DataType<?> dataType : supportedTimestampTypes) {
             // without format
-            module.register(
+            module.add(
                 Signature.scalar(
                     NAME,
                     dataType.getTypeSignature(),
                     DataTypes.STRING.getTypeSignature()
-                ), DateFormatFunction::new
+                ).withFeature(Feature.DETERMINISTIC),
+                DateFormatFunction::new
             );
 
             // with format
-            module.register(
+            module.add(
                 Signature.scalar(
                     NAME,
                     DataTypes.STRING.getTypeSignature(),
                     dataType.getTypeSignature(),
                     DataTypes.STRING.getTypeSignature()
-                ), DateFormatFunction::new
+                ).withFeature(Feature.DETERMINISTIC),
+                DateFormatFunction::new
             );
 
             // time zone aware variant
-            module.register(
+            module.add(
                 Signature.scalar(
                     NAME,
                     DataTypes.STRING.getTypeSignature(),
                     DataTypes.STRING.getTypeSignature(),
                     dataType.getTypeSignature(),
                     DataTypes.STRING.getTypeSignature()
-                ), DateFormatFunction::new
+                ).withFeature(Feature.DETERMINISTIC),
+                DateFormatFunction::new
             );
         }
     }

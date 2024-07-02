@@ -21,13 +21,13 @@
 
 package io.crate.types;
 
-import io.crate.Streamer;
+import java.io.IOException;
 
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import java.io.IOException;
+import io.crate.Streamer;
 
 public class UndefinedType extends DataType<Object> implements Streamer<Object> {
 

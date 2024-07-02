@@ -33,66 +33,66 @@ Changelog
 Breaking Changes
 ----------------
 
- - ``GROUP BY`` now executes against the real columns and fallbacks to
-   substituting possible aliases in the case that the columns do not exist.
+- ``GROUP BY`` now executes against the real columns and fallbacks to
+  substituting possible aliases in the case that the columns do not exist.
 
-   This will cause statements that used alias values that shadowed multiple
-   columns with the same name to fail (e.g. alias ``name`` in a join statement
-   where multiple tables have the real column ``name``).
+  This will cause statements that used alias values that shadowed multiple
+  columns with the same name to fail (e.g. alias ``name`` in a join statement
+  where multiple tables have the real column ``name``).
 
-   Statements with aliases that shadowed a real column and also retrieve that
-   real column will no longer fail as the real column will be used in the
-   ``GROUP BY`` clause (this will not be ambiguous anymore).
+  Statements with aliases that shadowed a real column and also retrieve that
+  real column will no longer fail as the real column will be used in the
+  ``GROUP BY`` clause (this will not be ambiguous anymore).
 
- - Change semantics of ``IN`` :ref:`operator <gloss-operator>` to behave
-   like ``= ANY``.
+- Change semantics of ``IN`` :ref:`operator <gloss-operator>` to behave
+  like ``= ANY``.
 
-   The argument list for ``IN`` now has to be comprised of the same type. For
-   example, this is now an illegal ``IN`` query because the list mixes integer
-   and double type::
+  The argument list for ``IN`` now has to be comprised of the same type. For
+  example, this is now an illegal ``IN`` query because the list mixes integer
+  and double type::
 
-     SELECT * FROM t1 WHERE id IN (1, 1.2, 2)
+    SELECT * FROM t1 WHERE id IN (1, 1.2, 2)
 
-   The above would get translated into the following and throw an error::
+  The above would get translated into the following and throw an error::
 
-     SELECT * FROM t1 WHERE id = ANY([1, 1.2, 3])
+    SELECT * FROM t1 WHERE id = ANY([1, 1.2, 3])
 
 Changes
 -------
 
- - Added the shards plugin for the Enterprise Edition in the Admin UI.
+- Added the shards plugin for the Enterprise Edition in the Admin UI.
 
-   The shards plugin is a visualization that displays information about shards
-   by table, partition and node.
+  The shards plugin is a visualization that displays information about shards
+  by table, partition and node.
 
- - Added new tab in Enterprise Edition of the Admin UI to display users and
-   their privileges.
+- Added new tab in Enterprise Edition of the Admin UI to display users and
+  their privileges.
 
- - General Admin UI improvements.
+- General Admin UI improvements.
 
- - Updated Crash to 0.22.1, which includes the following changes:
+- Updated Crash to 0.22.1, which includes the following changes:
 
-    - Added a status toolbar that prints the current session info.
+  - Added a status toolbar that prints the current session info.
 
-    - Start autocompletion for non-command keys at the third character.
+  - Start autocompletion for non-command keys at the third character.
 
- - Allow IPv6 addresses in IP column type.
+- Allow IPv6 addresses in IP column type.
 
- - Upgraded Elasticsearch to 5.5.2.
+- Upgraded Elasticsearch to 5.5.2.
 
- - Added node cluster check for cluster-name folder in data path directory.
+- Added node cluster check for cluster-name folder in data path directory.
 
- - Introduce support for single column :ref:`subselects <gloss-subquery>` in
-   ``ANY`` and ``IN``, e.g.::
+- Introduce support for single column :ref:`subselects <gloss-subquery>` in
+  ``ANY`` and ``IN``, e.g.::
 
-     SELECT * FROM t1 WHERE id = ANY(SELECT id FROM t2)
-     SELECT * FROM t1 WHERE id IN (SELECT id FROM t2)
+      SELECT * FROM t1 WHERE id = ANY(SELECT id FROM t2)
+      SELECT * FROM t1 WHERE id IN (SELECT id FROM t2)
 
- - Improved resiliency of the table rename operation.
+- Improved resiliency of the table rename operation.
 
- - Relaxed column naming restrictions.
+- Relaxed column naming restrictions.
 
- - Improved resiliency of drop, close and open table operations.
+- Improved resiliency of drop, close and open table operations.
 
- - Added empty tables ``KEY_COLUMN_USAGE`` and ``REFERENTIAL_CONSTRAINTS`` to
-   ``INFORMATION_SCHEMA`` to be more compliant with the SQL99 standard.
+- Added empty tables ``KEY_COLUMN_USAGE`` and ``REFERENTIAL_CONSTRAINTS`` to
+  ``INFORMATION_SCHEMA`` to be more compliant with the SQL99 standard.

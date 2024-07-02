@@ -155,33 +155,36 @@ Canceling requests
 For improved compatibility, the ``pg_catalog`` schema is implemented containing
 following tables:
 
- - `pg_am`_
- - `pg_attrdef <pgsql_pg_attrdef_>`__
- - `pg_attribute <pgsql_pg_attribute_>`__
- - `pg_class <pgsql_pg_class_>`__
- - `pg_constraint <pgsql_pg_constraint_>`__
- - `pg_cursors <pgsql_pg_cursors_>`__
- - `pg_database <pgsql_pg_database_>`__
- - `pg_description`_
- - `pg_enum`_
- - `pg_index <pgsql_pg_index_>`__
- - `pg_indexes <pgsql_pg_indexes_>`__
- - `pg_locks <pgsql_pg_locks_>`__
- - `pg_namespace <pgsql_pg_namespace_>`__
- - `pg_proc <pgsql_pg_proc_>`__
- - `pg_publication <pgsql_pg_publication_>`__
- - `pg_publication_tables <pgsql_pg_publication_tables_>`__
- - `pg_range`_
- - `pg_roles`_
- - `pg_settings <pgsql_pg_settings_>`__
- - `pg_shdescription`_
- - `pg_stats`_
- - `pg_subscription <pgsql_pg_subscription_>`__
- - `pg_subscription_rel <pgsql_pg_subscription_rel_>`__
- - `pg_tables`_
- - `pg_tablespace`_
- - `pg_type`_
- - `pg_views`_
+- `pg_am`_
+- `pg_attrdef <pgsql_pg_attrdef_>`__
+- `pg_attribute <pgsql_pg_attribute_>`__
+- `pg_class <pgsql_pg_class_>`__
+- `pg_constraint <pgsql_pg_constraint_>`__
+- `pg_cursors <pgsql_pg_cursors_>`__
+- `pg_database <pgsql_pg_database_>`__
+- `pg_depend`_
+- `pg_description`_
+- `pg_enum`_
+- `pg_event_trigger`_
+- `pg_index <pgsql_pg_index_>`__
+- `pg_indexes <pgsql_pg_indexes_>`__
+- `pg_locks <pgsql_pg_locks_>`__
+- `pg_matviews <pgsql_pg_matviews_>`__
+- `pg_namespace <pgsql_pg_namespace_>`__
+- `pg_proc <pgsql_pg_proc_>`__
+- `pg_publication <pgsql_pg_publication_>`__
+- `pg_publication_tables <pgsql_pg_publication_tables_>`__
+- `pg_range`_
+- `pg_roles`_
+- `pg_settings <pgsql_pg_settings_>`__
+- `pg_shdescription`_
+- `pg_stats`_
+- `pg_subscription <pgsql_pg_subscription_>`__
+- `pg_subscription_rel <pgsql_pg_subscription_rel_>`__
+- `pg_tables`_
+- `pg_tablespace`_
+- `pg_type`_
+- `pg_views`_
 
 
 .. _postgres-pg_type:
@@ -216,6 +219,7 @@ table available in CrateDB::
     |  600 | point        |     1017 |       0 |     16 | b       | G           |
     |  700 | float4       |     1021 |       0 |      4 | b       | N           |
     |  701 | float8       |     1022 |       0 |      8 | b       | N           |
+    |  705 | unknown      |        0 |       0 |     -2 | p       | X           |
     | 1000 | _bool        |        0 |      16 |     -1 | b       | A           |
     | 1002 | _char        |        0 |      18 |     -1 | b       | A           |
     | 1005 | _int2        |        0 |      21 |     -1 | b       | A           |
@@ -251,7 +255,7 @@ table available in CrateDB::
     | 2277 | anyarray     |        0 |    2276 |     -1 | p       | P           |
     | 2287 | _record      |        0 |    2249 |     -1 | p       | A           |
     +------+--------------+----------+---------+--------+---------+-------------+
-    SELECT 49 rows in set (... sec)
+    SELECT 50 rows in set (... sec)
 
 .. NOTE::
 
@@ -534,6 +538,8 @@ CrateDB and we love to hear feedback.
 .. _pg_views: https://www.postgresql.org/docs/14/view-pg-views.html
 .. _pg_shdescription: https://www.postgresql.org/docs/14/catalog-pg-shdescription.html
 .. _pg_stats: https://www.postgresql.org/docs/14/view-pg-stats.html
+.. _pg_event_trigger: https://www.postgresql.org/docs/current/catalog-pg-event-trigger.html
+.. _pg_depend: https://www.postgresql.org/docs/current/catalog-pg-depend.html
 .. _pgjdbc: https://github.com/pgjdbc/pgjdbc
 .. _pgsql_pg_attrdef: https://www.postgresql.org/docs/14/static/catalog-pg-attrdef.html
 .. _pgsql_pg_attribute: https://www.postgresql.org/docs/14/static/catalog-pg-attribute.html
@@ -544,6 +550,7 @@ CrateDB and we love to hear feedback.
 .. _pgsql_pg_index: https://www.postgresql.org/docs/14/static/catalog-pg-index.html
 .. _pgsql_pg_indexes: https://www.postgresql.org/docs/14/view-pg-indexes.html
 .. _pgsql_pg_locks: https://www.postgresql.org/docs/14/view-pg-locks.html
+.. _pgsql_pg_matviews: https://www.postgresql.org/docs/current/view-pg-matviews.html
 .. _pgsql_pg_namespace: https://www.postgresql.org/docs/14/static/catalog-pg-namespace.html
 .. _pgsql_pg_proc: https://www.postgresql.org/docs/14/static/catalog-pg-proc.html
 .. _pgsql_pg_publication: https://www.postgresql.org/docs/14/catalog-pg-publication.html

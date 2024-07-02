@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Set;
 
 import io.crate.data.Input;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -40,26 +41,30 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.TypeSignature;
 
-class ArrayUniqueFunction extends Scalar<List<Object>, List<Object>> {
+public class ArrayUniqueFunction extends Scalar<List<Object>, List<Object>> {
 
     public static final String NAME = "array_unique";
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder module) {
+        module.add(
             Signature.scalar(
-                NAME,
-                TypeSignature.parse("array(E)"),
-                TypeSignature.parse("array(E)")
-            ).withTypeVariableConstraints(typeVariable("E")),
+                    NAME,
+                    TypeSignature.parse("array(E)"),
+                    TypeSignature.parse("array(E)")
+                ).withTypeVariableConstraints(typeVariable("E"))
+                .withFeature(Feature.DETERMINISTIC)
+                .withFeature(Feature.NON_NULLABLE),
             ArrayUniqueFunction::new
         );
-        module.register(
+        module.add(
             Signature.scalar(
-                NAME,
-                TypeSignature.parse("array(E)"),
-                TypeSignature.parse("array(E)"),
-                TypeSignature.parse("array(E)")
-            ).withTypeVariableConstraints(typeVariable("E")),
+                    NAME,
+                    TypeSignature.parse("array(E)"),
+                    TypeSignature.parse("array(E)"),
+                    TypeSignature.parse("array(E)")
+                ).withTypeVariableConstraints(typeVariable("E"))
+                .withFeature(Feature.DETERMINISTIC)
+                .withFeature(Feature.NON_NULLABLE),
             ArrayUniqueFunction::new
         );
     }

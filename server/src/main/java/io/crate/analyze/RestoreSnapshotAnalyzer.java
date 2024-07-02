@@ -21,10 +21,19 @@
 
 package io.crate.analyze;
 
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+
+import org.apache.logging.log4j.LogManager;
+import org.elasticsearch.common.logging.DeprecationLogger;
+
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.execution.ddl.RepositoryService;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
@@ -32,26 +41,30 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.settings.AnalyzerSettings;
 import io.crate.metadata.view.ViewsMetadata;
+import io.crate.role.metadata.RolesMetadata;
+import io.crate.role.metadata.UsersMetadata;
+import io.crate.role.metadata.UsersPrivilegesMetadata;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.RestoreSnapshot;
 import io.crate.sql.tree.Table;
-import io.crate.user.metadata.UsersMetadata;
-import io.crate.user.metadata.UsersPrivilegesMetadata;
-
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 
 class RestoreSnapshotAnalyzer {
 
-    public static final Map<String, String> METADATA_CUSTOM_TYPE_MAP = Map.of(
-        "VIEWS", ViewsMetadata.TYPE,
-        "USERS", UsersMetadata.TYPE,
-        "PRIVILEGES", UsersPrivilegesMetadata.TYPE,
-        "UDFS", UserDefinedFunctionsMetadata.TYPE
+    static final DeprecationLogger DEPRECATION_LOGGER =
+        new DeprecationLogger(LogManager.getLogger(RestoreSnapshotAnalyzer.class));
+
+    public static final List<String> USER_MANAGEMENT_METADATA = List.of(
+        UsersMetadata.TYPE, // Also restore old UsersMetadata
+        RolesMetadata.TYPE,
+        UsersPrivilegesMetadata.TYPE);
+
+    public static final Map<String, List<String>> METADATA_CUSTOM_TYPE_MAP = Map.of(
+        "VIEWS", List.of(ViewsMetadata.TYPE),
+        "UDFS", List.of(UserDefinedFunctionsMetadata.TYPE),
+        "USERS", USER_MANAGEMENT_METADATA,        // Deprecated, keeping for BWC
+        "PRIVILEGES", USER_MANAGEMENT_METADATA,   // Deprecated, keeping for BWC
+        "USERMANAGEMENT", USER_MANAGEMENT_METADATA
     );
 
     private final RepositoryService repositoryService;
@@ -112,33 +125,35 @@ class RestoreSnapshotAnalyzer {
                     FieldProvider.TO_LITERAL_VALIDATE_NAME,
                     null
                 );
-                tables = Lists2.map(
+                tables = Lists.map(
                     restoreSnapshot.tables(),
-                    (table) -> table.map(x -> exprAnalyzerWithFieldsAsString.convert(x, exprCtx))
+                    table -> table.map(x -> exprAnalyzerWithFieldsAsString.convert(x, exprCtx))
                 );
             }
             case CUSTOM -> {
-                for (String type_name : restoreSnapshot.types()) {
-                    type_name = type_name.toUpperCase(Locale.ENGLISH);
-                    if (type_name.equals("TABLES")) {
+                for (String typeName : restoreSnapshot.types()) {
+                    typeName = typeName.toUpperCase(Locale.ENGLISH);
+                    if (typeName.equals("TABLES")) {
                         includeTables = true;
-                    } else if (type_name.equals("ANALYZERS")) {
+                    } else if (typeName.equals("ANALYZERS")) {
                         // custom analyzers are stored inside persistent cluster settings
                         globalSettings.add(AnalyzerSettings.CUSTOM_ANALYSIS_SETTINGS_PREFIX);
                         includeGlobalSettings = true;
                     } else {
-                        var custom_type = METADATA_CUSTOM_TYPE_MAP.get(type_name);
-                        if (custom_type == null) {
-                            throw new IllegalArgumentException("Unknown metadata type '" + type_name + "'");
+                        var customTypes = METADATA_CUSTOM_TYPE_MAP.get(typeName);
+                        if (customTypes == null) {
+                            throw new IllegalArgumentException("Unknown metadata type '" + typeName + "'");
+                        }
+                        if ("USERS".equals(typeName) || "PRIVILEGES".equals(typeName)) {
+                            DEPRECATION_LOGGER.deprecatedAndMaybeLog("restore_snapshot.metadata",
+                                typeName + " keyword is deprecated, please use USERMANAGEMENT instead");
                         }
                         includeCustomMetadata = true;
-                        customMetadataTypes.add(custom_type);
+                        customMetadataTypes.addAll(customTypes);
                     }
                 }
             }
-            default -> {
-                throw new AssertionError("Unsupported restore mode='" + restoreSnapshot.mode() + "'");
-            }
+            default -> throw new AssertionError("Unsupported restore mode='" + restoreSnapshot.mode() + "'");
         }
 
         return new AnalyzedRestoreSnapshot(

@@ -21,24 +21,28 @@
 
 package io.crate.planner;
 
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertSQLError;
+import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-import org.assertj.core.api.Assertions;
 import org.elasticsearch.common.Randomness;
+import org.elasticsearch.index.shard.ShardId;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.action.sql.Cursors;
 import io.crate.data.Row1;
 import io.crate.exceptions.ConversionException;
+import io.crate.exceptions.UnavailableShardsException;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RoutingProvider;
@@ -57,33 +61,34 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
     private SQLExecutor e;
 
     @Before
-    public void prepare() {
-        e = SQLExecutor.builder(clusterService).build();
+    public void prepare() throws IOException {
+        e = SQLExecutor.of(clusterService)
+            .addTable("CREATE TABLE doc.tbl(a int)");
     }
 
     @Test
     public void testSetPlan() throws Exception {
         UpdateSettingsPlan plan = e.plan("set GLOBAL PERSISTENT stats.jobs_log_size=1024");
 
-        assertThat(plan.settings(), contains(new Assignment<>(Literal.of("stats.jobs_log_size"), List.of(Literal.of(1024)))));
-        assertThat(plan.isPersistent(), is(true));
+        assertThat(plan.settings()).containsExactly(new Assignment<>(Literal.of("stats.jobs_log_size"), List.of(Literal.of(1024))));
+        assertThat(plan.isPersistent()).isTrue();
 
         plan = e.plan("set GLOBAL TRANSIENT stats.enabled=false,stats.jobs_log_size=0");
 
-        assertThat(plan.settings().size(), is(2));
-        assertThat(plan.isPersistent(), is(false));
+        assertThat(plan.settings()).hasSize(2);
+        assertThat(plan.isPersistent()).isFalse();
     }
 
     @Test
     public void testSetSessionTransactionModeIsNoopPlan() throws Exception {
         Plan plan = e.plan("SET SESSION CHARACTERISTICS AS TRANSACTION ISOLATION LEVEL READ UNCOMMITTED");
-        assertThat(plan, instanceOf(NoopPlan.class));
+        assertThat(plan).isExactlyInstanceOf(NoopPlan.class);
     }
 
     @Test
     public void testSetTimeZone() throws Exception {
         Plan plan = e.plan("SET TIME ZONE 'Europe/Vienna'");
-        assertThat(plan, instanceOf(NoopPlan.class));
+        assertThat(plan).isExactlyInstanceOf(NoopPlan.class);
     }
 
     @Test
@@ -98,30 +103,52 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
             null,
             Cursors.EMPTY,
             TransactionState.IDLE,
-            e.planStats()
+            e.planStats(),
+            (a,b) -> a
         );
 
-        assertThat(plannerContext.nextExecutionPhaseId(), is(0));
-        assertThat(plannerContext.nextExecutionPhaseId(), is(1));
+        assertThat(plannerContext.nextExecutionPhaseId()).isEqualTo(0);
+        assertThat(plannerContext.nextExecutionPhaseId()).isEqualTo(1);
     }
 
     @Test
     public void testDeallocate() {
-        assertThat(e.plan("deallocate all"), instanceOf(NoopPlan.class));
-        assertThat(e.plan("deallocate test_prep_stmt"), instanceOf(NoopPlan.class));
+        var plan = e.plan("deallocate all");
+        assertThat(plan).isExactlyInstanceOf(NoopPlan.class);
+        plan = e.plan("deallocate test_prep_stmt");
+        assertThat(plan).isExactlyInstanceOf(NoopPlan.class);
     }
 
     @Test
     public void test_invalid_any_param_leads_to_clear_error_message() throws Exception {
         LogicalPlan plan = e.logicalPlan("select name = ANY(?) from sys.cluster");
-        Assertions.assertThatThrownBy(() -> LogicalPlanner.getNodeOperationTree(
+        assertThatThrownBy(() -> LogicalPlanner.getNodeOperationTree(
                 plan,
                 mock(DependencyCarrier.class),
-                e.getPlannerContext(clusterService.state()),
+                e.getPlannerContext(),
                 new Row1("foo"),
                 SubQueryResults.EMPTY
             ))
             .isExactlyInstanceOf(ConversionException.class)
             .hasMessageContaining("Cannot cast value `foo` to type `text_array`");
+    }
+
+    @Test
+    public void test_execution_exception_is_not_wrapped_in_logical_planner() {
+        LogicalPlan plan = e.logicalPlan("select * from doc.tbl");
+        var mockedPlannerCtx = mock(PlannerContext.class);
+        when(mockedPlannerCtx.transactionContext()).thenThrow(
+            new UnavailableShardsException(new ShardId("tbl", "uuid", 11)));
+
+        assertSQLError(() -> LogicalPlanner.getNodeOperationTree(
+                plan,
+                mock(DependencyCarrier.class),
+                mockedPlannerCtx,
+                new Row1("foo"),
+                SubQueryResults.EMPTY
+            ))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(INTERNAL_SERVER_ERROR, 5002)
+            .hasMessageContaining("the shard 11 of table [tbl/uuid] is not available");
     }
 }

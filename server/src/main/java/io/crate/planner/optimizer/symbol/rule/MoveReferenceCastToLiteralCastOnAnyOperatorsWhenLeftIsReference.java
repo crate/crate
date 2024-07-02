@@ -51,7 +51,7 @@ public class MoveReferenceCastToLiteralCastOnAnyOperatorsWhenLeftIsReference imp
         this.castCapture = new Capture<>();
         this.pattern = typeOf(Function.class)
             .with(f -> AnyOperator.OPERATOR_NAMES.contains(f.name()))
-            .with(f -> f.arguments().get(1).symbolType() == SymbolType.LITERAL)
+            .with(f -> f.arguments().get(1).symbolType().isValueOrParameterSymbol())
             .with(f -> Optional.of(f.arguments().get(0)), typeOf(Function.class).capturedAs(castCapture)
                 .with(f -> f.isCast())
                 .with(f -> f.arguments().get(0).symbolType() == SymbolType.REFERENCE)
@@ -68,14 +68,14 @@ public class MoveReferenceCastToLiteralCastOnAnyOperatorsWhenLeftIsReference imp
                         Captures captures,
                         NodeContext nodeCtx,
                         Symbol parentNode) {
-        var literal = operator.arguments().get(1);
+        var literalOrParam = operator.arguments().get(1);
         var castFunction = captures.get(castCapture);
         var reference = castFunction.arguments().get(0);
         DataType<?> targetType = new ArrayType<>(reference.valueType());
 
         return functionResolver.apply(
             operator.name(),
-            List.of(reference, literal.cast(targetType))
+            List.of(reference, literalOrParam.cast(targetType))
         );
     }
 }

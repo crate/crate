@@ -22,6 +22,7 @@
 package io.crate.execution.ddl.tables;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
@@ -32,7 +33,6 @@ import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.mapper.MapperParsingException;
 import org.junit.Test;
 
 import com.carrotsearch.hppc.IntArrayList;
@@ -47,7 +47,6 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.IndexEnv;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
@@ -56,157 +55,109 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_can_add_child_column() throws Exception {
-        var e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int, o object)")
-            .build();
+        var e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int, o object)");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
-        try (IndexEnv indexEnv = new IndexEnv(
-            THREAD_POOL,
-            tbl,
-            clusterService.state(),
-            Version.CURRENT,
-            createTempDir()
-        )) {
-            var addColumnTask = new AddColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
-            ReferenceIdent refIdent = new ReferenceIdent(tbl.ident(), "o", List.of("x"));
-            SimpleReference newColumn = new SimpleReference(
-                refIdent,
-                RowGranularity.DOC,
-                DataTypes.INTEGER,
-                ColumnPolicy.DYNAMIC,
-                IndexType.PLAIN,
-                true,
-                true,
-                3,
-                COLUMN_OID_UNASSIGNED,
-                false,
-                null
-            );
-            List<Reference> columns = List.of(newColumn);
-            var request = new AddColumnRequest(
-                tbl.ident(),
-                columns,
-                Map.of(),
-                new IntArrayList()
-            );
-            ClusterState newState = addColumnTask.execute(clusterService.state(), request);
-            DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState);
-
-            Reference addedColumn = newTable.getReference(newColumn.column());
-            // Need to create a clone of request column to imitate the expected OID.
-            Reference newColumnWithOid = new SimpleReference(
-                newColumn.ident(),
-                newColumn.granularity(),
-                newColumn.valueType(),
-                newColumn.columnPolicy(),
-                newColumn.indexType(),
-                newColumn.isNullable(),
-                newColumn.hasDocValues(),
-                newColumn.position(),
-                3,
-                false,
-                newColumn.defaultExpression()
-            );
-            assertThat(addedColumn).isEqualTo(newColumnWithOid);
-        }
-    }
-
-    @Test
-    public void test_can_add_geo_shape_array_column() throws Exception {
-        var e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int)")
-            .build();
-        DocTableInfo tbl = e.resolveTableInfo("tbl");
-        try (IndexEnv indexEnv = new IndexEnv(
-            THREAD_POOL,
-            tbl,
-            clusterService.state(),
-            Version.CURRENT,
-            createTempDir()
-        )) {
-            var addColumnTask = new AddColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
-            ReferenceIdent shapesIdent = new ReferenceIdent(tbl.ident(), "shapes");
-
-            Reference geoShapeArrayRef = new GeoReference(
-                shapesIdent,
-                new ArrayType<>(DataTypes.GEO_SHAPE),
-                ColumnPolicy.DYNAMIC,
-                IndexType.PLAIN,
-                true,
-                2,
-                COLUMN_OID_UNASSIGNED,
-                false,
-                null,
-                null,
-                null,
-                null,
-                null
-            );
-
-            ReferenceIdent pointsIdent = new ReferenceIdent(tbl.ident(), "points");
-            Reference geoPointArrayRef = new GeoReference(
-                pointsIdent,
-                new ArrayType<>(DataTypes.GEO_POINT),
-                ColumnPolicy.DYNAMIC,
-                IndexType.PLAIN,
-                true,
-                3,
-                COLUMN_OID_UNASSIGNED,
-                false,
-                null,
-                null,
-                null,
-                null,
-                null
-            );
-            List<Reference> columns = List.of(geoShapeArrayRef, geoPointArrayRef);
-            var request = new AddColumnRequest(
-                tbl.ident(),
-                columns,
-                Map.of(),
-                new IntArrayList()
-            );
-            ClusterState newState = addColumnTask.execute(clusterService.state(), request);
-            DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState);
-
-            Reference addedShapesColumn = newTable.getReference(shapesIdent.columnIdent());
-            assertThat(addedShapesColumn.valueType()).isEqualTo(new ArrayType<>(DataTypes.GEO_SHAPE));
-
-            Reference addedPointsColumn = newTable.getReference(pointsIdent.columnIdent());
-            assertThat(addedPointsColumn.valueType()).isEqualTo(new ArrayType<>(DataTypes.GEO_POINT));
-        }
-    }
-
-    @Test
-    public void test_adds_parent_column_only_once() throws Exception {
-        var e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int, o object)")
-            .build();
-        DocTableInfo table = e.resolveTableInfo("tbl");
-        SimpleReference oxRef = new SimpleReference(
-            new ReferenceIdent(table.ident(), "o", List.of("x")),
+        var addColumnTask = new AlterTableTask<>(
+            e.nodeCtx, tbl.ident(), TransportAddColumnAction.ADD_COLUMN_OPERATOR);
+        ReferenceIdent refIdent = new ReferenceIdent(tbl.ident(), "o", List.of("x"));
+        SimpleReference newColumn = new SimpleReference(
+            refIdent,
             RowGranularity.DOC,
             DataTypes.INTEGER,
+            ColumnPolicy.DYNAMIC,
+            IndexType.PLAIN,
+            true,
+            true,
             3,
+            COLUMN_OID_UNASSIGNED,
+            false,
             null
         );
-        SimpleReference oyRef = new SimpleReference(
-            new ReferenceIdent(table.ident(), "o", List.of("y")),
-            RowGranularity.DOC,
-            DataTypes.INTEGER,
-            4,
-            null
-        );
-        List<Reference> columns = List.of(oxRef, oyRef);
+        List<Reference> columns = List.of(newColumn);
         var request = new AddColumnRequest(
-            table.ident(),
+            tbl.ident(),
             columns,
             Map.of(),
             new IntArrayList()
         );
+        ClusterState newState = addColumnTask.execute(clusterService.state(), request);
+        DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
 
-        var updatedRefs = AddColumnTask.normalizeColumns(request, table);
-        assertThat(updatedRefs).hasSize(3);
+        Reference addedColumn = newTable.getReference(newColumn.column());
+        // Need to create a clone of request column to imitate the expected OID.
+        Reference newColumnWithOid = new SimpleReference(
+            newColumn.ident(),
+            newColumn.granularity(),
+            newColumn.valueType(),
+            newColumn.columnPolicy(),
+            newColumn.indexType(),
+            newColumn.isNullable(),
+            newColumn.hasDocValues(),
+            newColumn.position(),
+            3,
+            false,
+            newColumn.defaultExpression()
+        );
+        assertThat(addedColumn).isEqualTo(newColumnWithOid);
+    }
+
+    @Test
+    public void test_can_add_geo_shape_array_column() throws Exception {
+        var e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int)");
+        DocTableInfo tbl = e.resolveTableInfo("tbl");
+        var addColumnTask = new AlterTableTask<>(
+            e.nodeCtx, tbl.ident(), TransportAddColumnAction.ADD_COLUMN_OPERATOR);
+        ReferenceIdent shapesIdent = new ReferenceIdent(tbl.ident(), "shapes");
+
+        Reference geoShapeArrayRef = new GeoReference(
+            shapesIdent,
+            new ArrayType<>(DataTypes.GEO_SHAPE),
+            ColumnPolicy.DYNAMIC,
+            IndexType.PLAIN,
+            true,
+            2,
+            COLUMN_OID_UNASSIGNED,
+            false,
+            null,
+            null,
+            null,
+            null,
+            null
+        );
+
+        ReferenceIdent pointsIdent = new ReferenceIdent(tbl.ident(), "points");
+        Reference geoPointArrayRef = new GeoReference(
+            pointsIdent,
+            new ArrayType<>(DataTypes.GEO_POINT),
+            ColumnPolicy.DYNAMIC,
+            IndexType.PLAIN,
+            true,
+            3,
+            COLUMN_OID_UNASSIGNED,
+            false,
+            null,
+            null,
+            null,
+            null,
+            null
+        );
+        List<Reference> columns = List.of(geoShapeArrayRef, geoPointArrayRef);
+        var request = new AddColumnRequest(
+            tbl.ident(),
+            columns,
+            Map.of(),
+            new IntArrayList()
+        );
+        ClusterState newState = addColumnTask.execute(clusterService.state(), request);
+        DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
+
+        Reference addedShapesColumn = newTable.getReference(shapesIdent.columnIdent());
+        assertThat(addedShapesColumn.valueType()).isEqualTo(new ArrayType<>(DataTypes.GEO_SHAPE));
+
+        Reference addedPointsColumn = newTable.getReference(pointsIdent.columnIdent());
+        assertThat(addedPointsColumn.valueType()).isEqualTo(new ArrayType<>(DataTypes.GEO_POINT));
     }
 
     @Test
@@ -216,157 +167,153 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
          * the version increases. Without no-op check this assertion would trip
          * if there are concurrent alter table (or more likely: Dynamic mapping updates due to concurrent inserts)
          */
-        var e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int)")
-            .build();
+        var e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int)");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         ClusterState state = clusterService.state();
-        try (IndexEnv indexEnv = new IndexEnv(
-            THREAD_POOL,
-            tbl,
-            state,
-            Version.CURRENT,
-            createTempDir()
-        )) {
-            var addColumnTask = new AddColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
-            ReferenceIdent refIdent = new ReferenceIdent(tbl.ident(), "x");
-            SimpleReference newColumn = new SimpleReference(
-                refIdent,
-                RowGranularity.DOC,
-                DataTypes.INTEGER,
-                3,
-                null
-            );
-            List<Reference> columns = List.of(newColumn);
-            var request = new AddColumnRequest(
-                tbl.ident(),
-                columns,
-                Map.of(),
-                new IntArrayList()
-            );
-            ClusterState newState = addColumnTask.execute(state, request);
-            assertThat(newState).isSameAs(state);
-        }
+        var addColumnTask = new AlterTableTask<>(
+            e.nodeCtx, tbl.ident(), TransportAddColumnAction.ADD_COLUMN_OPERATOR);
+        ReferenceIdent refIdent = new ReferenceIdent(tbl.ident(), "x");
+        SimpleReference newColumn = new SimpleReference(
+            refIdent,
+            RowGranularity.DOC,
+            DataTypes.INTEGER,
+            3,
+            null
+        );
+        List<Reference> columns = List.of(newColumn);
+        var request = new AddColumnRequest(
+            tbl.ident(),
+            columns,
+            Map.of(),
+            new IntArrayList()
+        );
+        ClusterState newState = addColumnTask.execute(state, request);
+        assertThat(newState).isSameAs(state);
     }
 
     @Test
     public void test_raises_error_if_column_already_exists_with_different_type() throws Exception {
-        var e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int)")
-            .build();
+        var e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int)");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         ClusterState state = clusterService.state();
-        try (IndexEnv indexEnv = new IndexEnv(
-            THREAD_POOL,
-            tbl,
-            state,
-            Version.CURRENT,
-            createTempDir()
-        )) {
-            var addColumnTask = new AddColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
-            ReferenceIdent refIdent1 = new ReferenceIdent(tbl.ident(), "y");
-            ReferenceIdent refIdent2 = new ReferenceIdent(tbl.ident(), "x");
-            SimpleReference newColumn1 = new SimpleReference(
-                refIdent1,
-                RowGranularity.DOC,
-                DataTypes.STRING,
-                3,
-                null
-            );
-            SimpleReference newColumn2 = new SimpleReference(
-                refIdent2,
-                RowGranularity.DOC,
-                DataTypes.STRING,
-                4,
-                null
-            );
-            List<Reference> columns = List.of(newColumn1, newColumn2);
-            var request = new AddColumnRequest(
-                tbl.ident(),
-                columns,
-                Map.of(),
-                new IntArrayList()
-            );
-            assertThatThrownBy(() -> addColumnTask.execute(state, request))
-                .isExactlyInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Column `x` already exists with type `integer`. Cannot add same column with type `text`");
-        }
+        var addColumnTask = new AlterTableTask<>(
+            e.nodeCtx, tbl.ident(), TransportAddColumnAction.ADD_COLUMN_OPERATOR);
+        ReferenceIdent refIdent1 = new ReferenceIdent(tbl.ident(), "y");
+        ReferenceIdent refIdent2 = new ReferenceIdent(tbl.ident(), "x");
+        SimpleReference newColumn1 = new SimpleReference(
+            refIdent1,
+            RowGranularity.DOC,
+            DataTypes.STRING,
+            3,
+            null
+        );
+        SimpleReference newColumn2 = new SimpleReference(
+            refIdent2,
+            RowGranularity.DOC,
+            DataTypes.STRING,
+            4,
+            null
+        );
+        List<Reference> columns = List.of(newColumn1, newColumn2);
+        var request = new AddColumnRequest(
+            tbl.ident(),
+            columns,
+            Map.of(),
+            new IntArrayList()
+        );
+        assertThatThrownBy(() -> addColumnTask.execute(state, request))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Column `x` already exists with type `integer`. Cannot add same column with type `text`");
     }
 
     @Test
-    public void test_raises_error_on_nested_arrays() throws Exception {
-        var e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int)")
-            .build();
+    public void test_supports_nested_arrays() throws Exception {
+        var e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int)");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         ClusterState state = clusterService.state();
-        try (IndexEnv indexEnv = new IndexEnv(
-            THREAD_POOL,
-            tbl,
-            state,
-            Version.CURRENT,
-            createTempDir()
-        )) {
-            var addColumnTask = new AddColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
-            SimpleReference newColumn1 = new SimpleReference(
-                new ReferenceIdent(tbl.ident(), "y"),
-                RowGranularity.DOC,
-                new ArrayType<>(new ArrayType<>(DataTypes.LONG)),
-                2,
-                null
-            );
-            List<Reference> columns = List.of(newColumn1);
-            var request = new AddColumnRequest(
-                tbl.ident(),
-                columns,
-                Map.of(),
-                new IntArrayList()
-            );
-            assertThatThrownBy(() -> addColumnTask.execute(state, request))
-                .isExactlyInstanceOf(MapperParsingException.class)
-                .hasMessageContaining("nested arrays are not supported");
-        }
+        var addColumnTask = new AlterTableTask<>(
+            e.nodeCtx, tbl.ident(), TransportAddColumnAction.ADD_COLUMN_OPERATOR);
+        SimpleReference newColumn1 = new SimpleReference(
+            new ReferenceIdent(tbl.ident(), "y"),
+            RowGranularity.DOC,
+            new ArrayType<>(new ArrayType<>(DataTypes.LONG)),
+            2,
+            null
+        );
+        List<Reference> columns = List.of(newColumn1);
+        var request = new AddColumnRequest(
+            tbl.ident(),
+            columns,
+            Map.of(),
+            new IntArrayList()
+        );
+        ClusterState newState = addColumnTask.execute(state, request);
+        DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
+        Reference addedColumn = newTable.getReference(newColumn1.column());
+        assertThat(addedColumn).isReference().hasType(new ArrayType<>(new ArrayType<>(DataTypes.LONG)));
     }
 
     @Test
     public void test_table_version_less_than_5_5_oid_is_not_assigned() throws Exception {
-        var e = SQLExecutor.builder(clusterService)
+        var e = SQLExecutor.of(clusterService)
             .addTable(
                 "create table tbl (x int)",
                 Settings.builder().put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), Version.V_5_4_0).build()
-            )
-            .build();
+            );
 
         DocTableInfo tbl = e.resolveTableInfo("tbl");
-        try (IndexEnv indexEnv = new IndexEnv(
-            THREAD_POOL,
-            tbl,
-            clusterService.state(),
-            Version.V_5_4_0,
-            createTempDir()
-        )) {
-            var addColumnTask = new AddColumnTask(e.nodeCtx, imd -> indexEnv.mapperService());
+        var addColumnTask = new AlterTableTask<>(
+            e.nodeCtx, tbl.ident(), TransportAddColumnAction.ADD_COLUMN_OPERATOR);
 
-            SimpleReference colToAdd = new SimpleReference(
-                new ReferenceIdent(tbl.ident(), "y"),
-                RowGranularity.DOC,
-                DataTypes.STRING,
-                2,
-                null
-            );
+        SimpleReference colToAdd = new SimpleReference(
+            new ReferenceIdent(tbl.ident(), "y"),
+            RowGranularity.DOC,
+            DataTypes.STRING,
+            2,
+            null
+        );
 
-            List<Reference> columns = List.of(colToAdd);
-            var request = new AddColumnRequest(
-                tbl.ident(),
-                columns,
-                Map.of(),
-                new IntArrayList()
-            );
-            ClusterState newState = addColumnTask.execute(clusterService.state(), request);
-            DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState);
+        List<Reference> columns = List.of(colToAdd);
+        var request = new AddColumnRequest(
+            tbl.ident(),
+            columns,
+            Map.of(),
+            new IntArrayList()
+        );
+        ClusterState newState = addColumnTask.execute(clusterService.state(), request);
+        DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
 
-            Reference addedColumn = newTable.getReference(colToAdd.column());
-            assertThat(addedColumn).isReference().hasOid(COLUMN_OID_UNASSIGNED);
-        }
+        Reference addedColumn = newTable.getReference(colToAdd.column());
+        assertThat(addedColumn).isReference().hasOid(COLUMN_OID_UNASSIGNED);
+    }
+
+    @Test
+    public void test_cannot_add_column_that_clashes_with_index() throws Exception {
+        var e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x text, index i using fulltext (x))");
+
+        DocTableInfo tbl = e.resolveTableInfo("tbl");
+        var addColumnTask = new AlterTableTask<>(
+            e.nodeCtx, tbl.ident(), TransportAddColumnAction.ADD_COLUMN_OPERATOR);
+        SimpleReference colToAdd = new SimpleReference(
+            new ReferenceIdent(tbl.ident(), "i"),
+            RowGranularity.DOC,
+            DataTypes.STRING,
+            2,
+            null
+        );
+        List<Reference> columns = List.of(colToAdd);
+        var request = new AddColumnRequest(
+            tbl.ident(),
+            columns,
+            Map.of(),
+            new IntArrayList()
+        );
+        assertThatThrownBy(() -> addColumnTask.execute(clusterService.state(), request))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Index column `i` already exists");
     }
 }

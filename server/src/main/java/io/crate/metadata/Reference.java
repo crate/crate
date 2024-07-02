@@ -25,10 +25,12 @@ import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.IntSupplier;
 import java.util.function.LongSupplier;
 
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -38,9 +40,16 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
+import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnPolicy;
+import io.crate.sql.tree.Expression;
+import io.crate.types.DataType;
 
 public interface Reference extends Symbol {
+
+    public static final Comparator<Reference> CMP_BY_POSITION_THEN_NAME = Comparator
+        .comparing(Reference::position)
+        .thenComparing(r -> r.column().fqn());
 
     static int indexOf(Iterable<? extends Reference> refs, ColumnIdent column) {
         int i = 0;
@@ -56,6 +65,20 @@ public interface Reference extends Symbol {
     ReferenceIdent ident();
 
     ColumnIdent column();
+
+    @Override
+    default ColumnIdent toColumn() {
+        return column();
+    }
+
+    @Override
+    default ColumnDefinition<Expression> toColumnDefinition() {
+        return new ColumnDefinition<>(
+            toColumn().sqlFqn(), // allow ObjectTypes to return col name in subscript notation
+            valueType().toColumnType(columnPolicy(), null),
+            List.of()
+        );
+    }
 
     IndexType indexType();
 
@@ -83,9 +106,11 @@ public interface Reference extends Symbol {
 
     Reference withReferenceIdent(ReferenceIdent referenceIdent);
 
-    Reference withColumnOid(LongSupplier oidSupplier);
+    Reference withOidAndPosition(LongSupplier acquireOid, IntSupplier acquirePosition);
 
     Reference withDropped(boolean dropped);
+
+    Reference withValueType(DataType<?> type);
 
     /**
      * Return the identifier of this column used inside the storage engine
@@ -133,7 +158,7 @@ public interface Reference extends Symbol {
      * We identify references by FQN and store tree as a map(ident -> list(reference)).
      * NULL node is a root which is an entry point for any traversing method utilizing the tree.
      */
-    static HashMap<ColumnIdent, List<Reference>> buildTree(List<Reference> references) {
+    static HashMap<ColumnIdent, List<Reference>> buildTree(Iterable<Reference> references) {
         HashMap<ColumnIdent, List<Reference>> tree = new LinkedHashMap<>();
         for (Reference treeNode: references) {
             // To build an "adjacency list" we add each edge only once, thus we add only direct neighbor node (parent).

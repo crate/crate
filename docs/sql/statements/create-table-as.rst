@@ -19,7 +19,7 @@ Synopsis
 
 ::
 
-    CREATE TABLE table_ident AS { ( query ) | query }
+    CREATE TABLE [ IF NOT EXISTS ] table_ident AS { ( query ) | query }
 
 
 Description
@@ -35,6 +35,11 @@ the table creation.
 For further details on the default values of the optional parameters,
 see :ref:`sql-create-table`.
 
+``IF NOT EXISTS``
+=================
+
+If the optional ``IF NOT EXISTS`` clause is used, this statement won't do
+anything if the table exists already, and ``0`` rows will be returned.
 
 Parameters
 ==========

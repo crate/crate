@@ -24,16 +24,18 @@ package io.crate.planner;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isLiteral;
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.analyze.AnalyzedDeleteStatement;
+import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
@@ -46,7 +48,8 @@ public class WhereClauseOptimizerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void setUpExecutor() throws Exception {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table t_pk(a string primary key)")
             .addTable("create table bystring (name string primary key, score double) " +
                       "clustered by (name) ")
             .addTable("create table clustered_by_only (x int) clustered by (x)")
@@ -75,12 +78,42 @@ public class WhereClauseOptimizerTest extends CrateDummyClusterServiceUnitTest {
                 new PartitionName(new RelationName("doc", "partdatebin"), List.of("1676352000000")).asIndexName(),
                 new PartitionName(new RelationName("doc", "partdatebin"), List.of("1687767893000")).asIndexName()
             )
-            .build();
+            // Important, ts_month has a type different from date_trunc return type to provoke implicit cast addition
+            .addPartitionedTable("""
+                create table partdatetrunc (
+                    ts TIMESTAMP WITHOUT TIME ZONE,
+                    ts_month TIMESTAMP as date_trunc('month', ts)
+                ) partitioned by (ts_month)
+                """,
+                new PartitionName(new RelationName("doc", "partdatetrunc"), List.of("1676352000000")).asIndexName(),
+                new PartitionName(new RelationName("doc", "partdatetrunc"), List.of("1687767893000")).asIndexName()
+            )
+            // Important, ts_month doesn't have type declared and expression is just a CAST.
+            .addPartitionedTable("""
+                create table partcast (
+                    ts TIMESTAMP WITHOUT TIME ZONE,
+                    ts_month as cast(ts as TIMESTAMP WITH TIME ZONE)
+                ) partitioned by (ts_month)
+                """,
+                new PartitionName(new RelationName("doc", "partcast"), List.of("1676352000000")).asIndexName(),
+                new PartitionName(new RelationName("doc", "partcast"), List.of("1687767893000")).asIndexName()
+            );
     }
 
     private WhereClauseOptimizer.DetailedQuery optimize(String statement) {
-        QueriedSelectRelation queriedTable = e.analyze(statement);
-        DocTableRelation table = ((DocTableRelation) queriedTable.from().get(0));
+        AnalyzedStatement stmt = e.analyze(statement);
+        DocTableRelation table;
+        Symbol where;
+        if (stmt instanceof QueriedSelectRelation qsr) {
+            table = (DocTableRelation) qsr.from().getFirst();
+            where = qsr.where();
+        } else if (stmt instanceof AnalyzedDeleteStatement ads) {
+            table = ads.relation();
+            where = ads.query();
+        } else {
+            throw new IllegalArgumentException("Neither a select or a delete statement is provided");
+        }
+
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
             e.nodeCtx,
             RowGranularity.CLUSTER,
@@ -89,9 +122,9 @@ public class WhereClauseOptimizerTest extends CrateDummyClusterServiceUnitTest {
         );
         return WhereClauseOptimizer.optimize(
             normalizer,
-            queriedTable.where(),
+            where,
             table.tableInfo(),
-            e.getPlannerContext(clusterService.state()).transactionContext(),
+            e.getPlannerContext().transactionContext(),
             e.nodeCtx
         );
     }
@@ -182,7 +215,44 @@ public class WhereClauseOptimizerTest extends CrateDummyClusterServiceUnitTest {
         WhereClauseOptimizer.DetailedQuery query = optimize(
             "select * from partdatebin where ts > '2023-05-01'");
         assertThat(query.query()).isSQL(
-            "((doc.partdatebin.ts > 1682899200000::bigint) AND (month AS date_bin('P28D'::interval, ts, 0::bigint) >= 1681344000000::bigint))"
+            "((doc.partdatebin.ts > 1682899200000::bigint) AND (month >= 1681344000000::bigint))"
         );
+    }
+
+    @Test
+    public void test_expands_filter_when_generated_column_and_generated_expression_have_different_types() {
+        // date_trunc has return type TIMESTAMP WITH TIME ZONE.
+        // Generated column ts_month has type TIMESTAMP ==> TIMESTAMP WITHOUT TIME ZONE.
+        // Validate that despite the implicit cast, filter is expanded.
+        WhereClauseOptimizer.DetailedQuery query = optimize(
+            "select * from partdatetrunc where ts > '2023-05-01'");
+        assertThat(query.query()).isSQL(
+            "((doc.partdatetrunc.ts > 1682899200000::bigint) AND (ts_month >= 1682899200000::bigint))"
+        );
+    }
+
+    @Test
+    public void test_doesnt_expand_filter_when_generated_column_has_no_type_and_expression_is_cast() {
+        WhereClauseOptimizer.DetailedQuery query = optimize(
+            "select * from partcast where ts > '2023-05-01'");
+        assertThat(query.query()).isSQL(
+            "(doc.partcast.ts > 1682899200000::bigint)"
+        );
+    }
+
+    @Test
+    public void test_filter_on_pk_with_implicit_cast() {
+        WhereClauseOptimizer.DetailedQuery query = optimize("select * from t_pk where a = 10 OR a = true");
+        assertThat(query.docKeys()).hasToString("Optional[DocKeys{'10'; 't'}]");
+        query = optimize("delete from t_pk where a = 10 OR a = true");
+        assertThat(query.docKeys()).hasToString("Optional[DocKeys{'10'; 't'}]");
+    }
+
+    @Test
+    public void test_filter_on_id_with_implicit_cast() {
+        WhereClauseOptimizer.DetailedQuery query = optimize("select * from t_pk where _id = 10 OR _id = true");
+        assertThat(query.docKeys()).hasToString("Optional[DocKeys{'10'; 't'}]");
+        query = optimize("delete from t_pk where _id = 10 OR _id = true");
+        assertThat(query.docKeys()).hasToString("Optional[DocKeys{'10'; 't'}]");
     }
 }

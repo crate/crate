@@ -21,13 +21,14 @@
 
 package io.crate.protocols.postgres;
 
-import io.netty.buffer.ByteBuf;
-import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.lucene.BytesRefs;
-
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.common.lucene.BytesRefs;
+
+import io.netty.buffer.ByteBuf;
 
 /**
  * Class to encode postgres client messages and write them onto a buffer.
@@ -50,10 +51,6 @@ class ClientMessages {
         buffer.writeBytes(passwordBytes);
         buffer.writeByte(0);
         return buffer;
-    }
-
-    static ByteBuf sendStartupMessage(ByteBuf buffer, String dbName) {
-        return sendStartupMessage(buffer, dbName, Map.of());
     }
 
     static ByteBuf sendStartupMessage(ByteBuf buffer, String dbName, Map<String, String> properties) {

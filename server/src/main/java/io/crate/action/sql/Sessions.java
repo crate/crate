@@ -29,7 +29,6 @@ import java.util.stream.StreamSupport;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.ClusterSettings;
@@ -48,11 +47,11 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Planner;
+import io.crate.planner.optimizer.LoadedRules;
 import io.crate.protocols.postgres.KeyData;
-import io.crate.statistics.TableStats;
-import io.crate.user.Privilege.Clazz;
-import io.crate.user.Privilege.Type;
-import io.crate.user.User;
+import io.crate.role.Permission;
+import io.crate.role.Role;
+import io.crate.role.Securable;
 
 
 @Singleton
@@ -83,7 +82,6 @@ public class Sessions {
     private final Provider<DependencyCarrier> executorProvider;
     private final JobsLogs jobsLogs;
     private final ClusterService clusterService;
-    private final TableStats tableStats;
     private final boolean isReadOnly;
     private final AtomicInteger nextSessionId = new AtomicInteger();
     private final ConcurrentMap<Integer, Session> sessions = new ConcurrentHashMap<>();
@@ -93,22 +91,19 @@ public class Sessions {
     private volatile int memoryLimit;
 
 
-    @Inject
     public Sessions(NodeContext nodeCtx,
                     Analyzer analyzer,
                     Planner planner,
                     Provider<DependencyCarrier> executorProvider,
                     JobsLogs jobsLogs,
                     Settings settings,
-                    ClusterService clusterService,
-                    TableStats tableStats) {
+                    ClusterService clusterService) {
         this.nodeCtx = nodeCtx;
         this.analyzer = analyzer;
         this.planner = planner;
         this.executorProvider = executorProvider;
         this.jobsLogs = jobsLogs;
         this.clusterService = clusterService;
-        this.tableStats = tableStats;
         this.isReadOnly = NODE_READ_ONLY_SETTING.get(settings);
         this.defaultStatementTimeout = STATEMENT_TIMEOUT.get(settings);
         this.memoryLimit = MEMORY_LIMIT.get(settings);
@@ -128,26 +123,33 @@ public class Sessions {
         int sessionId = nextSessionId.incrementAndGet();
         Session session = new Session(
             sessionId,
-            nodeCtx,
             analyzer,
             planner,
             jobsLogs,
             isReadOnly,
             executorProvider.get(),
             sessionSettings,
-            tableStats,
             () -> sessions.remove(sessionId)
         );
         sessions.put(sessionId, session);
         return session;
     }
 
-    public Session newSession(@Nullable String defaultSchema, User authenticatedUser) {
+    public Session newSession(@Nullable String defaultSchema, Role authenticatedUser) {
         CoordinatorSessionSettings sessionSettings;
         if (defaultSchema == null) {
-            sessionSettings = new CoordinatorSessionSettings(authenticatedUser);
+            sessionSettings = new CoordinatorSessionSettings(
+                authenticatedUser,
+                authenticatedUser,
+                LoadedRules.INSTANCE.disabledRules()
+            );
         } else {
-            sessionSettings = new CoordinatorSessionSettings(authenticatedUser, defaultSchema);
+            sessionSettings = new CoordinatorSessionSettings(
+                authenticatedUser,
+                authenticatedUser,
+                LoadedRules.INSTANCE.disabledRules(),
+                defaultSchema
+            );
         }
         sessionSettings.statementTimeout(defaultStatementTimeout);
         sessionSettings.memoryLimit(memoryLimit);
@@ -208,10 +210,10 @@ public class Sessions {
         return sessions.values();
     }
 
-    public Iterable<Cursor> getCursors(User user) {
+    public Iterable<Cursor> getCursors(Role user) {
         return () -> sessions.values().stream()
             .filter(session ->
-                user.hasPrivilege(Type.AL, Clazz.CLUSTER, null, session.sessionSettings().currentSchema())
+                nodeCtx.roles().hasPrivilege(user, Permission.AL, Securable.CLUSTER, null)
                 || session.sessionSettings().sessionUser().equals(user))
             .flatMap(session -> StreamSupport.stream(session.cursors.spliterator(), false))
             .iterator();

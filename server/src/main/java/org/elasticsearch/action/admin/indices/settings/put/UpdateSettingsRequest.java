@@ -25,11 +25,8 @@ import static org.elasticsearch.common.settings.Settings.Builder.EMPTY_SETTINGS;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
 
-import org.elasticsearch.ElasticsearchGenerationException;
 import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
@@ -39,27 +36,18 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.ToXContentObject;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
 
 /**
  * Request for an update index settings action
  */
 public class UpdateSettingsRequest extends AcknowledgedRequest<UpdateSettingsRequest>
-        implements IndicesRequest.Replaceable, ToXContentObject {
+        implements IndicesRequest, ToXContentObject {
 
     private String[] indices;
     private IndicesOptions indicesOptions = IndicesOptions.fromOptions(false, false, true, true);
     private Settings settings = EMPTY_SETTINGS;
     private boolean preserveExisting = false;
-
-    /**
-     * Constructs a new request to update settings for one or more indices
-     */
-    public UpdateSettingsRequest(String... indices) {
-        this.indices = indices;
-    }
 
     /**
      * Constructs a new request to update settings for one or more indices
@@ -78,39 +66,9 @@ public class UpdateSettingsRequest extends AcknowledgedRequest<UpdateSettingsReq
         return settings;
     }
 
-    /**
-     * Sets the indices to apply to settings update to
-     */
-    @Override
-    public UpdateSettingsRequest indices(String... indices) {
-        this.indices = indices;
-        return this;
-    }
-
     @Override
     public IndicesOptions indicesOptions() {
         return indicesOptions;
-    }
-
-    public UpdateSettingsRequest indicesOptions(IndicesOptions indicesOptions) {
-        this.indicesOptions = indicesOptions;
-        return this;
-    }
-
-    /**
-     * Sets the settings to be updated
-     */
-    public UpdateSettingsRequest settings(Settings settings) {
-        this.settings = settings;
-        return this;
-    }
-
-    /**
-     * Sets the settings to be updated
-     */
-    public UpdateSettingsRequest settings(Settings.Builder settings) {
-        this.settings = settings.build();
-        return this;
     }
 
     /**
@@ -129,30 +87,6 @@ public class UpdateSettingsRequest extends AcknowledgedRequest<UpdateSettingsReq
         return preserveExisting;
     }
 
-    /**
-     * Iff set to <code>true</code> this settings update will only add settings not already set on an index. Existing settings remain
-     * unchanged.
-     */
-    public UpdateSettingsRequest setPreserveExisting(boolean preserveExisting) {
-        this.preserveExisting = preserveExisting;
-        return this;
-    }
-
-    /**
-     * Sets the settings to be updated (either json or yaml format)
-     */
-    @SuppressWarnings("unchecked")
-    public UpdateSettingsRequest settings(Map source) {
-        try {
-            XContentBuilder builder = JsonXContent.builder();
-            builder.map(source);
-            settings(Strings.toString(builder), builder.contentType());
-        } catch (IOException e) {
-            throw new ElasticsearchGenerationException("Failed to generate [" + source + "]", e);
-        }
-        return this;
-    }
-
     public UpdateSettingsRequest(StreamInput in) throws IOException {
         super(in);
         indices = in.readStringArray();
@@ -166,7 +100,7 @@ public class UpdateSettingsRequest extends AcknowledgedRequest<UpdateSettingsReq
         super.writeTo(out);
         out.writeStringArrayNullable(indices);
         indicesOptions.writeIndicesOptions(out);
-        writeSettingsToStream(settings, out);
+        writeSettingsToStream(out, settings);
         out.writeBoolean(preserveExisting);
     }
 
@@ -176,21 +110,6 @@ public class UpdateSettingsRequest extends AcknowledgedRequest<UpdateSettingsReq
         settings.toXContent(builder, params);
         builder.endObject();
         return builder;
-    }
-
-    public UpdateSettingsRequest fromXContent(XContentParser parser) throws IOException {
-        Map<String, Object> settings = new HashMap<>();
-        Map<String, Object> bodySettings = parser.map();
-        Object innerBodySettings = bodySettings.get("settings");
-        // clean up in case the body is wrapped with "settings" : { ... }
-        if (innerBodySettings instanceof Map) {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> innerBodySettingsMap = (Map<String, Object>) innerBodySettings;
-            settings.putAll(innerBodySettingsMap);
-        } else {
-            settings.putAll(bodySettings);
-        }
-        return this.settings(settings);
     }
 
     @Override

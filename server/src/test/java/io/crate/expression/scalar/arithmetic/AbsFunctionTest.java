@@ -23,6 +23,7 @@ package io.crate.expression.scalar.arithmetic;
 
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
 
@@ -43,9 +44,9 @@ public class AbsFunctionTest extends ScalarTestCase {
 
     @Test
     public void testWrongType() throws Exception {
-        expectedException.expect(ConversionException.class);
-        expectedException.expectMessage("Cannot cast `'foo'` of type `text` to type `byte`");
-        assertEvaluateNull("abs('foo')");
+        assertThatThrownBy(() -> assertEvaluateNull("abs('foo')"))
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessage("Cannot cast `'foo'` of type `text` to type `byte`");
     }
 
     @Test

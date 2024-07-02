@@ -25,12 +25,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-public class BlockBasedRamAccountingTest {
+class BlockBasedRamAccountingTest {
 
     @Test
-    public void test_block_based_ram_accounting_reserves_2mb_block_on_first_add_byte_call() {
+    void test_block_based_ram_accounting_reserves_2mb_block_on_first_add_byte_call() {
         var requestedBytes = new AtomicLong(0L);
         var ramAccounting = new BlockBasedRamAccounting(requestedBytes::addAndGet, 4096);
 
@@ -40,7 +40,7 @@ public class BlockBasedRamAccountingTest {
     }
 
     @Test
-    public void test_requested_bytes_are_released_on_release() {
+    void test_requested_bytes_are_released_on_release() {
         var requestedBytes = new AtomicLong(0L);
         var ramAccounting = new BlockBasedRamAccounting(requestedBytes::addAndGet, 2048);
 
@@ -52,7 +52,7 @@ public class BlockBasedRamAccountingTest {
     }
 
     @Test
-    public void test_bytes_are_exact_accounted_if_block_size_is_smaller_than_requested_bytes() {
+    void test_bytes_are_exact_accounted_if_block_size_is_smaller_than_requested_bytes() {
         var accountedBytes = new AtomicLong(0L);
         var ramAccounting = new BlockBasedRamAccounting(accountedBytes::addAndGet, 200);
 

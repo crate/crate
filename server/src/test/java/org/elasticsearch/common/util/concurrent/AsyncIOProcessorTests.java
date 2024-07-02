@@ -18,9 +18,9 @@
  */
 package org.elasticsearch.common.util.concurrent;
 
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.List;
@@ -87,8 +87,8 @@ public class AsyncIOProcessorTests extends ESTestCase {
         for (int i = 0; i < thread.length; i++) {
             thread[i].join();
         }
-        assertTrue(semaphore.tryAcquire(Integer.MAX_VALUE, 10, TimeUnit.SECONDS));
-        assertEquals(count * thread.length, received.get());
+        assertThat(semaphore.tryAcquire(Integer.MAX_VALUE, 10, TimeUnit.SECONDS)).isTrue();
+        assertThat(received.get()).isEqualTo(count * thread.length);
     }
 
     @Test
@@ -141,9 +141,9 @@ public class AsyncIOProcessorTests extends ESTestCase {
         for (int i = 0; i < thread.length; i++) {
             thread[i].join();
         }
-        assertTrue(semaphore.tryAcquire(Integer.MAX_VALUE, 10, TimeUnit.SECONDS));
-        assertEquals(count * thread.length, received.get());
-        assertEquals(actualFailed.get(), failed.get());
+        assertThat(semaphore.tryAcquire(Integer.MAX_VALUE, 10, TimeUnit.SECONDS)).isTrue();
+        assertThat(received.get()).isEqualTo(count * thread.length);
+        assertThat(failed.get()).isEqualTo(actualFailed.get());
     }
 
     @Test
@@ -165,8 +165,8 @@ public class AsyncIOProcessorTests extends ESTestCase {
             notified.incrementAndGet();
             throw new RuntimeException();
         });
-        assertEquals(2, notified.get());
-        assertEquals(2, received.get());
+        assertThat(notified.get()).isEqualTo(2);
+        assertThat(received.get()).isEqualTo(2);
     }
 
     @Test
@@ -177,8 +177,8 @@ public class AsyncIOProcessorTests extends ESTestCase {
             }
         };
 
-        expectThrows(NullPointerException.class, () -> processor.put(null, (e) -> {}));
-        expectThrows(NullPointerException.class, () -> processor.put(new Object(), null));
+        assertThatThrownBy(() -> processor.put(null, (e) -> {})).isExactlyInstanceOf(NullPointerException.class);
+        assertThatThrownBy(() -> processor.put(new Object(), null)).isExactlyInstanceOf(NullPointerException.class);
     }
 
 
@@ -205,7 +205,7 @@ public class AsyncIOProcessorTests extends ESTestCase {
             @Override
             public void run() {
                 try {
-                    assertTrue(serializePutSemaphore.tryAcquire(10, TimeUnit.SECONDS));
+                    assertThat(serializePutSemaphore.tryAcquire(10, TimeUnit.SECONDS)).isTrue();
                 } catch (InterruptedException e) {
                     throw new RuntimeException(e);
                 }
@@ -228,8 +228,8 @@ public class AsyncIOProcessorTests extends ESTestCase {
                 throw new RuntimeException(e);
             }
         });
-        assertEquals(threadCount, notified.get());
-        assertEquals(threadCount, received.get());
+        assertThat(notified.get()).isEqualTo(threadCount);
+        assertThat(received.get()).isEqualTo(threadCount);
         threads.forEach(t -> assertFalse(t.isAlive()));
     }
 }

@@ -21,15 +21,6 @@
 
 package io.crate.analyze;
 
-import io.crate.common.Booleans;
-import io.crate.common.collections.Lists2;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
-
-import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,6 +30,15 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
+
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.common.Booleans;
+import io.crate.common.collections.Lists;
+import io.crate.expression.symbol.Symbol;
 
 /**
  * <pre>
@@ -152,7 +152,7 @@ public class OrderBy implements Writeable {
         }
         orderBySymbols = new ArrayList<>(numOrderBy);
         for (int i = 0; i < numOrderBy; i++) {
-            orderBySymbols.add(Symbols.fromStream(in));
+            orderBySymbols.add(Symbol.fromStream(in));
         }
         nullsFirst = new boolean[numOrderBy];
         for (int i = 0; i < numOrderBy; i++) {
@@ -167,7 +167,7 @@ public class OrderBy implements Writeable {
             out.writeBoolean(reverseFlag);
         }
         for (Symbol symbol : orderBySymbols) {
-            Symbols.toStream(symbol, out);
+            Symbol.toStream(symbol, out);
         }
         for (boolean nullFirst : nullsFirst) {
             out.writeBoolean(nullFirst);
@@ -175,7 +175,7 @@ public class OrderBy implements Writeable {
     }
 
     public OrderBy map(Function<? super Symbol, ? extends Symbol> replaceFunction) {
-        return new OrderBy(Lists2.map(orderBySymbols, replaceFunction), reverseFlags, nullsFirst);
+        return new OrderBy(Lists.map(orderBySymbols, replaceFunction), reverseFlags, nullsFirst);
     }
 
     @Nullable

@@ -45,7 +45,9 @@ import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -71,15 +73,17 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
      **/
     public static final String ALIAS = "any_value";
 
-    public static void register(AggregationImplModule mod) {
+    public static void register(Functions.Builder builder) {
         TypeSignature T = TypeSignature.parse("T");
-        mod.register(
+        builder.add(
             Signature.aggregate(NAME, T, T)
+                .withFeature(Scalar.Feature.DETERMINISTIC)
                 .withTypeVariableConstraints(TypeVariableConstraint.typeVariableOfAnyType("T")),
             ArbitraryAggregation::new
         );
-        mod.register(
+        builder.add(
             Signature.aggregate(ALIAS, T, T)
+                .withFeature(Scalar.Feature.DETERMINISTIC)
                 .withTypeVariableConstraints(TypeVariableConstraint.typeVariableOfAnyType("T")),
             ArbitraryAggregation::new
         );

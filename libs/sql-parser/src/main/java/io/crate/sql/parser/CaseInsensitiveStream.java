@@ -47,13 +47,10 @@ class CaseInsensitiveStream implements CharStream {
     public int LA(int i) {
         int result = stream.LA(i);
 
-        switch (result) {
-            case 0:
-            case IntStream.EOF:
-                return result;
-            default:
-                return Character.toUpperCase(result);
-        }
+        return switch (result) {
+            case 0, IntStream.EOF -> result;
+            default -> Character.toUpperCase(result);
+        };
     }
 
     @Override

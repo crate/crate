@@ -212,6 +212,20 @@ releases.
    The optimizer setting is for advanced use only and can significantly impact
    the performance behavior of the queries.
 
+
+.. _conf-session-optimizer_eliminate_cross_join:
+
+.. vale off
+
+**optimizer_eliminate_cross_join**
+  | *Default:* ``true``
+  | *Modifiable:* ``yes``
+
+  This setting indicates if the :ref:`cross join elimination
+  <join-optim-cross-join-elimination>` rule of the optimizer rule is activated.
+
+.. vale on
+
 .. _experimental-warning:
 
 .. WARNING::

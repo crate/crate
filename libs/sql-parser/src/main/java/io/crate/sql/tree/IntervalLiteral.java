@@ -84,7 +84,7 @@ public class IntervalLiteral extends Literal {
             .append(i.getStartField().name());
         IntervalLiteral.IntervalField endField = i.getEndField();
         if (endField != null) {
-            builder.append(" TO " + endField.name());
+            builder.append(" TO ").append(endField.name());
         }
         return builder.toString();
     }

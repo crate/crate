@@ -20,7 +20,7 @@
 package org.elasticsearch.common.xcontent;
 
 import java.util.Map;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 /**
  * This interface provides a way for non-JDK classes to plug in a way to serialize to xcontent.
@@ -72,10 +72,10 @@ public interface XContentBuilderExtension {
      * <pre>
      * {@code
      *     final DateTimeFormatter datePrinter = ISODateTimeFormat.dateTime().withZone(DateTimeZone.UTC);
-     *     Map<Class<?>, Function<Object, Object>> transformers = new HashMap<>();
+     *     Map<Class<?>, UnaryOperator<Object>> transformers = new HashMap<>();
      *     transformers.put(Date.class, d -> datePrinter.print(((Date) d).getTime()));
      * }
      * </pre>
      */
-    Map<Class<?>, Function<Object, Object>> getDateTransformers();
+    Map<Class<?>, UnaryOperator<Object>> getDateTransformers();
 }

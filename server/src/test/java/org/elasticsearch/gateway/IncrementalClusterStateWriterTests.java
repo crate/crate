@@ -18,12 +18,7 @@
  */
 package org.elasticsearch.gateway;
 
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.lessThan;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -189,41 +184,41 @@ public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
     public void testGetRelevantIndicesWithUnassignedShardsOnMasterEligibleNode() {
         IndexMetadata indexMetadata = createIndexMetadata("test");
         Set<Index> indices = IncrementalClusterStateWriter.getRelevantIndices(clusterStateWithUnassignedIndex(indexMetadata, true));
-        assertThat(indices.size(), equalTo(0));
+        assertThat(indices).hasSize(0);
     }
 
     public void testGetRelevantIndicesWithUnassignedShardsOnDataOnlyNode() {
         IndexMetadata indexMetadata = createIndexMetadata("test");
         Set<Index> indices = IncrementalClusterStateWriter.getRelevantIndices(clusterStateWithUnassignedIndex(indexMetadata, false));
-        assertThat(indices.size(), equalTo(0));
+        assertThat(indices).hasSize(0);
     }
 
     public void testGetRelevantIndicesWithAssignedShards() {
         IndexMetadata indexMetadata = createIndexMetadata("test");
         boolean masterEligible = randomBoolean();
         Set<Index> indices = IncrementalClusterStateWriter.getRelevantIndices(clusterStateWithAssignedIndex(indexMetadata, masterEligible));
-        assertThat(indices.size(), equalTo(1));
+        assertThat(indices).hasSize(1);
     }
 
     public void testGetRelevantIndicesForNonReplicatedClosedIndexOnDataOnlyNode() {
         IndexMetadata indexMetadata = createIndexMetadata("test");
         Set<Index> indices = IncrementalClusterStateWriter.getRelevantIndices(
             clusterStateWithNonReplicatedClosedIndex(indexMetadata, false));
-        assertThat(indices.size(), equalTo(0));
+        assertThat(indices).hasSize(0);
     }
 
     public void testGetRelevantIndicesForReplicatedClosedButUnassignedIndexOnDataOnlyNode() {
         IndexMetadata indexMetadata = createIndexMetadata("test");
         Set<Index> indices = IncrementalClusterStateWriter.getRelevantIndices(
             clusterStateWithReplicatedClosedIndex(indexMetadata, false, false));
-        assertThat(indices.size(), equalTo(0));
+        assertThat(indices).hasSize(0);
     }
 
     public void testGetRelevantIndicesForReplicatedClosedAndAssignedIndexOnDataOnlyNode() {
         IndexMetadata indexMetadata = createIndexMetadata("test");
         Set<Index> indices = IncrementalClusterStateWriter.getRelevantIndices(
             clusterStateWithReplicatedClosedIndex(indexMetadata, false, true));
-        assertThat(indices.size(), equalTo(1));
+        assertThat(indices).hasSize(1);
     }
 
     @Test
@@ -262,7 +257,7 @@ public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
         List<IncrementalClusterStateWriter.IndexMetadataAction> actions =
             IncrementalClusterStateWriter.resolveIndexMetadataActions(indices, relevantIndices, oldMetadata, newMetadata);
 
-        assertThat(actions, hasSize(3));
+        assertThat(actions).hasSize(3);
 
         boolean keptPreviousGeneration = false;
         boolean wroteNewIndex = false;
@@ -270,41 +265,41 @@ public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
 
         for (IncrementalClusterStateWriter.IndexMetadataAction action : actions) {
             if (action instanceof IncrementalClusterStateWriter.KeepPreviousGeneration) {
-                assertThat(action.getIndex(), equalTo(notChangedIndex.getIndex()));
+                assertThat(action.getIndex()).isEqualTo(notChangedIndex.getIndex());
                 IncrementalClusterStateWriter.AtomicClusterStateWriter writer
                     = mock(IncrementalClusterStateWriter.AtomicClusterStateWriter.class);
-                assertThat(action.execute(writer), equalTo(3L));
+                assertThat(action.execute(writer)).isEqualTo(3L);
                 verify(writer, times(1)).incrementIndicesSkipped();
                 verifyNoMoreInteractions(writer);
                 keptPreviousGeneration = true;
             }
             if (action instanceof IncrementalClusterStateWriter.WriteNewIndexMetadata) {
-                assertThat(action.getIndex(), equalTo(newIndex.getIndex()));
+                assertThat(action.getIndex()).isEqualTo(newIndex.getIndex());
                 IncrementalClusterStateWriter.AtomicClusterStateWriter writer
                     = mock(IncrementalClusterStateWriter.AtomicClusterStateWriter.class);
                 when(writer.writeIndex("freshly created", newIndex)).thenReturn(0L);
-                assertThat(action.execute(writer), equalTo(0L));
+                assertThat(action.execute(writer)).isEqualTo(0L);
                 verify(writer, times(1)).incrementIndicesWritten();
                 wroteNewIndex = true;
             }
             if (action instanceof IncrementalClusterStateWriter.WriteChangedIndexMetadata) {
-                assertThat(action.getIndex(), equalTo(newVersionChangedIndex.getIndex()));
+                assertThat(action.getIndex()).isEqualTo(newVersionChangedIndex.getIndex());
                 IncrementalClusterStateWriter.AtomicClusterStateWriter writer
                     = mock(IncrementalClusterStateWriter.AtomicClusterStateWriter.class);
                 when(writer.writeIndex(anyString(), eq(newVersionChangedIndex))).thenReturn(3L);
-                assertThat(action.execute(writer), equalTo(3L));
+                assertThat(action.execute(writer)).isEqualTo(3L);
                 ArgumentCaptor<String> reason = ArgumentCaptor.forClass(String.class);
                 verify(writer).writeIndex(reason.capture(), eq(newVersionChangedIndex));
                 verify(writer, times(1)).incrementIndicesWritten();
-                assertThat(reason.getValue(), containsString(Long.toString(versionChangedIndex.getVersion())));
-                assertThat(reason.getValue(), containsString(Long.toString(newVersionChangedIndex.getVersion())));
+                assertThat(reason.getValue()).contains(versionChangedIndex.getVersion() + "");
+                assertThat(reason.getValue()).contains(newVersionChangedIndex.getVersion() + "");
                 wroteChangedIndex = true;
             }
         }
 
-        assertTrue(keptPreviousGeneration);
-        assertTrue(wroteNewIndex);
-        assertTrue(wroteChangedIndex);
+        assertThat(keptPreviousGeneration).isTrue();
+        assertThat(wroteNewIndex).isTrue();
+        assertThat(wroteChangedIndex).isTrue();
     }
 
     private static class MetaStateServiceWithFailures extends MetaStateService {
@@ -451,7 +446,7 @@ public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
             Tuple<Manifest, Metadata> manifestAndMetadata = metaStateService.loadFullState();
             Metadata loadedMetadata = manifestAndMetadata.v2();
 
-            assertTrue(possibleMetadata.stream().anyMatch(md -> metadataEquals(md, loadedMetadata)));
+            assertThat(possibleMetadata.stream().anyMatch(md -> metadataEquals(md, loadedMetadata))).isTrue();
         }
     }
 
@@ -515,7 +510,7 @@ public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
             "writing cluster state took [*] which is above the warn threshold of [*]; " +
                 "wrote metadata for [0] indices and skipped [0] unchanged indices"));
 
-        assertThat(currentTime.get(), lessThan(startTimeMillis + 10 * slowWriteLoggingThresholdMillis)); // ensure no overflow
+        assertThat(currentTime.get()).isLessThan(startTimeMillis + 10 * slowWriteLoggingThresholdMillis); // ensure no overflow
     }
 
     private void assertExpectedLogs(ClusterState clusterState, IncrementalClusterStateWriter incrementalClusterStateWriter,

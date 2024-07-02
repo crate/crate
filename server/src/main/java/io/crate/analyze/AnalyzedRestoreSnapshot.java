@@ -21,14 +21,14 @@
 
 package io.crate.analyze;
 
+import java.util.List;
+import java.util.Set;
+import java.util.function.Consumer;
+
 import io.crate.expression.symbol.Symbol;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.Table;
-
-import java.util.List;
-import java.util.Set;
-import java.util.function.Consumer;
 
 public class AnalyzedRestoreSnapshot implements DDLStatement {
 
@@ -105,7 +105,7 @@ public class AnalyzedRestoreSnapshot implements DDLStatement {
                 partitionProperty.expressions().forEach(consumer);
             }
         }
-        properties.properties().values().forEach(consumer);
+        properties.forValues(consumer);
     }
 
     @Override

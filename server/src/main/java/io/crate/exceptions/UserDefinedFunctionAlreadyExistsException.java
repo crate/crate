@@ -21,13 +21,15 @@
 
 package io.crate.exceptions;
 
-import io.crate.expression.udf.UserDefinedFunctionMetadata;
+import java.io.IOException;
+import java.util.Locale;
+
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import java.io.IOException;
-import java.util.Locale;
+import io.crate.expression.udf.UserDefinedFunctionMetadata;
+import io.crate.rest.action.HttpErrorStatus;
 
 public class UserDefinedFunctionAlreadyExistsException extends ElasticsearchException implements ConflictException, SchemaScopeException {
 
@@ -55,5 +57,10 @@ public class UserDefinedFunctionAlreadyExistsException extends ElasticsearchExce
     @Override
     public String getSchemaName() {
         return schema;
+    }
+
+    @Override
+    public HttpErrorStatus httpErrorStatus() {
+        return HttpErrorStatus.USER_DEFINED_FUNCTION_WITH_SAME_SIGNATURE_EXISTS_ALREADY;
     }
 }

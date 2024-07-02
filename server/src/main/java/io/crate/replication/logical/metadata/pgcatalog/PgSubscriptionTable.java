@@ -21,36 +21,34 @@
 
 package io.crate.replication.logical.metadata.pgcatalog;
 
+import static io.crate.types.DataTypes.BOOLEAN;
+import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.STRING_ARRAY;
+
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
 import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.replication.logical.metadata.Subscription;
 
-import static io.crate.types.DataTypes.BOOLEAN;
-import static io.crate.types.DataTypes.INTEGER;
-import static io.crate.types.DataTypes.STRING;
-import static io.crate.types.DataTypes.STRING_ARRAY;
-
 public class PgSubscriptionTable {
 
     public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_subscription");
 
-    public static SystemTable<SubscriptionRow> create() {
-        return SystemTable.<SubscriptionRow>builder(IDENT)
-            .add("oid", INTEGER, r -> OidHash.subscriptionOid(r.name, r.subscription))
-            .add("subdbid", INTEGER, ignored -> 0)
-            .add("subname", STRING, r -> r.name)
-            .add("subowner", STRING, r -> r.subscription.owner())
-            .add("subenabled", BOOLEAN, r -> true)
-            .add("subbinary", BOOLEAN, r -> true)
-            .add("substream", BOOLEAN, r -> false)
-            .add("subconninfo", STRING, r -> r.subscription.connectionInfo().safeConnectionString())
-            .add("subslotname", STRING, ignored -> null)
-            .add("subsynccommit", STRING, ignored -> null)
-            .add("subpublications", STRING_ARRAY, r -> r.subscription.publications())
-            .build();
-    }
+    public static SystemTable<SubscriptionRow> INSTANCE = SystemTable.<SubscriptionRow>builder(IDENT)
+        .add("oid", INTEGER, r -> OidHash.subscriptionOid(r.name, r.subscription))
+        .add("subdbid", INTEGER, ignored -> 0)
+        .add("subname", STRING, r -> r.name)
+        .add("subowner", STRING, r -> r.subscription.owner())
+        .add("subenabled", BOOLEAN, r -> true)
+        .add("subbinary", BOOLEAN, r -> true)
+        .add("substream", BOOLEAN, r -> false)
+        .add("subconninfo", STRING, r -> r.subscription.connectionInfo().safeConnectionString())
+        .add("subslotname", STRING, ignored -> null)
+        .add("subsynccommit", STRING, ignored -> null)
+        .add("subpublications", STRING_ARRAY, r -> r.subscription.publications())
+        .build();
 
     public record SubscriptionRow(String name, Subscription subscription) {
     }

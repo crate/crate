@@ -105,7 +105,7 @@ Collecting stats
   common use case is to include only jobs that took a certain amount of time to
   execute::
 
-    cr> SET GLOBAL "stats.jobs_log_filter" = 'ended - started > 100';
+    cr> SET GLOBAL "stats.jobs_log_filter" = $$ended - started > '5 minutes'::interval$$;
 
 .. _stats.jobs_log_persistent_filter:
 
@@ -201,7 +201,12 @@ Shard limits
   | *Default:* 1000
   | *Runtime:* ``yes``
 
-  The maximum amount of shards per node.
+  The maximum number of open primary and replica shards per node. This setting
+  is checked on a shard creation and doesn't limit shards for individual nodes.
+  To limit the number of shards for each node, use
+  :ref:`cluster.routing.allocation.total_shards_per_node
+  <cluster.routing.allocation.total_shards_per_node>` setting.
+  The actual limit being checked is ``max_shards_per_node * number of data nodes``.
 
   Any operations that would result in the creation of additional shard copies
   that would exceed this limit are rejected.
@@ -218,8 +223,15 @@ Shard limits
 
 .. NOTE::
 
-   The maximum amount of shards per node setting is also used for the
+   The maximum number of shards per node setting is also used for the
    :ref:`sys-node_checks_max_shards_per_node` check.
+
+.. NOTE::
+
+   If a table is created with :ref:`sql-create-table-number-of-replicas`
+   provided as a range or default ``0-1`` value, the limit check accounts only
+   for primary shards and not for possible expanded replicas and thus actual
+   number of all shards can exceed the limit.
 
 
 .. _conf_usage_data_collector:
@@ -261,7 +273,7 @@ about its usage.
 
   The interval a UDC ping is sent.
 
- This field expects a time value either as a ``bigint`` or
+  This field expects a time value either as a ``bigint`` or
   ``double precision`` or alternatively as a string literal with a time suffix
   (``ms``, ``s``, ``m``, ``h``, ``d``, ``w``).
 
@@ -883,11 +895,9 @@ Disk-based shard allocation
 
   .. NOTE::
 
-      Read-only blocks are not automatically removed from the indices if the
-      disk space is freed and the threshold is undershot. To remove the block,
-      execute ``ALTER TABLE ... SET ("blocks.read_only_allow_delete" = FALSE)``
-      for affected tables (see
-      :ref:`sql-create-table-blocks-read-only-allow-delete`).
+      :ref:`sql-create-table-blocks-read-only-allow-delete` setting is
+      automatically reset to ``FALSE`` for the tables if the disk space is
+      freed and the threshold is undershot.
 
 ``cluster.routing.allocation.disk.watermark`` settings may be defined as
 percentages or bytes values. However, it is not possible to mix the value
@@ -913,13 +923,20 @@ nodes every 30 seconds. This can also be changed by setting the
    | *Default*: ``-1``
    | *Runtime*: ``yes``
 
-   Limits the number of shards that can be :ref:`allocated
+   Limits the number of primary and replica shards that can be :ref:`allocated
    <gloss-shard-allocation>` per node. A value of ``-1`` means unlimited.
 
    Setting this to ``1000``, for example, will prevent CrateDB from assigning
    more than 1000 shards per node. A node with 1000 shards would be excluded
    from allocation decisions and CrateDB would attempt to allocate shards to
    other nodes, or leave shards unassigned if no suitable node can be found.
+
+.. NOTE::
+
+   If a table is created with :ref:`sql-create-table-number-of-replicas`
+   provided as a range or default ``0-1`` value, the limit check accounts only
+   for primary shards and not for possible expanded replicas and thus actual
+   number of all shards can exceed the limit.
 
 .. _indices.recovery:
 
@@ -1145,14 +1162,49 @@ Total circuit breaker
 Thread pools
 ------------
 
-Every node holds several thread pools to improve how threads are managed within
-a node. There are several pools, but the important ones include:
+Every node uses a number of thread pools to schedule operations, each pool is
+dedicated to specific operations. The most important pools are:
 
-* ``write``: For index, update and delete operations, defaults to fixed
-* ``search``: For count/search operations, defaults to fixed
-* ``get``: For queries on ``sys.shards`` and ``sys.nodes``, defaults to fixed.
-* ``refresh``: For refresh operations, defaults to cache
-* ``logical_replication``: For operations used by the logical replication, defaults to fixed.
+* ``write``: Used for write operations like index, update or delete. The ``type``
+  defaults to ``fixed``.
+* ``search``: Used for read operations like ``SELECT`` statements. The ``type``
+  defaults to ``fixed``.
+* ``get``: Used for some specific read operations. For example on tables like
+  ``sys.shards`` or ``sys.nodes``. The ``type`` defaults to ``fixed``.
+* ``refresh``: Used for :ref:`refresh operations <refresh_data>`. The ``type``
+  defaults to ``scaling``.
+* ``generic``: For internal tasks like cluster state management. The ``type``
+  defaults to ``scaling``.
+* ``logical_replication``: For logical replication operations. The ``type``
+  defaults to fixed.
+
+In addition to those pools, there are also ``netty`` worker threads which are
+used to process network requests and many CPU bound actions like query analysis
+and optimization.
+
+The thread pool settings are expert settings which you generally shouldn't need
+to touch. They are dynamically sized depending on the number of available CPU
+cores. If you're running multiple services on the same machine you instead
+should change the :ref:`processors` setting.
+
+Increasing the number of threads for a pool can result in degraded performance
+due to increased context switching and higher memory footprint.
+
+If you observe idle CPU cores increasing the thread pool size is rarely the
+right course of action, instead it can be a sign that:
+
+- Operations are blocked on disk IO. Increasing the thread pool size could
+  result in more operations getting queued and blocked on disk IO without
+  increasing throughput but decreasing it due to more memory pressure and
+  additional garbage collection activity.
+
+- Individual operations running single threaded. Not all tasks required to
+  process a SQL statement can be further subdivided and processed in parallel,
+  but many operations default to use one thread per shard. Because of this, you
+  can consider increasing the number of shards of a table to increase the
+  parallelism of a single individual statement and increase CPU core
+  utilization. As an alternative you can try increasing the concurrency on the
+  client side, to have CrateDB process more SQL statements in parallel.
 
 .. _thread_pool.<name>.type:
 
@@ -1190,6 +1242,12 @@ settings.
 
   Size of the queue for pending requests. A value of ``-1`` sets it to
   unbounded.
+  If you have burst workloads followed by periods of inactivity it can make
+  sense to increase the ``queue_size`` to allow a node to buffer more queries
+  before rejecting new operations. But be aware, increasing the queue size if
+  you have sustained workloads will only increase the system's memory
+  consumption and likely degrade performance.
+
 
 .. _overload_protection:
 

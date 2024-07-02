@@ -29,10 +29,11 @@ import org.elasticsearch.common.network.CloseableChannel;
 import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 
 import io.crate.auth.Authentication;
+import io.crate.auth.Credentials;
 import io.crate.auth.Protocol;
 import io.crate.protocols.SSL;
 import io.crate.protocols.postgres.ConnectionProperties;
-import io.crate.user.User;
+import io.crate.role.Role;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -50,38 +51,39 @@ public class HostBasedAuthHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         if (authError != null) {
-            ReferenceCountUtil.release(msg);
-            CloseableChannel tcpChannel = ctx.channel().attr(Netty4Transport.CHANNEL_KEY).get();
-            CloseableChannel.closeChannel(tcpChannel, true);
-            throw authError;
+            closeAndThrowException(ctx, msg, authError);
         }
 
         Channel channel = ctx.channel();
         InetAddress remoteAddress = Netty4HttpServerTransport.getRemoteAddress(channel);
+        String userName = Role.CRATE_USER.name();
+        var credentials = new Credentials(userName, null);
         ConnectionProperties connectionProperties = new ConnectionProperties(
+            credentials,
             remoteAddress,
             Protocol.TRANSPORT,
             SSL.getSession(channel)
         );
-        String userName = User.CRATE_USER.name();
+
         var authMethod = authentication.resolveAuthenticationType(userName, connectionProperties);
         if (authMethod == null) {
-            ReferenceCountUtil.release(msg);
             authError = new AuthenticationException("No valid auth.host_based entry found for: " + remoteAddress);
-            CloseableChannel tcpChannel = ctx.channel().attr(Netty4Transport.CHANNEL_KEY).get();
-            CloseableChannel.closeChannel(tcpChannel, true);
-            throw authError;
+            closeAndThrowException(ctx, msg, authError);
         }
         try {
-            authMethod.authenticate(userName, null, connectionProperties);
+            authMethod.authenticate(credentials, connectionProperties);
             ctx.pipeline().remove(this);
             super.channelRead(ctx, msg);
         } catch (Exception e) {
-            ReferenceCountUtil.release(msg);
             authError = e;
-            CloseableChannel tcpChannel = ctx.channel().attr(Netty4Transport.CHANNEL_KEY).get();
-            CloseableChannel.closeChannel(tcpChannel, true);
-            throw e;
+            closeAndThrowException(ctx, msg, authError);
         }
+    }
+
+    private static void closeAndThrowException(ChannelHandlerContext ctx, Object msg, Exception e) throws Exception {
+        ReferenceCountUtil.release(msg);
+        CloseableChannel tcpChannel = ctx.channel().attr(Netty4Transport.CHANNEL_KEY).get();
+        CloseableChannel.closeChannel(tcpChannel, true);
+        throw e;
     }
 }

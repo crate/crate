@@ -21,6 +21,8 @@
 
 package io.crate.expression.scalar.arithmetic;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import org.junit.Test;
 
 import io.crate.expression.scalar.ScalarTestCase;
@@ -64,8 +66,8 @@ public class PowerFunctionTest extends ScalarTestCase {
 
     @Test
     public void testInvalidNumberOfArguments() {
-        expectedException.expectMessage("Unknown function: power(2)," +
-                                        " no overload found for matching argument types: (integer).");
-        assertEvaluateNull("power(2)");
+        assertThatThrownBy(() -> assertEvaluateNull("power(2)"))
+            .hasMessageStartingWith("Unknown function: power(2), " +
+                                    "no overload found for matching argument types: (integer).");
     }
 }

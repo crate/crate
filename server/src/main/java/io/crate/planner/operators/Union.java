@@ -24,10 +24,10 @@ package io.crate.planner.operators;
 import static io.crate.planner.operators.Limit.limitAndOffset;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedCollection;
 import java.util.Set;
 
 import org.jetbrains.annotations.Nullable;
@@ -36,8 +36,7 @@ import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.cursors.IntCursor;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.relations.AbstractTableRelation;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.common.collections.Maps;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.MergePhase;
@@ -46,7 +45,6 @@ import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.LimitAndOffset;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.RelationName;
 import io.crate.planner.DependencyCarrier;
@@ -182,13 +180,8 @@ public class Union implements LogicalPlan {
     }
 
     @Override
-    public List<AbstractTableRelation<?>> baseTables() {
-        return Lists2.concat(lhs.baseTables(), rhs.baseTables());
-    }
-
-    @Override
-    public List<RelationName> getRelationNames() {
-        return Lists2.concatUnique(lhs.getRelationNames(), rhs.getRelationNames());
+    public List<RelationName> relationNames() {
+        return Lists.concatUnique(lhs.relationNames(), rhs.relationNames());
     }
 
     @Override
@@ -197,18 +190,41 @@ public class Union implements LogicalPlan {
     }
 
     @Override
+    public boolean supportsDistributedReads() {
+        return lhs.supportsDistributedReads() && rhs.supportsDistributedReads();
+    }
+
+    @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         return new Union(sources.get(0), sources.get(1), outputs);
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
         IntArrayList outputIndicesToKeep = new IntArrayList();
         for (Symbol outputToKeep : outputsToKeep) {
-            SymbolVisitors.intersection(outputToKeep, outputs, s -> {
-                int idx = outputs.indexOf(s);
-                assert idx >= 0 : "outputs must contain symbol " + s + " if intersection called consumer";
-                outputIndicesToKeep.add(idx);
+            Symbols.intersection(outputToKeep, outputs, s -> {
+                // Union can contain identically looking ScopedSymbols due to aliased relations. E.g.:
+                //
+                // SELECT * FROM
+                //  (SELECT
+                //      t1.a,
+                //      t2.a
+                //   FROM t AS t1,
+                //        t AS t2
+                //   ) t3
+                // UNION
+                // SELECT 1, 1;
+                //
+                // Has [a, a] as outputs where the two `a` are not the same
+                //
+                // To account for that, we keep all indices that match:
+                for (int i = 0; i < outputs.size(); i++) {
+                    Symbol output = outputs.get(i);
+                    if (output.equals(s) && !outputIndicesToKeep.contains(i)) {
+                        outputIndicesToKeep.add(i);
+                    }
+                }
             });
         }
         ArrayList<Symbol> toKeepFromLhs = new ArrayList<>();

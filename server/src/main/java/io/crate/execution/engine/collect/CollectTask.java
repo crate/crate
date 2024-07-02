@@ -28,15 +28,14 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
-import io.crate.common.annotations.GuardedBy;
-
-import com.carrotsearch.hppc.IntObjectHashMap;
-
 import org.apache.lucene.search.IndexSearcher;
 import org.elasticsearch.Version;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import io.crate.common.annotations.VisibleForTesting;
+import com.carrotsearch.hppc.IntObjectHashMap;
+
+import io.crate.common.annotations.GuardedBy;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.collections.RefCountedItem;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.data.BatchIterator;

@@ -22,12 +22,12 @@
 package io.crate.planner;
 
 import java.util.UUID;
-
-import org.jetbrains.annotations.Nullable;
+import java.util.function.BiFunction;
 
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.UUIDs;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.action.sql.Cursors;
 import io.crate.analyze.WhereClause;
@@ -38,7 +38,10 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.TableInfo;
+import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.costs.PlanStats;
+import io.crate.planner.optimizer.tracer.LoggingOptimizerTracer;
+import io.crate.planner.optimizer.tracer.OptimizerTracer;
 import io.crate.protocols.postgres.TransactionState;
 
 public class PlannerContext {
@@ -51,6 +54,7 @@ public class PlannerContext {
         return new PlannerContext(
             context.clusterState,
             context.routingProvider,
+            new RoutingBuilder(context.clusterState, context.routingProvider),
             UUIDs.dirtyUUID(),
             context.coordinatorTxnCtx,
             context.nodeCtx,
@@ -58,7 +62,9 @@ public class PlannerContext {
             context.params,
             context.cursors,
             context.transactionState,
-            context.planStats
+            context.planStats,
+            context.optimizerTracer,
+            context.optimize
         );
     }
 
@@ -76,24 +82,58 @@ public class PlannerContext {
     @Nullable
     private final Row params;
     private final PlanStats planStats;
+    private final OptimizerTracer optimizerTracer;
+    private final BiFunction<LogicalPlan, PlannerContext, LogicalPlan> optimize;
 
     /**
      * @param params See {@link #params()}
      */
-    public PlannerContext(ClusterState clusterState,
-                          RoutingProvider routingProvider,
-                          UUID jobId,
-                          CoordinatorTxnCtx coordinatorTxnCtx,
-                          NodeContext nodeCtx,
-                          int fetchSize,
-                          @Nullable Row params,
-                          Cursors cursors,
-                          TransactionState transactionState,
-                          PlanStats planStats) {
+    PlannerContext(ClusterState clusterState,
+                   RoutingProvider routingProvider,
+                   UUID jobId,
+                   CoordinatorTxnCtx coordinatorTxnCtx,
+                   NodeContext nodeCtx,
+                   int fetchSize,
+                   @Nullable Row params,
+                   Cursors cursors,
+                   TransactionState transactionState,
+                   PlanStats planStats,
+                   BiFunction<LogicalPlan, PlannerContext, LogicalPlan> optimize) {
+        this(
+            clusterState,
+            routingProvider,
+            new RoutingBuilder(clusterState, routingProvider),
+            jobId,
+            coordinatorTxnCtx,
+            nodeCtx,
+            fetchSize,
+            params,
+            cursors,
+            transactionState,
+            planStats,
+            LoggingOptimizerTracer.getInstance(),
+            optimize
+        );
+    }
+
+    private PlannerContext(ClusterState clusterState,
+                           RoutingProvider routingProvider,
+                           RoutingBuilder routingBuilder,
+                           UUID jobId,
+                           CoordinatorTxnCtx coordinatorTxnCtx,
+                           NodeContext nodeCtx,
+                           int fetchSize,
+                           @Nullable Row params,
+                           Cursors cursors,
+                           TransactionState transactionState,
+                           PlanStats planStats,
+                           OptimizerTracer optimizerTracer,
+                           BiFunction<LogicalPlan, PlannerContext, LogicalPlan> optimize
+                           ) {
         this.routingProvider = routingProvider;
         this.nodeCtx = nodeCtx;
         this.params = params;
-        this.routingBuilder = new RoutingBuilder(clusterState, routingProvider);
+        this.routingBuilder = routingBuilder;
         this.clusterState = clusterState;
         this.jobId = jobId;
         this.coordinatorTxnCtx = coordinatorTxnCtx;
@@ -102,6 +142,26 @@ public class PlannerContext {
         this.cursors = cursors;
         this.transactionState = transactionState;
         this.planStats = planStats;
+        this.optimizerTracer = optimizerTracer;
+        this.optimize = optimize;
+    }
+
+    public PlannerContext withOptimizerTracer(OptimizerTracer optimizerTracer) {
+        return new PlannerContext(
+            clusterState,
+            routingProvider,
+            routingBuilder,
+            jobId,
+            coordinatorTxnCtx,
+            nodeCtx,
+            fetchSize,
+            params,
+            cursors,
+            transactionState,
+            planStats,
+            optimizerTracer,
+            optimize
+        );
     }
 
     /**
@@ -170,5 +230,13 @@ public class PlannerContext {
 
     public TransactionState transactionState() {
         return transactionState;
+    }
+
+    public OptimizerTracer optimizerTracer() {
+        return optimizerTracer;
+    }
+
+    public BiFunction<LogicalPlan, PlannerContext, LogicalPlan> optimize() {
+        return optimize;
     }
 }

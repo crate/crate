@@ -21,34 +21,36 @@
 
 package io.crate.auth;
 
-import io.crate.user.User;
-import io.crate.user.UserLookup;
-import io.crate.protocols.postgres.ConnectionProperties;
-import io.crate.user.SecureHash;
-import org.elasticsearch.common.settings.SecureString;
-
 import org.jetbrains.annotations.Nullable;
+
+import io.crate.protocols.postgres.ConnectionProperties;
+import io.crate.role.Role;
+import io.crate.role.Roles;
+import io.crate.role.SecureHash;
 
 public class PasswordAuthenticationMethod implements AuthenticationMethod {
 
     public static final String NAME = "password";
-    private final UserLookup userLookup;
+    private final Roles roles;
 
-    PasswordAuthenticationMethod(UserLookup userLookup) {
-        this.userLookup = userLookup;
+    PasswordAuthenticationMethod(Roles roles) {
+        this.roles = roles;
     }
 
     @Nullable
     @Override
-    public User authenticate(String userName, SecureString passwd, ConnectionProperties connProperties) {
-        User user = userLookup.findUser(userName);
-        if (user != null && passwd != null && passwd.length() > 0) {
+    public Role authenticate(Credentials credentials, ConnectionProperties connProperties) {
+        var username = credentials.username();
+        var password = credentials.password();
+        assert username != null : "User name must be not null on password authentication method";
+        Role user = roles.findUser(username);
+        if (user != null && password != null && !password.isEmpty()) {
             SecureHash secureHash = user.password();
-            if (secureHash != null && secureHash.verifyHash(passwd)) {
+            if (secureHash != null && secureHash.verifyHash(password)) {
                 return user;
             }
         }
-        throw new RuntimeException("password authentication failed for user \"" + userName + "\"");
+        throw new RuntimeException("password authentication failed for user \"" + username + "\"");
     }
 
     @Override

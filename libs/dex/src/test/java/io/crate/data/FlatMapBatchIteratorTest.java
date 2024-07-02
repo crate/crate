@@ -29,15 +29,16 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.crate.data.testing.BatchIteratorTester;
+import io.crate.data.testing.BatchIteratorTester.ResultOrder;
 import io.crate.data.testing.TestingBatchIterators;
 
-public class FlatMapBatchIteratorTest {
+class FlatMapBatchIteratorTest {
 
     @Test
-    public void testFlatMap() throws Exception {
+    void testFlatMap() throws Exception {
         InMemoryBatchIterator<Integer> source = new InMemoryBatchIterator<>(Arrays.asList(1, 2, 3), null, false);
         FlatMapBatchIterator<Integer, Integer[]> twiceAsArray =
             new FlatMapBatchIterator<>(source,
@@ -53,13 +54,13 @@ public class FlatMapBatchIteratorTest {
     }
 
     @Test
-    public void testFlatMapBatchIteratorFullFillsContracts() throws Exception {
+    void testFlatMapBatchIteratorFullFillsContracts() throws Exception {
         Function<Row, Iterator<Row>> duplicateRow =
             row -> Arrays.<Row>asList(new RowN(row.materialize()), new RowN(row.materialize())).iterator();
         var tester = BatchIteratorTester.forRows(() -> {
             BatchIterator<Row> source = TestingBatchIterators.range(1, 4);
             return new FlatMapBatchIterator<>(source, duplicateRow);
-        });
+        }, ResultOrder.EXACT);
         tester.verifyResultAndEdgeCaseBehaviour(
             Arrays.asList(
                 new Object[] { 1 },

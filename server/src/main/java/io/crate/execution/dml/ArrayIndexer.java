@@ -46,7 +46,7 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
     public void indexValue(List<T> values,
                            XContentBuilder xContentBuilder,
                            Consumer<? super IndexableField> addField,
-                           Map<ColumnIdent, Indexer.Synthetic> synthetics,
+                           Synthetics synthetics,
                            Map<ColumnIdent, Indexer.ColumnConstraint> toValidate) throws IOException {
         xContentBuilder.startArray();
         if (values != null) {
@@ -70,7 +70,7 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
     @Override
     public void collectSchemaUpdates(@Nullable List<T> values,
                                      Consumer<? super Reference> onDynamicColumn,
-                                     Map<ColumnIdent, Indexer.Synthetic> synthetics) throws IOException {
+                                     Synthetics synthetics) throws IOException {
         if (values != null) {
             for (T value : values) {
                 if (value != null) {

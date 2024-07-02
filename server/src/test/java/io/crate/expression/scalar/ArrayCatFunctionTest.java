@@ -23,6 +23,7 @@ package io.crate.expression.scalar;
 
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Arrays;
 import java.util.function.Consumer;
@@ -56,26 +57,26 @@ public class ArrayCatFunctionTest extends ScalarTestCase {
 
     @Test
     public void testZeroArguments() throws Exception {
-        expectedException.expect(UnsupportedFunctionException.class);
-        expectedException.expectMessage("Unknown function: array_cat()." +
-                                        " Possible candidates: array_cat(array(E), array(E)):array(E)");
-        assertEvaluateNull("array_cat()");
+        assertThatThrownBy(() -> assertEvaluateNull("array_cat()"))
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessageStartingWith("Unknown function: array_cat(). " +
+                                    "Possible candidates: array_cat(array(E), array(E)):array(E)");
     }
 
     @Test
     public void testOneArgument() {
-        expectedException.expect(UnsupportedFunctionException.class);
-        expectedException.expectMessage("Unknown function: array_cat(_array(1))," +
-                                        " no overload found for matching argument types: (integer_array).");
-        assertEvaluateNull("array_cat([1])");
+        assertThatThrownBy(() -> assertEvaluateNull("array_cat([1])"))
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessageStartingWith("Unknown function: array_cat(_array(1)), " +
+                                    "no overload found for matching argument types: (integer_array).");
     }
 
     @Test
     public void testThreeArguments() throws Exception {
-        expectedException.expect(UnsupportedFunctionException.class);
-        expectedException.expectMessage("Unknown function: array_cat(_array(1), _array(2), _array(3))," +
-                                        " no overload found for matching argument types: (integer_array, integer_array, integer_array).");
-        assertEvaluateNull("array_cat([1], [2], [3])");
+        assertThatThrownBy(() -> assertEvaluateNull("array_cat([1], [2], [3])"))
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessageStartingWith("Unknown function: array_cat(_array(1), _array(2), _array(3)), " +
+                    "no overload found for matching argument types: (integer_array, integer_array, integer_array).");
     }
 
     @Test
@@ -116,8 +117,8 @@ public class ArrayCatFunctionTest extends ScalarTestCase {
 
     @Test
     public void testEmptyArrays() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("One of the arguments of the `array_cat` function can be of undefined inner type, but not both");
-        assertNormalize("array_cat([], [])", (Consumer<Symbol>) null);
+        assertThatThrownBy(() -> assertNormalize("array_cat([], [])", (Consumer<Symbol>) null))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("One of the arguments of the `array_cat` function can be of undefined inner type, but not both");
     }
 }

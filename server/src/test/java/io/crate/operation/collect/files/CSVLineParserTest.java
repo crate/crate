@@ -21,8 +21,7 @@
 
 package io.crate.operation.collect.files;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -79,7 +78,7 @@ public class CSVLineParserTest {
         csvParser.parseHeader(header);
         result = csvParser.parse("GER,Germany\n", 0);
 
-        assertThat(new String(result, StandardCharsets.UTF_8), is("{\"Code\":\"GER\",\"Country\":\"Germany\"}"));
+        assertThat(new String(result, StandardCharsets.UTF_8)).isEqualTo("{\"Code\":\"GER\",\"Country\":\"Germany\"}");
     }
 
     @Test
@@ -88,7 +87,7 @@ public class CSVLineParserTest {
         csvParser.parseHeader(header);
         result = csvParser.parse("GER,Germany\n", 0);
 
-        assertThat(new String(result, StandardCharsets.UTF_8), is("{\"Code\":\"GER\",\"Country\":\"Germany\"}"));
+        assertThat(new String(result, StandardCharsets.UTF_8)).isEqualTo("{\"Code\":\"GER\",\"Country\":\"Germany\"}");
     }
 
     @Test
@@ -97,7 +96,7 @@ public class CSVLineParserTest {
         csvParser.parseHeader(header);
         result = csvParser.parse("", 0);
 
-        assertThat(result, is("{}".getBytes(StandardCharsets.UTF_8)));
+        assertThat(result).isEqualTo("{}".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
@@ -106,7 +105,7 @@ public class CSVLineParserTest {
         csvParser.parseHeader(header);
         result = csvParser.parse(",", 0);
 
-        assertThat(new String(result, StandardCharsets.UTF_8), is("{\"Code\":\"\",\"Country\":\"\"}"));
+        assertThat(new String(result, StandardCharsets.UTF_8)).isEqualTo("{\"Code\":\"\",\"Country\":\"\"}");
     }
 
     @Test
@@ -118,7 +117,7 @@ public class CSVLineParserTest {
         csvParser.parseHeader(header);
         result = csvParser.parse("GER,Germany\n", 0);
 
-        assertThat(new String(result, StandardCharsets.UTF_8), is("{\"Code\":\"GER\",\"Coun, try\":\"Germany\"}"));
+        assertThat(new String(result, StandardCharsets.UTF_8)).isEqualTo("{\"Code\":\"GER\",\"Coun, try\":\"Germany\"}");
     }
 
     @Test
@@ -130,10 +129,7 @@ public class CSVLineParserTest {
         csvParser.parseHeader(header);
         result = csvParser.parse("GER,,\"\"\n", 0);
 
-        assertThat(
-            new String(result, StandardCharsets.UTF_8),
-            is("{\"Code\":\"GER\",\"Country\":null,\"City\":null}")
-        );
+        assertThat(new String(result, StandardCharsets.UTF_8)).isEqualTo("{\"Code\":\"GER\",\"Country\":null,\"City\":null}");
     }
 
     @Test
@@ -145,10 +141,7 @@ public class CSVLineParserTest {
         csvParser.parseHeader(header);
         result = csvParser.parse("GER|Germany|Berlin\n", 0);
 
-        assertThat(
-            new String(result, StandardCharsets.UTF_8),
-            is("{\"Code\":\"GER\",\"Country\":\"Germany\",\"City\":\"Berlin\"}")
-        );
+        assertThat(new String(result, StandardCharsets.UTF_8)).isEqualTo("{\"Code\":\"GER\",\"Country\":\"Germany\",\"City\":\"Berlin\"}");
     }
 
     @Test
@@ -157,7 +150,7 @@ public class CSVLineParserTest {
         csvParser.parseHeader(header);
         result = csvParser.parse("GER,,Berlin\n", 0);
 
-        assertThat(new String(result, StandardCharsets.UTF_8), is("{\"Code\":\"GER\",\"Country\":\"\",\"City\":\"Berlin\"}"));
+        assertThat(new String(result, StandardCharsets.UTF_8)).isEqualTo("{\"Code\":\"GER\",\"Country\":\"\",\"City\":\"Berlin\"}");
     }
 
     @Test
@@ -166,7 +159,7 @@ public class CSVLineParserTest {
         csvParser.parseHeader(header);
         result = csvParser.parse("GER,Germany\n", 0);
 
-        assertThat(new String(result, StandardCharsets.UTF_8), is("{\"Code\":\"GER\",\"Country\":\"Germany\"}"));
+        assertThat(new String(result, StandardCharsets.UTF_8)).isEqualTo("{\"Code\":\"GER\",\"Country\":\"Germany\"}");
     }
 
     @Test
@@ -175,7 +168,7 @@ public class CSVLineParserTest {
         csvParser.parseHeader(header);
         result = csvParser.parse("GER        ,Germany\n", 0);
 
-        assertThat(new String(result, StandardCharsets.UTF_8), is("{\"Code\":\"GER\",\"Country\":\"Germany\"}"));
+        assertThat(new String(result, StandardCharsets.UTF_8)).isEqualTo("{\"Code\":\"GER\",\"Country\":\"Germany\"}");
     }
 
     @Test
@@ -184,7 +177,7 @@ public class CSVLineParserTest {
         csvParser.parseHeader(header);
         result = csvParser.parse("GER,Germany\n", 0);
 
-        assertThat(new String(result, StandardCharsets.UTF_8), is("{\"Code\":\"GER\",\"Country\":\"Germany\"}"));
+        assertThat(new String(result, StandardCharsets.UTF_8)).isEqualTo("{\"Code\":\"GER\",\"Country\":\"Germany\"}");
     }
 
     @Test
@@ -193,7 +186,7 @@ public class CSVLineParserTest {
         csvParser.parseHeader(header);
         result = csvParser.parse("GER,               Germany\n", 0);
 
-        assertThat(new String(result, StandardCharsets.UTF_8), is("{\"Code\":\"GER\",\"Country\":\"Germany\"}"));
+        assertThat(new String(result, StandardCharsets.UTF_8)).isEqualTo("{\"Code\":\"GER\",\"Country\":\"Germany\"}");
     }
 
     @Test
@@ -206,7 +199,7 @@ public class CSVLineParserTest {
         csvParser.parseHeader(header);
         result = csvParser.parse("GER,Germany\n", 0);
 
-        assertThat(new String(result, StandardCharsets.UTF_8), is("{\"Code\":\"GER\",\"Country\":\"Germany\"}"));
+        assertThat(new String(result, StandardCharsets.UTF_8)).isEqualTo("{\"Code\":\"GER\",\"Country\":\"Germany\"}");
     }
 
     @Test
@@ -218,7 +211,7 @@ public class CSVLineParserTest {
         csvParser.parseHeader(header);
         result = csvParser.parse("GER,Germany,Berlin\n", 0);
 
-        assertThat(new String(result, StandardCharsets.UTF_8), is("{\"Code\":\"GER\",\"Country\":\"Germany\"}"));
+        assertThat(new String(result, StandardCharsets.UTF_8)).isEqualTo("{\"Code\":\"GER\",\"Country\":\"Germany\"}");
     }
 
     @Test
@@ -243,7 +236,7 @@ public class CSVLineParserTest {
             new CopyFromParserProperties(true, false, CsvSchema.DEFAULT_COLUMN_SEPARATOR, 0),
             List.of("Code", "Country"));
         result = csvParser.parseWithoutHeader("GER,Germany,Berlin\n", 0);
-        assertThat(new String(result, StandardCharsets.UTF_8), is("{\"Code\":\"GER\",\"Country\":\"Germany\"}"));
+        assertThat(new String(result, StandardCharsets.UTF_8)).isEqualTo("{\"Code\":\"GER\",\"Country\":\"Germany\"}");
     }
 
     @Test
@@ -254,7 +247,7 @@ public class CSVLineParserTest {
             List.of("City", "Code"));
         csvParser.parseHeader(header);
         result = csvParser.parse("GER,Germany,Berlin\n", 0);
-        assertThat(new String(result, StandardCharsets.UTF_8), is("{\"Code\":\"GER\",\"City\":\"Berlin\"}"));
+        assertThat(new String(result, StandardCharsets.UTF_8)).isEqualTo("{\"Code\":\"GER\",\"City\":\"Berlin\"}");
     }
 
     @Test
@@ -265,6 +258,6 @@ public class CSVLineParserTest {
             List.of());
         csvParser.parseHeader(header);
         result = csvParser.parse("GER,Germany,Berlin\n", 0);
-        assertThat(new String(result, StandardCharsets.UTF_8), is("{\"Code\":\"GER\",\"Country\":\"Germany\",\"City\":\"Berlin\"}"));
+        assertThat(new String(result, StandardCharsets.UTF_8)).isEqualTo("{\"Code\":\"GER\",\"Country\":\"Germany\",\"City\":\"Berlin\"}");
     }
 }

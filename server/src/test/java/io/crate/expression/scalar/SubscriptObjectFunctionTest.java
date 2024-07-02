@@ -22,6 +22,7 @@
 package io.crate.expression.scalar;
 
 import static io.crate.testing.Asserts.isLiteral;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Map;
 
@@ -58,8 +59,8 @@ public class SubscriptObjectFunctionTest extends ScalarTestCase {
 
     @Test
     public void testSubscriptOnObjectLiteralWithNonExistingKey() throws Exception {
-        expectedException.expect(ColumnUnknownException.class);
-        assertEvaluate("subscript_obj(obj, 'y')", 10L, Literal.of(Map.of("x", 10L)));
+        assertThatThrownBy(() -> assertEvaluate("subscript_obj(obj, 'y')", 10L, Literal.of(Map.of("x", 10L))))
+            .isExactlyInstanceOf(ColumnUnknownException.class);
     }
 
     @Test

@@ -36,6 +36,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
@@ -528,7 +529,7 @@ public final class Settings implements ToXContentFragment {
         return builder.build();
     }
 
-    public static void writeSettingsToStream(Settings settings, StreamOutput out) throws IOException {
+    public static void writeSettingsToStream(StreamOutput out, Settings settings) throws IOException {
         Set<Map.Entry<String, Object>> entries = settings.settings.entrySet();
         out.writeVInt(entries.size());
         for (Map.Entry<String, Object> entry : entries) {
@@ -874,8 +875,27 @@ public final class Settings implements ToXContentFragment {
             return this;
         }
 
+        public Builder put(String setting, Object value) {
+            switch (value) {
+                case Integer i -> put(setting, i.intValue());
+                case Long l -> put(setting, l.longValue());
+                case String l -> put(setting, l);
+                case Float f -> put(setting, f.floatValue());
+                case Double d -> put(setting, d.doubleValue());
+                case Boolean b -> put(setting, b.booleanValue());
+                case List<?> l -> putList(setting, l);
+                default -> throw new IllegalArgumentException(String.format(
+                    Locale.ENGLISH,
+                    "Unsupported value: `%s`",
+                    setting,
+                    value
+                ));
+            }
+            return this;
+        }
+
         public Builder put(GenericProperties<Object> properties) {
-            for (Entry<String,Object> entry : properties.properties().entrySet()) {
+            for (Entry<String,Object> entry : properties) {
                 String settingName = entry.getKey();
                 putStringOrList(settingName, entry.getValue());
             }

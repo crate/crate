@@ -22,12 +22,10 @@
 package io.crate.planner.optimizer.rule;
 
 import static io.crate.common.collections.Iterables.getOnlyElement;
-import static org.assertj.core.api.Assertions.assertThat;
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -36,10 +34,9 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AliasedAnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
@@ -47,7 +44,6 @@ import io.crate.metadata.table.Operation;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.JoinPlan;
-import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.Order;
 import io.crate.planner.operators.Rename;
 import io.crate.planner.operators.Union;
@@ -76,12 +72,11 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws Exception {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addTable("create table a (x int)")
             .addTable("create table b (y int)")
             .addTable("create table c (z int)")
-            .addTable("create table d (w int)")
-            .build();
+            .addTable("create table d (w int)");
 
         aDoc = e.resolveTableInfo("a");
         bDoc = e.resolveTableInfo("b");
@@ -110,7 +105,7 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
             "  └ Collect[doc.b | [y] | true]"
         );
 
-        JoinGraph joinGraph = JoinGraph.create(join, Function.identity());
+        JoinGraph joinGraph = JoinGraph.create(join, UnaryOperator.identity());
         assertThat(joinGraph.nodes()).containsExactly(a, b);
         assertThat(joinGraph.edges()).hasSize(2);
 
@@ -151,7 +146,7 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
             "  └ Collect[doc.c | [z] | true]"
         );
 
-        JoinGraph joinGraph = JoinGraph.create(join, Function.identity());
+        JoinGraph joinGraph = JoinGraph.create(join, UnaryOperator.identity());
         // This builds the following graph:
         // [a]--[a.x = b.y]--[b]--[b.y = c.z]--[c]
         assertThat(joinGraph.nodes()).containsExactly(a, b, c);
@@ -180,9 +175,8 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
             "  └ Collect[doc.a | [x] | true]"
         );
 
-        List<LogicalPlan> invalidOrder = List.of(a, c, b);
-        assertThatThrownBy(() -> EliminateCrossJoin.reorder(joinGraph, invalidOrder))
-            .hasMessage("JoinPlan cannot be built with the provided order [doc.a, doc.c, doc.b]");
+        var invalidOrder = EliminateCrossJoin.reorder(joinGraph, List.of(a, c, b));
+        assertThat(invalidOrder).isNull();
     }
 
     @Test
@@ -206,7 +200,7 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
             "  └ Collect[doc.d | [w] | true]"
         );
 
-        JoinGraph joinGraph = JoinGraph.create(topJoin, Function.identity());
+        JoinGraph joinGraph = JoinGraph.create(topJoin, UnaryOperator.identity());
 
         assertThat(EliminateCrossJoin.reorder(joinGraph, List.of(a, c, b, d))).isEqualTo(
             "Join[INNER | (y = w)]\n" +
@@ -246,7 +240,7 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
             "    └ Collect[doc.c | [z] | true]"
         );
 
-        JoinGraph joinGraph = JoinGraph.create(filter, Function.identity());
+        JoinGraph joinGraph = JoinGraph.create(filter, UnaryOperator.identity());
 
         assertThat(EliminateCrossJoin.reorder(joinGraph, List.of(c, b, a))).hasOperators(
             "Filter[(x > 1)]",
@@ -259,7 +253,7 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
 
         var secondFilter = new Filter(filter, e.asSymbol("b.y < 10"));
 
-        joinGraph = JoinGraph.create(secondFilter, Function.identity());
+        joinGraph = JoinGraph.create(secondFilter, UnaryOperator.identity());
 
         assertThat(EliminateCrossJoin.reorder(joinGraph, List.of(c, b, a))).hasOperators(
             "Filter[(y < 10)]",
@@ -285,7 +279,7 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
             "  └ Collect[doc.c | [z] | true]"
         );
 
-        var joinGraph = JoinGraph.create(join, Function.identity());
+        var joinGraph = JoinGraph.create(join, UnaryOperator.identity());
         var originalOrder = joinGraph.nodes();
         assertThat(originalOrder).isEqualTo(List.of(a, b, c));
         var newOrder = EliminateCrossJoin.eliminateCrossJoin(joinGraph);
@@ -299,10 +293,7 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
 
         var result = rule.apply(match.value(),
                                 match.captures(),
-                                e.planStats(),
-                                CoordinatorTxnCtx.systemTransactionContext(),
-                                e.nodeCtx,
-                                Function.identity());
+                                e.ruleContext());
 
         assertThat(result).hasOperators(
             "Eval[x, y, z]",
@@ -334,11 +325,8 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(match.value()).isEqualTo(join);
 
         var result = rule.apply(match.value(),
-                                match.captures(),
-                                e.planStats(),
-                                CoordinatorTxnCtx.systemTransactionContext(),
-                                e.nodeCtx,
-                                Function.identity());
+            match.captures(),
+            e.ruleContext());
 
         assertThat(result).isNull();
 
@@ -352,11 +340,8 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(match.value()).isEqualTo(join);
 
         result = rule.apply(match.value(),
-                            match.captures(),
-                            e.planStats(),
-                            CoordinatorTxnCtx.systemTransactionContext(),
-                            e.nodeCtx,
-                            Function.identity());
+            match.captures(),
+            e.ruleContext());
 
         assertThat(result).isNull();
     }
@@ -380,11 +365,8 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(match.value()).isEqualTo(secondJoin);
 
         var result = rule.apply(match.value(),
-                                match.captures(),
-                                e.planStats(),
-                                CoordinatorTxnCtx.systemTransactionContext(),
-                                e.nodeCtx,
-                                Function.identity());
+            match.captures(),
+            e.ruleContext());
 
         assertThat(result).isNull();
     }
@@ -431,7 +413,7 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
             "  └ Collect[doc.d | [w] | true]"
         );
 
-        var graph = JoinGraph.create(thirdJoin, Function.identity());
+        var graph = JoinGraph.create(thirdJoin, UnaryOperator.identity());
         assertThat(graph.size()).isEqualTo(4);
         assertThat(graph.edges()).hasSize(4);
         assertThat(graph.nodes().get(0)).isEqualTo(rename_a);
@@ -457,7 +439,7 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
             "  └ Collect[doc.c | [z] | true]"
         );
 
-        JoinGraph joinGraph = JoinGraph.create(join, Function.identity());
+        JoinGraph joinGraph = JoinGraph.create(join, UnaryOperator.identity());
         assertThat(joinGraph.nodes()).containsExactly(order, b, c);
 
         var reordered = EliminateCrossJoin.reorder(joinGraph, List.of(c, b, order));
@@ -473,7 +455,7 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_graph_with_union() throws Exception {
-        Union union = new Union(a, b, Lists2.concat(a.outputs(), b.outputs()));
+        Union union = new Union(a, b, Lists.concat(a.outputs(), b.outputs()));
         var firstJoin = new JoinPlan(union, c, JoinType.INNER, e.asSymbol("b.y = c.z"));
         var secondJoin = new JoinPlan(firstJoin, d, JoinType.INNER, e.asSymbol("a.x = d.w"));
 
@@ -487,7 +469,7 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
             "  └ Collect[doc.d | [w] | true]"
         );
 
-        JoinGraph joinGraph = JoinGraph.create(secondJoin, Function.identity());
+        JoinGraph joinGraph = JoinGraph.create(secondJoin, UnaryOperator.identity());
         assertThat(joinGraph.nodes()).containsExactly(union, c, d);
 
         var reordered = EliminateCrossJoin.reorder(joinGraph, List.of(union, d, c));
@@ -499,6 +481,35 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
             "  │  │  └ Collect[doc.b | [y] | true]",
             "  │  └ Collect[doc.d | [w] | true]",
             "  └ Collect[doc.c | [z] | true]"
+        );
+    }
+
+    /**
+     * https://github.com/crate/crate/issues/14854
+     */
+    @Test
+    public void test_graph_with_constant_join_conditions_become_filters() throws Exception {
+        var joinCondition = e.asSymbol("a.x = b.y AND a.x > 1");
+        var join = new JoinPlan(a, b, JoinType.INNER, joinCondition);
+
+        assertThat(join).hasOperators(
+            "Join[INNER | ((x = y) AND (x > 1))]",
+            "  ├ Collect[doc.a | [x] | true]",
+            "  └ Collect[doc.b | [y] | true]"
+        );
+
+        JoinGraph joinGraph = JoinGraph.create(join, UnaryOperator.identity());
+        assertThat(joinGraph.nodes()).containsExactly(a, b);
+        assertThat(joinGraph.edges()).hasSize(2);
+        assertThat(joinGraph.filters()).hasSize(1);
+        assertThat(joinGraph.filters().getFirst()).isEqualTo(e.asSymbol("a.x > 1"));
+
+        var reordered = EliminateCrossJoin.reorder(joinGraph, List.of(b, a));
+        assertThat(reordered).hasOperators(
+            "Filter[(x > 1)]",
+            "  └ Join[INNER | (x = y)]",
+            "    ├ Collect[doc.b | [y] | true]",
+            "    └ Collect[doc.a | [x] | true]"
         );
     }
 }

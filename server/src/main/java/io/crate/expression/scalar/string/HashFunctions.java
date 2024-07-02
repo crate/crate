@@ -21,33 +21,36 @@
 
 package io.crate.expression.scalar.string;
 
-import io.crate.common.Hex;
-import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.expression.scalar.UnaryScalar;
-import io.crate.metadata.functions.Signature;
-import io.crate.types.DataTypes;
-import org.elasticsearch.common.hash.MessageDigests;
-
 import java.nio.charset.StandardCharsets;
 import java.security.DigestException;
 import java.security.MessageDigest;
-import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
+
+import org.elasticsearch.common.hash.MessageDigests;
+
+import io.crate.common.Hex;
+import io.crate.expression.scalar.UnaryScalar;
+import io.crate.metadata.Functions;
+import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.Signature;
+import io.crate.types.DataTypes;
 
 public final class HashFunctions {
 
-    public static void register(ScalarFunctionModule module) {
-        register(module, "md5", HashMethod.MD5::digest);
-        register(module, "sha1", HashMethod.SHA1::digest);
+    public static void register(Functions.Builder builder) {
+        register(builder, "md5", HashMethod.MD5::digest);
+        register(builder, "sha1", HashMethod.SHA1::digest);
     }
 
-    private static void register(ScalarFunctionModule module, String name, Function<String, String> func) {
-        module.register(
+    private static void register(Functions.Builder builder, String name, UnaryOperator<String> func) {
+        builder.add(
             Signature.scalar(
-                name,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature()
-            ),
+                    name,
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature()
+                ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new UnaryScalar<>(signature, boundSignature, DataTypes.STRING, func)
         );

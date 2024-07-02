@@ -27,25 +27,26 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.crate.data.testing.BatchIteratorTester;
+import io.crate.data.testing.BatchIteratorTester.ResultOrder;
 import io.crate.data.testing.BatchSimulatingIterator;
 import io.crate.data.testing.RowGenerator;
 
-public class InMemoryBatchIteratorTest {
+class InMemoryBatchIteratorTest {
 
     @Test
-    public void testCollectRows() throws Exception {
+    void testCollectRows() throws Exception {
         List<Row> rows = Arrays.asList(new Row1(10), new Row1(20));
         Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> InMemoryBatchIterator.of(rows, SentinelRow.SENTINEL, false);
-        var tester = BatchIteratorTester.forRows(batchIteratorSupplier);
+        var tester = BatchIteratorTester.forRows(batchIteratorSupplier, ResultOrder.EXACT);
         List<Object[]> expectedResult = Arrays.asList(new Object[]{10}, new Object[]{20});
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 
     @Test
-    public void testCollectRowsWithSimulatedBatches() throws Exception {
+    void testCollectRowsWithSimulatedBatches() throws Exception {
         Iterable<Row> rows = RowGenerator.range(0, 50);
         Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new BatchSimulatingIterator<>(
             InMemoryBatchIterator.of(rows, SentinelRow.SENTINEL, false),
@@ -53,7 +54,7 @@ public class InMemoryBatchIteratorTest {
             5,
             null
         );
-        var tester = BatchIteratorTester.forRows(batchIteratorSupplier);
+        var tester = BatchIteratorTester.forRows(batchIteratorSupplier, ResultOrder.EXACT);
         List<Object[]> expectedResult = StreamSupport.stream(rows.spliterator(), false)
             .map(Row::materialize)
             .collect(Collectors.toList());

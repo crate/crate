@@ -19,6 +19,12 @@
 
 package org.elasticsearch.index.shard;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
@@ -29,18 +35,13 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
-import io.crate.common.io.IOUtils;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
+import io.crate.common.io.IOUtils;
 
 public class PrimaryReplicaSyncer {
 
@@ -63,7 +64,7 @@ public class PrimaryReplicaSyncer {
     }
 
     void setChunkSize(ByteSizeValue chunkSize) { // only settable for tests
-        if (chunkSize.bytesAsInt() <= 0) {
+        if (chunkSize.getBytes() <= 0) {
             throw new IllegalArgumentException("chunkSize must be > 0");
         }
         this.chunkSize = chunkSize;

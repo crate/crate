@@ -6,7 +6,7 @@
   <parent>
     <groupId>io.crate</groupId>
     <artifactId>crate</artifactId>
-    <version>5.5.0</version>
+    <version>5.8.0</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
 
@@ -18,7 +18,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
-        <version>3.3.0</version>
+        <version>${versions.plugin.jar}</version>
         <executions>
           <execution>
             <goals>
@@ -30,7 +30,7 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>build-helper-maven-plugin</artifactId>
-        <version>3.4.0</version>
+        <version>${versions.plugin.build-helper}</version>
         <executions>
           <execution>
             <id>add-gradle-testfixtures</id>
@@ -68,7 +68,7 @@
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter</artifactId>
+      <artifactId>junit-jupiter-api</artifactId>
       <version>${versions.junit5}</version>
       <scope>test</scope>
     </dependency>

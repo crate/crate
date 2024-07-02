@@ -21,14 +21,15 @@
 
 package io.crate.analyze;
 
+import java.util.List;
+import java.util.function.Consumer;
+
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.Table;
-
-import org.jetbrains.annotations.Nullable;
-import java.util.List;
-import java.util.function.Consumer;
 
 public class AnalyzedCopyTo implements AnalyzedStatement {
 
@@ -95,7 +96,7 @@ public class AnalyzedCopyTo implements AnalyzedStatement {
             consumer.accept(whereClause);
         }
         consumer.accept(uri);
-        properties.properties().values().forEach(consumer);
+        properties.forValues(consumer);
     }
 
     @Override

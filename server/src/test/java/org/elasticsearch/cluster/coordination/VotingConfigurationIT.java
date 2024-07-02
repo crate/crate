@@ -18,11 +18,8 @@
  */
 package org.elasticsearch.cluster.coordination;
 
-import static org.hamcrest.Matchers.equalTo;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
 
@@ -79,7 +76,7 @@ public class VotingConfigurationIT extends IntegTestCase {
                 .waitForNodes("4")
                 .waitForEvents(Priority.LANGUID)
             ));
-        assertFalse(clusterHealthResponse.isTimedOut());
+        assertThat(clusterHealthResponse.isTimedOut()).isFalse();
 
         String excludedNodeName = null;
         final ClusterState clusterState = cluster().client().admin().cluster().state(
@@ -89,12 +86,12 @@ public class VotingConfigurationIT extends IntegTestCase {
                 .metadata(true)
             ).get().getState();
         final Set<String> votingConfiguration = clusterState.getLastCommittedConfiguration().getNodeIds();
-        assertThat(votingConfiguration, hasSize(3));
-        assertThat(clusterState.nodes().getSize(), equalTo(4));
+        assertThat(votingConfiguration).hasSize(3);
+        assertThat(clusterState.nodes().getSize()).isEqualTo(4);
         assertThat(votingConfiguration, hasItem(clusterState.nodes().getMasterNodeId()));
         for (DiscoveryNode discoveryNode : clusterState.nodes()) {
             if (votingConfiguration.contains(discoveryNode.getId()) == false) {
-                assertThat(excludedNodeName, nullValue());
+                assertThat(excludedNodeName).isNull();
                 excludedNodeName = discoveryNode.getName();
             }
         }
@@ -122,7 +119,7 @@ public class VotingConfigurationIT extends IntegTestCase {
                 .waitForNodes("3")
                 .waitForEvents(Priority.LANGUID)
             ));
-        assertFalse(clusterHealthResponse.isTimedOut());
+        assertThat(clusterHealthResponse.isTimedOut()).isFalse();
 
         final ClusterState newClusterState = cluster().client().admin().cluster().state(
             new ClusterStateRequest()
@@ -130,7 +127,7 @@ public class VotingConfigurationIT extends IntegTestCase {
                 .nodes(true)
                 .metadata(true)
             ).get().getState();
-        assertThat(newClusterState.nodes().getMasterNode().getName(), equalTo(excludedNodeName));
+        assertThat(newClusterState.nodes().getMasterNode().getName()).isEqualTo(excludedNodeName);
         assertThat(newClusterState.getLastCommittedConfiguration().getNodeIds(), hasItem(newClusterState.nodes().getMasterNodeId()));
     }
 }

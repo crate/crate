@@ -26,7 +26,7 @@ import java.util.List;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
@@ -59,7 +59,7 @@ public class CreateFunctionAnalyzer {
             resolveSchemaName(parts, searchPath.currentSchema()),
             resolveFunctionName(parts),
             node.replace(),
-            Lists2.map(
+            Lists.map(
                 node.arguments(),
                 arg -> FunctionArgumentDefinition.of(arg.name(), DataTypeAnalyzer.convert(arg.type()))),
             returnType,

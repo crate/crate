@@ -21,18 +21,19 @@
 
 package io.crate.action.sql;
 
-import io.crate.analyze.AnalyzedPrivileges;
-import io.crate.analyze.AnalyzedStatement;
-import io.crate.analyze.AnalyzedStatementVisitor;
-import io.crate.user.UserManager;
-import io.crate.data.Row;
+import java.util.Locale;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.BiFunction;
+
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 
-import java.util.Locale;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.BiFunction;
+import io.crate.analyze.AnalyzedPrivileges;
+import io.crate.analyze.AnalyzedStatement;
+import io.crate.analyze.AnalyzedStatementVisitor;
+import io.crate.data.Row;
+import io.crate.role.RoleManager;
 
 /**
  * Visitor that dispatches requests based on Analysis class to different DCL actions.
@@ -43,28 +44,28 @@ import java.util.function.BiFunction;
 public class DCLStatementDispatcher implements BiFunction<AnalyzedStatement, Row, CompletableFuture<Long>> {
 
     private final InnerVisitor INNER_VISITOR = new InnerVisitor();
-    private final UserManager userManager;
+    private final RoleManager roleManager;
 
     @Inject
-    public DCLStatementDispatcher(Provider<UserManager> userManagerProvider) {
-        this.userManager = userManagerProvider.get();
+    public DCLStatementDispatcher(Provider<RoleManager> userManagerProvider) {
+        this.roleManager = userManagerProvider.get();
     }
 
     @Override
     public CompletableFuture<Long> apply(AnalyzedStatement analyzedStatement, Row row) {
-        return analyzedStatement.accept(INNER_VISITOR, userManager);
+        return analyzedStatement.accept(INNER_VISITOR, roleManager);
     }
 
-    private static class InnerVisitor extends AnalyzedStatementVisitor<UserManager, CompletableFuture<Long>> {
+    private static class InnerVisitor extends AnalyzedStatementVisitor<RoleManager, CompletableFuture<Long>> {
 
         @Override
-        protected CompletableFuture<Long> visitAnalyzedStatement(AnalyzedStatement analyzedStatement, UserManager userManager) {
+        protected CompletableFuture<Long> visitAnalyzedStatement(AnalyzedStatement analyzedStatement, RoleManager roleManager) {
             return CompletableFuture.failedFuture(new UnsupportedOperationException(String.format(Locale.ENGLISH, "Can't handle \"%s\"", analyzedStatement)));
         }
 
         @Override
-        public CompletableFuture<Long> visitPrivilegesStatement(AnalyzedPrivileges analysis, UserManager userManager) {
-            return userManager.applyPrivileges(analysis.userNames(), analysis.privileges());
+        public CompletableFuture<Long> visitPrivilegesStatement(AnalyzedPrivileges analysis, RoleManager roleManager) {
+            return roleManager.applyPrivileges(analysis.userNames(), analysis.privileges(), analysis.rolePrivilege());
         }
     }
 }

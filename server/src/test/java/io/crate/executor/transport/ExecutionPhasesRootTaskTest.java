@@ -21,8 +21,7 @@
 
 package io.crate.executor.transport;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.util.Collection;
@@ -32,7 +31,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import com.carrotsearch.hppc.IntArrayList;
@@ -102,16 +100,16 @@ public class ExecutionPhasesRootTaskTest {
 
         Map<String, Collection<NodeOperation>> groupByServer = NodeOperationGrouper.groupByServer(List.of(n1, n2, n3));
 
-        assertThat(groupByServer.containsKey("node1"), is(true));
-        assertThat(groupByServer.get("node1"), Matchers.containsInAnyOrder(n1, n3));
+        assertThat(groupByServer.containsKey("node1")).isTrue();
+        assertThat(groupByServer.get("node1")).containsExactlyInAnyOrder(n1, n3);
 
-        assertThat(groupByServer.containsKey("node2"), is(true));
-        assertThat(groupByServer.get("node2"), Matchers.containsInAnyOrder(n1));
+        assertThat(groupByServer.containsKey("node2")).isTrue();
+        assertThat(groupByServer.get("node2")).containsExactly(n1);
 
-        assertThat(groupByServer.containsKey("node3"), is(true));
-        assertThat(groupByServer.get("node3"), Matchers.containsInAnyOrder(n2, n3));
+        assertThat(groupByServer.containsKey("node3")).isTrue();
+        assertThat(groupByServer.get("node3")).containsExactlyInAnyOrder(n2, n3);
 
-        assertThat(groupByServer.containsKey("node4"), is(true));
-        assertThat(groupByServer.get("node4"), Matchers.containsInAnyOrder(n2));
+        assertThat(groupByServer.containsKey("node4")).isTrue();
+        assertThat(groupByServer.get("node4")).containsExactly(n2);
     }
 }

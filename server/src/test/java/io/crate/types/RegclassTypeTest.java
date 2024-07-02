@@ -21,9 +21,7 @@
 
 package io.crate.types;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
+import static io.crate.testing.Asserts.assertThat;
 
 import org.assertj.core.api.Assertions;
 import org.junit.Test;
@@ -33,7 +31,12 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.settings.SessionSettings;
 
-public class RegclassTypeTest {
+public class RegclassTypeTest extends DataTypeTestCase<Regclass> {
+
+    @Override
+    public DataType<Regclass> getType() {
+        return RegclassType.INSTANCE;
+    }
 
     private static final SessionSettings SESSION_SETTINGS = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
 
@@ -53,7 +56,7 @@ public class RegclassTypeTest {
         var sessionSettings = new SessionSettings("crate", SearchPath.createSearchPathFrom("my_schema"));
         var regclass = RegclassType.INSTANCE.explicitCast("my_table", sessionSettings);
 
-        assertThat(regclass.toString(), is("2034491507"));
+        assertThat(regclass.toString()).isEqualTo("2034491507");
     }
 
     @Test
@@ -61,7 +64,7 @@ public class RegclassTypeTest {
         var regclassQuotedIdentifier = explicitCast("\"my_table\"");
         var regclass = explicitCast("my_table");
 
-        assertThat(regclassQuotedIdentifier, is(regclass));
+        assertThat(regclassQuotedIdentifier).isEqualTo(regclass);
     }
 
     @Test
@@ -69,7 +72,7 @@ public class RegclassTypeTest {
         var regclassQuotedIdentifier = explicitCast("\"mytable\"");
         var regclass = explicitCast("myTable");
 
-        assertThat(regclassQuotedIdentifier, is(regclass));
+        assertThat(regclassQuotedIdentifier).isEqualTo(regclass);
     }
 
     @Test
@@ -77,7 +80,7 @@ public class RegclassTypeTest {
         var regclassQuotedIdentifier = explicitCast("\"myTable\"");
         var regclass = explicitCast("mytable");
 
-        assertThat(regclassQuotedIdentifier, not(is(regclass)));
+        assertThat(regclassQuotedIdentifier).isNotEqualTo(regclass);
     }
 
     @Test

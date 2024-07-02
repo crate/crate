@@ -19,17 +19,14 @@
 
 package org.elasticsearch.common.geo.builders;
 
+import java.util.Objects;
+
 import org.elasticsearch.common.geo.GeoShapeType;
-import org.elasticsearch.common.geo.parsers.ShapeParser;
 import org.elasticsearch.common.unit.DistanceUnit;
 import org.elasticsearch.common.unit.DistanceUnit.Distance;
 import org.elasticsearch.common.xcontent.ParseField;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.spatial4j.shape.Circle;
-
-import java.io.IOException;
-import java.util.Objects;
 
 public class CircleBuilder extends ShapeBuilder<Circle, CircleBuilder> {
 
@@ -60,48 +57,12 @@ public class CircleBuilder extends ShapeBuilder<Circle, CircleBuilder> {
     }
 
     /**
-     * set the center of the circle
-     * @param lon longitude of the center
-     * @param lat latitude of the center
-     * @return this
-     */
-    public CircleBuilder center(double lon, double lat) {
-        return center(new Coordinate(lon, lat));
-    }
-
-    /**
-     * Get the center of the circle
-     */
-    public Coordinate center() {
-        return center;
-    }
-
-    /**
-     * Set the radius of the circle. The String value will be parsed by {@link DistanceUnit}
-     * @param radius Value and unit of the circle combined in a string
-     * @return this
-     */
-    public CircleBuilder radius(String radius) {
-        return radius(DistanceUnit.Distance.parseDistance(radius));
-    }
-
-    /**
      * Set the radius of the circle
      * @param radius radius of the circle (see {@link org.elasticsearch.common.unit.DistanceUnit.Distance})
      * @return this
      */
     public CircleBuilder radius(Distance radius) {
         return radius(radius.value, radius.unit);
-    }
-
-    /**
-     * Set the radius of the circle
-     * @param radius value of the circles radius
-     * @param unit unit name of the radius value (see {@link DistanceUnit})
-     * @return this
-     */
-    public CircleBuilder radius(double radius, String unit) {
-        return radius(radius, DistanceUnit.fromString(unit));
     }
 
     /**
@@ -116,43 +77,14 @@ public class CircleBuilder extends ShapeBuilder<Circle, CircleBuilder> {
         return this;
     }
 
-    /**
-     * Get the radius of the circle without unit
-     */
-    public double radius() {
-        return this.radius;
-    }
-
-    /**
-     * Get the radius unit of the circle
-     */
-    public DistanceUnit unit() {
-        return this.unit;
+    @Override
+    public Circle buildS4J() {
+        return SHAPE_FACTORY.circle(center.x, center.y, 360 * radius / unit.getEarthCircumference());
     }
 
     @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject();
-        builder.field(ShapeParser.FIELD_TYPE.getPreferredName(), TYPE.shapeName());
-        builder.field(FIELD_RADIUS.getPreferredName(), unit.toString(radius));
-        builder.field(ShapeParser.FIELD_COORDINATES.getPreferredName());
-        toXContent(builder, center);
-        return builder.endObject();
-    }
-
-    @Override
-    public Circle build() {
-        return SPATIAL_CONTEXT.makeCircle(center.x, center.y, 360 * radius / unit.getEarthCircumference());
-    }
-
-    @Override
-    public GeoShapeType type() {
-        return TYPE;
-    }
-
-    @Override
-    public String toWKT() {
-        throw new UnsupportedOperationException("The WKT spec does not support CIRCLE geometry");
+    public Object buildLucene() {
+        throw new UnsupportedOperationException("CIRCLE geometry is not supported");
     }
 
     @Override

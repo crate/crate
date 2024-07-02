@@ -74,7 +74,7 @@ public final class TableProperties {
         if (setDefaults) {
             setDefaults(builder, supportedSettings);
         }
-        for (Map.Entry<String, Object> entry : properties.properties().entrySet()) {
+        for (Map.Entry<String, Object> entry : properties) {
             String settingName = entry.getKey();
             if (ignoreProperty.test(settingName)) {
                 continue;

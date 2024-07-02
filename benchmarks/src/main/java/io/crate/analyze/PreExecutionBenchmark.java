@@ -28,13 +28,11 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.node.Node;
-import org.elasticsearch.transport.Netty4Plugin;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Mode;
@@ -46,19 +44,16 @@ import org.openjdk.jmh.annotations.TearDown;
 
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.Cursors;
+import io.crate.action.sql.Session;
 import io.crate.action.sql.Sessions;
 import io.crate.data.Row;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.NodeContext;
 import io.crate.metadata.RoutingProvider;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
-import io.crate.planner.PlannerContext;
-import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.protocols.postgres.TransactionState;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
-import io.crate.statistics.TableStats;
 
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
@@ -69,8 +64,6 @@ public class PreExecutionBenchmark {
     private Node node;
     private Sessions sqlOperations;
     private Planner planner;
-    private ClusterService clusterService;
-    private NodeContext nodeCtx;
 
     @Setup
     public void setup() throws Exception {
@@ -81,9 +74,7 @@ public class PreExecutionBenchmark {
         Environment environment = new Environment(settings, tempDir);
         node = new Node(
             environment,
-            List.of(
-                Netty4Plugin.class
-            ),
+            List.of(),
             true
         );
         node.start();
@@ -91,13 +82,12 @@ public class PreExecutionBenchmark {
         sqlOperations = injector.getInstance(Sessions.class);
         analyzer = injector.getInstance(Analyzer.class);
         planner = injector.getInstance(Planner.class);
-        clusterService = injector.getInstance(ClusterService.class);
-        nodeCtx = injector.getInstance(NodeContext.class);
 
         String statement = "create table users (id int primary key, name string, date timestamp, text string index using fulltext)";
         var resultReceiver = new BaseResultReceiver();
-        sqlOperations.newSystemSession()
-            .quickExec(statement, resultReceiver, Row.EMPTY);
+        try (Session session = sqlOperations.newSystemSession()) {
+            session.quickExec(statement, resultReceiver, Row.EMPTY);
+        }
         resultReceiver.completionFuture().get(5, TimeUnit.SECONDS);
     }
 
@@ -127,19 +117,15 @@ public class PreExecutionBenchmark {
         AnalyzedStatement analyzedStatement = analyzer.analyzedStatement(SqlParser.createStatement(sql), analysis);
         var jobId = UUID.randomUUID();
         var routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
-        var clusterState = clusterService.state();
         var txnCtx = CoordinatorTxnCtx.systemTransactionContext();
-        var plannerContext = new PlannerContext(
-            clusterState,
+        var plannerContext = planner.createContext(
             routingProvider,
             jobId,
             txnCtx,
-            nodeCtx,
             0,
             null,
             Cursors.EMPTY,
-            TransactionState.IDLE,
-            new PlanStats(nodeCtx, CoordinatorTxnCtx.systemTransactionContext(), new TableStats())
+            TransactionState.IDLE
         );
         return planner.plan(analyzedStatement, plannerContext);
     }

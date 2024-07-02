@@ -22,9 +22,7 @@
 
 package io.crate.execution.engine.collect.files;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.net.URI;
@@ -40,13 +38,13 @@ import java.util.stream.Collectors;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 
 public class LocalFsFileInputTest extends ESTestCase {
 
     private List<String> helper_ListUris(String originalUri) throws Exception {
         URI uri = URI.create(originalUri);
-        return Lists2.map(new LocalFsFileInput(uri).expandUri(), URI::toString);
+        return Lists.map(new LocalFsFileInput(uri).expandUri(), URI::toString);
     }
 
     @Test
@@ -90,7 +88,7 @@ public class LocalFsFileInputTest extends ESTestCase {
                 .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
             var expected = e.getValue().stream()
                 .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
-            assertEquals(expected, actual);
+            assertThat(actual).isEqualTo(expected);
         }
     }
 
@@ -117,12 +115,12 @@ public class LocalFsFileInputTest extends ESTestCase {
             .filter(Objects::nonNull)
             .map(fi -> fi.preGlobUri.toString())
                 .toList();
-        assertThat(preGlobURIs, is(List.of(
+        assertThat(preGlobURIs).isEqualTo(List.of(
             path + "nested_dir/",
             path + "nested_dir/",
             path + "nested_dir/",
             path + "nested_dir/nested_dir_2/",
             path + "nested_dir/"
-        )));
+        ));
     }
 }

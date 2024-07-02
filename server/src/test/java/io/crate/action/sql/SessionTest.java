@@ -23,7 +23,6 @@ package io.crate.action.sql;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.concurrent.CompletableFuture.completedFuture;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doReturn;
@@ -91,7 +90,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             assertThat(session.getParamType("S_1", 1)).isEqualTo(DataTypes.INTEGER);
 
             DescribeResult describe = session.describe('S', "S_1");
-            assertThat(describe.getParameters()).isEqualTo(new DataType[] { DataTypes.INTEGER, DataTypes.INTEGER });
+            assertThat(describe.getParameters()).isEqualTo(new DataType[]{DataTypes.INTEGER, DataTypes.INTEGER});
 
             assertThat(session.getParamType("S_1", 0)).isEqualTo(DataTypes.INTEGER);
             assertThat(session.getParamType("S_1", 1)).isEqualTo(DataTypes.INTEGER);
@@ -113,33 +112,31 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         session.describe('S', "S_1");
         session.execute("Portal", 1, new BaseResultReceiver());
 
-        assertThat(session.portals.size()).isEqualTo(1);
-        assertThat(session.preparedStatements.size()).isEqualTo(1);
-        assertThat(session.deferredExecutionsByStmt.size()).isEqualTo(0);
+        assertThat(session.portals).hasSize(1);
+        assertThat(session.preparedStatements).hasSize(1);
+        assertThat(session.deferredExecutionsByStmt).hasSize(0);
         assertThat(session.activeExecution).isEqualTo(activeExecutionFuture);
 
         session.close();
 
-        assertThat(session.portals.size()).isEqualTo(0);
-        assertThat(session.preparedStatements.size()).isEqualTo(0);
-        assertThat(session.deferredExecutionsByStmt.size()).isEqualTo(0);
+        assertThat(session.portals).hasSize(0);
+        assertThat(session.preparedStatements).hasSize(0);
+        assertThat(session.deferredExecutionsByStmt).hasSize(0);
         assertThat(session.activeExecution).isNull();
     }
 
 
     @Test
     public void test_flush_triggers_deferred_executions_and_sets_active_execution() throws Exception {
-        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService)
-            .addTable("create table users (name text)")
-            .overridePlanner(mock(Planner.class, Answers.RETURNS_MOCKS))
-            .build();
-        DependencyCarrier dependencies = mock(DependencyCarrier.class);
-        when(dependencies.clusterService()).thenReturn(clusterService);
+        Planner planner = mock(Planner.class, Answers.RETURNS_MOCKS);
+        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).setPlanner(planner)
+            .build()
+            .addTable("create table users (name text)");
         Session session = Mockito.spy(sqlExecutor.createSession());
         session.parse("", "insert into users (name) values (?)", List.of());
         session.bind("", "", List.of("Arthur"), null);
         session.execute("", -1, new BaseResultReceiver());
-        assertThat(session.deferredExecutionsByStmt.size()).isEqualTo(1);
+        assertThat(session.deferredExecutionsByStmt).hasSize(1);
         session.flush();
         var activeExecution = session.activeExecution;
         assertThat(activeExecution).isNotNull();
@@ -162,15 +159,15 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         session.bind("", "S_2", Collections.emptyList(), null);
         session.describe('S', "S_2");
 
-        assertThat(session.portals.size()).isEqualTo(2);
-        assertThat(session.preparedStatements.size()).isEqualTo(2);
-        assertThat(session.deferredExecutionsByStmt.size()).isEqualTo(0);
+        assertThat(session.portals).hasSize(2);
+        assertThat(session.preparedStatements).hasSize(2);
+        assertThat(session.deferredExecutionsByStmt).hasSize(0);
 
         session.close();
 
-        assertThat(session.portals.size()).isEqualTo(0);
-        assertThat(session.preparedStatements.size()).isEqualTo(0);
-        assertThat(session.deferredExecutionsByStmt.size()).isEqualTo(0);
+        assertThat(session.portals).hasSize(0);
+        assertThat(session.preparedStatements).hasSize(0);
+        assertThat(session.deferredExecutionsByStmt).hasSize(0);
         assertThat(session.activeExecution).isNull();
     }
 
@@ -211,7 +208,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         session.execute("", 0, new BaseResultReceiver());
 
         assertThat(session.portals).hasSizeGreaterThan(0);
-        assertThat(session.preparedStatements.size()).isEqualTo(1);
+        assertThat(session.preparedStatements).hasSize(1);
         assertThat(session.preparedStatements.get("stmt").rawStatement()).isEqualTo("DEALLOCATE test_prep_stmt;");
     }
 
@@ -223,8 +220,8 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         session.parse("S_1", "SELECT 1", List.of());
         session.bind("P_1", "S_1", List.of(), null);
 
-        assertThat(session.portals.size()).isEqualTo(1);
-        assertThat(session.preparedStatements.size()).isEqualTo(1);
+        assertThat(session.portals).hasSize(1);
+        assertThat(session.preparedStatements).hasSize(1);
 
         session.close((byte) 'S', "S_1");
         assertThat(session.portals).isEmpty();
@@ -261,8 +258,8 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         session.parse("S_1", "SELECT 1", List.of());
         session.bind("P_1", "S_1", List.of(), null);
 
-        assertThat(session.portals.size()).isEqualTo(1);
-        assertThat(session.preparedStatements.size()).isEqualTo(1);
+        assertThat(session.portals).hasSize(1);
+        assertThat(session.preparedStatements).hasSize(1);
 
         session.parse("stmt", "DISCARD ALL", Collections.emptyList());
         session.bind("", "stmt", Collections.emptyList(), null);
@@ -274,12 +271,13 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_bulk_operations_result_in_jobslog_entries() throws Exception {
-        Planner planner = mock(Planner.class);
+        Planner planner = mock(Planner.class, Answers.RETURNS_MOCKS);
         SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService)
-            .addTable("create table t1 (x int)")
-            .overridePlanner(planner)
-            .build();
+            .setPlanner(planner)
+            .build()
+            .addTable("create table t1 (x int)");
         sqlExecutor.jobsLogsEnabled = true;
+        Session session = sqlExecutor.createSession();
         when(planner.plan(any(AnalyzedStatement.class), any(PlannerContext.class)))
             .thenReturn(
                 new Plan() {
@@ -294,6 +292,8 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
                                               RowConsumer consumer,
                                               Row params,
                                               SubQueryResults subQueryResults) throws Exception {
+                        // Make sure `quickExec()` below completes, and its job is moved to jobs_log
+                        consumer.completionFuture().complete(null);
                     }
 
                     @Override
@@ -301,11 +301,12 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
                                                                      PlannerContext plannerContext,
                                                                      List<Row> bulkParams,
                                                                      SubQueryResults subQueryResults) {
+                        // Do another execution to overwrite `mostRecentJobID`
+                        session.quickExec("SELECT 1", new BaseResultReceiver(), null);
                         return List.of(completedFuture(1L), completedFuture(1L));
                     }
                 }
             );
-        Session session = sqlExecutor.createSession();
 
         session.parse("S_1", "INSERT INTO t1 (x) VALUES (1)", List.of());
         session.bind("P_1", "S_1", List.of(), null);
@@ -315,14 +316,15 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         session.execute("P_1", 0, new BaseResultReceiver());
 
         session.sync().get(5, TimeUnit.SECONDS);
-        assertThat(sqlExecutor.jobsLogs.metrics().iterator().next().totalCount()).isEqualTo(1L);
+        assertThat(sqlExecutor.jobsLogs.metrics().iterator().next().totalCount()).isEqualTo(2L);
+        assertThat(sqlExecutor.jobsLogs.activeJobs().iterator().hasNext()).isFalse();
     }
 
     @Test
     public void test_kills_query_if_not_completed_within_statement_timeout() throws Exception {
-        Planner planner = mock(Planner.class);
+        Planner planner = mock(Planner.class, Answers.RETURNS_MOCKS);
         SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService)
-            .overridePlanner(planner)
+            .setPlanner(planner)
             .build();
         when(planner.plan(any(AnalyzedStatement.class), any(PlannerContext.class)))
             .thenReturn(
@@ -358,7 +360,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
 
             @Override
             public ScheduledFuture<?> answer(InvocationOnMock invocation) throws Throwable {
-                Runnable runnable = (Runnable) invocation.getArgument(0);
+                Runnable runnable = invocation.getArgument(0);
                 runnable.run();
                 return null;
             }

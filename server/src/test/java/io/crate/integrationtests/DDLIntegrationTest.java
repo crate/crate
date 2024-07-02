@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.protocols.postgres.PGErrorStatus.DUPLICATE_TABLE;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
@@ -30,26 +29,18 @@ import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequest;
-import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
-import org.skyscreamer.jsonassert.JSONAssert;
-import org.skyscreamer.jsonassert.JSONCompareMode;
 
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Schemas;
 import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.testing.Asserts;
 import io.crate.testing.TestingHelpers;
@@ -68,29 +59,25 @@ public class DDLIntegrationTest extends IntegTestCase {
     public void testCreateTable() throws Exception {
         execute("create table test (col1 integer primary key, col2 string) " +
                 "clustered into 5 shards with (number_of_replicas = 1, \"write.wait_for_active_shards\"=1)");
-        String expectedMapping = "{\"default\":{" +
-                                 "\"dynamic\":\"strict\",\"_meta\":{" +
-                                 "\"primary_keys\":[\"col1\"]}," +
-                                 "\"properties\":{" +
-                                 // doc_values: true is default and not included
-                                 "\"col1\":{\"type\":\"integer\",\"position\":1,\"oid\":1}," +
-                                 "\"col2\":{\"type\":\"keyword\",\"position\":2,\"oid\":2}" +
-                                 "}}}";
+        Map<String, Object> expectedMapping = Map.of(
+            "dynamic", "strict",
+            "_meta", Map.of("primary_keys", List.of("col1")),
+            "properties", Map.of(
+                "col1", Map.of("type", "integer", "position", 1, "oid", 1),
+                "col2", Map.of("type", "keyword", "position", 2, "oid", 2)
+            )
+        );
+        assertThat(getIndexMapping("test")).isEqualTo(expectedMapping);
 
-        String expectedSettings = "{\"test\":{" +
-                                  "\"settings\":{" +
-                                  "\"index.number_of_replicas\":\"1\"," +
-                                  "\"index.number_of_shards\":\"5\"," +
-                                  "\"index.version.created\":\"" + Version.CURRENT.internalId + "\"" +
-                                  "}}}";
-
-        assertEquals(expectedMapping, getIndexMapping("test"));
-        JSONAssert.assertEquals(expectedSettings, getIndexSettings("test"), false);
+        execute("select number_of_replicas, number_of_shards, version from information_schema.tables where table_name = 'test'");
+        assertThat(response).hasRows(
+            "1| 5| {created=" + Version.CURRENT + ", upgraded=NULL}"
+        );
 
         // test index usage
         execute("insert into test (col1, col2) values (1, 'foo')");
         assertEquals(1, response.rowCount());
-        refresh();
+        execute("refresh table test");
         execute("SELECT * FROM test");
         assertEquals(1L, response.rowCount());
     }
@@ -100,34 +87,25 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("create table test (id int primary key, content string) " +
                 "clustered into 5 shards " +
                 "with (refresh_interval=0, number_of_replicas = 0)");
-        String expectedSettings = "{\"test\":{" +
-                                  "\"settings\":{" +
-                                  "\"index.number_of_replicas\":\"0\"," +
-                                  "\"index.number_of_shards\":\"5\"," +
-                                  "\"index.refresh_interval\":\"0s\"," +
-                                  "\"index.version.created\":\"" + Version.CURRENT.internalId + "\"" +
-                                  "}}}";
-        JSONAssert.assertEquals(expectedSettings, getIndexSettings("test"), false);
+        execute("select number_of_replicas, number_of_shards, version, settings['refresh_interval'] "
+                + "from information_schema.tables where table_name = 'test'");
+        assertThat(response).hasRows(
+            "0| 5| {created=" + Version.CURRENT + ", upgraded=NULL}| 0"
+        );
 
         execute("ALTER TABLE test SET (refresh_interval = '5000ms')");
-        String expectedSetSettings = "{\"test\":{" +
-                                     "\"settings\":{" +
-                                     "\"index.number_of_replicas\":\"0\"," +
-                                     "\"index.number_of_shards\":\"5\"," +
-                                     "\"index.refresh_interval\":\"5s\"," +
-                                     "\"index.version.created\":\"" + Version.CURRENT.internalId + "\"" +
-                                     "}}}";
-        JSONAssert.assertEquals(expectedSetSettings, getIndexSettings("test"), false);
+        execute("select number_of_replicas, number_of_shards, version, settings['refresh_interval'] "
+                + "from information_schema.tables where table_name = 'test'");
+        assertThat(response).hasRows(
+            "0| 5| {created=" + Version.CURRENT + ", upgraded=NULL}| 5000"
+        );
 
         execute("ALTER TABLE test RESET (refresh_interval)");
-        String expectedResetSettings = "{\"test\":{" +
-                                       "\"settings\":{" +
-                                       "\"index.number_of_replicas\":\"0\"," +
-                                       "\"index.number_of_shards\":\"5\"," +
-                                       "\"index.refresh_interval\":\"1s\"," +
-                                       "\"index.version.created\":\"" + Version.CURRENT.internalId + "\"" +
-                                       "}}}";
-        JSONAssert.assertEquals(expectedResetSettings, getIndexSettings("test"), false);
+        execute("select number_of_replicas, number_of_shards, version, settings['refresh_interval'] "
+                + "from information_schema.tables where table_name = 'test'");
+        assertThat(response).hasRows(
+            "0| 5| {created=" + Version.CURRENT + ", upgraded=NULL}| 1000"
+        );
     }
 
 
@@ -145,25 +123,21 @@ public class DDLIntegrationTest extends IntegTestCase {
     public void testCreateTableWithReplicasAndShards() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)" +
                 "clustered by (col1) into 10 shards with (number_of_replicas=2, \"write.wait_for_active_shards\"=1)");
-        String expectedMapping = "{\"default\":{" +
-                                 "\"dynamic\":\"strict\"," +
-                                 "\"_meta\":{" +
-                                 "\"routing\":\"col1\"," +
-                                 "\"primary_keys\":[\"col1\"]}," +
-                                 "\"properties\":{" +
-                                 "\"col1\":{\"type\":\"integer\",\"position\":1,\"oid\":1}," +
-                                 "\"col2\":{\"type\":\"keyword\",\"position\":2,\"oid\":2}" +
-                                 "}}}";
+        Map<String, Object> expectedMapping = Map.of(
+            "dynamic", "strict",
+            "_meta", Map.of("routing", "col1", "primary_keys", List.of("col1")),
+            "properties", Map.of(
+                "col1", Map.of("type", "integer", "position", 1, "oid", 1),
+                "col2", Map.of("type", "keyword", "position", 2, "oid", 2)
+            )
+        );
+        assertThat(getIndexMapping("test")).isEqualTo(expectedMapping);
 
-        String expectedSettings = "{\"test\":{" +
-                                  "\"settings\":{" +
-                                  "\"index.number_of_replicas\":\"2\"," +
-                                  "\"index.number_of_shards\":\"10\"," +
-                                  "\"index.version.created\":\"" + Version.CURRENT.internalId + "\"" +
-                                  "}}}";
-
-        JSONAssert.assertEquals(expectedMapping, getIndexMapping("test"), JSONCompareMode.LENIENT);
-        JSONAssert.assertEquals(expectedSettings, getIndexSettings("test"), JSONCompareMode.LENIENT);
+        execute("select number_of_replicas, number_of_shards, version "
+                + "from information_schema.tables where table_name = 'test'");
+        assertThat(response).hasRows(
+            "2| 10| {created=" + Version.CURRENT + ", upgraded=NULL}"
+        );
     }
 
     @Test
@@ -172,49 +146,71 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("create table test (col1 integer primary key, col2 string) " +
                 "clustered into 5 shards " +
                 "with (column_policy='strict', number_of_replicas = 0)");
-        String expectedMapping = "{\"default\":{" +
-            "\"dynamic\":\"strict\"," +
-            "\"_meta\":{\"primary_keys\":[\"col1\"]}," +
-            "\"properties\":{" +
-            "\"col1\":{\"type\":\"integer\",\"position\":1,\"oid\":1}," +
-            "\"col2\":{\"type\":\"keyword\",\"position\":2,\"oid\":2}}}}";
 
-        String expectedSettings = "{\"test\":{" +
-                                  "\"settings\":{" +
-                                  "\"index.number_of_replicas\":\"0\"," +
-                                  "\"index.number_of_shards\":\"5\"," +
-                                  "\"index.version.created\":\"" + Version.CURRENT.internalId + "\"" +
-                                  "}}}";
+        Map<String, Object> expectedMapping = Map.of(
+            "dynamic", "strict",
+            "_meta", Map.of("primary_keys", List.of("col1")),
+            "properties", Map.of(
+                "col1", Map.of(
+                    "type", "integer",
+                    "position", 1,
+                    "oid", 1
+                ),
+                "col2", Map.of(
+                    "type", "keyword",
+                    "position", 2,
+                    "oid", 2
+                )
+            )
+        );
+        assertThat(getIndexMapping("test")).isEqualTo(expectedMapping);
 
-
-        assertEquals(expectedMapping, getIndexMapping("test"));
-        JSONAssert.assertEquals(expectedSettings, getIndexSettings("test"), false);
+        execute("select number_of_replicas, number_of_shards, version "
+                + "from information_schema.tables where table_name = 'test'");
+        assertThat(response).hasRows(
+            "0| 5| {created=" + Version.CURRENT + ", upgraded=NULL}"
+        );
     }
 
     @Test
     @UseNewCluster
     public void testCreateGeoShapeExplicitIndex() throws Exception {
         execute("create table test (col1 geo_shape INDEX using QUADTREE with (precision='1m', distance_error_pct='0.25'))");
-        ensureYellow();
-        String expectedMapping = "{\"default\":{" +
-                                 "\"dynamic\":\"strict\",\"_meta\":{}," +
-                                 "\"properties\":{" +
-                                 "\"col1\":{\"type\":\"geo_shape\",\"tree\":\"quadtree\",\"position\":1,\"oid\":1,\"precision\":\"1.0m\",\"distance_error_pct\":0.25}}}}";
-        assertEquals(expectedMapping, getIndexMapping("test"));
+        Map<String, Object> expectedMapping = Map.of(
+            "dynamic", "strict",
+            "_meta", Map.of(),
+            "properties", Map.of(
+                "col1", Map.of(
+                    "type", "geo_shape",
+                    "tree", "quadtree",
+                    "position", 1,
+                    "oid", 1,
+                    "precision", "1m",
+                    "distance_error_pct", 0.25
+                )
+            )
+        );
+        assertThat(getIndexMapping("test")).isEqualTo(expectedMapping);
     }
 
     @Test
     @UseNewCluster
     public void testCreateColumnWithDefaultExpression() throws Exception {
         execute("create table test (id int, col1 text default 'foo', col2 int[] default [1,2])");
-        String expectedMapping = "{\"default\":{" +
-            "\"dynamic\":\"strict\"," +
-            "\"_meta\":{}," +
-            "\"properties\":{" +
-            "\"id\":{\"type\":\"integer\",\"position\":1,\"oid\":1}," +
-            "\"col1\":{\"type\":\"keyword\",\"position\":2,\"default_expr\":\"'foo'\",\"oid\":2}," +
-            "\"col2\":{\"type\":\"array\",\"inner\":{\"type\":\"integer\",\"position\":3,\"default_expr\":\"[1, 2]\",\"oid\":3}}" +
-            "}}}";
+        Map<String, Object> expectedMapping = Map.of(
+            "dynamic", "strict",
+            "_meta", Map.of(),
+            "properties", Map.of(
+                "id", Map.of("type", "integer", "position", 1, "oid", 1),
+                "col1", Map.of("type", "keyword", "position", 2, "default_expr", "'foo'", "oid", 2),
+                "col2", Map.of(
+                    "type", "array",
+                    "inner", Map.of(
+                        "type", "integer", "position", 3, "default_expr", "[1, 2]", "oid", 3
+                    )
+                )
+            )
+        );
         assertThat(getIndexMapping("test")).isEqualTo(expectedMapping);
         execute("insert into test(id) values(1)");
         execute("refresh table test");
@@ -226,12 +222,19 @@ public class DDLIntegrationTest extends IntegTestCase {
     @UseNewCluster
     public void testCreateGeoShape() throws Exception {
         execute("create table test (col1 geo_shape)");
-        ensureYellow();
-        String expectedMapping = "{\"default\":{" +
-                                 "\"dynamic\":\"strict\",\"_meta\":{}," +
-                                 "\"properties\":{\"col1\":{\"type\":\"geo_shape\",\"position\":1,\"oid\":1}}}}";
-        assertEquals(expectedMapping, getIndexMapping("test"));
-
+        Map<String, Object> expectedMapping = Map.of(
+            "dynamic", "strict",
+            "_meta", Map.of(),
+            "properties", Map.of(
+                "col1", Map.of(
+                    "type", "geo_shape",
+                    "tree", "geohash",
+                    "position", 1,
+                    "oid", 1
+                )
+            )
+        );
+        assertThat(getIndexMapping("test")).isEqualTo(expectedMapping);
     }
 
     @Test
@@ -264,7 +267,7 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("create table quotes (quote string index using plain) with (number_of_replicas = 0)");
         String quote = "Would it save you a lot of time if I just gave up and went mad now?";
         execute("insert into quotes values (?)", new Object[]{quote});
-        refresh();
+        execute("refresh table quotes");
 
         // matching does not work on plain indexes
         execute("select quote from quotes where match(quote, 'time')");
@@ -299,11 +302,8 @@ public class DDLIntegrationTest extends IntegTestCase {
         String quote = "Would it save you a lot of time if I just gave up and went mad now?";
         execute("insert into quotes (id, quote) values (?, ?)", new Object[]{1, quote});
         execute("refresh table quotes");
-
-        Asserts.assertSQLError(() -> execute("select quote from quotes where quote = ?", new Object[]{quote}))
-            .hasPGError(INTERNAL_ERROR)
-            .hasHTTPError(BAD_REQUEST, 4000)
-            .hasMessageContaining("Cannot search on field [quote] since it is not indexed.");
+        execute("select quote from quotes where quote = ?", new Object[]{quote});
+        assertThat(response).hasRows(quote);
     }
 
     @Test
@@ -330,14 +330,22 @@ public class DDLIntegrationTest extends IntegTestCase {
                 "index title_desc_fulltext using fulltext(title, description) " +
                 "with(analyzer='stop')) with (number_of_replicas = 0)");
 
-        String expectedMapping = "{\"default\":{" +
-            "\"dynamic\":\"strict\",\"" +
-            "_meta\":{\"indices\":{\"3\":{}}}," +
-            "\"properties\":{" +
-            "\"title\":{\"type\":\"keyword\",\"position\":1,\"oid\":1}," +
-            "\"description\":{\"type\":\"keyword\",\"position\":2,\"oid\":2}," +
-            "\"title_desc_fulltext\":{\"type\":\"text\",\"position\":3,\"oid\":3,\"analyzer\":\"stop\",\"sources\":[\"1\",\"2\"]}}}}";
-        assertEquals(expectedMapping, getIndexMapping("novels"));
+        Map<String, Object> expectedMapping = Map.of(
+            "dynamic", "strict",
+            "_meta", Map.of("indices", Map.of("3", Map.of())),
+            "properties", Map.of(
+                "title", Map.of("type", "keyword", "position", 1, "oid", 1),
+                "description", Map.of("type", "keyword", "position", 2, "oid", 2),
+                "title_desc_fulltext", Map.of(
+                    "type", "text",
+                    "position", 3,
+                    "oid", 3,
+                    "analyzer", "stop",
+                    "sources", List.of("1", "2")
+                )
+            )
+        );
+        assertThat(getIndexMapping("novels")).isEqualTo(expectedMapping);
 
         String title = "So Long, and Thanks for All the Fish";
         String description = "Many were increasingly of the opinion that they'd all made a big " +
@@ -346,7 +354,7 @@ public class DDLIntegrationTest extends IntegTestCase {
                              "the oceans.";
         execute("insert into novels (title, description) values(?, ?)",
             new Object[]{title, description});
-        refresh();
+        execute("refresh table novels");
 
         // match token existing at field `title`
         execute("select title, description from novels where match(title_desc_fulltext, 'fish')");
@@ -369,7 +377,7 @@ public class DDLIntegrationTest extends IntegTestCase {
     public void test_create_table_with_check_fail_on_insert() {
         execute("create table t (id integer primary key, qty integer, constraint check_1 check (qty > 0))");
         execute("insert into t(id, qty) values(0, null), (1, 1)");
-        refresh();
+        execute("refresh table t");
         execute("select id, qty from t order by id");
         assertEquals(printedTable(response.rows()),
                      "0| NULL\n" +
@@ -384,7 +392,7 @@ public class DDLIntegrationTest extends IntegTestCase {
     public void test_create_table_with_check_fail_on_update() {
         execute("create table t (id integer primary key, qty integer constraint check_1 check (qty > 0))");
         execute("insert into t(id, qty) values(0, 1)");
-        refresh();
+        execute("refresh table t");
         execute("select id, qty from t order by id");
         assertEquals(printedTable(response.rows()), "0| 1\n");
         execute("update t set qty = 1 where id = 0 returning id, qty");
@@ -457,7 +465,7 @@ public class DDLIntegrationTest extends IntegTestCase {
         );
 
         execute("insert into t(id) values(-1)");
-        refresh();
+        execute("refresh table t");
         execute("select id from t");
         assertThat(response).hasRows("-1");
     }
@@ -519,7 +527,7 @@ public class DDLIntegrationTest extends IntegTestCase {
                 "clustered into 1 shards " +
                 "with (number_of_replicas=0)");
         execute("insert into t (id) values(1)");
-        refresh();
+        execute("refresh table t");
 
         Asserts.assertSQLError(() -> execute("alter table t add column name string primary key"))
             .hasPGError(INTERNAL_ERROR)
@@ -534,7 +542,7 @@ public class DDLIntegrationTest extends IntegTestCase {
                 "with (number_of_replicas=0)");
         execute("alter table t add column id_generated as (id + 1)");
         execute("insert into t (id) values(1)");
-        refresh();
+        execute("refresh table t");
         execute("select id, id_generated from t");
         assertThat(response.rows()[0][0]).isEqualTo(1);
         assertThat(response.rows()[0][1]).isEqualTo(2);
@@ -546,7 +554,7 @@ public class DDLIntegrationTest extends IntegTestCase {
                 "clustered into 1 shards " +
                 "with (number_of_replicas=0)");
         execute("insert into t (id) values(1)");
-        refresh();
+        execute("refresh table t");
 
         Asserts.assertSQLError(() -> execute("alter table t add column id_generated as (id + 1)"))
             .hasPGError(INTERNAL_ERROR)
@@ -603,13 +611,23 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("alter table t add o['y'] int");
 
         // Verify that ADD COLUMN gets advanced OID.
-        String expectedMapping = "{\"default\":" +
-            "{\"dynamic\":\"strict\",\"_meta\":{}," +
-            "\"properties\":{\"o\":{\"position\":1,\"oid\":1,\"dynamic\":\"true\"," +
-            "\"properties\":" +
-            "{\"x\":{\"type\":\"keyword\",\"position\":2,\"oid\":2}," +
-            "\"y\":{\"type\":\"integer\",\"position\":3,\"oid\":3}}}}}}";
-        assertThat(getIndexMapping("t")).isEqualTo(expectedMapping);
+        assertThat(getIndexMapping("t")).isEqualTo(Map.of(
+            "_meta", Map.of(),
+            "dynamic", "strict",
+            "properties", Map.of(
+                "o",
+                Map.of(
+                    "dynamic", "true",
+                    "position", 1,
+                    "oid", 1,
+                    "type", "object",
+                    "properties", Map.of(
+                        "x", Map.of("position", 2, "oid", 2, "type", "keyword"),
+                        "y", Map.of("position", 3, "oid", 3, "type", "integer")
+                    )
+                )
+            )
+        ));
 
         // column o exists already
         Asserts.assertSQLError(() -> execute("alter table t add o object as (z string)"))
@@ -701,7 +719,7 @@ public class DDLIntegrationTest extends IntegTestCase {
                 ")");
         execute("ALTER TABLE t ADD column attributes['is_nice'] BOOLEAN");
         execute("INSERT INTO t (attributes) values ([{name='Trillian', is_nice=True}])");
-        refresh();
+        execute("refresh table t");
         execute("select attributes from t");
         assertThat(response).hasRows("[{name=Trillian, is_nice=true}]");
     }
@@ -774,41 +792,6 @@ public class DDLIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void testAlterShardsOfPartitionedTableAffectsNewPartitions() throws Exception {
-        execute(
-            "create table quotes (" +
-            "   id integer," +
-            "   quote string," +
-            "   date timestamp with time zone" +
-            ") partitioned by(date) " +
-            "clustered into 3 shards with (number_of_replicas='0-all')");
-        ensureYellow();
-
-        execute("insert into quotes (id, quote, date) values (?, ?, ?), (?, ?, ?)",
-            new Object[]{
-                1, "Don't panic", 1395874800000L,
-                2, "Now panic", 1395961200000L}
-        );
-        execute("alter table quotes set (number_of_shards=5)");
-
-        String templateName = PartitionName.templateName(Schemas.DOC_SCHEMA_NAME, "quotes");
-        GetIndexTemplatesResponse templatesResponse =
-            client().admin().indices().getTemplates(new GetIndexTemplatesRequest(templateName)).get();
-        Settings templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
-        assertThat(templateSettings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 0)).isEqualTo(5);
-
-        execute("insert into quotes (id, quote, date) values (?, ?, ?)",
-            new Object[]{3, "Time is a illusion. Lunchtime doubles so", 1495961200000L}
-        );
-        PartitionName partitionName = new PartitionName(
-            new RelationName("doc", "quotes"), Arrays.asList("1495961200000"));
-
-        execute("select number_of_shards from information_schema.table_partitions where partition_ident = ? and table_name = ?",
-            $(partitionName.ident(), partitionName.relationName().name()));
-        assertThat(response).hasRows(new Object[] { 5 });
-    }
-
-    @Test
     public void testAlterShardsTableCombinedWithOtherSettingsIsInvalid() {
         execute(
             "create table quotes (" +
@@ -853,7 +836,7 @@ public class DDLIntegrationTest extends IntegTestCase {
 
         execute("insert into a.t (name) values ('Ford')");
         assertThat(response).hasRowCount(1);
-        refresh();
+        execute("refresh table a.t");
 
         execute("select name from a.t");
         assertThat(response).hasRowCount(1);
@@ -891,17 +874,29 @@ public class DDLIntegrationTest extends IntegTestCase {
             "create table test (" +
             "   ts timestamp with time zone," +
             "   day as date_trunc('day', ts)) with (number_of_replicas=0)");
-        ensureYellow();
-        String expectedMapping = "{\"default\":" +
-                                 "{\"dynamic\":\"strict\"," +
-                                 "\"_meta\":{" +
-                                 "\"generated_columns\":{\"day\":\"date_trunc('day', ts)\"}}," +
-                                 "\"properties\":{" +
-                                 "\"ts\":{\"type\":\"date\",\"position\":1,\"oid\":1,\"format\":\"epoch_millis||strict_date_optional_time\"}," +
-                                 "\"day\":{\"type\":\"date\",\"position\":2,\"oid\":2,\"format\":\"epoch_millis||strict_date_optional_time\"}" +
-                                 "}}}";
-
-        assertEquals(expectedMapping, getIndexMapping("test"));
+        Map<String, Object> expectedMapping = Map.of(
+            "dynamic", "strict",
+            "_meta", Map.of(
+                "generated_columns", Map.of(
+                    "day", "date_trunc('day', ts)"
+                )
+            ),
+            "properties", Map.of(
+                "ts", Map.of(
+                    "type", "date",
+                    "position", 1,
+                    "oid", 1,
+                    "format", "epoch_millis||strict_date_optional_time"
+                ),
+                "day", Map.of(
+                    "type", "date",
+                    "position", 2,
+                    "oid", 2,
+                    "format", "epoch_millis||strict_date_optional_time"
+                )
+            )
+        );
+        assertThat(getIndexMapping("test")).isEqualTo(expectedMapping);
     }
 
     @Test
@@ -912,20 +907,36 @@ public class DDLIntegrationTest extends IntegTestCase {
             "   ts timestamp with time zone," +
             "   day as date_trunc('day', ts)) with (number_of_replicas=0)");
         execute("alter table test add column added timestamp with time zone generated always as date_trunc('day', ts)");
-        ensureYellow();
-        String expectedMapping = "{\"default\":" +
-                                 "{\"dynamic\":\"strict\"," +
-                                 "\"_meta\":{" +
-                                 "\"generated_columns\":{" +
-                                 "\"day\":\"date_trunc('day', ts)\"," +
-                                 "\"added\":\"date_trunc('day', ts)\"}}," +
-                                 "\"properties\":{" +
-                                 "\"ts\":{\"type\":\"date\",\"position\":1,\"oid\":1,\"format\":\"epoch_millis||strict_date_optional_time\"}," +
-                                 "\"day\":{\"type\":\"date\",\"position\":2,\"oid\":2,\"format\":\"epoch_millis||strict_date_optional_time\"}," +
-                                 "\"added\":{\"type\":\"date\",\"position\":3,\"oid\":3,\"format\":\"epoch_millis||strict_date_optional_time\"}" +
-                                 "}}}";
-
-        assertEquals(expectedMapping, getIndexMapping("test"));
+        Map<String, Object> expectedMapping = Map.of(
+            "dynamic", "strict",
+            "_meta", Map.of(
+                "generated_columns", Map.of(
+                    "day", "date_trunc('day', ts)",
+                    "added", "date_trunc('day', ts)"
+                )
+            ),
+            "properties", Map.of(
+                "ts", Map.of(
+                    "type", "date",
+                    "position", 1,
+                    "oid", 1,
+                    "format", "epoch_millis||strict_date_optional_time"
+                ),
+                "day", Map.of(
+                    "type", "date",
+                    "position", 2,
+                    "oid", 2,
+                    "format", "epoch_millis||strict_date_optional_time"
+                ),
+                "added", Map.of(
+                    "type", "date",
+                    "position", 3,
+                    "oid", 3,
+                    "format", "epoch_millis||strict_date_optional_time"
+                )
+            )
+        );
+        assertThat(getIndexMapping("test")).isEqualTo(expectedMapping);
     }
 
 
@@ -975,7 +986,7 @@ public class DDLIntegrationTest extends IntegTestCase {
                 CREATE TABLE IF NOT EXISTS "doc"."t" (
                    "col" GEO_SHAPE NOT NULL INDEX USING QUADTREE WITH (
                       distance_error_pct = 0.25,
-                      precision = '1.0m'
+                      precision = '1m'
                    )
                 )
                 """.stripIndent()
@@ -1051,7 +1062,7 @@ public class DDLIntegrationTest extends IntegTestCase {
                    "id" INTEGER,
                    "g" GEO_SHAPE GENERATED ALWAYS AS 'POLYGON (( 5 5, 30 5, 30 30, 5 30, 5 5 ))' INDEX USING QUADTREE WITH (
                       distance_error_pct = 0.123,
-                      precision = '123.0m'
+                      precision = '123m'
                    )
                 )""".stripIndent()
         );
@@ -1059,6 +1070,8 @@ public class DDLIntegrationTest extends IntegTestCase {
 
     @Test
     public void test_add_column_not_null_constraint_added_to_a_nested_column() {
+        Map<String, Object> ab = Map.of("a", Map.of("b", "dummy"));
+
         // non-existing object
         execute("create table t (o object)");
         execute("alter table t add column o2['a']['b'] text not null");
@@ -1069,7 +1082,7 @@ public class DDLIntegrationTest extends IntegTestCase {
 
         // existing object
         execute("alter table t add column o['a']['b'] text not null");
-        Asserts.assertSQLError(() -> execute("insert into t (o) values ({\"a\" = {\"b\" = null}})"))
+        Asserts.assertSQLError(() -> execute("insert into t (o2, o) values (?, {\"a\" = {\"b\" = null}})", new Object[] { ab }))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
             .hasMessageContaining("\"o['a']['b']\" must not be null");

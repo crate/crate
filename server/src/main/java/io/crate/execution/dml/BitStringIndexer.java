@@ -30,38 +30,43 @@ import java.util.function.Consumer;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.SortedSetDocValuesField;
+import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.index.mapper.BitStringFieldMapper;
-import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
 
 import io.crate.execution.dml.Indexer.ColumnConstraint;
-import io.crate.execution.dml.Indexer.Synthetic;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
+import io.crate.metadata.doc.DocSysColumns;
 import io.crate.sql.tree.BitString;
 
 public class BitStringIndexer implements ValueIndexer<BitString> {
 
+    private static final FieldType FIELD_TYPE = new FieldType();
+
+    static {
+        FIELD_TYPE.setOmitNorms(true);
+        FIELD_TYPE.setIndexOptions(IndexOptions.DOCS);
+        FIELD_TYPE.setTokenized(false);
+        FIELD_TYPE.setStored(false);
+        FIELD_TYPE.freeze();
+    }
+
     private final Reference ref;
-    private final FieldType fieldType;
     private final String name;
 
-    public BitStringIndexer(Reference ref, FieldType fieldType) {
+    public BitStringIndexer(Reference ref) {
         this.ref = ref;
         this.name = ref.storageIdent();
-        this.fieldType = fieldType == null
-            ? BitStringFieldMapper.Defaults.FIELD_TYPE
-            : fieldType;
     }
 
     @Override
     public void indexValue(BitString value,
                            XContentBuilder xcontentBuilder,
                            Consumer<? super IndexableField> addField,
-                           Map<ColumnIdent, Synthetic> synthetics,
+                           Synthetics synthetics,
                            Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
         BitSet bitSet = value.bitSet();
         byte[] bytes = bitSet.toByteArray();
@@ -69,16 +74,16 @@ public class BitStringIndexer implements ValueIndexer<BitString> {
 
         BytesRef binaryValue = new BytesRef(bytes);
         if (ref.indexType() != IndexType.NONE) {
-            addField.accept(new Field(name, binaryValue, fieldType));
+            addField.accept(new Field(name, binaryValue, FIELD_TYPE));
         }
 
         if (ref.hasDocValues()) {
             addField.accept(new SortedSetDocValuesField(name, binaryValue));
         } else {
             addField.accept(new Field(
-                FieldNamesFieldMapper.NAME,
+                DocSysColumns.FieldNames.NAME,
                 name,
-                FieldNamesFieldMapper.Defaults.FIELD_TYPE));
+                DocSysColumns.FieldNames.FIELD_TYPE));
         }
     }
 }

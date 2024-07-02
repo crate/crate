@@ -21,9 +21,8 @@
 
 package io.crate.planner;
 
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 
@@ -43,40 +42,49 @@ public class SingleRowSubselectPlannerTest extends CrateDummyClusterServiceUnitT
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addTable(T3.T1_DEFINITION)
             .addTable(T3.T2_DEFINITION)
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
     }
 
     @Test
     public void testPlanSimpleSelectWithSingleRowSubSelectInWhereClause() throws Exception {
         RootRelationBoundary plan = e.logicalPlan("select x from t1 where a = (select b from t2)");
-        assertThat(plan.dependencies().keySet(), contains(instanceOf(RootRelationBoundary.class)));
+        assertThat(plan.dependencies().keySet()).satisfiesExactly(
+            x -> assertThat(x).isExactlyInstanceOf(RootRelationBoundary.class)
+        );
     }
 
     @Test
     public void testPlanSelectOnSysTablesWithSingleRowSubselectInWhere() throws Exception {
         LogicalPlan plan = e.logicalPlan("select name from sys.cluster where name = (select 'foo')");
-        assertThat(plan.dependencies().keySet(), contains(instanceOf(RootRelationBoundary.class)));
+        assertThat(plan.dependencies().keySet()).satisfiesExactly(
+            x -> assertThat(x).isExactlyInstanceOf(RootRelationBoundary.class)
+        );
     }
 
     @Test
     public void testSingleRowSubSelectInSelectList() throws Exception {
         LogicalPlan plan = e.logicalPlan("select (select b from t2 limit 1) from t1");
-        assertThat(plan.dependencies().keySet(), contains(instanceOf(RootRelationBoundary.class)));
+        assertThat(plan.dependencies().keySet()).satisfiesExactly(
+            x -> assertThat(x).isExactlyInstanceOf(RootRelationBoundary.class)
+        );
     }
 
     @Test
     public void testSingleRowSubSelectAndDocKeysInWhereClause() throws Exception {
         LogicalPlan plan = e.logicalPlan("select (select 'foo' from sys.cluster) from users where id = 10");
-        assertThat(plan.dependencies().keySet(), contains(instanceOf(RootRelationBoundary.class)));
+        assertThat(plan.dependencies().keySet()).satisfiesExactly(
+            x -> assertThat(x).isExactlyInstanceOf(RootRelationBoundary.class)
+        );
     }
 
     @Test
     public void testSingleRowSubSelectOfWhereInJoin() throws Exception {
         LogicalPlan plan = e.logicalPlan("select * from users u1, users u2 where u1.name = (select 'Arthur')");
-        assertThat(plan.dependencies().keySet(), contains(instanceOf(RootRelationBoundary.class)));
+        assertThat(plan.dependencies().keySet()).satisfiesExactly(
+            x -> assertThat(x).isExactlyInstanceOf(RootRelationBoundary.class)
+        );
     }
 }

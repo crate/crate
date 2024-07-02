@@ -86,7 +86,7 @@ The ``<RMI_HOSTNAME>`` and ``<RMI_PORT>`` can be used by JMX clients (e.g.
 
 Here's an example Docker command::
 
-  sh> docker run -d -e CRATE_JAVA_OPTS="\
+  sh> docker run -d --env CRATE_HEAP_SIZE=1g -e CRATE_JAVA_OPTS="\
         -Dcom.sun.management.jmxremote
         -Dcom.sun.management.jmxremote.port=7979 \
         -Dcom.sun.management.jmxremote.ssl=false \
@@ -116,37 +116,37 @@ Metrics can be accessed using the JMX MBean object name
 
 Statements total count since the node was started:
 
- - ``SelectQueryTotalCount``
- - ``InsertQueryTotalCount``
- - ``UpdateQueryTotalCount``
- - ``DeleteQueryTotalCount``
- - ``ManagementQueryTotalCount``
- - ``DDLQueryTotalCount``
- - ``CopyQueryTotalCount``
- - ``UndefinedQueryTotalCount``
+- ``SelectQueryTotalCount``
+- ``InsertQueryTotalCount``
+- ``UpdateQueryTotalCount``
+- ``DeleteQueryTotalCount``
+- ``ManagementQueryTotalCount``
+- ``DDLQueryTotalCount``
+- ``CopyQueryTotalCount``
+- ``UndefinedQueryTotalCount``
 
 Statements failed count since the node was started:
 
- - ``SelectQueryFailedCount``
- - ``InsertQueryFailedCount``
- - ``UpdateQueryFailedCount``
- - ``DeleteQueryFailedCount``
- - ``ManagementQueryFailedCount``
- - ``DDLQueryFailedCount``
- - ``CopyQueryFailedCount``
- - ``UndefinedQueryFailedCount``
+- ``SelectQueryFailedCount``
+- ``InsertQueryFailedCount``
+- ``UpdateQueryFailedCount``
+- ``DeleteQueryFailedCount``
+- ``ManagementQueryFailedCount``
+- ``DDLQueryFailedCount``
+- ``CopyQueryFailedCount``
+- ``UndefinedQueryFailedCount``
 
 The sum of the durations, in milliseconds, since the node was started, of all
 statement executions grouped by type:
 
- - ``SelectQuerySumOfDurations``
- - ``InsertQuerySumOfDurations``
- - ``UpdateQuerySumOfDurations``
- - ``DeleteQuerySumOfDurations``
- - ``ManagementQuerySumOfDurations``
- - ``DDLQuerySumOfDurations``
- - ``CopyQuerySumOfDurations``
- - ``UndefinedQuerySumOfDurations``
+- ``SelectQuerySumOfDurations``
+- ``InsertQuerySumOfDurations``
+- ``UpdateQuerySumOfDurations``
+- ``DeleteQuerySumOfDurations``
+- ``ManagementQuerySumOfDurations``
+- ``DDLQuerySumOfDurations``
+- ``CopyQuerySumOfDurations``
+- ``UndefinedQuerySumOfDurations``
 
 NodeStatus MBean
 ----------------
@@ -156,9 +156,9 @@ The ``NodeStatus`` JMX MBean exposes the status of the current node as boolean v
 NodeStatus can be accessed using the JMX MBean object name
 ``io.crate.monitoring:type=NodeStatus`` and the following attributes:
 
- - ``Ready``
+- ``Ready``
 
-   Defines if the node is able to process SQL statements.
+  Defines if the node is able to process SQL statements.
 
 .. _node_info_mxbean:
 
@@ -244,33 +244,85 @@ information about the shards located on the node with the following attributes:
 |                    | this shard.                                            |
 +--------------------+--------------------------------------------------------+
 
+.. _jmx_monitoring-connections:
+
 Connections MBean
 -----------------
 
-The ``Connections`` MBean exposes information about any open connections to a
-``CrateDB`` node.
+The ``Connections`` MBean exposes connection information of a``CrateDB`` node.
 
 It can be accessed using the ``io.crate.monitoring:type=Connections`` object
 name and has the following attributes:
 
-+----------------------+---------------------------------------------------------+
-| Name                 | Description                                             |
-+======================+=========================================================+
-| ``HttpOpen``         | The number of currently established connections via     |
-|                      | HTTP                                                    |
-+----------------------+---------------------------------------------------------+
-| ``HttpTotal``        | The number of total connections established via HTTP    |
-|                      | over the life time of a node                            |
-+----------------------+---------------------------------------------------------+
-| ``PsqlOpen``         | The number of currently established connections via the |
-|                      | PostgreSQL protocol                                     |
-+----------------------+---------------------------------------------------------+
-| ``PsqlTotal``        | The number of total connections established via the     |
-|                      | PostgreSQL protocol over the life time of a node        |
-+----------------------+---------------------------------------------------------+
-| ``TransportOpen``    | The number of currently established connections via the |
-|                      | transport protocol                                      |
-+----------------------+---------------------------------------------------------+
++-------------------------------+----------------------------------------------+
+| Name                          | Description                                  |
++===============================+==============================================+
+| ``HttpOpen``                  | The number of currently established          |
+|                               | connections via the HTTP protocol.           |
++-------------------------------+----------------------------------------------+
+| ``HttpTotal``                 | The number of total connections established  |
+|                               | via the HTTP protocol over the life time of  |
+|                               | a node.                                      |
++-------------------------------+----------------------------------------------+
+| ``HttpMessagesReceived``      | The number of total messages received via    |
+|                               | the HTTP protocol over the life time of a    |
+|                               | node.                                        |
++-------------------------------+----------------------------------------------+
+| ``HttpBytesReceived``         | The number of total bytes received via the   |
+|                               | HTTP protocol over the life time of a node.  |
++-------------------------------+----------------------------------------------+
+| ``HttpMessagesSent``          | The number of total messages sent via the    |
+|                               | HTTP protocol over the life time of a node.  |
++-------------------------------+----------------------------------------------+
+| ``HttpBytesSent``             | The number of total bytes sent via the HTTP  |
+|                               | protocol over the life time of a node.       |
++-------------------------------+----------------------------------------------+
+| ``PsqlOpen``                  | The number of currently established          |
+|                               | connections via the PostgreSQL protocol.     |
++-------------------------------+----------------------------------------------+
+| ``PsqlTotal``                 | The number of total connections established  |
+|                               | via the PostgreSQL protocol over the life    |
+|                               | time of a node.                              |
++-------------------------------+----------------------------------------------+
+| ``PsqlMessagesReceived``      | The number of total messages received via    |
+|                               | the PostgreSQL protocol over the life time   |
+|                               | of a node.                                   |
++-------------------------------+----------------------------------------------+
+| ``PsqlBytesReceived``         | The number of total bytes received via the   |
+|                               | PostgreSQL protocol over the life time of a  |
+|                               | node.                                        |
++-------------------------------+----------------------------------------------+
+| ``PsqlMessagesSent``          | The number of total messages sent via the    |
+|                               | PostgreSQL protocol over the life time of a  |
+|                               | node.                                        |
++-------------------------------+----------------------------------------------+
+| ``PsqlBytesSent``             | The number of total bytes sent via the       |
+|                               | PostgreSQL protocol over the life time of a  |
+|                               | node.                                        |
++-------------------------------+----------------------------------------------+
+| ``TransportOpen``             | The number of currently established          |
+|                               | connections via the Transport protocol.      |
++-------------------------------+----------------------------------------------+
+| ``TransportTotal``            | The number of total connections established  |
+|                               | via the Transport protocol over the life     |
+|                               | time of a node.                              |
++-------------------------------+----------------------------------------------+
+| ``TransportMessagesReceived`` | The number of total messages received via    |
+|                               | the Transport protocol over the life time of |
+|                               | a node.                                      |
++-------------------------------+----------------------------------------------+
+| ``TransportBytesReceived``    | The number of total bytes received via the   |
+|                               | Transport protocol over the life time of a   |
+|                               | node.                                        |
++-------------------------------+----------------------------------------------+
+| ``TransportMessagesSent``     | The number of total messages sent via the    |
+|                               | Transport protocol over the life time of a   |
+|                               | node.                                        |
++-------------------------------+----------------------------------------------+
+| ``TransportBytesSent``        | The number of total bytes sent via the       |
+|                               | Transport protocol over the life time of a   |
+|                               | node.                                        |
++-------------------------------+----------------------------------------------+
 
 ThreadPools MXBean
 ------------------

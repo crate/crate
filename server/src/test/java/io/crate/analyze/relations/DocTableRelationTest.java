@@ -43,7 +43,7 @@ public class DocTableRelationTest extends CrateDummyClusterServiceUnitTest {
             clusterService);
         DocTableRelation rel = new DocTableRelation(tableInfo);
 
-        assertThatThrownBy(() -> rel.ensureColumnCanBeUpdated(new ColumnIdent("i")))
+        assertThatThrownBy(() -> rel.ensureColumnCanBeUpdated(ColumnIdent.of("i")))
             .isExactlyInstanceOf(ColumnValidationException.class)
             .hasMessage("Validation failed for i: Updating a primary key is not supported");
     }
@@ -56,7 +56,7 @@ public class DocTableRelationTest extends CrateDummyClusterServiceUnitTest {
             clusterService);
         DocTableRelation rel = new DocTableRelation(tableInfo);
 
-        assertThatThrownBy(() -> rel.ensureColumnCanBeUpdated(new ColumnIdent("i")))
+        assertThatThrownBy(() -> rel.ensureColumnCanBeUpdated(ColumnIdent.of("i")))
             .isExactlyInstanceOf(ColumnValidationException.class)
             .hasMessage("Validation failed for i: Updating a primary key is not supported");
     }
@@ -69,7 +69,7 @@ public class DocTableRelationTest extends CrateDummyClusterServiceUnitTest {
             clusterService);
         DocTableRelation rel = new DocTableRelation(tableInfo);
 
-        assertThatThrownBy(() -> rel.ensureColumnCanBeUpdated(new ColumnIdent("i")))
+        assertThatThrownBy(() -> rel.ensureColumnCanBeUpdated(ColumnIdent.of("i")))
             .isExactlyInstanceOf(ColumnValidationException.class)
             .hasMessage("Validation failed for i: Updating a clustered-by column is not supported");
     }

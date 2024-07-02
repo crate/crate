@@ -21,17 +21,20 @@
 
 package io.crate.interval;
 
-import org.joda.time.Period;
-
-import org.jetbrains.annotations.Nullable;
-import java.math.BigDecimal;
-import java.util.StringTokenizer;
-
 import static io.crate.interval.IntervalParser.nullSafeIntGet;
 import static io.crate.interval.IntervalParser.parseMilliSeconds;
 import static io.crate.interval.IntervalParser.roundToPrecision;
 
+import java.math.BigDecimal;
+import java.util.Locale;
+import java.util.StringTokenizer;
+
+import org.jetbrains.annotations.Nullable;
+import org.joda.time.Period;
+
 final class PGIntervalParser {
+
+    private PGIntervalParser() {}
 
     static Period apply(String value,
                         @Nullable IntervalParser.Precision start,
@@ -40,13 +43,19 @@ final class PGIntervalParser {
     }
 
     static Period apply(String value) {
-        final boolean ISOFormat = !value.startsWith("@");
+        String strInterval = value.trim().toLowerCase(Locale.ENGLISH);
+        final boolean ISOFormat = !strInterval.startsWith("@");
+        final boolean hasAgo = strInterval.endsWith("ago");
+        strInterval = strInterval
+            .replace("+", "")
+            .replace("@", "")
+            .replace("ago", "")
+            .trim();
 
         // Just a simple '0'
         if (!ISOFormat && value.length() == 3 && value.charAt(2) == '0') {
             return new Period();
         }
-        boolean dataParsed = false;
         int years = 0;
         int months = 0;
         int days = 0;
@@ -54,21 +63,34 @@ final class PGIntervalParser {
         int minutes = 0;
         int seconds = 0;
         int milliSeconds = 0;
+        boolean weeksParsed = false;
+        boolean daysParsed = false;
 
         try {
-            String valueToken = null;
-
-            value = value.replace('+', ' ').replace('@', ' ');
-            final StringTokenizer st = new StringTokenizer(value);
-            for (int i = 1; st.hasMoreTokens(); i++) {
+            String unitToken = null;
+            String valueToken;
+            boolean timeParsed = false;
+            final StringTokenizer st = new StringTokenizer(strInterval);
+            while (st.hasMoreTokens()) {
                 String token = st.nextToken();
 
-                if ((i & 1) == 1) {
-                    int endHours = token.indexOf(':');
-                    if (endHours == -1) {
-                        valueToken = token;
-                        continue;
+                int firstCharIdx = firstCharacterInStr(token);
+                if (firstCharIdx > 0) { // value next to unit, e.g.: '1year'
+                    valueToken = token.substring(0, firstCharIdx);
+                    unitToken = token.substring(firstCharIdx);
+                } else { // value and unit separated with whitespace, e.g.: '1  year'
+                    valueToken = token;
+                    if (st.hasMoreTokens()) {
+                        unitToken = st.nextToken();
                     }
+                }
+
+                int endHours = token.indexOf(':');
+                if (endHours > 0) {
+                    if (timeParsed) {
+                        throw new IllegalArgumentException("Invalid interval format: " + value);
+                    }
+
                     // This handles hours, minutes, seconds and microseconds for
                     // ISO intervals
                     int offset = (token.charAt(0) == '-') ? 1 : 0;
@@ -86,49 +108,92 @@ final class PGIntervalParser {
                         seconds = -seconds;
                         milliSeconds = -milliSeconds;
                     }
-                    valueToken = null;
+                    timeParsed = true;
                 } else {
-                    // This handles years, months, days for both, ISO and
-                    // Non-ISO intervals. Hours, minutes, seconds and microseconds
-                    // are handled for Non-ISO intervals here.
-                    if (token.startsWith("year")) {
-                        years = nullSafeIntGet(valueToken);
-                    } else if (token.startsWith("mon")) {
-                        months = nullSafeIntGet(valueToken);
-                    } else if (token.startsWith("day")) {
-                        days = nullSafeIntGet(valueToken);
-                    } else if (token.startsWith("week")) {
-                        days = nullSafeIntGet(valueToken) * 7;
-                    } else if (token.startsWith("hour")) {
-                        hours = nullSafeIntGet(valueToken);
-                    } else if (token.startsWith("min")) {
-                        minutes = nullSafeIntGet(valueToken);
-                    } else if (token.startsWith("sec")) {
-                        seconds = parseInteger(valueToken);
-                        milliSeconds = parseMilliSeconds(valueToken);
-                    } else {
-                        throw new IllegalArgumentException("Invalid interval format " + value);
+                    if (unitToken == null) {
+                        throw new IllegalArgumentException("Invalid interval format: " + value);
                     }
-                    dataParsed = true;
                 }
+
+                // This handles years, months, days for both, ISO and
+                // Non-ISO intervals. Hours, minutes, seconds and microseconds
+                // are handled for Non-ISO intervals here.
+                if (unitToken != null) {
+                    switch (unitToken) {
+                        case "year", "years", "y" -> {
+                            if (years > 0) {
+                                throw new IllegalArgumentException("Invalid interval format: " + value);
+                            }
+                            years = nullSafeIntGet(valueToken);
+                        }
+                        case "month", "months", "mon", "mons" -> {
+                            if (months > 0) {
+                                throw new IllegalArgumentException("Invalid interval format: " + value);
+                            }
+                            months = nullSafeIntGet(valueToken);
+                        }
+                        case "day", "days", "d" -> {
+                            if (daysParsed) {
+                                throw new IllegalArgumentException("Invalid interval format: " + value);
+                            }
+                            days += nullSafeIntGet(valueToken);
+                            daysParsed = true;
+                        }
+                        case "week", "weeks", "w" -> {
+                            if (weeksParsed) {
+                                throw new IllegalArgumentException("Invalid interval format: " + value);
+                            }
+                            days += nullSafeIntGet(valueToken) * 7;
+                            weeksParsed = true;
+                        }
+                        case "hour", "hours", "h" -> {
+                            if (hours > 0) {
+                                throw new IllegalArgumentException("Invalid interval format: " + value);
+                            }
+                            hours = nullSafeIntGet(valueToken);
+                            timeParsed = true;
+                        }
+                        case "min", "mins", "minute", "minutes", "m" -> {
+                            if (minutes > 0) {
+                                throw new IllegalArgumentException("Invalid interval format: " + value);
+                            }
+                            minutes = nullSafeIntGet(valueToken);
+                            timeParsed = true;
+                        }
+                        case "sec", "secs", "second", "seconds", "s" -> {
+                            if (seconds > 0 || milliSeconds > 0) {
+                                throw new IllegalArgumentException("Invalid interval format: " + value);
+                            }
+                            seconds = parseInteger(valueToken);
+                            milliSeconds = parseMilliSeconds(valueToken);
+                            timeParsed = true;
+                        }
+                        default -> throw new IllegalArgumentException("Invalid interval format: " + value);
+                    }
+                }
+                unitToken = null;
             }
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("Invalid interval format " + value);
-        }
-
-        if (!dataParsed) {
-            throw new IllegalArgumentException("Invalid interval format " + value);
+            throw new IllegalArgumentException("Invalid interval format: " + value);
         }
 
         Period period = new Period(years, months, 0, days, hours, minutes, seconds, milliSeconds);
 
-        if (!ISOFormat && value.endsWith("ago")) {
+        if (!ISOFormat && hasAgo) {
             // Inverse the leading sign
             period = period.negated();
         }
         return period;
     }
 
+    private static int firstCharacterInStr(String token) {
+        for (int i = 0; i < token.length(); i++) {
+            if (Character.isLetter(token.charAt(i))) {
+                return i;
+            }
+        }
+        return -1;
+    }
 
     private static int parseInteger(String value) {
         return new BigDecimal(value).intValue();

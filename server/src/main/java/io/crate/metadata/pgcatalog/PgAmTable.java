@@ -31,12 +31,10 @@ public final class PgAmTable {
 
     private PgAmTable() {}
 
-    public static SystemTable<Void> create() {
-        return SystemTable.<Void>builder(IDENT)
-            .add("oid", DataTypes.INTEGER, ignored -> null)
-            .add("amname", DataTypes.STRING, ignored -> null)
-            .add("amhandler", DataTypes.REGPROC, ignored -> null)
-            .add("amtype", DataTypes.BYTE, ignored -> null)
-            .build();
-    }
+    public static SystemTable<Void> INSTANCE = SystemTable.<Void>builder(IDENT)
+        .add("oid", DataTypes.INTEGER, ignored -> null)
+        .add("amname", DataTypes.STRING, ignored -> null)
+        .add("amhandler", DataTypes.REGPROC, ignored -> null)
+        .add("amtype", DataTypes.BYTE, ignored -> null)
+        .build();
 }

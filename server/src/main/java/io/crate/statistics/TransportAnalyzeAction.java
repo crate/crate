@@ -24,8 +24,6 @@ package io.crate.statistics;
 import static java.util.concurrent.CompletableFuture.completedFuture;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -44,22 +42,17 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import io.crate.Streamer;
 import io.crate.action.FutureActionListener;
-import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.concurrent.CompletableFutures;
-import io.crate.data.Row;
 import io.crate.execution.support.MultiActionListener;
 import io.crate.execution.support.NodeActionRequestHandler;
-import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 @Singleton
@@ -68,21 +61,6 @@ public final class TransportAnalyzeAction {
     private static final String FETCH_SAMPLES = "internal:crate:sql/analyze/fetch_samples";
     private static final String RECEIVE_TABLE_STATS = "internal:crate:sql/analyze/receive_stats";
 
-    /**
-     * This number is from PostgreSQL, they chose this based on the paper
-     * "Random sampling for histogram construction: how much is enough?"
-     *
-     * > Their Corollary 1 to Theorem 5 says that for table size n, histogram size k,
-     * > maximum relative error in bin size f, and error probability gamma, the minimum random sample size is
-     * >    r = 4 * k * ln(2*n/gamma) / f^2
-     * > Taking f = 0.5, gamma = 0.01, n = 10^6 rows, we obtain r = 305.82 * k
-     * > Note that because of the log function, the dependence on n is quite weak;
-     * > even at n = 10^12, a 300*k sample gives <= 0.66 bin size error with probability 0.99.
-     * > So there's no real need to scale for n, which is a good thing because we don't necessarily know it at this point.
-     *
-     * In PostgreSQL `k` is configurable (per column). We don't support changing k, we default it to 100
-     */
-    private static final int NUM_SAMPLES = 300 * MostCommonValues.MCV_TARGET;
     private final TransportService transportService;
     private final Schemas schemas;
     private final ClusterService clusterService;
@@ -92,12 +70,12 @@ public final class TransportAnalyzeAction {
     @Inject
     public TransportAnalyzeAction(TransportService transportService,
                                   ReservoirSampler reservoirSampler,
-                                  Schemas schemas,
+                                  NodeContext nodeContext,
                                   ClusterService clusterService,
                                   TableStats tableStats,
                                   ThreadPool threadPool) {
         this.transportService = transportService;
-        this.schemas = schemas;
+        this.schemas = nodeContext.schemas();
         this.clusterService = clusterService;
         this.executor = threadPool.executor(ThreadPool.Names.SEARCH);
 
@@ -117,7 +95,7 @@ public final class TransportAnalyzeAction {
 
                     if (previous == null) {
                         newSamples.completeAsync(
-                            () -> reservoirSampler.getSamples(req.relation(), req.columns(), req.maxSamples()),
+                            () -> reservoirSampler.getSamples(req.relation(), req.columns()),
                             executor
                         );
                         return newSamples
@@ -161,7 +139,7 @@ public final class TransportAnalyzeAction {
                 futures.add(fetchSamples(
                     table.ident(),
                     primitiveColumns
-                ).thenApply(samples -> Map.entry(table.ident(), createTableStats(samples, primitiveColumns))));
+                ).thenApply(samples -> Map.entry(table.ident(), samples.createTableStats(primitiveColumns))));
             }
         }
         return CompletableFutures.allAsList(futures)
@@ -170,7 +148,7 @@ public final class TransportAnalyzeAction {
 
     private CompletableFuture<AcknowledgedResponse> publishTableStats(Map<RelationName, Stats> newTableStats) {
         DiscoveryNodes discoveryNodes = clusterService.state().nodes();
-        var listener = new FutureActionListener<AcknowledgedResponse, AcknowledgedResponse>(x -> x);
+        var listener = new FutureActionListener<AcknowledgedResponse>();
         var multiListener = new MultiActionListener<>(
             discoveryNodes.getSize(),
             Collectors.reducing(
@@ -191,62 +169,29 @@ public final class TransportAnalyzeAction {
         return listener;
     }
 
-    @VisibleForTesting
-    static Stats createTableStats(Samples samples, List<Reference> primitiveColumns) {
-        List<Row> records = samples.records;
-        List<Object> columnValues = new ArrayList<>(records.size());
-        Map<ColumnIdent, ColumnStats<?>> statsByColumn = new HashMap<>();
-        for (int i = 0; i < primitiveColumns.size(); i++) {
-            Reference primitiveColumn = primitiveColumns.get(i);
-            columnValues.clear();
-            int nullCount = 0;
-            for (Row row : records) {
-                Object value = row.get(i);
-                if (value == null) {
-                    nullCount++;
-                } else {
-                    columnValues.add(value);
-                }
-            }
-            @SuppressWarnings("unchecked")
-            DataType<Object> dataType = (DataType<Object>) primitiveColumn.valueType();
-            columnValues.sort(dataType);
-            ColumnStats<?> columnStats = ColumnStats.fromSortedValues(
-                columnValues,
-                dataType,
-                nullCount,
-                samples.numTotalDocs
-            );
-            statsByColumn.put(primitiveColumn.column(), columnStats);
-        }
-        return new Stats(samples.numTotalDocs, samples.numTotalSizeInBytes, statsByColumn);
-    }
-
-    @SuppressWarnings("rawtypes")
     private CompletableFuture<Samples> fetchSamples(RelationName relationName, List<Reference> columns) {
-        FutureActionListener<FetchSampleResponse, Samples> listener = new FutureActionListener<>(FetchSampleResponse::samples);
+        FutureActionListener<FetchSampleResponse> listener = new FutureActionListener<>();
         DiscoveryNodes discoveryNodes = clusterService.state().nodes();
         MultiActionListener<FetchSampleResponse, ?, FetchSampleResponse> multiListener = new MultiActionListener<>(
             discoveryNodes.getSize(),
             Collectors.reducing(
                 new FetchSampleResponse(Samples.EMPTY),
-                (FetchSampleResponse s1, FetchSampleResponse s2) -> FetchSampleResponse.merge(TransportAnalyzeAction.NUM_SAMPLES, s1, s2)),
+                FetchSampleResponse::merge),
             listener
         );
-        List<Streamer> streamers = Arrays.asList(Symbols.streamerArray(columns));
         ActionListenerResponseHandler<FetchSampleResponse> responseHandler = new ActionListenerResponseHandler<>(
             multiListener,
-            in -> new FetchSampleResponse(streamers, in),
+            in -> new FetchSampleResponse(columns, in),
             ThreadPool.Names.SAME
         );
         for (DiscoveryNode node : discoveryNodes) {
             transportService.sendRequest(
                 node,
                 FETCH_SAMPLES,
-                new FetchSampleRequest(relationName, columns, TransportAnalyzeAction.NUM_SAMPLES),
+                new FetchSampleRequest(relationName, columns, node.getVersion()),
                 responseHandler
             );
         }
-        return listener;
+        return listener.thenApply(FetchSampleResponse::samples);
     }
 }

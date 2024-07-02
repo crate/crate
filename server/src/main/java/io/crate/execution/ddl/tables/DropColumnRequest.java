@@ -21,8 +21,6 @@
 
 package io.crate.execution.ddl.tables;
 
-import static io.crate.analyze.AnalyzedAlterTableDropColumn.DropColumn;
-
 import java.io.IOException;
 import java.util.List;
 
@@ -31,6 +29,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jetbrains.annotations.NotNull;
 
+import io.crate.analyze.DropColumn;
 import io.crate.metadata.RelationName;
 
 public class DropColumnRequest extends AcknowledgedRequest<DropColumnRequest> {

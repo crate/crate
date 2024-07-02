@@ -23,14 +23,14 @@ package io.crate.execution.engine.aggregation;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.common.settings.Settings;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Mode;
@@ -43,14 +43,15 @@ import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.breaker.RamAccounting;
-import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
 import io.crate.execution.engine.aggregation.impl.SumAggregation;
 import io.crate.execution.engine.collect.RowCollectExpression;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.Functions;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.types.DataTypes;
 
 
@@ -59,23 +60,21 @@ import io.crate.types.DataTypes;
 @State(Scope.Benchmark)
 public class AggregateCollectorBenchmark {
 
-    private final List<Row> rows = IntStream.range(0, 10_000).mapToObj(Row1::new).collect(Collectors.toList());
+    private final List<Row1> rows = IntStream.range(0, 10_000).mapToObj(Row1::new).toList();
 
     private AggregateCollector collector;
 
+    @SuppressWarnings("unchecked")
     @Setup
     public void setup() {
         RowCollectExpression inExpr0 = new RowCollectExpression(0);
-        Functions functions = new ModulesBuilder()
-            .add(new AggregationImplModule())
-            .createInjector()
-            .getInstance(Functions.class);
+        Functions functions = Functions.load(Settings.EMPTY, new SessionSettingRegistry(Set.of()));
         SumAggregation<?> sumAggregation = (SumAggregation<?>) functions.getQualified(
             Signature.aggregate(
-                SumAggregation.NAME,
-                DataTypes.INTEGER.getTypeSignature(),
-                DataTypes.LONG.getTypeSignature()
-            ),
+                    SumAggregation.NAME,
+                    DataTypes.INTEGER.getTypeSignature(),
+                    DataTypes.LONG.getTypeSignature())
+                .withFeature(Scalar.Feature.DETERMINISTIC),
             List.of(DataTypes.INTEGER),
             DataTypes.INTEGER
         );

@@ -21,10 +21,15 @@
 
 package io.crate.planner.operators;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.analyze.relations.AbstractTableRelation;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
@@ -36,12 +41,6 @@ import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.sql.tree.JoinType;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 public abstract class AbstractJoinPlan implements LogicalPlan {
 
     protected final LogicalPlan lhs;
@@ -49,16 +48,30 @@ public abstract class AbstractJoinPlan implements LogicalPlan {
     @Nullable
     protected final Symbol joinCondition;
     protected final JoinType joinType;
+    protected final LookUpJoin lookupJoin;
 
-    protected AbstractJoinPlan(
-                               LogicalPlan lhs,
+    public enum LookUpJoin {
+        LEFT, RIGHT, NONE;
+
+        public LookUpJoin invert() {
+            return switch (this) {
+                case LEFT -> RIGHT;
+                case RIGHT -> LEFT;
+                case NONE -> NONE;
+            };
+        }
+    }
+
+    protected AbstractJoinPlan(LogicalPlan lhs,
                                LogicalPlan rhs,
                                @Nullable Symbol joinCondition,
-                               JoinType joinType) {
+                               JoinType joinType,
+                               LookUpJoin lookupJoin) {
         this.lhs = lhs;
         this.rhs = rhs;
         this.joinCondition = joinCondition;
         this.joinType = joinType;
+        this.lookupJoin = lookupJoin;
     }
 
     public LogicalPlan lhs() {
@@ -69,12 +82,16 @@ public abstract class AbstractJoinPlan implements LogicalPlan {
         return rhs;
     }
 
+    public LookUpJoin lookUpJoin() {
+        return lookupJoin;
+    }
+
     @Override
     public List<Symbol> outputs() {
         if (joinType == JoinType.SEMI) {
             return lhs.outputs();
         } else {
-            return Lists2.concat(lhs.outputs(), rhs.outputs());
+            return Lists.concat(lhs.outputs(), rhs.outputs());
         }
     }
 
@@ -99,13 +116,8 @@ public abstract class AbstractJoinPlan implements LogicalPlan {
     }
 
     @Override
-    public List<RelationName> getRelationNames() {
-        return Lists2.concatUnique(lhs.getRelationNames(), rhs.getRelationNames());
-    }
-
-    @Override
-    public List<AbstractTableRelation<?>> baseTables() {
-        return Lists2.concat(lhs.baseTables(), rhs.baseTables());
+    public List<RelationName> relationNames() {
+        return Lists.concatUnique(lhs.relationNames(), rhs.relationNames());
     }
 
     @Override
@@ -113,6 +125,10 @@ public abstract class AbstractJoinPlan implements LogicalPlan {
         return List.of(lhs, rhs);
     }
 
+    @Override
+    public boolean supportsDistributedReads() {
+        return lhs.supportsDistributedReads() && rhs.supportsDistributedReads();
+    }
 
     protected static MergePhase buildMergePhaseForJoin(PlannerContext plannerContext,
                                                        ResultDescription resultDescription,

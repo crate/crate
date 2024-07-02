@@ -51,6 +51,10 @@ Here's an example:
     cr> COPY quotes FROM 'file:///tmp/import_data/quotes.json';
     COPY OK, 3 rows affected (... sec)
 
+.. NOTE::
+
+    The ``COPY`` statements use :ref:`Overload Protection <overload_protection>` to ensure other
+    queries can still perform. Please change these settings during large inserts if needed.
 
 .. _sql-copy-from-formats:
 
@@ -207,6 +211,8 @@ For example:
 
 The files must be accessible on at least one node and the system user running
 the ``crate`` process must have read access to every file specified.
+Additionally, only the ``crate`` superuser is allowed to use the ``file://``
+scheme.
 
 By default, every node will attempt to import every file. If the file is
 accessible on multiple nodes, you can set the `shared`_ option to true in order
@@ -413,7 +419,7 @@ Defaults to ``true``.
 ``shared``
 ''''''''''
 
-This option should be set to true if the URI's location is accessible by more
+This option should be set to true if the URIs location is accessible by more
 than one CrateDB node to prevent them from importing the same file.
 
 The default value depends on the scheme of each URI.

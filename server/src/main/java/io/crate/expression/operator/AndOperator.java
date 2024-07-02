@@ -35,6 +35,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.lucene.LuceneQueryBuilder.Context;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
@@ -50,13 +51,10 @@ public class AndOperator extends Operator<Boolean> {
         DataTypes.BOOLEAN.getTypeSignature(),
         DataTypes.BOOLEAN.getTypeSignature(),
         DataTypes.BOOLEAN.getTypeSignature()
-    );
+    ).withFeature(Feature.DETERMINISTIC);
 
-    public static void register(OperatorModule module) {
-        module.register(
-            SIGNATURE,
-            AndOperator::new
-        );
+    public static void register(Functions.Builder builder) {
+        builder.add(SIGNATURE, AndOperator::new);
     }
 
     public AndOperator(Signature signature, BoundSignature boundSignature) {
@@ -80,8 +78,8 @@ public class AndOperator extends Operator<Boolean> {
          * false and x  -> false
          * null  and x  -> false or null -> function as is
          */
-        if (left instanceof Input) {
-            Object value = ((Input) left).value();
+        if (left instanceof Input leftInput) {
+            Object value = leftInput.value();
             if (value == null) {
                 return function;
             }
@@ -91,8 +89,8 @@ public class AndOperator extends Operator<Boolean> {
                 return Literal.of(false);
             }
         }
-        if (right instanceof Input) {
-            Object value = ((Input) right).value();
+        if (right instanceof Input<?> rightInput) {
+            Object value = rightInput.value();
             if (value == null) {
                 return function;
             }
@@ -106,7 +104,8 @@ public class AndOperator extends Operator<Boolean> {
     }
 
     @Override
-    public Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Boolean>... args) {
+    @SafeVarargs
+    public final Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Boolean>... args) {
         assert args != null : "args must not be null";
         assert args.length == 2 : "number of args must be 2";
         assert args[0] != null && args[1] != null : "1st and 2nd arguments must not be null";

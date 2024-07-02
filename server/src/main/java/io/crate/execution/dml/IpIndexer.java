@@ -27,39 +27,34 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 import org.apache.lucene.document.Field;
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.InetAddressPoint;
 import org.apache.lucene.document.SortedSetDocValuesField;
-import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
 
 import io.crate.execution.dml.Indexer.ColumnConstraint;
-import io.crate.execution.dml.Indexer.Synthetic;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
+import io.crate.metadata.doc.DocSysColumns;
 
 public class IpIndexer implements ValueIndexer<String> {
 
     private final Reference ref;
-    private final FieldType fieldType;
     private final String name;
 
-    public IpIndexer(Reference ref, FieldType fieldType) {
+    public IpIndexer(Reference ref) {
         this.ref = ref;
         this.name = ref.storageIdent();
-        this.fieldType = fieldType;
     }
 
     @Override
     public void indexValue(String value,
                            XContentBuilder xContentBuilder,
                            Consumer<? super IndexableField> addField,
-                           Map<ColumnIdent, Synthetic> synthetics,
+                           Synthetics synthetics,
                            Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
         xContentBuilder.value(value);
         InetAddress address = InetAddresses.forString(value);
@@ -70,12 +65,9 @@ public class IpIndexer implements ValueIndexer<String> {
             addField.accept(new SortedSetDocValuesField(name, new BytesRef(InetAddressPoint.encode(address))));
         } else {
             addField.accept(new Field(
-                FieldNamesFieldMapper.NAME,
+                DocSysColumns.FieldNames.NAME,
                 name,
-                FieldNamesFieldMapper.Defaults.FIELD_TYPE));
-        }
-        if (fieldType.stored()) {
-            addField.accept(new StoredField(name, new BytesRef(InetAddressPoint.encode(address))));
+                DocSysColumns.FieldNames.FIELD_TYPE));
         }
     }
 }

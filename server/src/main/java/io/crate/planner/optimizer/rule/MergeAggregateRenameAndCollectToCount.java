@@ -24,13 +24,9 @@ package io.crate.planner.optimizer.rule;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 
-import java.util.function.Function;
-
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.expression.symbol.FieldReplacer;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Count;
@@ -38,7 +34,6 @@ import io.crate.planner.operators.HashAggregate;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.Rename;
 import io.crate.planner.optimizer.Rule;
-import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
@@ -76,13 +71,10 @@ public class MergeAggregateRenameAndCollectToCount implements Rule<HashAggregate
     @Override
     public LogicalPlan apply(HashAggregate aggregate,
                              Captures captures,
-                             PlanStats planStats,
-                             TransactionContext txnCtx,
-                             NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
+                             Rule.Context context) {
         Collect collect = captures.get(collectCapture);
         Rename rename = captures.get(renameCapture);
-        var countAggregate = Lists2.getOnlyElement(aggregate.aggregates());
+        var countAggregate = Lists.getOnlyElement(aggregate.aggregates());
         var filter = countAggregate.filter();
         if (filter != null) {
             var mappedFilter = FieldReplacer.replaceFields(filter, rename::resolveField);

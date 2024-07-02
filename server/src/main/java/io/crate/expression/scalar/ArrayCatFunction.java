@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import io.crate.data.Input;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -37,18 +38,19 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.TypeSignature;
 
-class ArrayCatFunction extends Scalar<List<Object>, List<Object>> {
+public class ArrayCatFunction extends Scalar<List<Object>, List<Object>> {
 
     public static final String NAME = "array_cat";
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder module) {
+        module.add(
             Signature.scalar(
-                NAME,
-                TypeSignature.parse("array(E)"),
-                TypeSignature.parse("array(E)"),
-                TypeSignature.parse("array(E)")
-            )
+                    NAME,
+                    TypeSignature.parse("array(E)"),
+                    TypeSignature.parse("array(E)"),
+                    TypeSignature.parse("array(E)")
+                ).withFeature(Feature.DETERMINISTIC)
+                .withFeature(Feature.NON_NULLABLE)
                 .withTypeVariableConstraints(typeVariable("E")),
             ArrayCatFunction::new
         );

@@ -21,9 +21,7 @@
 
 package io.crate.lucene;
 
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.apache.lucene.search.ScoreMode;
 import org.elasticsearch.Version;
@@ -38,7 +36,6 @@ public class GenericFunctionQueryTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_generic_function_query_cannot_be_cached_with_un_deterministic_functions_present() throws Exception {
         QueryTester.Builder builder = new QueryTester.Builder(
-            createTempDir(),
             THREAD_POOL,
             clusterService,
             Version.CURRENT,
@@ -49,14 +46,13 @@ public class GenericFunctionQueryTest extends CrateDummyClusterServiceUnitTest {
             var query = tester.toQuery("x = random()");
             var searcher = tester.searcher();
             var weight = query.createWeight(searcher, ScoreMode.COMPLETE_NO_SCORES, 1.0f);
-            assertThat(weight.isCacheable(searcher.getTopReaderContext().leaves().get(0)), is(false));
+            assertThat(weight.isCacheable(searcher.getTopReaderContext().leaves().get(0))).isFalse();
         }
     }
 
     @Test
     public void test_generic_function_query_can_be_cached_if_deterministic() throws Exception {
         QueryTester.Builder builder = new QueryTester.Builder(
-            createTempDir(),
             THREAD_POOL,
             clusterService,
             Version.CURRENT,
@@ -67,8 +63,8 @@ public class GenericFunctionQueryTest extends CrateDummyClusterServiceUnitTest {
             var query = tester.toQuery("abs(x) = 1");
             var searcher = tester.searcher();
             var weight = query.createWeight(searcher, ScoreMode.COMPLETE_NO_SCORES, 1.0f);
-            assertThat(weight.isCacheable(searcher.getTopReaderContext().leaves().get(0)), is(true));
-            assertThat(tester.runQuery("x", "abs(x) = 1"), contains(1));
+            assertThat(weight.isCacheable(searcher.getTopReaderContext().leaves().get(0))).isTrue();
+            assertThat(tester.runQuery("x", "abs(x) = 1")).containsExactly(1);
         }
     }
 }

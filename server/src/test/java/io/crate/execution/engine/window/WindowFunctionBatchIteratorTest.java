@@ -22,8 +22,7 @@
 package io.crate.execution.engine.window;
 
 import static io.crate.execution.engine.window.WindowFunctionBatchIterator.sortAndComputeWindowFunctions;
-import static org.hamcrest.Matchers.contains;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -31,14 +30,14 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.function.LongConsumer;
 
 import org.elasticsearch.test.ESTestCase;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
 
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
@@ -59,8 +58,9 @@ public class WindowFunctionBatchIteratorTest extends ESTestCase {
                 new Object[]{"a", 8, null},
                 new Object[]{"b", 2, null}
             ),
-            (partitionStart, partitionEnd, currentIndex, sortedRows) -> 0,
-            (partitionStart, partitionEnd, currentIndex, sortedRows) -> currentIndex,
+            ignored -> {},
+            (_, _, _, _) -> 0,
+            (_, _, currentIndex, _) -> currentIndex,
             OrderingByPosition.arrayOrdering(DataTypes.STRING, 0, false, false),
             OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 1, false, false),
             2,
@@ -68,11 +68,12 @@ public class WindowFunctionBatchIteratorTest extends ESTestCase {
             Runnable::run,
             List.of(new WindowFunction() {
                 @Override
-                public Object execute(int idxInPartition,
+                public Object execute(LongConsumer allocateBytes,
+                                      int idxInPartition,
                                       WindowFrameState currentFrame,
                                       List<? extends CollectExpression<Row, ?>> expressions,
                                       Boolean ignoreNulls,
-                                      Input... args) {
+                                      Input<?> ... args) {
                     return idxInPartition + 1;
                 }
 
@@ -90,16 +91,12 @@ public class WindowFunctionBatchIteratorTest extends ESTestCase {
             new Boolean[]{null},
             new Input[][] { new Input[0] }
         ).get(5, TimeUnit.SECONDS);
-        assertThat(
-            result,
-            contains(
-                new Object[] { "a", 1, 1 },
-                new Object[] { "a", 4, 2 },
-                new Object[] { "a", 8, 3 },
-                new Object[] { "b", 2, 1 },
-                new Object[] { "b", 7, 2 }
-            )
-        );
+        assertThat(result).containsExactly(
+            new Object[] { "a", 1, 1 },
+            new Object[] { "a", 4, 2 },
+            new Object[] { "a", 8, 3 },
+            new Object[] { "b", 2, 1 },
+            new Object[] { "b", 7, 2 });
     }
 
     @Test
@@ -116,12 +113,9 @@ public class WindowFunctionBatchIteratorTest extends ESTestCase {
         int end = randomIntBetween(begin, length - 1);
 
         int expectedPosition = findFirstNonPeerTrivial(numbers, begin, end, comparingInt);
-        assertThat(
-            "Expected firstNonPeer position=" + expectedPosition + " for " + numbers + "[" + begin + ":" + end + "]",
-            expectedPosition,
-            Matchers.is(Lists2.findFirstNonPeer(numbers, begin, end, comparingInt)
-            )
-        );
+        assertThat(Lists.findFirstNonPeer(numbers, begin, end, comparingInt))
+            .as("Expected firstNonPeer position=" + expectedPosition + " for " + numbers + "[" + begin + ":" + end + "]")
+            .isEqualTo(expectedPosition);
     }
 
     private static <T> int findFirstNonPeerTrivial(List<T> rows, int begin, int end, Comparator<T> cmp) {

@@ -21,15 +21,17 @@
 
 package io.crate.exceptions;
 
-import io.crate.metadata.RelationName;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Locale;
+
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.index.Index;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Locale;
+import io.crate.metadata.RelationName;
+import io.crate.rest.action.HttpErrorStatus;
 
 public final class RelationAlreadyExists extends ElasticsearchException implements ConflictException, TableScopeException {
 
@@ -66,5 +68,10 @@ public final class RelationAlreadyExists extends ElasticsearchException implemen
     @Override
     public Iterable<RelationName> getTableIdents() {
         return Collections.singletonList(relationName);
+    }
+
+    @Override
+    public HttpErrorStatus httpErrorStatus() {
+        return HttpErrorStatus.RELATION_WITH_THE_SAME_NAME_EXISTS_ALREADY;
     }
 }

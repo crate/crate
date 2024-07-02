@@ -2885,16 +2885,14 @@ constant array values.
 Nested arrays
 .............
 
-Nested arrays cannot be used directly in column definitions  (i.e.
-``ARRAY(ARRAY(DOUBLE))`` is not accepted), but multiple arrays can be nested
-as long as there are objects in-between:
+You can directly define nested arrays in column definitions:
 
 ::
 
-    CREATE TABLE SensorData (sensorID char(10), readings ARRAY(OBJECT AS (innerarray ARRAY(DOUBLE))));
+    CREATE TABLE SensorData (sensorID char(10), readings ARRAY(ARRAY(DOUBLE)));
 
 
-Nested arrays can still be used directly in input and output to UDFs:
+Nested arrays can also be used directly in input and output to UDFs:
 
 ::
 
@@ -2934,6 +2932,18 @@ requires an intermediate cast:
     |                       2.0 |
     +---------------------------+
 
+.. NOTE::
+
+    Accessing nested arrays will generally require loading
+    sources directly from disk, and will not be very efficient.  If you find
+    yourself using nested arrays frequently, you may want to consider splitting
+    the data up into multiple tables instead.
+
+.. NOTE::
+
+    Nested arrays cannot be created dynamically, either as a
+    :ref:`top level column <column_policy>`
+    or as part of a :ref:`dynamic object <type-object-columns-dynamic>`
 
 .. _type-float_vector:
 
@@ -3173,11 +3183,11 @@ geographical queries. Its default parameters are::
     <columnName> GEO_SHAPE INDEX USING geohash
         WITH (precision='50m', distance_error_pct=0.025)
 
-There are two geographic index types: ``geohash`` (the default) and
-``quadtree``. These indices are only allowed on ``geo_shape`` columns. For more
+There are three geographic index types: ``geohash`` (default), ``quadtree`` and
+``bkdtree``. These indices are only allowed on ``geo_shape`` columns. For more
 information, see :ref:`type-geo_shape-index`.
 
-Both of these index types accept the following parameters:
+Both ``geohash`` and ``quadtree`` index types accept the following parameters:
 
 ``precision``
   (Default: ``50m``) Define the maximum precision of the used index and
@@ -3226,7 +3236,11 @@ Geo shape index structure
 
 Computations on very complex polygons and geometry collections are exact but
 very expensive. To provide fast queries even on complex shapes, CrateDB uses a
-different approach to store, analyze and query geo shapes.
+different approach to store, analyze and query geo shapes. The available geo
+shape indexing strategies are based on two primary data structures: Prefix and
+BKD trees, which are described below.
+
+.. rubric:: Prefix Tree
 
 The surface of the earth is represented as a number of grid layers each with
 higher precision. While the upper layer has one grid cell, the layer below
@@ -3252,6 +3266,22 @@ The main difference is that the ``geohash`` supports higher precision than the
 ``quadtree`` tree. Both tree implementations support precision in order of
 fractions of millimeters.
 
+.. rubric:: BKD-tree
+
+In the BKD-tree-based (``bkdtree``) approach, a geo shape is decomposed into a
+collection of triangles. Each triangle is represented as a 7-dimensional point
+and stored in this format within a BKD-tree.
+
+To improve the storage efficiency of triangles within an index, the initial four
+dimensions are used to represent the bounding box of each triangle. These
+bounding boxes are stored in the internal nodes of the BKD-tree, while the
+remaining three dimensions are stored in the leaves to enable the reconstruction
+of the original triangles.
+
+The BKD-tree-based indexing strategy maintains the original shapes with an
+accuracy of 1 cm. Its primary advantage over the Prefix tree approach lies in
+its better performance in searching and indexing, coupled with a more efficient
+use of storage.
 
 .. _type-geo_shape-literals:
 

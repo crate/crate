@@ -19,8 +19,11 @@
 
 package org.elasticsearch.action.support;
 
+import static org.elasticsearch.common.xcontent.ConstructingObjectParser.constructorArg;
+
+import java.io.IOException;
+
 import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ShardOperationFailedException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -30,9 +33,8 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.rest.RestStatus;
 
-import java.io.IOException;
-
-import static org.elasticsearch.common.xcontent.ConstructingObjectParser.constructorArg;
+import io.crate.common.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
 
 public class DefaultShardOperationFailedException extends ShardOperationFailedException {
 
@@ -53,14 +55,14 @@ public class DefaultShardOperationFailedException extends ShardOperationFailedEx
         super(
             e.getIndex() == null ? null : e.getIndex().getName(),
             e.getShardId() == null ? -1 : e.getShardId().id(),
-            ExceptionsHelper.stackTrace(e),
+            Exceptions.stackTrace(e),
             e.status(),
             e
         );
     }
 
     public DefaultShardOperationFailedException(String index, int shardId, Throwable cause) {
-        super(index, shardId, ExceptionsHelper.stackTrace(cause), ExceptionsHelper.status(cause), cause);
+        super(index, shardId, Exceptions.stackTrace(cause), SQLExceptions.status(cause), cause);
     }
 
     public DefaultShardOperationFailedException(StreamInput in) throws IOException {

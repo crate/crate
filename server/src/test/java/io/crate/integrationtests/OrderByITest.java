@@ -21,14 +21,11 @@
 
 package io.crate.integrationtests;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+
+import static io.crate.testing.Asserts.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
-import org.hamcrest.core.Is;
 import org.junit.Test;
-
-import io.crate.testing.TestingHelpers;
 
 public class OrderByITest extends IntegTestCase {
 
@@ -47,32 +44,33 @@ public class OrderByITest extends IntegTestCase {
         });
         execute("refresh table t1");
         execute("select ipp from t1 order by ipp");
-        assertThat(TestingHelpers.printedTable(response.rows()), Is.is(
-            "10.0.0.1\n" +
-            "10.200.1.100\n" +
-            "10.220.1.120\n" +
-            "10.220.1.20\n" +
-            "127.0.0.1\n" +
-            "NULL\n"));
+        assertThat(response).hasRows(
+            "10.0.0.1",
+            "10.200.1.100",
+            "10.220.1.120",
+            "10.220.1.20",
+            "127.0.0.1",
+            "NULL");
 
         execute("select ipp from t1 order by ipp desc nulls first");
-        assertThat(TestingHelpers.printedTable(response.rows()), Is.is(
-            "NULL\n" +
-            "127.0.0.1\n" +
-            "10.220.1.20\n" +
-            "10.220.1.120\n" +
-            "10.200.1.100\n" +
-            "10.0.0.1\n"));
+        assertThat(response).hasRows(
+            "NULL",
+            "127.0.0.1",
+            "10.220.1.20",
+            "10.220.1.120",
+            "10.200.1.100",
+            "10.0.0.1");
     }
 
     @Test
     public void testOrderByWithIndexOff() throws Exception {
         execute("create table t1 (s string index off)");
         execute("insert into t1 (s) values (?), (?)", new Object[]{"hello", "foo"});
-        refresh();
+        execute("refresh table t1");
 
         execute("select s from t1 order by s");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("foo\n" +
-                                                                    "hello\n"));
+        assertThat(response).hasRows(
+            "foo",
+            "hello");
     }
 }

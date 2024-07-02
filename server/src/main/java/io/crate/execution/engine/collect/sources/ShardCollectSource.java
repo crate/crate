@@ -34,8 +34,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.IntSupplier;
 import java.util.function.Supplier;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -58,12 +56,13 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntIndexedContainer;
 import com.carrotsearch.hppc.cursors.IntCursor;
 
 import io.crate.analyze.OrderBy;
-import io.crate.breaker.RowAccountingWithEstimators;
+import io.crate.breaker.TypedRowAccounting;
 import io.crate.common.Suppliers;
 import io.crate.common.collections.Iterables;
 import io.crate.common.concurrent.CompletableFutures;
@@ -99,7 +98,6 @@ import io.crate.metadata.IndexParts;
 import io.crate.metadata.MapBackedRefResolver;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
@@ -160,7 +158,6 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
     public ShardCollectSource(Settings settings,
                               IndicesService indicesService,
                               NodeContext nodeCtx,
-                              Schemas schemas,
                               ClusterService clusterService,
                               NodeLimits nodeJobsCounter,
                               ThreadPool threadPool,
@@ -171,7 +168,7 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
                               ShardCollectorProviderFactory shardCollectorProviderFactory) {
         this.unassignedShardReferenceResolver = new StaticTableReferenceResolver<>(
             SysShardsTableInfo.unassignedShardsExpressions());
-        this.shardReferenceResolver = new StaticTableReferenceResolver<>(SysShardsTableInfo.create().expressions());
+        this.shardReferenceResolver = new StaticTableReferenceResolver<>(SysShardsTableInfo.create(nodeCtx.roles()).expressions());
         this.indicesService = indicesService;
         this.clusterService = clusterService;
         this.remoteCollectorFactory = remoteCollectorFactory;
@@ -188,7 +185,6 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
 
         sharedProjectorFactory = new ProjectionToProjectorVisitor(
             clusterService,
-            schemas,
             nodeJobsCounter,
             circuitBreakerService,
             nodeCtx,
@@ -260,6 +256,8 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
         }
         OrderBy orderBy = collectPhase.orderBy();
         if (collectPhase.maxRowGranularity() == RowGranularity.DOC && orderBy != null) {
+            assert !Projections.hasAnyShardProjections(collectPhase.projections())
+                : "Must not have shard projections for ordered collect";
             return createMultiShardScoreDocCollector(
                 collectPhase,
                 requireMoveToStartSupport,
@@ -364,7 +362,7 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
         return CompletableFutures.allAsList(orderedDocCollectors).thenApply(collectors -> OrderedLuceneBatchIteratorFactory.newInstance(
             collectors,
             OrderingByPosition.rowOrdering(orderBy, collectPhase.toCollect()),
-            new RowAccountingWithEstimators(columnTypes, collectTask.getRamAccounting()),
+            new TypedRowAccounting(columnTypes, collectTask.getRamAccounting()),
             executor,
             availableThreads,
             supportMoveToStart
@@ -394,13 +392,14 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
                 return CompletableFuture.completedFuture(InMemoryBatchIterator.empty(SentinelRow.SENTINEL));
             }
             throw Exceptions.toRuntimeException(err);
-        } else if (err instanceof ShardNotFoundException || err instanceof IllegalIndexShardStateException e) {
+        } else if (err instanceof ShardNotFoundException || err instanceof IllegalIndexShardStateException) {
             // If toCollect contains a fetchId it means that this is a QueryThenFetch operation.
             // In such a case RemoteCollect cannot be used because on that node the FetchTask is missing
             // and the reader required in the fetchPhase would be missing.
-            if (Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.FETCHID)) {
+            if (Symbols.hasColumn(collectPhase.toCollect(), DocSysColumns.FETCHID)) {
                 throw Exceptions.toRuntimeException(err);
             }
+            assert collectTask.completionFuture().isDone() == false : "Cannot resume a collect task that is completed";
             return remoteCollectorFactory.createCollector(
                 shardId,
                 collectPhase,

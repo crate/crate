@@ -61,6 +61,8 @@ Here's an example:
    Currently only user tables can be exported. System tables like ``sys.nodes``
    and blob tables don't work with the ``COPY TO`` statement.
 
+   The ``COPY`` statements use :ref:`Overload Protection <overload_protection>` to ensure other
+   queries can still perform. Please change these settings during large inserts if needed.
 
 .. _sql-copy-to-params:
 
@@ -76,7 +78,13 @@ Parameters
 
 ``column``
   (optional) A list of column :ref:`expressions <gloss-expression>` that should
-  be exported.
+  be exported. E.g.
+
+  ::
+
+    cr> COPY quotes (quote, author) TO DIRECTORY '/tmp/';
+    COPY OK, 3 rows affected ...
+
 
   .. NOTE::
 
@@ -152,6 +160,15 @@ partition to export.
 
 The ``WHERE`` clauses use the same syntax as ``SELECT`` statements, allowing
 partial exports. (see :ref:`sql_dql_where_clause` for more information).
+
+
+Example of using ``WHERE`` clause with 
+:ref:`comparison operators <comparison-operators-where>` for partial export:
+
+::
+  
+  cr> COPY quotes WHERE category = 'philosophy' TO DIRECTORY '/tmp/';
+  COPY OK, 3 rows affected ...
 
 
 .. _sql-copy-to-to:

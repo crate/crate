@@ -23,6 +23,7 @@ package io.crate.planner;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.exactlyInstanceOf;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.List;
@@ -35,6 +36,7 @@ import org.junit.Test;
 
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.Row;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.VersioningValidationException;
 import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.Symbol;
@@ -56,13 +58,12 @@ public class DeletePlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .addPartitionedTable(
                 TableDefinitions.PARTED_PKS_TABLE_DEFINITION,
                 new PartitionName(new RelationName("doc", "parted_pks"), List.of("1395874800000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted_pks"), List.of("1395961200000")).asIndexName())
-            .build();
+                new PartitionName(new RelationName("doc", "parted_pks"), List.of("1395961200000")).asIndexName());
     }
 
     @Test
@@ -102,9 +103,9 @@ public class DeletePlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDeleteWhereVersionIsNullPredicate() throws Exception {
-        expectedException.expect(VersioningValidationException.class);
-        expectedException.expectMessage(VersioningValidationException.VERSION_COLUMN_USAGE_MSG);
-        e.plan("delete from users where _version is null");
+        assertThatThrownBy(() -> e.plan("delete from users where _version is null"))
+            .isExactlyInstanceOf(VersioningValidationException.class)
+            .hasMessage(VersioningValidationException.VERSION_COLUMN_USAGE_MSG);
     }
 
     @Test
@@ -112,5 +113,11 @@ public class DeletePlannerTest extends CrateDummyClusterServiceUnitTest {
         Assertions.assertThatThrownBy(() -> e.plan("delete from users where id = 1 and _seq_no = 11"))
             .isExactlyInstanceOf(VersioningValidationException.class)
             .hasMessageContaining(VersioningValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG);
+    }
+
+    @Test
+    public void test_cannot_delete_from__all() throws Exception {
+        assertThatThrownBy(() -> e.plan("delete from _all"))
+            .isExactlyInstanceOf(RelationUnknown.class);
     }
 }

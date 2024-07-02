@@ -43,7 +43,6 @@ import org.apache.lucene.util.StringHelper;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
 import org.elasticsearch.cli.UserException;
-import org.elasticsearch.common.PidFile;
 import org.elasticsearch.common.inject.CreationException;
 import org.elasticsearch.common.logging.LogConfigurator;
 import org.elasticsearch.common.logging.Loggers;
@@ -60,7 +59,6 @@ import org.elasticsearch.node.NodeValidationException;
 import org.elasticsearch.plugin.repository.url.URLRepositoryPlugin;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.repositories.s3.S3RepositoryPlugin;
-import org.elasticsearch.transport.Netty4Plugin;
 
 import io.crate.bootstrap.BootstrapException;
 import io.crate.common.SuppressForbidden;
@@ -85,8 +83,8 @@ public class BootstrapProxy {
         UDCPlugin.class,
         URLRepositoryPlugin.class,
         S3RepositoryPlugin.class,
-        Ec2DiscoveryPlugin.class,
-        Netty4Plugin.class);
+        Ec2DiscoveryPlugin.class
+    );
 
     private volatile Node node;
     private final CountDownLatch keepAliveLatch = new CountDownLatch(1);
@@ -250,14 +248,6 @@ public class BootstrapProxy {
         } catch (IOException e) {
             throw new BootstrapException(e);
         }
-        if (environment.pidFile() != null) {
-            try {
-                PidFile.create(environment.pidFile(), true);
-            } catch (IOException e) {
-                throw new BootstrapException(e);
-            }
-        }
-
         try {
             // fail if somebody replaced the lucene jars
             checkLucene();

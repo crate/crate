@@ -37,7 +37,7 @@ import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.Bits;
 import org.elasticsearch.Version;
-import org.elasticsearch.index.query.QueryShardContext;
+import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.jetbrains.annotations.Nullable;
@@ -102,15 +102,14 @@ public final class DocValuesAggregates {
         SharedShardContext shardContext = collectTask.sharedShardContexts().getOrCreateContext(shardId);
         var searcher = shardContext.acquireSearcher("doc-value-aggregates: " + LuceneShardCollectorProvider.formatSource(phase));
         collectTask.addSearcher(shardContext.readerId(), searcher);
-        QueryShardContext queryShardContext = shardContext.indexService().newQueryShardContext();
+        IndexService indexService = shardContext.indexService();
         LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(
             phase.where(),
             collectTask.txnCtx(),
-            indexShard.mapperService(),
             indexShard.shardId().getIndexName(),
-            queryShardContext,
+            indexService.indexAnalyzers(),
             table,
-            shardContext.indexService().cache()
+            indexService.cache()
         );
 
         AtomicReference<Throwable> killed = new AtomicReference<>();

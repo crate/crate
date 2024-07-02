@@ -23,9 +23,7 @@ package io.crate.planner.optimizer;
 
 import static io.crate.analyze.SymbolEvaluator.evaluateWithoutParams;
 import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.is;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Set;
@@ -40,13 +38,13 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.optimizer.rule.MergeFilters;
-import io.crate.user.User;
+import io.crate.role.metadata.RolesHelper;
 
 public class OptimizerRuleSessionSettingProviderTest {
 
-    private NodeContext nodeCtx = createNodeContext();
+    private final NodeContext nodeCtx = createNodeContext();
 
-    private Function<Symbol, Object> eval = x -> evaluateWithoutParams(
+    private final Function<Symbol, Object> eval = x -> evaluateWithoutParams(
         CoordinatorTxnCtx.systemTransactionContext(),
         nodeCtx,
         x
@@ -54,17 +52,16 @@ public class OptimizerRuleSessionSettingProviderTest {
 
     @Test
     public void test_optimizer_rule_session_settings() {
-        var settingsProvider = new LoadedRules();
-        var sessionSetting = settingsProvider.buildRuleSessionSetting(MergeFilters.class);
+        var sessionSetting = LoadedRules.buildRuleSessionSetting(MergeFilters.class);
 
-        assertThat(sessionSetting.name(), is("optimizer_merge_filters"));
-        assertThat(sessionSetting.description(), is("Indicates if the optimizer rule MergeFilters is activated."));
-        assertThat(sessionSetting.defaultValue(), is("true"));
+        assertThat(sessionSetting.name()).isEqualTo("optimizer_merge_filters");
+        assertThat(sessionSetting.description()).isEqualTo("Indicates if the optimizer rule MergeFilters is activated.");
+        assertThat(sessionSetting.defaultValue()).isEqualTo("true");
 
         SearchPath searchPath = SearchPath.createSearchPathFrom("dummySchema");
         var mergefilterSettings = new CoordinatorSessionSettings(
-            User.of("user"),
-            User.of("user"),
+            RolesHelper.userOf("user"),
+            RolesHelper.userOf("user"),
             searchPath,
             true,
             Set.of(MergeFilters.class),
@@ -72,16 +69,14 @@ public class OptimizerRuleSessionSettingProviderTest {
             0
         );
 
-        assertThat(sessionSetting.getValue(mergefilterSettings), is("false"));
-
-        var sessionSettings = new CoordinatorSessionSettings(User.of("user"));
+        assertThat(sessionSetting.getValue(mergefilterSettings)).isEqualTo("false");
 
         // Disable MergeFilters 'SET SESSION optimizer_merge_filters = false'
-        sessionSetting.apply(sessionSettings, List.of(Literal.of(false)), eval);
-        assertThat(sessionSettings.excludedOptimizerRules(), containsInAnyOrder(MergeFilters.class));
+        sessionSetting.apply(mergefilterSettings, List.of(Literal.of(false)), eval);
+        assertThat(mergefilterSettings.excludedOptimizerRules()).containsExactlyInAnyOrder(MergeFilters.class);
 
         // Enable MergeFilters 'SET SESSION optimizer_merge_filters = true'
-        sessionSetting.apply(sessionSettings, List.of(Literal.of(true)), eval);
-        assertThat(sessionSettings.excludedOptimizerRules().isEmpty(), is(true));
+        sessionSetting.apply(mergefilterSettings, List.of(Literal.of(true)), eval);
+        assertThat(mergefilterSettings.excludedOptimizerRules()).isEmpty();
     }
 }

@@ -19,15 +19,13 @@
 
 package org.elasticsearch.cluster.coordination;
 
-import static org.elasticsearch.common.util.concurrent.ConcurrentCollections.newConcurrentMap;
 import static org.elasticsearch.monitor.StatusInfo.Status.UNHEALTHY;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.LongConsumer;
-
-import org.jetbrains.annotations.Nullable;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -43,6 +41,7 @@ import org.elasticsearch.threadpool.ThreadPool.Names;
 import org.elasticsearch.transport.TransportException;
 import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
+import org.jetbrains.annotations.Nullable;
 
 public class PreVoteCollector {
 
@@ -149,7 +148,7 @@ public class PreVoteCollector {
     }
 
     private class PreVotingRound implements Releasable {
-        private final Map<DiscoveryNode, PreVoteResponse> preVotesReceived = newConcurrentMap();
+        private final Map<DiscoveryNode, PreVoteResponse> preVotesReceived = new ConcurrentHashMap<>();
         private final AtomicBoolean electionStarted = new AtomicBoolean();
         private final PreVoteRequest preVoteRequest;
         private final ClusterState clusterState;

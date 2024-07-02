@@ -19,14 +19,15 @@
 
 package org.elasticsearch.common.logging;
 
+import java.util.WeakHashMap;
+
 import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.Marker;
 import org.apache.logging.log4j.MarkerManager;
 import org.apache.logging.log4j.message.Message;
 import org.apache.logging.log4j.spi.ExtendedLogger;
 import org.apache.logging.log4j.spi.ExtendedLoggerWrapper;
-
-import java.util.WeakHashMap;
 
 /**
  * A logger that prefixes all messages with a fixed prefix specified during construction. The prefix mechanism uses the marker construct, so
@@ -70,26 +71,27 @@ class PrefixLogger extends ExtendedLoggerWrapper {
      * Construct a prefix logger with the specified name and prefix.
      *
      * @param logger the extended logger to wrap
-     * @param name   the name of this prefix logger
      * @param prefix the prefix for this prefix logger
      */
-    PrefixLogger(final ExtendedLogger logger, final String name, final String prefix) {
-        super(logger, name, null);
+    PrefixLogger(final Logger logger, final String prefix) {
+        super((ExtendedLogger) logger, logger.getName(), null);
 
-        final String actualPrefix = (prefix == null ? "" : prefix);
+        if (prefix == null || prefix.isEmpty()) {
+            throw new IllegalArgumentException("if you don't need a prefix then use a regular logger");
+        }
         final Marker actualMarker;
         // markers is not thread-safe, so we synchronize access
         synchronized (MARKERS) {
-            final Marker maybeMarker = MARKERS.get(actualPrefix);
+            final Marker maybeMarker = MARKERS.get(prefix);
             if (maybeMarker == null) {
-                actualMarker = new MarkerManager.Log4jMarker(actualPrefix);
+                actualMarker = new MarkerManager.Log4jMarker(prefix);
                 /*
                  * We must create a new instance here as otherwise the marker will hold a reference to the key in the weak hash map; as
                  * those references are held strongly, this would give a strong reference back to the key preventing them from ever being
                  * collected. This also guarantees that no other strong reference can be held to the prefix anywhere.
                  */
                 // noinspection RedundantStringConstructorCall
-                MARKERS.put(new String(actualPrefix), actualMarker);
+                MARKERS.put(new String(prefix), actualMarker);
             } else {
                 actualMarker = maybeMarker;
             }

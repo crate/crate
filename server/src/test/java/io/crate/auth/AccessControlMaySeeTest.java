@@ -21,18 +21,16 @@
 
 package io.crate.auth;
 
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.hasItem;
-import static org.junit.Assert.assertThat;
+import static io.crate.role.metadata.RolesHelper.userOf;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
-import java.util.Set;
 
-import org.elasticsearch.common.util.CollectionUtils;
 import org.elasticsearch.test.ESTestCase;
-import org.hamcrest.Matcher;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -45,45 +43,47 @@ import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
-import io.crate.user.Privilege;
-import io.crate.user.User;
+import io.crate.role.Role;
+import io.crate.role.Roles;
+import io.crate.role.Securable;
 
 public class AccessControlMaySeeTest extends ESTestCase {
 
     private List<List<Object>> validationCallArguments;
-    private User user;
+    private Role user;
     private AccessControl accessControl;
 
     @Before
     public void setUpUserAndValidator() {
         validationCallArguments = new ArrayList<>();
-        user = new User("normal", Set.of(), Set.of(), null) {
+        user = userOf("normal");
+        Roles roles = new Roles() {
+            @Override
+            public Collection<Role> roles() {
+                return List.of(user);
+            }
 
             @Override
-            public boolean hasAnyPrivilege(Privilege.Clazz clazz, String ident) {
-                validationCallArguments.add(CollectionUtils.arrayAsArrayList(clazz, ident, user.name()));
+            public boolean hasAnyPrivilege(Role user, Securable securable, @Nullable String ident) {
+                validationCallArguments.add(Arrays.asList(securable, ident, user.name()));
                 return true;
             }
         };
-        accessControl = new AccessControlImpl(() -> List.of(user), new CoordinatorSessionSettings(user));
+        accessControl = new AccessControlImpl(roles, new CoordinatorSessionSettings(user));
     }
 
-    @SuppressWarnings("unchecked")
     private void assertAskedAnyForCluster() {
-        Matcher<Iterable<?>> matcher = (Matcher) hasItem(contains(Privilege.Clazz.CLUSTER, null, user.name()));
-        assertThat(validationCallArguments, matcher);
+        assertThat(validationCallArguments).satisfiesExactly(
+            s -> assertThat(s).containsExactly(Securable.CLUSTER, null, user.name()));
     }
 
-    @SuppressWarnings("unchecked")
     private void assertAskedAnyForSchema(String ident) {
-        Matcher<Iterable<?>> matcher = (Matcher) hasItem(contains(Privilege.Clazz.SCHEMA, ident, user.name()));
-        assertThat(validationCallArguments, matcher);
+        assertThat(validationCallArguments).satisfiesExactly(
+            s -> assertThat(s).containsExactly(Securable.SCHEMA, ident, user.name()));
     }
 
-    @SuppressWarnings("unchecked")
     private void assertAskedAnyForTable(String ident) {
-        Matcher<Iterable<?>> matcher = (Matcher) hasItem(contains(Privilege.Clazz.TABLE, ident, user.name()));
-        assertThat(validationCallArguments, matcher);
+        assertThat(validationCallArguments).contains(List.of(Securable.TABLE, ident, user.name()));
     }
 
     @Test
@@ -144,7 +144,7 @@ public class AccessControlMaySeeTest extends ESTestCase {
         // select x from empty_row;
         accessControl.ensureMaySee(
             new ColumnUnknownException(
-                new ColumnIdent("x"), new RelationName("doc", "empty_row")));
+                ColumnIdent.of("x"), new RelationName("doc", "empty_row")));
         assertAskedAnyForTable("doc.empty_row");
     }
 

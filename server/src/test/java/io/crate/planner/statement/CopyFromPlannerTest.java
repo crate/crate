@@ -54,11 +54,10 @@ public class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void setupExecutor() throws IOException {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addTable(USER_TABLE_DEFINITION)
-            .addTable("create table t1 (a string, x int, i int)")
-            .build();
-        plannerContext = e.getPlannerContext(clusterService.state());
+            .addTable("create table t1 (a string, x int, i int)");
+        plannerContext = e.getPlannerContext();
     }
 
     private Collect plan(String statement) {

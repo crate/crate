@@ -35,7 +35,7 @@ import java.util.function.IntSupplier;
 
 import org.elasticsearch.index.shard.ShardId;
 
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.common.concurrent.KillableCompletionStage;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
@@ -115,7 +115,7 @@ public class OrderedLuceneBatchIteratorFactory {
                 stage = ThreadPools.runWithAvailableThreads(
                         executor,
                         availableThreads,
-                        Lists2.map(orderedDocCollectors, Function.identity()));
+                        Lists.map(orderedDocCollectors, Function.identity()));
             } else {
                 stage = loadFrom(collectorsByShardId.get(shardId));
             }

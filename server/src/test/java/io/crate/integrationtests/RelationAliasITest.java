@@ -22,8 +22,7 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
@@ -41,9 +40,9 @@ public class RelationAliasITest extends IntegTestCase {
                 "ORDER BY\n" +
                 "    y\n" +
                 "LIMIT 3 offset 2");
-        assertThat(printedTable(response.rows()), is("30| 2.0| 40.0\n" +
+        assertThat(printedTable(response.rows())).isEqualTo("30| 2.0| 40.0\n" +
                                                      "40| 2.5| 40.0\n" +
-                                                     "50| 3.0| 40.0\n"));
+                                                     "50| 3.0| 40.0\n");
     }
 
     @Test
@@ -57,9 +56,9 @@ public class RelationAliasITest extends IntegTestCase {
                 "ORDER BY\n" +
                 "    col2\n" +
                 "LIMIT 3 offset 2");
-        assertThat(printedTable(response.rows()), is("30| 2.0| 40.0\n" +
+        assertThat(printedTable(response.rows())).isEqualTo("30| 2.0| 40.0\n" +
                                                      "40| 2.5| 40.0\n" +
-                                                     "50| 3.0| 40.0\n"));
+                                                     "50| 3.0| 40.0\n");
     }
 
     @Test
@@ -71,7 +70,7 @@ public class RelationAliasITest extends IntegTestCase {
                 " from t1 t" +
                 " group by 2" +
                 " order by 1");
-        assertThat(printedTable(response.rows()), is("1| bar| bar\n" +
-                                                     "2| foo| foo\n"));
+        assertThat(printedTable(response.rows())).isEqualTo("1| bar| bar\n" +
+                                                     "2| foo| foo\n");
     }
 }

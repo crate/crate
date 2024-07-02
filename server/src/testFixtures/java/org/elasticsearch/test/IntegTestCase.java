@@ -22,7 +22,7 @@
 package org.elasticsearch.test;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS;
+import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_WAIT_FOR_ACTIVE_SHARDS;
@@ -33,14 +33,6 @@ import static org.elasticsearch.test.XContentTestUtils.differenceBetweenMapsIgno
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertNoFailures;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertNoTimeout;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
-import static org.hamcrest.core.IsEqual.equalTo;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.lang.annotation.Annotation;
@@ -89,13 +81,13 @@ import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
-import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.client.AdminClient;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
+import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.IndexRoutingTable;
@@ -108,7 +100,6 @@ import org.elasticsearch.common.CheckedRunnable;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.inject.ConfigurationException;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.common.settings.Setting;
@@ -119,8 +110,6 @@ import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.TestEnvironment;
 import org.elasticsearch.http.HttpTransportSettings;
@@ -130,7 +119,6 @@ import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.MergePolicyConfig;
 import org.elasticsearch.index.MergeSchedulerConfig;
 import org.elasticsearch.index.MockEngineFactoryPlugin;
-import org.elasticsearch.index.mapper.MockFieldFilterPlugin;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.IndicesQueryCache;
@@ -143,8 +131,6 @@ import org.elasticsearch.test.disruption.NetworkDisruption;
 import org.elasticsearch.test.disruption.ServiceDisruptionScheme;
 import org.elasticsearch.test.store.MockFSIndexStore;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.Netty4Plugin;
-import org.hamcrest.Matchers;
 import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -161,13 +147,12 @@ import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 import com.carrotsearch.randomizedtesting.generators.RandomStrings;
 
-import io.crate.Constants;
 import io.crate.action.sql.Cursors;
 import io.crate.action.sql.Session;
 import io.crate.action.sql.Sessions;
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.ParamTypeHints;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
@@ -188,7 +173,6 @@ import io.crate.execution.jobs.kill.KillableCallable;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
@@ -199,16 +183,17 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.SessionSettings;
-import io.crate.metadata.table.TableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
-import io.crate.planner.optimizer.costs.PlanStats;
+import io.crate.planner.optimizer.LoadedRules;
 import io.crate.planner.optimizer.rule.MergeFilterAndCollect;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.protocols.postgres.TransactionState;
+import io.crate.role.Role;
+import io.crate.role.Roles;
 import io.crate.sql.Identifiers;
 import io.crate.sql.parser.SqlParser;
 import io.crate.statistics.TableStats;
@@ -216,14 +201,12 @@ import io.crate.test.integration.SystemPropsTestLoggingListener;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.TestExecutionConfig;
-import io.crate.testing.UseNewCluster;
 import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseJdbc;
+import io.crate.testing.UseNewCluster;
 import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
 import io.crate.types.DataType;
-import io.crate.user.User;
-import io.crate.user.UserLookup;
 
 /**
  * {@link IntegTestCase} is an abstract base class to run integration
@@ -609,7 +592,7 @@ public abstract class IntegTestCase extends ESTestCase {
         }
         // always default delayed allocation to 0 to make sure we have tests are not delayed
         builder.put(UnassignedInfo.INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING.getKey(), 0);
-        builder.put(SETTING_AUTO_EXPAND_REPLICAS, "false");
+        builder.put(AutoExpandReplicas.SETTING_KEY, "false");
         builder.put(SETTING_WAIT_FOR_ACTIVE_SHARDS.getKey(), ActiveShardCount.ONE.toString());
         if (randomBoolean()) {
             builder.put(IndexSettings.INDEX_SOFT_DELETES_RETENTION_OPERATIONS_SETTING.getKey(), between(0, 1000));
@@ -622,18 +605,8 @@ public abstract class IntegTestCase extends ESTestCase {
      * already exists this method will fail and wipe all the indices created so far.
      */
     public final void createIndex(String... names) {
-        List<String> created = new ArrayList<>();
         for (String name : names) {
-            boolean success = false;
-            try {
-                assertAcked(FutureUtils.get(client().admin().indices().create(new CreateIndexRequest(name, indexSettings()))));
-                created.add(name);
-                success = true;
-            } finally {
-                if (!success && !created.isEmpty()) {
-                    cluster().wipeIndices(created.toArray(new String[created.size()]));
-                }
-            }
+            assertAcked(FutureUtils.get(client().admin().indices().create(new CreateIndexRequest(name, indexSettings()))));
         }
     }
 
@@ -645,12 +618,12 @@ public abstract class IntegTestCase extends ESTestCase {
         assertBusy(() -> {
             for (Client client : clients()) {
                 ClusterHealthResponse clusterHealth = client.admin().cluster().health(new ClusterHealthRequest().local(true)).get();
-                assertThat("client " + client + " still has in flight fetch", clusterHealth.getNumberOfInFlightFetch(), equalTo(0));
+                assertThat(clusterHealth.getNumberOfInFlightFetch()).as("client " + client + " still has in flight fetch").isEqualTo(0);
                 var pendingTasks = FutureUtils.get(
                     client.admin().cluster().execute(PendingClusterTasksAction.INSTANCE, new PendingClusterTasksRequest().local(true)));
-                assertThat("client " + client + " still has pending tasks " + pendingTasks, pendingTasks, Matchers.emptyIterable());
+                assertThat(pendingTasks).as("client " + client + " still has pending tasks " + pendingTasks).isEmpty();
                 clusterHealth = client.admin().cluster().health(new ClusterHealthRequest().local(true)).get();
-                assertThat("client " + client + " still has in flight fetch", clusterHealth.getNumberOfInFlightFetch(), equalTo(0));
+                assertThat(clusterHealth.getNumberOfInFlightFetch()).as("client " + client + " still has in flight fetch").isEqualTo(0);
             }
         });
         assertNoTimeout(client().admin().cluster().health(new ClusterHealthRequest().waitForEvents(Priority.LANGUID)).get());
@@ -661,24 +634,21 @@ public abstract class IntegTestCase extends ESTestCase {
      * Yet if the shards can't be allocated on any other node shards for this index will remain allocated on
      * more than <code>n</code> nodes.
      */
-    public void allowNodes(String index, int n) {
+    public void allowNodes(String index, int num) {
         assert index != null;
-        cluster().ensureAtLeastNumDataNodes(n);
-        Settings.Builder builder = Settings.builder();
-        if (n > 0) {
-            getExcludeSettings(n, builder);
+        cluster().ensureAtLeastNumDataNodes(num);
+        if (num > 0) {
+            RelationName relation = RelationName.fromIndexName(index);
+            String exclude = String.join(",", cluster().allDataNodesButN(num));
+            logger.debug("allowNodes: updating [{}]'s routng.allocation.exclude._name to [{}]", index, exclude);
+            String stmt = String.format(
+                Locale.ENGLISH,
+                "alter table \"%s\".\"%s\" set (\"routing.allocation.exclude._name\" = ?)",
+                relation.schema(),
+                relation.name()
+            );
+            execute(stmt, new Object[] { exclude });
         }
-        Settings settings = builder.build();
-        if (!settings.isEmpty()) {
-            logger.debug("allowNodes: updating [{}]'s setting to [{}]", index, settings.toDelimitedString(';'));
-            FutureUtils.get(client().admin().indices().updateSettings(new UpdateSettingsRequest(settings, index)));
-        }
-    }
-
-    private Settings.Builder getExcludeSettings(int num, Settings.Builder builder) {
-        String exclude = String.join(",", cluster().allDataNodesButN(num));
-        builder.put("index.routing.allocation.exclude._name", exclude);
-        return builder;
     }
 
     /**
@@ -746,8 +716,9 @@ public abstract class IntegTestCase extends ESTestCase {
                 pendingClusterTasks);
             fail("timed out waiting for " + color + " state");
         }
-        assertThat("Expected at least " + clusterHealthStatus + " but got " + actionGet.getStatus(),
-            actionGet.getStatus().value(), lessThanOrEqualTo(clusterHealthStatus.value()));
+        assertThat(actionGet.getStatus().value())
+            .as("Expected at least " + clusterHealthStatus + " but got " + actionGet.getStatus())
+            .isLessThanOrEqualTo(clusterHealthStatus.value());
         logger.debug("indices {} are {}", indices.length == 0 ? "[_all]" : indices, color);
         return actionGet.getStatus();
     }
@@ -808,10 +779,10 @@ public abstract class IntegTestCase extends ESTestCase {
                 status,
                 clusterStateResponse.getState(),
                 pendingClusterTasks);
-            assertThat("timed out waiting for relocation", actionGet.isTimedOut(), equalTo(false));
+            assertThat(actionGet.isTimedOut()).as("timed out waiting for relocation").isFalse();
         }
         if (status != null) {
-            assertThat(actionGet.getStatus(), equalTo(status));
+            assertThat(actionGet.getStatus()).isEqualTo(status);
         }
         return actionGet.getStatus();
     }
@@ -840,8 +811,7 @@ public abstract class IntegTestCase extends ESTestCase {
                         var response = sqlExecutor.exec("select count(*) from " + indexer.table);
                         long count = (long) response.rows()[0][0];
                         if (count == lastKnownCount) {
-                            // no progress - try to refresh for the next time
-                            client().admin().indices().refresh(new RefreshRequest()).get();
+                            sqlExecutor.exec("refresh table " + indexer.table);
                         }
                         lastKnownCount = count;
                     } catch (Exception e) { // count now acts like search and barfs if all shards failed...
@@ -858,7 +828,7 @@ public abstract class IntegTestCase extends ESTestCase {
                     }
                 }
 
-                assertThat(lastKnownCount, greaterThanOrEqualTo(numDocs));
+                assertThat(lastKnownCount).isGreaterThanOrEqualTo(numDocs);
             },
             maxWaitTimeMs,
             TimeUnit.MILLISECONDS
@@ -906,18 +876,14 @@ public abstract class IntegTestCase extends ESTestCase {
                 if (masterClusterState.version() == localClusterState.version()
                     && masterId.equals(localClusterState.nodes().getMasterNodeId())) {
                     try {
-                        assertEquals("cluster state UUID does not match",
-                                     masterClusterState.stateUUID(),
-                                     localClusterState.stateUUID());
+                        assertThat(localClusterState.stateUUID()).as("cluster state UUID does not match").isEqualTo(masterClusterState.stateUUID());
                         // We cannot compare serialization bytes since serialization order of maps is not guaranteed
                         // but we can compare serialization sizes - they should be the same
-                        assertEquals("cluster state size does not match",
-                                     masterClusterStateSize,
-                                     localClusterStateSize);
+                        assertThat(localClusterStateSize).as("cluster state size does not match").isEqualTo(masterClusterStateSize);
                         // Compare JSON serialization
-                        assertNull(
-                            "cluster state JSON serialization does not match",
-                            differenceBetweenMapsIgnoringArrayOrder(masterStateMap, localStateMap));
+                        assertThat(differenceBetweenMapsIgnoringArrayOrder(masterStateMap, localStateMap))
+                            .as("cluster state JSON serialization does not match")
+                            .isNull();
                     } catch (AssertionError error) {
                         logger.error(
                             "Cluster state from master:\n{}\nLocal cluster state:\n{}",
@@ -980,7 +946,7 @@ public abstract class IntegTestCase extends ESTestCase {
             fail("failed to reach a stable cluster of [" + nodeCount + "] nodes. Tried via [" + viaNode + "]. last cluster state:\n"
                  + stateResponse.getState());
         }
-        assertThat(clusterHealthResponse.isTimedOut(), is(false));
+        assertThat(clusterHealthResponse.isTimedOut()).isFalse();
         ensureFullyConnectedCluster(cluster);
     }
 
@@ -999,10 +965,11 @@ public abstract class IntegTestCase extends ESTestCase {
      * Waits for relocations and refreshes all indices in the cluster.
      *
      * @see #waitForRelocation()
+     * @deprecated use SQL: refresh table
      */
+    @Deprecated(forRemoval = true)
     protected final RefreshResponse refresh(String... indices) {
         waitForRelocation();
-        // TODO RANDOMIZE with flush?
         RefreshResponse actionGet;
         try {
             actionGet = client().admin().indices().refresh(new RefreshRequest(indices)).get();
@@ -1082,7 +1049,7 @@ public abstract class IntegTestCase extends ESTestCase {
         boolean autoManageMasterNodes() default true;
 
         /**
-         * Returns the number of client nodes in the cluster. Default is {@link InternalTestCluster#DEFAULT_NUM_CLIENT_NODES}, a
+         * Returns the number of client nodes in the cluster. Default is {@link TestCluster#DEFAULT_NUM_CLIENT_NODES}, a
          * negative value means that the number of client nodes will be randomized.
          */
         int numClientNodes() default TestCluster.DEFAULT_NUM_CLIENT_NODES;
@@ -1184,7 +1151,7 @@ public abstract class IntegTestCase extends ESTestCase {
      * Returns a collection of plugins that should be loaded on each node.
      */
     protected Collection<Class<? extends Plugin>> nodePlugins() {
-        return List.of(Netty4Plugin.class);
+        return List.of();
     }
 
     protected TestCluster buildTestCluster(Scope scope, long seed) {
@@ -1224,7 +1191,7 @@ public abstract class IntegTestCase extends ESTestCase {
             nodeConfigurationSource,
             getNumClientNodes(),
             nodePrefix,
-            Lists2.concat(mockPlugins, Netty4Plugin.class),
+            mockPlugins,
             forbidPrivateIndexSettings()
         );
     }
@@ -1272,9 +1239,6 @@ public abstract class IntegTestCase extends ESTestCase {
             }
             if (addMockInternalEngine() && randomBoolean()) {
                 mocks.add(MockEngineFactoryPlugin.class);
-            }
-            if (randomBoolean()) {
-                mocks.add(MockFieldFilterPlugin.class);
             }
         }
 
@@ -1329,7 +1293,9 @@ public abstract class IntegTestCase extends ESTestCase {
                     if (shardRouting.currentNodeId() != null && index.equals(shardRouting.getIndexName())) {
                         String name = clusterState.nodes().get(shardRouting.currentNodeId()).getName();
                         nodes.add(name);
-                        assertThat("Allocated on new node: " + name, Regex.simpleMatch(pattern, name), is(true));
+                        assertThat(Regex.simpleMatch(pattern, name))
+                            .as("Allocated on new node: " + name)
+                            .isTrue();
                     }
                 }
             }
@@ -1634,7 +1600,7 @@ public abstract class IntegTestCase extends ESTestCase {
                     "An exception is one session created by the TableStatsService";
                 assertThat(sessions.getActive())
                     .as(msg)
-                    .hasSize(1);
+                    .hasSizeLessThanOrEqualTo(1);
             }
         });
     }
@@ -1685,14 +1651,8 @@ public abstract class IntegTestCase extends ESTestCase {
      */
     public SQLResponse systemExecute(String stmt, @Nullable String schema, String node) {
         Sessions sqlOperations = cluster().getInstance(Sessions.class, node);
-        UserLookup userLookup;
-        try {
-            userLookup = cluster().getInstance(UserLookup.class, node);
-        } catch (ConfigurationException ignored) {
-            // If enterprise is not enabled there is no UserLookup instance bound in guice
-            userLookup = () -> List.of(User.CRATE_USER);
-        }
-        try (Session session = sqlOperations.newSession(schema, userLookup.findUser("crate"))) {
+        Roles roles = cluster().getInstance(Roles.class, node);
+        try (Session session = sqlOperations.newSession(schema, roles.getUser("crate"))) {
             response = sqlExecutor.exec(stmt, session);
         }
         return response;
@@ -1773,22 +1733,21 @@ public abstract class IntegTestCase extends ESTestCase {
         TableStats tableStats = cluster().getInstance(TableStats.class, nodeName);
 
         CoordinatorSessionSettings sessionSettings = new CoordinatorSessionSettings(
-            User.CRATE_USER,
+            Role.CRATE_USER,
+            Role.CRATE_USER,
+            LoadedRules.INSTANCE.disabledRules(),
             sqlExecutor.getCurrentSchema()
         );
         CoordinatorTxnCtx coordinatorTxnCtx = new CoordinatorTxnCtx(sessionSettings);
         RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
-        PlannerContext plannerContext = new PlannerContext(
-            planner.currentClusterState(),
+        PlannerContext plannerContext = planner.createContext(
             routingProvider,
             UUID.randomUUID(),
             coordinatorTxnCtx,
-            nodeCtx,
             0,
             null,
             Cursors.EMPTY,
-            TransactionState.IDLE,
-            new PlanStats(nodeCtx, coordinatorTxnCtx, tableStats)
+            TransactionState.IDLE
         );
         Plan plan = planner.plan(
             analyzer.analyze(
@@ -1882,7 +1841,7 @@ public abstract class IntegTestCase extends ESTestCase {
 
     public SQLResponse execute(String stmt, Object[] args, String node, TimeValue timeout) {
         Sessions sqlOperations = cluster().getInstance(Sessions.class, node);
-        try (Session session = sqlOperations.newSession(sqlExecutor.getCurrentSchema(), User.CRATE_USER)) {
+        try (Session session = sqlOperations.newSession(sqlExecutor.getCurrentSchema(), Role.CRATE_USER)) {
             SQLResponse response = sqlExecutor.exec(stmt, args, session, timeout);
             this.response = response;
             return response;
@@ -1896,7 +1855,7 @@ public abstract class IntegTestCase extends ESTestCase {
      * @return the index mapping as String
      * @throws IOException
      */
-    protected String getIndexMapping(String index) throws IOException {
+    protected Map<String, Object> getIndexMapping(String index) throws IOException {
         ClusterStateRequest request = new ClusterStateRequest()
             .routingTable(false)
             .nodes(false)
@@ -1905,28 +1864,8 @@ public abstract class IntegTestCase extends ESTestCase {
         ClusterStateResponse response = FutureUtils.get(client().admin().cluster().state(request));
 
         Metadata metadata = response.getState().metadata();
-        XContentBuilder builder = JsonXContent.builder().startObject();
-
         IndexMetadata indexMetadata = metadata.iterator().next();
-        builder.field(Constants.DEFAULT_MAPPING_TYPE);
-        builder.map(indexMetadata.mapping().sourceAsMap());
-        builder.endObject();
-
-        return Strings.toString(builder);
-    }
-
-    public void waitForMappingUpdateOnAll(final RelationName relationName, final String... fieldNames) throws Exception {
-        assertBusy(() -> {
-            Iterable<Schemas> referenceInfosIterable = cluster().getInstances(Schemas.class);
-            for (Schemas schemas : referenceInfosIterable) {
-                TableInfo tableInfo = schemas.getTableInfo(relationName);
-                assertThat(tableInfo).isNotNull();
-                for (String fieldName : fieldNames) {
-                    ColumnIdent columnIdent = ColumnIdent.fromPath(fieldName);
-                    assertThat(tableInfo.getReference(columnIdent)).isNotNull();
-                }
-            }
-        }, 20L, TimeUnit.SECONDS);
+        return indexMetadata.mapping().sourceAsMap();
     }
 
     public void assertFunctionIsCreatedOnAll(String schema, String name, List<DataType<?>> argTypes) throws Exception {
@@ -1937,7 +1876,7 @@ public abstract class IntegTestCase extends ESTestCase {
                 FunctionImplementation func = function.get(
                     schema,
                     name,
-                    Lists2.map(argTypes, t -> Literal.of(t, null)),
+                    Lists.map(argTypes, t -> Literal.of(t, null)),
                     searchPath);
                 assertThat(func).isNotNull();
                 assertThat(func.boundSignature().argTypes()).isEqualTo(argTypes);
@@ -1967,45 +1906,6 @@ public abstract class IntegTestCase extends ESTestCase {
         }, 20L, TimeUnit.SECONDS);
     }
 
-    public void waitForMappingUpdateOnAll(final String tableOrPartition, final String... fieldNames) throws Exception {
-        waitForMappingUpdateOnAll(new RelationName(sqlExecutor.getCurrentSchema(), tableOrPartition), fieldNames);
-    }
-
-    /**
-     * Get the IndexSettings as JSON String
-     *
-     * @param index the name of the index
-     * @return the IndexSettings as JSON String
-     * @throws IOException
-     */
-    protected String getIndexSettings(String index) throws IOException {
-        ClusterStateRequest request = new ClusterStateRequest()
-            .routingTable(false)
-            .nodes(false)
-            .metadata(true)
-            .indices(index);
-        ClusterStateResponse response = FutureUtils.get(client().admin().cluster().state(request));
-
-        Metadata metadata = response.getState().metadata();
-        XContentBuilder builder = JsonXContent.builder().startObject();
-
-        for (IndexMetadata indexMetadata : metadata) {
-            builder.startObject(indexMetadata.getIndex().getName());
-            builder.startObject("settings");
-            Settings settings = indexMetadata.getSettings();
-            for (String settingName : settings.keySet()) {
-                builder.field(settingName, settings.get(settingName));
-            }
-            builder.endObject();
-
-            builder.endObject();
-        }
-
-        builder.endObject();
-
-        return Strings.toString(builder);
-    }
-
     /**
      * Creates an {@link Session} on a specific node.
      * This can be used to ensure that a request is performed on a specific node.
@@ -2016,7 +1916,7 @@ public abstract class IntegTestCase extends ESTestCase {
     protected Session createSessionOnNode(String nodeName) {
         Sessions sqlOperations = cluster().getInstance(Sessions.class, nodeName);
         return sqlOperations.newSession(
-            sqlExecutor.getCurrentSchema(), User.CRATE_USER);
+            sqlExecutor.getCurrentSchema(), Role.CRATE_USER);
     }
 
     /**
@@ -2029,7 +1929,7 @@ public abstract class IntegTestCase extends ESTestCase {
      */
     protected Session createSession(@Nullable String defaultSchema) {
         Sessions sqlOperations = cluster().getInstance(Sessions.class);
-        return sqlOperations.newSession(defaultSchema, User.CRATE_USER);
+        return sqlOperations.newSession(defaultSchema, Role.CRATE_USER);
     }
 
     private TestExecutionConfig testExecutionConfig() {

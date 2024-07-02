@@ -24,6 +24,8 @@ package io.crate.expression.scalar;
 
 import static io.crate.metadata.functions.Signature.scalar;
 
+import java.util.EnumSet;
+
 import org.joda.time.DateTimeZone;
 import org.joda.time.Interval;
 import org.joda.time.Period;
@@ -31,6 +33,7 @@ import org.joda.time.PeriodType;
 
 import io.crate.data.Input;
 import io.crate.metadata.FunctionName;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -43,23 +46,23 @@ public class AgeFunction extends Scalar<Period, Object> {
 
     private static final FunctionName NAME = new FunctionName(PgCatalogSchemaInfo.NAME, "age");
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder builder) {
+        builder.add(
             scalar(
                 NAME,
                 DataTypes.TIMESTAMP.getTypeSignature(),
                 DataTypes.INTERVAL.getTypeSignature()
-            ).withFeatures(NO_FEATURES),
+            ).withFeatures(EnumSet.of(Feature.NULLABLE)),
             AgeFunction::new
         );
 
-        module.register(
+        builder.add(
             scalar(
                 NAME,
                 DataTypes.TIMESTAMP.getTypeSignature(),
                 DataTypes.TIMESTAMP.getTypeSignature(),
                 DataTypes.INTERVAL.getTypeSignature()
-            ).withFeatures(NO_FEATURES),
+            ).withFeatures(EnumSet.of(Feature.NULLABLE)),
             AgeFunction::new
         );
     }

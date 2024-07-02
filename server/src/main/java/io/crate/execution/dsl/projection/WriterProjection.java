@@ -21,28 +21,6 @@
 
 package io.crate.execution.dsl.projection;
 
-import io.crate.expression.eval.EvaluatingNormalizer;
-import io.crate.expression.scalar.FormatFunction;
-import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.InputColumn;
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.SimpleReference;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.TransactionContext;
-import io.crate.metadata.sys.SysShardsTableInfo;
-import io.crate.types.DataTypes;
-import io.crate.types.IntegerType;
-import io.crate.types.StringType;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.settings.Settings;
-
-import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -50,39 +28,25 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import org.elasticsearch.Version;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TransactionContext;
+import io.crate.types.DataTypes;
+
 public class WriterProjection extends Projection {
 
     // number of lines written
     private static final List<Symbol> OUTPUTS = List.of(new InputColumn(0, DataTypes.LONG));
-
-    private static final SimpleReference SHARD_ID_REF = new SimpleReference(
-        new ReferenceIdent(SysShardsTableInfo.IDENT, SysShardsTableInfo.Columns.ID),
-        RowGranularity.SHARD,
-        IntegerType.INSTANCE,
-        0,
-        null
-    );
-    private static final SimpleReference TABLE_NAME_REF = new SimpleReference(
-        new ReferenceIdent(SysShardsTableInfo.IDENT, SysShardsTableInfo.Columns.TABLE_NAME),
-        RowGranularity.SHARD,
-        StringType.INSTANCE,
-        0,
-        null
-    );
-    private static final SimpleReference PARTITION_IDENT_REF = new SimpleReference(
-        new ReferenceIdent(SysShardsTableInfo.IDENT, SysShardsTableInfo.Columns.PARTITION_IDENT),
-        RowGranularity.SHARD,
-        StringType.INSTANCE,
-        0,
-        null
-    );
-
-
-    public static final Symbol DIRECTORY_TO_FILENAME = new Function(
-        FormatFunction.SIGNATURE,
-        List.of(Literal.of("%s_%s_%s.json"), TABLE_NAME_REF, SHARD_ID_REF, PARTITION_IDENT_REF),
-        DataTypes.STRING
-    );
 
     private final Symbol uri;
     private final List<Symbol> inputs;
@@ -128,7 +92,7 @@ public class WriterProjection extends Projection {
     }
 
     public WriterProjection(StreamInput in) throws IOException {
-        uri = Symbols.fromStream(in);
+        uri = Symbol.fromStream(in);
         int size = in.readVInt();
         if (size > 0) {
             outputNames = new ArrayList<>(size);
@@ -138,11 +102,11 @@ public class WriterProjection extends Projection {
         } else {
             outputNames = null;
         }
-        inputs = Symbols.listFromStream(in);
+        inputs = Symbols.fromStream(in);
         int numOverwrites = in.readVInt();
         overwrites = new HashMap<>(numOverwrites);
         for (int i = 0; i < numOverwrites; i++) {
-            overwrites.put(new ColumnIdent(in), Symbols.fromStream(in));
+            overwrites.put(ColumnIdent.of(in), Symbol.fromStream(in));
         }
         int compressionTypeOrdinal = in.readInt();
         compressionType = compressionTypeOrdinal >= 0 ? CompressionType.values()[compressionTypeOrdinal] : null;
@@ -204,7 +168,7 @@ public class WriterProjection extends Projection {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        Symbols.toStream(uri, out);
+        Symbol.toStream(uri, out);
         if (outputNames != null) {
             out.writeVInt(outputNames.size());
             for (String name : outputNames) {
@@ -218,12 +182,12 @@ public class WriterProjection extends Projection {
         out.writeVInt(overwrites.size());
         for (Map.Entry<ColumnIdent, Symbol> entry : overwrites.entrySet()) {
             entry.getKey().writeTo(out);
-            Symbols.toStream(entry.getValue(), out);
+            Symbol.toStream(entry.getValue(), out);
         }
         out.writeInt(compressionType != null ? compressionType.ordinal() : -1);
         out.writeInt(outputFormat.ordinal());
         if (out.getVersion().onOrAfter(Version.V_4_8_0)) {
-            Settings.writeSettingsToStream(withClauseOptions, out);
+            Settings.writeSettingsToStream(out, withClauseOptions);
         }
     }
 

@@ -40,14 +40,15 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import io.crate.protocols.postgres.ConnectionProperties;
-import io.crate.user.User;
+import io.crate.role.Role;
+import io.crate.role.metadata.RolesHelper;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
 
 public class ClientCertAuthTest extends ESTestCase {
 
     private ConnectionProperties sslConnWithCert;
     // "example.com" is the CN used in SelfSignedCertificate
-    private User exampleUser = User.of("example.com");
+    private Role exampleUser = RolesHelper.userOf("example.com");
     private SSLSession sslSession;
 
     @BeforeClass
@@ -69,28 +70,33 @@ public class ClientCertAuthTest extends ESTestCase {
         sslSession = mock(SSLSession.class);
         when(sslSession.getPeerCertificates()).thenReturn(new Certificate[] { ssc.cert() });
 
-        sslConnWithCert = new ConnectionProperties(InetAddresses.forString("127.0.0.1"), Protocol.POSTGRES, sslSession);
+        sslConnWithCert = new ConnectionProperties(
+            new Credentials("crate", null),
+            InetAddresses.forString("127.0.0.1"),
+            Protocol.POSTGRES,
+            sslSession
+        );
     }
 
     @Test
     public void testLookupValidUserWithCert() throws Exception {
         ClientCertAuth clientCertAuth = new ClientCertAuth(() -> List.of(exampleUser));
 
-        User user = clientCertAuth.authenticate("example.com", null, sslConnWithCert);
+        Role user = clientCertAuth.authenticate(new Credentials("example.com", null), sslConnWithCert);
         assertThat(user).isEqualTo(exampleUser);
     }
 
     @Test
     public void testLookupValidUserWithCertWithDifferentCN() throws Exception {
-        ClientCertAuth clientCertAuth = new ClientCertAuth(() -> List.of(User.of("arthur")));
-        assertThatThrownBy(() -> clientCertAuth.authenticate("arthur", null, sslConnWithCert))
+        ClientCertAuth clientCertAuth = new ClientCertAuth(() -> List.of(RolesHelper.userOf("arthur")));
+        assertThatThrownBy(() -> clientCertAuth.authenticate(new Credentials("arthur", null), sslConnWithCert))
             .hasMessage("Common name \"example.com\" in client certificate doesn't match username \"arthur\"");
     }
 
     @Test
     public void testLookupUserWithMatchingCertThatDoesNotExist() throws Exception {
-        ClientCertAuth clientCertAuth = new ClientCertAuth(() -> List.of());
-        assertThatThrownBy(() -> clientCertAuth.authenticate("example.com", null, sslConnWithCert))
+        ClientCertAuth clientCertAuth = new ClientCertAuth(List::of);
+        assertThatThrownBy(() -> clientCertAuth.authenticate(new Credentials("example.com", null), sslConnWithCert))
             .hasMessage("Client certificate authentication failed for user \"example.com\"");
     }
 
@@ -98,20 +104,26 @@ public class ClientCertAuthTest extends ESTestCase {
     public void testMissingClientCert() throws Exception {
         SSLSession sslSession = mock(SSLSession.class);
         when(sslSession.getPeerCertificates()).thenReturn(new Certificate[0]);
+        var credentials = new Credentials("example.com", null);
         ConnectionProperties connectionProperties = new ConnectionProperties(
-            InetAddresses.forString("127.0.0.1"), Protocol.POSTGRES, sslSession);
+            credentials,
+            InetAddresses.forString("127.0.0.1"),
+            Protocol.POSTGRES,
+            sslSession
+        );
         ClientCertAuth clientCertAuth = new ClientCertAuth(() -> List.of(exampleUser));
 
-        assertThatThrownBy(() -> clientCertAuth.authenticate("example.com", null, connectionProperties))
+        assertThatThrownBy(() -> clientCertAuth.authenticate(credentials, connectionProperties))
             .hasMessage("Client certificate authentication failed for user \"example.com\"");
     }
 
     @Test
     public void testHttpClientCertAuthFailsOnUserMissMatchWithCN() throws Exception {
         ClientCertAuth clientCertAuth = new ClientCertAuth(() -> List.of(exampleUser));
-        ConnectionProperties conn = new ConnectionProperties(InetAddresses.forString("127.0.0.1"), Protocol.HTTP, sslSession);
+        var credentials = new Credentials("arthur_is_wrong", null);
+        ConnectionProperties conn = new ConnectionProperties(credentials, InetAddresses.forString("127.0.0.1"), Protocol.HTTP, sslSession);
 
-        assertThatThrownBy(() -> clientCertAuth.authenticate("arthur_is_wrong", null, conn))
+        assertThatThrownBy(() -> clientCertAuth.authenticate(credentials, conn))
             .hasMessage("Common name \"example.com\" in client certificate doesn't match username \"arthur_is_wrong\"");
     }
 }

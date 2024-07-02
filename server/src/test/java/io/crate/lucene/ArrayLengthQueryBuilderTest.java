@@ -21,10 +21,16 @@
 
 package io.crate.lucene;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.List;
 
 import org.apache.lucene.search.Query;
+import org.assertj.core.api.Assertions;
+import org.elasticsearch.Version;
 import org.junit.Test;
+
+import io.crate.testing.QueryTester;
 
 public class ArrayLengthQueryBuilderTest extends LuceneQueryBuilderTest {
 
@@ -70,5 +76,22 @@ public class ArrayLengthQueryBuilderTest extends LuceneQueryBuilderTest {
         Query query = convert("array_length(y_array, 1) <= 0");
         assertThat(query).hasToString(
             "MatchNoDocsQuery(\"array_length([], 1) is NULL, so array_length([], 1) <= 0 can't match\")");
+    }
+
+    @Test
+    public void test_NumTermsPerDocQuery_maps_column_idents_to_oids() throws Exception {
+        final long oid = 123;
+        try (QueryTester tester = new QueryTester.Builder(
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            "create table t (int_array array(int))",
+            () -> oid
+        ).indexValues("int_array", List.of(), List.of(1)).build()) {
+            Query query = tester.toQuery("array_length(int_array, 1) >= 1");
+            assertThat(query).hasToString(String.format("NumTermsPerDoc: %s", oid));
+            Assertions.assertThat(tester.runQuery("int_array", "array_length(int_array, 1) >= 1"))
+                .containsExactly(List.of(1));
+        }
     }
 }

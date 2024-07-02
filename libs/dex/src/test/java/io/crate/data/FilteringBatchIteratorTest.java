@@ -26,23 +26,24 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.crate.data.testing.BatchIteratorTester;
+import io.crate.data.testing.BatchIteratorTester.ResultOrder;
 import io.crate.data.testing.TestingBatchIterators;
 
-public class FilteringBatchIteratorTest {
+class FilteringBatchIteratorTest {
 
     private static final Predicate<Row> EVEN_ROW = row -> (int) row.get(0) % 2 == 0;
 
     @Test
     @SuppressWarnings({"rawtypes", "unchecked"})
-    public void testFilteringBatchIterator() throws Exception {
+    void testFilteringBatchIterator() throws Exception {
         List<Object[]> expectedResult = IntStream.iterate(0, l -> l + 2).limit(10).mapToObj(
             l -> new Object[]{l}).collect(Collectors.toList());
 
         var tester = BatchIteratorTester.forRows(
-            () -> new FilteringBatchIterator(TestingBatchIterators.range(0, 20), EVEN_ROW));
+            () -> new FilteringBatchIterator(TestingBatchIterators.range(0, 20), EVEN_ROW), ResultOrder.EXACT);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 }

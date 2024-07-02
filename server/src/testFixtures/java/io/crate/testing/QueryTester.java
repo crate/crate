@@ -25,7 +25,6 @@ import static java.util.Objects.requireNonNull;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -38,13 +37,12 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.common.collections.Iterables;
+import io.crate.common.collections.Lists;
 import io.crate.data.Input;
 import io.crate.execution.dml.IndexItem;
 import io.crate.execution.dml.Indexer;
@@ -80,32 +78,40 @@ public final class QueryTester implements AutoCloseable {
         private final IndexEnv indexEnv;
         private final LuceneQueryBuilder queryBuilder;
 
-        public Builder(Path tempDir,
-                       ThreadPool threadPool,
+        public Builder(ThreadPool threadPool,
+                       ClusterService clusterService,
+                       Version indexVersion,
+                       String createTableStmt) throws IOException {
+            this(
+                threadPool,
+                clusterService,
+                indexVersion,
+                createTableStmt,
+                // Disable OID generation for columns/references in order to be able to compare the query outcome with
+                // expected ones.
+                () -> COLUMN_OID_UNASSIGNED);
+        }
+
+        public Builder(ThreadPool threadPool,
                        ClusterService clusterService,
                        Version indexVersion,
                        String createTableStmt,
-                       AbstractModule... additionalModules) throws IOException {
-            // Disable OID generation for columns/references in order to be able to compare the query outcome with
-            // expected ones.
-            LongSupplier columnOidSupplier = () -> COLUMN_OID_UNASSIGNED;
+                       LongSupplier columnOidSupplier) throws IOException {
             var sqlExecutor = SQLExecutor
-                .builder(clusterService, additionalModules)
+                .of(clusterService)
                 .setColumnOidSupplier(columnOidSupplier)
-                .addTable(createTableStmt)
-                .build();
-            plannerContext = sqlExecutor.getPlannerContext(clusterService.state());
+                .addTable(createTableStmt);
+            plannerContext = sqlExecutor.getPlannerContext();
 
             var createTable = (CreateTable<?>) SqlParser.createStatement(createTableStmt);
             String tableName = Iterables.getLast(createTable.name().getName().getParts());
             table = sqlExecutor.resolveTableInfo(tableName);
 
             indexEnv = new IndexEnv(
+                sqlExecutor.nodeCtx,
                 threadPool,
                 table,
-                clusterService.state(),
-                indexVersion,
-                tempDir
+                clusterService.state(), indexVersion
             );
             queryBuilder = new LuceneQueryBuilder(plannerContext.nodeContext());
             var docTableRelation = new DocTableRelation(table);
@@ -123,17 +129,30 @@ public final class QueryTester implements AutoCloseable {
         }
 
         public Builder indexValue(String column, Object value) throws IOException {
-            MapperService mapperService = indexEnv.mapperService();
             Indexer indexer = new Indexer(
-                table.concreteIndices()[0],
+                table.concreteIndices(plannerContext.clusterState().metadata())[0],
                 table,
                 plannerContext.transactionContext(),
                 plannerContext.nodeContext(),
-                mapperService::getLuceneFieldType,
                 List.of(table.getReference(ColumnIdent.fromPath(column))),
                 null
             );
             var item = new IndexItem.StaticItem("dummy-id", List.of(), new Object[] { value }, -1L, -1L);
+            ParsedDocument parsedDocument = indexer.index(item);
+            indexEnv.writer().addDocument(parsedDocument.doc());
+            return this;
+        }
+
+        public Builder indexValues(List<String> columns, Object ... values) throws IOException {
+            Indexer indexer = new Indexer(
+                table.concreteIndices(plannerContext.clusterState().metadata())[0],
+                table,
+                plannerContext.transactionContext(),
+                plannerContext.nodeContext(),
+                Lists.map(columns, c -> table.getReference(ColumnIdent.fromPath(c))),
+                null
+            );
+            var item = new IndexItem.StaticItem("dummy-id", List.of(), values, -1L, -1L);
             ParsedDocument parsedDocument = indexer.index(item);
             indexEnv.writer().addDocument(parsedDocument.doc());
             return this;
@@ -184,9 +203,8 @@ public final class QueryTester implements AutoCloseable {
                 symbol -> queryBuilder.convert(
                     Optimizer.optimizeCasts(symbol,plannerContext),
                     systemTxnCtx,
-                    indexEnv.mapperService(),
                     indexEnv.indexService().index().getName(),
-                    indexEnv.queryShardContext(),
+                    indexEnv.indexService().indexAnalyzers(),
                     table,
                     indexEnv.queryCache()
                 ).query(),

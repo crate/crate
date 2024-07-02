@@ -421,7 +421,7 @@ public class FixCorruptedMetadataCommandITest extends IntegTestCase {
             execute("drop table if exists " + fqn);
             execute("create table " + fqn + " (q text) partitioned by (q)");
             execute("insert into " + fqn + " values ('aa'), ('ab'), ('bb')");
-            refresh();
+            execute("refresh table " + fqn);
             execute("select q from " + fqn + " order by q");
             assertThat(printedTable(response.rows())).isEqualTo("aa\nab\nbb\n");
         }

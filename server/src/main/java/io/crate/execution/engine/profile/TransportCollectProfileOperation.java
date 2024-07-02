@@ -21,13 +21,12 @@
 
 package io.crate.execution.engine.profile;
 
-import io.crate.action.FutureActionListener;
-import io.crate.execution.support.ActionExecutor;
-import io.crate.execution.support.NodeRequest;
-
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+
+import io.crate.execution.support.ActionExecutor;
+import io.crate.execution.support.NodeRequest;
 
 
 public class TransportCollectProfileOperation implements CollectProfileOperation {
@@ -43,9 +42,8 @@ public class TransportCollectProfileOperation implements CollectProfileOperation
 
     @Override
     public CompletableFuture<Map<String, Object>> collect(String nodeId) {
-        FutureActionListener<NodeCollectProfileResponse, Map<String, Object>> listener =
-            new FutureActionListener<>(NodeCollectProfileResponse::durationByContextIdent);
-        transportAction.execute(CollectProfileRequest.of(nodeId, jobId)).whenComplete(listener);
-        return listener;
+        return transportAction
+            .execute(CollectProfileRequest.of(nodeId, jobId))
+            .thenApply(NodeCollectProfileResponse::durationByContextIdent);
     }
 }

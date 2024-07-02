@@ -19,19 +19,20 @@
 
 package org.elasticsearch.common.geo.builders;
 
+import static org.elasticsearch.common.geo.GeoUtils.normalizeLat;
+import static org.elasticsearch.common.geo.GeoUtils.normalizeLon;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import org.apache.lucene.geo.Line;
 import org.elasticsearch.common.geo.GeoShapeType;
-import org.elasticsearch.common.geo.parsers.ShapeParser;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.LineString;
 import org.locationtech.spatial4j.shape.jts.JtsGeometry;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
 public class LineStringBuilder extends ShapeBuilder<JtsGeometry, LineStringBuilder> {
     public static final GeoShapeType TYPE = GeoShapeType.LINESTRING;
@@ -55,16 +56,6 @@ public class LineStringBuilder extends ShapeBuilder<JtsGeometry, LineStringBuild
         this(coordinates.build());
     }
 
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject();
-        builder.field(ShapeParser.FIELD_TYPE.getPreferredName(), TYPE.shapeName());
-        builder.field(ShapeParser.FIELD_COORDINATES.getPreferredName());
-        coordinatesToXcontent(builder, false);
-        builder.endObject();
-        return builder;
-    }
-
     /**
      * Closes the current lineString by adding the starting point as the end point.
      * This will have no effect if starting and end point are already the same.
@@ -79,11 +70,6 @@ public class LineStringBuilder extends ShapeBuilder<JtsGeometry, LineStringBuild
     }
 
     @Override
-    public GeoShapeType type() {
-        return TYPE;
-    }
-
-    @Override
     public int numDimensions() {
         if (coordinates == null || coordinates.isEmpty()) {
             throw new IllegalStateException("unable to get number of dimensions, " +
@@ -93,31 +79,57 @@ public class LineStringBuilder extends ShapeBuilder<JtsGeometry, LineStringBuild
     }
 
     @Override
-    public JtsGeometry build() {
+    public JtsGeometry buildS4J() {
         Coordinate[] coordinates = this.coordinates.toArray(new Coordinate[this.coordinates.size()]);
         Geometry geometry;
         if (wrapdateline) {
-            ArrayList<LineString> strings = decompose(FACTORY, coordinates, new ArrayList<LineString>());
+            ArrayList<LineString> strings = decomposeS4J(GEO_FACTORY, coordinates, new ArrayList<LineString>());
             if (strings.size() == 1) {
                 geometry = strings.get(0);
             } else {
                 LineString[] linestrings = strings.toArray(new LineString[strings.size()]);
-                geometry = FACTORY.createMultiLineString(linestrings);
+                geometry = GEO_FACTORY.createMultiLineString(linestrings);
             }
 
         } else {
-            geometry = FACTORY.createLineString(coordinates);
+            geometry = GEO_FACTORY.createLineString(coordinates);
         }
         return jtsGeometry(geometry);
     }
 
-    static ArrayList<LineString> decompose(GeometryFactory factory, Coordinate[] coordinates, ArrayList<LineString> strings) {
+    @Override
+    public Object buildLucene() {
+        // decompose linestrings crossing dateline into array of Lines
+        Coordinate[] coordinates = this.coordinates.toArray(new Coordinate[this.coordinates.size()]);
+        if (wrapdateline) {
+            ArrayList<Line> linestrings = decomposeLucene(coordinates, new ArrayList<>());
+            if (linestrings.size() == 1) {
+                return linestrings.get(0);
+            } else {
+                return linestrings.toArray(new Line[linestrings.size()]);
+            }
+        }
+        return new Line(Arrays.stream(coordinates).mapToDouble(i -> normalizeLat(i.y)).toArray(),
+            Arrays.stream(coordinates).mapToDouble(i -> normalizeLon(i.x)).toArray());
+    }
+
+    static ArrayList<LineString> decomposeS4J(GeometryFactory factory, Coordinate[] coordinates, ArrayList<LineString> strings) {
         for (Coordinate[] part : decompose(+DATELINE, coordinates)) {
             for (Coordinate[] line : decompose(-DATELINE, part)) {
                 strings.add(factory.createLineString(line));
             }
         }
         return strings;
+    }
+
+    static ArrayList<Line> decomposeLucene(Coordinate[] coordinates, ArrayList<Line> lines) {
+        for (Coordinate[] part : decompose(+DATELINE, coordinates)) {
+            for (Coordinate[] line : decompose(-DATELINE, part)) {
+                lines.add(new Line(Arrays.stream(line).mapToDouble(i -> normalizeLat(i.y)).toArray(),
+                    Arrays.stream(line).mapToDouble(i -> normalizeLon(i.x)).toArray()));
+            }
+        }
+        return lines;
     }
 
     /**

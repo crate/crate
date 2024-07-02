@@ -21,9 +21,8 @@
 
 package io.crate.execution.engine.collect;
 
-import static org.hamcrest.Matchers.is;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 
@@ -51,6 +50,7 @@ import io.crate.data.Row;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.integrationtests.SQLHttpIntegrationTest;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
@@ -91,16 +91,16 @@ public class BlobShardCollectorProviderTest extends SQLHttpIntegrationTest {
 
         // No read Isolation
         Iterable<Row> iterable = getBlobRows(collectPhase, false);
-        assertThat(StreamSupport.stream(iterable.spliterator(), false).count(), is(2L));
+        assertThat(StreamSupport.stream(iterable.spliterator(), false).count()).isEqualTo(2L);
         upload("b1", "newEntry1");
 
-        assertThat(StreamSupport.stream(iterable.spliterator(), false).count(), is(3L));
+        assertThat(StreamSupport.stream(iterable.spliterator(), false).count()).isEqualTo(3L);
 
         // Read isolation
         iterable = getBlobRows(collectPhase, true);
-        assertThat(StreamSupport.stream(iterable.spliterator(), false).count(), is(3L));
+        assertThat(StreamSupport.stream(iterable.spliterator(), false).count()).isEqualTo(3L);
         upload("b1", "newEntry2");
-        assertThat(StreamSupport.stream(iterable.spliterator(), false).count(), is(3L));
+        assertThat(StreamSupport.stream(iterable.spliterator(), false).count()).isEqualTo(3L);
     }
 
     private final class Initializer implements CheckedRunnable<Exception> {
@@ -112,15 +112,14 @@ public class BlobShardCollectorProviderTest extends SQLHttpIntegrationTest {
                 String indexUUID = metadata.index(".blob_b1").getIndexUUID();
                 BlobIndicesService blobIndicesService = cluster().getDataNodeInstance(BlobIndicesService.class);
                 BlobShard blobShard = blobIndicesService.blobShard(new ShardId(".blob_b1", indexUUID, 0));
-                Schemas schemas = new Schemas(Collections.emptyMap(), clusterService, null);
+                Schemas schemas = new Schemas(Collections.emptyMap(), clusterService, null, List::of);
                 assertNotNull(blobShard);
                 collectorProvider = new BlobShardCollectorProvider(
                     blobShard,
                     clusterService,
-                    schemas,
                     null,
                     new NoneCircuitBreakerService(),
-                    null,
+                    mock(NodeContext.class),
                     null,
                     Settings.EMPTY,
                     mock(ElasticsearchClient.class),

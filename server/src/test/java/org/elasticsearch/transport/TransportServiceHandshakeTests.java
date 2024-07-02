@@ -21,11 +21,9 @@ package org.elasticsearch.transport;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySet;
-import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -55,7 +53,7 @@ import org.junit.Test;
 import io.crate.auth.AlwaysOKAuthentication;
 import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.ssl.SslContextProvider;
-import io.crate.user.User;
+import io.crate.role.Role;
 
 public class TransportServiceHandshakeTests extends ESTestCase {
 
@@ -94,7 +92,7 @@ public class TransportServiceHandshakeTests extends ESTestCase {
             new NamedWriteableRegistry(Collections.emptyList()),
             new NoneCircuitBreakerService(),
             nettyBootstrap,
-            new AlwaysOKAuthentication(() -> List.of(User.CRATE_USER)),
+            new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
             new SslContextProvider(settings)
         );
         TransportService transportService = new MockTransportService(
@@ -155,9 +153,9 @@ public class TransportServiceHandshakeTests extends ESTestCase {
             DiscoveryNode connectedNode = TestFutureUtils.get(fut -> handleA.transportService.handshake(connection, timeout, fut));
             assertNotNull(connectedNode);
             // the name and version should be updated
-            assertEquals(connectedNode.getName(), "TS_B");
-            assertEquals(connectedNode.getVersion(), handleB.discoveryNode.getVersion());
-            assertFalse(handleA.transportService.nodeConnected(discoveryNode));
+            assertThat("TS_B").isEqualTo(connectedNode.getName());
+            assertThat(handleB.discoveryNode.getVersion()).isEqualTo(connectedNode.getVersion());
+            assertThat(handleA.transportService.nodeConnected(discoveryNode)).isFalse();
         }
     }
 
@@ -171,15 +169,16 @@ public class TransportServiceHandshakeTests extends ESTestCase {
             emptyMap(),
             emptySet(),
             Version.CURRENT.minimumCompatibilityVersion());
-        IllegalStateException ex = expectThrows(IllegalStateException.class, () -> {
+        assertThatThrownBy(() -> {
             try (Transport.Connection connection =
                      AbstractSimpleTransportTestCase.openConnection(handleA.transportService, discoveryNode, TestProfiles.LIGHT_PROFILE)) {
                 TestFutureUtils.get(fut -> handleA.transportService.handshake(connection, timeout, fut.map(x -> null)));
             }
-        });
-        assertThat(ex.getMessage(), containsString("handshake with [" + discoveryNode +
-            "] failed: remote cluster name [b] does not match local cluster name [a]"));
-        assertFalse(handleA.transportService.nodeConnected(discoveryNode));
+        }).isExactlyInstanceOf(IllegalStateException.class)
+            .hasMessageContaining(
+                "handshake with [" + discoveryNode +
+                "] failed: remote cluster name [b] does not match local cluster name [a]");
+        assertThat(handleA.transportService.nodeConnected(discoveryNode)).isFalse();
     }
 
     @Test
@@ -193,16 +192,17 @@ public class TransportServiceHandshakeTests extends ESTestCase {
             emptyMap(),
             emptySet(),
             Version.CURRENT.minimumCompatibilityVersion());
-        IllegalStateException ex = expectThrows(IllegalStateException.class, () -> {
+        assertThatThrownBy(() -> {
             try (Transport.Connection connection =
                      AbstractSimpleTransportTestCase.openConnection(handleA.transportService, discoveryNode, TestProfiles.LIGHT_PROFILE)) {
                 TestFutureUtils.get(fut -> handleA.transportService.handshake(connection, timeout, fut.map(x -> null)));
             }
-        });
-        assertThat(ex.getMessage(), containsString("handshake with [" + discoveryNode +
-            "] failed: remote node version [" + handleB.discoveryNode.getVersion() + "] is incompatible with local node version [" +
-            Version.CURRENT + "]"));
-        assertFalse(handleA.transportService.nodeConnected(discoveryNode));
+        }).isExactlyInstanceOf(IllegalStateException.class)
+            .hasMessageContaining(
+                "handshake with [" + discoveryNode +
+                "] failed: remote node version [" + handleB.discoveryNode.getVersion() + "] is incompatible with local node version [" +
+                Version.CURRENT + "]");
+        assertThat(handleA.transportService.nodeConnected(discoveryNode)).isFalse();
     }
 
     public void testNodeConnectWithDifferentNodeId() {
@@ -215,11 +215,11 @@ public class TransportServiceHandshakeTests extends ESTestCase {
             emptyMap(),
             emptySet(),
             handleB.discoveryNode.getVersion());
-        ConnectTransportException ex = expectThrows(ConnectTransportException.class, () -> {
+        assertThatThrownBy(() -> {
             AbstractSimpleTransportTestCase.connectToNode(handleA.transportService, discoveryNode);
-        });
-        assertThat(ex.getMessage(), containsString("unexpected remote node"));
-        assertFalse(handleA.transportService.nodeConnected(discoveryNode));
+        }).isExactlyInstanceOf(ConnectTransportException.class)
+            .hasMessageContaining("unexpected remote node");
+        assertThat(handleA.transportService.nodeConnected(discoveryNode)).isFalse();
     }
 
 

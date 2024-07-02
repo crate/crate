@@ -168,7 +168,7 @@ public abstract class ElasticsearchNodeCommand extends EnvironmentAwareCommand {
         }
     }
 
-    OptionParser getParser() {
+    protected OptionParser getParser() {
         return parser;
     }
 }

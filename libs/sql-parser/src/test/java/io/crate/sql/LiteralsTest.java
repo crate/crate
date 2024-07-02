@@ -22,12 +22,13 @@
 package io.crate.sql;
 
 
-import io.crate.sql.parser.SqlParser;
-import io.crate.sql.tree.IntegerLiteral;
-import org.junit.Test;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import org.junit.jupiter.api.Test;
+
+import io.crate.sql.parser.SqlParser;
+import io.crate.sql.tree.IntegerLiteral;
 
 public class LiteralsTest {
 
@@ -102,6 +103,11 @@ public class LiteralsTest {
         assertThat(Literals.replaceEscapedChars("\\t\\n\\f")).isEqualTo("\t\n\f");
     }
 
+    @Test
+    public void test_next_symbol_after_backslash_is_taken_literally() {
+        assertThat(Literals.replaceEscapedChars("ab\\%cde")).isEqualTo("ab%cde");
+    }
+
     // Invalid escaped literals
 
     @Test
@@ -120,18 +126,13 @@ public class LiteralsTest {
     }
 
     @Test
-    public void testThatInvalidEscapeSequenceIsNotReplaced() {
-        assertThat(Literals.replaceEscapedChars("\\s")).isEqualTo("\\s");
+    public void test_next_symbol_after_backslash_at_the_beginning_is_taken_literally() {
+        assertThat(Literals.replaceEscapedChars("\\shello")).isEqualTo("shello");
     }
 
     @Test
-    public void testThatInvalidEscapeSequenceAtBeginningOfLiteralIsNotReplaced() {
-        assertThat(Literals.replaceEscapedChars("\\shello")).isEqualTo("\\shello");
-    }
-
-    @Test
-    public void testThatInvalidEscapeSequenceAtEndOfLiteralIsNotReplaced() {
-        assertThat(Literals.replaceEscapedChars("hello\\s")).isEqualTo("hello\\s");
+    public void test_next_symbol_after_backslash_at_the_endis_taken_literally() {
+        assertThat(Literals.replaceEscapedChars("hello\\s")).isEqualTo("hellos");
     }
 
     // Octal Byte Values

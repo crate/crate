@@ -22,7 +22,6 @@ package org.elasticsearch.repositories;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.repositories.RepositoryData.EMPTY_REPO_GEN;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -338,9 +337,8 @@ public class RepositoryDataTests extends ESTestCase {
 
         RepositoryData newRepoData =
             repositoryData.addSnapshot(newSnapshot, SnapshotState.SUCCESS, Version.CURRENT, shardGenerations, indexLookup, newIdentifiers);
-        assertEquals(newRepoData.indexMetaDataToRemoveAfterRemovingSnapshots(Collections.singleton(newSnapshot)),
-                     newIndices.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey,
-                                                                             e -> Collections.singleton(newIdentifiers.get(e.getValue())))));
+        assertThat(newIndices.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey,
+            e -> Collections.singleton(newIdentifiers.get(e.getValue()))))).isEqualTo(newRepoData.indexMetaDataToRemoveAfterRemovingSnapshots(Collections.singleton(newSnapshot)));
         assertThat(newRepoData.indexMetaDataToRemoveAfterRemovingSnapshots(Collections.singleton(otherSnapshotId))).isEqualTo(removeFromOther);
     }
 

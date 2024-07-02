@@ -37,7 +37,6 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -48,7 +47,7 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.Streamer;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.exceptions.ConversionException;
 import io.crate.execution.dml.ObjectIndexer;
 import io.crate.execution.dml.ValueIndexer;
@@ -72,15 +71,14 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
         @Override
         public ValueIndexer<Map<String, Object>> valueIndexer(RelationName table,
                                                               Reference ref,
-                                                              Function<String, FieldType> getFieldType,
                                                               Function<ColumnIdent, Reference> getRef) {
-            return new ObjectIndexer(table, ref, getFieldType, getRef);
+            return new ObjectIndexer(table, ref, getRef);
         }
     };
 
     public static class Builder {
 
-        Map<String, DataType<?>> innerTypesBuilder = new LinkedHashMap<>();
+        final LinkedHashMap<String, DataType<?>> innerTypesBuilder = new LinkedHashMap<>();
 
         public Builder setInnerType(String key, DataType<?> innerType) {
             innerTypesBuilder.put(key, innerType);
@@ -225,7 +223,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     public Map<String, Object> readValueFrom(StreamInput in) throws IOException {
         if (in.readBoolean()) {
             int size = in.readInt();
-            LinkedHashMap<String, Object> m = new LinkedHashMap<>(size);
+            LinkedHashMap<String, Object> m = LinkedHashMap.newLinkedHashMap(size);
             for (int i = 0; i < size; i++) {
                 String key = in.readString();
                 DataType innerType = innerTypes.getOrDefault(key, UndefinedType.INSTANCE);
@@ -274,6 +272,18 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
             mergedObjectBuilder.mergeInnerType(e.getKey(), e.getValue(), DataTypes::merge);
         }
         return mergedObjectBuilder.build();
+    }
+
+    public ObjectType withoutChild(String childColumn) {
+        LinkedHashMap<String, DataType<?>> newInnerTypes = new LinkedHashMap<>(innerTypes);
+        newInnerTypes.remove(childColumn);
+        return new ObjectType(Collections.unmodifiableMap(newInnerTypes));
+    }
+
+    public ObjectType withChild(String childColumn, DataType<?> type) {
+        LinkedHashMap<String, DataType<?>> newInnerTypes = new LinkedHashMap<>(innerTypes);
+        newInnerTypes.put(childColumn, type);
+        return new ObjectType(Collections.unmodifiableMap(newInnerTypes));
     }
 
     @Override
@@ -360,17 +370,15 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
                                                @Nullable Supplier<List<ColumnDefinition<Expression>>> convertChildColumn) {
         if (convertChildColumn == null) {
             return new ObjectColumnType<>(
-                columnPolicy.name(),
-                Lists2.map(innerTypes.entrySet(), e -> new ColumnDefinition<>(
+                columnPolicy,
+                Lists.map(innerTypes.entrySet(), e -> new ColumnDefinition<>(
                     e.getKey(),
-                    null,
-                    null,
                     e.getValue().toColumnType(columnPolicy, convertChildColumn),
                     List.of()
                 ))
             );
         } else {
-            return new ObjectColumnType<>(columnPolicy.name(), convertChildColumn.get());
+            return new ObjectColumnType<>(columnPolicy, convertChildColumn.get());
         }
     }
 

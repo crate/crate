@@ -21,8 +21,7 @@
 
 package io.crate.integrationtests;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.net.InetSocketAddress;
 import java.nio.file.Files;
@@ -33,15 +32,13 @@ import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.discovery.SettingsBasedSeedHostsProvider;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.MockHttpTransport;
 import org.elasticsearch.test.NodeConfigurationSource;
 import org.elasticsearch.test.TestCluster;
-import org.elasticsearch.transport.Netty4Plugin;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Test;
 
@@ -92,10 +89,7 @@ public class PgTunnelLogicalReplicationITest extends ESTestCase {
             nodeConfigurationSource,
             0,
             clusterName + "_node",
-            List.of(
-                MockHttpTransport.TestPlugin.class,
-                Netty4Plugin.class
-            ),
+            List.of(MockHttpTransport.TestPlugin.class),
             true
         );
         cluster.beforeTest(random());
@@ -164,13 +158,13 @@ public class PgTunnelLogicalReplicationITest extends ESTestCase {
             postgresAddress.getPort()
         ));
 
-        assertThat(TestingHelpers.printedTable(subscriber.exec("select subname from pg_subscription").rows()), is(
+        assertThat(TestingHelpers.printedTable(subscriber.exec("select subname from pg_subscription").rows())).isEqualTo(
             "sub1\n"
-        ));
+        );
 
         assertBusy(() -> {
             try {
-                assertThat(subscriber.exec("select * from tbl").rowCount(), is(1L));
+                assertThat(subscriber.exec("select * from tbl").rowCount()).isEqualTo(1L);
             } catch (Exception e) {
                 throw new AssertionError(e);
             }
@@ -262,12 +256,12 @@ public class PgTunnelLogicalReplicationITest extends ESTestCase {
             random().nextBoolean() ? SSLMode.PREFER.name() : SSLMode.REQUIRE.name()
         ));
 
-        assertThat(TestingHelpers.printedTable(subscriber.exec("select subname from pg_subscription").rows()), is(
+        assertThat(TestingHelpers.printedTable(subscriber.exec("select subname from pg_subscription").rows())).isEqualTo(
             "sub1\n"
-        ));
+        );
         assertBusy(() -> {
             try {
-                assertThat(subscriber.exec("select * from tbl").rowCount(), is(0L));
+                assertThat(subscriber.exec("select * from tbl").rowCount()).isEqualTo(0L);
             } catch (Exception e) {
                 throw new AssertionError(e);
             }

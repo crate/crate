@@ -21,19 +21,16 @@
 
 package io.crate.planner.consumer;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
-import java.util.List;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.carrotsearch.randomizedtesting.RandomizedTest;
 
 import io.crate.analyze.TableDefinitions;
 import io.crate.exceptions.UnsupportedFeatureException;
@@ -53,33 +50,36 @@ public class InsertFromSubQueryPlannerTest extends CrateDummyClusterServiceUnitT
     }
 
     private static SQLExecutor buildExecutor(ClusterService clusterService) throws IOException {
-        return SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
+        return SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .addTable("create table target (id int, name varchar)")
-            .build();
+            .addTable("create table target (id int, name varchar)");
     }
 
     @Test
     public void test_returning_for_insert_from_values_throw_error_with_4_1_nodes() throws Exception {
         // Make sure the former initialized cluster service is shutdown
         cleanup();
-        this.clusterService = createClusterService(additionalClusterSettings(), Metadata.EMPTY_METADATA, Version.V_4_1_0);
+        this.clusterService = createClusterService(
+            additionalClusterSettings(), Metadata.EMPTY_METADATA, Version.V_4_1_0);
         e = buildExecutor(clusterService);
-        expectedException.expect(UnsupportedFeatureException.class);
-        expectedException.expectMessage(InsertFromSubQueryPlanner.RETURNING_VERSION_ERROR_MSG);
-        e.plan("insert into users (id, name) values (1, 'bob') returning id");
-
+        assertThatThrownBy(() -> e.plan("insert into users (id, name) values (1, 'bob') returning id"))
+            .isExactlyInstanceOf(UnsupportedFeatureException.class)
+            .hasMessage(InsertFromSubQueryPlanner.RETURNING_VERSION_ERROR_MSG);
     }
 
     @Test
     public void test_returning_for_insert_from_subquery_throw_error_with_4_1_nodes() throws Exception {
         // Make sure the former initialized cluster service is shutdown
         cleanup();
-        this.clusterService = createClusterService(additionalClusterSettings(), Metadata.EMPTY_METADATA, Version.V_4_1_0);
+        this.clusterService = createClusterService(additionalClusterSettings(), Metadata.EMPTY_METADATA,
+                Version.V_4_1_0);
         e = buildExecutor(clusterService);
-        expectedException.expect(UnsupportedFeatureException.class);
-        expectedException.expectMessage(InsertFromSubQueryPlanner.RETURNING_VERSION_ERROR_MSG);
-        e.plan("insert into users (id, name) select '1' as id, 'b' as name returning id");
+        assertThatThrownBy(() ->
+                e.plan("insert into users (id, name) select '1' as id, 'b' as name returning id"))
+            .isExactlyInstanceOf(UnsupportedFeatureException.class)
+            .hasMessage(InsertFromSubQueryPlanner.RETURNING_VERSION_ERROR_MSG);
     }
 
     @Test
@@ -89,6 +89,6 @@ public class InsertFromSubQueryPlannerTest extends CrateDummyClusterServiceUnitT
                                   "select id, name from users order by id, name");
         Collect collect = (Collect) localMerge.subPlan();
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) collect.collectPhase();
-        assertThat(collectPhase.orderBy().orderBySymbols(), is(collectPhase.toCollect()));
+        assertThat(collectPhase.orderBy().orderBySymbols()).isEqualTo(collectPhase.toCollect());
     }
 }

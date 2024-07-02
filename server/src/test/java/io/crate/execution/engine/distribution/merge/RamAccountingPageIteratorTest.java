@@ -40,7 +40,7 @@ import org.junit.Test;
 
 import io.crate.analyze.OrderBy;
 import io.crate.breaker.ConcurrentRamAccounting;
-import io.crate.breaker.RowAccountingWithEstimators;
+import io.crate.breaker.TypedRowAccounting;
 import io.crate.breaker.RowAccountingWithEstimatorsTest;
 import io.crate.data.Row;
 import io.crate.data.RowN;
@@ -118,7 +118,7 @@ public class RamAccountingPageIteratorTest extends ESTestCase {
             types,
             true,
             null,
-            () -> new RowAccountingWithEstimators(types, RamAccounting.NO_ACCOUNTING));
+            () -> new TypedRowAccounting(types, RamAccounting.NO_ACCOUNTING));
         assertThat(pagingIterator).isExactlyInstanceOf(RamAccountingPageIterator.class);
         assertThat(((RamAccountingPageIterator<?>) pagingIterator).delegatePagingIterator)
             .isExactlyInstanceOf(PassThroughPagingIterator.class);
@@ -142,7 +142,7 @@ public class RamAccountingPageIteratorTest extends ESTestCase {
             types,
             true,
             null,
-            () -> new RowAccountingWithEstimators(
+            () -> new TypedRowAccounting(
                 types,
                 ConcurrentRamAccounting.forCircuitBreaker(
                     "test",

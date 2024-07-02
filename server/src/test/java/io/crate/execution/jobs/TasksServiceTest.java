@@ -21,9 +21,8 @@
 
 package io.crate.execution.jobs;
 
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.lang.reflect.Field;
 import java.util.List;
@@ -35,14 +34,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import org.jetbrains.annotations.NotNull;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.role.Role;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.user.User;
 
 public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
 
@@ -67,7 +65,8 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         Task subContext = new DummyTask();
         builder1.addTask(subContext);
         RootTask ctx1 = tasksService.createTask(builder1);
-        assertThat(ctx1.getTask(1), is(subContext));
+        Task task = ctx1.getTask(1);
+        assertThat(task).isEqualTo(subContext);
     }
 
     @Test
@@ -78,21 +77,16 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         RootTask ctx = tasksService.createTask(builder);
         Iterable<UUID> contexts = tasksService.getJobIdsByCoordinatorNode("wrongNodeId").collect(Collectors.toList());
 
-        assertThat(contexts.iterator().hasNext(), is(false));
+        assertThat(contexts.iterator().hasNext()).isFalse();
 
         contexts = tasksService.getJobIdsByCoordinatorNode("n1").collect(Collectors.toList());
-        assertThat(contexts, contains(ctx.jobId()));
+        assertThat(contexts).containsExactly(ctx.jobId());
     }
 
     @Test
     public void testAcquireContextSameJobId() throws Exception {
         UUID jobId = UUID.randomUUID();
 
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage(String.format(Locale.ENGLISH,
-            "task for job %s already exists", jobId));
-
-        // create new context
         RootTask.Builder builder1 = tasksService.newBuilder(jobId);
         builder1.addTask(new DummyTask(1));
         tasksService.createTask(builder1);
@@ -100,17 +94,17 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         // creating a context with the same jobId will fail
         RootTask.Builder builder2 = tasksService.newBuilder(jobId);
         builder2.addTask(new DummyTask(2));
-
-        tasksService.createTask(builder2);
+        assertThatThrownBy(() -> tasksService.createTask(builder2))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageStartingWith(String.format(Locale.ENGLISH, "task for job %s already exists", jobId));
     }
 
     @Test
     public void testCreateCallWithEmptyBuilderThrowsAnError() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("RootTask.Builder must at least contain 1 Task");
-
         RootTask.Builder builder = tasksService.newBuilder(UUID.randomUUID());
-        tasksService.createTask(builder);
+        assertThatThrownBy(() -> tasksService.createTask(builder))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("RootTask.Builder must at least contain 1 Task");
     }
 
     @Test
@@ -132,11 +126,11 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         activeTasksField.setAccessible(true);
         @SuppressWarnings("unchecked")
         Map<UUID, RootTask> activeTasks = (Map<UUID, RootTask>) activeTasksField.get(tasksService);
-        assertThat(activeTasks.size(), is(1));
-        assertThat(tasksService.killAll(User.CRATE_USER.name()).get(5L, TimeUnit.SECONDS), is(1));
+        assertThat(activeTasks).hasSize(1);
+        assertThat(tasksService.killAll(Role.CRATE_USER.name()).get(5L, TimeUnit.SECONDS)).isEqualTo(1);
 
-        assertThat(killCalled.get(), is(true));
-        assertThat(activeTasks.size(), is(0));
+        assertThat(killCalled.get()).isTrue();
+        assertThat(activeTasks).hasSize(0);
     }
 
     @Test
@@ -169,20 +163,20 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         activeTasksField.setAccessible(true);
         @SuppressWarnings("unchecked")
         Map<UUID, RootTask> activeTasks = (Map<UUID, RootTask>) activeTasksField.get(tasksService);
-        assertThat(activeTasks.size(), is(2));
-        assertThat(tasksService.killJobs(List.of(jobId), User.CRATE_USER.name(), null).get(5L, TimeUnit.SECONDS), is(1));
+        assertThat(activeTasks).hasSize(2);
+        assertThat(tasksService.killJobs(List.of(jobId), Role.CRATE_USER.name(), null).get(5L, TimeUnit.SECONDS)).isEqualTo(1);
 
-        assertThat(killCalled.get(), is(true));
-        assertThat(kill2Called.get(), is(false));
-        assertThat(activeTasks.size(), is(1)); //only one job is killed
-
+        assertThat(killCalled.get()).isTrue();
+        assertThat(kill2Called.get()).isFalse();
+        assertThat(activeTasks).hasSize(1); //only one job is killed
     }
 
 
+    @SuppressWarnings("unchecked")
     private int numContexts(RootTask rootTask) throws Exception {
         Field orderedTasks = RootTask.class.getDeclaredField("orderedTasks");
         orderedTasks.setAccessible(true);
-        return (int) ((List<Task>)(List) orderedTasks.get(rootTask)).stream().filter(x -> !x.completionFuture().isDone()).count();
+        return (int) ((List<Task>) orderedTasks.get(rootTask)).stream().filter(x -> !x.completionFuture().isDone()).count();
     }
 
     @Test
@@ -193,9 +187,9 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         builder1.addTask(subContext);
         RootTask ctx1 = tasksService.createTask(builder1);
 
-        assertThat(numContexts(ctx1), is(1));
+        assertThat(numContexts(ctx1)).isEqualTo(1);
         subContext.close();
-        assertThat(numContexts(ctx1), is(0));
+        assertThat(numContexts(ctx1)).isEqualTo(0);
     }
 
     @Test
@@ -210,7 +204,7 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         builder.addTask(new DummyTask(1));
         tasksService.createTask(builder);
 
-        assertThat(tasksService.killAll(User.CRATE_USER.name()).get(), is(2));
+        assertThat(tasksService.killAll(Role.CRATE_USER.name()).get()).isEqualTo(2);
     }
 
     @Test
@@ -227,7 +221,7 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         builder = tasksService.newBuilder(UUID.randomUUID());
         builder.addTask(new DummyTask());
         tasksService.createTask(builder);
-        assertThat(tasksService.killJobs(jobsToKill, User.CRATE_USER.name(), null).get(5L, TimeUnit.SECONDS), is(1));
+        assertThat(tasksService.killJobs(jobsToKill, Role.CRATE_USER.name(), null).get(5L, TimeUnit.SECONDS)).isEqualTo(1);
     }
 
     @Test
@@ -237,12 +231,12 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         builder.addTask(new DummyTask());
         tasksService.createTask(builder);
 
-        assertThat(tasksService.killJobs(List.of(jobId), "Trillian", null).get(5L, TimeUnit.SECONDS), is(0));
-        assertThat(tasksService.killJobs(List.of(jobId), "Arthur", null).get(5L, TimeUnit.SECONDS), is(1));
+        assertThat(tasksService.killJobs(List.of(jobId), "Trillian", null).get(5L, TimeUnit.SECONDS)).isEqualTo(0);
+        assertThat(tasksService.killJobs(List.of(jobId), "Arthur", null).get(5L, TimeUnit.SECONDS)).isEqualTo(1);
     }
 
     @Test
     public void testKillNonExistingJobForNormalUser() throws Exception {
-        assertThat(tasksService.killJobs(List.of(UUID.randomUUID()), "Arthur", null).get(5L, TimeUnit.SECONDS), is(0));
+        assertThat(tasksService.killJobs(List.of(UUID.randomUUID()), "Arthur", null).get(5L, TimeUnit.SECONDS)).isEqualTo(0);
     }
 }

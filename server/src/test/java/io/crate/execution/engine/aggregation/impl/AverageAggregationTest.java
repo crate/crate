@@ -21,13 +21,12 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
 import java.util.List;
 
-import org.assertj.core.api.Assertions;
 import org.assertj.core.data.Offset;
 import org.elasticsearch.Version;
 import org.joda.time.Period;
@@ -40,6 +39,7 @@ import io.crate.execution.engine.aggregation.impl.average.AverageAggregation;
 import io.crate.execution.engine.aggregation.impl.average.numeric.NumericAverageState;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.functions.Signature;
 import io.crate.operation.aggregation.AggregationTestCase;
@@ -53,7 +53,7 @@ public class AverageAggregationTest extends AggregationTestCase {
         AverageAggregation.NAME,
         DataTypes.NUMERIC.getTypeSignature(),
         DataTypes.NUMERIC.getTypeSignature()
-    );
+    ).withFeature(Scalar.Feature.DETERMINISTIC);
 
     private Object executeAvgAgg(DataType<?> argumentType, Object[][] data) throws Exception {
         return executeAggregation(
@@ -61,7 +61,7 @@ public class AverageAggregationTest extends AggregationTestCase {
                 AverageAggregation.NAME,
                 argumentType.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.DETERMINISTIC),
             data,
             List.of()
         );
@@ -73,7 +73,7 @@ public class AverageAggregationTest extends AggregationTestCase {
                 AverageAggregation.NAME,
                 DataTypes.INTERVAL.getTypeSignature(),
                 DataTypes.INTERVAL.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.DETERMINISTIC),
             data,
             List.of()
         );
@@ -113,7 +113,7 @@ public class AverageAggregationTest extends AggregationTestCase {
         }
 
         // AverageAggregation returns double
-        Assertions.assertThat(executeAvgAgg(DataTypes.DOUBLE, data)).isEqualTo(10000.1d);
+        assertThat(executeAvgAgg(DataTypes.DOUBLE, data)).isEqualTo(10000.1d);
     }
 
     @Test
@@ -124,7 +124,7 @@ public class AverageAggregationTest extends AggregationTestCase {
         }
 
         //AverageAggregation returns double
-        Assertions.assertThat((double) executeAvgAgg(DataTypes.FLOAT, data))
+        assertThat((double) executeAvgAgg(DataTypes.FLOAT, data))
             .isEqualTo(10000.1d, Offset.offset(0.1d));
     }
 

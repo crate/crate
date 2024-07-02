@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Arrays;
@@ -1023,12 +1024,11 @@ public class JoinIntegrationTest extends IntegTestCase {
         RamBlockSizeCalculator ramBlockSizeCalculator = new RamBlockSizeCalculator(
             500_000,
             circuitBreaker,
-            rowSizeBytes,
-            rowsCount
+            rowSizeBytes
         );
         logger.info("\n\tThe block size for relation {}, total size {} bytes, with row count {} and row size {} bytes, " +
                     "if it would be used in a block join algorithm, would be {}",
-            relationName, tableSizeInBytes, rowsCount, rowSizeBytes, ramBlockSizeCalculator.getAsInt());
+            relationName, tableSizeInBytes, rowsCount, rowSizeBytes, ramBlockSizeCalculator.applyAsInt(-1));
     }
 
     @Test
@@ -1171,16 +1171,15 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("EXPLAIN (COSTS FALSE)" + stmt);
         // ensure that the query is using the execution plan we want to test
         // This should prevent from the test case becoming invalid
-        assertThat(response.rows()[0][0]).isEqualTo(
-            """
-                NestedLoopJoin[LEFT | (id = id)]
-                  ├ Eval[id, a, id, b, id, c]
-                  │  └ HashJoin[(id = id)]
-                  │    ├ Collect[doc.t3 | [id, c] | true]
-                  │    └ HashJoin[(id = id)]
-                  │      ├ Collect[doc.t1 | [id, a] | true]
-                  │      └ Get[doc.t2 | id, b | DocKeys{1; 2} | ((id = 1) OR (id = 2))]
-                  └ Collect[doc.t4 | [id, d] | true]"""
+        assertThat(response).hasLines(
+                "NestedLoopJoin[LEFT | (id = id)]",
+                "  ├ Eval[id, a, id, b, id, c]",
+                "  │  └ HashJoin[(id = id)]",
+                "  │    ├ Collect[doc.t3 | [id, c] | true]",
+                "  │    └ HashJoin[(id = id)]",
+                "  │      ├ Collect[doc.t1 | [id, a] | true]",
+                "  │      └ Get[doc.t2 | id, b | DocKeys{1; 2} | ((id = 1) OR (id = 2))]",
+                "  └ Collect[doc.t4 | [id, d] | true]"
         );
         execute(stmt);
     }
@@ -1249,14 +1248,13 @@ public class JoinIntegrationTest extends IntegTestCase {
                 shards.id
             """;
         execute("EXPLAIN (COSTS FALSE)" + stmt);
-        assertThat(response.rows()[0][0]).isEqualTo(
-            """
-            Eval[id, table_name, schema_name, partition_ident, state, id AS node_id, name AS node_name]
-              └ OrderBy[id ASC id ASC]
-                └ HashJoin[(node['id'] = id)]
-                  ├ Collect[sys.shards | [id, table_name, schema_name, partition_ident, state, node['id']] | true]
-                  └ Rename[id, name] AS nodes
-                    └ Collect[sys.nodes | [id, name] | true]"""
+        assertThat(response).hasLines(
+            "Eval[id, table_name, schema_name, partition_ident, state, id AS node_id, name AS node_name]",
+            "  └ OrderBy[id ASC id ASC]",
+            "    └ HashJoin[(node['id'] = id)]",
+            "      ├ Collect[sys.shards | [id, table_name, schema_name, partition_ident, state, node['id']] | true]",
+            "      └ Rename[id, name] AS nodes",
+            "        └ Collect[sys.nodes | [id, name] | true]"
         );
         execute(stmt);
         assertThat(response).hasRowCount(0L);
@@ -1288,19 +1286,18 @@ public class JoinIntegrationTest extends IntegTestCase {
 
         execute("EXPLAIN (COSTS FALSE)" + stmt);
 
-        assertThat(response.rows()[0][0]).isEqualTo(
-            """
-                HashJoin[(name = name)]
-                  ├ Rename[name] AS x
-                  │  └ GroupHashAggregate[name]
-                  │    └ Union[name]
-                  │      ├ Collect[doc.t1 | [name] | ((NOT (name = 'constant-condition')) AND (name = 'a'))]
-                  │      └ Collect[doc.t3 | [name] | ((NOT (name = 'constant-condition')) AND (name = 'c'))]
-                  └ Rename[name] AS y
-                    └ GroupHashAggregate[name]
-                      └ Union[name]
-                        ├ Collect[doc.t1 | [name] | (name = 'a')]
-                        └ Collect[doc.t2 | [name] | (name = 'b')]"""
+        assertThat(response).hasLines(
+                "HashJoin[(name = name)]",
+                "  ├ Rename[name] AS x",
+                "  │  └ GroupHashAggregate[name]",
+                "  │    └ Union[name]",
+                "  │      ├ Collect[doc.t1 | [name] | ((NOT (name = 'constant-condition')) AND (name = 'a'))]",
+                "  │      └ Collect[doc.t3 | [name] | ((NOT (name = 'constant-condition')) AND (name = 'c'))]",
+                "  └ Rename[name] AS y",
+                "    └ GroupHashAggregate[name]",
+                "      └ Union[name]",
+                "        ├ Collect[doc.t1 | [name] | (name = 'a')]",
+                "        └ Collect[doc.t2 | [name] | (name = 'b')]"
         );
         execute(stmt);
         assertThat(response).hasRows("a| a");
@@ -1338,17 +1335,16 @@ public class JoinIntegrationTest extends IntegTestCase {
             """;
 
         execute("EXPLAIN (COSTS FALSE)" + stmt);
-        assertThat(response.rows()[0][0]).isEqualTo(
-            """
-                Eval[id, reference]
-                  └ NestedLoopJoin[LEFT | ((cluster_id = id) AND (kind = 'bar'))]
-                    ├ HashJoin[(cluster_id = id)]
-                    │  ├ HashJoin[(subscription_id = id)]
-                    │  │  ├ Collect[doc.t3 | [id, reference] | (reference = 'bazinga')]
-                    │  │  └ Collect[doc.t1 | [subscription_id, id] | true]
-                    │  └ Collect[doc.t2 | [cluster_id] | (kind = 'bar')]
-                    └ Rename[cluster_id, kind] AS temp
-                      └ Collect[doc.t2 | [cluster_id, kind] | true]"""
+        assertThat(response).hasLines(
+                "Eval[id, reference]",
+                "  └ NestedLoopJoin[LEFT | (cluster_id = id)]",
+                "    ├ HashJoin[(cluster_id = id)]",
+                "    │  ├ HashJoin[(subscription_id = id)]",
+                "    │  │  ├ Collect[doc.t3 | [id, reference] | (reference = 'bazinga')]",
+                "    │  │  └ Collect[doc.t1 | [subscription_id, id] | true]",
+                "    │  └ Collect[doc.t2 | [cluster_id] | (kind = 'bar')]",
+                "    └ Rename[cluster_id] AS temp",
+                "      └ Collect[doc.t2 | [cluster_id] | (kind = 'bar')]"
         );
 
         execute(stmt);
@@ -1392,20 +1388,19 @@ public class JoinIntegrationTest extends IntegTestCase {
         // Ensure that the query is using the execution plan we want to test
         // This should prevent the test case from becoming invalid
         execute("EXPLAIN (COSTS FALSE)" + stmt);
-        assertThat(response.rows()[0][0]).isEqualTo(
-                """
-                   OrderBy[z ASC x ASC]
-                     └ NestedLoopJoin[LEFT | (z = x)]
-                       ├ Rename[z] AS d
-                       │  └ Rename[z] AS generated
-                       │    └ Rename[z] AS z
-                       │      └ TableFunction[unnest | [unnest] | true]
-                       └ Rename[x] AS c
-                         └ Rename[x] AS combined
-                           └ Eval[x]
-                             └ NestedLoopJoin[LEFT | (x = y)]
-                               ├ Collect[doc.t1 | [x] | true]
-                               └ Collect[doc.t2 | [y] | true]"""
+        assertThat(response).hasLines(
+                   "OrderBy[z ASC x ASC]",
+                   "  └ NestedLoopJoin[LEFT | (z = x)]",
+                   "    ├ Rename[z] AS d",
+                   "    │  └ Rename[z] AS generated",
+                   "    │    └ Rename[z] AS z",
+                   "    │      └ TableFunction[unnest | [unnest] | true]",
+                   "    └ Rename[x] AS c",
+                   "      └ Rename[x] AS combined",
+                   "        └ Eval[x]",
+                   "          └ NestedLoopJoin[LEFT | (x = y)]",
+                   "            ├ Collect[doc.t1 | [x] | true]",
+                   "            └ Collect[doc.t2 | [y] | true]"
         );
 
         execute(stmt);
@@ -1442,15 +1437,13 @@ public class JoinIntegrationTest extends IntegTestCase {
             """;
 
         execute("explain (costs false)" + stmt);
-        assertThat(response.rows()[0][0]).isEqualTo(
-            """
-                Eval[x, x, x]
-                  └ OrderBy[x ASC]
-                    └ HashJoin[(x = x)]
-                      ├ HashJoin[(x = x)]
-                      │  ├ Collect[doc.j2 | [x] | true]
-                      │  └ Collect[doc.j3 | [x] | true]
-                      └ Collect[doc.j1 | [x] | true]"""
+        assertThat(response).hasLines(
+                "OrderBy[x ASC]",
+                "  └ HashJoin[(x = x)]",
+                "    ├ HashJoin[(x = x)]",
+                "    │  ├ Collect[doc.j1 | [x] | true]",
+                "    │  └ Collect[doc.j2 | [x] | true]",
+                "    └ Collect[doc.j3 | [x] | true]"
         );
 
         execute(stmt);
@@ -1483,14 +1476,14 @@ public class JoinIntegrationTest extends IntegTestCase {
             """;
 
         execute("explain (costs false)" + stmt);
-        assertThat(response.rows()[0][0]).isEqualTo(
-            """
-                OrderBy[x ASC]
-                  └ HashJoin[(x = x)]
-                    ├ HashJoin[(x = z)]
-                    │  ├ Collect[doc.j2 | [x] | true]
-                    │  └ Collect[doc.j3 | [z] | true]
-                    └ Collect[doc.j1 | [x] | true]""");
+        assertThat(response).hasLines(
+                "OrderBy[x ASC]",
+                "  └ HashJoin[(x = x)]",
+                "    ├ HashJoin[(x = z)]",
+                "    │  ├ Collect[doc.j2 | [x] | true]",
+                "    │  └ Collect[doc.j3 | [z] | true]",
+                "    └ Collect[doc.j1 | [x] | true]"
+        );
 
         execute(stmt);
         assertThat(response).hasRows(
@@ -1536,7 +1529,7 @@ public class JoinIntegrationTest extends IntegTestCase {
     @UseRandomizedSchema(random = false)
     @UseRandomizedOptimizerRules(0)
     @Test
-    public void test_ensure_hash_symbols_match_after_hash_join_is_reordered() {
+    public void test_ensure_hash_symbols_match_after_hash_join_is_reordered() throws Exception {
         execute("create table doc.t1(a int, b int)");
         execute("create table doc.t2(c int, d int)");
         execute("create table doc.t3(e int, f int)");
@@ -1544,8 +1537,13 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("insert into doc.t1(a,b) values(1,2)");
         execute("insert into doc.t2(c,d) values (1,3),(5,6)");
         execute("insert into doc.t3(e,f) values (3,2)");
-        refresh();
+
+        execute("refresh table doc.t1");
+        execute("refresh table doc.t2");
+        execute("refresh table doc.t3");
+
         execute("analyze");
+        waitNoPendingTasksOnAll();
 
         var stmt = "SELECT t3.e FROM t1 JOIN t3 ON t1.b = t3.f JOIN t2 ON t1.a = t2.c WHERE t2.d =t3.e";
         assertThat(execute("explain " + stmt)).hasLines(
@@ -1605,4 +1603,37 @@ public class JoinIntegrationTest extends IntegTestCase {
             "    └ Collect[doc.t2 | [y] | true]"
         );
     }
+
+    /**
+     * https://github.com/crate/crate/issues/14961
+     */
+    @Test
+    @UseRandomizedSchema(random = false)
+    @UseRandomizedOptimizerRules(0)
+    @UseHashJoins(1)
+    public void test_number_of_hash_symbol_match_lhs_rhs_with_nested_joins_with_three_tuples() throws Exception {
+        execute("create table t1 (a int, x int)");
+        execute("create table t2 (b int, y int)");
+        execute("create table t3 (c int)");
+
+        execute("insert into t1 values (1,2)");
+        execute("insert into t2 values (1,2)");
+        execute("insert into t3 values (1)");
+        execute("refresh table t1, t2, t3");
+
+        var stmt = "SELECT * FROM t1,t2, t3 WHERE t3.c = t1.a AND t3.c = t2.b AND t1.a = t2.b and t1.x = t2.y";
+        execute("explain (costs false) " + stmt);
+
+        assertThat(response).hasLines(
+            "HashJoin[((c = a) AND (c = b))]",
+            "  ├ HashJoin[((a = b) AND (x = y))]",
+            "  │  ├ Collect[doc.t1 | [a, x] | true]",
+            "  │  └ Collect[doc.t2 | [b, y] | true]",
+            "  └ Collect[doc.t3 | [c] | true]"
+        );
+
+        execute(stmt);
+        assertThat(response).hasRows("1| 2| 1| 2| 1");
+    }
+
 }

@@ -37,21 +37,21 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 import java.util.function.LongSupplier;
-import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
@@ -66,15 +66,8 @@ import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.randomizedtesting.RandomizedTest;
 
 import io.crate.analyze.BoundCreateTable;
-import io.crate.common.collections.Sorted;
 import io.crate.data.Row;
 import io.crate.execution.ddl.tables.MappingUtil;
-import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
-import io.crate.execution.engine.window.WindowFunctionModule;
-import io.crate.expression.operator.OperatorModule;
-import io.crate.expression.predicate.PredicateModule;
-import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.expression.tablefunctions.TableFunctionModule;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.Functions;
@@ -86,12 +79,12 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.metadata.settings.session.SessionSettingModule;
-import io.crate.metadata.table.ColumnPolicies;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
+import io.crate.planner.optimizer.LoadedRules;
+import io.crate.role.Role;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.user.User;
 
 public class TestingHelpers {
 
@@ -131,6 +124,7 @@ public class TestingHelpers {
         return os.toString();
     }
 
+    @SuppressWarnings("unchecked")
     private static boolean printObject(PrintStream out, boolean first, Object o) {
         if (!first) {
             out.print("| ");
@@ -162,8 +156,7 @@ public class TestingHelpers {
             out.print("]");
         } else if (o instanceof Map) {
             out.print("{");
-            //noinspection unchecked
-            Map<String, Object> map = Sorted.sortRecursive((Map<String, Object>) o, true);
+            Map<String, Object> map = sortRecursive((Map<String, Object>) o, true);
             Iterator<String> it = map.keySet().iterator();
             while (it.hasNext()) {
                 String key = it.next();
@@ -180,42 +173,64 @@ public class TestingHelpers {
         return first;
     }
 
-    public static String mapToSortedString(Map<String, Object> map) {
-        return Sorted.sortRecursive(map).entrySet().stream()
-            .map(e -> e.getKey() + "=" + e.getValue())
-            .collect(Collectors.joining(", "));
+    @SuppressWarnings("unchecked")
+    private static LinkedHashMap<String, Object> sortRecursive(Map<String, Object> map, boolean sortOnlyMaps) {
+        LinkedHashMap<String, Object> sortedMap = new LinkedHashMap<>(map.size(), 1.0f);
+        ArrayList<String> sortedKeys = new ArrayList<>(map.keySet());
+        Collections.sort(sortedKeys);
+        for (String sortedKey : sortedKeys) {
+            Object o = map.get(sortedKey);
+            if (o instanceof Map) {
+                //noinspection unchecked
+                sortedMap.put(sortedKey, sortRecursive((Map<String, Object>) o, sortOnlyMaps));
+            } else if (o instanceof Collection<?> collection) {
+                sortedMap.put(sortedKey, sortOnlyMaps ? o : sortRecursive(collection));
+            } else {
+                sortedMap.put(sortedKey, o);
+            }
+        }
+        return sortedMap;
     }
 
-    public static NodeContext createNodeContext(AbstractModule... additionalModules) {
-        return createNodeContext(List.of(User.CRATE_USER), additionalModules);
+    @SuppressWarnings("unchecked")
+    private static Collection<?> sortRecursive(Collection<?> collection) {
+        if (collection.size() == 0) {
+            return collection;
+        }
+        Object firstElement = collection.iterator().next();
+        if (firstElement instanceof Map) {
+            ArrayList<Object> sortedList = new ArrayList<>(collection.size());
+            for (Object obj : collection) {
+                //noinspection unchecked
+                sortedList.add(sortRecursive((Map<String, Object>) obj, true));
+            }
+            sortedList.sort(null);
+            return sortedList;
+        }
+
+        ArrayList<Object> sortedList = new ArrayList<>(collection);
+        sortedList.sort(null);
+        return sortedList;
     }
 
-    public static NodeContext createNodeContext(List<User> users, AbstractModule... additionalModules) {
+    public static NodeContext createNodeContext() {
+        return createNodeContext(null, List.of(Role.CRATE_USER));
+    }
+
+    public static NodeContext createNodeContext(List<Role> roles) {
+        return createNodeContext(null, roles);
+    }
+
+    public static NodeContext createNodeContext(Schemas schemas, List<Role> roles) {
         return new NodeContext(
-            prepareModulesBuilder(additionalModules).createInjector().getInstance(Functions.class),
-            () -> users
+            Functions.load(Settings.EMPTY, new SessionSettingRegistry(Set.of(LoadedRules.INSTANCE))),
+            () -> roles,
+            nodeContext -> schemas
         );
     }
 
-    private static ModulesBuilder prepareModulesBuilder(AbstractModule... additionalModules) {
-        ModulesBuilder modulesBuilder = new ModulesBuilder()
-            .add(new SessionSettingModule())
-            .add(new OperatorModule())
-            .add(new AggregationImplModule())
-            .add(new ScalarFunctionModule())
-            .add(new WindowFunctionModule())
-            .add(new TableFunctionModule(Settings.EMPTY))
-            .add(new PredicateModule());
-        if (additionalModules != null) {
-            for (AbstractModule module : additionalModules) {
-                modulesBuilder.add(module);
-            }
-        }
-        return modulesBuilder;
-    }
-
     public static Reference createReference(String columnName, DataType<?> dataType) {
-        return createReference("dummyTable", new ColumnIdent(columnName), dataType);
+        return createReference("dummyTable", ColumnIdent.of(columnName), dataType);
     }
 
     public static Reference createReference(ColumnIdent columnIdent, DataType<?> dataType) {
@@ -236,46 +251,6 @@ public class TestingHelpers {
         return String.join("\n", Files.readAllLines(Paths.get(path)));
     }
 
-
-    public static Matcher<Row> isNullRow() {
-        return isRow((Object) null);
-    }
-
-    public static Matcher<Row> isRow(Object... cells) {
-        if (cells == null) {
-            cells = new Object[]{null};
-        }
-        final List<Object> expected = Arrays.asList(cells);
-        return new TypeSafeDiagnosingMatcher<>() {
-            @Override
-            protected boolean matchesSafely(Row item, Description mismatchDescription) {
-                if (item.numColumns() != expected.size()) {
-                    mismatchDescription.appendText("row size does not match: ")
-                        .appendValue(item.numColumns()).appendText(" != ").appendValue(expected.size());
-                    return false;
-                }
-                for (int i = 0; i < item.numColumns(); i++) {
-                    Object actual = item.get(i);
-                    if (!Objects.equals(expected.get(i), actual)) {
-                        mismatchDescription.appendText("value at pos ")
-                            .appendValue(i)
-                            .appendText(" does not match: ")
-                            .appendValue(expected.get(i))
-                            .appendText(" != ")
-                            .appendValue(actual);
-                        return false;
-                    }
-                }
-                return true;
-            }
-
-            @Override
-            public void describeTo(Description description) {
-                description.appendText("is Row with cells: ")
-                    .appendValue(expected);
-            }
-        };
-    }
 
     /**
      * Get the values at column index <code>index</code> within all <code>rows</code>
@@ -311,11 +286,11 @@ public class TestingHelpers {
         return new SimpleReference(refIdent, rowGranularity, dataType, 0, null);
     }
 
-    public static <T, K extends Comparable> Matcher<Iterable<? extends T>> isSortedBy(final Function<T, K> extractSortingKeyFunction) {
+    public static <T, K extends Comparable<K>> Matcher<Iterable<? extends T>> isSortedBy(final Function<T, K> extractSortingKeyFunction) {
         return isSortedBy(extractSortingKeyFunction, false, null);
     }
 
-    public static <T, K extends Comparable> Matcher<Iterable<? extends T>> isSortedBy(
+    public static <T, K extends Comparable<K>> Matcher<Iterable<? extends T>> isSortedBy(
         final Function<T, K> extractSortingKeyFunction,
         final boolean descending,
         @Nullable final Boolean nullsFirst) {
@@ -427,8 +402,8 @@ public class TestingHelpers {
     public static Map<String, Object> toMapping(LongSupplier columnOidSupplier, BoundCreateTable boundCreateTable) {
         IntArrayList pKeysIndices = boundCreateTable.primaryKeysIndices();
 
-        var policy = (String) boundCreateTable.tableParameter().mappings().get(ColumnPolicies.ES_MAPPING_NAME);
-        var tableColumnPolicy = policy != null ? ColumnPolicies.decodeMappingValue(policy) : ColumnPolicy.STRICT;
+        var policy = (String) boundCreateTable.tableParameter().mappings().get(ColumnPolicy.MAPPING_KEY);
+        var tableColumnPolicy = policy != null ? ColumnPolicy.fromMappingValue(policy) : ColumnPolicy.STRICT;
 
         List<Reference> references;
         if (columnOidSupplier != null) {
@@ -442,12 +417,15 @@ public class TestingHelpers {
 
         return createMapping(
             MappingUtil.AllocPosition.forNewTable(),
+            boundCreateTable.pkConstraintName(),
             references,
             pKeysIndices,
             boundCreateTable.getCheckConstraints(),
             boundCreateTable.partitionedBy(),
             tableColumnPolicy,
-            boundCreateTable.routingColumn().equals(DocSysColumns.ID) ? null : boundCreateTable.routingColumn().fqn()
+            boundCreateTable.routingColumn().equals(DocSysColumns.ID.COLUMN)
+                ? null
+                : boundCreateTable.routingColumn().fqn()
         );
 
     }

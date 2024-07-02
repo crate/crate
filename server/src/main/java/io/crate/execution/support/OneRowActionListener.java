@@ -21,21 +21,28 @@
 
 package io.crate.execution.support;
 
-import io.crate.data.InMemoryBatchIterator;
-import io.crate.data.Row;
-import io.crate.data.RowConsumer;
-import org.elasticsearch.action.ActionListener;
+import static io.crate.data.SentinelRow.SENTINEL;
 
-import org.jetbrains.annotations.NotNull;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
-import static io.crate.data.SentinelRow.SENTINEL;
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
+import org.jetbrains.annotations.NotNull;
+
+import io.crate.data.InMemoryBatchIterator;
+import io.crate.data.Row;
+import io.crate.data.Row1;
+import io.crate.data.RowConsumer;
 
 public class OneRowActionListener<Response> implements ActionListener<Response>, BiConsumer<Response, Throwable> {
 
     private final RowConsumer consumer;
     private final Function<? super Response, ? extends Row> toRowFunction;
+
+    public static OneRowActionListener<? super AcknowledgedResponse> oneIfAcknowledged(RowConsumer consumer) {
+        return new OneRowActionListener<>(consumer, resp -> resp.isAcknowledged() ? new Row1(1L) : new Row1(0L));
+    }
 
     public OneRowActionListener(RowConsumer consumer, Function<? super Response, ? extends Row> toRowFunction) {
         this.consumer = consumer;

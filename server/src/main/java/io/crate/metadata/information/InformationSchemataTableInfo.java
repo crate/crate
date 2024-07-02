@@ -33,10 +33,8 @@ public class InformationSchemataTableInfo {
     public static final String NAME = "schemata";
     public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
 
-    public static SystemTable<SchemaInfo> create() {
-        return SystemTable.<SchemaInfo>builder(IDENT)
-            .add("schema_name", STRING, SchemaInfo::name)
-            .setPrimaryKeys(new ColumnIdent("schema_name"))
-            .build();
-    }
+    public static SystemTable<SchemaInfo> INSTANCE = SystemTable.<SchemaInfo>builder(IDENT)
+        .add("schema_name", STRING, SchemaInfo::name)
+        .setPrimaryKeys(ColumnIdent.of("schema_name"))
+        .build();
 }

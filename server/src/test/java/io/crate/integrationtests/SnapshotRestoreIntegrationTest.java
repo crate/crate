@@ -31,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
@@ -41,7 +42,9 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 
+import org.apache.lucene.tests.util.TestUtil;
 import org.apache.lucene.util.SetOnce;
+import org.assertj.core.api.Assertions;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.cluster.SnapshotsInProgress;
@@ -67,9 +70,18 @@ import org.junit.rules.TemporaryFolder;
 
 import io.crate.common.unit.TimeValue;
 import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.role.Permission;
+import io.crate.role.Policy;
+import io.crate.role.Privilege;
+import io.crate.role.Securable;
+import io.crate.role.metadata.RolesMetadata;
+import io.crate.role.metadata.UsersMetadata;
+import io.crate.role.metadata.UsersPrivilegesMetadata;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
+import io.crate.testing.UseRandomizedSchema;
 
+@IntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0, supportsDedicatedMasters = false)
 public class SnapshotRestoreIntegrationTest extends IntegTestCase {
 
     private static final String REPOSITORY_NAME = "my_repo";
@@ -310,7 +322,6 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         execute("CREATE SNAPSHOT " + snapshotName() + " TABLE my_other with (wait_for_completion=true)");
 
         execute("alter table my_other add column x double");
-        waitForMappingUpdateOnAll("my_other", "x");
         execute("delete from my_other");
 
         execute("CREATE TABLE survivor (bla string, blubb float) partitioned by (blubb) with (number_of_replicas=0)");
@@ -911,6 +922,235 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         execute("DROP TABLE my_table");
         execute("DROP ANALYZER a1");
         execute("DROP FUNCTION custom(string)");
+    }
+
+    @Test
+    @UseRandomizedSchema(random = false)
+    public void test_restore_non_partitioned_tables_with_different_fqn() throws Exception {
+        execute_statements_that_restore_tables_with_different_fqn(false);
+    }
+
+    @Test
+    @UseRandomizedSchema(random = false)
+    public void test_restore_partitioned_tables_with_different_fqn() throws Exception {
+        execute_statements_that_restore_tables_with_different_fqn(true);
+
+        // Restore specific partition.
+        execute("RESTORE SNAPSHOT " + snapshotName() + " TABLE source.my_table_1 PARTITION (date='1970-01-01') with (" +
+            "ignore_unavailable=false, " +
+            "wait_for_completion=true, " +
+            "table_rename_replacement = '$1_single_partition')"
+        );
+        execute("select concat(table_schema, '.', table_name) as fqn from information_schema.tables " +
+            "where table_schema = 'source' and table_name like 'my_table_1%' " +
+            "order by fqn"
+        );
+        assertThat(response).hasRows(
+            "source.my_table_1",
+            "source.my_table_1_single_partition"
+        );
+
+        execute("select partition_ident from information_schema.table_partitions " +
+            "where table_name = 'my_table_1_single_partition'");
+        assertThat(response).hasRowCount(1);
+        assertThat(response).hasRows("04130");
+    }
+
+
+    /**
+     * Tracks special case of passing '_all' as templates which should be handled specifically.
+     */
+    @Test
+    @UseRandomizedSchema(random = false)
+    public void test_restore_partitioned_tables_rename_all() throws Exception {
+        // One with doc schema and another with custom schema.
+        createTable("source.my_table_1", true);
+        createTable("my_table_2", true);
+
+        createSnapshot(SNAPSHOT_NAME, "source.my_table_1", "my_table_2");
+        waitNoPendingTasksOnAll();
+
+        execute("RESTORE SNAPSHOT " + snapshotName() + " ALL with (" +
+            "wait_for_completion=true," +
+            "schema_rename_replacement = 'schema_prefix_$1'," +
+            "table_rename_replacement = 'table_postfix_$1')"
+        );
+
+        execute("select concat(table_schema, '.', table_name) as fqn from information_schema.tables " +
+            "where table_name like '%my_table%' " +
+            "order by fqn"
+        );
+        assertThat(response).hasRows(
+            "doc.my_table_2",
+            "schema_prefix_doc.table_postfix_my_table_2",
+            "schema_prefix_source.table_postfix_my_table_1",
+            "source.my_table_1"
+        );
+    }
+
+    @Test
+    public void test_restore_old_users() throws IOException {
+        File repoDir = TEMPORARY_FOLDER.getRoot().toPath().toAbsolutePath().toFile();
+        try (InputStream stream = Files.newInputStream(getDataPath("/repos/oldusersmetadata_repo.zip"))) {
+            TestUtil.unzip(stream, repoDir.toPath());
+        }
+        execute(
+            "CREATE REPOSITORY users_repo TYPE \"fs\" with (location=?, compress=true, readonly=true)",
+            new Object[]{repoDir.getAbsolutePath()}
+        );
+        execute("CREATE USER \"John\" WITH (password='johns-password')");
+        execute("CREATE USER \"Arthur\"");
+        execute("CREATE ROLE \"DummyRole\"");
+        execute("SELECT name, granted_roles, password, superuser FROM sys.users ORDER BY name");
+        assertThat(response).hasRows(
+            "Arthur| []| NULL| false",
+            "John| []| ********| false",
+            "crate| []| NULL| true");
+
+        execute("SELECT name, granted_roles FROM sys.roles ORDER BY name");
+        assertThat(response).hasRows("DummyRole| []");
+
+        execute("GRANT AL TO \"DummyRole\"");
+        execute("GRANT DML ON SCHEMA \"doc\" TO \"Arthur\"");
+        execute("SELECT * FROM sys.privileges ORDER BY grantee");
+        assertThat(response).hasRows(
+            "SCHEMA| Arthur| crate| doc| GRANT| DML",
+            "CLUSTER| DummyRole| crate| NULL| GRANT| AL");
+
+        // Snapshot contains the following users:
+        // CREATE USER "Arthur" WITH (password='arthurs-password');
+        // CREATE USER "Ford" WITH (password='fords-password');
+        // CREATE USER "John";
+        // GRANT DQL ON SCHEMA "sys" TO "John";
+        // GRANT AL TO "Ford";
+        execute("RESTORE SNAPSHOT users_repo.usersnap USERS with (wait_for_completion=true)");
+
+        execute("SELECT name, granted_roles, password, superuser FROM sys.users ORDER BY name");
+        assertThat(response).hasRows(
+            "Arthur| []| ********| false",
+            "Ford| []| ********| false",
+            "John| []| NULL| false",
+            "crate| []| NULL| true");
+        execute("SELECT count(*) FROM sys.roles");
+        assertThat(response).hasRows("0");
+
+        execute("SELECT * FROM sys.privileges ORDER BY grantee");
+        assertThat(response).hasRows(
+            "CLUSTER| Ford| crate| NULL| GRANT| AL",
+            "SCHEMA| John| crate| sys| GRANT| DQL");
+
+        // Before any CREATE/ALTER/DROP operation, RolesMetadata still has the users/roles/privileges defined
+        // but only old UsersMetadata & UsersPrivilegesMetadata are used.
+        RolesMetadata rolesMetadata = cluster().clusterService().state().metadata().custom(RolesMetadata.TYPE);
+        assertThat(rolesMetadata).isNotNull();
+        assertThat(rolesMetadata.roles()).containsOnlyKeys("Arthur", "John", "DummyRole");
+        assertThat(rolesMetadata.roles().get("Arthur").privileges()).isNotEmpty();
+        UsersMetadata usersMetadata = cluster().clusterService().state().metadata().custom(UsersMetadata.TYPE);
+        assertThat(usersMetadata).isNotNull();
+        assertThat(usersMetadata.users()).containsOnlyKeys("Arthur", "Ford", "John");
+        UsersPrivilegesMetadata usersPrivilegesMetadata =
+            cluster().clusterService().state().metadata().custom(UsersPrivilegesMetadata.TYPE);
+        assertThat(usersPrivilegesMetadata).isNotNull();
+        assertThat(usersPrivilegesMetadata.getUserPrivileges("Arthur")).isEmpty();
+        assertThat(usersPrivilegesMetadata.getUserPrivileges("John")).containsExactly(
+            new Privilege(
+                Policy.GRANT, Permission.DQL, Securable.SCHEMA, "sys", "crate")
+        );
+        assertThat(usersPrivilegesMetadata.getUserPrivileges("Ford")).containsExactly(
+            new Privilege(
+                Policy.GRANT, Permission.AL, Securable.CLUSTER, null, "crate")
+        );
+
+        execute("ALTER USER \"John\" SET (password='johns-new-password')");
+        execute("SELECT name, granted_roles, password, superuser FROM sys.users ORDER BY name");
+        assertThat(response).hasRows(
+            "Arthur| []| ********| false",
+            "Ford| []| ********| false",
+            "John| []| ********| false",
+            "crate| []| NULL| true");
+        execute("SELECT count(*) FROM sys.roles");
+        assertThat(response).hasRows("0");
+
+        execute("REVOKE AL FROM \"Ford\"");
+        execute("SELECT * FROM sys.privileges ORDER BY grantee");
+        assertThat(response).hasRows(
+            "SCHEMA| John| crate| sys| GRANT| DQL");
+
+        // After CREATE/ALTER/DROP operation, current RolesMetadata is dropped and
+        // recreated from UsersMetadata/UserPrivileges, thus fully overriden by these restored UsersMetadata
+        rolesMetadata = cluster().clusterService().state().metadata().custom(RolesMetadata.TYPE);
+        assertThat(rolesMetadata).isNotNull();
+        Assertions.assertThat(rolesMetadata.roles()).containsOnlyKeys("Arthur", "Ford", "John");
+        usersMetadata = cluster().clusterService().state().metadata().custom(UsersMetadata.TYPE);
+        assertThat(usersMetadata).isNull();
+        usersPrivilegesMetadata = cluster().clusterService().state().metadata().custom(UsersPrivilegesMetadata.TYPE);
+        assertThat(usersPrivilegesMetadata).isNull();
+    }
+
+    private void execute_statements_that_restore_tables_with_different_fqn(boolean partitioned) throws Exception {
+        // One with doc schema and another with custom schema.
+        createTable("source.my_table_1", partitioned);
+        createTable("my_table_2", partitioned);
+
+        createSnapshot(SNAPSHOT_NAME, "source.my_table_1", "my_table_2");
+        waitNoPendingTasksOnAll();
+
+        restoreWithDifferentName();
+        restoreIntoDifferentSchema();
+
+        execute("select * from source.my_table_1 order by id");
+        assertThat(response)
+            .as("Original table must not contain records of the renamed table")
+            .hasRows(
+                "1| foo| 0| The quick brown fox jumps over the lazy dog.",
+                "2| bar| 1445941740000| Morgenstund hat Gold im Mund.",
+                "3| baz| 626572800000| Reden ist Schweigen. Silber ist Gold."
+            );
+
+        execute("select * from source.my_prefix_my_table_1 order by id");
+        assertThat(response)
+            .as("Renamed table must have new records")
+            .hasRows(
+                "1| foo| 0| The quick brown fox jumps over the lazy dog.",
+                "2| bar| 1445941740000| Morgenstund hat Gold im Mund.",
+                "3| baz| 626572800000| Reden ist Schweigen. Silber ist Gold."
+            );
+    }
+
+    private void restoreWithDifferentName() {
+        execute("RESTORE SNAPSHOT " + snapshotName() + " TABLE source.my_table_1, my_table_2 with (" +
+            "wait_for_completion=true," +
+            "table_rename_replacement = 'my_prefix_$1')"
+        );
+
+        execute("select concat(table_schema, '.', table_name) as fqn from information_schema.tables " +
+            "where table_name like '%my_table%' " +
+            "order by fqn"
+        );
+        assertThat(response).hasRows(
+            "doc.my_prefix_my_table_2",
+            "doc.my_table_2",
+            "source.my_prefix_my_table_1",
+            "source.my_table_1"
+        );
+    }
+
+    private void restoreIntoDifferentSchema() {
+        execute("RESTORE SNAPSHOT " + snapshotName() + " TABLE source.my_table_1, my_table_2 with (" +
+            "wait_for_completion=true," +
+            "schema_rename_replacement = 'target')"
+        );
+
+        execute("select concat(table_schema, '.', table_name) as fqn from information_schema.tables " +
+            "where table_name like 'my_table%' " + // No % at the beginning to exclude irrelevant tables from the restoreWithDifferentName() call.
+            "order by fqn"
+        );
+        assertThat(response).hasRows(
+            "doc.my_table_2",
+            "source.my_table_1",
+            "target.my_table_1",
+            "target.my_table_2"
+        );
     }
 
     private void assertSnapShotState(String snapShotName, SnapshotState state) {

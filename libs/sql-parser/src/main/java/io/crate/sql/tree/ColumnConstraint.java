@@ -24,7 +24,15 @@ package io.crate.sql.tree;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public abstract class ColumnConstraint<T> extends Node {
+public abstract sealed class ColumnConstraint<T> extends Node permits
+    PrimaryKeyColumnConstraint,
+    ColumnStorageDefinition,
+    DefaultConstraint,
+    GeneratedExpressionConstraint,
+    IndexColumnConstraint,
+    CheckColumnConstraint,
+    NotNullColumnConstraint,
+    NullColumnConstraint {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {

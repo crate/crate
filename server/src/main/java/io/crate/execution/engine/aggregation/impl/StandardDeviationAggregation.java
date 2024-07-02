@@ -24,16 +24,15 @@ package io.crate.execution.engine.aggregation.impl;
 import java.io.IOException;
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.Streamer;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
@@ -43,7 +42,9 @@ import io.crate.execution.engine.aggregation.statistics.StandardDeviation;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -66,17 +67,17 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
         DataTypes.register(StdDevStateType.ID, in -> StdDevStateType.INSTANCE);
     }
 
-    private static final List<DataType<?>> SUPPORTED_TYPES = Lists2.concat(
+    private static final List<DataType<?>> SUPPORTED_TYPES = Lists.concat(
         DataTypes.NUMERIC_PRIMITIVE_TYPES, DataTypes.TIMESTAMPZ);
 
-    public static void register(AggregationImplModule mod) {
+    public static void register(Functions.Builder builder) {
         for (var supportedType : SUPPORTED_TYPES) {
-            mod.register(
+            builder.add(
                 Signature.aggregate(
                     NAME,
                     supportedType.getTypeSignature(),
                     DataTypes.DOUBLE.getTypeSignature()
-                ),
+                ).withFeature(Scalar.Feature.DETERMINISTIC),
                 StandardDeviationAggregation::new
             );
         }

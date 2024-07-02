@@ -21,22 +21,24 @@
 
 package io.crate.expression.scalar.string;
 
-import io.crate.expression.scalar.ScalarFunctionModule;
+import java.util.Locale;
+
 import io.crate.expression.scalar.UnaryScalar;
+import io.crate.metadata.Functions;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
-import java.util.Locale;
-
 public final class StringCaseFunction {
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder module) {
+        module.add(
             Signature.scalar(
-                "upper",
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature()
-            ),
+                    "upper",
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature()
+                ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new UnaryScalar<>(
                     signature,
@@ -45,12 +47,13 @@ public final class StringCaseFunction {
                     val -> val.toUpperCase(Locale.ENGLISH)
                 )
         );
-        module.register(
+        module.add(
             Signature.scalar(
-                "lower",
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature()
-            ),
+                    "lower",
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature()
+                ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new UnaryScalar<>(
                     signature,

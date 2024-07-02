@@ -19,26 +19,27 @@
 
 package org.elasticsearch.cluster.coordination;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.threadpool.ThreadPool.Names;
-
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import static org.elasticsearch.common.util.concurrent.ConcurrentCollections.newConcurrentMap;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.threadpool.ThreadPool.Names;
+
+import io.crate.common.unit.TimeValue;
+
 
 /**
  * A publication can succeed and complete before all nodes have applied the published state and acknowledged it; however we need every node
@@ -58,7 +59,7 @@ public class LagDetector {
     private final Consumer<DiscoveryNode> onLagDetected;
     private final Supplier<DiscoveryNode> localNodeSupplier;
     private final ThreadPool threadPool;
-    private final Map<DiscoveryNode, NodeAppliedStateTracker> appliedStateTrackersByNode = newConcurrentMap();
+    private final Map<DiscoveryNode, NodeAppliedStateTracker> appliedStateTrackersByNode = new ConcurrentHashMap<>();
 
     public LagDetector(final Settings settings, final ThreadPool threadPool, final Consumer<DiscoveryNode> onLagDetected,
                        final Supplier<DiscoveryNode> localNodeSupplier) {

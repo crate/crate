@@ -22,7 +22,6 @@
 package io.crate.planner.operators;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -40,13 +39,10 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.JoinPair;
 import io.crate.analyze.relations.QuerySplitter;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.expression.operator.AndOperator;
-import io.crate.expression.symbol.FieldsVisitor;
-import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.metadata.RelationName;
 import io.crate.planner.SubqueryPlanner.SubQueries;
 import io.crate.sql.tree.JoinType;
@@ -72,25 +68,8 @@ public class JoinPlanBuilder {
         }
         Map<Set<RelationName>, Symbol> queryParts = QuerySplitter.split(whereClause);
         List<JoinPair> allJoinPairs = convertImplicitJoinConditionsToJoinPairs(joinPairs, queryParts);
-        boolean optimizeOrder = true;
-        for (var joinPair : allJoinPairs) {
-            if (hasAdditionalDependencies(joinPair)) {
-                optimizeOrder = false;
-                break;
-            }
-        }
         LinkedHashMap<Set<RelationName>, JoinPair> joinPairsByRelations = buildRelationsToJoinPairsMap(allJoinPairs);
-        Iterator<RelationName> it;
-        if (optimizeOrder) {
-            Collection<RelationName> orderedRelationNames = JoinOrdering.getOrderedRelationNames(
-                Lists2.map(from, AnalyzedRelation::relationName),
-                joinPairsByRelations.keySet(),
-                queryParts.keySet()
-            );
-            it = orderedRelationNames.iterator();
-        } else {
-            it = Lists2.mapLazy(from, AnalyzedRelation::relationName).iterator();
-        }
+        Iterator<RelationName> it = Lists.mapLazy(from, AnalyzedRelation::relationName).iterator();
 
         final RelationName lhsName = it.next();
         final RelationName rhsName = it.next();
@@ -105,7 +84,7 @@ public class JoinPlanBuilder {
             joinType = JoinType.CROSS;
             joinCondition = null;
         } else {
-            joinType = maybeInvertPair(rhsName, joinLhsRhs);
+            joinType = joinLhsRhs.joinType();
             joinCondition = joinLhsRhs.condition();
         }
 
@@ -127,7 +106,9 @@ public class JoinPlanBuilder {
             joinType,
             validJoinConditions,
             isFiltered,
-            false);
+            false,
+            false,
+            AbstractJoinPlan.LookUpJoin.NONE);
 
         joinPlan = Filter.create(joinPlan, validWhereConditions);
         while (it.hasNext()) {
@@ -138,59 +119,19 @@ public class JoinPlanBuilder {
                 nextRel,
                 joinNames,
                 joinPairsByRelations,
-                queryParts,
-                lhs
+                queryParts
             );
             joinNames.add(nextRel.relationName());
         }
+        joinPlan = subQueries.applyCorrelatedJoin(joinPlan);
         if (!queryParts.isEmpty()) {
             joinPlan = Filter.create(joinPlan, AndOperator.join(queryParts.values()));
             queryParts.clear();
         }
-        joinPlan = subQueries.applyCorrelatedJoin(joinPlan);
         joinPlan = Filter.create(joinPlan, AndOperator.join(correlatedSubQueriesFromJoin.correlatedSubQueries()));
         joinPlan = Filter.create(joinPlan, AndOperator.join(correlatedSubQueriesFromWhereClause.correlatedSubQueries()));
-        assert joinPairsByRelations.isEmpty() : "Must've applied all joinPairs";
+        assert joinPairsByRelations.isEmpty() : "Must've applied all joinPairs: " + joinPairsByRelations;
         return joinPlan;
-    }
-
-    private static boolean hasAdditionalDependencies(JoinPair joinPair) {
-        Symbol condition = joinPair.condition();
-        if (condition == null) {
-            return false;
-        }
-        boolean[] hasAdditionalDependencies = {false};
-
-        // Un-aliased tables
-        RefVisitor.visitRefs(condition, ref -> {
-            RelationName relationName = ref.ident().tableIdent();
-            if (!relationName.equals(joinPair.left()) && !relationName.equals(joinPair.right())) {
-                hasAdditionalDependencies[0] = true;
-            }
-        });
-
-        // Aliased tables
-        if (hasAdditionalDependencies[0] == false) {
-            FieldsVisitor.visitFields(condition, scopedSymbol -> {
-                RelationName relationName = scopedSymbol.relation();
-                if (!relationName.equals(joinPair.left()) && !relationName.equals(joinPair.right())) {
-                    hasAdditionalDependencies[0] = true;
-                }
-            });
-        }
-
-        return hasAdditionalDependencies[0];
-    }
-
-    private static JoinType maybeInvertPair(RelationName rhsName, JoinPair pair) {
-        // A matching joinPair for two relations is retrieved using pairByQualifiedNames.remove(setOf(a, b))
-        // This returns a pair for both cases: (a ⋈ b) and (b ⋈ a) -> invert joinType to execute correct join
-        // Note that this can only happen if a re-ordering optimization happened, otherwise the joinPair would always
-        // be in the correct format.
-        if (pair.right().equals(rhsName)) {
-            return pair.joinType();
-        }
-        return pair.joinType().invert();
     }
 
     private static LogicalPlan joinWithNext(Function<AnalyzedRelation, LogicalPlan> plan,
@@ -198,8 +139,7 @@ public class JoinPlanBuilder {
                                             AnalyzedRelation nextRel,
                                             Set<RelationName> joinNames,
                                             Map<Set<RelationName>, JoinPair> joinPairs,
-                                            Map<Set<RelationName>, Symbol> queryParts,
-                                            AnalyzedRelation leftRelation) {
+                                            Map<Set<RelationName>, Symbol> queryParts) {
         RelationName nextName = nextRel.relationName();
 
         JoinPair joinPair = removeMatch(joinPairs, joinNames, nextName);
@@ -208,7 +148,7 @@ public class JoinPlanBuilder {
         if (joinPair == null) {
             type = JoinType.CROSS;
         } else {
-            type = maybeInvertPair(nextName, joinPair);
+            type = joinPair.joinType();
             if (joinPair.condition() != null) {
                 conditions.add(joinPair.condition());
             }
@@ -243,7 +183,10 @@ public class JoinPlanBuilder {
             type,
             AndOperator.join(conditions, null),
             isFiltered,
-            false);
+            false,
+            false,
+            AbstractJoinPlan.LookUpJoin.NONE
+        );
         return Filter.create(joinPlan, query);
     }
 
@@ -366,7 +309,7 @@ public class JoinPlanBuilder {
         var remainder = new ArrayList<Symbol>(values.size());
         var correlatedSubQueries = new ArrayList<Symbol>(values.size());
         for (var symbol : values) {
-            if (SymbolVisitors.any(s -> s instanceof SelectSymbol x && x.isCorrelated(), symbol)) {
+            if (symbol.any(s -> s instanceof SelectSymbol x && x.isCorrelated())) {
                 correlatedSubQueries.add(symbol);
             } else {
                 remainder.add(symbol);

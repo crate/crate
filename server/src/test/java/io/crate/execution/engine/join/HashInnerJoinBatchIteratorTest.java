@@ -46,6 +46,7 @@ import io.crate.data.Row;
 import io.crate.data.breaker.RowAccounting;
 import io.crate.data.join.CombinedRow;
 import io.crate.data.testing.BatchIteratorTester;
+import io.crate.data.testing.BatchIteratorTester.ResultOrder;
 import io.crate.data.testing.BatchSimulatingIterator;
 import io.crate.data.testing.TestingBatchIterators;
 
@@ -136,9 +137,9 @@ public class HashInnerJoinBatchIteratorTest {
             getCol0EqCol1JoinCondition(),
             getHashForLeft(),
             getHashForRight(),
-            () -> 5
+            ignored -> 5
         );
-        var tester = BatchIteratorTester.forRows(batchIteratorSupplier);
+        var tester = BatchIteratorTester.forRows(batchIteratorSupplier, ResultOrder.EXACT);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 
@@ -152,9 +153,9 @@ public class HashInnerJoinBatchIteratorTest {
             getCol0EqCol1JoinCondition(),
             getHashWithCollisions(),
             getHashWithCollisions(),
-            () -> 5
+            ignored -> 5
         );
-        var tester = BatchIteratorTester.forRows(batchIteratorSupplier);
+        var tester = BatchIteratorTester.forRows(batchIteratorSupplier, ResultOrder.EXACT);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 
@@ -168,9 +169,9 @@ public class HashInnerJoinBatchIteratorTest {
             getCol0EqCol1JoinCondition(),
             getHashForLeft(),
             getHashForRight(),
-            () -> 1
+            ignored -> 1
         );
-        var tester = BatchIteratorTester.forRows(batchIteratorSupplier);
+        var tester = BatchIteratorTester.forRows(batchIteratorSupplier, ResultOrder.EXACT);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 
@@ -184,9 +185,9 @@ public class HashInnerJoinBatchIteratorTest {
             getCol0EqCol1JoinCondition(),
             getHashForLeft(),
             getHashForRight(),
-            () -> 3
+            ignored -> 3
         );
-        var tester = BatchIteratorTester.forRows(batchIteratorSupplier);
+        var tester = BatchIteratorTester.forRows(batchIteratorSupplier, ResultOrder.EXACT);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 }

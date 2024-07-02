@@ -21,6 +21,8 @@
 
 package io.crate.analyze;
 
+import java.util.function.Consumer;
+
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.analyze.relations.AnalyzedView;
@@ -29,8 +31,7 @@ import io.crate.analyze.relations.TableFunctionRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.analyze.relations.UnionSelect;
 import io.crate.expression.symbol.Symbol;
-
-import java.util.function.Consumer;
+import io.crate.fdw.ForeignTableRelation;
 
 public class Relations {
 
@@ -94,6 +95,12 @@ public class Relations {
             for (Symbol argument : tableFunctionRelation.function().arguments()) {
                 consumer.accept(argument);
             }
+            return null;
+        }
+
+        @Override
+        public Void visitForeignTable(ForeignTableRelation foreignTableRelation,
+                                      Consumer<? super Symbol> context) {
             return null;
         }
 

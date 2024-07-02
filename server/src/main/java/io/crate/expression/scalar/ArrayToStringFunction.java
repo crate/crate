@@ -29,6 +29,7 @@ import java.util.StringJoiner;
 
 import io.crate.data.Input;
 import io.crate.metadata.FunctionName;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -42,24 +43,28 @@ class ArrayToStringFunction extends Scalar<String, Object> {
 
     private static final FunctionName FQN = new FunctionName(PgCatalogSchemaInfo.NAME, "array_to_string");
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder module) {
+        module.add(
             Signature.scalar(
-                FQN,
-                TypeSignature.parse("array(E)"),
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature()
-            ).withTypeVariableConstraints(typeVariable("E")),
+                    FQN,
+                    TypeSignature.parse("array(E)"),
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature()
+                ).withTypeVariableConstraints(typeVariable("E"))
+                .withFeature(Feature.DETERMINISTIC)
+                .withFeature(Feature.NULLABLE),
             ArrayToStringFunction::new
         );
-        module.register(
+        module.add(
             Signature.scalar(
-                FQN,
-                TypeSignature.parse("array(E)"),
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature()
-            ).withTypeVariableConstraints(typeVariable("E")),
+                    FQN,
+                    TypeSignature.parse("array(E)"),
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature()
+                ).withTypeVariableConstraints(typeVariable("E"))
+                .withFeature(Feature.DETERMINISTIC)
+                .withFeature(Feature.NULLABLE),
             ArrayToStringFunction::new
         );
     }

@@ -25,7 +25,7 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class ColumnStorageDefinition<T> extends ColumnConstraint<T> {
+public final class ColumnStorageDefinition<T> extends ColumnConstraint<T> {
 
     private final GenericProperties<T> properties;
 
@@ -49,7 +49,7 @@ public class ColumnStorageDefinition<T> extends ColumnConstraint<T> {
 
     @Override
     public void visit(Consumer<? super T> consumer) {
-        properties.properties().values().forEach(consumer);
+        properties.forValues(consumer);
     }
 
     @Override

@@ -21,21 +21,22 @@
 
 package io.crate.execution.dsl.projection;
 
-import io.crate.common.annotations.VisibleForTesting;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.settings.Settings;
-
-import org.jetbrains.annotations.Nullable;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 public abstract class AbstractIndexWriterProjection extends Projection {
 
@@ -87,29 +88,25 @@ public abstract class AbstractIndexWriterProjection extends Projection {
         relationName = new RelationName(in);
 
         partitionIdent = in.readOptionalString();
-        idSymbols = Symbols.listFromStream(in);
+        idSymbols = Symbols.fromStream(in);
 
         int numPks = in.readVInt();
         primaryKeys = new ArrayList<>(numPks);
         for (int i = 0; i < numPks; i++) {
-            primaryKeys.add(new ColumnIdent(in));
+            primaryKeys.add(ColumnIdent.of(in));
         }
 
-        partitionedBySymbols = Symbols.listFromStream(in);
+        partitionedBySymbols = Symbols.fromStream(in);
+        clusteredBySymbol = Symbol.nullableFromStream(in);
         if (in.readBoolean()) {
-            clusteredBySymbol = Symbols.fromStream(in);
-        } else {
-            clusteredBySymbol = null;
-        }
-        if (in.readBoolean()) {
-            clusteredByColumn = new ColumnIdent(in);
+            clusteredByColumn = ColumnIdent.of(in);
         }
         bulkActions = in.readVInt();
         autoCreateIndices = in.readBoolean();
     }
 
 
-    public List<? extends Symbol> ids() {
+    public List<Symbol> ids() {
         return idSymbols;
     }
 
@@ -205,12 +202,7 @@ public abstract class AbstractIndexWriterProjection extends Projection {
             primaryKey.writeTo(out);
         }
         Symbols.toStream(partitionedBySymbols, out);
-        if (clusteredBySymbol == null) {
-            out.writeBoolean(false);
-        } else {
-            out.writeBoolean(true);
-            Symbols.toStream(clusteredBySymbol, out);
-        }
+        Symbol.nullableToStream(clusteredBySymbol, out);
 
         if (clusteredByColumn == null) {
             out.writeBoolean(false);

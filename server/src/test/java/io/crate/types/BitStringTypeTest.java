@@ -21,15 +21,14 @@
 
 package io.crate.types;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static com.carrotsearch.randomizedtesting.RandomizedTest.assumeFalse;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.function.Supplier;
 
 import org.assertj.core.api.Assertions;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -37,7 +36,12 @@ import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.BitString;
 import io.crate.testing.DataTypeTesting;
 
-public class BitStringTypeTest extends ESTestCase {
+public class BitStringTypeTest extends DataTypeTestCase<BitString> {
+
+    @Override
+    public DataType<BitString> getType() {
+        return BitStringType.INSTANCE_ONE;
+    }
 
     private static final SessionSettings SESSION_SETTINGS = CoordinatorTxnCtx.systemTransactionContext().sessionSettings();
 
@@ -50,7 +54,7 @@ public class BitStringTypeTest extends ESTestCase {
         var out = new BytesStreamOutput();
         type.writeValueTo(out, value);
         StreamInput in = out.bytes().streamInput();
-        assertThat(type.readValueFrom(in), is(value));
+        assertThat(type.readValueFrom(in)).isEqualTo(value);
     }
 
     @Test
@@ -65,13 +69,23 @@ public class BitStringTypeTest extends ESTestCase {
     public void test_explicit_cast_can_trim_bitstring() throws Exception {
         BitStringType type = new BitStringType(3);
         BitString result = type.explicitCast(BitString.ofRawBits("1111"), SESSION_SETTINGS);
-        assertThat(result, is(BitString.ofRawBits("111")));
+        assertThat(result).isEqualTo(BitString.ofRawBits("111"));
     }
 
     @Test
     public void test_explicit_cast_can_extend_bitstring() throws Exception {
         BitStringType type = new BitStringType(4);
         BitString result = type.explicitCast(BitString.ofRawBits("111"), SESSION_SETTINGS);
-        assertThat(result, is(BitString.ofRawBits("1110")));
+        assertThat(result).isEqualTo(BitString.ofRawBits("1110"));
+    }
+
+    @Override
+    public void test_reference_resolver_docvalues_off() throws Exception {
+        assumeFalse("BitStringType cannot disable column store", true);
+    }
+
+    @Override
+    public void test_reference_resolver_index_and_docvalues_off() throws Exception {
+        assumeFalse("BitStringType cannot disable column store", true);
     }
 }

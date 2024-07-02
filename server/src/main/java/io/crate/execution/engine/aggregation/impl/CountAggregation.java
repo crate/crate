@@ -44,8 +44,10 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
@@ -72,25 +74,27 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
     public static final String NAME = "count";
     public static final Signature SIGNATURE =
         Signature.aggregate(
-            NAME,
-            TypeSignature.parse("V"),
-            DataTypes.LONG.getTypeSignature()
-        ).withTypeVariableConstraints(typeVariable("V"));
+                NAME,
+                TypeSignature.parse("V"),
+                DataTypes.LONG.getTypeSignature())
+            .withFeature(Scalar.Feature.DETERMINISTIC)
+            .withTypeVariableConstraints(typeVariable("V"));
 
     public static final Signature COUNT_STAR_SIGNATURE =
-        Signature.aggregate(NAME, DataTypes.LONG.getTypeSignature());
+        Signature.aggregate(NAME, DataTypes.LONG.getTypeSignature())
+            .withFeature(Scalar.Feature.DETERMINISTIC);
 
     static {
         DataTypes.register(CountAggregation.LongStateType.ID, in -> CountAggregation.LongStateType.INSTANCE);
     }
 
-    public static void register(AggregationImplModule mod) {
-        mod.register(
+    public static void register(Functions.Builder builder) {
+        builder.add(
             SIGNATURE,
             (signature, boundSignature) ->
                 new CountAggregation(signature, boundSignature, true)
         );
-        mod.register(
+        builder.add(
             COUNT_STAR_SIGNATURE,
             (signature, boundSignature) ->
                 new CountAggregation(signature, boundSignature, false)
@@ -144,8 +148,8 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
 
         if (function.arguments().size() == 1) {
             Symbol arg = function.arguments().get(0);
-            if (arg instanceof Input) {
-                if (((Input) arg).value() == null) {
+            if (arg instanceof Input<?> input) {
+                if (input.value() == null) {
                     return Literal.of(0L);
                 } else {
                     return new Function(COUNT_STAR_SIGNATURE, List.of(), DataTypes.LONG);

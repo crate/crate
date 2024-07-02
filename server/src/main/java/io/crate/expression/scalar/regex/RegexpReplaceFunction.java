@@ -31,33 +31,33 @@ import java.util.regex.Pattern;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
-import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.role.Roles;
 import io.crate.types.DataTypes;
-import io.crate.user.UserLookup;
 
 public final class RegexpReplaceFunction extends Scalar<String, String> {
 
     public static final String NAME = "regexp_replace";
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder builder) {
+        builder.add(
             Signature.scalar(
                 NAME,
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ),
+            ).withFeature(Feature.DETERMINISTIC),
             RegexpReplaceFunction::new
         );
-        module.register(
+        builder.add(
             Signature.scalar(
                 NAME,
                 DataTypes.STRING.getTypeSignature(),
@@ -65,7 +65,7 @@ public final class RegexpReplaceFunction extends Scalar<String, String> {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ),
+            ).withFeature(Feature.DETERMINISTIC),
             RegexpReplaceFunction::new
         );
     }
@@ -88,7 +88,7 @@ public final class RegexpReplaceFunction extends Scalar<String, String> {
     }
 
     @Override
-    public Scalar<String, String> compile(List<Symbol> arguments, String currentUser, UserLookup userLookup) {
+    public Scalar<String, String> compile(List<Symbol> arguments, String currentUser, Roles roles) {
         assert arguments.size() >= 3 : "number of arguments muts be >= 3";
         Symbol patternSymbol = arguments.get(1);
         if (patternSymbol instanceof Input) {

@@ -28,7 +28,7 @@ import java.util.Locale;
 import java.util.Map;
 
 import io.crate.data.Input;
-import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -40,13 +40,14 @@ public final class ParseURIFunction extends Scalar<Object, String> {
 
     private static final String NAME = "parse_uri";
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder module) {
+        module.add(
             Signature.scalar(
-                NAME,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.UNTYPED_OBJECT.getTypeSignature()
-            ),
+                    NAME,
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.UNTYPED_OBJECT.getTypeSignature()
+                ).withFeature(Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE),
             ParseURIFunction::new
         );
     }

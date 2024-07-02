@@ -29,9 +29,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.crate.common.annotations.Immutable;
-import io.crate.common.annotations.ThreadSafe;
-
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider;
@@ -45,15 +42,16 @@ import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.MergeSchedulerConfig;
 import org.elasticsearch.index.engine.EngineConfig;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.store.Store;
 
 import io.crate.blob.v2.BlobIndicesService;
+import io.crate.common.annotations.Immutable;
+import io.crate.common.annotations.ThreadSafe;
 import io.crate.common.collections.MapBuilder;
 import io.crate.common.unit.TimeValue;
-import io.crate.metadata.settings.NumberOfReplicasSetting;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.settings.NumberOfReplicas;
 import io.crate.metadata.settings.Validators;
-import io.crate.metadata.table.ColumnPolicies;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataTypes;
 
@@ -67,14 +65,13 @@ import io.crate.types.DataTypes;
 public class TableParameters {
 
     // all available table settings
-    static final NumberOfReplicasSetting NUMBER_OF_REPLICAS = new NumberOfReplicasSetting();
     static final Setting<String> COLUMN_POLICY = new Setting<>(
-        new Setting.SimpleKey(ColumnPolicies.ES_MAPPING_NAME),
+        new Setting.SimpleKey(ColumnPolicy.MAPPING_KEY),
         s -> ColumnPolicy.STRICT.lowerCaseName(),
-        s -> ColumnPolicies.encodeMappingValue(ColumnPolicy.of(s)),
+        s -> ColumnPolicy.of(s).toMappingValue(),
         o -> {
-            if (ColumnPolicies.encodeMappingValue(ColumnPolicy.IGNORED).equals(o)) {
-                throw new IllegalArgumentException("Invalid value for argument '" + ColumnPolicies.CRATE_NAME + "'");
+            if (ColumnPolicy.IGNORED.toMappingValue().equals(o)) {
+                throw new IllegalArgumentException("Invalid value for argument 'column_policy'");
             }
         },
         DataTypes.STRING,
@@ -85,7 +82,7 @@ public class TableParameters {
 
     private static final List<Setting<?>> SUPPORTED_SETTINGS =
         List.of(
-            NUMBER_OF_REPLICAS,
+            NumberOfReplicas.SETTING,
             IndexSettings.INDEX_REFRESH_INTERVAL_SETTING,
             IndexMetadata.INDEX_READ_ONLY_SETTING,
             INDEX_BLOCKS_READ_ONLY_ALLOW_DELETE_SETTING,
@@ -97,8 +94,7 @@ public class TableParameters {
             IndexSettings.INDEX_TRANSLOG_SYNC_INTERVAL_SETTING,
             IndexSettings.INDEX_TRANSLOG_DURABILITY_SETTING,
             ShardsLimitAllocationDecider.INDEX_TOTAL_SHARDS_PER_NODE_SETTING,
-            MapperService.INDEX_MAPPING_TOTAL_FIELDS_LIMIT_SETTING,
-            IndexSettings.INDEX_WARMER_ENABLED_SETTING,
+            DocTableInfo.TOTAL_COLUMNS_LIMIT,
             UnassignedInfo.INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING,
             IndexMetadata.SETTING_WAIT_FOR_ACTIVE_SHARDS,
             MaxRetryAllocationDecider.SETTING_ALLOCATION_MAX_RETRY,
@@ -131,7 +127,6 @@ public class TableParameters {
      */
     static final Set<Setting<?>> SETTINGS_NOT_INCLUDED_IN_DEFAULT = Set.of(
         IndexMetadata.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING,
-        IndexSettings.INDEX_WARMER_ENABLED_SETTING,
         IndexService.GLOBAL_CHECKPOINT_SYNC_INTERVAL_SETTING,
         MergeSchedulerConfig.MAX_THREAD_COUNT_SETTING,
         IndexSettings.INDEX_SOFT_DELETES_SETTING,
@@ -156,7 +151,7 @@ public class TableParameters {
             .filter(s -> s.isFinal() == false)
             .collect(Collectors.toMap((s) -> stripDotSuffix(stripIndexPrefix(s.getKey())), s -> s));
 
-    private static final Set<Setting<?>> EXCLUDED_SETTING_FOR_METADATA_IMPORT = Set.of(NUMBER_OF_REPLICAS);
+    private static final Set<Setting<?>> EXCLUDED_SETTING_FOR_METADATA_IMPORT = Set.of(NumberOfReplicas.SETTING);
 
     private static final Map<String, Setting<?>> SUPPORTED_SETTINGS_INCL_SHARDS
         = MapBuilder.newMapBuilder(SUPPORTED_NON_FINAL_SETTINGS_DEFAULT)
@@ -190,7 +185,7 @@ public class TableParameters {
 
     public static final TableParameters CREATE_BLOB_TABLE_PARAMETERS = new TableParameters(
         Map.of(
-            stripIndexPrefix(NUMBER_OF_REPLICAS.getKey()), NUMBER_OF_REPLICAS,
+            stripIndexPrefix(NumberOfReplicas.SETTING.getKey()), NumberOfReplicas.SETTING,
             "blobs_path", Setting.simpleString(
                 BlobIndicesService.SETTING_INDEX_BLOBS_PATH.getKey(), Validators.stringValidator("blobs_path"))
         ),
@@ -198,8 +193,8 @@ public class TableParameters {
     );
 
     public static final TableParameters ALTER_BLOB_TABLE_PARAMETERS = new TableParameters(
-        Map.of(stripIndexPrefix(NUMBER_OF_REPLICAS.getKey()),
-               NUMBER_OF_REPLICAS,
+        Map.of(stripIndexPrefix(NumberOfReplicas.SETTING.getKey()),
+               NumberOfReplicas.SETTING,
                stripDotSuffix(stripIndexPrefix(SETTING_READ_ONLY_ALLOW_DELETE)),
                INDEX_BLOCKS_READ_ONLY_ALLOW_DELETE_SETTING
         ),

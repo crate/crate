@@ -28,19 +28,14 @@ import static io.crate.planner.optimizer.rule.Util.transpose;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
 
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.metadata.FunctionType;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.ProjectSet;
 import io.crate.planner.optimizer.Rule;
-import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
@@ -64,17 +59,14 @@ public final class MoveFilterBeneathProjectSet implements Rule<Filter> {
     @Override
     public LogicalPlan apply(Filter filter,
                              Captures captures,
-                             PlanStats planStats,
-                             TransactionContext txnCtx,
-                             NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
+                             Rule.Context ruleContext) {
         var projectSet = captures.get(projectSetCapture);
 
         var queryParts = AndOperator.split(filter.query());
         ArrayList<Symbol> toPushDown = new ArrayList<>();
         ArrayList<Symbol> toKeep = new ArrayList<>();
         for (var part : queryParts) {
-            if (!SymbolVisitors.any(MoveFilterBeneathProjectSet::isTableFunction, part)
+            if (!part.any(MoveFilterBeneathProjectSet::isTableFunction)
                 && projectSet.standaloneOutputs().containsAll(extractColumns(part))) {
                 toPushDown.add(part);
             } else {

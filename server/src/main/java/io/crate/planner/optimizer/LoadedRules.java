@@ -22,36 +22,47 @@
 package io.crate.planner.optimizer;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
-import org.elasticsearch.common.inject.Singleton;
+import org.jetbrains.annotations.VisibleForTesting;
 
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.session.SessionSetting;
 import io.crate.metadata.settings.session.SessionSettingProvider;
 import io.crate.planner.operators.LogicalPlanner;
 import io.crate.types.DataTypes;
 
-@Singleton
 public class LoadedRules implements SessionSettingProvider {
 
-    public static final List<Class<? extends Rule<?>>> RULES = buildRules();
+    private final Set<Class<? extends Rule<?>>> disabledRules;
+    private final List<Class<? extends Rule<?>>> rules;
+    public static final LoadedRules INSTANCE = new LoadedRules();
 
-    private static List<Class<? extends Rule<?>>> buildRules() {
-        var rules = new ArrayList<Rule<?>>();
-        rules.addAll(LogicalPlanner.ITERATIVE_OPTIMIZER_RULES);
-        rules.addAll(LogicalPlanner.JOIN_ORDER_OPTIMIZER_RULES);
-        rules.addAll(LogicalPlanner.FETCH_OPTIMIZER_RULES);
-        var result = new ArrayList<Class<? extends Rule<?>>>();
-        for (Rule<?> rule : rules) {
-            if (rule.mandatory() == false) {
-                result.add((Class<? extends Rule<?>>) rule.getClass());
+    @SuppressWarnings("unchecked")
+    private LoadedRules() {
+        List<Collection<Rule<?>>> rules = List.of(
+            LogicalPlanner.ITERATIVE_OPTIMIZER_RULES,
+            LogicalPlanner.JOIN_ORDER_OPTIMIZER_RULES,
+            LogicalPlanner.FETCH_OPTIMIZER_RULES
+        );
+        this.rules = new ArrayList<>();
+        this.disabledRules = new HashSet<>();
+        for (var ruleCollection : rules) {
+            for (Rule<?> rule : ruleCollection) {
+                Class<? extends Rule<?>> clazz = (Class<? extends Rule<?>>) rule.getClass();
+                if (!rule.defaultEnabled()) {
+                    disabledRules.add(clazz);
+                }
+                if (!rule.mandatory()) {
+                    this.rules.add(clazz);
+                }
             }
         }
-        return result;
     }
 
     @VisibleForTesting
@@ -81,8 +92,16 @@ public class LoadedRules implements SessionSettingProvider {
         );
     }
 
+    public Set<Class<? extends Rule<?>>> disabledRules() {
+        return disabledRules;
+    }
+
+    public List<Class<? extends Rule<?>>> rules() {
+        return rules;
+    }
+
     @Override
     public List<SessionSetting<?>> sessionSettings() {
-        return Lists2.map(RULES, LoadedRules::buildRuleSessionSetting);
+        return Lists.map(rules, LoadedRules::buildRuleSessionSetting);
     }
 }

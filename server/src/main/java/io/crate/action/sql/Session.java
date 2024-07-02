@@ -39,6 +39,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.UUIDs;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.AnalyzedBegin;
 import io.crate.analyze.AnalyzedClose;
@@ -53,8 +54,7 @@ import io.crate.analyze.ParameterTypes;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -68,7 +68,6 @@ import io.crate.execution.jobs.kill.KillJobsNodeRequest;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
@@ -79,7 +78,6 @@ import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.StatementClassifier;
 import io.crate.planner.operators.SubQueryResults;
-import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.protocols.postgres.FormatCodes;
 import io.crate.protocols.postgres.JobsLogsUpdateListener;
 import io.crate.protocols.postgres.Portal;
@@ -91,7 +89,6 @@ import io.crate.sql.tree.Declare;
 import io.crate.sql.tree.Declare.Hold;
 import io.crate.sql.tree.DiscardStatement.Target;
 import io.crate.sql.tree.Statement;
-import io.crate.statistics.TableStats;
 import io.crate.types.DataType;
 
 /**
@@ -152,37 +149,31 @@ public class Session implements AutoCloseable {
 
     private final int id;
     private final int secret;
-    private final NodeContext nodeCtx;
     private final Analyzer analyzer;
     private final Planner planner;
     private final JobsLogs jobsLogs;
     private final boolean isReadOnly;
     private final Runnable onClose;
-    private final TableStats tableStats;
 
     private TransactionState currentTransactionState = TransactionState.IDLE;
 
 
     public Session(int sessionId,
-                   NodeContext nodeCtx,
                    Analyzer analyzer,
                    Planner planner,
                    JobsLogs jobsLogs,
                    boolean isReadOnly,
                    DependencyCarrier executor,
                    CoordinatorSessionSettings sessionSettings,
-                   TableStats tableStats,
                    Runnable onClose) {
         this.id = sessionId;
         this.secret = ThreadLocalRandom.current().nextInt();
-        this.nodeCtx = nodeCtx;
         this.analyzer = analyzer;
         this.planner = planner;
         this.jobsLogs = jobsLogs;
         this.isReadOnly = isReadOnly;
         this.executor = executor;
         this.sessionSettings = sessionSettings;
-        this.tableStats = tableStats;
         this.onClose = onClose;
     }
 
@@ -197,9 +188,6 @@ public class Session implements AutoCloseable {
     /**
      * Execute a query in one step, avoiding the parse/bind/execute/sync procedure.
      * Opposed to using parse/bind/execute/sync this method is thread-safe.
-     *
-     * @param parse A function to parse the statement; This can be used to cache the parsed statement.
-     *              Use {@link #quickExec(String, ResultReceiver, Row)} to use the regular parser
      */
     public void quickExec(String statement, ResultReceiver<?> resultReceiver, Row params) {
         CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(sessionSettings);
@@ -212,30 +200,28 @@ public class Session implements AutoCloseable {
         );
         RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
         mostRecentJobID = UUIDs.dirtyUUID();
+        final UUID jobId = mostRecentJobID;
         ClusterState clusterState = planner.currentClusterState();
-        PlannerContext plannerContext = new PlannerContext(
-            clusterState,
+        PlannerContext plannerContext = planner.createContext(
             routingProvider,
-            mostRecentJobID,
+            jobId,
             txnCtx,
-            nodeCtx,
             0,
             params,
             cursors,
-            currentTransactionState,
-            new PlanStats(nodeCtx, txnCtx, tableStats)
+            currentTransactionState
         );
         Plan plan;
         try {
             plan = planner.plan(analyzedStatement, plannerContext);
         } catch (Throwable t) {
-            jobsLogs.logPreExecutionFailure(mostRecentJobID, statement, SQLExceptions.messageOf(t), sessionSettings.sessionUser());
+            jobsLogs.logPreExecutionFailure(jobId, statement, SQLExceptions.messageOf(t), sessionSettings.sessionUser());
             throw t;
         }
 
         StatementClassifier.Classification classification = StatementClassifier.classify(plan);
-        jobsLogs.logExecutionStart(mostRecentJobID, statement, sessionSettings.sessionUser(), classification);
-        JobsLogsUpdateListener jobsLogsUpdateListener = new JobsLogsUpdateListener(mostRecentJobID, jobsLogs);
+        jobsLogs.logExecutionStart(jobId, statement, sessionSettings.sessionUser(), classification);
+        JobsLogsUpdateListener jobsLogsUpdateListener = new JobsLogsUpdateListener(jobId, jobsLogs);
         if (!analyzedStatement.isWriteOperation()) {
             resultReceiver = new RetryOnFailureResultReceiver<>(
                 executor.clusterService(),
@@ -244,15 +230,14 @@ public class Session implements AutoCloseable {
                 // clusterState at the time of the index check is used
                 indexName -> clusterState.metadata().hasIndex(indexName),
                 resultReceiver,
-                mostRecentJobID,
+                jobId,
                 (newJobId, retryResultReceiver) -> retryQuery(
                     newJobId,
                     analyzedStatement,
                     routingProvider,
                     new RowConsumerToResultReceiver(retryResultReceiver, 0, jobsLogsUpdateListener),
                     params,
-                    txnCtx,
-                    nodeCtx
+                    txnCtx
                 )
             );
         }
@@ -265,19 +250,15 @@ public class Session implements AutoCloseable {
                             RoutingProvider routingProvider,
                             RowConsumer consumer,
                             Row params,
-                            CoordinatorTxnCtx txnCtx,
-                            NodeContext nodeCtx) {
-        PlannerContext plannerContext = new PlannerContext(
-            planner.currentClusterState(),
+                            CoordinatorTxnCtx txnCtx) {
+        PlannerContext plannerContext = planner.createContext(
             routingProvider,
             jobId,
             txnCtx,
-            nodeCtx,
             0,
             params,
             cursors,
-            currentTransactionState,
-            new PlanStats(nodeCtx, txnCtx, tableStats)
+            currentTransactionState
         );
         Plan plan = planner.plan(stmt, plannerContext);
         plan.execute(executor, plannerContext, consumer, params, SubQueryResults.EMPTY);
@@ -441,13 +422,11 @@ public class Session implements AutoCloseable {
     }
 
     @Nullable
-    @SuppressWarnings("unchecked")
     private RelationInfo resolveTableFromSelect(AnalyzedStatement stmt) {
         // See description of {@link DescribeResult#relation()}
         // It is only populated if it is a SELECT on a single table
-        if (stmt instanceof QueriedSelectRelation) {
-            var relation = ((QueriedSelectRelation) stmt);
-            List<AnalyzedRelation> from = relation.from();
+        if (stmt instanceof QueriedSelectRelation qsr) {
+            List<AnalyzedRelation> from = qsr.from();
             if (from.size() == 1 && from.get(0) instanceof AbstractTableRelation) {
                 return ((AbstractTableRelation<? extends TableInfo>) from.get(0)).tableInfo();
             }
@@ -480,8 +459,8 @@ public class Session implements AutoCloseable {
             cursors.close(cursor -> cursor.hold() == Hold.WITHOUT);
             resultReceiver.allFinished();
             return resultReceiver.completionFuture();
-        } else if (analyzedStmt instanceof AnalyzedDeallocate) {
-            String stmtToDeallocate = ((AnalyzedDeallocate) analyzedStmt).preparedStmtName();
+        } else if (analyzedStmt instanceof AnalyzedDeallocate ad) {
+            String stmtToDeallocate = ad.preparedStmtName();
             if (stmtToDeallocate != null) {
                 close((byte) 'S', stmtToDeallocate);
             } else {
@@ -491,8 +470,7 @@ public class Session implements AutoCloseable {
                 preparedStatements.clear();
             }
             resultReceiver.allFinished();
-        } else if (analyzedStmt instanceof AnalyzedDiscard) {
-            AnalyzedDiscard discard = (AnalyzedDiscard) analyzedStmt;
+        } else if (analyzedStmt instanceof AnalyzedDiscard discard) {
             // We don't cache plans, don't have sequences or temporary tables
             // See https://www.postgresql.org/docs/current/sql-discard.html
             if (discard.target() == Target.ALL) {
@@ -605,23 +583,22 @@ public class Session implements AutoCloseable {
                 LOGGER.debug("method=sync deferredExecutions=0");
                 return CompletableFuture.completedFuture(null);
             case 1: {
-                var entry = deferredExecutionsByStmt.entrySet().iterator().next();
+                var deferredExecutions = deferredExecutionsByStmt.values().iterator().next();
                 deferredExecutionsByStmt.clear();
-                return exec(entry.getKey(), entry.getValue());
+                return exec(deferredExecutions);
             }
             default: {
                 // sequentiallize execution to ensure client receives row counts in correct order
                 CompletableFuture<?> allCompleted = null;
                 for (var entry : deferredExecutionsByStmt.entrySet()) {
-                    var statement = entry.getKey();
                     var deferredExecutions = entry.getValue();
                     if (allCompleted == null) {
-                        allCompleted = exec(statement, deferredExecutions);
+                        allCompleted = exec(deferredExecutions);
                     } else {
                         allCompleted = allCompleted
                             // individual rowReceiver will receive failure; must not break execution chain due to failures.
                             .exceptionally(swallowException -> null)
-                            .thenCompose(ignored -> exec(statement, deferredExecutions));
+                            .thenCompose(ignored -> exec(deferredExecutions));
                     }
                 }
                 deferredExecutionsByStmt.clear();
@@ -630,32 +607,29 @@ public class Session implements AutoCloseable {
         }
     }
 
-    private CompletableFuture<?> exec(Statement statement, List<DeferredExecution> executions) {
+    private CompletableFuture<?> exec(List<DeferredExecution> executions) {
         if (executions.size() == 1) {
             var toExec = executions.get(0);
             return singleExec(toExec.portal(), toExec.resultReceiver(), toExec.maxRows());
         } else {
-            return bulkExec(statement, executions);
+            return bulkExec(executions);
         }
     }
 
-    private CompletableFuture<?> bulkExec(Statement statement, List<DeferredExecution> toExec) {
-        assert toExec.size() >= 1 : "Must have at least 1 deferred execution for bulk exec";
+    private CompletableFuture<?> bulkExec(List<DeferredExecution> toExec) {
+        assert !toExec.isEmpty() : "Must have at least 1 deferred execution for bulk exec";
         mostRecentJobID = UUIDs.dirtyUUID();
+        final UUID jobId = mostRecentJobID;
         var routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
-        var clusterState = executor.clusterService().state();
         var txnCtx = new CoordinatorTxnCtx(sessionSettings);
-        var plannerContext = new PlannerContext(
-            clusterState,
+        var plannerContext = planner.createContext(
             routingProvider,
-            mostRecentJobID,
+            jobId,
             txnCtx,
-            nodeCtx,
             0,
             null,
             cursors,
-            currentTransactionState,
-            new PlanStats(nodeCtx, txnCtx, tableStats)
+            currentTransactionState
         );
 
         PreparedStmt firstPreparedStatement = toExec.get(0).portal().preparedStmt();
@@ -666,20 +640,20 @@ public class Session implements AutoCloseable {
             plan = planner.plan(analyzedStatement, plannerContext);
         } catch (Throwable t) {
             jobsLogs.logPreExecutionFailure(
-                mostRecentJobID,
+                jobId,
                 firstPreparedStatement.rawStatement(),
                 SQLExceptions.messageOf(t),
                 sessionSettings.sessionUser());
             throw t;
         }
         jobsLogs.logExecutionStart(
-            mostRecentJobID,
+            jobId,
             firstPreparedStatement.rawStatement(),
             sessionSettings.sessionUser(),
             StatementClassifier.classify(plan)
         );
 
-        var bulkArgs = Lists2.map(toExec, x -> (Row) new RowN(x.portal().params().toArray()));
+        var bulkArgs = Lists.map(toExec, x -> (Row) new RowN(x.portal().params().toArray()));
         List<CompletableFuture<Long>> rowCounts = plan.executeBulk(
             executor,
             plannerContext,
@@ -687,12 +661,12 @@ public class Session implements AutoCloseable {
             SubQueryResults.EMPTY
         );
         CompletableFuture<Void> allRowCounts = CompletableFuture.allOf(rowCounts.toArray(new CompletableFuture[0]));
-        List<CompletableFuture<?>> resultReceiverFutures = Lists2.map(toExec, x -> x.resultReceiver().completionFuture());
+        List<CompletableFuture<?>> resultReceiverFutures = Lists.map(toExec, x -> x.resultReceiver().completionFuture());
         CompletableFuture<Void> allResultReceivers = CompletableFuture.allOf(resultReceiverFutures.toArray(new CompletableFuture[0]));
 
         CompletableFuture<Void> result = allRowCounts
             .exceptionally(t -> null) // swallow exception - failures are set per item in emitResults
-            .thenAccept(ignored -> emitRowCountsToResultReceivers(mostRecentJobID, jobsLogs, toExec, rowCounts))
+            .thenAccept(ignored -> emitRowCountsToResultReceivers(jobId, jobsLogs, toExec, rowCounts))
             .runAfterBoth(allResultReceivers, () -> {});
         addStatementTimeout(result);
         return result;
@@ -728,35 +702,32 @@ public class Session implements AutoCloseable {
         }
 
         mostRecentJobID = UUIDs.dirtyUUID();
+        final UUID jobId = mostRecentJobID;
         var routingProvider = new RoutingProvider(Randomness.get().nextInt(), planner.getAwarenessAttributes());
         var clusterState = executor.clusterService().state();
         var txnCtx = new CoordinatorTxnCtx(sessionSettings);
-        var nodeCtx = executor.nodeContext();
         var params = new RowN(portal.params().toArray());
-        var plannerContext = new PlannerContext(
-            clusterState,
+        var plannerContext = planner.createContext(
             routingProvider,
-            mostRecentJobID,
+            jobId,
             txnCtx,
-            nodeCtx,
             maxRows,
             params,
             cursors,
-            currentTransactionState,
-            new PlanStats(nodeCtx, txnCtx, tableStats)
+            currentTransactionState
         );
         var analyzedStmt = portal.analyzedStatement();
         String rawStatement = portal.preparedStmt().rawStatement();
         if (analyzedStmt == null) {
             String errorMsg = "Statement must have been analyzed: " + rawStatement;
-            jobsLogs.logPreExecutionFailure(mostRecentJobID, rawStatement, errorMsg, sessionSettings.sessionUser());
+            jobsLogs.logPreExecutionFailure(jobId, rawStatement, errorMsg, sessionSettings.sessionUser());
             throw new IllegalStateException(errorMsg);
         }
         Plan plan;
         try {
             plan = planner.plan(analyzedStmt, plannerContext);
         } catch (Throwable t) {
-            jobsLogs.logPreExecutionFailure(mostRecentJobID, rawStatement, SQLExceptions.messageOf(t), sessionSettings.sessionUser());
+            jobsLogs.logPreExecutionFailure(jobId, rawStatement, SQLExceptions.messageOf(t), sessionSettings.sessionUser());
             throw t;
         }
         if (!analyzedStmt.isWriteOperation()) {
@@ -765,7 +736,7 @@ public class Session implements AutoCloseable {
                 clusterState,
                 indexName -> executor.clusterService().state().metadata().hasIndex(indexName),
                 resultReceiver,
-                mostRecentJobID,
+                jobId,
                 (newJobId, resultRec) -> retryQuery(
                     newJobId,
                     analyzedStmt,
@@ -775,21 +746,19 @@ public class Session implements AutoCloseable {
                         maxRows,
                         new JobsLogsUpdateListener(newJobId, jobsLogs)),
                     params,
-                    txnCtx,
-                    nodeCtx
+                    txnCtx
                 )
             );
         }
         jobsLogs.logExecutionStart(
-            mostRecentJobID, rawStatement, sessionSettings.sessionUser(), StatementClassifier.classify(plan));
+            jobId, rawStatement, sessionSettings.sessionUser(), StatementClassifier.classify(plan));
         RowConsumerToResultReceiver consumer = new RowConsumerToResultReceiver(
-            resultReceiver, maxRows, new JobsLogsUpdateListener(mostRecentJobID, jobsLogs));
+            resultReceiver, maxRows, new JobsLogsUpdateListener(jobId, jobsLogs));
         portal.setActiveConsumer(consumer);
         plan.execute(executor, plannerContext, consumer, params, SubQueryResults.EMPTY);
         CompletableFuture<?> result = resultReceiver.completionFuture();
         addStatementTimeout(result);
         return result;
-
     }
 
     @Nullable

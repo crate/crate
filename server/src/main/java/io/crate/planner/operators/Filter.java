@@ -21,21 +21,21 @@
 
 package io.crate.planner.operators;
 
-import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.SequencedCollection;
 import java.util.Set;
 
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
+import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
@@ -94,9 +94,9 @@ public final class Filter extends ForwardingLogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
         LinkedHashSet<Symbol> toKeep = new LinkedHashSet<>(outputsToKeep);
-        SymbolVisitors.intersection(query, source.outputs(), toKeep::add);
+        Symbols.intersection(query, source.outputs(), toKeep::add);
         LogicalPlan newSource = source.pruneOutputsExcept(toKeep);
         if (newSource == source) {
             return this;
@@ -106,7 +106,7 @@ public final class Filter extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new Filter(Lists2.getOnlyElement(sources), query);
+        return new Filter(Lists.getOnlyElement(sources), query);
     }
 
     @Override

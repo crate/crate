@@ -21,58 +21,157 @@
 
 package io.crate.execution.dml;
 
+import static io.crate.types.GeoShapeType.Names.TREE_BKD;
+import static io.crate.types.GeoShapeType.Names.TREE_GEOHASH;
+import static io.crate.types.GeoShapeType.Names.TREE_LEGACY_QUADTREE;
+import static io.crate.types.GeoShapeType.Names.TREE_QUADTREE;
+
 import java.io.IOException;
 import java.util.Map;
 import java.util.function.Consumer;
 
 import org.apache.lucene.document.Field;
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.spatial.prefix.RecursivePrefixTreeStrategy;
+import org.apache.lucene.spatial.prefix.tree.GeohashPrefixTree;
+import org.apache.lucene.spatial.prefix.tree.PackedQuadPrefixTree;
+import org.apache.lucene.spatial.prefix.tree.QuadPrefixTree;
+import org.apache.lucene.spatial.prefix.tree.SpatialPrefixTree;
+import org.elasticsearch.common.geo.GeoUtils;
+import org.elasticsearch.common.geo.builders.ShapeBuilder;
+import org.elasticsearch.common.geo.builders.ShapeBuilder.Orientation;
+import org.elasticsearch.common.unit.DistanceUnit;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
 import org.locationtech.spatial4j.shape.Shape;
 
 import io.crate.execution.dml.Indexer.ColumnConstraint;
-import io.crate.execution.dml.Indexer.Synthetic;
 import io.crate.geo.GeoJSONUtils;
+import io.crate.geo.LatLonShapeUtils;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeoReference;
 import io.crate.metadata.Reference;
+import io.crate.metadata.doc.DocSysColumns;
+import io.crate.types.GeoShapeType.Names;
 
 public class GeoShapeIndexer implements ValueIndexer<Map<String, Object>> {
 
-    private final GeoReference ref;
+    private final IndexableFieldsFactory indexableFieldsFactory;
     private final String name;
-    private final RecursivePrefixTreeStrategy strategy;
 
-    public GeoShapeIndexer(Reference ref, FieldType fieldType) {
+    public static final class Defaults {
+
+        private Defaults() {}
+
+        public static final String TREE = Names.TREE_GEOHASH;
+        public static final int GEOHASH_LEVELS = GeoUtils.geoHashLevelsForPrecision("50m");
+        public static final int QUADTREE_LEVELS = GeoUtils.quadTreeLevelsForPrecision("50m");
+        public static final Orientation ORIENTATION = Orientation.RIGHT;
+        public static final double LEGACY_DISTANCE_ERROR_PCT = 0.025d;
+        public static final double DISTANCE_ERROR_PCT = 0.0;
+    }
+
+    public GeoShapeIndexer(Reference ref) {
         assert ref instanceof GeoReference : "GeoShapeIndexer requires GeoReference";
-        this.ref = (GeoReference) ref;
+        GeoReference geoReference = (GeoReference) ref;
         this.name = ref.storageIdent();
-        this.strategy = new RecursivePrefixTreeStrategy(this.ref.prefixTree(), name);
-        Double distanceErrorPct = this.ref.distanceErrorPct();
-        if (distanceErrorPct != null) {
-            this.strategy.setDistErrPct(distanceErrorPct);
+        if (TREE_BKD.equals(geoReference.geoTree())) {
+            this.indexableFieldsFactory = new BkdTreeIndexableFieldsFactory(name);
+        } else {
+            this.indexableFieldsFactory = new PrefixTreeIndexableFieldsFactory(geoReference);
         }
-        this.strategy.setPruneLeafyBranches(false);
     }
 
     @Override
     public void indexValue(Map<String, Object> value,
                            XContentBuilder xcontentBuilder,
                            Consumer<? super IndexableField> addField,
-                           Map<ColumnIdent, Synthetic> synthetics,
+                           Synthetics synthetics,
                            Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
         xcontentBuilder.map(value);
-        Shape shape = GeoJSONUtils.map2Shape(value);
-        Field[] fields = strategy.createIndexableFields(shape);
-        for (var field : fields) {
-            addField.accept(field);
-        }
+        indexableFieldsFactory.create(value, addField);
         addField.accept(new Field(
-            FieldNamesFieldMapper.NAME,
+            DocSysColumns.FieldNames.NAME,
             name,
-            FieldNamesFieldMapper.Defaults.FIELD_TYPE));
+            DocSysColumns.FieldNames.FIELD_TYPE));
+    }
+
+    private interface IndexableFieldsFactory {
+
+        void create(Map<String, Object> value, Consumer<? super IndexableField> addField);
+    }
+
+    private static class PrefixTreeIndexableFieldsFactory implements IndexableFieldsFactory {
+
+        private final RecursivePrefixTreeStrategy strategy;
+
+        PrefixTreeIndexableFieldsFactory(GeoReference ref) {
+            this.strategy = new RecursivePrefixTreeStrategy(prefixTree(ref), ref.storageIdent());
+            Double distanceErrorPct = ref.distanceErrorPct();
+            if (distanceErrorPct != null) {
+                this.strategy.setDistErrPct(distanceErrorPct);
+            }
+            this.strategy.setPruneLeafyBranches(false);
+        }
+
+        @Override
+        public void create(Map<String, Object> value, Consumer<? super IndexableField> addField) {
+            Shape shape = GeoJSONUtils.map2Shape(value);
+            Field[] fields = strategy.createIndexableFields(shape);
+            for (var field : fields) {
+                addField.accept(field);
+            }
+        }
+
+        private SpatialPrefixTree prefixTree(GeoReference ref) {
+            double precisionInMeters = ref.precision() == null ? -1 : DistanceUnit.parse(
+                ref.precision(),
+                DistanceUnit.DEFAULT,
+                DistanceUnit.METERS
+            );
+            int treeLevels = ref.treeLevels() == null ? 0 : ref.treeLevels();
+            return switch (ref.geoTree()) {
+                case TREE_GEOHASH -> new GeohashPrefixTree(
+                    ShapeBuilder.SPATIAL_CONTEXT,
+                    levels(treeLevels, precisionInMeters, Defaults.GEOHASH_LEVELS, true)
+                );
+
+                case TREE_LEGACY_QUADTREE -> new QuadPrefixTree(
+                    ShapeBuilder.SPATIAL_CONTEXT,
+                    levels(treeLevels, precisionInMeters, Defaults.QUADTREE_LEVELS, false)
+                );
+
+                case TREE_QUADTREE -> new PackedQuadPrefixTree(
+                    ShapeBuilder.SPATIAL_CONTEXT,
+                    levels(treeLevels, precisionInMeters, Defaults.QUADTREE_LEVELS, false)
+                );
+
+                default -> throw new IllegalArgumentException("Unknown prefix tree type: " + ref.geoTree());
+            };
+        }
+
+        private int levels(int treeLevels, double precisionInMeters, int defaultLevels, boolean geoHash) {
+            if (treeLevels > 0 || precisionInMeters >= 0) {
+                int levels = geoHash
+                    ? GeoUtils.geoHashLevelsForPrecision(precisionInMeters)
+                    : GeoUtils.quadTreeLevelsForPrecision(precisionInMeters);
+                return Math.max(treeLevels, precisionInMeters >= 0 ? levels : 0);
+            }
+            return defaultLevels;
+        }
+    }
+
+    private static class BkdTreeIndexableFieldsFactory implements IndexableFieldsFactory {
+
+        private final String name;
+
+        BkdTreeIndexableFieldsFactory(String name) {
+            this.name = name;
+        }
+
+        @Override
+        public void create(Map<String, Object> value, Consumer<? super IndexableField> addField) {
+            Object shape = GeoJSONUtils.map2LuceneShape(value);
+            LatLonShapeUtils.createIndexableFields(name, shape, addField);
+        }
     }
 }

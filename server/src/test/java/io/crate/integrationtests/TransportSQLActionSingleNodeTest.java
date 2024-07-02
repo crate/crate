@@ -23,7 +23,6 @@ package io.crate.integrationtests;
 
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -89,7 +88,7 @@ public class TransportSQLActionSingleNodeTest extends IntegTestCase {
                 ", \"write.wait_for_active_shards\"=1)");
         execute("insert into locations (id, name) values (1, 'name1')");
         execute("insert into locations (id, name) values (2, 'name2')");
-        refresh();
+        execute("refresh table locations");
         ensureYellow();
 
         execute("select \"primary\", state, count(*) from sys.shards where table_name = 'locations' group by \"primary\", state order by \"primary\"");
@@ -112,7 +111,7 @@ public class TransportSQLActionSingleNodeTest extends IntegTestCase {
                 ", \"write.wait_for_active_shards\"=1)");
         execute("insert into locations (id, name) values (1, 'name1')");
         execute("insert into locations (id, name) values (2, 'name2')");
-        refresh();
+        execute("refresh table locations");
         ensureYellow();
 
         execute("select table_name, partition_ident, state from sys.shards where table_name = 'locations' " +
@@ -170,7 +169,6 @@ public class TransportSQLActionSingleNodeTest extends IntegTestCase {
         assertThat(rowCounts[0]).isEqualTo(1L);
         assertThat(rowCounts[1]).isEqualTo(1L);
 
-        waitForMappingUpdateOnAll("foo", "bar");
         execute("select data_type from information_schema.columns where table_name = 'foo' and column_name = 'bar'");
         // integer values for unknown columns will be result in a long type for range safety
         assertThat(response.rows()[0][0]).isEqualTo("bigint_array");
@@ -209,10 +207,9 @@ public class TransportSQLActionSingleNodeTest extends IntegTestCase {
     public void testSubscriptArray() throws Exception {
         execute("create table test (id integer primary key, names array(string)) " +
                 "clustered into 1 shards with (number_of_replicas=0)");
-        ensureYellow();
         execute("insert into test (id, names) values (?, ?)",
             new Object[]{1, Arrays.asList("Arthur", "Ford")});
-        refresh();
+        execute("refresh table test");
         execute("select names[1] from test");
         assertThat(response).hasRowCount(1L);
         assertThat(response.rows()[0][0]).isEqualTo("Arthur");
@@ -222,10 +219,9 @@ public class TransportSQLActionSingleNodeTest extends IntegTestCase {
     public void testSubscriptArrayNesting() throws Exception {
         execute("create table test (id integer primary key, names array(object as (surname string))) " +
                 "clustered into 1 shards with (number_of_replicas=0)");
-        ensureYellow();
         execute("insert into test (id, names) values (?, ?)",
-                new Object[] {1, Arrays.asList(Map.of("surname", "Adams"))});
-        refresh();
+                new Object[] {1, List.of(Map.of("surname", "Adams"))});
+        execute("refresh table test");
         execute("select names[1]['surname'] from test");
         assertThat(response).hasRowCount(1L);
         assertThat(response.rows()[0][0]).isEqualTo("Adams");
@@ -235,9 +231,8 @@ public class TransportSQLActionSingleNodeTest extends IntegTestCase {
     public void testSelectRegexpMatchesGroup() throws Exception {
         execute("create table test (id integer primary key, text string) " +
                 "clustered into 1 shards with (number_of_replicas=0)");
-        ensureYellow();
         execute("insert into test (id, text) values (1, 'Time is an illusion')");
-        refresh();
+        execute("refresh table test");
         execute("select regexp_matches(text, '(\\w+)\\s(\\w+)')[1] as first_word," +
                 "regexp_matches(text, '(\\w+)\\s(\\w+)')[2] as matched from test order by first_word");
         assertThat(response).hasRowCount(1L);
@@ -286,6 +281,17 @@ public class TransportSQLActionSingleNodeTest extends IntegTestCase {
             }
         }
         waitUntilShardOperationsFinished();
+    }
+
+    @Test
+    public void test_unnest_with_single_nested_array() throws Exception {
+        execute("select x from unnest([[1, 2, 3], [4]]) as t (x)");
+        assertThat(response).hasRows(
+            "1",
+            "2",
+            "3",
+            "4"
+        );
     }
 
     @Override

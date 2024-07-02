@@ -28,6 +28,7 @@ import io.crate.expression.scalar.object.ObjectMergeFunction;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -40,46 +41,49 @@ public abstract class ConcatFunction extends Scalar<String, String> {
 
     public static final String NAME = "concat";
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder module) {
+        module.add(
             Signature.scalar(
                 NAME,
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ),
+            ).withFeature(Feature.DETERMINISTIC)
+            .withFeature(Feature.NON_NULLABLE),
             StringConcatFunction::new
         );
 
-        module.register(
+        module.add(
             Signature.scalar(
                 NAME,
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            )
-                .withVariableArity(),
+            ).withFeature(Feature.DETERMINISTIC)
+            .withFeature(Feature.NON_NULLABLE)
+            .withVariableArity(),
             GenericConcatFunction::new
         );
 
         // concat(array[], array[]) -> same as `array_cat(...)`
-        module.register(
+        module.add(
             Signature.scalar(
                 NAME,
                 TypeSignature.parse("array(E)"),
                 TypeSignature.parse("array(E)"),
                 TypeSignature.parse("array(E)")
-            )
-                .withTypeVariableConstraints(typeVariable("E")),
+            ).withFeature(Feature.DETERMINISTIC)
+            .withFeature(Feature.NON_NULLABLE)
+            .withTypeVariableConstraints(typeVariable("E")),
             ArrayCatFunction::new
         );
 
-        module.register(
+        module.add(
             Signature.scalar(
                 NAME,
                 DataTypes.UNTYPED_OBJECT.getTypeSignature(),
                 DataTypes.UNTYPED_OBJECT.getTypeSignature(),
                 DataTypes.UNTYPED_OBJECT.getTypeSignature()
-            ),
+            ).withFeature(Feature.DETERMINISTIC),
             ObjectMergeFunction::new
         );
     }

@@ -21,9 +21,17 @@
 
 package io.crate.planner.node.ddl;
 
+import java.util.Collection;
+import java.util.function.Function;
+
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
+import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
+import org.elasticsearch.common.settings.Settings;
+
 import io.crate.analyze.SymbolEvaluator;
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Lists2;
+import org.jetbrains.annotations.VisibleForTesting;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
@@ -35,13 +43,6 @@ import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Assignment;
-import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
-import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
-import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
-import org.elasticsearch.common.settings.Settings;
-
-import java.util.Collection;
-import java.util.function.Function;
 
 public final class UpdateSettingsPlan implements Plan {
 
@@ -101,7 +102,7 @@ public final class UpdateSettingsPlan implements Plan {
             if (CrateSettings.isValidSetting(settingsName) == false) {
                 throw new IllegalArgumentException("Setting '" + settingsName + "' is not supported");
             }
-            Symbol expression = Lists2.getOnlyElement(entry.expressions());
+            Symbol expression = Lists.getOnlyElement(entry.expressions());
             Object value = eval.apply(expression);
             CrateSettings.flattenSettings(settingsBuilder, settingsName, value);
         }

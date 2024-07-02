@@ -21,22 +21,19 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.List;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.functions.Signature;
 import io.crate.operation.aggregation.AggregationTestCase;
@@ -52,7 +49,7 @@ public class CollectSetAggregationTest extends AggregationTestCase {
                 "collect_set",
                 argumentType.getTypeSignature(),
                 new ArrayType<>(argumentType).getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.DETERMINISTIC),
             data,
             List.of()
         );
@@ -62,20 +59,23 @@ public class CollectSetAggregationTest extends AggregationTestCase {
     public void testReturnType() throws Exception {
         FunctionImplementation collectSet = nodeCtx.functions().get(
             null, "collect_set", List.of(Literal.of(DataTypes.INTEGER, null)), SearchPath.pathWithPGCatalogAndDoc());
-        assertEquals(new ArrayType<>(DataTypes.INTEGER), collectSet.boundSignature().returnType());
+        assertThat(collectSet.boundSignature().returnType()).isEqualTo(new ArrayType<>(DataTypes.INTEGER));
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testDouble() throws Exception {
         assertThat(
-            (List<Object>) executeAggregation(DataTypes.DOUBLE, new Object[][]{{0.7d}, {0.3d}, {0.3d}}),
-            is(Matchers.containsInAnyOrder(0.3d, 0.7d)));
+            (List<Object>) executeAggregation(DataTypes.DOUBLE, new Object[][]{{0.7d}, {0.3d}, {0.3d}}))
+            .containsExactlyInAnyOrder(0.3d, 0.7d);
     }
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
     @Test
     public void testLongSerialization() throws Exception {
-        AggregationFunction impl = (AggregationFunction) nodeCtx.functions().get(
-                null, "collect_set", List.of(Literal.of(DataTypes.LONG, null)), SearchPath.pathWithPGCatalogAndDoc());
+        var impl = (AggregationFunction) nodeCtx.functions().get(
+                null, "collect_set", List.of(Literal.of(DataTypes.LONG, null)),
+            SearchPath.pathWithPGCatalogAndDoc());
 
         Object state = impl.newState(RAM_ACCOUNTING, Version.CURRENT, Version.CURRENT, memoryManager);
 
@@ -83,14 +83,15 @@ public class CollectSetAggregationTest extends AggregationTestCase {
         impl.partialType().streamer().writeValueTo(streamOutput, state);
 
         Object newState = impl.partialType().streamer().readValueFrom(streamOutput.bytes().streamInput());
-        assertEquals(state, newState);
+        assertThat(newState).isEqualTo(state);
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void test_value_adding_and_removal() {
-        AggregationFunction impl = (AggregationFunction) nodeCtx.functions().get(
+        var impl = (AggregationFunction<Object, Object>) nodeCtx.functions().get(
             null, "collect_set", List.of(Literal.of(DataTypes.LONG, null)), SearchPath.pathWithPGCatalogAndDoc());
-        AggregationFunction aggregationFunction = impl.optimizeForExecutionAsWindowFunction();
+        var aggregationFunction = (AggregationFunction<Object, Object>) impl.optimizeForExecutionAsWindowFunction();
 
         Object state = aggregationFunction.newState(RAM_ACCOUNTING, Version.CURRENT, Version.CURRENT, memoryManager);
         state = aggregationFunction.iterate(RAM_ACCOUNTING, memoryManager, state, Literal.of(10L));
@@ -100,50 +101,58 @@ public class CollectSetAggregationTest extends AggregationTestCase {
         aggregationFunction.removeFromAggregatedState(RAM_ACCOUNTING, state, new Input[] { Literal.of(10L) });
 
         Object values = aggregationFunction.terminatePartial(RAM_ACCOUNTING, state);
-        assertThat((List<Object>) values, Matchers.empty());
+        assertThat((List<Object>) values).isEmpty();
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testFloat() throws Exception {
-        assertThat((List<Object>) executeAggregation(DataTypes.FLOAT, new Object[][]{{0.7f}, {0.3f}, {0.3f}}),
-                   is(containsInAnyOrder(0.3f, 0.7f)));
+        assertThat((List<Object>) executeAggregation(DataTypes.FLOAT, new Object[][]{{0.7f}, {0.3f}, {0.3f}}))
+            .containsExactlyInAnyOrder(0.3f, 0.7f);
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testInteger() throws Exception {
-        assertThat((List<Object>) executeAggregation(DataTypes.INTEGER, new Object[][]{{7}, {3}, {3}}),
-                   is(containsInAnyOrder(3, 7)));
+        assertThat((List<Object>) executeAggregation(DataTypes.INTEGER, new Object[][]{{7}, {3}, {3}}))
+            .containsExactlyInAnyOrder(3, 7);
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testLong() throws Exception {
-        assertThat((List<Object>) executeAggregation(DataTypes.LONG, new Object[][]{{7L}, {3L}, {3L}}),
-                   is(containsInAnyOrder(3L, 7L)));
+        assertThat((List<Object>) executeAggregation(DataTypes.LONG, new Object[][]{{7L}, {3L}, {3L}}))
+            .containsExactlyInAnyOrder(3L, 7L);
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testShort() throws Exception {
-        assertThat((List<Object>) executeAggregation(DataTypes.SHORT,
-                                                 new Object[][]{{(short) 7}, {(short) 3}, {(short) 3}}),
-                   is(containsInAnyOrder((short) 3, (short) 7)));
+        assertThat((List<Object>) executeAggregation(
+            DataTypes.SHORT, new Object[][]{{(short) 7}, {(short) 3}, {(short) 3}}))
+            .containsExactlyInAnyOrder((short) 3, (short) 7);
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testString() throws Exception {
-        assertThat((List<Object>) executeAggregation(DataTypes.STRING, new Object[][]{{"Youri"}, {"Ruben"}, {"Ruben"}}),
-                   is(containsInAnyOrder("Youri", "Ruben")));
+        assertThat((List<Object>) executeAggregation(
+            DataTypes.STRING, new Object[][]{{"Youri"}, {"Ruben"}, {"Ruben"}}))
+            .containsExactlyInAnyOrder("Youri", "Ruben");
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testBoolean() throws Exception {
-        assertThat((List<Object>) executeAggregation(DataTypes.BOOLEAN, new Object[][]{{true}, {false}, {false}}),
-                   is(containsInAnyOrder(true, false)));
+        assertThat((List<Object>) executeAggregation(DataTypes.BOOLEAN, new Object[][]{{true}, {false}, {false}}))
+            .containsExactlyInAnyOrder(true, false);
     }
 
+    @SuppressWarnings("unchecked")
     @Test
     public void testNullValue() throws Exception {
-        assertThat("null values currently ignored",
-                   (List<Object>) executeAggregation(DataTypes.STRING, new Object[][]{{"Youri"}, {"Ruben"}, {null}}),
-                   is(containsInAnyOrder("Youri", "Ruben")));
+        assertThat((List<Object>) executeAggregation(DataTypes.STRING, new Object[][]{{"Youri"}, {"Ruben"}, {null}}))
+            .as("null values currently ignored")
+            .containsExactlyInAnyOrder("Youri", "Ruben");
     }
 }

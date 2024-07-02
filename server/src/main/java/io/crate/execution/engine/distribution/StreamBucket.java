@@ -21,11 +21,12 @@
 
 package io.crate.execution.engine.distribution;
 
-import io.crate.Streamer;
-import io.crate.data.Bucket;
-import io.crate.data.Row;
-import io.crate.data.RowN;
-import io.crate.data.breaker.RamAccounting;
+import static java.util.Objects.requireNonNull;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.Collections;
+import java.util.Iterator;
 
 import org.apache.lucene.util.Accountable;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -33,15 +34,14 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.util.Collections;
-import java.util.Iterator;
 
-import static java.util.Objects.requireNonNull;
+import io.crate.Streamer;
+import io.crate.data.Bucket;
+import io.crate.data.Row;
+import io.crate.data.RowN;
+import io.crate.data.breaker.RamAccounting;
 
 public class StreamBucket implements Bucket, Writeable {
 
@@ -189,7 +189,7 @@ public class StreamBucket implements Bucket, Writeable {
      * Create a StreamBucket by reading from an input stream.
      * The created buckets rows are lazily de-serialized using the provided streamers
      */
-    public StreamBucket(StreamInput in, Streamer[] streamers) throws IOException {
+    public StreamBucket(StreamInput in, Streamer<?>[] streamers) throws IOException {
         this(in);
         this.streamers = streamers;
     }

@@ -19,16 +19,17 @@
 
 package org.elasticsearch.index.analysis;
 
-import io.crate.common.io.IOUtils;
-import org.elasticsearch.index.AbstractIndexComponent;
-import org.elasticsearch.index.IndexSettings;
+import static java.util.Collections.unmodifiableMap;
 
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Map;
 import java.util.stream.Stream;
 
-import static java.util.Collections.unmodifiableMap;
+import org.elasticsearch.index.AbstractIndexComponent;
+import org.elasticsearch.index.IndexSettings;
+
+import io.crate.common.io.IOUtils;
 
 /**
  * IndexAnalyzers contains a name to analyzer mapping for a specific index.
@@ -39,19 +40,17 @@ import static java.util.Collections.unmodifiableMap;
  */
 public final class IndexAnalyzers extends AbstractIndexComponent implements Closeable {
     private final NamedAnalyzer defaultIndexAnalyzer;
-    private final NamedAnalyzer defaultSearchAnalyzer;
-    private final NamedAnalyzer defaultSearchQuoteAnalyzer;
     private final Map<String, NamedAnalyzer> analyzers;
     private final Map<String, NamedAnalyzer> normalizers;
     private final Map<String, NamedAnalyzer> whitespaceNormalizers;
 
-    public IndexAnalyzers(IndexSettings indexSettings, NamedAnalyzer defaultIndexAnalyzer, NamedAnalyzer defaultSearchAnalyzer,
-                          NamedAnalyzer defaultSearchQuoteAnalyzer, Map<String, NamedAnalyzer> analyzers,
-                          Map<String, NamedAnalyzer> normalizers, Map<String, NamedAnalyzer> whitespaceNormalizers) {
+    public IndexAnalyzers(IndexSettings indexSettings,
+                          NamedAnalyzer defaultIndexAnalyzer,
+                          Map<String, NamedAnalyzer> analyzers,
+                          Map<String, NamedAnalyzer> normalizers,
+                          Map<String, NamedAnalyzer> whitespaceNormalizers) {
         super(indexSettings);
         this.defaultIndexAnalyzer = defaultIndexAnalyzer;
-        this.defaultSearchAnalyzer = defaultSearchAnalyzer;
-        this.defaultSearchQuoteAnalyzer = defaultSearchQuoteAnalyzer;
         this.analyzers = unmodifiableMap(analyzers);
         this.normalizers = unmodifiableMap(normalizers);
         this.whitespaceNormalizers = unmodifiableMap(whitespaceNormalizers);
@@ -83,20 +82,6 @@ public final class IndexAnalyzers extends AbstractIndexComponent implements Clos
      */
     public NamedAnalyzer getDefaultIndexAnalyzer() {
         return defaultIndexAnalyzer;
-    }
-
-    /**
-     * Returns the default search analyzer for this index
-     */
-    public NamedAnalyzer getDefaultSearchAnalyzer() {
-        return defaultSearchAnalyzer;
-    }
-
-    /**
-     * Returns the default search quote analyzer for this index
-     */
-    public NamedAnalyzer getDefaultSearchQuoteAnalyzer() {
-        return defaultSearchQuoteAnalyzer;
     }
 
     @Override

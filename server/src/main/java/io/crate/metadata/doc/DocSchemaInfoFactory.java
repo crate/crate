@@ -21,33 +21,22 @@
 
 package io.crate.metadata.doc;
 
-import io.crate.expression.udf.UserDefinedFunctionService;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.view.ViewInfoFactory;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 
-@Singleton
+import io.crate.metadata.view.ViewInfoFactory;
+
 public class DocSchemaInfoFactory {
 
     private final DocTableInfoFactory docTableInfoFactory;
     private final ViewInfoFactory viewInfoFactory;
-    private final NodeContext nodeCtx;
-    private final UserDefinedFunctionService udfService;
 
-    @Inject
     public DocSchemaInfoFactory(DocTableInfoFactory docTableInfoFactory,
-                                ViewInfoFactory viewInfoFactory,
-                                NodeContext nodeCtx,
-                                UserDefinedFunctionService udfService) {
+                                ViewInfoFactory viewInfoFactory) {
         this.docTableInfoFactory = docTableInfoFactory;
         this.viewInfoFactory = viewInfoFactory;
-        this.nodeCtx = nodeCtx;
-        this.udfService = udfService;
     }
 
     public DocSchemaInfo create(String schemaName, ClusterService clusterService) {
-        return new DocSchemaInfo(schemaName, clusterService, nodeCtx, udfService, viewInfoFactory, docTableInfoFactory);
+        return new DocSchemaInfo(schemaName, clusterService, viewInfoFactory, docTableInfoFactory);
     }
 }

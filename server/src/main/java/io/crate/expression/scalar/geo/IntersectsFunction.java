@@ -26,11 +26,11 @@ import static io.crate.metadata.functions.Signature.scalar;
 import org.locationtech.spatial4j.shape.Shape;
 
 import io.crate.data.Input;
-import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.geo.GeoJSONUtils;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -42,14 +42,15 @@ public class IntersectsFunction extends Scalar<Boolean, Object> {
 
     public static final String NAME = "intersects";
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder module) {
+        module.add(
             scalar(
                 NAME,
                 DataTypes.GEO_SHAPE.getTypeSignature(),
                 DataTypes.GEO_SHAPE.getTypeSignature(),
                 DataTypes.BOOLEAN.getTypeSignature()
-            ),
+            ).withFeature(Feature.DETERMINISTIC)
+                .withFeature(Feature.NULLABLE),
             IntersectsFunction::new
         );
     }

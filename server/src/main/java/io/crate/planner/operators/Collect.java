@@ -27,9 +27,12 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedCollection;
 import java.util.Set;
+import java.util.function.Predicate;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -39,7 +42,7 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.where.WhereClauseAnalyzer;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.exceptions.VersioningValidationException;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
@@ -53,7 +56,6 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.RefReplacer;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.IndexType;
@@ -63,6 +65,7 @@ import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.ShardedTable;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
@@ -183,7 +186,7 @@ public class Collect implements LogicalPlan {
 
     private static boolean noLuceneSortSupport(OrderBy order) {
         for (Symbol sortKey : order.orderBySymbols()) {
-            if (SymbolVisitors.any(Collect::isPartitionColOrAnalyzed, sortKey)) {
+            if (sortKey.any(Collect::isPartitionColOrAnalyzed)) {
                 return true;
             }
         }
@@ -244,13 +247,14 @@ public class Collect implements LogicalPlan {
                     params,
                     subQueryResults,
                     plannerContext.transactionContext(),
-                    plannerContext.nodeContext()
+                    plannerContext.nodeContext(),
+                    plannerContext.clusterState().metadata()
                 );
             }
             Symbol query = GeneratedColumnExpander.maybeExpand(
                 boundWhere.queryOrFallback(),
                 docTable.generatedColumns(),
-                Lists2.concat(docTable.partitionedByColumns(), Lists2.map(docTable.primaryKey(), docTable::getReference)),
+                Lists.concat(docTable.partitionedByColumns(), Lists.map(docTable.primaryKey(), docTable::getReference)),
                 plannerContext.nodeContext()
             );
             if (!query.equals(boundWhere.queryOrFallback())) {
@@ -268,7 +272,8 @@ public class Collect implements LogicalPlan {
             boundWhere,
             relation,
             plannerContext.transactionContext(),
-            plannerContext.nodeContext());
+            plannerContext.nodeContext(),
+            plannerContext.clusterState().metadata());
         if (mutableBoundWhere.hasVersions()) {
             throw VersioningValidationException.versionInvalidUsage();
         } else if (mutableBoundWhere.hasSeqNoAndPrimaryTerm()) {
@@ -276,7 +281,7 @@ public class Collect implements LogicalPlan {
         }
 
         var sessionSettings = plannerContext.transactionContext().sessionSettings();
-        List<Symbol> boundOutputs = Lists2.map(outputs, binder);
+        List<Symbol> boundOutputs = Lists.map(outputs, binder);
         return new RoutedCollectPhase(
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),
@@ -288,7 +293,7 @@ public class Collect implements LogicalPlan {
                 sessionSettings),
             tableInfo.rowGranularity(),
             planHints.contains(PlanHint.PREFER_SOURCE_LOOKUP) && tableInfo instanceof DocTableInfo
-                ? Lists2.map(boundOutputs, DocReferences::toSourceLookup)
+                ? Lists.map(boundOutputs, DocReferences::toSourceLookup)
                 : boundOutputs,
             Collections.emptyList(),
             Optimizer.optimizeCasts(mutableBoundWhere.queryOrFallback(), plannerContext),
@@ -305,12 +310,12 @@ public class Collect implements LogicalPlan {
     }
 
     @Override
-    public List<AbstractTableRelation<?>> baseTables() {
-        return baseTables;
+    public boolean supportsDistributedReads() {
+        return tableInfo instanceof ShardedTable;
     }
 
     @Override
-    public List<RelationName> getRelationNames() {
+    public List<RelationName> relationNames() {
         return List.of(relation.relationName());
     }
 
@@ -326,17 +331,19 @@ public class Collect implements LogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
-        ArrayList<Symbol> newOutputs = new ArrayList<>();
-        for (Symbol output : outputs) {
-            if (outputsToKeep.contains(output)) {
-                newOutputs.add(output);
-            }
+    public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
+        LinkedHashSet<Symbol> newOutputs = new LinkedHashSet<>();
+        for (Symbol outputToKeep : outputsToKeep) {
+            Symbols.intersection(outputToKeep, outputs, needle -> {
+                int index = outputs.indexOf(needle);
+                assert index != -1 : "Consumer is called only when intersection is found";
+                newOutputs.add(outputs.get(index));
+            });
         }
-        if (newOutputs.equals(outputs)) {
+        if (newOutputs.size() == outputs.size() && newOutputs.containsAll(outputs)) {
             return this;
         }
-        return new Collect(relation, newOutputs, immutableWhere);
+        return new Collect(relation, List.copyOf(newOutputs), immutableWhere);
     }
 
     @Nullable
@@ -351,13 +358,13 @@ public class Collect implements LogicalPlan {
         FetchMarker fetchMarker = new FetchMarker(relation.relationName(), refsToFetch);
         for (int i = 0; i < outputs.size(); i++) {
             Symbol output = outputs.get(i);
-            if (Symbols.containsColumn(output, DocSysColumns.SCORE)) {
+            if (output.hasColumn(DocSysColumns.SCORE)) {
                 newOutputs.add(output);
                 replacedOutputs.put(output, output);
-            } else if (!SymbolVisitors.any(Symbols.IS_COLUMN, output)) {
+            } else if (!output.any(Symbol.IS_COLUMN)) {
                 newOutputs.add(output);
                 replacedOutputs.put(output, output);
-            } else if (SymbolVisitors.any(output::equals, usedColumns)) {
+            } else if (Symbols.any(usedColumns, (Predicate<? super Symbol>) output::equals)) {
                 newOutputs.add(output);
                 replacedOutputs.put(output, output);
             } else {
@@ -392,7 +399,7 @@ public class Collect implements LogicalPlan {
     public String toString() {
         return "Collect{" +
                tableInfo.ident() +
-               ", [" + Lists2.joinOn(", ", outputs, Symbol::toString) +
+               ", [" + Lists.joinOn(", ", outputs, Symbol::toString) +
                "], " + immutableWhere +
                '}';
     }
@@ -408,7 +415,7 @@ public class Collect implements LogicalPlan {
             .text("Collect[")
             .text(tableInfo.ident().toString())
             .text(" | [")
-            .text(Lists2.joinOn(", ", outputs, Symbol::toString))
+            .text(Lists.joinOn(", ", outputs, Symbol::toString))
             .text("] | ")
             .text(immutableWhere.queryOrFallback().toString())
             .text("]");

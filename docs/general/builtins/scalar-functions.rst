@@ -144,7 +144,7 @@ Returns: ``text``
 
 Extract a part from a string that matches a POSIX regular expression pattern.
 
-Returns:: ``text``.
+Returns: ``text``.
 
 If the pattern contains groups specified via parentheses it returns the first
 matching group.
@@ -167,7 +167,7 @@ If the pattern doesn't match, the function returns ``NULL``.
 .. _scalar-substring:
 
 ``substring(...)``
----------------...
+------------------
 
 Alias for :ref:`scalar-substr`.
 
@@ -480,6 +480,8 @@ Removes the longest string containing characters from ``str_arg_1`` (``' '`` by
 default) from the start, end, or both ends (``BOTH`` is the default) of
 ``str_arg_2``.
 
+If any of the two strings is ``NULL``, the result is ``NULL``.
+
 Synopsis::
 
     trim([ [ {LEADING | TRAILING | BOTH} ] [ str_arg_1 ] FROM ] str_arg_2)
@@ -523,6 +525,8 @@ Examples::
 Removes set of characters which are matching ``trimmingText`` (``' '`` by
 default) to the left of ``text``.
 
+If any of the arguments is ``NULL``, the result is ``NULL``.
+
 ::
 
     cr> select ltrim('xxxzzzabcba', 'xz') AS ltrim;
@@ -541,6 +545,8 @@ default) to the left of ``text``.
 
 Removes set of characters which are matching ``trimmingText`` (``' '`` by
 default) to the right of ``text``.
+
+If any of the arguments is ``NULL``, the result is ``NULL``.
 
 ::
 
@@ -561,6 +567,8 @@ default) to the right of ``text``.
 A combination of :ref:`ltrim <scalar-ltrim>` and :ref:`rtrim <scalar-rtrim>`,
 removing the longest string matching ``trimmingText`` from both the start and
 end of ``text``.
+
+If any of the arguments is ``NULL``, the result is ``NULL``.
 
 ::
 
@@ -789,6 +797,45 @@ Returns: ``text``
     +--------+
     SELECT 1 row in set (... sec)
 
+.. _scalar-strpos:
+
+``strpos(string, substring)``
+-----------------------------
+
+Returns the first 1-based index of the specified substring within string.
+Returns zero if the substring is not found and ``NULL`` if any of the arguments
+is ``NULL``.
+
+Returns: ``integer``
+
+::
+
+    cr> SELECT strpos('crate' , 'ate');
+    +---+
+    | 3 |
+    +---+
+    | 3 |
+    +---+
+    SELECT 1 row in set (... sec)
+
+.. _scalar-reverse:
+
+``reverse(text)``
+------------------
+
+Reverses the order of the string. Returns ``NULL`` if the argument is ``NULL``.
+
+Returns: ``text``
+
+::
+
+    cr> select reverse('abcde') as reverse;
+    +---------+
+    | reverse |
+    +---------+
+    |  edcba  |
+    +---------+
+    SELECT 1 row in set (... sec)
 
 .. _scalar-split_part:
 
@@ -831,7 +878,7 @@ Example::
 
 Returns: ``object``
 
-Parses the given URI string and returns an object containing the various 
+Parses the given URI string and returns an object containing the various
 components of the URI. The returned object has the following properties::
 
     "uri" OBJECT AS (
@@ -867,7 +914,7 @@ Synopsis::
 
 Example::
 
-    cr> SELECT parse_uri('crate://my_user@cluster.crate.io:5432/doc?sslmode=verify-full') as uri;                                                                               
+    cr> SELECT parse_uri('crate://my_user@cluster.crate.io:5432/doc?sslmode=verify-full') as uri;
     +------------------------------------------------------------------------------------------------------------------------------------------------------------+
     | uri                                                                                                                                                        |
     +------------------------------------------------------------------------------------------------------------------------------------------------------------+
@@ -875,10 +922,10 @@ Example::
     +------------------------------------------------------------------------------------------------------------------------------------------------------------+
     SELECT 1 row in set (... sec)
 
-If you just want to select a specific URI component, you can use the bracket 
+If you just want to select a specific URI component, you can use the bracket
 notation on the returned object::
 
-    cr> SELECT parse_uri('crate://my_user@cluster.crate.io:5432')['hostname'] as uri_hostname;                                                                                  
+    cr> SELECT parse_uri('crate://my_user@cluster.crate.io:5432')['hostname'] as uri_hostname;
     +------------------+
     | uri_hostname     |
     +------------------+
@@ -894,7 +941,7 @@ notation on the returned object::
 
 Returns: ``object``
 
-Parses the given URL string and returns an object containing the various 
+Parses the given URL string and returns an object containing the various
 components of the URL. The returned object has the following properties::
 
     "url" OBJECT AS (
@@ -906,7 +953,7 @@ components of the URL. The returned object has the following properties::
         "query" TEXT,
         "parameters" OBJECT AS (
             "key1" ARRAY(TEXT),
-            "key2" ARRAY(TEXT)   
+            "key2" ARRAY(TEXT)
         ),
         "fragment" TEXT
     )
@@ -943,7 +990,7 @@ Example::
     +--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
     SELECT 1 row in set (... sec)
 
-If you just want to select a specific URL component, you can use the bracket 
+If you just want to select a specific URL component, you can use the bracket
 notation on the returned object::
 
     cr> SELECT parse_url('https://my_user@cluster.crate.io:5432')['hostname'] as url_hostname;
@@ -954,7 +1001,7 @@ notation on the returned object::
     +------------------+
     SELECT 1 row in set (... sec)
 
-Parameter values are always treated as ``text``. There is no conversion of 
+Parameter values are always treated as ``text``. There is no conversion of
 comma-separated parameter values into arrays::
 
     cr> SELECT parse_url('http://crate.io?p1=1,2,3&p1=a&p2[]=1,2,3')['parameters'] as params;
@@ -1603,6 +1650,8 @@ The syntax for the ``format_string`` differs based the type of the
 +-----------------------+-----------------------------------------------------+
 | ``YYYY``              | 4 digit year                                        |
 +-----------------------+-----------------------------------------------------+
+| ``yyyy``              | 4 digit year                                        |
++-----------------------+-----------------------------------------------------+
 | ``YYY``               | Last 3 digits of year                               |
 +-----------------------+-----------------------------------------------------+
 | ``YY``                | Last 2 digits of year                               |
@@ -1975,6 +2024,33 @@ number::
     SELECT 1 row in set (... sec)
 
 
+.. _scalar-sign:
+
+``sign(number)``
+----------------
+
+Returns the sign of a number.
+
+This function will return one of the following:
+    - If number > 0, it returns 1.0
+    - If number = 0, it returns 0.0
+    - If number < 0, it returns -1.0
+    - If number is NULL, it returns NULL
+
+The data type of the return value is ``numeric`` if the argument is ``numeric``
+and ``double precision`` for the rest of numeric types.
+
+For example::
+
+    cr> select sign(12.34) as a, sign(0) as b, sign (-77) as c, sign(NULL) as d;
+    +-----+-----+------+------+
+    |   a |   b |    c | d    |
+    +-----+-----+------+------+
+    | 1.0 | 0.0 | -1.0 | NULL |
+    +-----+-----+------+------+
+    SELECT 1 row in set (... sec)
+
+
 .. _scalar-ceil:
 
 ``ceil(number)``
@@ -2033,11 +2109,11 @@ Returns: ``double precision``
 Returns Euler's number ``e`` raised to the power of the given numeric value.
 The output will be cast to the given input type and thus may loose precision.
 
-Returns: Same as input type.
+Returns: ``double precision``
 
 ::
 
-    cr> select exp(1.0) AS exp;
+    > select exp(1.0) AS exp;
     +-------------------+
     |               exp |
     +-------------------+
@@ -2045,6 +2121,8 @@ Returns: Same as input type.
     +-------------------+
     SELECT 1 row in set (... sec)
 
+.. test skipped because java.lang.Math.exp() can return with different
+   precision on different CPUs (e.g.: Apple M1)
 
 .. _scalar-floor:
 
@@ -3306,10 +3384,10 @@ Returns: ``array(text)``
 ``concat(object, object)``
 --------------------------
 
-The ``concat(object, object)`` function combines two objects into a new object 
-containing the union of their first level properties, taking the second 
-object's values for duplicate properties.  If one of the objects is ``NULL``, 
-the function returns the non-``NULL`` object. If both objects are ``NULL``, 
+The ``concat(object, object)`` function combines two objects into a new object
+containing the union of their first level properties, taking the second
+object's values for duplicate properties.  If one of the objects is ``NULL``,
+the function returns the non-``NULL`` object. If both objects are ``NULL``,
 the function returns ``NULL``.
 
 Returns: ``object``
@@ -3340,11 +3418,11 @@ objects::
 
 .. NOTE::
 
-    ``concat(object, object)`` does not operate recursively: only the 
+    ``concat(object, object)`` does not operate recursively: only the
     top-level object structure is merged::
-        
+
         cr> SELECT
-        ...     concat({a = {b = 4}}, {a = {c = 2}}) as object_concat;                                                                                                                                                                                                                            
+        ...     concat({a = {b = 4}}, {a = {c = 2}}) as object_concat;
         +-----------------+
         | object_concat   |
         +-----------------+
@@ -3727,6 +3805,29 @@ Example::
     SELECT 1 row in set (... sec)
 
 
+.. _scalar-current_role:
+
+``CURRENT_ROLE``
+----------------
+
+Equivalent to `CURRENT_USER`_.
+
+Returns: ``text``
+
+Synopsis::
+
+    CURRENT_ROLE
+
+Example::
+
+    cr> select current_role AS name;
+    +-------+
+    | name  |
+    +-------+
+    | crate |
+    +-------+
+    SELECT 1 row in set (... sec)
+
 .. _scalar-user:
 
 ``USER``
@@ -3860,6 +3961,71 @@ Example::
     | TRUE     |
     +----------+
     SELECT 1 row in set (... sec)
+
+.. NOTE::
+
+    For unknown schemas:
+
+    - Returns ``TRUE`` for superusers.
+
+    - For a user with ``DQL`` on cluster scope, returns ``TRUE`` if the
+      privilege type is ``USAGE``.
+
+    - For a user with ``DML`` on cluster scope, returns ``TRUE`` if the
+      privilege type is ``CREATE``.
+
+    - Returns ``FALSE`` otherwise.
+
+.. _scalar-has-table-priv:
+
+``has_table_privilege([user,] table, privilege text)``
+------------------------------------------------------
+
+Returns ``boolean`` or ``NULL`` if at least one argument is ``NULL``.
+
+First argument is ``TEXT`` user name or ``INTEGER`` user OID. If user is not
+specified current user is used as an argument.
+
+Second argument is ``TEXT`` table name or ``INTEGER`` table OID.
+
+Third argument is privilege(s) to check. Multiple privileges can be provided as
+a comma separated list, in which case the result will be ``true`` if any of the
+listed privileges is held. Allowed privilege types are ``SELECT`` which
+corresponds to CrateDB's ``DQL`` and ``INSERT``, ``UPDATE``, ``DELETE`` which
+all correspond to CrateDB's ``DML``. Privilege string is case insensitive and
+extra whitespace is allowed between privilege names. Duplicate entries in
+privilege string are allowed.
+
+Example::
+
+    cr> select has_table_privilege('sys.summits', ' Select  ')
+    ... as has_priv;
+    +----------+
+    | has_priv |
+    +----------+
+    | TRUE     |
+    +----------+
+    SELECT 1 row in set (... sec)
+    
+.. NOTE::
+
+    For unknown tables:
+
+    - Returns ``TRUE`` for superusers.
+
+    - For a user with ``DQL`` on cluster scope, returns ``TRUE`` if the
+      privilege type is ``SELECT``.
+
+    - For a user with ``DML`` on cluster scope, returns ``TRUE`` if the
+      privilege type is ``INSERT``, ``UPDATE`` or ``DELETE``.
+
+    - For a user with ``DQL`` on the schema, returns ``TRUE`` if the privilege
+      type is ``SELECT``.
+
+    - For a user with ``DML`` on the schema, returns ``TRUE`` if the privilege
+      type is ``INSERT``, ``UPDATE`` or ``DELETE``.
+
+    - Returns ``FALSE`` otherwise.
 
 .. _scalar-pg_backend_pid:
 
@@ -4131,6 +4297,32 @@ Example:
     SELECT 1 row in set (... sec)
 
 
+.. _scalar-pg_table_is_visible:
+
+``pg_table_is_visible()``
+-------------------------
+
+The function ``pg_table_is_visible`` accepts an OID as an argument. It returns
+``true`` if the current user holds at least one of ``DQL``, ``DDL`` or ``DML``
+privilege on the table or view referred by the OID and there are no other
+tables or views with the same name and privileges but with different schema
+names appearing earlier in the search path.
+
+Returns: ``boolean``
+
+Example:
+
+::
+
+    cr> select pg_table_is_visible(912037690) as is_visible;
+    +------------+
+    | is_visible |
+    +------------+
+    | TRUE       |
+    +------------+
+    SELECT 1 row in set (... sec)
+
+
 .. _scalar-pg_get_function_result:
 
 ``pg_get_function_result()``
@@ -4240,7 +4432,7 @@ Example:
 ---------------------------------
 
 Returns the type name of a type. The first argument is the ``OID`` of the type.
-The second argument is the type modifier. This function exits for PostgreSQL
+The second argument is the type modifier. This function exists for PostgreSQL
 compatibility and the type modifier is always ignored.
 
 Returns: ``text``
@@ -4431,6 +4623,36 @@ Example::
     SELECT 1 row in set (... sec)
 
 
+.. _scalar-vector:
+
+Vector functions
+================
+
+.. _scalar_vector_similarity:
+
+
+``vector_similarity(float_vector, float_vector)``
+--------------------------------------------------------
+
+Returns similarity of 2 :ref:`FLOAT_VECTORS <type-float_vector>`
+as a :ref:`FLOAT <type-real>` typed value.
+Similarity is based on euclidean distance and belongs to range ``(0,1]``.
+If 2 vectors coincide, function returns maximal possible similarity 1.
+The more distance between vectors is, the closer similarity gets to 0.
+If at least one argument is ``NULL``, function returns ``NULL``.
+
+An example::
+
+
+    cr> SELECT vector_similarity([1.2, 1.3], [10.2, 10.3]) AS vs;
+    +-------------+
+    |          vs |
+    +-------------+
+    | 0.006134969 |
+    +-------------+
+    SELECT 1 row in set (... sec)
+
+
 .. _3-valued logic: https://en.wikipedia.org/wiki/Null_(SQL)#Comparisons_with_NULL_and_the_three-valued_logic_(3VL)
 .. _available time zones: https://www.joda.org/joda-time/timezones.html
 .. _CrateDB PDO: https://crate.io/docs/pdo/en/latest/connect.html
@@ -4444,5 +4666,5 @@ Example::
 .. _Java Regular Expressions: https://docs.oracle.com/javase/8/docs/api/java/util/regex/Pattern.html
 .. _Joda-Time: https://www.joda.org/joda-time/
 .. _Lucene Regular Expressions: https://lucene.apache.org/core/4_9_0/core/org/apache/lucene/util/automaton/RegExp.html
-.. _MySQL date_format: https://dev.mysql.com/doc/refman/5.6/en/date-and-time-functions.html#function_date-format
+.. _MySQL date_format: https://dev.mysql.com/doc/refman/8.0/en/date-and-time-functions.html#function_date-format
 .. _WKT: https://en.wikipedia.org/wiki/Well-known_text_representation_of_geometry

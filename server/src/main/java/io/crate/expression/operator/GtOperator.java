@@ -21,6 +21,8 @@
 
 package io.crate.expression.operator;
 
+import io.crate.metadata.Functions;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
@@ -28,15 +30,16 @@ public final class GtOperator {
 
     public static final String NAME = "op_>";
 
-    public static void register(OperatorModule module) {
+    public static void register(Functions.Builder builder) {
         for (var supportedType : DataTypes.PRIMITIVE_TYPES) {
-            module.register(
+            builder.add(
                 Signature.scalar(
-                    NAME,
-                    supportedType.getTypeSignature(),
-                    supportedType.getTypeSignature(),
-                    Operator.RETURN_TYPE.getTypeSignature()
-                ),
+                        NAME,
+                        supportedType.getTypeSignature(),
+                        supportedType.getTypeSignature(),
+                        Operator.RETURN_TYPE.getTypeSignature())
+                    .withFeature(Scalar.Feature.DETERMINISTIC)
+                    .withFeature(Scalar.Feature.NULLABLE),
                 (signature, boundSignature) -> new CmpOperator(
                     signature,
                     boundSignature,

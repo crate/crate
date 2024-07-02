@@ -21,12 +21,12 @@
 
 package io.crate.metadata.pgcatalog;
 
+import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.STRING;
+
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
 import io.crate.types.DataTypes;
-
-import static io.crate.types.DataTypes.INTEGER;
-import static io.crate.types.DataTypes.STRING;
 
 public final class PgEnumTable {
 
@@ -34,12 +34,10 @@ public final class PgEnumTable {
 
     private PgEnumTable() {}
 
-    public static SystemTable<Void> create() {
-        return SystemTable.<Void>builder(IDENT)
-            .add("oid", INTEGER, ignored -> null)
-            .add("enumtypid", INTEGER, ignored -> null)
-            .add("enumsortorder", DataTypes.FLOAT, ignored -> null)
-            .add("enumlabel", STRING, ignored -> null)
-            .build();
-    }
+    public static SystemTable<Void> INSTANCE = SystemTable.<Void>builder(IDENT)
+        .add("oid", INTEGER, ignored -> null)
+        .add("enumtypid", INTEGER, ignored -> null)
+        .add("enumsortorder", DataTypes.FLOAT, ignored -> null)
+        .add("enumlabel", STRING, ignored -> null)
+        .build();
 }

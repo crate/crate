@@ -22,10 +22,8 @@
 package io.crate.integrationtests.disruption.replication.logical;
 
 import static io.crate.integrationtests.disruption.discovery.AbstractDisruptionTestCase.isolateNode;
-import static io.crate.testing.TestingHelpers.printedTable;
+import static io.crate.testing.Asserts.assertThat;
 import static org.elasticsearch.test.IntegTestCase.ensureStableCluster;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -89,8 +87,9 @@ public class SubscriptionDisruptionIT extends LogicalReplicationITestCase {
                         " FROM pg_subscription s" +
                         " JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
                         " ORDER BY s.subname");
-                    assertThat(printedTable(res.rows()),
-                               is("sub1| [pub1]| doc.t1| e| Tracking of metadata failed for subscription 'sub1' with unrecoverable error, stop tracking.\nReason: fail on logical replication repository restore\n"));
+                    assertThat(res).hasRows(
+                        "sub1| [pub1]| doc.t1| e| Tracking of metadata failed for subscription 'sub1' with unrecoverable error, stop tracking.\n" +
+                        "Reason: fail on logical replication repository restore");
                 }
             );
         } finally {
@@ -109,15 +108,13 @@ public class SubscriptionDisruptionIT extends LogicalReplicationITestCase {
 
         // Ensure tracker started and initial recovery is done
         assertBusy(() -> {
-            assertThat(isMetadataTrackerActive(), is(true));
+            assertThat(isMetadataTrackerActive()).isTrue();
             var res = executeOnSubscriber(
                 "SELECT s.subname, s.subpublications, sr.srrelid::text, sr.srsubstate, sr.srsubstate_reason" +
                     " FROM pg_subscription s" +
                     " JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
                     " ORDER BY s.subname");
-            assertThat(printedTable(res.rows()), is(
-                "sub1| [pub1]| doc.t1| r| NULL\n"
-            ));
+            assertThat(res).hasRows("sub1| [pub1]| doc.t1| r| NULL");
         });
 
         var expectedLogMessage = "Retrieving remote metadata failed for subscription 'sub1', will retry";
@@ -132,7 +129,7 @@ public class SubscriptionDisruptionIT extends LogicalReplicationITestCase {
         }
 
         // Ensure tracker is still running
-        assertBusy(() -> assertThat(isMetadataTrackerActive(), is(true)));
+        assertBusy(() -> assertThat(isMetadataTrackerActive()).isTrue());
 
         // Ensure new metadata keeps replicating
         executeOnPublisher("ALTER TABLE doc.t1 ADD COLUMN value string");
@@ -140,8 +137,9 @@ public class SubscriptionDisruptionIT extends LogicalReplicationITestCase {
             var r = executeOnSubscriber("SELECT column_name FROM information_schema.columns" +
                                         " WHERE table_name = 't1'" +
                                         " ORDER BY ordinal_position");
-            assertThat(printedTable(r.rows()), is("id\n" +
-                                                  "value\n"));
+            assertThat(r).hasRows(
+                "id",
+                "value");
         });
     }
 
@@ -156,15 +154,13 @@ public class SubscriptionDisruptionIT extends LogicalReplicationITestCase {
 
         // Ensure tracker started and initial recovery is done
         assertBusy(() -> {
-            assertThat(isMetadataTrackerActive(), is(true));
+            assertThat(isMetadataTrackerActive()).isTrue();
             var res = executeOnSubscriber(
                 "SELECT s.subname, s.subpublications, sr.srrelid::text, sr.srsubstate, sr.srsubstate_reason" +
                 " FROM pg_subscription s" +
                 " JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
                 " ORDER BY s.subname");
-            assertThat(printedTable(res.rows()), is(
-                "sub1| [pub1]| doc.t1| r| NULL\n"
-            ));
+            assertThat(res).hasRows("sub1| [pub1]| doc.t1| r| NULL");
         });
 
         var expectedLogMessage = "Tracking of metadata failed for subscription 'sub1' with unrecoverable error, stop tracking";
@@ -186,7 +182,7 @@ public class SubscriptionDisruptionIT extends LogicalReplicationITestCase {
         }
 
         // Ensure tracker stopped
-        assertBusy(() -> assertThat(isMetadataTrackerActive(), is(false)));
+        assertBusy(() -> assertThat(isMetadataTrackerActive()).isFalse());
 
         // Ensure failure state is set correctly
         var res = executeOnSubscriber(
@@ -194,8 +190,9 @@ public class SubscriptionDisruptionIT extends LogicalReplicationITestCase {
             " FROM pg_subscription s" +
             " JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
             " ORDER BY s.subname");
-        assertThat(printedTable(res.rows()),
-                   is("sub1| [pub1]| doc.t1| e| Tracking of metadata failed for subscription 'sub1' with unrecoverable error, stop tracking.\nReason: rejected\n"));
+        assertThat(res).hasRows(
+            "sub1| [pub1]| doc.t1| e| Tracking of metadata failed for subscription 'sub1' with unrecoverable error, stop tracking.\n" +
+            "Reason: rejected");
     }
 
     @Test
@@ -208,15 +205,13 @@ public class SubscriptionDisruptionIT extends LogicalReplicationITestCase {
 
         // Ensure tracker started and initial recovery is done
         assertBusy(() -> {
-            assertThat(isMetadataTrackerActive(), is(true));
+            assertThat(isMetadataTrackerActive()).isTrue();
             var res = executeOnSubscriber(
                 "SELECT s.subname, s.subpublications, sr.srrelid::text, sr.srsubstate, sr.srsubstate_reason" +
                     " FROM pg_subscription s" +
                     " JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
                     " ORDER BY s.subname");
-            assertThat(printedTable(res.rows()), is(
-                "sub1| [pub1]| doc.t1| r| NULL\n"
-            ));
+            assertThat(res).hasRows("sub1| [pub1]| doc.t1| r| NULL");
         });
 
         String isolatedNode = subscriberCluster.getMasterName();
@@ -234,7 +229,7 @@ public class SubscriptionDisruptionIT extends LogicalReplicationITestCase {
         networkDisruption.stopDisrupting();
 
         // Ensure tracker is still running
-        assertBusy(() -> assertThat(isMetadataTrackerActive(), is(true)));
+        assertBusy(() -> assertThat(isMetadataTrackerActive()).isTrue());
 
         // Ensure new metadata keeps replicating
         executeOnPublisher("ALTER TABLE doc.t1 ADD COLUMN value string");
@@ -242,8 +237,9 @@ public class SubscriptionDisruptionIT extends LogicalReplicationITestCase {
             var r = executeOnSubscriber("SELECT column_name FROM information_schema.columns" +
                 " WHERE table_name = 't1'" +
                 " ORDER BY ordinal_position");
-            assertThat(printedTable(r.rows()), is("id\n" +
-                "value\n"));
+            assertThat(r).hasRows(
+                "id",
+                "value");
         });
 
     }

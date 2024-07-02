@@ -23,6 +23,8 @@ package io.crate.statistics;
 
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportRequest;
@@ -36,17 +38,23 @@ public final class FetchSampleRequest extends TransportRequest {
 
     private final RelationName relationName;
     private final List<Reference> columns;
-    private final int maxSamples;
 
-    public FetchSampleRequest(RelationName relationName, List<Reference> columns, int maxSamples) {
+    public FetchSampleRequest(RelationName relationName, List<Reference> columns, Version nodeVersion) {
         this.relationName = relationName;
         this.columns = columns;
-        this.maxSamples = maxSamples;
+        if (nodeVersion.before(Version.V_5_7_0)) {
+            throw new UnsupportedOperationException("Cannot run ANALYZE request in a mixed cluster with nodes older than 5.7.0");
+        }
     }
 
     public FetchSampleRequest(StreamInput in) throws IOException {
+        if (in.getVersion().before(Version.V_5_7_0)) {
+            throw new UnsupportedOperationException("Cannot run ANALYZE request in a mixed cluster with nodes older than 5.7.0");
+        }
         this.relationName = new RelationName(in);
-        this.maxSamples = in.readVInt();
+        if (in.getVersion().before(Version.V_5_7_0)) {
+            in.readVInt();  // Old max samples value
+        }
         int numColumns = in.readVInt();
         this.columns = new ArrayList<>(numColumns);
         for (int i = 0; i < numColumns; i++) {
@@ -57,7 +65,9 @@ public final class FetchSampleRequest extends TransportRequest {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         relationName.writeTo(out);
-        out.writeVInt(maxSamples);
+        if (out.getVersion().before(Version.V_5_7_0)) {
+            out.writeVInt(30_000);  // Old max samples value
+        }
         out.writeVInt(columns.size());
         for (Reference column : columns) {
             Reference.toStream(out, column);
@@ -72,13 +82,9 @@ public final class FetchSampleRequest extends TransportRequest {
         return columns;
     }
 
-    public int maxSamples() {
-        return maxSamples;
-    }
-
     @Override
-    public final int hashCode() {
-        return Objects.hash(relationName, columns, maxSamples);
+    public int hashCode() {
+        return Objects.hash(relationName, columns);
     }
 
     @Override
@@ -92,6 +98,6 @@ public final class FetchSampleRequest extends TransportRequest {
         if (!(obj instanceof FetchSampleRequest other)) {
             return false;
         }
-        return relationName.equals(other.relation()) && columns.equals(other.columns()) && maxSamples == other.maxSamples();
+        return relationName.equals(other.relation()) && columns.equals(other.columns());
     }
 }

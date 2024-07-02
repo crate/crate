@@ -35,7 +35,7 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 
@@ -61,12 +61,13 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import io.crate.analyze.OrderBy;
-import io.crate.breaker.RowAccountingWithEstimators;
+import io.crate.breaker.TypedRowAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.data.breaker.RowAccounting;
 import io.crate.data.testing.BatchIteratorTester;
+import io.crate.data.testing.BatchIteratorTester.ResultOrder;
 import io.crate.data.testing.TestingRowConsumer;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
@@ -78,7 +79,7 @@ import io.crate.types.LongType;
 
 public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
 
-    private static final RowAccountingWithEstimators ROW_ACCOUNTING = new RowAccountingWithEstimators(
+    private static final TypedRowAccounting ROW_ACCOUNTING = new TypedRowAccounting(
         List.of(LongType.INSTANCE),
         RamAccounting.NO_ACCOUNTING
     );
@@ -143,7 +144,7 @@ public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
                     () -> 1,
                     true
                 );
-            }
+            }, ResultOrder.EXACT
         );
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
@@ -226,7 +227,14 @@ public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
         rowBatchIterator.kill(new InterruptedException("killed"));
 
         assertThatThrownBy(consumer::getResult)
-            .isExactlyInstanceOf(InterruptedException.class);
+            .satisfiesAnyOf(
+                x -> assertThat(x)
+                    .hasRootCauseInstanceOf(InterruptedException.class)
+                    .hasRootCauseMessage("killed"),
+                x -> assertThat(x)
+                    .isExactlyInstanceOf(InterruptedException.class)
+                    .hasMessage("killed")
+            );
     }
 
     private void consumeIteratorAndVerifyResultIsException(BatchIterator<Row> rowBatchIterator, Exception exception)
@@ -240,7 +248,7 @@ public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
     }
 
     private LuceneOrderedDocCollector createOrderedCollector(IndexSearcher searcher, int shardId) {
-        CollectorContext collectorContext = new CollectorContext(Set.of(), Function.identity());
+        CollectorContext collectorContext = new CollectorContext(Set.of(), UnaryOperator.identity());
         List<LuceneCollectorExpression<?>> expressions = Collections.singletonList(
             new OrderByCollectorExpression(reference, orderBy, o -> o));
         return new LuceneOrderedDocCollector(

@@ -27,23 +27,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.monitor.jvm.JvmInfo;
+import org.jetbrains.annotations.VisibleForTesting;
+
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.IntSet;
 import com.carrotsearch.hppc.cursors.IntCursor;
 
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.monitor.jvm.JvmInfo;
-
 import io.crate.Streamer;
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.common.collections.MapBuilder;
 import io.crate.data.Paging;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.RelationName;
 import io.crate.planner.node.fetch.FetchSource;
@@ -72,7 +71,7 @@ public class FetchProjection extends Projection {
                            TreeMap<Integer, String> readerIndices,
                            Map<String, RelationName> indicesToIdents) {
         assert outputSymbols.stream().noneMatch(s ->
-            SymbolVisitors.any(x -> x instanceof ScopedSymbol || x instanceof SelectSymbol, s))
+            s.any(x -> x instanceof ScopedSymbol || x instanceof SelectSymbol))
             : "Cannot operate on Field or SelectSymbol symbols: " + outputSymbols;
         this.fetchPhaseId = fetchPhaseId;
         this.fetchSources = fetchSources;
@@ -174,16 +173,15 @@ public class FetchProjection extends Projection {
     public Map<String, Object> mapRepresentation() {
         return MapBuilder.<String, Object>newMapBuilder()
             .put("type", "Fetch")
-            .put("outputs", Lists2.joinOn(", ", outputSymbols, Symbol::toString))
+            .put("outputs", Lists.joinOn(", ", outputSymbols, Symbol::toString))
             .put("fetchSize", fetchSize)
             .map();
     }
 
-    @SuppressWarnings({"rawtypes"})
-    public Map<String, ? extends IntObjectMap<Streamer[]>> generateStreamersGroupedByReaderAndNode() {
-        HashMap<String, IntObjectHashMap<Streamer[]>> streamersByReaderByNode = new HashMap<>();
+    public Map<String, ? extends IntObjectMap<Streamer<?>[]>> generateStreamersGroupedByReaderAndNode() {
+        HashMap<String, IntObjectHashMap<Streamer<?>[]>> streamersByReaderByNode = new HashMap<>();
         for (Map.Entry<String, IntSet> entry : nodeReaders.entrySet()) {
-            IntObjectHashMap<Streamer[]> streamersByReaderId = new IntObjectHashMap<>();
+            IntObjectHashMap<Streamer<?>[]> streamersByReaderId = new IntObjectHashMap<>();
             String nodeId = entry.getKey();
             streamersByReaderByNode.put(nodeId, streamersByReaderId);
             for (IntCursor readerIdCursor : entry.getValue()) {

@@ -18,13 +18,8 @@
  */
 package org.elasticsearch.env;
 
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.endsWith;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.startsWith;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -56,7 +51,7 @@ public class NodeMetadataTests extends ESTestCase {
                                                            final long generation = NodeMetadata.FORMAT.writeAndCleanup(nodeMetadata, tempDir);
                                                            final Tuple<NodeMetadata, Long> nodeMetadataLongTuple
                                                                = NodeMetadata.FORMAT.loadLatestStateWithGeneration(logger, xContentRegistry(), tempDir);
-                                                           assertThat(nodeMetadataLongTuple.v2(), equalTo(generation));
+                                                           assertThat(nodeMetadataLongTuple.v2()).isEqualTo(generation);
                                                            return nodeMetadataLongTuple.v1();
                                                        }, nodeMetadata -> {
                 if (randomBoolean()) {
@@ -70,18 +65,18 @@ public class NodeMetadataTests extends ESTestCase {
     @Test
     public void testReadsFormatWithoutVersion() throws IOException, URISyntaxException {
         // the behaviour tested here is only appropriate if the current version is compatible with versions 7 and earlier
-        assertTrue(Version.CURRENT.minimumIndexCompatibilityVersion().onOrBefore(Version.V_4_0_0));
+        assertThat(Version.CURRENT.minimumIndexCompatibilityVersion().onOrBefore(Version.V_4_0_0)).isTrue();
         // when the current version is incompatible with version 4, the behaviour should change to reject files like the given resource
         // which do not have the version field
 
         final Path tempDir = createTempDir();
         final Path stateDir = Files.createDirectory(tempDir.resolve(MetadataStateFormat.STATE_DIR_NAME));
         final InputStream resource = this.getClass().getResourceAsStream("testReadsFormatWithoutVersion.binary");
-        assertThat(resource, notNullValue());
+        assertThat(resource).isNotNull();
         Files.copy(resource, stateDir.resolve(NodeMetadata.FORMAT.getStateFileName(between(0, Integer.MAX_VALUE))));
         final NodeMetadata nodeMetadata = NodeMetadata.FORMAT.loadLatestState(logger, xContentRegistry(), tempDir);
-        assertThat(nodeMetadata.nodeId(), equalTo("y6VUVMSaStO4Tz-B5BxcOw"));
-        assertThat(nodeMetadata.nodeVersion(), equalTo(Version.V_EMPTY));
+        assertThat(nodeMetadata.nodeId()).isEqualTo("y6VUVMSaStO4Tz-B5BxcOw");
+        assertThat(nodeMetadata.nodeVersion()).isEqualTo(Version.V_EMPTY);
     }
 
     @Test
@@ -90,33 +85,32 @@ public class NodeMetadataTests extends ESTestCase {
         final NodeMetadata nodeMetadata = new NodeMetadata(nodeId,
                                                            randomValueOtherThanMany(v -> v.after(Version.CURRENT) || v.before(Version.CURRENT.minimumIndexCompatibilityVersion()),
                                                                                     this::randomVersion)).upgradeToCurrentVersion();
-        assertThat(nodeMetadata.nodeVersion(), equalTo(Version.CURRENT));
-        assertThat(nodeMetadata.nodeId(), equalTo(nodeId));
+        assertThat(nodeMetadata.nodeVersion()).isEqualTo(Version.CURRENT);
+        assertThat(nodeMetadata.nodeId()).isEqualTo(nodeId);
     }
 
     @Test
     public void testUpgradesMissingVersion() {
         final String nodeId = randomAlphaOfLength(10);
         final NodeMetadata nodeMetadata = new NodeMetadata(nodeId, Version.V_EMPTY).upgradeToCurrentVersion();
-        assertThat(nodeMetadata.nodeVersion(), equalTo(Version.CURRENT));
-        assertThat(nodeMetadata.nodeId(), equalTo(nodeId));
+        assertThat(nodeMetadata.nodeVersion()).isEqualTo(Version.CURRENT);
+        assertThat(nodeMetadata.nodeId()).isEqualTo(nodeId);
     }
 
     @Test
     public void testDoesNotUpgradeFutureVersion() {
-        final IllegalStateException illegalStateException = expectThrows(IllegalStateException.class,
-                                                                         () -> new NodeMetadata(randomAlphaOfLength(10), tooNewVersion())
-                                                                             .upgradeToCurrentVersion());
-        assertThat(illegalStateException.getMessage(),
-                   allOf(startsWith("cannot downgrade a node from version ["), endsWith("] to version [" + Version.CURRENT + "]")));
+        assertThatThrownBy(() -> new NodeMetadata(randomAlphaOfLength(10), tooNewVersion()) .upgradeToCurrentVersion())
+            .isExactlyInstanceOf(IllegalStateException.class)
+            .hasMessageStartingWith("cannot downgrade a node from version [")
+            .hasMessageEndingWith("] to version [" + Version.CURRENT + "]");
     }
 
     @Test
     public void testDoesNotUpgradeAncientVersion() {
-        final IllegalStateException illegalStateException = expectThrows(IllegalStateException.class,
-                                                                         () -> new NodeMetadata(randomAlphaOfLength(10), tooOldVersion()).upgradeToCurrentVersion());
-        assertThat(illegalStateException.getMessage(),
-                   allOf(startsWith("cannot upgrade a node from version ["), endsWith("] directly to version [" + Version.CURRENT + "]")));
+        assertThatThrownBy(() -> new NodeMetadata(randomAlphaOfLength(10), tooOldVersion()).upgradeToCurrentVersion())
+            .isExactlyInstanceOf(IllegalStateException.class)
+            .hasMessageStartingWith("cannot upgrade a node from version [")
+            .hasMessageEndingWith("] directly to version [" + Version.CURRENT + "]");
     }
 
     public static Version tooNewVersion() {
@@ -131,6 +125,6 @@ public class NodeMetadataTests extends ESTestCase {
     public void test_downgrade_hotfix_version() {
         var nodeMetadata = new NodeMetadata("test", Version.V_4_5_1);
         nodeMetadata = nodeMetadata.upgradeToVersion(Version.V_4_5_0);
-        assertThat(nodeMetadata.nodeVersion(), equalTo(Version.V_4_5_0));
+        assertThat(nodeMetadata.nodeVersion()).isEqualTo(Version.V_4_5_0);
     }
 }

@@ -34,7 +34,7 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
-import io.crate.user.User;
+import io.crate.role.Role;
 
 public class StaticTableDefinition<T> {
 
@@ -44,7 +44,7 @@ public class StaticTableDefinition<T> {
 
     @FunctionalInterface
     public interface GetRecords<T> {
-        CompletableFuture<? extends Iterable<T>> get(TransactionContext txtContext, User user);
+        CompletableFuture<? extends Iterable<T>> get(TransactionContext txtContext, Role user);
     }
 
 
@@ -57,7 +57,7 @@ public class StaticTableDefinition<T> {
     }
 
     public StaticTableDefinition(Supplier<? extends Iterable<T>> iterable,
-                                 BiPredicate<User, T> predicate,
+                                 BiPredicate<Role, T> predicate,
                                  Map<ColumnIdent, ? extends RowCollectExpressionFactory<T>> expressionFactories) {
         this.getRecords = (txnCtx, u) -> completedFuture(() -> StreamSupport.stream(iterable.get().spliterator(), false)
             .filter(t -> u == null || predicate.test(u, t)).iterator());
@@ -67,7 +67,7 @@ public class StaticTableDefinition<T> {
 
     public StaticTableDefinition(Supplier<CompletableFuture<? extends Iterable<T>>> futureRecords,
                                  Map<ColumnIdent, ? extends RowCollectExpressionFactory<T>> expressionFactories,
-                                 BiPredicate<User, T> predicate,
+                                 BiPredicate<Role, T> predicate,
                                  boolean involvesIO) {
         this.getRecords = (txnCtx, user) ->
             futureRecords.get().thenApply(records ->
@@ -87,7 +87,7 @@ public class StaticTableDefinition<T> {
         this.involvesIO = involvesIO;
     }
 
-    public CompletableFuture<? extends Iterable<T>> retrieveRecords(TransactionContext txnCtx, @Nullable User user) {
+    public CompletableFuture<? extends Iterable<T>> retrieveRecords(TransactionContext txnCtx, @Nullable Role user) {
         return getRecords.get(txnCtx, user);
     }
 

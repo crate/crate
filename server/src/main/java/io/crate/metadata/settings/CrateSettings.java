@@ -36,7 +36,7 @@ import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.types.DataTypes;
 
 public final class CrateSettings {
@@ -45,7 +45,7 @@ public final class CrateSettings {
      * List of cluster/node settings exposed via `sys.cluster.settings`,
      * see also {@link io.crate.metadata.sys.SysClusterTableInfo}
      */
-    public static final List<Setting<?>> EXPOSED_SETTINGS = Lists2.concat(
+    public static final List<Setting<?>> EXPOSED_SETTINGS = Lists.concat(
         ClusterSettings.BUILT_IN_CLUSTER_SETTINGS.stream()
             .filter(Setting::isExposed)
             .toList(),
@@ -129,7 +129,7 @@ public final class CrateSettings {
     public static void flattenSettings(Settings.Builder settingsBuilder,
                                        String key,
                                        Object value) {
-        if (value instanceof Map<?, ?> m) {
+        if (value instanceof Map<?, ?>) {
             for (Map.Entry<String, Object> setting : ((Map<String, Object>) value).entrySet()) {
                 flattenSettings(
                     settingsBuilder,

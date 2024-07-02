@@ -21,21 +21,39 @@
 
 package io.crate.analyze;
 
-import io.crate.user.Privilege;
-import io.crate.expression.symbol.Symbol;
-
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
+
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.expression.symbol.Symbol;
+import io.crate.role.Privilege;
+import io.crate.role.GrantedRolesChange;
 
 public class AnalyzedPrivileges implements DCLStatement {
 
     private final List<String> userNames;
     private final Set<Privilege> privileges;
+    private final GrantedRolesChange grantedRolesChange;
 
-    AnalyzedPrivileges(List<String> userNames, Set<Privilege> privileges) {
+    private AnalyzedPrivileges(List<String> userNames,
+                               Set<Privilege> privileges,
+                               @Nullable GrantedRolesChange grantedRolesChange) {
         this.userNames = userNames;
         this.privileges = privileges;
+        this.grantedRolesChange = grantedRolesChange;
+        assert (privileges.isEmpty() && grantedRolesChange != null) ||
+            (grantedRolesChange == null && privileges.isEmpty() == false) :
+            "privileges and rolePrivileges cannot be set together";
+    }
+
+    public static AnalyzedPrivileges ofPrivileges(List<String> userNames, Set<Privilege> privileges) {
+        return new AnalyzedPrivileges(userNames, privileges, null);
+    }
+
+    public static AnalyzedPrivileges ofRolePrivileges(List<String> userNames, GrantedRolesChange grantedRolesChange) {
+        return new AnalyzedPrivileges(userNames, Set.of(), grantedRolesChange);
     }
 
     @Override
@@ -49,6 +67,10 @@ public class AnalyzedPrivileges implements DCLStatement {
 
     public Set<Privilege> privileges() {
         return privileges;
+    }
+
+    public GrantedRolesChange rolePrivilege() {
+        return grantedRolesChange;
     }
 
     @Override

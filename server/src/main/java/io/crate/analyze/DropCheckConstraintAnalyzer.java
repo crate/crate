@@ -21,7 +21,10 @@
 
 package io.crate.analyze;
 
-import io.crate.common.collections.Lists2;
+import java.util.List;
+import java.util.Locale;
+
+import io.crate.common.collections.Lists;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Schemas;
@@ -29,9 +32,6 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.CheckConstraint;
 import io.crate.sql.tree.Table;
-
-import java.util.List;
-import java.util.Locale;
 
 class DropCheckConstraintAnalyzer {
 
@@ -42,11 +42,12 @@ class DropCheckConstraintAnalyzer {
     }
 
     public AnalyzedAlterTableDropCheckConstraint analyze(Table<?> table, String name, CoordinatorTxnCtx txnCtx) {
-        DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(
+        DocTableInfo tableInfo = schemas.findRelation(
             table.getName(),
             Operation.ALTER,
             txnCtx.sessionSettings().sessionUser(),
-            txnCtx.sessionSettings().searchPath());
+            txnCtx.sessionSettings().searchPath()
+        );
         List<CheckConstraint<Symbol>> checkConstraints = tableInfo.checkConstraints();
         for (var checkConstraint : checkConstraints) {
             if (name.equals(checkConstraint.name())) {
@@ -57,6 +58,6 @@ class DropCheckConstraintAnalyzer {
             Locale.ENGLISH,
             "Cannot find a CHECK CONSTRAINT named [%s], available constraints are: %s",
             name,
-            Lists2.map(checkConstraints, CheckConstraint::name)));
+            Lists.map(checkConstraints, CheckConstraint::name)));
     }
 }

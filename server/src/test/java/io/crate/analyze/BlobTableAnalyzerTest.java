@@ -22,12 +22,13 @@
 package io.crate.analyze;
 
 import static io.crate.planner.node.ddl.AlterTablePlan.getTableParameter;
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.function.Function;
 
+import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
@@ -65,8 +66,8 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService).addBlobTable("create blob table blobs").build();
-        plannerContext = e.getPlannerContext(clusterService.state());
+        e = SQLExecutor.of(clusterService).addBlobTable("create blob table blobs");
+        plannerContext = e.getPlannerContext();
     }
 
     private Settings buildSettings(AnalyzedCreateBlobTable blobTable, Object... arguments) {
@@ -100,7 +101,7 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(analysis.relationName().name()).isEqualTo("screenshots");
         assertThat(analysis.relationName().schema()).isEqualTo(BlobSchemaInfo.NAME);
         assertThat(settings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 0)).isEqualTo(10);
-        assertThat(settings.get(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS)).isEqualTo("0-all");
+        assertThat(settings.get(AutoExpandReplicas.SETTING_KEY)).isEqualTo("0-all");
     }
 
     @Test
@@ -127,7 +128,7 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(analysis.relationName().name()).isEqualTo("screenshots");
         assertThat(settings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 0)).isEqualTo(10);
-        assertThat(settings.get(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS)).isEqualTo("0-all");
+        assertThat(settings.get(AutoExpandReplicas.SETTING_KEY)).isEqualTo("0-all");
     }
 
     @Test
@@ -174,8 +175,8 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testDropBlobTable() {
         AnalyzedDropTable<BlobTableInfo> analysis = e.analyze("drop blob table blobs");
-        assertThat(analysis.table().ident().name()).isEqualTo("blobs");
-        assertThat(analysis.table().ident().schema()).isEqualTo(BlobSchemaInfo.NAME);
+        assertThat(analysis.tableName().name()).isEqualTo("blobs");
+        assertThat(analysis.tableName().schema()).isEqualTo(BlobSchemaInfo.NAME);
     }
 
     @Test
@@ -188,7 +189,7 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testDropBlobTableWithValidSchema() {
         AnalyzedDropTable<BlobTableInfo> analysis = e.analyze("drop blob table \"blob\".blobs");
-        assertThat(analysis.table().ident().name()).isEqualTo("blobs");
+        assertThat(analysis.tableName().name()).isEqualTo("blobs");
     }
 
     @Test
@@ -202,7 +203,7 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testDropBlobTableIfExists() {
         AnalyzedDropTable<BlobTableInfo> analysis = e.analyze("drop blob table if exists blobs");
         assertThat(analysis.dropIfExists()).isTrue();
-        assertThat(analysis.table().ident().fqn()).isEqualTo("blob.blobs");
+        assertThat(analysis.tableName().fqn()).isEqualTo("blob.blobs");
     }
 
     @Test
@@ -213,14 +214,14 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testAlterBlobTableWithInvalidProperty() {
-        AnalyzedAlterBlobTable analysis = e.analyze("alter blob table blobs set (foobar='2')");
+        AnalyzedAlterTable analysis = e.analyze("alter blob table blobs set (foobar='2')");
         AlterTable<Object> alterTable = analysis.alterTable().map(EVAL);
         getTableParameter(alterTable, TableParameters.ALTER_BLOB_TABLE_PARAMETERS);
     }
 
     @Test
     public void testAlterBlobTableWithReplicas() {
-        AnalyzedAlterBlobTable analysis = e.analyze("alter blob table blobs set (number_of_replicas=2)");
+        AnalyzedAlterTable analysis = e.analyze("alter blob table blobs set (number_of_replicas=2)");
         assertThat(analysis.tableInfo().ident().name()).isEqualTo("blobs");
         AlterTable<Object> alterTable = analysis.alterTable().map(EVAL);
         TableParameter parameter = getTableParameter(alterTable, TableParameters.ALTER_BLOB_TABLE_PARAMETERS);
@@ -229,7 +230,7 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_alter_setting_block_read_only() {
-        AnalyzedAlterBlobTable analysis = e.analyze("alter blob table blobs set (\"blocks.read_only_allow_delete\"=true)");
+        AnalyzedAlterTable analysis = e.analyze("alter blob table blobs set (\"blocks.read_only_allow_delete\"=true)");
         assertThat(analysis.tableInfo().ident().name()).isEqualTo("blobs");
         AlterTable<Object> alterTable = analysis.alterTable().map(EVAL);
         TableParameter parameter = getTableParameter(alterTable, TableParameters.ALTER_BLOB_TABLE_PARAMETERS);
@@ -238,7 +239,7 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testAlterBlobTableWithPath() {
-        AnalyzedAlterBlobTable analysis = e.analyze("alter blob table blobs set (blobs_path=1)");
+        AnalyzedAlterTable analysis = e.analyze("alter blob table blobs set (blobs_path=1)");
         AlterTable<Object> alterTable = analysis.alterTable().map(EVAL);
         assertThatThrownBy(() -> getTableParameter(alterTable, TableParameters.ALTER_BLOB_TABLE_PARAMETERS))
             .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -254,7 +255,7 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(analysis.relationName().name()).isEqualTo("screenshots");
         assertThat(analysis.relationName().schema()).isEqualTo(BlobSchemaInfo.NAME);
         assertThat(settings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 0)).isEqualTo(2);
-        assertThat(settings.get(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS)).isEqualTo("0-all");
+        assertThat(settings.get(AutoExpandReplicas.SETTING_KEY)).isEqualTo("0-all");
     }
 
     @Test
@@ -265,14 +266,14 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testAlterBlobTableRename() {
+    public void testAlterBlobTableRenameTable() {
         assertThatThrownBy(() -> e.analyze("alter blob table blobs rename to blobbier"))
             .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
-            .hasMessage("The relation \"blob.blobs\" doesn't support or allow ALTER RENAME operations.");
+            .hasMessage("The relation \"blob.blobs\" doesn't support or allow ALTER RENAME operations");
     }
 
     @Test
-    public void testAlterBlobTableRenameWithExplicitSchema() {
+    public void testAlterBlobTableRenameTableWithExplicitSchema() {
         assertThatThrownBy(() -> e.analyze("alter blob table schema.blobs rename to blobbier"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("The Schema \"schema\" isn't valid in a [CREATE | ALTER] BLOB TABLE clause");
@@ -282,7 +283,7 @@ public class BlobTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testAlterBlobTableOpenClose() {
         assertThatThrownBy(() -> e.analyze("alter blob table blobs close"))
             .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
-            .hasMessage("The relation \"blob.blobs\" doesn't support or allow ALTER CLOSE operations.");
+            .hasMessage("The relation \"blob.blobs\" doesn't support or allow ALTER CLOSE operations");
     }
 
     @Test

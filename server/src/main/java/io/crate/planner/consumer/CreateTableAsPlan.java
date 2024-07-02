@@ -27,8 +27,10 @@ import io.crate.analyze.AnalyzedCreateTable;
 import io.crate.analyze.AnalyzedCreateTableAs;
 import io.crate.analyze.BoundCreateTable;
 import io.crate.analyze.NumberOfShards;
+import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
+import io.crate.data.SentinelRow;
 import io.crate.execution.ddl.tables.TableCreator;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
@@ -89,12 +91,23 @@ public final class CreateTableAsPlan implements Plan {
             subQueryResults
         );
         tableCreator.create(boundCreateTable, plannerContext.clusterState().nodes().getMinNodeVersion())
-            .thenRun(() -> postponedInsertPlan.get().execute(
-                dependencies,
-                plannerContext,
-                consumer,
-                params,
-                subQueryResults));
+            .whenComplete((rowCount, err) -> {
+                if (err == null) {
+                    postponedInsertPlan.get().execute(
+                        dependencies,
+                        plannerContext,
+                        consumer,
+                        params,
+                        subQueryResults
+                    );
+                } else if (boundCreateTable.ifNotExists() && TableCreator.isTableExistsError(err, boundCreateTable.templateName())) {
+                    consumer.accept(InMemoryBatchIterator.empty(SentinelRow.SENTINEL), null);
+                } else {
+                    consumer.accept(null, err);
+                }
+            });
     }
+
+
 }
 

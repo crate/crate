@@ -21,7 +21,7 @@
 
 package io.crate.expression.reference.sys.job;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.planner.operators.StatementClassifier;
 
 import org.jetbrains.annotations.Nullable;

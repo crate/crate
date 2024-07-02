@@ -46,22 +46,22 @@ import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import com.carrotsearch.hppc.IntIndexedContainer;
 import com.carrotsearch.hppc.cursors.IntCursor;
 
-import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.concurrent.CompletableFutures;
 import io.crate.exceptions.JobKilledException;
 import io.crate.execution.support.ThreadPools;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.IndexParts;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.Operation;
 
 @Singleton
 public class InternalCountOperation implements CountOperation {
@@ -75,12 +75,12 @@ public class InternalCountOperation implements CountOperation {
 
     @Inject
     public InternalCountOperation(Settings settings,
-                                  Schemas schemas,
+                                  NodeContext nodeContext,
                                   LuceneQueryBuilder queryBuilder,
                                   ClusterService clusterService,
                                   ThreadPool threadPool,
                                   IndicesService indicesService) {
-        this.schemas = schemas;
+        this.schemas = nodeContext.schemas();
         this.queryBuilder = queryBuilder;
         this.clusterService = clusterService;
         executor = (ThreadPoolExecutor) threadPool.executor(ThreadPool.Names.SEARCH);
@@ -150,13 +150,12 @@ public class InternalCountOperation implements CountOperation {
         try (Engine.Searcher searcher = indexShard.acquireSearcher("count-operation")) {
             String indexName = indexShard.shardId().getIndexName();
             var relationName = RelationName.fromIndexName(indexName);
-            DocTableInfo table = schemas.getTableInfo(relationName, Operation.READ);
+            DocTableInfo table = schemas.getTableInfo(relationName);
             LuceneQueryBuilder.Context queryCtx = queryBuilder.convert(
                 filter,
                 txnCtx,
-                indexService.mapperService(),
                 indexName,
-                indexService.newQueryShardContext(),
+                indexService.indexAnalyzers(),
                 table,
                 indexService.cache()
             );

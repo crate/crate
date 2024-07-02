@@ -46,6 +46,6 @@ public class AlterTableOpenCloseAnalyzerTest extends CrateDummyClusterServiceUni
         assertThatThrownBy(() -> e.analyze("alter table sys.shards close"))
             .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
             .hasMessage("The relation \"sys.shards\" doesn't support or allow " +
-                        "ALTER CLOSE operations, as it is read-only.");
+                        "ALTER CLOSE operations");
     }
 }

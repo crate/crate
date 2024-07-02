@@ -33,7 +33,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.FunctionToQuery;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
-import io.crate.user.UserLookup;
+import io.crate.role.Roles;
 
 /**
  * Base class for Scalar functions in crate.
@@ -49,7 +49,7 @@ import io.crate.user.UserLookup;
  *
  *     Functions also MUST NOT have any internal state that influences the result of future calls.
  *     Functions are used as singletons.
- *     An exception is if {@link #compile(List, String, UserLookup)} returns a NEW instance.
+ *     An exception is if {@link #compile(List, String, Roles)} returns a NEW instance.
  * </p>
  *
  * To implement scalar functions, you may want to use one of the following abstractions:
@@ -65,7 +65,6 @@ import io.crate.user.UserLookup;
  */
 public abstract class Scalar<ReturnType, InputType> implements FunctionImplementation, FunctionToQuery {
 
-    public static final Set<Feature> NO_FEATURES = Set.of();
     public static final Set<Feature> DETERMINISTIC_ONLY = EnumSet.of(Feature.DETERMINISTIC);
     public static final Set<Feature> DETERMINISTIC_AND_COMPARISON_REPLACEMENT = EnumSet.of(
         Feature.DETERMINISTIC, Feature.COMPARISON_REPLACEMENT);
@@ -103,7 +102,7 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
      *                  {@link #evaluate(TransactionContext, NodeContext, Input[])} will have the same
      *                  value as those literals. (Within the scope of a single operation)
      */
-    public Scalar<ReturnType, InputType> compile(List<Symbol> arguments, String currentUser, UserLookup userLookup) {
+    public Scalar<ReturnType, InputType> compile(List<Symbol> arguments, String currentUser, Roles roles) {
         return this;
     }
 
@@ -129,6 +128,7 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
      * This method will evaluate the function using the given scalar if all arguments are literals.
      * Otherwise it will return the function as is or NULL in case it contains a null literal
      */
+    @SuppressWarnings({"rawtypes", "unchecked"})
     protected static <ReturnType, InputType> Symbol evaluateIfLiterals(Scalar<ReturnType, InputType> scalar,
                                                                        TransactionContext txnCtx,
                                                                        NodeContext nodeCtx,
@@ -145,7 +145,6 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
             inputs[idx] = (Input<?>) arg;
             idx++;
         }
-        //noinspection unchecked
         return Literal.ofUnchecked(function.valueType(), scalar.evaluate(txnCtx, nodeCtx, inputs));
     }
 
@@ -220,6 +219,14 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
          * So for f comparisons cannot be replaced.
          */
         COMPARISON_REPLACEMENT,
-        LAZY_ATTRIBUTES
+        LAZY_ATTRIBUTES,
+        /**
+         * If this feature is set, the function will return for null argument(s) as result null.
+         */
+        NULLABLE,
+        /**
+         * If this feature is set, the function will never return null.
+         */
+        NON_NULLABLE
     }
 }

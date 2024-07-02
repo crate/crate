@@ -43,6 +43,7 @@ import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.logging.DeprecationLogger;
 import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 
@@ -50,11 +51,9 @@ import io.crate.analyze.AnalyzedCopyFrom;
 import io.crate.analyze.AnalyzedCopyFromReturnSummary;
 import io.crate.analyze.BoundCopyFrom;
 import io.crate.analyze.CopyFromParserProperties;
-import io.crate.analyze.PartitionPropertiesAnalyzer;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.copy.NodeFilters;
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
@@ -159,25 +158,24 @@ public final class CopyFromPlan implements Plan {
             subQueryResults
         );
 
-        String partitionIdent;
-        if (!copyFrom.table().partitionProperties().isEmpty()) {
-            partitionIdent = PartitionPropertiesAnalyzer
-                .toPartitionName(
-                    copyFrom.tableInfo(),
-                    Lists2.map(copyFrom.table().partitionProperties(), x -> x.map(eval)))
-                .ident();
-        } else {
-            partitionIdent = null;
-        }
-        var properties = copyFrom.properties().map(eval);
-        var nodeFiltersPredicate = discoveryNodePredicate(
-            properties.properties().getOrDefault(NodeFilters.NAME, null));
-        var settings = Settings.builder().put(properties).build();
+        PartitionName partitionName = copyFrom.table().partitionProperties().isEmpty()
+            ? null
+            : PartitionName.ofAssignmentsUnsafe(copyFrom.tableInfo(), Lists.map(copyFrom.table().partitionProperties(), x -> x.map(eval)));
+        String partitionIdent = partitionName == null ? null : partitionName.ident();
+        final var properties = copyFrom.properties().map(eval);
+        final var nodeFiltersPredicate = discoveryNodePredicate(properties.get(NodeFilters.NAME, null));
+        final var settings = Settings.builder().put(properties).build();
 
-        if (properties.properties().containsKey("validation")) {
+        if (properties.contains("validation")) {
             DEPRECATION_LOGGER.deprecatedAndMaybeLog(
                 "copy_from.validation",
                 "Using (validation = ?) in COPY FROM is no longer supported. Validation is always enforced");
+        }
+        boolean returnSummary = copyFrom instanceof AnalyzedCopyFromReturnSummary;
+        boolean waitForCompletion = settings.getAsBoolean("wait_for_completion", true);
+        if (!waitForCompletion && returnSummary) {
+            throw new UnsupportedOperationException(
+                "Cannot use RETURN SUMMARY with wait_for_completion=false. Either set wait_for_completion=true, or remove RETURN SUMMARY");
         }
         var inputFormat = settingAsEnum(
             FileUriCollectPhase.InputFormat.class,
@@ -189,7 +187,7 @@ public final class CopyFromPlan implements Plan {
         var header = settings.getAsBoolean("header", true);
         var targetColumns = copyFrom.targetColumns();
         if (!header && copyFrom.targetColumns().isEmpty()) {
-            targetColumns = Lists2.map(copyFrom.tableInfo().columns(), Reference::toString);
+            targetColumns = Lists.map(copyFrom.tableInfo().columns(), Reference::toString);
         }
 
         return new BoundCopyFrom(
@@ -219,7 +217,7 @@ public final class CopyFromPlan implements Plan {
         List<String> partitionValues = Collections.emptyList();
         if (partitionIdent == null) {
             if (table.isPartitioned()) {
-                partitionedByNames = Lists2.map(table.partitionedBy(), ColumnIdent::fqn);
+                partitionedByNames = Lists.map(table.partitionedBy(), ColumnIdent::fqn);
             }
         } else {
             assert table.isPartitioned() : "table must be partitioned if partitionIdent is set";
@@ -229,11 +227,11 @@ public final class CopyFromPlan implements Plan {
 
         // need to exclude _id columns; they're auto generated and won't be available in the files being imported
         ColumnIdent clusteredBy = table.clusteredBy();
-        if (DocSysColumns.ID.equals(clusteredBy)) {
+        if (DocSysColumns.ID.COLUMN.equals(clusteredBy)) {
             clusteredBy = null;
         }
         List<Reference> primaryKeyRefs = table.primaryKey().stream()
-            .filter(r -> !r.equals(DocSysColumns.ID))
+            .filter(r -> !r.equals(DocSysColumns.ID.COLUMN))
             .map(table::getReference)
             .collect(Collectors.toList());
 
@@ -257,9 +255,7 @@ public final class CopyFromPlan implements Plan {
 
         SourceIndexWriterProjection sourceIndexWriterProjection;
         List<? extends Symbol> projectionOutputs = AbstractIndexWriterProjection.OUTPUTS;
-        boolean returnSummary = copyFrom instanceof AnalyzedCopyFromReturnSummary;
-        boolean failFast = boundedCopyFrom.settings().getAsBoolean("fail_fast", false);
-        if (returnSummary || failFast) {
+        if (copyFrom instanceof AnalyzedCopyFromReturnSummary returnSummary) {
             final InputColumn sourceUriSymbol = new InputColumn(toCollect.size(), DataTypes.STRING);
             toCollect.add(SourceUriExpression.getReferenceForRelation(table.ident()));
 
@@ -272,10 +268,8 @@ public final class CopyFromPlan implements Plan {
             final InputColumn sourceParsingFailureSymbol = new InputColumn(toCollect.size(), DataTypes.STRING);
             toCollect.add(SourceParsingFailureExpression.getReferenceForRelation(table.ident()));
 
-            if (returnSummary) {
-                List<? extends Symbol> fields = ((AnalyzedCopyFromReturnSummary) copyFrom).outputs();
-                projectionOutputs = InputColumns.create(fields, new InputColumns.SourceSymbols(fields));
-            }
+            List<? extends Symbol> fields = returnSummary.outputs();
+            projectionOutputs = InputColumns.create(fields, new InputColumns.SourceSymbols(fields));
 
             sourceIndexWriterProjection = new SourceIndexWriterReturnSummaryProjection(
                 table.ident(),
@@ -345,7 +339,7 @@ public final class CopyFromPlan implements Plan {
         collect.addProjection(sourceIndexWriterProjection);
 
         List<Projection> handlerProjections;
-        if (returnSummary) {
+        if (copyFrom instanceof AnalyzedCopyFromReturnSummary) {
             handlerProjections = Collections.emptyList();
         } else {
             handlerProjections = List.of(MergeCountProjection.INSTANCE);

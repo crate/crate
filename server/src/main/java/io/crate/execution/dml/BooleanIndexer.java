@@ -28,46 +28,52 @@ import java.util.function.Consumer;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.SortedNumericDocValuesField;
+import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.index.mapper.BooleanFieldMapper;
-import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
 
 import io.crate.execution.dml.Indexer.ColumnConstraint;
-import io.crate.execution.dml.Indexer.Synthetic;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
+import io.crate.metadata.doc.DocSysColumns;
 
 public class BooleanIndexer implements ValueIndexer<Boolean> {
 
+    private static final FieldType FIELD_TYPE = new FieldType();
+
+    static {
+        FIELD_TYPE.setOmitNorms(true);
+        FIELD_TYPE.setIndexOptions(IndexOptions.DOCS);
+        FIELD_TYPE.setTokenized(false);
+        FIELD_TYPE.freeze();
+    }
+
     private final Reference ref;
     private final String name;
-    private final FieldType fieldType;
 
-    public BooleanIndexer(Reference ref, FieldType fieldType) {
+    public BooleanIndexer(Reference ref) {
         this.ref = ref;
         this.name = ref.storageIdent();
-        this.fieldType = fieldType == null ? BooleanFieldMapper.Defaults.FIELD_TYPE : fieldType;
     }
 
     @Override
     public void indexValue(Boolean value,
                            XContentBuilder xContentBuilder,
                            Consumer<? super IndexableField> addField,
-                           Map<ColumnIdent, Synthetic> synthetics,
+                           Synthetics synthetics,
                            Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
         xContentBuilder.value(value);
-        if (ref.indexType() != IndexType.NONE || fieldType.stored()) {
-            addField.accept(new Field(name, value ? "T" : "F", fieldType));
+        if (ref.indexType() != IndexType.NONE) {
+            addField.accept(new Field(name, value ? "T" : "F", FIELD_TYPE));
         }
         if (ref.hasDocValues()) {
             addField.accept(new SortedNumericDocValuesField(name, value ? 1 : 0));
         } else {
             addField.accept(new Field(
-                FieldNamesFieldMapper.NAME,
+                DocSysColumns.FieldNames.NAME,
                 name,
-                FieldNamesFieldMapper.Defaults.FIELD_TYPE));
+                DocSysColumns.FieldNames.FIELD_TYPE));
         }
     }
 }

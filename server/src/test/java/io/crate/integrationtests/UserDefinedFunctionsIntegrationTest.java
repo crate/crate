@@ -345,6 +345,6 @@ public class UserDefinedFunctionsIntegrationTest extends IntegTestCase {
                 .hasPGError(INTERNAL_ERROR)
                 .hasHTTPError(BAD_REQUEST, 4000)
                 .hasMessageContaining(
-                        "Cannot drop function 'doc.foo(bigint)', it is still in use by 'doc.t1.l AS doc.foo(id)'");
+                        "Cannot drop function 'doc.foo'. It is in use by column 'l' of table 'doc.t1'");
     }
 }

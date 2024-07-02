@@ -26,12 +26,12 @@ import java.util.Objects;
 public class AlterTableReroute<T> extends Statement {
 
     private final Table<T> table;
-    private final RerouteOption<T> rerouteOption;
+    private final RerouteOption rerouteOption;
     private final boolean blob;
 
     public AlterTableReroute(Table<T> table,
                              boolean blob,
-                             RerouteOption<T> rerouteOption) {
+                             RerouteOption rerouteOption) {
         this.table = table;
         this.blob = blob;
         this.rerouteOption = rerouteOption;
@@ -45,7 +45,7 @@ public class AlterTableReroute<T> extends Statement {
         return blob;
     }
 
-    public RerouteOption<T> rerouteOption() {
+    public RerouteOption rerouteOption() {
         return rerouteOption;
     }
 

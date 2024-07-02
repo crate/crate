@@ -25,9 +25,6 @@ import static io.crate.metadata.upgrade.IndexTemplateUpgrader.TEMPLATE_NAME;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
 import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -39,12 +36,12 @@ import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.index.mapper.MapperService;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.metadata.PartitionName;
+import io.crate.server.xcontent.LoggingDeprecationHandler;
 import io.crate.server.xcontent.XContentHelper;
 
 public class IndexTemplateUpgraderTest {
@@ -61,7 +58,7 @@ public class IndexTemplateUpgraderTest {
         templates.put(TEMPLATE_NAME, oldTemplate);
 
         Map<String, IndexTemplateMetadata> upgradedTemplates = upgrader.apply(templates);
-        assertThat(upgradedTemplates.get(TEMPLATE_NAME), Matchers.nullValue());
+        assertThat(upgradedTemplates.get(TEMPLATE_NAME)).isNull();
     }
 
     @Test
@@ -92,15 +89,15 @@ public class IndexTemplateUpgraderTest {
 
         Map<String, IndexTemplateMetadata> upgradedTemplates = upgrader.apply(templates);
         IndexTemplateMetadata upgradedTemplate = upgradedTemplates.get(partitionTemplateName);
-        assertThat(upgradedTemplate.settings().keySet(), contains(SETTING_NUMBER_OF_SHARDS));
+        assertThat(upgradedTemplate.settings().keySet()).containsExactly(SETTING_NUMBER_OF_SHARDS);
 
         // ensure all other attributes remains the same
-        assertThat(upgradedTemplate.mapping(), is(oldPartitionTemplate.mapping()));
-        assertThat(upgradedTemplate.patterns(), is(oldPartitionTemplate.patterns()));
-        assertThat(upgradedTemplate.aliases(), is(oldPartitionTemplate.aliases()));
+        assertThat(upgradedTemplate.mapping()).isEqualTo(oldPartitionTemplate.mapping());
+        assertThat(upgradedTemplate.patterns()).isEqualTo(oldPartitionTemplate.patterns());
+        assertThat(upgradedTemplate.aliases()).isEqualTo(oldPartitionTemplate.aliases());
 
         // ensure non partitioned table templates are untouched
-        assertThat(upgradedTemplates.get(nonPartitionTemplateName), is(oldNonPartitionTemplate));
+        assertThat(upgradedTemplates.get(nonPartitionTemplateName)).isEqualTo(oldNonPartitionTemplate);
     }
 
     @Test
@@ -116,11 +113,9 @@ public class IndexTemplateUpgraderTest {
         IndexTemplateUpgrader indexTemplateUpgrader = new IndexTemplateUpgrader();
         Map<String, IndexTemplateMetadata> result = indexTemplateUpgrader.apply(Collections.singletonMap(templateName, template));
 
-        assertThat(
-            "Outdated setting `index.recovery.initial_shards` must be removed",
-            result.get(templateName).settings().hasValue("index.recovery.initial_shards"),
-            is(false)
-        );
+        assertThat(result.get(templateName).settings().hasValue("index.recovery.initial_shards"))
+            .as("Outdated setting `index.recovery.initial_shards` must be removed")
+            .isFalse();
     }
 
     @Test
@@ -146,7 +141,34 @@ public class IndexTemplateUpgraderTest {
         IndexTemplateMetadata updatedTemplate = result.get(templateName);
 
         CompressedXContent compressedXContent = updatedTemplate.mapping();
-        assertThat(compressedXContent.string(), is("{\"default\":{\"properties\":{\"name\":{\"position\":1,\"type\":\"keyword\"}}}}"));
+        assertThat(compressedXContent.string()).isEqualTo("{\"default\":{\"properties\":{\"name\":{\"position\":1,\"type\":\"keyword\"}}}}");
+    }
+
+    @Test
+    public void test__dropped_0_is_removed_from_template_mapping() throws Throwable {
+        String templateName = PartitionName.templateName("doc", "events");
+        var template = IndexTemplateMetadata.builder(templateName)
+            .patterns(List.of("*"))
+            .putMapping(
+                "{" +
+                    "   \"default\": {" +
+                    "       \"properties\": {" +
+                    "           \"name\": {" +
+                    "               \"type\": \"keyword\"" +
+                    "           }," +
+                    "           \"_dropped_0\": {" +
+                    "           }" +
+                    "       }" +
+                    "   }" +
+                    "}")
+            .build();
+
+        IndexTemplateUpgrader upgrader = new IndexTemplateUpgrader();
+        Map<String, IndexTemplateMetadata> result = upgrader.apply(Map.of(templateName, template));
+        IndexTemplateMetadata updatedTemplate = result.get(templateName);
+
+        CompressedXContent compressedXContent = updatedTemplate.mapping();
+        assertThat(compressedXContent.string()).isEqualTo("{\"default\":{\"properties\":{\"name\":{\"position\":1,\"type\":\"keyword\"}}}}");
     }
 
 
@@ -370,6 +392,13 @@ public class IndexTemplateUpgraderTest {
         assertThat(c.get("position")).isEqualTo(3);
     }
 
+    private static Map<String, Object> parse(String json) throws Exception {
+        try (XContentParser parser = XContentType.JSON.xContent()
+            .createParser(NamedXContentRegistry.EMPTY, LoggingDeprecationHandler.INSTANCE, json)) {
+            return parser.map();
+        }
+    }
+
     @Test
     public void test_copy_to_migrated_to_sources() throws Throwable {
         String templateName = PartitionName.templateName("doc", "events");
@@ -383,11 +412,10 @@ public class IndexTemplateUpgraderTest {
         Map<String, IndexTemplateMetadata> result = upgrader.apply(Map.of(templateName, template));
         IndexTemplateMetadata updatedTemplate = result.get(templateName);
 
-        Map actualMap = XContentHelper.toMap(updatedTemplate.mapping().uncompressed(), XContentType.JSON);
-        Map expectedMap = MapperService.parseMapping(NamedXContentRegistry.EMPTY, MappingConstants.FULLTEXT_MAPPING_EXPECTED_IN_5_4);
+        Map<String, Object> actualMap = XContentHelper.toMap(updatedTemplate.mapping().uncompressed(), XContentType.JSON);
+        Map<String, Object> expectedMap = parse(MappingConstants.FULLTEXT_MAPPING_EXPECTED_IN_5_4);
 
-        assertThat(actualMap)
-            .isEqualTo(expectedMap);
+        assertThat(actualMap).isEqualTo(expectedMap);
     }
 
     @Test
@@ -403,8 +431,8 @@ public class IndexTemplateUpgraderTest {
         Map<String, IndexTemplateMetadata> result = upgrader.apply(Map.of(templateName, template));
         IndexTemplateMetadata updatedTemplate = result.get(templateName);
 
-        Map actualMap = XContentHelper.toMap(updatedTemplate.mapping().uncompressed(), XContentType.JSON);
-        Map expectedMap = MapperService.parseMapping(NamedXContentRegistry.EMPTY, MappingConstants.DEEP_NESTED_MAPPING);
+        Map<String, Object> actualMap = XContentHelper.toMap(updatedTemplate.mapping().uncompressed(), XContentType.JSON);
+        Map<String, Object> expectedMap = parse(MappingConstants.DEEP_NESTED_MAPPING);
 
         assertThat(actualMap)
             .isEqualTo(expectedMap);

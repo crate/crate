@@ -21,11 +21,32 @@
 
 package io.crate.auth;
 
-import io.crate.common.annotations.VisibleForTesting;
+import static io.crate.protocols.SSL.getSession;
+import static io.netty.buffer.Unpooled.copiedBuffer;
+
+import java.net.InetAddress;
+import java.nio.charset.StandardCharsets;
+import java.security.cert.Certificate;
+import java.util.List;
+import java.util.Locale;
+import java.util.function.Predicate;
+
+import javax.net.ssl.SSLPeerUnverifiedException;
+import javax.net.ssl.SSLSession;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.network.InetAddresses;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
+import org.jetbrains.annotations.Nullable;
+
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.protocols.SSL;
 import io.crate.protocols.http.Headers;
 import io.crate.protocols.postgres.ConnectionProperties;
-import io.crate.user.User;
+import io.crate.role.Role;
+import io.crate.role.Roles;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
@@ -38,42 +59,29 @@ import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpUtil;
 import io.netty.handler.codec.http.HttpVersion;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import io.crate.common.collections.Tuple;
-import org.elasticsearch.common.network.InetAddresses;
-import org.elasticsearch.common.settings.SecureString;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
-
-import org.jetbrains.annotations.Nullable;
-import javax.net.ssl.SSLPeerUnverifiedException;
-import javax.net.ssl.SSLSession;
-import java.net.InetAddress;
-import java.nio.charset.StandardCharsets;
-import java.security.cert.Certificate;
-import java.util.Locale;
-
-import static io.crate.protocols.SSL.getSession;
-import static io.netty.buffer.Unpooled.copiedBuffer;
 
 
 public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object> {
 
     private static final Logger LOGGER = LogManager.getLogger(HttpAuthUpstreamHandler.class);
     @VisibleForTesting
-
     // realm-value should not contain any special characters
     static final String WWW_AUTHENTICATE_REALM_MESSAGE = "Basic realm=\"CrateDB Authenticator\"";
+
+    private static List<String> REAL_IP_HEADER_BLACKLIST = List.of("127.0.0.1", "::1");
+
     private final Authentication authService;
     private final Settings settings;
+
+    private final Roles roles;
     private String authorizedUser = null;
 
-    public HttpAuthUpstreamHandler(Settings settings, Authentication authService) {
+    public HttpAuthUpstreamHandler(Settings settings, Authentication authService, Roles roles) {
         // do not auto-release reference counted messages which are just in transit here
         super(false);
         this.settings = settings;
         this.authService = authService;
+        this.roles = roles;
     }
 
     @Override
@@ -91,16 +99,25 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
 
     private void handleHttpRequest(ChannelHandlerContext ctx, HttpRequest request) {
         SSLSession session = getSession(ctx.channel());
-        Tuple<String, SecureString> credentials = credentialsFromRequest(request, session, settings);
-        String username = credentials.v1();
-        SecureString password = credentials.v2();
-        if (username.equals(authorizedUser)) {
+        Credentials credentials = credentialsFromRequest(request, session, settings);
+
+        Predicate<Role> rolePredicate = credentials.jwtPropertyMatch();
+        if (rolePredicate != null) {
+            Role role = roles.findUser(rolePredicate);
+            if (role != null) {
+                credentials.setUsername(role.name());
+            }
+        }
+
+        String username = credentials.username();
+        if (username != null && username.equals(authorizedUser)) {
             ctx.fireChannelRead(request);
             return;
         }
 
         InetAddress address = addressFromRequestOrChannel(request, ctx.channel());
-        ConnectionProperties connectionProperties = new ConnectionProperties(address, Protocol.HTTP, session);
+        ConnectionProperties connectionProperties = new ConnectionProperties(credentials, address, Protocol.HTTP, session);
+
         AuthenticationMethod authMethod = authService.resolveAuthenticationType(username, connectionProperties);
         if (authMethod == null) {
             String errorMessage = String.format(
@@ -110,7 +127,7 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
             sendUnauthorized(ctx.channel(), errorMessage);
         } else {
             try {
-                User user = authMethod.authenticate(username, password, connectionProperties);
+                Role user = authMethod.authenticate(credentials, connectionProperties);
                 if (user != null && LOGGER.isTraceEnabled()) {
                     LOGGER.trace("Authentication succeeded user \"{}\" and method \"{}\".", username, authMethod.name());
                 }
@@ -122,6 +139,9 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
                                 authMethod.name(), username, connectionProperties.address());
                 }
                 sendUnauthorized(ctx.channel(), e.getMessage());
+            } finally {
+                // Release the password object.
+                credentials.close();
             }
         }
     }
@@ -161,11 +181,11 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
     }
 
     @VisibleForTesting
-    static Tuple<String, SecureString> credentialsFromRequest(HttpRequest request, @Nullable SSLSession session, Settings settings) {
+    static Credentials credentialsFromRequest(HttpRequest request, @Nullable SSLSession session, Settings settings) {
         String username = null;
         if (request.headers().contains(HttpHeaderNames.AUTHORIZATION.toString())) {
-            // Prefer Http Basic Auth
-            return Headers.extractCredentialsFromHttpBasicAuthHeader(
+            // Prefer Http Auth (Basic or JWT, depending on header).
+            return Headers.extractCredentialsFromHttpAuthHeader(
                 request.headers().get(HttpHeaderNames.AUTHORIZATION.toString()));
         } else {
             // prefer commonName as userName over AUTH_TRUST_HTTP_DEFAULT_HEADER user
@@ -181,12 +201,14 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
                 username = AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.get(settings);
             }
         }
-        return new Tuple<>(username, null);
+        return new Credentials(username, null);
     }
 
     private InetAddress addressFromRequestOrChannel(HttpRequest request, Channel channel) {
-        if (request.headers().contains(AuthSettings.HTTP_HEADER_REAL_IP)) {
-            return InetAddresses.forString(request.headers().get(AuthSettings.HTTP_HEADER_REAL_IP));
+        boolean supportXRealIp = AuthSettings.AUTH_TRUST_HTTP_SUPPORT_X_REAL_IP.get(settings);
+        var realIP = request.headers().get(AuthSettings.HTTP_HEADER_REAL_IP);
+        if (supportXRealIp && realIP != null && !REAL_IP_HEADER_BLACKLIST.contains(realIP)) {
+            return InetAddresses.forString(realIP);
         } else {
             return Netty4HttpServerTransport.getRemoteAddress(channel);
         }

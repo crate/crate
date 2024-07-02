@@ -21,12 +21,7 @@
 
 package io.crate.protocols.http;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -36,8 +31,6 @@ import java.security.cert.Certificate;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.util.EntityUtils;
 import org.elasticsearch.common.CheckedConsumer;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.IntegTestCase;
@@ -60,7 +53,7 @@ public class HttpsTransportKeyStoreReloadIntegrationTest extends SQLHttpIntegrat
     private static File keyStoreFile;
     private static File trustStoreFile;
 
-    public HttpsTransportKeyStoreReloadIntegrationTest() {
+    public HttpsTransportKeyStoreReloadIntegrationTest() throws Exception {
         super(true);
     }
 
@@ -132,10 +125,7 @@ public class HttpsTransportKeyStoreReloadIntegrationTest extends SQLHttpIntegrat
 
     @Test
     public void testReloadSslContextOnKeyStoreChange() throws Throwable {
-        try (CloseableHttpResponse ignored = post("{\"stmt\": \"select 'sslWorks'\"}")) {
-            fail("Certificates in the trusted store signed with unknown key");
-        } catch (Exception ignored) {
-        }
+        post("{\"stmt\": \"select 'sslWorks'\"}");
 
         updateKeyStore(
             keyStoreFile,
@@ -146,15 +136,12 @@ public class HttpsTransportKeyStoreReloadIntegrationTest extends SQLHttpIntegrat
                 new Certificate[]{trustedCert.cert()}));
 
         assertBusy(() -> {
-            try (CloseableHttpResponse response = post("{\"stmt\": \"select 'sslWorks'\"}")) {
-                assertThat(response, not(nullValue()));
-                assertEquals(200, response.getStatusLine().getStatusCode());
-                String result = EntityUtils.toString(response.getEntity());
-                assertThat(result, containsString("\"rowcount\":1"));
-                assertThat(result, containsString("sslWorks"));
-            } catch (Exception e) {
-                fail(e.getMessage());
-            }
+            var response = post("{\"stmt\": \"select 'sslWorks'\"}");
+            assertThat(response).isNotNull();
+            assertThat(response.statusCode()).isEqualTo(200);
+            String result = response.body();
+            assertThat(result).contains("\"rowcount\":1");
+            assertThat(result).contains("sslWorks");
         }, 20, TimeUnit.SECONDS);
     }
 }

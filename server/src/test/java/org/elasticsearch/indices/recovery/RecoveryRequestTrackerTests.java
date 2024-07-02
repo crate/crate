@@ -19,23 +19,23 @@
 
 package org.elasticsearch.indices.recovery;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.fail;
 
 import java.util.Collection;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.junit.Test;
 
 import io.crate.action.FutureActionListener;
+import io.crate.common.collections.Sets;
 
 public class RecoveryRequestTrackerTests extends ESTestCase {
 
@@ -56,8 +56,8 @@ public class RecoveryRequestTrackerTests extends ESTestCase {
 
     @Test
     public void testIdempotencyIsEnforced() throws Exception {
-        Set<Long> seqNosReturned = ConcurrentCollections.newConcurrentSet();
-        ConcurrentMap<Long, Set<FutureActionListener<Void, Void>>> seqToResult = ConcurrentCollections.newConcurrentMap();
+        Set<Long> seqNosReturned = Sets.newConcurrentHashSet();
+        ConcurrentMap<Long, Set<FutureActionListener<Void>>> seqToResult = new ConcurrentHashMap<>();
 
         RecoveryRequestTracker requestTracker = new RecoveryRequestTracker();
 
@@ -66,15 +66,15 @@ public class RecoveryRequestTrackerTests extends ESTestCase {
             final long seqNo = j;
             int iterations = randomIntBetween(2, 5);
             for (int i = 0; i < iterations; ++i) {
-                FutureActionListener<Void, Void> future = FutureActionListener.newInstance();
-                Set<FutureActionListener<Void, Void>> set = seqToResult.computeIfAbsent(seqNo, (k) -> ConcurrentCollections.newConcurrentSet());
+                FutureActionListener<Void> future = new FutureActionListener<>();
+                Set<FutureActionListener<Void>> set = seqToResult.computeIfAbsent(seqNo, (k) -> Sets.newConcurrentHashSet());
                 set.add(future);
                 threadPool.generic().execute(() -> {
                     ActionListener<Void> listener = requestTracker.markReceivedAndCreateListener(seqNo, future);
                     if (listener != null) {
                         boolean added = seqNosReturned.add(seqNo);
                         // Ensure that we only return 1 future per sequence number
-                        assertTrue(added);
+                        assertThat(added).isTrue();
                         if (rarely()) {
                             listener.onFailure(new ElasticsearchException(randomAlphaOfLength(10)));
                         } else {
@@ -94,8 +94,8 @@ public class RecoveryRequestTrackerTests extends ESTestCase {
         });
 
         for (var value : seqToResult.values()) {
-            Optional<FutureActionListener<Void, Void>> first = value.stream().findFirst();
-            assertTrue(first.isPresent());
+            Optional<FutureActionListener<Void>> first = value.stream().findFirst();
+            assertThat(first.isPresent()).isTrue();
             Exception expectedException = null;
             try {
                 first.get().get();
@@ -103,7 +103,7 @@ public class RecoveryRequestTrackerTests extends ESTestCase {
                 expectedException = e;
             }
             for (var future : value) {
-                assertTrue(future.isDone());
+                assertThat(future.isDone()).isTrue();
                 if (expectedException == null) {
                     future.get();
                 } else {
@@ -111,7 +111,7 @@ public class RecoveryRequestTrackerTests extends ESTestCase {
                         future.get();
                         fail("expected exception");
                     } catch (Exception e) {
-                        assertEquals(expectedException.getMessage(), e.getMessage());
+                        assertThat(e.getMessage()).isEqualTo(expectedException.getMessage());
                     }
                 }
             }

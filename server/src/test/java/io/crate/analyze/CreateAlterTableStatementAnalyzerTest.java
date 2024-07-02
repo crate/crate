@@ -25,8 +25,8 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.ANALYZER;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
-import static io.crate.testing.TestingHelpers.mapToSortedString;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_ROUTING_EXCLUDE_GROUP_SETTING;
 import static org.elasticsearch.index.engine.EngineConfig.INDEX_CODEC_SETTING;
@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
@@ -44,14 +45,13 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider;
 import org.elasticsearch.cluster.routing.allocation.decider.MaxRetryAllocationDecider;
-import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.analyze.TableElementsAnalyzer.RefBuilder;
 import io.crate.common.collections.Maps;
 import io.crate.data.Row;
 import io.crate.data.RowN;
@@ -72,6 +72,7 @@ import io.crate.metadata.IndexReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.node.ddl.AlterTablePlan;
 import io.crate.planner.node.ddl.CreateBlobTablePlan;
@@ -103,7 +104,9 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             .metadata(metadata)
             .build();
         ClusterServiceUtils.setState(clusterService, state);
-        e = SQLExecutor.builder(clusterService, 3, Randomness.get(), List.of())
+        e = SQLExecutor.builder(clusterService)
+            .setNumNodes(3)
+            .build()
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .addPartitionedTable(
                 TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION,
@@ -113,9 +116,8 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
                 "  id bigint," +
                 "  content text" +
                 ")" +
-                " clustered by (id)")
-            .build();
-        plannerContext = e.getPlannerContext(clusterService.state());
+                " clustered by (id)");
+        plannerContext = e.getPlannerContext();
     }
 
     private <S> S analyze(String stmt, Object... arguments) {
@@ -140,7 +142,8 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
                 plannerContext.transactionContext(),
                 plannerContext.nodeContext(),
                 new RowN(arguments),
-                SubQueryResults.EMPTY
+                SubQueryResults.EMPTY,
+                plannerContext.clusterState().metadata()
             );
         } else {
             return (S) analyzedStatement;
@@ -217,6 +220,50 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     }
 
     @Test
+    public void testSimpleCreateTableWithNullConstraint() {
+        assertThatThrownBy(() -> analyze("create table foo (id integer primary key null)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Column \"id\" is declared as PRIMARY KEY, therefore, cannot be declared NULL");
+
+        assertThatThrownBy(() -> analyze("create table foo (id integer null primary key)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Column \"id\" is declared NULL, therefore, cannot be declared as a PRIMARY KEY");
+
+        assertThatThrownBy(() -> analyze("create table foo (name string not null null)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Column \"name\" is declared as NOT NULL, therefore, cannot be declared NULL");
+
+        assertThatThrownBy(() -> analyze("create table foo (name string null not null)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Column \"name\" is declared NULL, therefore, cannot be declared NOT NULL");
+
+        AnalyzedCreateTable analysis = e.analyze("create table foo (name string null)");
+        Map<ColumnIdent, RefBuilder> columns = analysis.columns();
+        RefBuilder rb = columns.get(ColumnIdent.of("name"));
+        assertThat(rb.isExplicitlyNull()).isTrue();
+    }
+
+    @Test
+    public void testCreateTableWithNullConstraintAndPrimaryKeyOnTableLevel() {
+        assertThatThrownBy(() -> analyze("create table t1 (a int null, primary key(a))"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Column \"a\" is declared NULL, therefore, cannot be declared as a PRIMARY KEY");
+
+        assertThatThrownBy(() -> analyze("create table t1 (a int null, b int, primary key(a, b))"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Column \"a\" is declared NULL, therefore, cannot be declared as a PRIMARY KEY");
+
+        assertThatThrownBy(() -> analyze("create table t1 (a int, b int null, primary key(a, b))"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Column \"b\" is declared NULL, therefore, cannot be declared as a PRIMARY KEY");
+
+        AnalyzedCreateTable analysis = e.analyze("create table foo (a int, b int, c int null, primary key(a, b))");
+        Map<ColumnIdent, RefBuilder> columns = analysis.columns();
+        RefBuilder rb = columns.get(ColumnIdent.of("c"));
+        assertThat(rb.isExplicitlyNull()).isTrue();
+    }
+
+    @Test
     public void testCreateTableWithDefaultNumberOfShards() {
         BoundCreateTable analysis = analyze("create table foo (id integer primary key, name string)");
         assertThat(analysis.tableParameter().settings().get(IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.getKey()))
@@ -245,7 +292,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         BoundCreateTable analysis = analyze(
             "CREATE TABLE foo (id int primary key) " +
             "with (\"mapping.total_fields.limit\"=5000)");
-        assertThat(analysis.tableParameter().settings().get(MapperService.INDEX_MAPPING_TOTAL_FIELDS_LIMIT_SETTING.getKey()))
+        assertThat(analysis.tableParameter().settings().get(DocTableInfo.TOTAL_COLUMNS_LIMIT.getKey()))
             .isEqualTo("5000");
     }
 
@@ -297,14 +344,14 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         BoundAlterTable analysisSet = analyze(
             "ALTER TABLE users " +
             "SET (\"mapping.total_fields.limit\" = '5000')");
-        assertThat(analysisSet.tableParameter().settings().get(MapperService.INDEX_MAPPING_TOTAL_FIELDS_LIMIT_SETTING.getKey()))
+        assertThat(analysisSet.tableParameter().settings().get(DocTableInfo.TOTAL_COLUMNS_LIMIT.getKey()))
             .isEqualTo("5000");
 
         // Check if resetting total_fields results in default value
         BoundAlterTable analysisReset = analyze(
             "ALTER TABLE users " +
             "RESET (\"mapping.total_fields.limit\")");
-        assertThat(analysisReset.tableParameter().settings().get(MapperService.INDEX_MAPPING_TOTAL_FIELDS_LIMIT_SETTING.getKey()))
+        assertThat(analysisReset.tableParameter().settings().get(DocTableInfo.TOTAL_COLUMNS_LIMIT.getKey()))
             .isEqualTo("1000");
     }
 
@@ -487,11 +534,37 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
         Map<String, Object> mapping = TestingHelpers.toMapping(analysis);
         Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
-        assertThat(mapToSortedString(mappingProperties)).isEqualTo(
-                   ("details={inner={dynamic=true, position=2, properties={age={position=4, type=integer}, " +
-                    "name={position=3, type=keyword}, " +
-                    "tags={inner={position=5, type=keyword}, type=array}}, type=object}, type=array}, " +
-                    "id={position=1, type=integer}"));
+        assertThat(mappingProperties).isEqualTo(Map.of(
+            "details", Map.of(
+                "type", "array",
+                "inner", Map.of(
+                    "dynamic", "true",
+                    "position", 2,
+                    "type", "object",
+                    "properties", Map.of(
+                        "age", Map.of(
+                            "position", 4,
+                            "type", "integer"
+                        ),
+                        "name", Map.of(
+                            "position", 3,
+                            "type", "keyword"
+                        ),
+                        "tags", Map.of(
+                            "inner", Map.of(
+                                "position", 5,
+                                "type", "keyword"
+                            ),
+                            "type", "array"
+                        )
+                    )
+                )
+            ),
+            "id", Map.of(
+                "position", 1,
+                "type", "integer"
+            )
+        ));
     }
 
     @Test
@@ -634,7 +707,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     public void testAlterSystemTable() {
         assertThatThrownBy(() -> analyze("alter table sys.shards reset (number_of_replicas)"))
             .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
-            .hasMessage("The relation \"sys.shards\" doesn't support or allow ALTER operations, as it is read-only.");
+            .hasMessage("The relation \"sys.shards\" doesn't support or allow ALTER operations");
     }
 
     @Test
@@ -673,9 +746,9 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         BoundCreateTable analysis = analyze("create table test (o object as (_id integer), name string)");
         Map<ColumnIdent, Reference> columns = analysis.columns();
         assertThat(columns).containsOnlyKeys(
-            new ColumnIdent("o"),
-            new ColumnIdent("o", "_id"),
-            new ColumnIdent("name")
+            ColumnIdent.of("o"),
+            ColumnIdent.of("o", "_id"),
+            ColumnIdent.of("name")
         );
     }
 
@@ -836,7 +909,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             "name string" +
             ")");
         Map<ColumnIdent, Reference> columns = analysis.columns();
-        ColumnIdent ft = new ColumnIdent("ft");
+        ColumnIdent ft = ColumnIdent.of("ft");
         assertThat(columns).containsKey(ft);
         Reference ftRef = columns.get(ft);
         assertThat(ftRef).isExactlyInstanceOf(IndexReference.class);
@@ -925,12 +998,10 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     public void testCreateTableUsesDefaultSchema() {
-        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService, 1, Randomness.get(), List.of())
-            .setSearchPath("firstSchema", "secondSchema")
-            .build();
+        e.setSearchPath("firstSchema", "secondSchema");
 
-        BoundCreateTable analysis = analyze(sqlExecutor, "create table t (id int)");
-        assertThat(analysis.tableName().schema()).isEqualTo(sqlExecutor.getSessionSettings().searchPath().currentSchema());
+        BoundCreateTable analysis = analyze(e, "create table t (id int)");
+        assertThat(analysis.tableName().schema()).isEqualTo(e.getSessionSettings().searchPath().currentSchema());
     }
 
     @Test
@@ -956,7 +1027,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     public void testExplicitSchemaHasPrecedenceOverDefaultSchema() {
-        SQLExecutor e = SQLExecutor.builder(clusterService).setSearchPath("hoschi").build();
+        SQLExecutor e = SQLExecutor.of(clusterService).setSearchPath("hoschi");
         BoundCreateTable statement = analyze(e, "create table foo.bar (x string)");
 
         // schema from statement must take precedence
@@ -965,7 +1036,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     public void testDefaultSchemaIsAddedToTableIdentIfNoExplicitSchemaExistsInTheStatement() {
-        SQLExecutor e = SQLExecutor.builder(clusterService).setSearchPath("hoschi").build();
+        SQLExecutor e = SQLExecutor.of(clusterService).setSearchPath("hoschi");
         BoundCreateTable statement = analyze(e, "create table bar (x string)");
 
         assertThat(statement.tableName().schema()).isEqualTo("hoschi");
@@ -1130,7 +1201,15 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         Map<String, Object> mapping = TestingHelpers.toMapping(analysis);
         Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
 
-        assertThat(mapToSortedString(mappingProperties)).isEqualTo("arr={inner={position=1, type=integer}, type=array}");
+        assertThat(mappingProperties).isEqualTo(Map.of(
+            "arr", Map.of(
+                "inner", Map.of(
+                    "position", 1,
+                    "type", "integer"
+                ),
+                "type", "array"
+            )
+        ));
     }
 
     @SuppressWarnings("unchecked")
@@ -1242,67 +1321,88 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         Map<String, Object> mapping = TestingHelpers.toMapping(analysis);
         Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
 
-        assertThat(mapToSortedString(mappingProperties)).isEqualTo(
-                   "name={default_expr='bar', position=1, type=keyword}");
+        assertThat(mappingProperties).isEqualTo(Map.of(
+            "name", Map.of(
+                "default_expr", "'bar'",
+                "position", 1,
+                "type", "keyword"
+            )
+        ));
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testCreateTableWithDefaultExpressionFunction() {
         BoundCreateTable analysis = analyze(
             "create table foo (name text default upper('bar'))");
 
         Map<String, Object> mapping = TestingHelpers.toMapping(analysis);
-        Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
+        Map<String, Object> mappingProperties = Maps.get(mapping, "properties");
 
-        assertThat(mapToSortedString(mappingProperties)).isEqualTo(
-                   "name={default_expr='BAR', position=1, type=keyword}");
+        assertThat(mappingProperties).isEqualTo(Map.of(
+            "name", Map.of(
+                "default_expr", "'BAR'",
+                "position", 1,
+                "type", "keyword"
+            )
+        ));
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testCreateTableWithDefaultExpressionWithCast() {
         BoundCreateTable analysis = analyze(
             "create table foo (id int default 3.5)");
 
         Map<String, Object> mapping = TestingHelpers.toMapping(analysis);
-        Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
+        Map<String, Object> mappingProperties = Maps.get(mapping, "properties");
 
-        assertThat(mapToSortedString(mappingProperties)).isEqualTo(
-                "id={default_expr=3.5, position=1, type=integer}");
+        assertThat(mappingProperties).isEqualTo(Map.of(
+            "id", Map.of(
+                "default_expr", "3.5",
+                "position", 1,
+                "type", "integer"
+            )
+        ));
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testCreateTableWithDefaultExpressionIsNotNormalized() {
         BoundCreateTable analysis = analyze(
             "create table foo (ts timestamp with time zone default current_timestamp(3))");
 
         Map<String, Object> mapping = TestingHelpers.toMapping(analysis);
-        Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
-
-        assertThat(mapToSortedString(mappingProperties)).isEqualTo(
-                   "ts={default_expr=current_timestamp(3), " +
-                   "format=epoch_millis||strict_date_optional_time, " +
-                   "position=1, type=date}");
+        Map<String, Object> mappingProperties = Maps.get(mapping, "properties");
+        assertThat(mappingProperties).isEqualTo(Map.of(
+            "ts", Map.of(
+                "default_expr", "current_timestamp(3)",
+                "format", "epoch_millis||strict_date_optional_time",
+                "position", 1,
+                "type", "date"
+            )
+        ));
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testCreateTableWithDefaultExpressionAsCompoundTypes() {
         BoundCreateTable analysis = analyze(
             "create table foo (" +
             "   arr array(long) default [1, 2])");
 
         Map<String, Object> mapping = TestingHelpers.toMapping(analysis);
-        Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
+        Map<String, Object> mappingProperties = Maps.get(mapping, "properties");
 
-        assertThat(mapToSortedString(mappingProperties)).isEqualTo(
-            "arr={inner={default_expr=[1, 2], position=1, type=long}, type=array}");
+        assertThat(mappingProperties).isEqualTo(Map.of(
+            "arr", Map.of(
+                "inner", Map.of(
+                    "default_expr", "[1, 2]",
+                    "position", 1,
+                    "type", "long"
+                ),
+                "type", "array"
+            )
+        ));
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testCreateTableWithDefaultExpressionAsGeoTypes() {
         BoundCreateTable analysis = analyze(
             "create table foo (" +
@@ -1310,11 +1410,21 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             "   s geo_shape default 'LINESTRING (0 0, 1 1)')");
 
         Map<String, Object> mapping = TestingHelpers.toMapping(analysis);
-        Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
+        Map<String, Object> mappingProperties = Maps.get(mapping, "properties");
 
-        assertThat(mapToSortedString(mappingProperties)).isEqualTo(
-            "p={default_expr=[0, 0], position=1, type=geo_point}, " +
-            "s={default_expr='LINESTRING (0 0, 1 1)', position=2, tree=geohash, type=geo_shape}");
+        assertThat(mappingProperties).isEqualTo(Map.of(
+            "p", Map.of(
+                "default_expr", "[0, 0]",
+                "position", 1,
+                "type", "geo_point"
+            ),
+            "s", Map.of(
+                "default_expr", "'LINESTRING (0 0, 1 1)'",
+                "position", 2,
+                "tree", "geohash",
+                "type", "geo_shape"
+            )
+        ));
     }
 
     @Test
@@ -1374,8 +1484,8 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     public void test_alter_table_add_generated_column_based_on_generated_column() throws IOException {
-        SQLExecutor.builder(clusterService)
-            .addTable("CREATE TABLE tbl (col1 INT, col2 INT GENERATED ALWAYS AS col1*2)").build();
+        SQLExecutor.of(clusterService)
+            .addTable("CREATE TABLE tbl (col1 INT, col2 INT GENERATED ALWAYS AS col1*2)");
         assertThatThrownBy(
             () -> {
                 AnalyzedAlterTableAddColumn analyze = analyze(
@@ -1432,7 +1542,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         BoundCreateTable createTable = analyze(
             "create table t (i int, o1 object as (o2 object as (b int check (o1['o2']['b'] > 100))))");
 
-        ColumnIdent o2b = new ColumnIdent("o1", List.of("o2", "b"));
+        ColumnIdent o2b = ColumnIdent.of("o1", List.of("o2", "b"));
         Map<ColumnIdent, Reference> columns = createTable.columns();
         assertThat(columns).containsKey(o2b);
         assertThat(columns.get(o2b)).isReference().hasName("o1['o2']['b']").hasType(DataTypes.INTEGER);
@@ -1452,7 +1562,6 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void test_create_table_with_column_store_disabled() {
         for (var dataType : DataTypes.PRIMITIVE_TYPES) {
             var stmt = "create table columnstore_disabled (s " + dataType + " STORAGE WITH (columnstore = false))";
@@ -1460,11 +1569,12 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             if (dataType.storageSupport() != null && dataType.storageSupport().supportsDocValuesOff()) {
                 BoundCreateTable analysis = analyze(stmt);
                 var mapping = TestingHelpers.toMapping(analysis);
-                var mappingProperties = (Map<String, Object>) mapping.get("properties");
-                assertThat(mapToSortedString(mappingProperties))
-                    .contains("doc_values=false")
-                    .contains("position=1")
-                    .contains("type=" + DataTypes.esMappingNameFrom(dataType.id()));
+                Map<String, Object> mappingProperties = Maps.get(mapping, "properties");
+                Map<String, Object> sProperties = Maps.get(mappingProperties, "s");
+                assertThat(sProperties)
+                    .containsEntry("doc_values", "false")
+                    .containsEntry("position", 1)
+                    .containsEntry("type", DataTypes.esMappingNameFrom(dataType.id()));
             } else if (dataType.storageSupport() != null) {
                 assertThatThrownBy(() -> analyze(stmt))
                     .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -1476,7 +1586,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @Test
     public void testGeneratedColumnInsideObjectIsProcessed() {
         BoundCreateTable stmt = analyze("create table t (obj object as (c as 1 + 1))");
-        Reference reference = stmt.columns().get(new ColumnIdent("obj", "c"));
+        Reference reference = stmt.columns().get(ColumnIdent.of("obj", "c"));
 
         assertThat(reference.valueType()).isEqualTo(DataTypes.INTEGER);
         assertThat(((GeneratedReference) reference).formattedGeneratedExpression()).isEqualTo("2");
@@ -1513,21 +1623,26 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     public void test_alter_table_dynamic_setting_on_closed_table() throws IOException {
-        e = SQLExecutor.builder(clusterService).addTable("create table doc.test(i int)").closeTable("test").build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table doc.test(i int)")
+            .closeTable("test");
         BoundAlterTable analysis = analyze(e, "alter table test set (\"routing.allocation.exclude.foo\"='bar')");
         assertThat(analysis.tableParameter().settings().get(INDEX_ROUTING_EXCLUDE_GROUP_SETTING.getKey() + "foo")).isEqualTo("bar");
     }
 
     @Test
     public void test_alter_table_non_dynamic_setting_on_closed_table() throws IOException {
-        e = SQLExecutor.builder(clusterService).addTable("create table doc.test(i int)").closeTable("test").build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table doc.test(i int)")
+            .closeTable("test");
         BoundAlterTable analysis = analyze(e, "ALTER TABLE test SET (codec = 'best_compression')");
         assertThat(analysis.tableParameter().settings().get(INDEX_CODEC_SETTING.getKey())).isEqualTo("best_compression");
     }
 
     @Test
     public void test_alter_table_update_final_setting_on_open_table() throws IOException {
-        e = SQLExecutor.builder(clusterService).addTable("create table doc.test(i int)").build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table doc.test(i int)");
         Asserts.assertSQLError(() -> analyze(e, "alter table test SET (\"store.type\" = 'simplefs')"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(INTERNAL_SERVER_ERROR, 5000)
@@ -1536,7 +1651,9 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
 
     @Test
     public void test_alter_table_update_final_setting_on_closed_table() throws IOException {
-        e = SQLExecutor.builder(clusterService).addTable("create table doc.test(i int)").closeTable("test").build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table doc.test(i int)")
+            .closeTable("test");
         Asserts.assertSQLError(() -> analyze(e, "alter table test SET (number_of_routing_shards = 5)"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(INTERNAL_SERVER_ERROR, 5000)
@@ -1559,29 +1676,34 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void test_character_varying_type_can_be_used_in_create_table() throws Exception {
         BoundCreateTable stmt = analyze("create table tbl (name character varying)");
 
         Map<String, Object> mapping = TestingHelpers.toMapping(stmt);
-        Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
+        Map<String, Object> mappingProperties = Maps.get(mapping, "properties");
 
-        assertThat(
-            mapToSortedString(mappingProperties))
-            .isEqualTo("name={position=1, type=keyword}");
+        assertThat(mappingProperties).isEqualTo(Map.of(
+            "name", Map.of(
+                "position", 1,
+                "type", "keyword"
+            )
+        ));
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void test_create_table_with_varchar_column_of_limited_length() {
         BoundCreateTable stmt = analyze("CREATE TABLE tbl (name character varying(2))");
 
         Map<String, Object> mapping = TestingHelpers.toMapping(stmt);
-        Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
+        Map<String, Object> mappingProperties = Maps.get(mapping, "properties");
 
-        assertThat(
-            mapToSortedString(mappingProperties))
-            .isEqualTo("name={length_limit=2, position=1, type=keyword}");
+        assertThat(mappingProperties).isEqualTo(Map.of(
+            "name", Map.of(
+                "length_limit", 2,
+                "position", 1,
+                "type", "keyword"
+            )
+        ));
     }
 
     @Test
@@ -1615,94 +1737,114 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void test_can_use_bit_type_in_create_table_statement() throws Exception {
         BoundCreateTable stmt = analyze("CREATE TABLE tbl (xs bit(20))");
 
         Map<String, Object> mapping = TestingHelpers.toMapping(stmt);
-        Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
+        Map<String, Object> mappingProperties = Maps.get(mapping, "properties");
 
-        assertThat(mapToSortedString(mappingProperties)).isEqualTo(
-            "xs={length=20, position=1, type=bit}"
-        );
+        assertThat(mappingProperties).isEqualTo(Map.of(
+            "xs", Map.of(
+                "length", 20,
+                "position", 1,
+                "type", "bit"
+            )
+        ));
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void test_bit_type_defaults_to_length_1() throws Exception {
         BoundCreateTable stmt = analyze("CREATE TABLE tbl (xs bit)");
 
         Map<String, Object> mapping = TestingHelpers.toMapping(stmt);
-        Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
+        Map<String, Object> mappingProperties = Maps.get(mapping, "properties");
 
-        assertThat(mapToSortedString(mappingProperties)).isEqualTo(
-            "xs={length=1, position=1, type=bit}"
-        );
+        assertThat(mappingProperties).isEqualTo(Map.of(
+            "xs", Map.of(
+                "length", 1,
+                "position", 1,
+                "type", "bit"
+            )
+        ));
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void test_can_use_character_type_in_create_table_statement() {
         BoundCreateTable stmt = analyze("CREATE TABLE tbl (c character(10))");
 
         Map<String, Object> mapping = TestingHelpers.toMapping(stmt);
-        Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
+        Map<String, Object> mappingProperties = Maps.get(mapping, "properties");
 
-        assertThat(mapToSortedString(mappingProperties)).isEqualTo(
-            "c={blank_padding=true, length_limit=10, position=1, type=keyword}"
-        );
+        assertThat(mappingProperties).isEqualTo(Map.of(
+            "c", Map.of(
+                "blank_padding", true,
+                "length_limit", 10,
+                "position", 1,
+                "type", "keyword"
+            )
+        ));
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void test_character_type_defaults_to_length_1() throws Exception {
         BoundCreateTable stmt = analyze("CREATE TABLE tbl (c character)");
 
         Map<String, Object> mapping = TestingHelpers.toMapping(stmt);
-        Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
+        Map<String, Object> mappingProperties = Maps.get(mapping, "properties");
 
-        assertThat(mapToSortedString(mappingProperties)).isEqualTo(
-            "c={blank_padding=true, length_limit=1, position=1, type=keyword}"
+        assertThat(mappingProperties).isEqualTo(Map.of(
+            "c", Map.of(
+                "blank_padding", true,
+                "length_limit", 1,
+                "position", 1,
+                "type", "keyword"
+            ))
         );
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void test_char_is_alias_for_character_type() throws Exception {
         BoundCreateTable stmt = analyze("CREATE TABLE tbl (c char)");
 
         Map<String, Object> mapping = TestingHelpers.toMapping(stmt);
-        Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
+        Map<String, Object> mappingProperties = Maps.get(mapping, "properties");
 
-        assertThat(mapToSortedString(mappingProperties)).isEqualTo(
-            "c={blank_padding=true, length_limit=1, position=1, type=keyword}"
-        );
+        assertThat(mappingProperties).isEqualTo(Map.of(
+            "c", Map.of(
+                "blank_padding", true,
+                "length_limit", 1,
+                "position", 1,
+                "type", "keyword"
+            )
+        ));
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void test_now_function_is_not_normalized_to_literal_in_create_table() throws Exception {
         BoundCreateTable stmt = analyze("create table tbl (ts timestamp with time zone default now())");
 
         Map<String, Object> mapping = TestingHelpers.toMapping(stmt);
-        Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
+        Map<String, Object> mappingProperties = Maps.get(mapping, "properties");
 
-        assertThat(mapToSortedString(mappingProperties)).startsWith(
-            "ts={default_expr=now()"
-        );
+        assertThat(mappingProperties)
+            .containsKey("ts")
+            .extractingByKey("ts", InstanceOfAssertFactories.MAP)
+            .containsEntry("default_expr", "now()");
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void test_current_user_function_is_not_normalized_to_literal_in_create_table() throws Exception {
         BoundCreateTable stmt = analyze("create table tbl (user_name text default current_user)");
 
         Map<String, Object> mapping = TestingHelpers.toMapping(stmt);
-        Map<String, Object> mappingProperties = (Map<String, Object>) mapping.get("properties");
+        Map<String, Object> mappingProperties = Maps.get(mapping, "properties");
 
-        assertThat(mapToSortedString(mappingProperties)).startsWith(
-            "user_name={default_expr=CURRENT_USER, position=1, type=keyword}"
-        );
+        assertThat(mappingProperties)
+            .containsKey("user_name")
+            .extractingByKey("user_name", InstanceOfAssertFactories.MAP)
+                .containsEntry("default_expr", "CURRENT_USER")
+                .containsEntry("position", 1)
+                .containsEntry("type", "keyword");
     }
 
     @Test
@@ -1737,7 +1879,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @Test
     public void test_create_nested_array_column() throws Exception {
         BoundCreateTable createTable = analyze("create table tbl (x int[][])");
-        ColumnIdent x = new ColumnIdent("x");
+        ColumnIdent x = ColumnIdent.of("x");
         Map<ColumnIdent, Reference> columns = createTable.columns();
         assertThat(columns).containsKeys(x);
         Reference xRef = columns.get(x);
@@ -1749,7 +1891,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     public void test_can_use_vector_in_create_table() throws Exception {
         BoundCreateTable stmt = analyze("create table tbl (x float_vector)");
         assertThat(stmt.columns()).hasEntrySatisfying(
-            new ColumnIdent("x"), Asserts.isReference("x", FloatVectorType.INSTANCE_ONE)
+            ColumnIdent.of("x"), Asserts.isReference("x", FloatVectorType.INSTANCE_ONE)
         );
     }
 
@@ -1758,5 +1900,46 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         assertThatThrownBy(() -> analyze("create table tbl (xs array(float_vector))"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("Arrays of float_vector are not supported");
+    }
+
+    @Test
+    public void test_named_primary_key_constraints() {
+        BoundCreateTable createTable = analyze("create table tbl (a int constraint c_1 check (a > 10) constraint c_2 primary key constraint c_3 check (a < 20))");
+        assertThat(createTable.pkConstraintName()).isEqualTo("c_2");
+
+        analyze("create table tbl (a int constraint c_1 check (a > 10) constraint c_3 check (a < 20), constraint c_2 primary key (a))");
+        assertThat(createTable.pkConstraintName()).isEqualTo("c_2");
+    }
+
+    @Test
+    public void test_cannot_define_more_than_one_name_for_primary_key_constraint() {
+        assertThatThrownBy(() -> analyze("create table tbl (a int constraint c_1 primary key, b int constraint c_2 primary key)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("More than one name for PRIMARY KEY constraint provided: c_1,c_2");
+
+        assertThatThrownBy(() -> analyze("create table tbl (a int primary key, b int constraint c_2 primary key)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("More than one name for PRIMARY KEY constraint provided: null,c_2");
+    }
+
+    @Test
+    public void test_empty_string_cannot_be_name_for_primary_key_constraints() {
+        assertThatThrownBy(() -> analyze("create table tbl (a int constraint \"\" primary key)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("The name of primary key constraint must not be empty, please either use a name or remove the CONSTRAINT keyword");
+    }
+
+    @Test
+    public void test_cannot_use_table_functions_in_generated_columns() throws Exception {
+        assertThatThrownBy(() -> analyze("create table tbl (x text, y text[] as regexp_matches(x, '(a(.+)z)'))"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Cannot use table function in generated expression of column `y`");
+    }
+
+    @Test
+    public void test_cannot_use_table_function_in_default_expression() throws Exception {
+        assertThatThrownBy(() -> analyze("create table tbl (x int default generate_series(1, 10))"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Cannot use table function in default expression of column `x`");
     }
 }

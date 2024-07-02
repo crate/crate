@@ -21,8 +21,7 @@
 
 package io.crate.analyze;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -36,27 +35,21 @@ public class IsWriteOperationTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void setUpExecutor() throws Exception {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addTable("create table t1 (x int)")
-            .addBlobTable("create blob table blobs")
-            .build();
+            .addBlobTable("create blob table blobs");
     }
 
     private void assertWriteOperation(String stmt) {
-        assertThat(
-            "Must be a write operation: " + stmt,
-            e.analyze(stmt).isWriteOperation(),
-            is(true)
-        );
+        assertThat(e.analyze(stmt).isWriteOperation())
+            .as("Must be a write operation: " + stmt)
+            .isTrue();
     }
 
-
     private void assertNoWriteOperation(String stmt) {
-        assertThat(
-            "Must not be a write operation: " + stmt,
-            e.analyze(stmt).isWriteOperation(),
-            is(false)
-        );
+        assertThat(e.analyze(stmt).isWriteOperation())
+            .as("Must not be a write operation: " + stmt)
+            .isFalse();
     }
 
     @Test
@@ -140,7 +133,7 @@ public class IsWriteOperationTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testAlterTableRenameIsAWriteOperation() {
+    public void testAlterTableRenameTableIsAWriteOperation() {
         assertWriteOperation("alter table t1 rename to t2");
     }
 

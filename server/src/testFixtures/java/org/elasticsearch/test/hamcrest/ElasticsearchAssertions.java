@@ -18,17 +18,10 @@
  */
 package org.elasticsearch.test.hamcrest;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.instanceOf;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
@@ -50,11 +43,13 @@ import org.elasticsearch.test.NotEqualMessageBuilder;
 public class ElasticsearchAssertions {
 
     public static void assertNoTimeout(ClusterHealthResponse response) {
-        assertThat("ClusterHealthResponse has timed out - returned: [" + response + "]", response.isTimedOut(), is(false));
+        assertThat(response.isTimedOut())
+          .as("ClusterHealthResponse has timed out - returned: [" + response + "]")
+          .isFalse();
     }
 
     public static void assertAcked(AcknowledgedResponse response) {
-        assertThat(response.getClass().getSimpleName() + " failed - not acked", response.isAcknowledged(), equalTo(true));
+        assertThat(response.isAcknowledged()).as(response.getClass().getSimpleName() + " failed - not acked").isTrue();
     }
 
     /**
@@ -62,28 +57,13 @@ public class ElasticsearchAssertions {
      * state update was successful and that the requisite number of shard copies were started before returning.
      */
     public static void assertAcked(CreateIndexResponse response) {
-        assertThat(response.getClass().getSimpleName() + " failed - not acked", response.isAcknowledged(), equalTo(true));
-        assertTrue(response.getClass().getSimpleName() + " failed - index creation acked but not all shards were started",
-            response.isShardsAcknowledged());
+        assertThat(response.isAcknowledged()).as(response.getClass().getSimpleName() + " failed - not acked").isTrue();
+        assertThat(response.isShardsAcknowledged()).as(response.getClass().getSimpleName() + " failed - index creation acked but not all shards were started").isTrue();
     }
 
 
     public static void assertNoFailures(BroadcastResponse response) {
-        assertThat("Unexpected ShardFailures: " + Arrays.toString(response.getShardFailures()), response.getFailedShards(), equalTo(0));
-    }
-
-    /**
-     * Check if a file exists
-     */
-    public static void assertFileExists(Path file) {
-        assertThat("file/dir [" + file + "] should exist.", Files.exists(file), is(true));
-    }
-
-    /**
-     * Check if a file does not exist
-     */
-    public static void assertFileNotExists(Path file) {
-        assertThat("file/dir [" + file + "] should not exist.", Files.exists(file), is(false));
+        assertThat(response.getFailedShards()).as("Unexpected ShardFailures: " + Arrays.toString(response.getShardFailures())).isEqualTo(0);
     }
 
     /**
@@ -121,12 +101,12 @@ public class ElasticsearchAssertions {
      * Compares two maps recursively, using arrays comparisons for byte[] through Arrays.equals(byte[], byte[])
      */
     private static void assertMapEquals(Map<String, Object> expected, Map<String, Object> actual) {
-        assertEquals(expected.size(), actual.size());
+        assertThat(actual.size()).isEqualTo(expected.size());
         for (Map.Entry<String, Object> expectedEntry : expected.entrySet()) {
             String expectedKey = expectedEntry.getKey();
             Object expectedValue = expectedEntry.getValue();
             if (expectedValue == null) {
-                assertTrue(actual.get(expectedKey) == null && actual.containsKey(expectedKey));
+                assertThat(actual.get(expectedKey) == null && actual.containsKey(expectedKey)).isTrue();
             } else {
                 Object actualValue = actual.get(expectedKey);
                 assertObjectEquals(expectedValue, actualValue);
@@ -138,7 +118,7 @@ public class ElasticsearchAssertions {
      * Compares two lists recursively, but using arrays comparisons for byte[] through Arrays.equals(byte[], byte[])
      */
     private static void assertListEquals(List<Object> expected, List<Object> actual) {
-        assertEquals(expected.size(), actual.size());
+        assertThat(actual.size()).isEqualTo(expected.size());
         Iterator<Object> actualIterator = actual.iterator();
         for (Object expectedValue : expected) {
             Object actualValue = actualIterator.next();
@@ -153,7 +133,7 @@ public class ElasticsearchAssertions {
     @SuppressWarnings("unchecked")
     private static void assertObjectEquals(Object expected, Object actual) {
         if (expected instanceof Map) {
-            assertThat(actual, instanceOf(Map.class));
+            assertThat(actual).isInstanceOf(Map.class);
             assertMapEquals((Map<String, Object>) expected, (Map<String, Object>) actual);
         } else if (expected instanceof List) {
             assertListEquals((List<Object>) expected, (List<Object>) actual);
@@ -162,7 +142,7 @@ public class ElasticsearchAssertions {
             //don't need to be handled. Ordinary arrays get parsed as lists.
             assertArrayEquals((byte[]) expected, (byte[]) actual);
         } else {
-            assertEquals(expected, actual);
+            assertThat(actual).isEqualTo(expected);
         }
     }
 }

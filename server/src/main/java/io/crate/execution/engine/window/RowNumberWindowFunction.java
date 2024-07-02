@@ -21,26 +21,30 @@
 
 package io.crate.execution.engine.window;
 
+import java.util.List;
+import java.util.function.LongConsumer;
+
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.metadata.Functions;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
-
-import org.jetbrains.annotations.Nullable;
-import java.util.List;
 
 public class RowNumberWindowFunction implements WindowFunction {
 
     private static final String NAME = "row_number";
 
-    public static void register(WindowFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder builder) {
+        builder.add(
             Signature.window(
                 NAME,
                 DataTypes.INTEGER.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.DETERMINISTIC),
             RowNumberWindowFunction::new
         );
     }
@@ -54,11 +58,12 @@ public class RowNumberWindowFunction implements WindowFunction {
     }
 
     @Override
-    public Object execute(int idxInPartition,
+    public Object execute(LongConsumer allocateBytes,
+                          int idxInPartition,
                           WindowFrameState currentFrame,
                           List<? extends CollectExpression<Row, ?>> expressions,
                           @Nullable Boolean ignoreNulls,
-                          Input... args) {
+                          Input<?> ... args) {
         if (ignoreNulls != null) {
             throw new IllegalArgumentException("row_number cannot accept RESPECT or IGNORE NULLS flag.");
         }

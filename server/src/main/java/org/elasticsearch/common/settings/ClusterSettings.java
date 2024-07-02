@@ -26,7 +26,6 @@ import java.util.function.Predicate;
 
 import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.action.admin.cluster.configuration.TransportAddVotingConfigExclusionsAction;
-import org.elasticsearch.action.support.DestructiveOperations;
 import org.elasticsearch.action.support.master.TransportMasterNodeReadAction;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.bootstrap.BootstrapSettings;
@@ -60,7 +59,6 @@ import org.elasticsearch.cluster.service.ClusterApplierService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.cluster.service.MasterService;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.network.NetworkModule;
 import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.util.PageCacheRecycler;
@@ -75,6 +73,7 @@ import org.elasticsearch.gateway.DanglingIndicesState;
 import org.elasticsearch.gateway.GatewayService;
 import org.elasticsearch.gateway.PersistedClusterStateService;
 import org.elasticsearch.http.HttpTransportSettings;
+import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.indices.IndexingMemoryController;
 import org.elasticsearch.indices.IndicesQueryCache;
@@ -98,15 +97,16 @@ import org.elasticsearch.snapshots.InternalSnapshotsInfoService;
 import org.elasticsearch.snapshots.SnapshotsService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportSettings;
+import org.elasticsearch.transport.netty4.Netty4Transport;
 
 import io.crate.action.sql.Sessions;
 import io.crate.auth.AuthSettings;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.cluster.gracefulstop.DecommissioningService;
-import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.execution.engine.indexing.ShardingUpsertExecutor;
 import io.crate.execution.jobs.NodeLimits;
+import io.crate.fdw.ForeignDataWrappers;
 import io.crate.legacy.LegacySettings;
 import io.crate.memory.MemoryManagerFactory;
 import io.crate.metadata.settings.AnalyzerSettings;
@@ -211,7 +211,6 @@ public final class ClusterSettings extends AbstractScopedSettings {
         IndicesQueryCache.INDICES_CACHE_QUERY_COUNT_SETTING,
         IndicesQueryCache.INDICES_QUERIES_CACHE_ALL_SEGMENTS_SETTING,
         IndicesService.WRITE_DANGLING_INDICES_INFO_SETTING,
-        SchemaUpdateClient.INDICES_MAPPING_DYNAMIC_TIMEOUT_SETTING,
         Metadata.SETTING_READ_ONLY_SETTING,
         Metadata.SETTING_READ_ONLY_ALLOW_DELETE_SETTING,
         ShardLimitValidator.SETTING_CLUSTER_MAX_SHARDS_PER_NODE,
@@ -236,7 +235,6 @@ public final class ClusterSettings extends AbstractScopedSettings {
         SameShardAllocationDecider.CLUSTER_ROUTING_ALLOCATION_SAME_HOST_SETTING,
         InternalClusterInfoService.INTERNAL_CLUSTER_INFO_UPDATE_INTERVAL_SETTING,
         InternalSnapshotsInfoService.INTERNAL_SNAPSHOT_INFO_MAX_CONCURRENT_FETCHES_SETTING,
-        DestructiveOperations.REQUIRES_NAME_SETTING,
         NoMasterBlockService.NO_MASTER_BLOCK_SETTING,
         GatewayService.EXPECTED_DATA_NODES_SETTING,
         GatewayService.EXPECTED_MASTER_NODES_SETTING,
@@ -246,8 +244,14 @@ public final class ClusterSettings extends AbstractScopedSettings {
         GatewayService.RECOVER_AFTER_NODES_SETTING,
         GatewayService.RECOVER_AFTER_TIME_SETTING,
         PersistedClusterStateService.SLOW_WRITE_LOGGING_THRESHOLD,
-        NetworkModule.HTTP_DEFAULT_TYPE_SETTING,
-        NetworkModule.HTTP_TYPE_SETTING,
+        Netty4HttpServerTransport.SETTING_HTTP_NETTY_MAX_COMPOSITE_BUFFER_COMPONENTS,
+        Netty4HttpServerTransport.SETTING_HTTP_WORKER_COUNT,
+        Netty4HttpServerTransport.SETTING_HTTP_NETTY_RECEIVE_PREDICTOR_SIZE,
+        Netty4Transport.WORKER_COUNT,
+        Netty4Transport.NETTY_RECEIVE_PREDICTOR_SIZE,
+        Netty4Transport.NETTY_RECEIVE_PREDICTOR_MIN,
+        Netty4Transport.NETTY_RECEIVE_PREDICTOR_MAX,
+        Netty4Transport.NETTY_BOSS_COUNT,
         HttpTransportSettings.SETTING_CORS_ALLOW_CREDENTIALS,
         HttpTransportSettings.SETTING_CORS_ENABLED,
         HttpTransportSettings.SETTING_CORS_MAX_AGE,
@@ -335,7 +339,6 @@ public final class ClusterSettings extends AbstractScopedSettings {
         Environment.PATH_LOGS_SETTING,
         Environment.PATH_REPO_SETTING,
         Environment.PATH_SHARED_DATA_SETTING,
-        Environment.PIDFILE_SETTING,
         NodeEnvironment.NODE_ID_SEED_SETTING,
         DiscoveryModule.DISCOVERY_TYPE_SETTING,
         DiscoveryModule.DISCOVERY_SEED_PROVIDERS_SETTING,
@@ -437,6 +440,7 @@ public final class ClusterSettings extends AbstractScopedSettings {
         AuthSettings.AUTH_HOST_BASED_ENABLED_SETTING,
         AuthSettings.AUTH_HOST_BASED_CONFIG_SETTING,
         AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER,
+        AuthSettings.AUTH_TRUST_HTTP_SUPPORT_X_REAL_IP,
         SslSettings.SSL_TRANSPORT_MODE,
         SslSettings.SSL_HTTP_ENABLED,
         SslSettings.SSL_PSQL_ENABLED,
@@ -455,6 +459,7 @@ public final class ClusterSettings extends AbstractScopedSettings {
         SnapshotsService.MAX_CONCURRENT_SNAPSHOT_OPERATIONS_SETTING,
         FsHealthService.ENABLED_SETTING,
         FsHealthService.REFRESH_INTERVAL_SETTING,
-        FsHealthService.SLOW_PATH_LOGGING_THRESHOLD_SETTING
+        FsHealthService.SLOW_PATH_LOGGING_THRESHOLD_SETTING,
+        ForeignDataWrappers.ALLOW_LOCAL
     );
 }

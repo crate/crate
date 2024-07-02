@@ -21,27 +21,29 @@
 
 package io.crate.metadata;
 
-import static io.crate.common.collections.Lists2.getOnlyElement;
+import static io.crate.common.collections.Lists.getOnlyElement;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.ServiceLoader;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-import org.jetbrains.annotations.Nullable;
-
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.plugins.CompositeClassLoader;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
@@ -52,68 +54,81 @@ import io.crate.metadata.functions.BoundVariables;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.functions.SignatureBinder;
 import io.crate.metadata.pgcatalog.OidHash;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
 
 public class Functions {
 
-    private static final Logger LOGGER = Loggers.getLogger(Functions.class);
+    private static final Logger LOGGER = LogManager.getLogger(Functions.class);
 
-    private final Map<FunctionName, List<FunctionProvider>> udfFunctionImplementations = new ConcurrentHashMap<>();
+    private volatile Map<FunctionName, List<FunctionProvider>> udfFunctionImplementations = Map.of();
     private final Map<FunctionName, List<FunctionProvider>> functionImplementations;
 
-    public Functions copyOf() {
-        var functions = new Functions(Map.copyOf(functionImplementations));
-        functions.udfFunctionImplementations.putAll(udfFunctionImplementations);
-        return functions;
-    }
+    public static class Builder {
 
-    @Inject
-    public Functions(Map<FunctionName, List<FunctionProvider>> functionImplementationsBySignature) {
-        this.functionImplementations = functionImplementationsBySignature;
-    }
+        private HashMap<FunctionName, ArrayList<FunctionProvider>> providersByName = new HashMap<>();
 
-    public Map<FunctionName, List<FunctionProvider>> functionResolvers() {
-        return functionImplementations;
-    }
-
-    public Map<FunctionName, List<FunctionProvider>> udfFunctionResolvers() {
-        return udfFunctionImplementations;
-    }
-
-    public void registerUdfFunctionImplementationsForSchema(
-        String schema, Map<FunctionName, List<FunctionProvider>> functions) {
-        // remove deleted ones before re-registering all current ones for the given schema
-        udfFunctionImplementations.entrySet()
-            .removeIf(
-                function ->
-                    schema.equals(function.getKey().schema())
-                    && functions.get(function.getKey()) == null);
-        udfFunctionImplementations.putAll(functions);
-    }
-
-    public void deregisterUdfResolversForSchema(String schema) {
-        udfFunctionImplementations.keySet()
-            .removeIf(function -> schema.equals(function.schema()));
-    }
-
-    @Nullable
-    private static Signature findSignatureByOid(Map<FunctionName, List<FunctionProvider>> functions, int oid) {
-        for (Map.Entry<FunctionName, List<FunctionProvider>> func : functions.entrySet()) {
-            for (FunctionProvider sig : func.getValue()) {
-                if (Objects.equals(oid, OidHash.functionOid(sig.getSignature()))) {
-                    return sig.getSignature();
-                }
-            }
+        public void add(Signature signature, FunctionFactory factory) {
+            List<FunctionProvider> functionProviders = providersByName.computeIfAbsent(
+                signature.getName(),
+                k -> new ArrayList<>()
+            );
+            functionProviders.add(new FunctionProvider(signature, factory));
         }
-        return null;
+
+        public Functions build() {
+            for (ArrayList<FunctionProvider> providers : providersByName.values()) {
+                providers.trimToSize();
+            }
+            return new Functions(Map.copyOf(providersByName));
+        }
+    }
+
+    public static Functions load(Settings settings,
+                                 SessionSettingRegistry sessionSettingRegistry,
+                                 ClassLoader ... classLoaders) {
+        Builder builder = new Builder();
+        CompositeClassLoader compositeLoader = new CompositeClassLoader(
+            FunctionsProvider.class.getClassLoader(),
+            List.of(classLoaders)
+        );
+        for (var provider : ServiceLoader.load(FunctionsProvider.class, compositeLoader)) {
+            provider.addFunctions(settings, sessionSettingRegistry, builder);
+        }
+        return builder.build();
+    }
+
+    private Functions(Map<FunctionName, List<FunctionProvider>> functionProvidersByName) {
+        this.functionImplementations = functionProvidersByName;
+    }
+
+    public Iterable<Signature> signatures() {
+        return () ->
+            Stream.concat(
+                functionImplementations.values().stream()
+                    .flatMap(x -> x.stream())
+                    .map(x -> x.signature()),
+                udfFunctionImplementations.values().stream()
+                    .flatMap(x -> x.stream())
+                    .map(x -> x.signature())
+            )
+            .iterator();
+    }
+
+    public void setUDFs(Map<FunctionName, List<FunctionProvider>> functions) {
+        udfFunctionImplementations = functions;
     }
 
     @Nullable
     public Signature findFunctionSignatureByOid(int oid) {
-        Signature sig = findSignatureByOid(udfFunctionImplementations, oid);
-        return sig != null ? sig : findSignatureByOid(functionImplementations, oid);
+        for (var signature : signatures()) {
+            if (oid == OidHash.functionOid(signature)) {
+                return signature;
+            }
+        }
+        return null;
     }
 
     /**
@@ -170,9 +185,9 @@ public class Functions {
             return null;
         }
         for (var candidate : candidates) {
-            if (candidate.getSignature().equals(signature)) {
+            if (candidate.signature().equals(signature)) {
                 var boundSignature = new BoundSignature(actualArgumentTypes, actualReturnType);
-                return candidate.getFactory().apply(signature, boundSignature);
+                return candidate.factory().apply(signature, boundSignature);
             }
         }
         return null;
@@ -206,12 +221,12 @@ public class Functions {
         }
         final var finalCandidates = candidates;
 
-        assert candidates.stream().allMatch(f -> f.getSignature().getBindingInfo() != null) :
+        assert candidates.stream().allMatch(f -> f.signature().getBindingInfo() != null) :
             "Resolving/Matching of signatures can only be done with non-null signature's binding info";
 
         // First lets try exact candidates, no generic type variables, no coercion allowed.
         Iterable<FunctionProvider> exactCandidates = () -> finalCandidates.stream()
-            .filter(function -> function.getSignature().getBindingInfo().getTypeVariableConstraints().isEmpty())
+            .filter(function -> function.signature().getBindingInfo().getTypeVariableConstraints().isEmpty())
             .iterator();
         var match = matchFunctionCandidates(exactCandidates, argumentTypes, SignatureBinder.CoercionType.NONE);
         if (match != null) {
@@ -220,7 +235,7 @@ public class Functions {
 
         // Second, try candidates with generic type variables, still no coercion allowed.
         Iterable<FunctionProvider> genericCandidates = () -> finalCandidates.stream()
-            .filter(function -> !function.getSignature().getBindingInfo().getTypeVariableConstraints().isEmpty())
+            .filter(function -> !function.signature().getBindingInfo().getTypeVariableConstraints().isEmpty())
             .iterator();
         match = matchFunctionCandidates(genericCandidates, argumentTypes, SignatureBinder.CoercionType.NONE);
         if (match != null) {
@@ -229,7 +244,7 @@ public class Functions {
 
         // Third, try all candidates which allow coercion with precedence based coercion.
         Iterable<FunctionProvider> candidatesAllowingCoercion = () -> finalCandidates.stream()
-            .filter(function -> function.getSignature().getBindingInfo().isCoercionAllowed())
+            .filter(function -> function.signature().getBindingInfo().isCoercionAllowed())
             .iterator();
         match = matchFunctionCandidates(
             candidatesAllowingCoercion,
@@ -255,14 +270,14 @@ public class Functions {
                                                                   SignatureBinder.CoercionType coercionType) {
         List<ApplicableFunction> applicableFunctions = new ArrayList<>();
         for (FunctionProvider candidate : candidates) {
-            BoundSignature boundSignature = new SignatureBinder(candidate.getSignature(), coercionType)
+            BoundSignature boundSignature = new SignatureBinder(candidate.signature(), coercionType)
                 .bind(arguments);
             if (boundSignature != null) {
                 applicableFunctions.add(
                     new ApplicableFunction(
-                        candidate.getSignature(),
+                        candidate.signature(),
                         boundSignature,
-                        candidate.getFactory()
+                        candidate.factory()
                     )
                 );
             }
@@ -324,7 +339,7 @@ public class Functions {
         var function = new io.crate.expression.symbol.Function(
             Signature.builder()
                 .name(new FunctionName(suppliedSchema, name))
-                .argumentTypes(Lists2.map(argumentTypes, DataType::getTypeSignature))
+                .argumentTypes(Lists.map(argumentTypes, DataType::getTypeSignature))
                 .returnType(DataTypes.UNDEFINED.getTypeSignature())
                 .kind(FunctionType.SCALAR)
                 .build(),
@@ -336,21 +351,21 @@ public class Functions {
         if (candidates.isEmpty() == false) {
             if (arguments.isEmpty() == false) {
                 message = message + ", no overload found for matching argument types: "
-                          + "(" + Lists2.joinOn(", ", argumentTypes, DataType::toString) + ").";
+                          + "(" + Lists.joinOn(", ", argumentTypes, DataType::toString) + ").";
             } else {
                 message = message + ".";
             }
             message = message + " Possible candidates: "
-                      + Lists2.joinOn(
+                      + Lists.joinOn(
                           ", ",
                           candidates,
-                          c -> c.getSignature().getName().displayName()
+                          c -> c.signature().getName().displayName()
                                + "("
-                               + Lists2.joinOn(
+                               + Lists.joinOn(
                               ", ",
-                              c.getSignature().getArgumentTypes(),
+                              c.signature().getArgumentTypes(),
                               TypeSignature::toString)
-                               + "):" + c.getSignature().getReturnType().toString())
+                               + "):" + c.signature().getReturnType().toString())
                       ;
         }
 
@@ -364,7 +379,7 @@ public class Functions {
         }
 
         // Find most specific by number of exact argument type matches
-        List<TypeSignature> argumentTypeSignatures = Lists2.map(arguments, DataType::getTypeSignature);
+        List<TypeSignature> argumentTypeSignatures = Lists.map(arguments, DataType::getTypeSignature);
         List<ApplicableFunction> mostSpecificFunctions = selectMostSpecificFunctions(
             applicableFunctions,
             (l, r) -> hasMoreExactTypeMatches(l, r, argumentTypeSignatures));
@@ -438,15 +453,15 @@ public class Functions {
      */
     private static boolean isMoreSpecificThan(ApplicableFunction left,
                                               ApplicableFunction right) {
-        List<DataType<?>> resolvedTypes = left.getBoundSignature().argTypes();
-        BoundVariables boundVariables = SignatureBinder.withPrecedenceOnly(right.getDeclaredSignature())
+        List<DataType<?>> resolvedTypes = left.boundSignature().argTypes();
+        BoundVariables boundVariables = SignatureBinder.withPrecedenceOnly(right.signature())
             .bindVariables(resolvedTypes);
         if (boundVariables == null) {
             return false;
         }
 
-        int leftArgsCount = left.getDeclaredSignature().getArgumentTypes().size();
-        int rightArgsCount = right.getDeclaredSignature().getArgumentTypes().size();
+        int leftArgsCount = left.signature().getArgumentTypes().size();
+        int rightArgsCount = right.signature().getArgumentTypes().size();
         return leftArgsCount >= rightArgsCount;
     }
 
@@ -455,18 +470,18 @@ public class Functions {
                                                    List<TypeSignature> actualArgumentTypes) {
         int leftExactMatches = numberOfExactTypeMatches(
             actualArgumentTypes,
-            left.getDeclaredSignature().getArgumentTypes()
+            left.signature().getArgumentTypes()
         );
         int rightExactMatches = numberOfExactTypeMatches(
             actualArgumentTypes,
-            right.getDeclaredSignature().getArgumentTypes()
+            right.signature().getArgumentTypes()
         );
         return leftExactMatches > rightExactMatches;
     }
 
     private static boolean returnTypeIsTheSame(List<ApplicableFunction> applicableFunctions) {
         Set<DataType<?>> returnTypes = applicableFunctions.stream()
-            .map(function -> function.getBoundSignature().returnType())
+            .map(function -> function.boundSignature().returnType())
             .collect(Collectors.toSet());
         return returnTypes.size() == 1;
     }
@@ -475,47 +490,28 @@ public class Functions {
                                                 List<TypeSignature> declaredArgumentTypes) {
         int cnt = 0;
         for (int i = 0; i < actualArgumentTypes.size(); i++) {
-            if (declaredArgumentTypes.size() > i && actualArgumentTypes.get(i).equals(declaredArgumentTypes.get(i))) {
+            if (declaredArgumentTypes.size() > i
+                && actualArgumentTypes.get(i).equalsIgnoringParameters(declaredArgumentTypes.get(i))) {
                 cnt++;
             }
         }
         return cnt;
     }
 
-    private static class ApplicableFunction implements Supplier<FunctionImplementation> {
-
-        private final Signature declaredSignature;
-        private final BoundSignature boundSignature;
-        private final FunctionFactory factory;
-
-        public ApplicableFunction(Signature declaredSignature,
-                                  BoundSignature boundSignature,
-                                  FunctionFactory factory) {
-            this.declaredSignature = declaredSignature;
-            this.boundSignature = boundSignature;
-            this.factory = factory;
-        }
-
-        public Signature getDeclaredSignature() {
-            return declaredSignature;
-        }
-
-        public BoundSignature getBoundSignature() {
-            return boundSignature;
-        }
+    private static record ApplicableFunction(
+            Signature signature,
+            BoundSignature boundSignature,
+            FunctionFactory factory) implements Supplier<FunctionImplementation> {
 
         @Override
         public FunctionImplementation get() {
-            return factory.apply(
-                declaredSignature,
-                boundSignature
-            );
+            return factory.apply(signature, boundSignature);
         }
 
         @Override
         public String toString() {
             return "ApplicableFunction{" +
-                   "declaredSignature=" + declaredSignature +
+                   "signature=" + signature +
                    ", boundSignature=" + boundSignature +
                    '}';
         }

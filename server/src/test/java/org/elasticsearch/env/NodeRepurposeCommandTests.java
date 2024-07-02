@@ -18,6 +18,7 @@
  */
 package org.elasticsearch.env;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.env.NodeRepurposeCommand.NO_CLEANUP;
 import static org.elasticsearch.env.NodeRepurposeCommand.NO_DATA_TO_CLEAN_UP_FOUND;
@@ -25,7 +26,6 @@ import static org.elasticsearch.env.NodeRepurposeCommand.NO_SHARD_DATA_TO_CLEAN_
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
@@ -53,6 +53,7 @@ import org.elasticsearch.node.Node;
 import org.elasticsearch.test.ESTestCase;
 import org.hamcrest.Matcher;
 import org.junit.Before;
+import org.junit.Test;
 
 import io.crate.server.cli.MockTerminal;
 import joptsimple.OptionSet;
@@ -126,14 +127,16 @@ public class NodeRepurposeCommandTests extends ESTestCase {
 
     }
 
+    @Test
     public void testLocked() throws IOException {
         try (NodeEnvironment env = new NodeEnvironment(dataMasterSettings, TestEnvironment.newEnvironment(dataMasterSettings))) {
-            assertThat(expectThrows(ElasticsearchException.class,
-                () -> verifyNoQuestions(noDataNoMasterSettings, null)).getMessage(),
-                containsString(NodeRepurposeCommand.FAILED_TO_OBTAIN_NODE_LOCK_MSG));
+            assertThatThrownBy(() -> verifyNoQuestions(noDataNoMasterSettings, null))
+                .isExactlyInstanceOf(ElasticsearchException.class)
+                .hasMessageContaining(NodeRepurposeCommand.FAILED_TO_OBTAIN_NODE_LOCK_MSG);
         }
     }
 
+    @Test
     public void testCleanupAll() throws Exception {
         int shardCount = randomIntBetween(1, 10);
         boolean verbose = randomBoolean();
@@ -154,7 +157,8 @@ public class NodeRepurposeCommandTests extends ESTestCase {
         verifyUnchangedOnAbort(noDataNoMasterSettings, outputMatcher, verbose);
 
         // verify test setup
-        expectThrows(IllegalStateException.class, () -> new NodeEnvironment(noDataNoMasterSettings, environment).close());
+        assertThatThrownBy(() -> new NodeEnvironment(noDataNoMasterSettings, environment).close())
+            .isExactlyInstanceOf(IllegalStateException.class);
 
         verifySuccess(noDataNoMasterSettings, outputMatcher, verbose);
 
@@ -178,7 +182,8 @@ public class NodeRepurposeCommandTests extends ESTestCase {
         verifyUnchangedOnAbort(noDataMasterSettings, matcher, verbose);
 
         // verify test setup
-        expectThrows(IllegalStateException.class, () -> new NodeEnvironment(noDataMasterSettings, environment).close());
+        assertThatThrownBy(() -> new NodeEnvironment(noDataMasterSettings, environment).close())
+            .isExactlyInstanceOf(IllegalStateException.class);
 
         verifySuccess(noDataMasterSettings, matcher, verbose);
 
@@ -198,9 +203,9 @@ public class NodeRepurposeCommandTests extends ESTestCase {
         withTerminal(verbose, outputMatcher, terminal -> {
             terminal.addTextInput(randomFrom("yy", "Yy", "n", "yes", "true", "N", "no"));
             verifyUnchangedDataFiles(() -> {
-                ElasticsearchException exception = expectThrows(ElasticsearchException.class,
-                    () -> executeRepurposeCommand(terminal, settings, 0));
-                assertThat(exception.getMessage(), containsString(NodeRepurposeCommand.ABORTED_BY_USER_MSG));
+                assertThatThrownBy(() -> executeRepurposeCommand(terminal, settings, 0))
+                    .isExactlyInstanceOf(ElasticsearchException.class)
+                    .hasMessageContaining(NodeRepurposeCommand.ABORTED_BY_USER_MSG);
             });
         });
     }
@@ -264,7 +269,7 @@ public class NodeRepurposeCommandTests extends ESTestCase {
         long before = digestPaths();
         runnable.run();
         long after = digestPaths();
-        assertEquals("Must not touch files", before, after);
+        assertThat(after).as("Must not touch files").isEqualTo(before);
     }
 
     private long digestPaths() {

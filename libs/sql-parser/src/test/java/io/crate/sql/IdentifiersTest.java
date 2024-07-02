@@ -24,7 +24,8 @@ package io.crate.sql;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
 
 public class IdentifiersTest {
 
@@ -34,7 +35,7 @@ public class IdentifiersTest {
         // Either add the new term to `nonReserved` in `SqlBase.4g` or add a breaking changes entry and adapt this test.
         assertThat(
             (int) Identifiers.KEYWORDS.stream().filter(Identifiers.Keyword::isReserved).count())
-            .isEqualTo(95);
+            .isEqualTo(96);
     }
 
     @Test

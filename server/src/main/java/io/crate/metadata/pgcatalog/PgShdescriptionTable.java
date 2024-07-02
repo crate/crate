@@ -33,11 +33,9 @@ public final class PgShdescriptionTable {
 
     private PgShdescriptionTable() {}
 
-    public static SystemTable<Void> create() {
-        return SystemTable.<Void>builder(IDENT)
-            .add("objoid", INTEGER, c -> null)
-            .add("classoid", INTEGER, c -> null)
-            .add("description", STRING , c -> null)
-            .build();
-    }
+    public static SystemTable<Void> INSTANCE = SystemTable.<Void>builder(IDENT)
+        .add("objoid", INTEGER, c -> null)
+        .add("classoid", INTEGER, c -> null)
+        .add("description", STRING , c -> null)
+        .build();
 }

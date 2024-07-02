@@ -21,8 +21,7 @@
 
 package io.crate.integrationtests;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import org.elasticsearch.test.IntegTestCase;
@@ -42,9 +41,9 @@ public class CustomSchemaIntegrationTest extends IntegTestCase {
 
         execute("select table_schema, table_name from information_schema.tables " +
                 "where table_name like 'foo%' or table_schema = 'foo' order by table_name");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("" +
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("" +
                                                                     "foo| bar\n" +
-                                                                    "doc| foobar\n"));
+                                                                    "doc| foobar\n");
     }
 
     @Test
@@ -55,21 +54,21 @@ public class CustomSchemaIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("select count(*) from custom.t");
-        assertThat((Long) response.rows()[0][0], is(4L));
+        assertThat((Long) response.rows()[0][0]).isEqualTo(4L);
 
         execute("delete from custom.t where id=1");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
         refresh();
 
         execute("select * from custom.t");
-        assertThat(response.rowCount(), is(3L));
+        assertThat(response.rowCount()).isEqualTo(3L);
 
         execute("delete from custom.t");
-        assertThat(response.rowCount(), is(3L));
+        assertThat(response.rowCount()).isEqualTo(3L);
         refresh();
 
         execute("select count(*) from custom.t");
-        assertThat((Long) response.rows()[0][0], is(0L));
+        assertThat((Long) response.rows()[0][0]).isEqualTo(0L);
     }
 
     @Test
@@ -83,7 +82,7 @@ public class CustomSchemaIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("select * from custom.t order by id");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("1| B\n2| A\n3| A\n4| A\n"));
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("1| B\n2| A\n3| A\n4| A\n");
     }
 
     @Test
@@ -94,10 +93,10 @@ public class CustomSchemaIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("select id from custom.t where id=1");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("1\n"));
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("1\n");
 
         execute("select id from custom.t where id in (2,4) order by id");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("2\n4\n"));
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("2\n4\n");
     }
 
     @Test
@@ -105,9 +104,9 @@ public class CustomSchemaIntegrationTest extends IntegTestCase {
         execute("create table custom.foo (id integer)");
         execute("create table custom.bar (id integer)");
 
-        assertThat(cluster().clusterService().state().metadata().hasIndex("custom.foo"), is(true));
+        assertThat(cluster().clusterService().state().metadata().hasIndex("custom.foo")).isTrue();
         execute("drop table custom.foo");
-        assertThat(cluster().clusterService().state().metadata().hasIndex("custom.foo"), is(false));
+        assertThat(cluster().clusterService().state().metadata().hasIndex("custom.foo")).isFalse();
 
         assertBusy(() -> {
             try {

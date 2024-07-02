@@ -21,9 +21,8 @@
 
 package io.crate.metadata;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
 
 import org.junit.Test;
 
@@ -37,49 +36,49 @@ public class IndexPartsTest {
         String partitionedTable = ".partitioned.table." + ident;
         String schemaPartitionedTable = "schema..partitioned.table." + ident;
 
-        assertThat(new IndexParts(table).getSchema(), is(Schemas.DOC_SCHEMA_NAME));
-        assertThat(new IndexParts(schemaTable).getSchema(), is("schema"));
-        assertThat(new IndexParts(partitionedTable).getSchema(), is(Schemas.DOC_SCHEMA_NAME));
-        assertThat(new IndexParts(schemaPartitionedTable).getSchema(), is("schema"));
+        assertThat(new IndexParts(table).getSchema()).isEqualTo(Schemas.DOC_SCHEMA_NAME);
+        assertThat(new IndexParts(schemaTable).getSchema()).isEqualTo("schema");
+        assertThat(new IndexParts(partitionedTable).getSchema()).isEqualTo(Schemas.DOC_SCHEMA_NAME);
+        assertThat(new IndexParts(schemaPartitionedTable).getSchema()).isEqualTo("schema");
 
-        assertThat(new IndexParts(table).getTable(), is(table));
-        assertThat(new IndexParts(schemaTable).getTable(), is(table));
-        assertThat(new IndexParts(partitionedTable).getTable(), is(table));
-        assertThat(new IndexParts(schemaPartitionedTable).getTable(), is(table));
+        assertThat(new IndexParts(table).getTable()).isEqualTo(table);
+        assertThat(new IndexParts(schemaTable).getTable()).isEqualTo(table);
+        assertThat(new IndexParts(partitionedTable).getTable()).isEqualTo(table);
+        assertThat(new IndexParts(schemaPartitionedTable).getTable()).isEqualTo(table);
 
-        assertThat(new IndexParts(table).isPartitioned(), is(false));
-        assertThat(new IndexParts(schemaTable).isPartitioned(), is(false));
-        assertThat(new IndexParts(partitionedTable).isPartitioned(), is(true));
-        assertThat(new IndexParts(schemaPartitionedTable).isPartitioned(), is(true));
+        assertThat(new IndexParts(table).isPartitioned()).isFalse();
+        assertThat(new IndexParts(schemaTable).isPartitioned()).isFalse();
+        assertThat(new IndexParts(partitionedTable).isPartitioned()).isTrue();
+        assertThat(new IndexParts(schemaPartitionedTable).isPartitioned()).isTrue();
         assertThatThrownBy(() -> new IndexParts("schema..partitioned."))
             .as("Should have failed due to invalid index name")
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Invalid index name: schema");
 
-        assertThat(IndexParts.isPartitioned(table), is(false));
-        assertThat(IndexParts.isPartitioned(schemaTable), is(false));
-        assertThat(IndexParts.isPartitioned(partitionedTable), is(true));
-        assertThat(IndexParts.isPartitioned(schemaPartitionedTable), is(true));
-        assertThat(IndexParts.isPartitioned("schema..partitioned."), is(false));
-        assertThat(IndexParts.isPartitioned("schema.partitioned."), is(false));
-        assertThat(IndexParts.isPartitioned("schema..partitioned.t"), is(true));
+        assertThat(IndexParts.isPartitioned(table)).isFalse();
+        assertThat(IndexParts.isPartitioned(schemaTable)).isFalse();
+        assertThat(IndexParts.isPartitioned(partitionedTable)).isTrue();
+        assertThat(IndexParts.isPartitioned(schemaPartitionedTable)).isTrue();
+        assertThat(IndexParts.isPartitioned("schema..partitioned.")).isFalse();
+        assertThat(IndexParts.isPartitioned("schema.partitioned.")).isFalse();
+        assertThat(IndexParts.isPartitioned("schema..partitioned.t")).isTrue();
 
-        assertThat(new IndexParts(table).getPartitionIdent(), is(""));
-        assertThat(new IndexParts(schemaTable).getPartitionIdent(), is(""));
-        assertThat(new IndexParts(partitionedTable).getPartitionIdent(), is(ident));
-        assertThat(new IndexParts(schemaPartitionedTable).getPartitionIdent(), is(ident));
+        assertThat(new IndexParts(table).getPartitionIdent()).isEqualTo("");
+        assertThat(new IndexParts(schemaTable).getPartitionIdent()).isEqualTo("");
+        assertThat(new IndexParts(partitionedTable).getPartitionIdent()).isEqualTo(ident);
+        assertThat(new IndexParts(schemaPartitionedTable).getPartitionIdent()).isEqualTo(ident);
 
-        assertThat(IndexParts.isDangling(table), is(false));
-        assertThat(IndexParts.isDangling(schemaTable), is(false));
-        assertThat(IndexParts.isDangling(partitionedTable), is(false));
-        assertThat(IndexParts.isDangling(schemaPartitionedTable), is(false));
-        assertThat(IndexParts.isDangling("schema..partitioned."), is(false));
-        assertThat(IndexParts.isDangling("schema.partitioned."), is(false));
-        assertThat(IndexParts.isDangling("schema..partitioned.t"), is(false));
-        assertThat(IndexParts.isDangling(".shrinked.t"), is(true));
-        assertThat(IndexParts.isDangling(".shrinked.schema.t"), is(true));
-        assertThat(IndexParts.isDangling(".shrinked.partitioned.t.ident"), is(true));
-        assertThat(IndexParts.isDangling(".shrinked.schema..partitioned.t.ident"), is(true));
+        assertThat(IndexParts.isDangling(table)).isFalse();
+        assertThat(IndexParts.isDangling(schemaTable)).isFalse();
+        assertThat(IndexParts.isDangling(partitionedTable)).isFalse();
+        assertThat(IndexParts.isDangling(schemaPartitionedTable)).isFalse();
+        assertThat(IndexParts.isDangling("schema..partitioned.")).isFalse();
+        assertThat(IndexParts.isDangling("schema.partitioned.")).isFalse();
+        assertThat(IndexParts.isDangling("schema..partitioned.t")).isFalse();
+        assertThat(IndexParts.isDangling(".shrinked.t")).isTrue();
+        assertThat(IndexParts.isDangling(".shrinked.schema.t")).isTrue();
+        assertThat(IndexParts.isDangling(".shrinked.partitioned.t.ident")).isTrue();
+        assertThat(IndexParts.isDangling(".shrinked.schema..partitioned.t.ident")).isTrue();
     }
 
 }

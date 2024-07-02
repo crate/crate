@@ -33,10 +33,10 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.util.CollectionUtils;
 import org.elasticsearch.node.Node;
 
 import io.crate.analyze.WhereClause;
+import io.crate.common.collections.Lists;
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
@@ -88,7 +88,7 @@ public class NodeStatsCollectSource implements CollectSource {
             return completedFuture(InMemoryBatchIterator.empty(SentinelRow.SENTINEL));
         }
         Collection<DiscoveryNode> nodes = filterNodes(
-            CollectionUtils.iterableAsArrayList(clusterService.state().nodes()),
+            Lists.of(clusterService.state().nodes()),
             collectPhase.where(),
             nodeCtx);
         if (nodes.isEmpty()) {
@@ -98,7 +98,7 @@ public class NodeStatsCollectSource implements CollectSource {
     }
 
     static Collection<DiscoveryNode> filterNodes(Collection<DiscoveryNode> nodes, Symbol predicate, NodeContext nodeCtx) {
-        var expressions = SysNodesTableInfo.create().expressions();
+        var expressions = SysNodesTableInfo.INSTANCE.expressions();
         var nameExpr = expressions.get(SysNodesTableInfo.Columns.NAME).create();
         var idExpr = expressions.get(SysNodesTableInfo.Columns.ID).create();
         MapBackedRefResolver referenceResolver = new MapBackedRefResolver(Map.of(

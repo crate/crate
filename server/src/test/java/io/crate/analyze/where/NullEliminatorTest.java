@@ -23,7 +23,7 @@ package io.crate.analyze.where;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -56,7 +56,7 @@ public class NullEliminatorTest extends CrateDummyClusterServiceUnitTest {
                        s -> normalizer.normalize(s, CoordinatorTxnCtx.systemTransactionContext()));
     }
 
-    private void assertReplaced(String expression, String expectedString, Function<Symbol, Symbol> postProcessor) {
+    private void assertReplaced(String expression, String expectedString, UnaryOperator<Symbol> postProcessor) {
         Symbol query = sqlExpressions.asSymbol(expression);
         Symbol replacedQuery = NullEliminator.eliminateNullsIfPossible(query, postProcessor);
         assertThat(replacedQuery.toString()).isEqualTo(expectedString);

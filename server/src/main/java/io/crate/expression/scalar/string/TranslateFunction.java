@@ -26,28 +26,29 @@ import java.util.List;
 import java.util.Map;
 
 import io.crate.data.Input;
-import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.role.Roles;
 import io.crate.types.DataTypes;
-import io.crate.user.UserLookup;
 
 public class TranslateFunction extends Scalar<String, String> {
 
     private static final Character NULL = '\0';
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder module) {
+        module.add(
             Signature.scalar(
-                "translate",
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature()),
+                    "translate",
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature())
+                .withFeature(Feature.DETERMINISTIC),
             TranslateFunction::new
         );
     }
@@ -64,7 +65,7 @@ public class TranslateFunction extends Scalar<String, String> {
     }
 
     @Override
-    public Scalar<String, String> compile(List<Symbol> args, String currentUser, UserLookup userLookup) {
+    public Scalar<String, String> compile(List<Symbol> args, String currentUser, Roles roles) {
         assert args.size() == 3 : "translate takes exactly three arguments";
 
         Symbol from = args.get(1);

@@ -21,8 +21,7 @@
 
 package io.crate.protocols.postgres.types;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.charset.StandardCharsets;
 
@@ -33,7 +32,7 @@ import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
 
-public class TimeTZTypeTest extends BasePGTypeTest<Long> {
+public class TimeTZTypeTest extends BasePGTypeTest<TimeTZ> {
 
     public TimeTZTypeTest() {
         super(TimeTZType.INSTANCE);
@@ -46,9 +45,9 @@ public class TimeTZTypeTest extends BasePGTypeTest<Long> {
             TimeTZ value = new TimeTZ(53005278000L, 0);
             int written = pgType.writeAsBinary(buffer, value);
             int length = buffer.readInt();
-            assertThat(written - 4, is(length));
-            TimeTZ readValue = (TimeTZ) pgType.readBinaryValue(buffer, length);
-            assertThat(readValue, is(value));
+            assertThat(written - 4).isEqualTo(length);
+            TimeTZ readValue = pgType.readBinaryValue(buffer, length);
+            assertThat(readValue).isEqualTo(value);
         } finally {
             buffer.release();
         }
@@ -56,13 +55,11 @@ public class TimeTZTypeTest extends BasePGTypeTest<Long> {
 
     @Test
     public void testEncodeAsUTF8Text() {
-        assertThat(TimeTZType.INSTANCE.encodeAsUTF8Text(new TimeTZ(53005278000L, -7320)),
-            is("14:43:25.278-02:02".getBytes(StandardCharsets.UTF_8)));
+        assertThat(TimeTZType.INSTANCE.encodeAsUTF8Text(new TimeTZ(53005278000L, -7320))).isEqualTo("14:43:25.278-02:02".getBytes(StandardCharsets.UTF_8));
     }
 
     @Test
     public void testDecodeAsUTF8Text() {
-        assertThat(TimeTZType.INSTANCE.decodeUTF8Text("04:00:00.123456789+03:00".getBytes()),
-                   is(new TimeTZ(14400123456L, 10800)));
+        assertThat(TimeTZType.INSTANCE.decodeUTF8Text("04:00:00.123456789+03:00".getBytes())).isEqualTo(new TimeTZ(14400123456L, 10800));
     }
 }

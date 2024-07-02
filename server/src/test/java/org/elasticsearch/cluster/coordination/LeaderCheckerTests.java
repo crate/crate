@@ -19,26 +19,25 @@
 
 package org.elasticsearch.cluster.coordination;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.coordination.LeaderChecker.LEADER_CHECK_ACTION_NAME;
 import static org.elasticsearch.cluster.coordination.LeaderChecker.LEADER_CHECK_INTERVAL_SETTING;
 import static org.elasticsearch.cluster.coordination.LeaderChecker.LEADER_CHECK_RETRY_COUNT_SETTING;
 import static org.elasticsearch.cluster.coordination.LeaderChecker.LEADER_CHECK_TIMEOUT_SETTING;
+import static org.elasticsearch.monitor.StatusInfo.Status.HEALTHY;
+import static org.elasticsearch.monitor.StatusInfo.Status.UNHEALTHY;
 import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
 import static org.elasticsearch.transport.TransportService.HANDSHAKE_ACTION_NAME;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.endsWith;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.matchesRegex;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
@@ -63,12 +62,6 @@ import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportResponse.Empty;
 import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
-
-
-import java.util.concurrent.atomic.AtomicReference;
-
-import static org.elasticsearch.monitor.StatusInfo.Status.HEALTHY;
-import static org.elasticsearch.monitor.StatusInfo.Status.UNHEALTHY;
 
 public class LeaderCheckerTests extends ESTestCase {
 
@@ -117,8 +110,8 @@ public class LeaderCheckerTests extends ESTestCase {
 
             @Override
             protected void onSendRequest(long requestId, String action, TransportRequest request, DiscoveryNode node) {
-                assertThat(action, equalTo(LEADER_CHECK_ACTION_NAME));
-                assertTrue(node.equals(leader1) || node.equals(leader2));
+                assertThat(action).isEqualTo(LEADER_CHECK_ACTION_NAME);
+                assertThat(node.equals(leader1) || node.equals(leader2)).isTrue();
                 super.onSendRequest(requestId, action, request, node);
 
                 final boolean mustSucceed = leaderCheckRetryCount - 1 <= consecutiveFailedRequestsCount;
@@ -165,7 +158,7 @@ public class LeaderCheckerTests extends ESTestCase {
         final LeaderChecker leaderChecker = new LeaderChecker(settings, transportService,
             e -> {
                 assertThat(e.getMessage(), matchesRegex("node \\[.*\\] failed \\[[1-9][0-9]*\\] consecutive checks"));
-                assertTrue(leaderFailed.compareAndSet(false, true));
+                assertThat(leaderFailed.compareAndSet(false, true)).isTrue();
             }, () -> new StatusInfo(StatusInfo.Status.HEALTHY, "healthy-info"));
 
         logger.info("--> creating first checker");
@@ -182,7 +175,7 @@ public class LeaderCheckerTests extends ESTestCase {
 
         logger.info("--> running remaining tasks");
         deterministicTaskQueue.runAllTasks();
-        assertFalse(leaderFailed.get());
+        assertThat(leaderFailed.get()).isFalse();
 
         logger.info("--> creating second checker");
         leaderChecker.updateLeader(leader2);
@@ -233,8 +226,8 @@ public class LeaderCheckerTests extends ESTestCase {
                     handleResponse(requestId, new TransportService.HandshakeResponse(node, ClusterName.DEFAULT, Version.CURRENT));
                     return;
                 }
-                assertThat(action, equalTo(LEADER_CHECK_ACTION_NAME));
-                assertTrue(node.equals(leader));
+                assertThat(action).isEqualTo(LEADER_CHECK_ACTION_NAME);
+                assertThat(node.equals(leader)).isTrue();
                 final Response response = responseHolder[0];
 
                 deterministicTaskQueue.scheduleNow(new Runnable() {
@@ -273,7 +266,7 @@ public class LeaderCheckerTests extends ESTestCase {
         final LeaderChecker leaderChecker = new LeaderChecker(settings, transportService,
             e -> {
                 assertThat(e.getMessage(), anyOf(endsWith("disconnected"), endsWith("disconnected during check")));
-                assertTrue(leaderFailed.compareAndSet(false, true));
+                assertThat(leaderFailed.compareAndSet(false, true)).isTrue();
             }, () -> new StatusInfo(StatusInfo.Status.HEALTHY, "healthy-info"));
 
         leaderChecker.updateLeader(leader);
@@ -284,14 +277,14 @@ public class LeaderCheckerTests extends ESTestCase {
             }
 
             deterministicTaskQueue.runAllRunnableTasks();
-            assertFalse(leaderFailed.get());
+            assertThat(leaderFailed.get()).isFalse();
 
             responseHolder[0] = Response.REMOTE_ERROR;
 
             deterministicTaskQueue.advanceTime();
             deterministicTaskQueue.runAllRunnableTasks();
 
-            assertTrue(leaderFailed.get());
+            assertThat(leaderFailed.get()).isTrue();
         }
         leaderChecker.updateLeader(null);
 
@@ -307,14 +300,14 @@ public class LeaderCheckerTests extends ESTestCase {
             }
 
             deterministicTaskQueue.runAllRunnableTasks();
-            assertFalse(leaderFailed.get());
+            assertThat(leaderFailed.get()).isFalse();
 
             responseHolder[0] = Response.DIRECT_ERROR;
 
             deterministicTaskQueue.advanceTime();
             deterministicTaskQueue.runAllRunnableTasks();
 
-            assertTrue(leaderFailed.get());
+            assertThat(leaderFailed.get()).isTrue();
         }
 
         deterministicTaskQueue.runAllTasks();
@@ -328,7 +321,7 @@ public class LeaderCheckerTests extends ESTestCase {
 
             transportService.disconnectFromNode(leader);
             deterministicTaskQueue.runAllRunnableTasks();
-            assertTrue(leaderFailed.get());
+            assertThat(leaderFailed.get()).isTrue();
         }
     }
 
@@ -347,8 +340,8 @@ public class LeaderCheckerTests extends ESTestCase {
                     handleResponse(requestId, new TransportService.HandshakeResponse(node, ClusterName.DEFAULT, Version.CURRENT));
                     return;
                 }
-                assertThat(action, equalTo(LEADER_CHECK_ACTION_NAME));
-                assertThat(node, equalTo(leader));
+                assertThat(action).isEqualTo(LEADER_CHECK_ACTION_NAME);
+                assertThat(node).isEqualTo(leader);
                 final Response response = responseHolder[0];
 
                 deterministicTaskQueue.scheduleNow(new Runnable() {
@@ -381,7 +374,7 @@ public class LeaderCheckerTests extends ESTestCase {
         final LeaderChecker leaderChecker = new LeaderChecker(settings, transportService,
             e -> {
                 assertThat(e.getMessage(), endsWith("failed health checks"));
-                assertTrue(leaderFailed.compareAndSet(false, true));
+                assertThat(leaderFailed.compareAndSet(false, true)).isTrue();
             }, () -> new StatusInfo(StatusInfo.Status.HEALTHY, "healthy-info"));
 
         leaderChecker.updateLeader(leader);
@@ -393,14 +386,14 @@ public class LeaderCheckerTests extends ESTestCase {
             }
 
             deterministicTaskQueue.runAllRunnableTasks();
-            assertFalse(leaderFailed.get());
+            assertThat(leaderFailed.get()).isFalse();
 
             responseHolder[0] = Response.REMOTE_ERROR;
 
             deterministicTaskQueue.advanceTime();
             deterministicTaskQueue.runAllRunnableTasks();
 
-            assertTrue(leaderFailed.get());
+            assertThat(leaderFailed.get()).isTrue();
         }
     }
 
@@ -434,11 +427,11 @@ public class LeaderCheckerTests extends ESTestCase {
             transportService.sendRequest(localNode, LEADER_CHECK_ACTION_NAME, new LeaderCheckRequest(otherNode), handler);
             deterministicTaskQueue.runAllTasks();
 
-            assertFalse(handler.successfulResponseReceived);
-            assertThat(handler.transportException.getRootCause(), instanceOf(NodeHealthCheckFailureException.class));
+            assertThat(handler.successfulResponseReceived).isFalse();
+            assertThat(handler.transportException.getRootCause()).isExactlyInstanceOf(NodeHealthCheckFailureException.class);
             NodeHealthCheckFailureException cause = (NodeHealthCheckFailureException) handler.transportException.getRootCause();
-            assertThat(cause.getMessage(), equalTo("rejecting leader check from [" + otherNode
-                + "] since node is unhealthy [unhealthy-info]"));
+            assertThat(cause.getMessage()).isEqualTo("rejecting leader check from [" + otherNode
+                + "] since node is unhealthy [unhealthy-info]");
         }
 
         nodeHealthServiceStatus.getAndSet(new StatusInfo(HEALTHY, "healthy-info"));
@@ -449,10 +442,10 @@ public class LeaderCheckerTests extends ESTestCase {
             transportService.sendRequest(localNode, LEADER_CHECK_ACTION_NAME, new LeaderCheckRequest(otherNode), handler);
             deterministicTaskQueue.runAllTasks();
 
-            assertFalse(handler.successfulResponseReceived);
-            assertThat(handler.transportException.getRootCause(), instanceOf(CoordinationStateRejectedException.class));
+            assertThat(handler.successfulResponseReceived).isFalse();
+            assertThat(handler.transportException.getRootCause()).isExactlyInstanceOf(CoordinationStateRejectedException.class);
             CoordinationStateRejectedException cause = (CoordinationStateRejectedException) handler.transportException.getRootCause();
-            assertThat(cause.getMessage(), equalTo("leader check from unknown node"));
+            assertThat(cause.getMessage()).isEqualTo("leader check from unknown node");
         }
 
         {
@@ -462,8 +455,8 @@ public class LeaderCheckerTests extends ESTestCase {
             transportService.sendRequest(localNode, LEADER_CHECK_ACTION_NAME, new LeaderCheckRequest(otherNode), handler);
             deterministicTaskQueue.runAllTasks();
 
-            assertTrue(handler.successfulResponseReceived);
-            assertThat(handler.transportException, nullValue());
+            assertThat(handler.successfulResponseReceived).isTrue();
+            assertThat(handler.transportException).isNull();
         }
 
         {
@@ -473,11 +466,10 @@ public class LeaderCheckerTests extends ESTestCase {
             transportService.sendRequest(localNode, LEADER_CHECK_ACTION_NAME, new LeaderCheckRequest(otherNode), handler);
             deterministicTaskQueue.runAllTasks();
 
-            assertFalse(handler.successfulResponseReceived);
-            assertThat(handler.transportException.getRootCause(), instanceOf(CoordinationStateRejectedException.class));
+            assertThat(handler.successfulResponseReceived).isFalse();
+            assertThat(handler.transportException.getRootCause()).isExactlyInstanceOf(CoordinationStateRejectedException.class);
             CoordinationStateRejectedException cause = (CoordinationStateRejectedException) handler.transportException.getRootCause();
-            assertThat(cause.getMessage(),
-                       equalTo("rejecting leader check from [" + otherNode + "] sent to a node that is no longer the master"));
+            assertThat(cause.getMessage()).isEqualTo("rejecting leader check from [" + otherNode + "] sent to a node that is no longer the master");
         }
     }
 

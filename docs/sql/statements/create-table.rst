@@ -47,7 +47,8 @@ where ``generated_column_definition`` is::
 
 where ``column_constraint`` is::
 
-    { PRIMARY KEY |
+    { [ CONSTRAINT constraint_name ] PRIMARY KEY |
+      NULL |
       NOT NULL |
       INDEX { OFF | USING { PLAIN |
                             FULLTEXT [ WITH ( analyzer = analyzer_name ) ]  }
@@ -60,7 +61,7 @@ where ``storage_options`` is::
 
 and ``table_constraint`` is::
 
-    { PRIMARY KEY ( column_name [, ... ] ) |
+    { [ CONSTRAINT constraint_name ] PRIMARY KEY ( column_name [, ... ] ) |
       INDEX index_name USING FULLTEXT ( column_name [, ... ] )
            [ WITH ( analyzer = analyzer_name ) ]
       [ CONSTRAINT constraint_name ] CHECK (boolean_expression)
@@ -79,7 +80,7 @@ If the ``table_ident`` does not contain a schema, the table is created in the
 implicitly created, if it didn't exist yet.
 
 A table consists of one or more *base columns* and any number of *generated
-columns* and/or *table_constraints*.
+columns* and/or *table constraints*.
 
 The optional constraint clauses specify constraints (tests) that new or updated
 rows must satisfy for an ``INSERT``, ``UPDATE`` or ``COPY FROM`` operation to
@@ -253,7 +254,7 @@ Parameters
 =================
 
 If the optional ``IF NOT EXISTS`` clause is used, this statement won't do
-anything if the table exists already.
+anything if the table exists already, and ``0`` rows will be returned.
 
 
 .. _sql-create-table-clustered:
@@ -383,7 +384,16 @@ The number of replicas is defined like this::
 
   The actual maximum number of replicas is max(num_replicas, N-1), where N is
   the number of data nodes in the cluster. If ``max_replicas`` is the string
-  ``all`` then it will always be N.
+  ``all`` then it will always be N-1.
+
+.. NOTE::
+
+   If the value is provided as a range or the default value ``0-1`` is used,
+   :ref:`cluster.max_shards_per_node <cluster.max_shards_per_node>` and
+   :ref:`cluster.routing.allocation.total_shards_per_node
+   <cluster.routing.allocation.total_shards_per_node>` limits account only for
+   primary shards and not for possible expanded replicas and thus actual
+   number of all shards can exceed those limits.
 
 .. SEEALSO::
 
@@ -399,8 +409,12 @@ This number specifies the hashing space that is used internally to distribute
 documents across shards.
 
 This is an optional setting that enables users to later on increase the number
-of shards using :ref:`sql-alter-table`. It's not possible to update this
-setting after table creation.
+of shards using :ref:`sql-alter-table`. If it's not set explicitly, it's
+automatically set to a default value based on the number of shards defined in
+the :ref:`sql-create-table-clustered`, which allows to increase the shards by
+a factor of `2` each time, up until the maximum of `1024` shards per table.
+
+.. NOTE:: It's not possible to update this setting after table creation.
 
 
 .. _sql-create-table-refresh-interval:
@@ -526,19 +540,30 @@ Allows to have a read only table that additionally can be deleted.
 
 :value:
   Table is read only and can be deleted if value set to ``true``. Allows writes
-  and table settings changes if set to ``false``.
+  and table settings changes if set to ``false``. This flag should not be set
+  manually as it's used, in an automated way, by the mechanism that protects
+  CrateDB nodes from running out of available disk space.
 
   When a disk on a node exceeds the
   ``cluster.routing.allocation.disk.watermark.flood_stage`` threshold, this
   block is applied (set to ``true``) to all tables on that affected node. Once
-  you've freed disk space again and the threshold is undershot, you need to set
-  the ``blocks.read_only_allow_delete`` table setting to ``false``.
+  you've freed disk space again and the threshold is undershot, the setting is
+  automatically reset to ``false`` for the affected tables.
 
 .. SEEALSO::
 
     :ref:`Cluster-wide settings: Disk-based shard allocation
     <conf-routing-allocation-disk>`
 
+.. NOTE::
+
+    During maintenance operations, you might want to temporarily disable reads,
+    writes or table settings changes. To achieve this, please use the
+    corresponding settings :ref:`sql-create-table-blocks-read`,
+    :ref:`sql-create-table-blocks-write`,
+    :ref:`sql-create-table-blocks-metadata`, or
+    :ref:`sql-create-table-blocks-read-only`, which must be manually reset after
+    the maintenance operation has been completed.
 
 .. _sql-create-table-blocks-read:
 

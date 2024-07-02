@@ -29,6 +29,7 @@ import java.util.function.Function;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.array.ArraySummationFunctions;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -42,60 +43,60 @@ public class ArraySumFunction<T extends Number, R extends Number> extends Scalar
 
     public static final String NAME = "array_sum";
 
-    private final DataType<R> returnType;
-    private final Function<List<T>, R> summationFunction;
+    private final Function<List<T>, R> sum;
 
-    public static void register(ScalarFunctionModule module) {
-
-        module.register(
-            Signature.scalar(
+    private static <T, U> Signature signature(DataType<T> elementType, DataType<U> returnType) {
+        return Signature.scalar(
                 NAME,
-                new ArrayType(DataTypes.NUMERIC).getTypeSignature(),
-                DataTypes.NUMERIC.getTypeSignature()
-            ),
-            ArraySumFunction::new
+                new ArrayType<>(elementType).getTypeSignature(),
+                returnType.getTypeSignature()
+            ).withFeature(Feature.DETERMINISTIC)
+            .withFeature(Feature.NULLABLE);
+    }
+
+    public static void register(Functions.Builder builder) {
+        builder.add(
+            signature(DataTypes.NUMERIC, DataTypes.NUMERIC),
+            (sig, boundSig) -> new ArraySumFunction<>(sig, boundSig, ArraySummationFunctions::sumBigDecimal)
+        );
+        builder.add(
+            signature(DataTypes.DOUBLE, DataTypes.DOUBLE),
+            (sig, boundSig) -> new ArraySumFunction<>(sig, boundSig, ArraySummationFunctions::sumDouble)
+        );
+        builder.add(
+            signature(DataTypes.FLOAT, DataTypes.FLOAT),
+            (sig, boundSig) -> new ArraySumFunction<>(sig, boundSig, ArraySummationFunctions::sumFloat)
         );
 
-        for (var supportedType : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
-            DataType inputDependantOutputType = DataTypes.LONG;
-            if (supportedType == DataTypes.FLOAT || supportedType == DataTypes.DOUBLE) {
-                inputDependantOutputType = supportedType;
-            }
-
-            module.register(
-                Signature.scalar(
-                    NAME,
-                    new ArrayType(supportedType).getTypeSignature(),
-                    inputDependantOutputType.getTypeSignature()
-                ),
-                ArraySumFunction::new
+        List<DataType<? extends Number>> integralTypes = List.of(
+            DataTypes.BYTE,
+            DataTypes.SHORT,
+            DataTypes.INTEGER,
+            DataTypes.LONG
+        );
+        for (DataType<? extends Number> integralType : integralTypes) {
+            builder.add(
+                signature(integralType, DataTypes.LONG),
+                (sig, boundSig) -> new ArraySumFunction<>(sig, boundSig, ArraySummationFunctions::sumNumber)
             );
         }
     }
 
-    private ArraySumFunction(Signature signature, BoundSignature boundSignature) {
+    private ArraySumFunction(Signature signature,
+                             BoundSignature boundSignature,
+                             Function<List<T>, R> sum) {
         super(signature, boundSignature);
-        returnType = (DataType<R>) signature.getReturnType().createType();
-
-        if (returnType == DataTypes.FLOAT) {
-            summationFunction = ArraySummationFunctions.FLOAT.getFunction();
-        } else if (returnType == DataTypes.DOUBLE) {
-            summationFunction = ArraySummationFunctions.DOUBLE.getFunction();
-        } else if (returnType == DataTypes.NUMERIC) {
-            summationFunction = ArraySummationFunctions.NUMERIC.getFunction();
-        } else {
-            summationFunction = ArraySummationFunctions.PRIMITIVE_NON_FLOAT_OVERFLOWING.getFunction();
-        }
-
+        this.sum = sum;
         ensureInnerTypeIsNotUndefined(boundSignature.argTypes(), signature.getName().name());
     }
 
     @Override
-    public R evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input[] args) {
-        List<T> values = (List) args[0].value();
+    @SafeVarargs
+    public final R evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<List<T>> ... args) {
+        List<T> values = args[0].value();
         if (values == null || values.isEmpty()) {
             return null;
         }
-        return summationFunction.apply(values);
+        return sum.apply(values);
     }
 }

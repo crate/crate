@@ -28,8 +28,9 @@ import java.util.Set;
 
 import io.crate.common.unit.TimeValue;
 import io.crate.metadata.SearchPath;
+import io.crate.planner.optimizer.LoadedRules;
 import io.crate.planner.optimizer.Rule;
-import io.crate.user.User;
+import io.crate.role.Role;
 
 /**
  * A superset of {@link SessionSettings}.
@@ -41,31 +42,43 @@ import io.crate.user.User;
  */
 public class CoordinatorSessionSettings extends SessionSettings {
 
-    private final User authenticatedUser;
-    private User sessionUser;
+    private final Role authenticatedUser;
+    private Role sessionUser;
     private Set<Class<? extends Rule<?>>> excludedOptimizerRules;
     private String applicationName;
     private String dateStyle;
     private TimeValue statementTimeout;
 
-    public CoordinatorSessionSettings(User authenticatedUser, String ... searchPath) {
-        this(authenticatedUser, authenticatedUser, searchPath);
+    public CoordinatorSessionSettings(Role authenticatedUser, String ... searchPath) {
+        this(authenticatedUser, authenticatedUser, Set.of(), searchPath);
     }
 
-    public CoordinatorSessionSettings(User authenticatedUser, User sessionUser, String ... searchPath) {
+    public CoordinatorSessionSettings(Role authenticatedUser, Role sessionUser, String ... searchPath) {
+        this(
+            authenticatedUser,
+            sessionUser,
+            Set.of(),
+            searchPath
+        );
+    }
+
+    public CoordinatorSessionSettings(Role authenticatedUser,
+                                      Role sessionUser,
+                                      Set<Class<? extends Rule<?>>> excludedOptimizerRules,
+                                      String ... searchPath) {
         this(
             authenticatedUser,
             sessionUser,
             SearchPath.createSearchPathFrom(searchPath),
             true,
-            Set.of(),
+            excludedOptimizerRules,
             true,
             0
         );
     }
 
-    public CoordinatorSessionSettings(User authenticatedUser,
-                                      User sessionUser,
+    public CoordinatorSessionSettings(Role authenticatedUser,
+                                      Role sessionUser,
                                       SearchPath searchPath,
                                       boolean hashJoinsEnabled,
                                       Set<Class<? extends Rule<?>>> excludedOptimizerRules,
@@ -80,16 +93,27 @@ public class CoordinatorSessionSettings extends SessionSettings {
         this.memoryLimit = memoryLimit;
     }
 
-    public User sessionUser() {
+    /**
+     * Current active user.
+     * <p>
+     * This is either the same as {@link #authenticatedUser()} or the user set via
+     * SET SESSION AUTHORIZATION
+     * </p>
+     **/
+    public Role sessionUser() {
         return sessionUser;
     }
 
-    public User authenticatedUser() {
+    /**
+     * The user as it originally authenticated against CrateDB.
+     * In most cases you should use {@link #sessionUser()} instead
+     **/
+    public Role authenticatedUser() {
         return authenticatedUser;
     }
 
     public static CoordinatorSessionSettings systemDefaults() {
-        return new CoordinatorSessionSettings(User.CRATE_USER);
+        return new CoordinatorSessionSettings(Role.CRATE_USER, Role.CRATE_USER, LoadedRules.INSTANCE.disabledRules());
     }
 
     public void setErrorOnUnknownObjectKey(boolean newValue) {
@@ -108,7 +132,7 @@ public class CoordinatorSessionSettings extends SessionSettings {
         hashJoinsEnabled = newValue;
     }
 
-    public void setSessionUser(User user) {
+    public void setSessionUser(Role user) {
         sessionUser = user;
         userName = user.name();
     }

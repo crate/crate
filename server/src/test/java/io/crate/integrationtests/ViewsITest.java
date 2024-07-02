@@ -26,9 +26,9 @@ import static io.crate.protocols.postgres.PGErrorStatus.DUPLICATE_TABLE;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.Locale;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -81,6 +81,42 @@ public class ViewsITest extends IntegTestCase {
             ViewsMetadata views = clusterService.state().metadata().custom(ViewsMetadata.TYPE);
             assertThat(views.contains(RelationName.fromIndexName(sqlExecutor.getCurrentSchema() + ".v1"))).isFalse();
         }
+    }
+
+    @Test
+    public void test_view_on_top_level_columns_sub_columns_are_shown_in_information_schema() throws Exception {
+        execute("CREATE TABLE with_object (a OBJECT AS (b INTEGER), x int, y int)");
+        execute("CREATE VIEW view_with_object AS SELECT x, a, y FROM with_object");
+
+        execute("SELECT column_name, data_type, ordinal_position FROM information_schema.columns WHERE table_name = 'with_object'");
+        assertThat(response).hasRows(
+            "a| object| 1",
+            "a['b']| integer| 2",
+            "x| integer| 3",
+            "y| integer| 4"
+        );
+
+        // Note, that ordinal of the column "a" in the view is different from ordinal in the table.
+        // Ordinals in views assigned by select order and not related to original ordinal in table.
+        // This is compatible with PG behavior.
+        execute("SELECT column_name, data_type, ordinal_position FROM information_schema.columns WHERE table_name = 'view_with_object'");
+        assertThat(response).hasRows(
+            "x| integer| 1",
+            "a| object| 2",
+            "y| integer| 3",
+            "a['b']| integer| 4"
+        );
+
+        // View dynamically binds new sub-columns (even if SELECT is static).
+        execute("ALTER TABLE with_object ADD COLUMN a['c'] text");
+        execute("SELECT column_name, data_type, ordinal_position FROM information_schema.columns WHERE table_name = 'view_with_object'");
+        assertThat(response).hasRows(
+            "x| integer| 1",
+            "a| object| 2",
+            "y| integer| 3",
+            "a['b']| integer| 4",
+            "a['c']| text| 5" // New columns have higher ordinals to keep all ordinals stable.
+        );
     }
 
     @Test
@@ -218,5 +254,40 @@ public class ViewsITest extends IntegTestCase {
         assertThat(execute("select table_name from information_schema.views")).hasRows(
             "v2"
         );
+    }
+
+    @Test
+    public void test_cannot_rename_view_if_target_already_exists() {
+        String schema = sqlExecutor.getCurrentSchema();
+
+        execute("create view v1 as select * from sys.cluster");
+        assertThat(execute("select * from v1")).hasRowCount(1);
+        execute("create view v2 as select * from sys.cluster");
+        assertThat(execute("select * from v2")).hasRowCount(1);
+        Asserts.assertSQLError(() -> execute("alter table v1 rename to v2"))
+            .hasPGError(PGErrorStatus.INTERNAL_ERROR)
+            .hasHTTPError(HttpResponseStatus.BAD_REQUEST, 4000)
+            .hasMessageContaining(String.format(
+                Locale.ENGLISH,
+                "Cannot rename view %s.v1 to %s.v2, view %s.v2 already exists",
+                schema, schema, schema));
+
+        execute("create table tbl(a int)");
+        Asserts.assertSQLError(() -> execute("alter table v1 rename to tbl"))
+            .hasPGError(PGErrorStatus.INTERNAL_ERROR)
+            .hasHTTPError(HttpResponseStatus.BAD_REQUEST, 4000)
+            .hasMessageContaining(String.format(
+                Locale.ENGLISH,
+                "Cannot rename view %s.v1 to %s.tbl, table %s.tbl already exists",
+                schema, schema, schema));
+
+        execute("create table tbl_parted(a int) partitioned by(a)");
+        Asserts.assertSQLError(() -> execute("alter table v1 rename to tbl_parted"))
+            .hasPGError(PGErrorStatus.INTERNAL_ERROR)
+            .hasHTTPError(HttpResponseStatus.BAD_REQUEST, 4000)
+            .hasMessageContaining(String.format(
+                Locale.ENGLISH,
+                "Cannot rename view %s.v1 to %s.tbl_parted, table %s.tbl_parted already exists",
+                schema, schema, schema));
     }
 }

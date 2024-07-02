@@ -25,18 +25,18 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-
-import org.jetbrains.annotations.Nullable;
+import java.util.function.UnaryOperator;
 
 import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.Nullable;
 
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.execution.dsl.projection.AggregationProjection;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.FilterProjection;
 import io.crate.execution.dsl.projection.GroupProjection;
-import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
+import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.pipeline.LimitAndOffset;
@@ -63,7 +63,7 @@ public class ProjectionBuilder {
 
     public AggregationProjection aggregationProjection(Collection<? extends Symbol> inputs,
                                                        Collection<Function> aggregates,
-                                                       java.util.function.Function<Symbol, Symbol> subQueryAndParamBinder,
+                                                       UnaryOperator<Symbol> subQueryAndParamBinder,
                                                        AggregateMode mode,
                                                        RowGranularity granularity,
                                                        SearchPath searchPath) {
@@ -82,7 +82,7 @@ public class ProjectionBuilder {
         Collection<? extends Symbol> inputs,
         Collection<? extends Symbol> keys,
         Collection<Function> values,
-        java.util.function.Function<Symbol, Symbol> subQueryAndParamBinder,
+        UnaryOperator<Symbol> subQueryAndParamBinder,
         AggregateMode mode,
         RowGranularity requiredGranularity,
         SearchPath searchPath) {
@@ -96,7 +96,7 @@ public class ProjectionBuilder {
             subQueryAndParamBinder
         );
         return new GroupProjection(
-            Lists2.map(InputColumns.create(keys, sourceSymbols), subQueryAndParamBinder),
+            Lists.map(InputColumns.create(keys, sourceSymbols), subQueryAndParamBinder),
             aggregations,
             mode,
             requiredGranularity
@@ -107,7 +107,7 @@ public class ProjectionBuilder {
                                                    AggregateMode mode,
                                                    InputColumns.SourceSymbols sourceSymbols,
                                                    SearchPath searchPath,
-                                                   java.util.function.Function<Symbol, Symbol> subQueryAndParamBinder) {
+                                                   UnaryOperator<Symbol> subQueryAndParamBinder) {
         ArrayList<Aggregation> aggregations = new ArrayList<>(functions.size());
         for (Function function : functions) {
             assert function.signature().getKind() == FunctionType.AGGREGATE :
@@ -148,7 +148,7 @@ public class ProjectionBuilder {
                 aggregationFunction.signature(),
                 aggregationFunction.boundSignature().returnType(),
                 valueType,
-                Lists2.map(aggregationInputs, subQueryAndParamBinder),
+                Lists.map(aggregationInputs, subQueryAndParamBinder),
                 subQueryAndParamBinder.apply(filterInput)
             );
             aggregations.add(aggregation);

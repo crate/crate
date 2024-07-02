@@ -19,8 +19,8 @@
 
 package org.elasticsearch.test.test;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.lang.reflect.Method;
 
@@ -53,26 +53,26 @@ public class LoggingListenerTests extends ESTestCase {
 
         final Level level = LogManager.getRootLogger().getLevel();
 
-        assertThat(xyzLogger.getLevel(), equalTo(level));
-        assertThat(abcLogger.getLevel(), equalTo(level));
+        assertThat(xyzLogger.getLevel()).isEqualTo(level);
+        assertThat(abcLogger.getLevel()).isEqualTo(level);
         loggingListener.testRunStarted(suiteDescription);
-        assertThat(xyzLogger.getLevel(), equalTo(level));
-        assertThat(abcLogger.getLevel(), equalTo(level));
+        assertThat(xyzLogger.getLevel()).isEqualTo(level);
+        assertThat(abcLogger.getLevel()).isEqualTo(level);
 
         Method method = TestClass.class.getMethod("annotatedTestMethod");
         TestLogging annotation = method.getAnnotation(TestLogging.class);
         Description testDescription = Description.createTestDescription(LoggingListenerTests.class, "annotatedTestMethod", annotation);
         loggingListener.testStarted(testDescription);
-        assertThat(xyzLogger.getLevel(), equalTo(Level.TRACE));
-        assertThat(abcLogger.getLevel(), equalTo(level));
+        assertThat(xyzLogger.getLevel()).isEqualTo(Level.TRACE);
+        assertThat(abcLogger.getLevel()).isEqualTo(level);
 
         loggingListener.testFinished(testDescription);
-        assertThat(xyzLogger.getLevel(), equalTo(level));
-        assertThat(abcLogger.getLevel(), equalTo(level));
+        assertThat(xyzLogger.getLevel()).isEqualTo(level);
+        assertThat(abcLogger.getLevel()).isEqualTo(level);
 
         loggingListener.testRunFinished(new Result());
-        assertThat(xyzLogger.getLevel(), equalTo(level));
-        assertThat(abcLogger.getLevel(), equalTo(level));
+        assertThat(xyzLogger.getLevel()).isEqualTo(level);
+        assertThat(abcLogger.getLevel()).isEqualTo(level);
     }
 
     public void testCustomLevelPerClass() throws Exception {
@@ -90,34 +90,34 @@ public class LoggingListenerTests extends ESTestCase {
 
         final Level level = LogManager.getRootLogger().getLevel();
 
-        assertThat(xyzLogger.getLevel(), equalTo(level));
-        assertThat(abcLogger.getLevel(), equalTo(level));
-        assertThat(fooLogger.getLevel(), equalTo(level));
-        assertThat(fooBarLogger.getLevel(), equalTo(level));
+        assertThat(xyzLogger.getLevel()).isEqualTo(level);
+        assertThat(abcLogger.getLevel()).isEqualTo(level);
+        assertThat(fooLogger.getLevel()).isEqualTo(level);
+        assertThat(fooBarLogger.getLevel()).isEqualTo(level);
         loggingListener.testRunStarted(suiteDescription);
-        assertThat(xyzLogger.getLevel(), equalTo(level));
-        assertThat(abcLogger.getLevel(), equalTo(Level.WARN));
-        assertThat(fooLogger.getLevel(), equalTo(Level.WARN));
-        assertThat(fooBarLogger.getLevel(), equalTo(Level.ERROR));
+        assertThat(xyzLogger.getLevel()).isEqualTo(level);
+        assertThat(abcLogger.getLevel()).isEqualTo(Level.WARN);
+        assertThat(fooLogger.getLevel()).isEqualTo(Level.WARN);
+        assertThat(fooBarLogger.getLevel()).isEqualTo(Level.ERROR);
 
         Description testDescription = Description.createTestDescription(LoggingListenerTests.class, "test");
         loggingListener.testStarted(testDescription);
-        assertThat(xyzLogger.getLevel(), equalTo(level));
-        assertThat(abcLogger.getLevel(), equalTo(Level.WARN));
-        assertThat(fooLogger.getLevel(), equalTo(Level.WARN));
-        assertThat(fooBarLogger.getLevel(), equalTo(Level.ERROR));
+        assertThat(xyzLogger.getLevel()).isEqualTo(level);
+        assertThat(abcLogger.getLevel()).isEqualTo(Level.WARN);
+        assertThat(fooLogger.getLevel()).isEqualTo(Level.WARN);
+        assertThat(fooBarLogger.getLevel()).isEqualTo(Level.ERROR);
 
         loggingListener.testFinished(testDescription);
-        assertThat(xyzLogger.getLevel(), equalTo(level));
-        assertThat(abcLogger.getLevel(), equalTo(Level.WARN));
-        assertThat(fooLogger.getLevel(), equalTo(Level.WARN));
-        assertThat(fooBarLogger.getLevel(), equalTo(Level.ERROR));
+        assertThat(xyzLogger.getLevel()).isEqualTo(level);
+        assertThat(abcLogger.getLevel()).isEqualTo(Level.WARN);
+        assertThat(fooLogger.getLevel()).isEqualTo(Level.WARN);
+        assertThat(fooBarLogger.getLevel()).isEqualTo(Level.ERROR);
 
         loggingListener.testRunFinished(new Result());
-        assertThat(xyzLogger.getLevel(), equalTo(level));
-        assertThat(abcLogger.getLevel(), equalTo(level));
-        assertThat(fooLogger.getLevel(), equalTo(level));
-        assertThat(fooBarLogger.getLevel(), equalTo(level));
+        assertThat(xyzLogger.getLevel()).isEqualTo(level);
+        assertThat(abcLogger.getLevel()).isEqualTo(level);
+        assertThat(fooLogger.getLevel()).isEqualTo(level);
+        assertThat(fooBarLogger.getLevel()).isEqualTo(level);
     }
 
     public void testCustomLevelPerClassAndPerMethod() throws Exception {
@@ -130,37 +130,37 @@ public class LoggingListenerTests extends ESTestCase {
 
         final Level level = LogManager.getRootLogger().getLevel();
 
-        assertThat(xyzLogger.getLevel(), equalTo(level));
-        assertThat(abcLogger.getLevel(), equalTo(level));
+        assertThat(xyzLogger.getLevel()).isEqualTo(level);
+        assertThat(abcLogger.getLevel()).isEqualTo(level);
         loggingListener.testRunStarted(suiteDescription);
-        assertThat(xyzLogger.getLevel(), equalTo(level));
-        assertThat(abcLogger.getLevel(), equalTo(Level.WARN));
+        assertThat(xyzLogger.getLevel()).isEqualTo(level);
+        assertThat(abcLogger.getLevel()).isEqualTo(Level.WARN);
 
         Method method = TestClass.class.getMethod("annotatedTestMethod");
         TestLogging annotation = method.getAnnotation(TestLogging.class);
         Description testDescription = Description.createTestDescription(LoggingListenerTests.class, "annotatedTestMethod", annotation);
         loggingListener.testStarted(testDescription);
-        assertThat(xyzLogger.getLevel(), equalTo(Level.TRACE));
-        assertThat(abcLogger.getLevel(), equalTo(Level.WARN));
+        assertThat(xyzLogger.getLevel()).isEqualTo(Level.TRACE);
+        assertThat(abcLogger.getLevel()).isEqualTo(Level.WARN);
 
         loggingListener.testFinished(testDescription);
-        assertThat(xyzLogger.getLevel(), equalTo(level));
-        assertThat(abcLogger.getLevel(), equalTo(Level.WARN));
+        assertThat(xyzLogger.getLevel()).isEqualTo(level);
+        assertThat(abcLogger.getLevel()).isEqualTo(Level.WARN);
 
         Method method2 = TestClass.class.getMethod("annotatedTestMethod2");
         TestLogging annotation2 = method2.getAnnotation(TestLogging.class);
         Description testDescription2 = Description.createTestDescription(LoggingListenerTests.class, "annotatedTestMethod2", annotation2);
         loggingListener.testStarted(testDescription2);
-        assertThat(xyzLogger.getLevel(), equalTo(Level.DEBUG));
-        assertThat(abcLogger.getLevel(), equalTo(Level.TRACE));
+        assertThat(xyzLogger.getLevel()).isEqualTo(Level.DEBUG);
+        assertThat(abcLogger.getLevel()).isEqualTo(Level.TRACE);
 
         loggingListener.testFinished(testDescription2);
-        assertThat(xyzLogger.getLevel(), equalTo(level));
-        assertThat(abcLogger.getLevel(), equalTo(Level.WARN));
+        assertThat(xyzLogger.getLevel()).isEqualTo(level);
+        assertThat(abcLogger.getLevel()).isEqualTo(Level.WARN);
 
         loggingListener.testRunFinished(new Result());
-        assertThat(xyzLogger.getLevel(), equalTo(level));
-        assertThat(abcLogger.getLevel(), equalTo(level));
+        assertThat(xyzLogger.getLevel()).isEqualTo(level);
+        assertThat(abcLogger.getLevel()).isEqualTo(level);
     }
 
     public void testInvalidClassTestLoggingAnnotation() throws Exception {
@@ -168,9 +168,9 @@ public class LoggingListenerTests extends ESTestCase {
 
         final Description suiteDescription = Description.createSuiteDescription(InvalidClass.class);
 
-        final IllegalArgumentException e =
-            expectThrows(IllegalArgumentException.class, () -> loggingListener.testRunStarted(suiteDescription));
-        assertThat(e.getMessage(), equalTo("invalid test logging annotation [abc]"));
+        assertThatThrownBy(() -> loggingListener.testRunStarted(suiteDescription))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("invalid test logging annotation [abc]");
     }
 
     public void testInvalidMethodTestLoggingAnnotation() throws Exception {
@@ -183,9 +183,9 @@ public class LoggingListenerTests extends ESTestCase {
         final Method method = InvalidMethod.class.getMethod("invalidMethod");
         final TestLogging annotation = method.getAnnotation(TestLogging.class);
         Description testDescription = Description.createTestDescription(InvalidMethod.class, "invalidMethod", annotation);
-        final IllegalArgumentException e =
-            expectThrows(IllegalArgumentException.class, () -> loggingListener.testStarted(testDescription));
-        assertThat(e.getMessage(), equalTo("invalid test logging annotation [abc:INFO:WARN]"));
+        assertThatThrownBy(() -> loggingListener.testStarted(testDescription))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("invalid test logging annotation [abc:INFO:WARN]");
     }
 
     /**

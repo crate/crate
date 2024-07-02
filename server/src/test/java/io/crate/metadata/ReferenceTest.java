@@ -141,11 +141,10 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_mapping_generation_for_varchar_with_length() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (xs varchar(40))")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (xs varchar(40))");
         DocTableInfo table = e.resolveTableInfo("tbl");
-        Reference reference = table.getReference(new ColumnIdent("xs"));
+        Reference reference = table.getReference(ColumnIdent.of("xs"));
         Map<String, Object> mapping = reference.toMapping(reference.position());
         assertThat(mapping)
             .containsEntry("length_limit", 40)
@@ -161,11 +160,10 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_mapping_generation_for_string_without_doc_values() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (xs string storage with (columnstore = false))")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (xs string storage with (columnstore = false))");
         DocTableInfo table = e.resolveTableInfo("tbl");
-        Reference reference = table.getReference(new ColumnIdent("xs"));
+        Reference reference = table.getReference(ColumnIdent.of("xs"));
         Map<String, Object> mapping = reference.toMapping(reference.position());
         assertThat(mapping)
             .containsEntry("position", 1)
@@ -181,11 +179,10 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_mapping_generation_for_float_without_doc_values() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-                .addTable("create table tbl (xs float storage with (columnstore = false))")
-                .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+                .addTable("create table tbl (xs float storage with (columnstore = false))");
         DocTableInfo table = e.resolveTableInfo("tbl");
-        Reference reference = table.getReference(new ColumnIdent("xs"));
+        Reference reference = table.getReference(ColumnIdent.of("xs"));
         Map<String, Object> mapping = reference.toMapping(reference.position());
         assertThat(mapping)
             .containsEntry("position", 1)
@@ -201,11 +198,10 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_mapping_generation_default_expression() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (xs string default 'foo')")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (xs string default 'foo')");
         DocTableInfo table = e.resolveTableInfo("tbl");
-        Reference reference = table.getReference(new ColumnIdent("xs"));
+        Reference reference = table.getReference(ColumnIdent.of("xs"));
         Map<String, Object> mapping = reference.toMapping(reference.position());
         assertThat(mapping)
             .containsEntry("position", 1)

@@ -19,10 +19,9 @@
 
 package org.elasticsearch.transport;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -63,35 +62,35 @@ public class InboundDecoderTests extends ESTestCase {
         final ArrayList<Object> fragments = new ArrayList<>();
         final ReleasableBytesReference releasable1 = ReleasableBytesReference.wrap(totalBytes);
         int bytesConsumed = decoder.decode(releasable1, fragments::add);
-        assertEquals(totalHeaderSize, bytesConsumed);
-        assertEquals(1, releasable1.refCount());
+        assertThat(bytesConsumed).isEqualTo(totalHeaderSize);
+        assertThat(releasable1.refCount()).isEqualTo(1);
 
         final Header header = (Header) fragments.get(0);
-        assertEquals(requestId, header.getRequestId());
-        assertEquals(Version.CURRENT, header.getVersion());
-        assertFalse(header.isCompressed());
-        assertFalse(header.isHandshake());
+        assertThat(header.getRequestId()).isEqualTo(requestId);
+        assertThat(header.getVersion()).isEqualTo(Version.CURRENT);
+        assertThat(header.isCompressed()).isFalse();
+        assertThat(header.isHandshake()).isFalse();
         if (isRequest) {
-            assertEquals(action, header.getActionName());
-            assertTrue(header.isRequest());
+            assertThat(header.getActionName()).isEqualTo(action);
+            assertThat(header.isRequest()).isTrue();
         } else {
-            assertTrue(header.isResponse());
+            assertThat(header.isResponse()).isTrue();
         }
-        assertFalse(header.needsToReadVariableHeader());
+        assertThat(header.needsToReadVariableHeader()).isFalse();
         fragments.clear();
 
         final BytesReference bytes2 = totalBytes.slice(bytesConsumed, totalBytes.length() - bytesConsumed);
         final ReleasableBytesReference releasable2 = ReleasableBytesReference.wrap(bytes2);
         int bytesConsumed2 = decoder.decode(releasable2, fragments::add);
-        assertEquals(totalBytes.length() - totalHeaderSize, bytesConsumed2);
+        assertThat(bytesConsumed2).isEqualTo(totalBytes.length() - totalHeaderSize);
 
         final Object content = fragments.get(0);
         final Object endMarker = fragments.get(1);
 
-        assertEquals(messageBytes, content);
+        assertThat(content).isEqualTo(messageBytes);
         // Ref count is incremented since the bytes are forwarded as a fragment
-        assertEquals(2, releasable2.refCount());
-        assertEquals(InboundDecoder.END_CONTENT, endMarker);
+        assertThat(releasable2.refCount()).isEqualTo(2);
+        assertThat(endMarker).isEqualTo(InboundDecoder.END_CONTENT);
     }
 
     public void testDecodePreHeaderSizeVariableInt() throws IOException {
@@ -111,24 +110,24 @@ public class InboundDecoderTests extends ESTestCase {
         final ArrayList<Object> fragments = new ArrayList<>();
         final ReleasableBytesReference releasable1 = ReleasableBytesReference.wrap(totalBytes);
         int bytesConsumed = decoder.decode(releasable1, fragments::add);
-        assertEquals(partialHeaderSize, bytesConsumed);
-        assertEquals(1, releasable1.refCount());
+        assertThat(bytesConsumed).isEqualTo(partialHeaderSize);
+        assertThat(releasable1.refCount()).isEqualTo(1);
 
         final Header header = (Header) fragments.get(0);
-        assertEquals(requestId, header.getRequestId());
-        assertEquals(preHeaderVariableInt, header.getVersion());
-        assertEquals(isCompressed, header.isCompressed());
-        assertTrue(header.isHandshake());
-        assertTrue(header.isRequest());
-        assertTrue(header.needsToReadVariableHeader());
+        assertThat(header.getRequestId()).isEqualTo(requestId);
+        assertThat(header.getVersion()).isEqualTo(preHeaderVariableInt);
+        assertThat(header.isCompressed()).isEqualTo(isCompressed);
+        assertThat(header.isHandshake()).isTrue();
+        assertThat(header.isRequest()).isTrue();
+        assertThat(header.needsToReadVariableHeader()).isTrue();
         fragments.clear();
 
         final BytesReference bytes2 = totalBytes.slice(bytesConsumed, totalBytes.length() - bytesConsumed);
         final ReleasableBytesReference releasable2 = ReleasableBytesReference.wrap(bytes2);
         int bytesConsumed2 = decoder.decode(releasable2, fragments::add);
-        assertEquals(2, fragments.size());
-        assertEquals(InboundDecoder.END_CONTENT, fragments.get(fragments.size() - 1));
-        assertEquals(totalBytes.length() - bytesConsumed, bytesConsumed2);
+        assertThat(fragments.size()).isEqualTo(2);
+        assertThat(fragments.get(fragments.size() - 1)).isEqualTo(InboundDecoder.END_CONTENT);
+        assertThat(bytesConsumed2).isEqualTo(totalBytes.length() - bytesConsumed);
     }
 
     public void testDecodeHandshakeCompatibility() throws IOException {
@@ -145,17 +144,17 @@ public class InboundDecoderTests extends ESTestCase {
         final ArrayList<Object> fragments = new ArrayList<>();
         final ReleasableBytesReference releasable1 = ReleasableBytesReference.wrap(bytes);
         int bytesConsumed = decoder.decode(releasable1, fragments::add);
-        assertEquals(totalHeaderSize, bytesConsumed);
-        assertEquals(1, releasable1.refCount());
+        assertThat(bytesConsumed).isEqualTo(totalHeaderSize);
+        assertThat(releasable1.refCount()).isEqualTo(1);
 
         final Header header = (Header) fragments.get(0);
-        assertEquals(requestId, header.getRequestId());
-        assertEquals(handshakeCompat, header.getVersion());
-        assertFalse(header.isCompressed());
-        assertTrue(header.isHandshake());
-        assertTrue(header.isRequest());
+        assertThat(header.getRequestId()).isEqualTo(requestId);
+        assertThat(header.getVersion()).isEqualTo(handshakeCompat);
+        assertThat(header.isCompressed()).isFalse();
+        assertThat(header.isHandshake()).isTrue();
+        assertThat(header.isRequest()).isTrue();
         // TODO: On 9.0 this will be true because all compatible versions with contain the variable header int
-        assertTrue(header.needsToReadVariableHeader());
+        assertThat(header.needsToReadVariableHeader()).isTrue();
         fragments.clear();
     }
 
@@ -185,35 +184,35 @@ public class InboundDecoderTests extends ESTestCase {
         final ArrayList<Object> fragments = new ArrayList<>();
         final ReleasableBytesReference releasable1 = ReleasableBytesReference.wrap(totalBytes);
         int bytesConsumed = decoder.decode(releasable1, fragments::add);
-        assertEquals(totalHeaderSize, bytesConsumed);
-        assertEquals(1, releasable1.refCount());
+        assertThat(bytesConsumed).isEqualTo(totalHeaderSize);
+        assertThat(releasable1.refCount()).isEqualTo(1);
 
         final Header header = (Header) fragments.get(0);
-        assertEquals(requestId, header.getRequestId());
-        assertEquals(Version.CURRENT, header.getVersion());
-        assertTrue(header.isCompressed());
-        assertFalse(header.isHandshake());
+        assertThat(header.getRequestId()).isEqualTo(requestId);
+        assertThat(header.getVersion()).isEqualTo(Version.CURRENT);
+        assertThat(header.isCompressed()).isTrue();
+        assertThat(header.isHandshake()).isFalse();
         if (isRequest) {
-            assertEquals(action, header.getActionName());
-            assertTrue(header.isRequest());
+            assertThat(header.getActionName()).isEqualTo(action);
+            assertThat(header.isRequest()).isTrue();
         } else {
-            assertTrue(header.isResponse());
+            assertThat(header.isResponse()).isTrue();
         }
-        assertFalse(header.needsToReadVariableHeader());
+        assertThat(header.needsToReadVariableHeader()).isFalse();
         fragments.clear();
 
         final BytesReference bytes2 = totalBytes.slice(bytesConsumed, totalBytes.length() - bytesConsumed);
         final ReleasableBytesReference releasable2 = ReleasableBytesReference.wrap(bytes2);
         int bytesConsumed2 = decoder.decode(releasable2, fragments::add);
-        assertEquals(totalBytes.length() - totalHeaderSize, bytesConsumed2);
+        assertThat(bytesConsumed2).isEqualTo(totalBytes.length() - totalHeaderSize);
 
         final Object content = fragments.get(0);
         final Object endMarker = fragments.get(1);
 
-        assertEquals(uncompressedBytes, content);
+        assertThat(content).isEqualTo(uncompressedBytes);
         // Ref count is not incremented since the bytes are immediately consumed on decompression
-        assertEquals(1, releasable2.refCount());
-        assertEquals(InboundDecoder.END_CONTENT, endMarker);
+        assertThat(releasable2.refCount()).isEqualTo(1);
+        assertThat(endMarker).isEqualTo(InboundDecoder.END_CONTENT);
     }
 
     public void testCompressedDecodeHandshakeCompatibility() throws IOException {
@@ -230,17 +229,17 @@ public class InboundDecoderTests extends ESTestCase {
         final ArrayList<Object> fragments = new ArrayList<>();
         final ReleasableBytesReference releasable1 = ReleasableBytesReference.wrap(bytes);
         int bytesConsumed = decoder.decode(releasable1, fragments::add);
-        assertEquals(totalHeaderSize, bytesConsumed);
-        assertEquals(1, releasable1.refCount());
+        assertThat(bytesConsumed).isEqualTo(totalHeaderSize);
+        assertThat(releasable1.refCount()).isEqualTo(1);
 
         final Header header = (Header) fragments.get(0);
-        assertEquals(requestId, header.getRequestId());
-        assertEquals(handshakeCompat, header.getVersion());
-        assertTrue(header.isCompressed());
-        assertTrue(header.isHandshake());
-        assertTrue(header.isRequest());
+        assertThat(header.getRequestId()).isEqualTo(requestId);
+        assertThat(header.getVersion()).isEqualTo(handshakeCompat);
+        assertThat(header.isCompressed()).isTrue();
+        assertThat(header.isHandshake()).isTrue();
+        assertThat(header.isRequest()).isTrue();
         // TODO: On 9.0 this will be true because all compatible versions with contain the variable header int
-        assertTrue(header.needsToReadVariableHeader());
+        assertThat(header.needsToReadVariableHeader()).isTrue();
         fragments.clear();
     }
 
@@ -256,9 +255,10 @@ public class InboundDecoderTests extends ESTestCase {
         InboundDecoder decoder = new InboundDecoder(Version.CURRENT, PageCacheRecycler.NON_RECYCLING_INSTANCE);
         final ArrayList<Object> fragments = new ArrayList<>();
         final ReleasableBytesReference releasable1 = ReleasableBytesReference.wrap(bytes);
-        expectThrows(IllegalStateException.class, () -> decoder.decode(releasable1, fragments::add));
+        assertThatThrownBy(() -> decoder.decode(releasable1, fragments::add))
+            .isExactlyInstanceOf(IllegalStateException.class);
         // No bytes are retained
-        assertEquals(1, releasable1.refCount());
+        assertThat(releasable1.refCount()).isEqualTo(1);
     }
 
     public void testEnsureVersionCompatibility() throws IOException {
@@ -271,7 +271,7 @@ public class InboundDecoderTests extends ESTestCase {
         assertNull(ise);
 
         ise = InboundDecoder.ensureVersionCompatibility(Version.fromString("3.0.0"), version, false);
-        assertEquals("Received message from unsupported version: [3.0.0] minimal compatible version is: ["
-            + version.minimumCompatibilityVersion() + "]", ise.getMessage());
+        assertThat(ise.getMessage()).isEqualTo("Received message from unsupported version: [3.0.0] minimal compatible version is: ["
+            + version.minimumCompatibilityVersion() + "]");
     }
 }

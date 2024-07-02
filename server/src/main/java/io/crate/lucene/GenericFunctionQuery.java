@@ -45,8 +45,7 @@ import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.expression.InputCondition;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.RefVisitor;
-import io.crate.expression.symbol.SymbolVisitors;
+import io.crate.metadata.Reference;
 
 /**
  * Query implementation which filters docIds by evaluating {@code condition} on each docId to verify if it matches.
@@ -56,7 +55,7 @@ import io.crate.expression.symbol.SymbolVisitors;
 public class GenericFunctionQuery extends Query {
 
     private final Function function;
-    private final LuceneCollectorExpression[] expressions;
+    private final LuceneCollectorExpression<?>[] expressions;
     private final Input<Boolean> condition;
 
     GenericFunctionQuery(Function function,
@@ -70,12 +69,7 @@ public class GenericFunctionQuery extends Query {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        GenericFunctionQuery that = (GenericFunctionQuery) o;
-
-        return function.equals(that.function);
+        return o instanceof GenericFunctionQuery that && function.equals(that.function);
     }
 
     @Override
@@ -88,11 +82,11 @@ public class GenericFunctionQuery extends Query {
         return new Weight(this) {
             @Override
             public boolean isCacheable(LeafReaderContext ctx) {
-                if (SymbolVisitors.any(s -> s instanceof Function fn && !fn.signature().isDeterministic(), function)) {
+                if (!function.isDeterministic()) {
                     return false;
                 }
                 var fields = new ArrayList<String>();
-                RefVisitor.visitRefs(function, ref -> fields.add(ref.column().fqn()));
+                function.visit(Reference.class, ref -> fields.add(ref.storageIdent()));
                 return DocValues.isCacheable(ctx, fields.toArray(new String[0]));
             }
 
@@ -140,12 +134,12 @@ public class GenericFunctionQuery extends Query {
     private static class FilteredTwoPhaseIterator extends TwoPhaseIterator {
 
         private final Input<Boolean> condition;
-        private final LuceneCollectorExpression[] expressions;
+        private final LuceneCollectorExpression<?>[] expressions;
         private final Bits liveDocs;
 
         FilteredTwoPhaseIterator(LeafReader reader,
                                  Input<Boolean> condition,
-                                 LuceneCollectorExpression[] expressions) {
+                                 LuceneCollectorExpression<?>[] expressions) {
             super(DocIdSetIterator.all(reader.maxDoc()));
             this.liveDocs = reader.getLiveDocs() == null
                                 ? new Bits.MatchAllBits(reader.maxDoc())

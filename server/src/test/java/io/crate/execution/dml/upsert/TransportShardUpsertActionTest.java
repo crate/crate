@@ -23,11 +23,7 @@ package io.crate.execution.dml.upsert;
 
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
@@ -43,18 +39,13 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.replication.TransportWriteAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
+import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
-import org.elasticsearch.index.mapper.ContentPath;
-import org.elasticsearch.index.mapper.Mapper;
-import org.elasticsearch.index.mapper.ObjectMapper;
-import org.elasticsearch.index.mapper.SourceToParse;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
@@ -71,8 +62,6 @@ import org.junit.Test;
 import org.mockito.Answers;
 
 import io.crate.common.unit.TimeValue;
-import io.crate.exceptions.InvalidColumnNameException;
-import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.ddl.tables.TransportAddColumnAction;
 import io.crate.execution.dml.Indexer;
 import io.crate.execution.dml.RawIndexer;
@@ -93,7 +82,6 @@ import io.crate.metadata.SearchPath;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.SessionSettings;
-import io.crate.metadata.table.Operation;
 import io.crate.netty.NettyBootstrap;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -130,14 +118,12 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         public TestingTransportShardUpsertAction(ThreadPool threadPool,
                                                  ClusterService clusterService,
                                                  TransportService transportService,
-                                                 SchemaUpdateClient schemaUpdateClient,
                                                  TasksService tasksService,
                                                  IndicesService indicesService,
                                                  ShardStateAction shardStateAction,
-                                                 NodeContext nodeCtx,
-                                                 Schemas schemas) {
-            super(Settings.EMPTY, threadPool, clusterService, transportService, schemaUpdateClient, mock(TransportAddColumnAction.class),
-                tasksService, indicesService, shardStateAction, nodeCtx, schemas);
+                                                 NodeContext nodeCtx) {
+            super(Settings.EMPTY, threadPool, clusterService, transportService, mock(TransportAddColumnAction.class),
+                tasksService, indicesService, shardStateAction, nodeCtx);
         }
 
         @Override
@@ -181,7 +167,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         Schemas schemas = mock(Schemas.class);
         when(tableInfo.columns()).thenReturn(Collections.<Reference>emptyList());
         when(tableInfo.versionCreated()).thenReturn(Version.CURRENT);
-        when(schemas.getTableInfo(any(RelationName.class), eq(Operation.INSERT))).thenReturn(tableInfo);
+        when(schemas.getTableInfo(any(RelationName.class))).thenReturn(tableInfo);
 
         var dynamicLongColRef = new SimpleReference(
                 new ReferenceIdent(TABLE_IDENT,"dynamic_long_col"),
@@ -196,19 +182,17 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                 false,
                 null
         );
-        when(tableInfo.getReference(new ColumnIdent("dynamic_long_col"))).thenReturn(dynamicLongColRef);
+        when(tableInfo.getReference(ColumnIdent.of("dynamic_long_col"))).thenReturn(dynamicLongColRef);
         when(tableInfo.iterator()).thenReturn(List.<Reference>of(ID_REF, dynamicLongColRef).iterator());
 
         transportShardUpsertAction = new TestingTransportShardUpsertAction(
             mock(ThreadPool.class),
             clusterService,
             MockTransportService.createNewService(Settings.EMPTY, VersionUtils.randomVersion(random()), THREAD_POOL, nettyBootstrap, clusterService.getClusterSettings()),
-            mock(SchemaUpdateClient.class),
             mock(TasksService.class),
             indicesService,
             mock(ShardStateAction.class),
-            createNodeContext(),
-            schemas
+            createNodeContext(schemas, List.of())
         );
     }
 
@@ -263,27 +247,6 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
     }
 
     @Test
-    public void testValidateMapping() throws Exception {
-        // Create valid nested mapping with underscore.
-        Settings settings = Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT).build();
-        var builderContext = new Mapper.BuilderContext(settings, new ContentPath());
-        var outerBuilder = new ObjectMapper.Builder<>("valid");
-        var innerBuilder = new ObjectMapper.Builder<>("_invalid");
-        outerBuilder.position(1);
-        innerBuilder.position(2);
-        Mapper outerMapper = outerBuilder.build(builderContext);
-        TransportShardUpsertAction.validateMapping(Collections.singletonList(outerMapper).iterator(), false);
-
-        // Create invalid mapping
-        outerBuilder = new ObjectMapper.Builder<>("_invalid");
-        outerBuilder.position(1);
-        Mapper mapper = outerBuilder.build(builderContext);
-        assertThatThrownBy(() -> transportShardUpsertAction.validateMapping(Collections.singletonList(mapper).iterator(), false))
-            .isExactlyInstanceOf(InvalidColumnNameException.class)
-            .hasMessage("\"_invalid\" conflicts with system column pattern");
-    }
-
-    @Test
     public void testKilledSetWhileProcessingItemsDoesNotThrowException() throws Exception {
         ShardId shardId = new ShardId(TABLE_IDENT.indexNameOrAlias(), charactersIndexUUID, 0);
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
@@ -324,8 +287,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
 
         // would fail with NPE if not skipped
         transportShardUpsertAction.processRequestItemsOnReplica(indexShard, request);
-        verify(indexShard, times(0)).applyIndexOperationOnReplica(
-            anyLong(), anyLong(), anyLong(), anyLong(), anyBoolean(), any(SourceToParse.class));
+        verify(indexShard, times(0)).index(any(Engine.Index.class));
     }
 
     @Test
@@ -335,7 +297,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         // The follow-up dynamic insert to replica tries to resolve the DynamicReference to a SimpleReference
         // and there can be a potential ClassCastException.
         DynamicReference dynamicRefConvertedToSimpleRef = new DynamicReference(
-            new ReferenceIdent(TABLE_IDENT, new ColumnIdent("dynamic_long_col")),
+            new ReferenceIdent(TABLE_IDENT, ColumnIdent.of("dynamic_long_col")),
             RowGranularity.DOC,
             0
         );
@@ -358,39 +320,5 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
 
         // verifies that it does not throw a ClassCastException: class java.lang.Integer cannot be cast to class java.lang.Long
         transportShardUpsertAction.processRequestItemsOnReplica(indexShard, request);
-    }
-
-    /**
-     * This tests verifies a regression introduced in 5.3 where a marker was introduced in order to skip items instead
-     * of relying on a NULL source. On request coming from older nodes this marker isn't available and the source NULL
-     * check wasn't working as expected, resulted in an NPE.
-     */
-    @Test
-    public void testItemsWithoutSourceAreSkippedOnReplicaOperationBWC() throws Exception {
-        ShardId shardId = new ShardId(TABLE_IDENT.indexNameOrAlias(), charactersIndexUUID, 0);
-        ShardUpsertRequest request = new ShardUpsertRequest.Builder(
-                DUMMY_SESSION_INFO,
-                TimeValue.timeValueSeconds(30),
-                DuplicateKeyAction.UPDATE_OR_FAIL,
-                false,
-                null,
-                new SimpleReference[]{ID_REF},
-                null,
-                UUID.randomUUID()
-        ).newRequest(shardId);
-
-        var itemWithSource = ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, new Object[]{1}, null);
-        itemWithSource.source(new BytesArray("{}"));
-        request.add(1, itemWithSource);
-
-        var itemWithoutSourceAndMarker = ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, new Object[]{1}, null);
-        request.add(2, itemWithoutSourceAndMarker);
-
-        reset(indexShard);
-
-        // would fail with NPE if not skipped
-        transportShardUpsertAction.processRequestItemsOnReplica(indexShard, request);
-        verify(indexShard, times(1)).applyIndexOperationOnReplica(
-                anyLong(), anyLong(), anyLong(), anyLong(), anyBoolean(), any(SourceToParse.class));
     }
 }

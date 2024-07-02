@@ -25,14 +25,12 @@ package io.crate.planner.optimizer.rule;
 import static io.crate.testing.Asserts.assertThat;
 
 import java.util.List;
-import java.util.function.Function;
 
 import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.WindowFunction;
-import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.WindowAgg;
@@ -48,9 +46,8 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
     @Before
     public void setUp() throws Exception {
         super.setUp();
-        e = SQLExecutor.builder(clusterService)
-            .addTable("create table t1 (id int, x int)")
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table t1 (id int, x int)");
     }
 
     @Test
@@ -69,13 +66,11 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         assertThat(match.isPresent()).isTrue();
         assertThat(match.value()).isSameAs(filter);
 
+
         LogicalPlan newPlan = rule.apply(
             match.value(),
             match.captures(),
-            e.planStats(),
-            CoordinatorTxnCtx.systemTransactionContext(),
-            e.nodeCtx,
-            Function.identity()
+            e.ruleContext()
         );
 
         assertThat(newPlan).isNull();
@@ -100,10 +95,7 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         LogicalPlan newPlan = rule.apply(
             match.value(),
             match.captures(),
-            e.planStats(),
-            CoordinatorTxnCtx.systemTransactionContext(),
-            e.nodeCtx,
-            Function.identity()
+            e.ruleContext()
         );
 
         assertThat(newPlan).isNull();
@@ -127,10 +119,7 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         LogicalPlan newPlan = rule.apply(
             match.value(),
             match.captures(),
-            e.planStats(),
-            CoordinatorTxnCtx.systemTransactionContext(),
-            e.nodeCtx,
-            Function.identity()
+            e.ruleContext()
         );
         var expectedPlan =
             """
@@ -161,10 +150,7 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         LogicalPlan newPlan = rule.apply(
             match.value(),
             match.captures(),
-            e.planStats(),
-            CoordinatorTxnCtx.systemTransactionContext(),
-            e.nodeCtx,
-            Function.identity()
+            e.ruleContext()
         );
         var expectedPlan =
             """
@@ -196,10 +182,7 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         LogicalPlan newPlan = rule.apply(
             match.value(),
             match.captures(),
-            e.planStats(),
-            CoordinatorTxnCtx.systemTransactionContext(),
-            e.nodeCtx,
-            Function.identity()
+            e.ruleContext()
         );
         assertThat(newPlan).isNull();
     }

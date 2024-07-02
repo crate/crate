@@ -21,11 +21,9 @@
 
 package io.crate.rest.action;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static io.crate.role.metadata.RolesHelper.JWT_TOKEN;
+import static io.crate.role.metadata.RolesHelper.JWT_USER;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -40,10 +38,10 @@ import org.junit.Test;
 
 import io.crate.action.sql.Session;
 import io.crate.action.sql.Sessions;
-import io.crate.auth.AccessControl;
 import io.crate.auth.AuthSettings;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
-import io.crate.user.User;
+import io.crate.role.Role;
+import io.crate.role.metadata.RolesHelper;
 import io.netty.handler.codec.http.DefaultHttpHeaders;
 import io.netty.handler.codec.http.FullHttpRequest;
 
@@ -55,13 +53,12 @@ public class SqlHttpHandlerTest {
             Settings.EMPTY,
             mock(Sessions.class),
             (s) -> new NoopCircuitBreaker("dummy"),
-            () -> List.of(User.CRATE_USER),
-            sessionSettings -> AccessControl.DISABLED,
+            () -> List.of(Role.CRATE_USER),
             Netty4CorsConfigBuilder.forAnyOrigin().build()
         );
 
-        User user = handler.userFromAuthHeader(null);
-        assertThat(user, is(User.CRATE_USER));
+        Role user = handler.userFromAuthHeader(null);
+        assertThat(user).isEqualTo(Role.CRATE_USER);
     }
 
     @Test
@@ -73,13 +70,12 @@ public class SqlHttpHandlerTest {
             settings,
             mock(Sessions.class),
             (s) -> new NoopCircuitBreaker("dummy"),
-            () -> List.of(User.of("trillian")),
-            sessionSettings -> AccessControl.DISABLED,
+            () -> List.of(RolesHelper.userOf("trillian")),
             Netty4CorsConfigBuilder.forAnyOrigin().build()
         );
 
-        User user = handler.userFromAuthHeader(null);
-        assertThat(user.name(), is("trillian"));
+        Role user = handler.userFromAuthHeader(null);
+        assertThat(user.name()).isEqualTo("trillian");
     }
 
     @Test
@@ -88,18 +84,17 @@ public class SqlHttpHandlerTest {
             Settings.EMPTY,
             mock(Sessions.class),
             (s) -> new NoopCircuitBreaker("dummy"),
-            () -> List.of(User.of("Aladdin")),
-            sessionSettings -> AccessControl.DISABLED,
+            () -> List.of(RolesHelper.userOf("Aladdin")),
             Netty4CorsConfigBuilder.forAnyOrigin().build()
         );
 
-        User user = handler.userFromAuthHeader("Basic QWxhZGRpbjpPcGVuU2VzYW1l");
-        assertThat(user.name(), is("Aladdin"));
+        Role user = handler.userFromAuthHeader("Basic QWxhZGRpbjpPcGVuU2VzYW1l");
+        assertThat(user.name()).isEqualTo("Aladdin");
     }
 
     @Test
     public void testSessionSettingsArePreservedAcrossRequests() {
-        User dummyUser = User.of("crate");
+        Role dummyUser = RolesHelper.userOf("crate");
         var sessionSettings = new CoordinatorSessionSettings(dummyUser);
 
         var mockedSession = mock(Session.class);
@@ -116,16 +111,15 @@ public class SqlHttpHandlerTest {
             mockedSqlOperations,
             (s) -> new NoopCircuitBreaker("dummy"),
             () -> List.of(dummyUser),
-            settings -> AccessControl.DISABLED,
             Netty4CorsConfigBuilder.forAnyOrigin().build()
         );
 
         // 1st call to ensureSession creates a session instance bound to 'dummyUser'
         var session = handler.ensureSession(mockedRequest);
         verify(mockedRequest, atLeast(1)).headers();
-        assertThat(session.sessionSettings().authenticatedUser(), is(dummyUser));
-        assertThat(session.sessionSettings().searchPath().currentSchema(), containsString("doc"));
-        assertTrue(session.sessionSettings().hashJoinsEnabled());
+        assertThat(session.sessionSettings().authenticatedUser()).isEqualTo(dummyUser);
+        assertThat(session.sessionSettings().searchPath().currentSchema()).contains("doc");
+        assertThat(session.sessionSettings().hashJoinsEnabled()).isTrue();
 
         // modify the session settings
         session.sessionSettings().setSearchPath("dummy_path");
@@ -133,8 +127,22 @@ public class SqlHttpHandlerTest {
 
         // test that the 2nd call to ensureSession will retrieve the session settings modified previously
         session = handler.ensureSession(mockedRequest);
-        assertFalse(session.sessionSettings().hashJoinsEnabled());
-        assertThat(session.sessionSettings().searchPath().currentSchema(), containsString("dummy_path"));
+        assertThat(session.sessionSettings().hashJoinsEnabled()).isFalse();
+        assertThat(session.sessionSettings().searchPath().currentSchema()).contains("dummy_path");
+    }
+
+    @Test
+    public void test_resolve_user_from_jwt_token() {
+        SqlHttpHandler handler = new SqlHttpHandler(
+            Settings.EMPTY,
+            mock(Sessions.class),
+            (s) -> new NoopCircuitBreaker("dummy"),
+            () -> List.of(JWT_USER),
+            Netty4CorsConfigBuilder.forAnyOrigin().build()
+        );
+
+        Role resolvedUser = handler.userFromAuthHeader("bearer " + JWT_TOKEN);
+        assertThat(resolvedUser.name()).isEqualTo(JWT_USER.name());
     }
 }
 

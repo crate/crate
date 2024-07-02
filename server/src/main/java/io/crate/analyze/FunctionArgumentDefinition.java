@@ -107,7 +107,7 @@ public class FunctionArgumentDefinition implements Writeable, ToXContent {
             throw new IllegalArgumentException("Expected a START_OBJECT but got " + parser.currentToken());
         }
         String name = null;
-        DataType type = DataTypes.UNDEFINED;
+        DataType<?> type = DataTypes.UNDEFINED;
         XContentParser.Token token;
         while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
             if (token == XContentParser.Token.FIELD_NAME) {

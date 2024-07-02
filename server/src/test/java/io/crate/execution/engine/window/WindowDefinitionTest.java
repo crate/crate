@@ -24,18 +24,14 @@ package io.crate.execution.engine.window;
 import static io.crate.sql.tree.FrameBound.Type.CURRENT_ROW;
 import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_FOLLOWING;
 import static io.crate.sql.tree.FrameBound.Type.UNBOUNDED_PRECEDING;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsInstanceOf.instanceOf;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
-
-import com.carrotsearch.randomizedtesting.RandomizedTest;
 
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.TableDefinitions;
@@ -54,51 +50,44 @@ public class WindowDefinitionTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService, 1, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
     }
 
     @Test
     public void testStartUnboundedFollowingIsIllegal() {
-        expectedException.expect(IllegalStateException.class);
-        expectedException.expectMessage(
-            "Frame start cannot be UNBOUNDED_FOLLOWING");
-        e.analyze(
-            "select sum(unnest) over(RANGE BETWEEN UNBOUNDED FOLLOWING and CURRENT ROW) FROM " +
-            "unnest([1, 2, 1, 1, 1, 4])");
-
+        assertThatThrownBy(() -> e.analyze(
+                "select sum(unnest) over(RANGE BETWEEN UNBOUNDED FOLLOWING and CURRENT ROW) FROM " +
+                    "unnest([1, 2, 1, 1, 1, 4])"))
+            .isExactlyInstanceOf(IllegalStateException.class)
+            .hasMessage("Frame start cannot be UNBOUNDED_FOLLOWING");
     }
 
     @Test
     public void testStartFollowingIsIllegal() {
-        expectedException.expect(IllegalStateException.class);
-        expectedException.expectMessage(
-            "Frame start cannot be FOLLOWING");
-        e.analyze(
-            "select sum(unnest) over(RANGE BETWEEN 1 FOLLOWING and CURRENT ROW) FROM " +
-            "unnest([1, 2, 1, 1, 1, 4])");
-
+        assertThatThrownBy(() -> e.analyze(
+                "select sum(unnest) over(RANGE BETWEEN 1 FOLLOWING and CURRENT ROW) FROM " +
+                    "unnest([1, 2, 1, 1, 1, 4])"))
+            .isExactlyInstanceOf(IllegalStateException.class)
+            .hasMessage("Frame start cannot be FOLLOWING");
     }
 
     @Test
     public void testEndPrecedingIsIllegal() {
-        expectedException.expect(IllegalStateException.class);
-        expectedException.expectMessage(
-            "Frame end cannot be PRECEDING");
-        e.analyze(
-            "select sum(unnest) over(RANGE BETWEEN CURRENT ROW and 1 PRECEDING) FROM " +
-            "unnest([1, 2, 1, 1, 1, 4])");
+        assertThatThrownBy(() -> e.analyze(
+                "select sum(unnest) over(RANGE BETWEEN CURRENT ROW and 1 PRECEDING) FROM " +
+                    "unnest([1, 2, 1, 1, 1, 4])"))
+            .isExactlyInstanceOf(IllegalStateException.class)
+            .hasMessage("Frame end cannot be PRECEDING");
     }
 
     @Test
     public void testEndUnboundedPrecedingIsIllegal() {
-        expectedException.expect(IllegalStateException.class);
-        expectedException.expectMessage(
-            "Frame end cannot be UNBOUNDED_PRECEDING");
-        e.analyze(
+        assertThatThrownBy(() -> e.analyze(
             "select sum(unnest) over(RANGE BETWEEN CURRENT ROW and UNBOUNDED PRECEDING) FROM " +
-            "unnest([1, 2, 1, 1, 1, 4])");
+                "unnest([1, 2, 1, 1, 1, 4])"))
+            .isExactlyInstanceOf(IllegalStateException.class)
+            .hasMessage("Frame end cannot be UNBOUNDED_PRECEDING");
     }
 
     @Test
@@ -106,11 +95,11 @@ public class WindowDefinitionTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedRelation analyze = e.analyze(
             "select sum(unnest) over(RANGE UNBOUNDED PRECEDING) FROM " +
             "unnest([1, 2, 1, 1, 1, 4])");
-        assertThat(analyze, is(instanceOf(QueriedSelectRelation.class)));
+        assertThat(analyze).isExactlyInstanceOf(QueriedSelectRelation.class);
         List<Symbol> outputs = analyze.outputs();
-        assertThat(outputs.size(), is(1));
+        assertThat(outputs).hasSize(1);
         WindowFunction windowFunction = (WindowFunction) outputs.get(0);
-        assertThat(windowFunction.windowDefinition().windowFrameDefinition().end().type(), is(CURRENT_ROW));
+        assertThat(windowFunction.windowDefinition().windowFrameDefinition().end().type()).isEqualTo(CURRENT_ROW);
     }
 
     @Test
@@ -119,7 +108,7 @@ public class WindowDefinitionTest extends CrateDummyClusterServiceUnitTest {
             "select sum(unnest) over(RANGE BETWEEN UNBOUNDED PRECEDING and UNBOUNDED FOLLOWING) FROM " +
             "unnest([1, 2, 1, 1, 1, 4])");
         List<Projection> projections = collect.collectPhase().projections();
-        assertThat(projections.size(), is(2));
+        assertThat(projections).hasSize(2);
         WindowAggProjection windowProjection = null;
         for (Projection projection : projections) {
             if (projection instanceof WindowAggProjection) {
@@ -127,18 +116,17 @@ public class WindowDefinitionTest extends CrateDummyClusterServiceUnitTest {
                 break;
             }
         }
-        assertThat(windowProjection, is(notNullValue()));
+        assertThat(windowProjection).isNotNull();
         List<? extends Symbol> outputs = windowProjection.outputs();
-        assertThat(outputs.size(), is(2)); // IC and window function
+        assertThat(outputs).hasSize(2); // IC and window function
         WindowFunction windowFunction = null;
         for (Symbol output : outputs) {
             if (output instanceof WindowFunction) {
                 windowFunction = (WindowFunction) output;
             }
         }
-        assertThat(windowFunction, is(notNullValue()));
-        assertThat(windowFunction.windowDefinition().windowFrameDefinition().start().type(), is(UNBOUNDED_PRECEDING));
-        assertThat(windowFunction.windowDefinition().windowFrameDefinition().end().type(), is(UNBOUNDED_FOLLOWING));
+        assertThat(windowFunction).isNotNull();
+        assertThat(windowFunction.windowDefinition().windowFrameDefinition().start().type()).isEqualTo(UNBOUNDED_PRECEDING);
+        assertThat(windowFunction.windowDefinition().windowFrameDefinition().end().type()).isEqualTo(UNBOUNDED_FOLLOWING);
     }
-
 }

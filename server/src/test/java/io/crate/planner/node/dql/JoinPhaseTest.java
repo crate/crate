@@ -21,8 +21,7 @@
 
 package io.crate.planner.node.dql;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collections;
 import java.util.List;
@@ -118,19 +117,19 @@ public class JoinPhaseTest extends ESTestCase {
         StreamInput input = output.bytes().streamInput();
         NestedLoopPhase node2 = new NestedLoopPhase(input);
 
-        assertThat(node.nodeIds(), is(node2.nodeIds()));
-        assertThat(node.jobId(), is(node2.jobId()));
-        assertThat(node.joinCondition(), is(node2.joinCondition()));
-        assertThat(node.type(), is(node2.type()));
-        assertThat(node.nodeIds(), is(node2.nodeIds()));
-        assertThat(node.jobId(), is(node2.jobId()));
-        assertThat(node.name(), is(node2.name()));
-        assertThat(node.outputTypes(), is(node2.outputTypes()));
-        assertThat(node.joinType(), is(node2.joinType()));
-        assertThat(node.joinCondition(), is(node2.joinCondition()));
-        assertThat(node.estimatedRowsSizeLeft, is(32L));
-        assertThat(node.estimatedNumberOfRowsLeft, is(100_000L));
-        assertThat(node.blockNestedLoop, is(true));
+        assertThat(node.nodeIds()).isEqualTo(node2.nodeIds());
+        assertThat(node.jobId()).isEqualTo(node2.jobId());
+        assertThat(node.joinCondition()).isEqualTo(node2.joinCondition());
+        assertThat(node.type()).isEqualTo(node2.type());
+        assertThat(node.nodeIds()).isEqualTo(node2.nodeIds());
+        assertThat(node.jobId()).isEqualTo(node2.jobId());
+        assertThat(node.name()).isEqualTo(node2.name());
+        assertThat(node.outputTypes()).isEqualTo(node2.outputTypes());
+        assertThat(node.joinType()).isEqualTo(node2.joinType());
+        assertThat(node.joinCondition()).isEqualTo(node2.joinCondition());
+        assertThat(node.estimatedRowsSizeLeft).isEqualTo(32L);
+        assertThat(node.estimatedNumberOfRowsLeft).isEqualTo(100_000L);
+        assertThat(node.blockNestedLoop).isTrue();
     }
 
     @Test
@@ -149,8 +148,7 @@ public class JoinPhaseTest extends ESTestCase {
             List.of(Literal.of("testLeft"), Literal.of(10)),
             List.of(Literal.of("testRight"), Literal.of(20)),
             List.of(DataTypes.STRING, DataTypes.INTEGER),
-            111,
-            222);
+            111);
 
         BytesStreamOutput output = new BytesStreamOutput();
         node.writeTo(output);
@@ -158,22 +156,21 @@ public class JoinPhaseTest extends ESTestCase {
         StreamInput input = output.bytes().streamInput();
         HashJoinPhase node2 = new HashJoinPhase(input);
 
-        assertThat(node.nodeIds(), is(node2.nodeIds()));
-        assertThat(node.jobId(), is(node2.jobId()));
-        assertThat(node.joinCondition(), is(node2.joinCondition()));
-        assertThat(node.type(), is(node2.type()));
-        assertThat(node.nodeIds(), is(node2.nodeIds()));
-        assertThat(node.jobId(), is(node2.jobId()));
-        assertThat(node.name(), is(node2.name()));
-        assertThat(node.outputTypes(), is(node2.outputTypes()));
-        assertThat(node.joinType(), is(node2.joinType()));
-        assertThat(node.joinCondition(), is(node2.joinCondition()));
-        assertThat(node.leftJoinConditionInputs(), is(node2.leftJoinConditionInputs()));
-        assertThat(node.rightJoinConditionInputs(), is(node2.rightJoinConditionInputs()));
-        assertThat(node.numLeftOutputs(), is(node2.numLeftOutputs()));
-        assertThat(node.numRightOutputs(), is(node2.numRightOutputs()));
-        assertThat(node.leftOutputTypes(), is(node2.leftOutputTypes()));
-        assertThat(node.estimatedRowSizeForLeft(), is(node2.estimatedRowSizeForLeft()));
-        assertThat(node.numberOfRowsForLeft(), is(node2.numberOfRowsForLeft()));
+        assertThat(node.nodeIds()).isEqualTo(node2.nodeIds());
+        assertThat(node.jobId()).isEqualTo(node2.jobId());
+        assertThat(node.joinCondition()).isEqualTo(node2.joinCondition());
+        assertThat(node.type()).isEqualTo(node2.type());
+        assertThat(node.nodeIds()).isEqualTo(node2.nodeIds());
+        assertThat(node.jobId()).isEqualTo(node2.jobId());
+        assertThat(node.name()).isEqualTo(node2.name());
+        assertThat(node.outputTypes()).isEqualTo(node2.outputTypes());
+        assertThat(node.joinType()).isEqualTo(node2.joinType());
+        assertThat(node.joinCondition()).isEqualTo(node2.joinCondition());
+        assertThat(node.leftJoinConditionInputs()).isEqualTo(node2.leftJoinConditionInputs());
+        assertThat(node.rightJoinConditionInputs()).isEqualTo(node2.rightJoinConditionInputs());
+        assertThat(node.numLeftOutputs()).isEqualTo(node2.numLeftOutputs());
+        assertThat(node.numRightOutputs()).isEqualTo(node2.numRightOutputs());
+        assertThat(node.leftOutputTypes()).isEqualTo(node2.leftOutputTypes());
+        assertThat(node.estimatedRowSizeForLeft()).isEqualTo(node2.estimatedRowSizeForLeft());
     }
 }

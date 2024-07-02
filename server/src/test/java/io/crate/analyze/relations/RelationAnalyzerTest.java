@@ -24,6 +24,7 @@ package io.crate.analyze.relations;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -37,8 +38,8 @@ import io.crate.analyze.QueriedSelectRelation;
 import io.crate.exceptions.RelationValidationException;
 import io.crate.expression.scalar.SubscriptFunction;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.expression.tablefunctions.ValuesFunction;
+import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
@@ -49,11 +50,10 @@ public class RelationAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        executor = SQLExecutor.builder(clusterService)
+        executor = SQLExecutor.of(clusterService)
             .addTable(T3.T1_DEFINITION)
             .addTable(T3.T2_DEFINITION)
-            .addTable(T3.T3_DEFINITION)
-            .build();
+            .addTable(T3.T3_DEFINITION);
     }
 
     @Test
@@ -89,7 +89,7 @@ public class RelationAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testColumnNameFromArrayComparisonExpression() {
         AnalyzedRelation relation = executor.analyze("select 'foo' = any(partitioned_by) " +
                                                      "from information_schema.tables");
-        assertThat(Symbols.pathFromSymbol(relation.outputs().get(0)).sqlFqn()).isEqualTo("('foo' = ANY(partitioned_by))");
+        assertThat(relation.outputs().getFirst().toColumn().sqlFqn()).isEqualTo("('foo' = ANY(partitioned_by))");
     }
 
     @Test
@@ -106,15 +106,15 @@ public class RelationAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
         relation = executor.analyze("select crate.doc.t1.a from crate.doc.t1");
         assertThat(relation.outputs()).hasSize(1);
-        assertThat(Symbols.pathFromSymbol(relation.outputs().get(0)).fqn()).isEqualTo("a");
+        assertThat(relation.outputs().getFirst().toColumn().fqn()).isEqualTo("a");
 
         relation = executor.analyze("select crate.doc.t1.a from t1");
         assertThat(relation.outputs()).hasSize(1);
-        assertThat(Symbols.pathFromSymbol(relation.outputs().get(0)).fqn()).isEqualTo("a");
+        assertThat(relation.outputs().getFirst().toColumn().fqn()).isEqualTo("a");
 
         relation = executor.analyze("select t.a from crate.doc.t1 as t");
         assertThat(relation.outputs()).hasSize(1);
-        assertThat(Symbols.pathFromSymbol(relation.outputs().get(0)).fqn()).isEqualTo("a");
+        assertThat(relation.outputs().getFirst().toColumn().fqn()).isEqualTo("a");
     }
 
     @Test
@@ -127,5 +127,18 @@ public class RelationAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             () -> executor.analyze("select invalid.doc.t1.a from crate.doc.t1"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Unexpected catalog name: invalid. Only available catalog is crate");
+    }
+
+    // tracks a bug: https://github.com/crate/crate/issues/15516
+    @Test
+    public void test_resolve_relations_by_going_through_each_search_path_at_a_time() throws IOException {
+        var executor = SQLExecutor.of(clusterService)
+            .addTable("create table b.t1 (x text);")
+            .addView(new RelationName("a", "t1"), "select 'view'")
+            .setSearchPath("a", "b");
+
+        QueriedSelectRelation relation = executor.analyze("select * from t1");
+        assertThat(relation.from()).hasSize(1);
+        assertThat(relation.from().getFirst()).isInstanceOf(AnalyzedView.class);
     }
 }

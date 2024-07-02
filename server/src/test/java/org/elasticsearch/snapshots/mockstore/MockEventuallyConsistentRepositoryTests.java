@@ -30,7 +30,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -50,6 +50,7 @@ import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
+import org.opentest4j.AssertionFailedError;
 
 import io.crate.action.FutureActionListener;
 
@@ -90,7 +91,8 @@ public class MockEventuallyConsistentRepositoryTests extends ESTestCase {
             final String blobName = randomAlphaOfLength(10);
             final int lengthWritten = randomIntBetween(1, 100);
             final byte[] blobData = randomByteArrayOfLength(lengthWritten);
-            expectThrows(NoSuchFileException.class, () -> blobContainer.readBlob(blobName));
+            assertThatThrownBy(() -> blobContainer.readBlob(blobName))
+                .isExactlyInstanceOf(NoSuchFileException.class);
             blobContainer.writeBlob(blobName, new ByteArrayInputStream(blobData), lengthWritten, true);
             assertThrowsOnInconsistentRead(blobContainer, blobName);
         }
@@ -111,7 +113,8 @@ public class MockEventuallyConsistentRepositoryTests extends ESTestCase {
             blobContainer.deleteBlobsIgnoringIfNotExists(Collections.singletonList(blobName));
             assertThrowsOnInconsistentRead(blobContainer, blobName);
             blobStoreContext.forceConsistent();
-            expectThrows(NoSuchFileException.class, () -> blobContainer.readBlob(blobName));
+            assertThatThrownBy(() -> blobContainer.readBlob(blobName))
+                .isExactlyInstanceOf(NoSuchFileException.class);
         }
     }
 
@@ -174,26 +177,26 @@ public class MockEventuallyConsistentRepositoryTests extends ESTestCase {
                     Metadata.EMPTY_METADATA,
                     new SnapshotInfo(snapshotId, Collections.emptyList(), 0L, null, 1L, 5, Collections.emptyList(), true),
                     Version.CURRENT,
-                    Function.identity(),
+                    UnaryOperator.identity(),
                     f
                 ));
 
             // We try to write another snap- blob for "foo" in the next generation. It fails because the content differs.
-            FutureActionListener<RepositoryData, RepositoryData> fut = FutureActionListener.newInstance();
+            FutureActionListener<RepositoryData> fut = new FutureActionListener<>();
             repository.finalizeSnapshot(
                 ShardGenerations.EMPTY,
                 0L,
                 Metadata.EMPTY_METADATA,
                 new SnapshotInfo(snapshotId, Collections.emptyList(), 0L, null, 1L, 6, Collections.emptyList(), true),
                 Version.CURRENT,
-                Function.identity(),
+                UnaryOperator.identity(),
                 fut
             );
             assertThat(fut).failsWithin(5, TimeUnit.SECONDS)
                 .withThrowableOfType(ExecutionException.class)
                 .havingCause()
-                    .isExactlyInstanceOf(AssertionError.class)
-                    .withMessage("\nExpected: <6>\n     but: was <5>");
+                    .isExactlyInstanceOf(AssertionFailedError.class)
+                    .withMessage("\nexpected: 6\n but was: 5");
 
             // We try to write yet another snap- blob for "foo" in the next generation.
             // It passes cleanly because the content of the blob except for the timestamps.
@@ -204,7 +207,7 @@ public class MockEventuallyConsistentRepositoryTests extends ESTestCase {
                     Metadata.EMPTY_METADATA,
                     new SnapshotInfo(snapshotId, Collections.emptyList(), 0L, null, 2L, 5, Collections.emptyList(), true),
                     Version.CURRENT,
-                    Function.identity(),
+                    UnaryOperator.identity(),
                     f
                 ));
         }

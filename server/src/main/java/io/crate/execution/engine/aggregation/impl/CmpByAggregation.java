@@ -44,7 +44,9 @@ import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -100,33 +102,35 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
         DataTypes.register(CompareByType.ID, CompareByType::new);
     }
 
-    public static void register(AggregationImplModule mod) {
+    public static void register(Functions.Builder builder) {
         TypeSignature returnValueType = TypeSignature.parse("A");
         TypeSignature cmpType = TypeSignature.parse("B");
         var variableConstraintA = TypeVariableConstraint.typeVariableOfAnyType("A");
         var variableConstraintB = TypeVariableConstraint.typeVariableOfAnyType("B");
-        mod.register(
+        builder.add(
             Signature.aggregate(
-                MAX_BY,
-                returnValueType,
-                cmpType,
-                returnValueType
-            ).withTypeVariableConstraints(
-                variableConstraintA,
-                variableConstraintB
-            ),
+                    MAX_BY,
+                    returnValueType,
+                    cmpType,
+                    returnValueType)
+                .withFeature(Scalar.Feature.DETERMINISTIC)
+                .withTypeVariableConstraints(
+                    variableConstraintA,
+                    variableConstraintB
+                ),
             (signature, boundSignature) -> new CmpByAggregation(1, signature, boundSignature)
         );
-        mod.register(
+        builder.add(
             Signature.aggregate(
                 MIN_BY,
                 returnValueType,
-                cmpType,
-                returnValueType
-            ).withTypeVariableConstraints(
-                variableConstraintA,
-                variableConstraintB
-            ),
+                    cmpType,
+                    returnValueType)
+                .withFeature(Scalar.Feature.DETERMINISTIC)
+                .withTypeVariableConstraints(
+                    variableConstraintA,
+                    variableConstraintB
+                ),
             (signature, boundSignature) -> new CmpByAggregation(-1, signature, boundSignature)
         );
     }
@@ -210,7 +214,7 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
     }
 
     @Override
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({"unchecked"})
     public CompareBy iterate(RamAccounting ramAccounting,
                              MemoryManager memoryManager,
                              CompareBy state,

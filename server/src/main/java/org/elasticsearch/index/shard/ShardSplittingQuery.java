@@ -42,8 +42,9 @@ import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.FixedBitSet;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.OperationRouting;
-import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.Uid;
+
+import io.crate.metadata.doc.DocSysColumns;
 
 /**
  * A query that selects all docs that do NOT belong in the current shards this query is executed on.
@@ -80,7 +81,7 @@ final class ShardSplittingQuery extends Query {
                 // in this case we also don't do anything special with regards to nested docs since we basically delete
                 // by ID and parent and nested all have the same id.
                 assert indexMetadata.isRoutingPartitionedIndex() == false;
-                findSplitDocs(IdFieldMapper.NAME, includeInShard, leafReader, bitSet::set);
+                findSplitDocs(DocSysColumns.Names.ID, includeInShard, leafReader, bitSet::set);
                 return new ConstantScoreScorer(this, score(), scoreMode, new BitSetIterator(bitSet, bitSet.length()));
             }
 

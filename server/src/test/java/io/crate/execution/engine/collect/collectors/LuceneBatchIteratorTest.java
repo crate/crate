@@ -25,7 +25,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
@@ -40,6 +40,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.data.testing.BatchIteratorTester;
+import io.crate.data.testing.BatchIteratorTester.ResultOrder;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LongColumnReference;
 
@@ -75,10 +76,10 @@ public class LuceneBatchIteratorTest {
                 new MatchAllDocsQuery(),
                 null,
                 false,
-                new CollectorContext(Set.of(), Function.identity()),
+                new CollectorContext(Set.of(), UnaryOperator.identity()),
                 columnRefs,
                 columnRefs
-            )
+            ), ResultOrder.EXACT
         );
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }

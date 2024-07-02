@@ -45,6 +45,8 @@ import org.joda.time.DurationFieldType;
 import org.joda.time.Period;
 import org.joda.time.chrono.ISOChronology;
 
+import io.crate.metadata.Functions;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.Extract;
 import io.crate.types.DataTypes;
@@ -57,7 +59,7 @@ public class ExtractFunctions {
 
     private record IntervalFieldWithFunction(Extract.Field extractField, Function<Period, Integer> function) {}
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(Functions.Builder module) {
 
         List<TsFieldWithDateTimeField> fieldsMapWithIntReturn = List.of(
             new TsFieldWithDateTimeField(CENTURY, ISOChronology.getInstanceUTC().centuryOfEra()),
@@ -77,23 +79,25 @@ public class ExtractFunctions {
         for (var argType : List.of(DataTypes.TIMESTAMPZ, DataTypes.TIMESTAMP)) {
             for (var entry : fieldsMapWithIntReturn) {
                 final DateTimeField dtf = entry.dtf();
-                module.register(
+                module.add(
                     Signature.scalar(
-                        functionNameFrom(entry.extractField()),
-                        argType.getTypeSignature(),
-                        DataTypes.INTEGER.getTypeSignature()
-                    ),
+                            functionNameFrom(entry.extractField()),
+                            argType.getTypeSignature(),
+                            DataTypes.INTEGER.getTypeSignature()
+                        ).withFeature(Scalar.Feature.DETERMINISTIC)
+                        .withFeature(Scalar.Feature.NULLABLE),
                     (signature, boundSignature) ->
                         new UnaryScalar<Number, Long>(signature, boundSignature, argType, dtf::get)
                 );
             }
             // extract(epoch from ...) is different as is returns a `double precision`
-            module.register(
+            module.add(
                 Signature.scalar(
-                    functionNameFrom(EPOCH),
-                    argType.getTypeSignature(),
-                    DataTypes.DOUBLE.getTypeSignature()
-                ),
+                        functionNameFrom(EPOCH),
+                        argType.getTypeSignature(),
+                        DataTypes.DOUBLE.getTypeSignature()
+                    ).withFeature(Scalar.Feature.DETERMINISTIC)
+                    .withFeature(Scalar.Feature.NULLABLE),
                 (signature, boundSignature) ->
                     new UnaryScalar<>(signature, boundSignature, argType, v -> (double) v / 1000)
             );
@@ -112,23 +116,25 @@ public class ExtractFunctions {
 
         for (var entry : intervalFieldsMapWithIntReturn) {
             final Function<Period, Integer> function = entry.function();
-            module.register(
+            module.add(
                 Signature.scalar(
-                    functionNameFrom(entry.extractField()),
-                    DataTypes.INTERVAL.getTypeSignature(),
-                    DataTypes.INTEGER.getTypeSignature()
-                ),
+                        functionNameFrom(entry.extractField()),
+                        DataTypes.INTERVAL.getTypeSignature(),
+                        DataTypes.INTEGER.getTypeSignature()
+                    ).withFeature(Scalar.Feature.DETERMINISTIC)
+                    .withFeature(Scalar.Feature.NULLABLE),
                 (signature, boundSignature) ->
                     new UnaryScalar<Number, Period>(signature, boundSignature, DataTypes.INTERVAL, function::apply)
             );
         }
         // extract(epoch from ...) is different as is returns a `double precision`
-        module.register(
+        module.add(
             Signature.scalar(
-                functionNameFrom(EPOCH),
-                DataTypes.INTERVAL.getTypeSignature(),
-                DataTypes.DOUBLE.getTypeSignature()
-            ),
+                    functionNameFrom(EPOCH),
+                    DataTypes.INTERVAL.getTypeSignature(),
+                    DataTypes.DOUBLE.getTypeSignature()
+                ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new UnaryScalar<>(signature, boundSignature, DataTypes.INTERVAL, ExtractFunctions::toMillis)
         );

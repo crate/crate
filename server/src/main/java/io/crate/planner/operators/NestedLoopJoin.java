@@ -31,14 +31,13 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedCollection;
 import java.util.Set;
 
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.relations.AbstractTableRelation;
-import io.crate.analyze.relations.DocTableRelation;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.common.collections.Maps;
 import io.crate.common.collections.Tuple;
 import io.crate.data.Row;
@@ -50,7 +49,6 @@ import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
@@ -65,7 +63,6 @@ public class NestedLoopJoin extends AbstractJoinPlan {
 
     private final boolean isFiltered;
     private boolean orderByWasPushedDown = false;
-    private final boolean joinConditionOptimised;
     // this can be removed
     private boolean rewriteNestedLoopJoinToHashJoinDone = false;
 
@@ -73,11 +70,9 @@ public class NestedLoopJoin extends AbstractJoinPlan {
                    LogicalPlan rhs,
                    JoinType joinType,
                    @Nullable Symbol joinCondition,
-                   boolean isFiltered,
-                   boolean joinConditionOptimised) {
-        super(lhs, rhs, joinCondition, joinType);
+                   boolean isFiltered) {
+        super(lhs, rhs, joinCondition, joinType, LookUpJoin.NONE);
         this.isFiltered = isFiltered || joinCondition != null;
-        this.joinConditionOptimised = joinConditionOptimised;
     }
 
     public NestedLoopJoin(LogicalPlan lhs,
@@ -86,9 +81,10 @@ public class NestedLoopJoin extends AbstractJoinPlan {
                           @Nullable Symbol joinCondition,
                           boolean isFiltered,
                           boolean orderByWasPushedDown,
-                          boolean joinConditionOptimised,
-                          boolean rewriteEquiJoinToHashJoinDone) {
-        this(lhs, rhs, joinType, joinCondition, isFiltered, joinConditionOptimised);
+                          boolean rewriteEquiJoinToHashJoinDone,
+                          LookUpJoin lookUpJoin) {
+        super(lhs, rhs,joinCondition, joinType, lookUpJoin);
+        this.isFiltered = isFiltered || joinCondition != null;
         this.orderByWasPushedDown = orderByWasPushedDown;
         this.rewriteNestedLoopJoinToHashJoinDone = rewriteEquiJoinToHashJoinDone;
     }
@@ -96,11 +92,6 @@ public class NestedLoopJoin extends AbstractJoinPlan {
     public boolean isRewriteNestedLoopJoinToHashJoinDone() {
         return rewriteNestedLoopJoinToHashJoinDone;
     }
-
-    public boolean isJoinConditionOptimised() {
-        return joinConditionOptimised;
-    }
-
 
     public boolean isFiltered() {
         return isFiltered;
@@ -139,8 +130,7 @@ public class NestedLoopJoin extends AbstractJoinPlan {
         ExecutionPlan right = rhs.build(
             executor, plannerContext, hints, projectionBuilder, NO_LIMIT, 0, null, childPageSizeHint, params, subQueryResults);
 
-        boolean hasDocTables = baseTables().stream().anyMatch(r -> r instanceof DocTableRelation);
-        boolean isDistributed = hasDocTables && isFiltered && !joinType.isOuter();
+        boolean isDistributed = supportsDistributedReads() && isFiltered && !joinType.isOuter();
 
         LogicalPlan leftLogicalPlan = lhs;
         LogicalPlan rightLogicalPlan = rhs;
@@ -169,7 +159,7 @@ public class NestedLoopJoin extends AbstractJoinPlan {
         Tuple<Collection<String>, List<MergePhase>> joinExecutionNodesAndMergePhases =
             configureExecution(left, right, plannerContext, isDistributed);
 
-        List<Symbol> joinOutputs = Lists2.concat(leftLogicalPlan.outputs(), rightLogicalPlan.outputs());
+        List<Symbol> joinOutputs = Lists.concat(leftLogicalPlan.outputs(), rightLogicalPlan.outputs());
         SubQueryAndParamBinder paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
 
         Symbol joinInput = null;
@@ -211,11 +201,6 @@ public class NestedLoopJoin extends AbstractJoinPlan {
     }
 
     @Override
-    public List<AbstractTableRelation<?>> baseTables() {
-        return Lists2.concat(lhs.baseTables(), rhs.baseTables());
-    }
-
-    @Override
     public List<LogicalPlan> sources() {
         return List.of(lhs, rhs);
     }
@@ -229,22 +214,33 @@ public class NestedLoopJoin extends AbstractJoinPlan {
             joinCondition,
             isFiltered,
             orderByWasPushedDown,
-            joinConditionOptimised,
-            rewriteNestedLoopJoinToHashJoinDone
+            rewriteNestedLoopJoinToHashJoinDone,
+            lookupJoin
         );
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
         LinkedHashSet<Symbol> lhsToKeep = new LinkedHashSet<>();
         LinkedHashSet<Symbol> rhsToKeep = new LinkedHashSet<>();
         for (Symbol outputToKeep : outputsToKeep) {
-            SymbolVisitors.intersection(outputToKeep, lhs.outputs(), lhsToKeep::add);
-            SymbolVisitors.intersection(outputToKeep, rhs.outputs(), rhsToKeep::add);
+            Symbols.intersection(outputToKeep, lhs.outputs(), lhsToKeep::add);
+            Symbols.intersection(outputToKeep, rhs.outputs(), rhsToKeep::add);
         }
+
         if (joinCondition != null) {
-            SymbolVisitors.intersection(joinCondition, lhs.outputs(), lhsToKeep::add);
-            SymbolVisitors.intersection(joinCondition, rhs.outputs(), rhsToKeep::add);
+            // If there a lookup-join in place, and the outputs belong only to the lookup side,
+            // we can drop the join and return only the lookup-side
+            if (lhsToKeep.isEmpty() && lookupJoin == LookUpJoin.RIGHT) {
+                Symbols.intersection(joinCondition, rhs.outputs(), rhsToKeep::add);
+                return rhs.pruneOutputsExcept(rhsToKeep);
+            } else if (rhsToKeep.isEmpty() && lookupJoin == LookUpJoin.LEFT) {
+                Symbols.intersection(joinCondition, lhs.outputs(), lhsToKeep::add);
+                return lhs.pruneOutputsExcept(lhsToKeep);
+            } else {
+                Symbols.intersection(joinCondition, lhs.outputs(), lhsToKeep::add);
+                Symbols.intersection(joinCondition, rhs.outputs(), rhsToKeep::add);
+            }
         }
         LogicalPlan newLhs = lhs.pruneOutputsExcept(lhsToKeep);
         LogicalPlan newRhs = rhs.pruneOutputsExcept(rhsToKeep);
@@ -258,8 +254,8 @@ public class NestedLoopJoin extends AbstractJoinPlan {
             joinCondition,
             isFiltered,
             orderByWasPushedDown,
-            joinConditionOptimised,
-            rewriteNestedLoopJoinToHashJoinDone
+            rewriteNestedLoopJoinToHashJoinDone,
+            lookupJoin
         );
     }
 
@@ -269,12 +265,12 @@ public class NestedLoopJoin extends AbstractJoinPlan {
         LinkedHashSet<Symbol> usedFromLeft = new LinkedHashSet<>();
         LinkedHashSet<Symbol> usedFromRight = new LinkedHashSet<>();
         for (Symbol usedColumn : usedColumns) {
-            SymbolVisitors.intersection(usedColumn, lhs.outputs(), usedFromLeft::add);
-            SymbolVisitors.intersection(usedColumn, rhs.outputs(), usedFromRight::add);
+            Symbols.intersection(usedColumn, lhs.outputs(), usedFromLeft::add);
+            Symbols.intersection(usedColumn, rhs.outputs(), usedFromRight::add);
         }
         if (joinCondition != null) {
-            SymbolVisitors.intersection(joinCondition, lhs.outputs(), usedFromLeft::add);
-            SymbolVisitors.intersection(joinCondition, rhs.outputs(), usedFromRight::add);
+            Symbols.intersection(joinCondition, lhs.outputs(), usedFromLeft::add);
+            Symbols.intersection(joinCondition, rhs.outputs(), usedFromRight::add);
         }
         FetchRewrite lhsFetchRewrite = lhs.rewriteToFetch(usedFromLeft);
         FetchRewrite rhsFetchRewrite = rhs.rewriteToFetch(usedFromRight);
@@ -293,8 +289,8 @@ public class NestedLoopJoin extends AbstractJoinPlan {
                 joinCondition,
                 isFiltered,
                 orderByWasPushedDown,
-                joinConditionOptimised,
-                rewriteNestedLoopJoinToHashJoinDone
+                rewriteNestedLoopJoinToHashJoinDone,
+                lookupJoin
             )
         );
     }
@@ -320,7 +316,7 @@ public class NestedLoopJoin extends AbstractJoinPlan {
         MergePhase rightMerge = null;
 
         if (leftResultDesc.nodeIds().size() == 1
-            && Lists2.equals(leftResultDesc.nodeIds(), rightResultDesc.nodeIds())
+            && Lists.equals(leftResultDesc.nodeIds(), rightResultDesc.nodeIds())
             && !rightResultDesc.hasRemainingLimitOrOffset()) {
             // if the left and the right plan are executed on the same single node the mergePhase
             // should be omitted. This is the case if the left and right table have only one shards which
@@ -371,7 +367,7 @@ public class NestedLoopJoin extends AbstractJoinPlan {
     private static boolean isBlockNlPossible(ExecutionPlan left, ExecutionPlan right) {
         return left.resultDescription().orderBy() == null &&
                left.resultDescription().nodeIds().size() <= 1 &&
-               Lists2.equals(left.resultDescription().nodeIds(), right.resultDescription().nodeIds());
+               Lists.equals(left.resultDescription().nodeIds(), right.resultDescription().nodeIds());
     }
 
     public boolean orderByWasPushedDown() {
@@ -390,7 +386,7 @@ public class NestedLoopJoin extends AbstractJoinPlan {
         }
         printContext.text("]");
         printStats(printContext);
-        printContext.nest(Lists2.map(sources(), x -> x::print));
+        printContext.nest(Lists.map(sources(), x -> x::print));
     }
 
     private static boolean isMergePhaseNeeded(Collection<String> executionNodes,
@@ -398,7 +394,7 @@ public class NestedLoopJoin extends AbstractJoinPlan {
                                               boolean isDistributed) {
         return isDistributed ||
                resultDescription.hasRemainingLimitOrOffset() ||
-               !Lists2.equals(resultDescription.nodeIds(), executionNodes);
+               !Lists.equals(resultDescription.nodeIds(), executionNodes);
     }
 
     @Override

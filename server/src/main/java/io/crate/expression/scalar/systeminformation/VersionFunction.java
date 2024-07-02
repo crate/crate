@@ -21,14 +21,15 @@
 
 package io.crate.expression.scalar.systeminformation;
 
+import java.util.EnumSet;
 import java.util.Locale;
 
 import org.elasticsearch.Build;
 import org.elasticsearch.Version;
 
 import io.crate.data.Input;
-import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.metadata.FunctionName;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -43,12 +44,12 @@ public class VersionFunction extends Scalar<String, Void> {
 
     private static final FunctionName FQN = new FunctionName(PgCatalogSchemaInfo.NAME, NAME);
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder module) {
+        module.add(
             Signature.scalar(
                 FQN,
                 DataTypes.STRING.getTypeSignature()
-            ).withFeatures(Scalar.NO_FEATURES),
+            ).withFeatures(EnumSet.of(Feature.NON_NULLABLE)),
             VersionFunction::new
         );
 

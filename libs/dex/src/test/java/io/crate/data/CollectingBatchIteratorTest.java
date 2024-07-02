@@ -30,50 +30,51 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import io.crate.data.testing.BatchIteratorTester;
+import io.crate.data.testing.BatchIteratorTester.ResultOrder;
 import io.crate.data.testing.BatchSimulatingIterator;
 import io.crate.data.testing.TestingBatchIterators;
 
-public class CollectingBatchIteratorTest {
+class CollectingBatchIteratorTest {
 
     private static final List<Object[]> EXPECTED_RESULT = Collections.singletonList(new Object[] {45L});
     private ExecutorService executor;
 
-    @Before
+    @BeforeEach
     public void setUp() {
         executor = Executors.newFixedThreadPool(2);
     }
 
-    @After
+    @AfterEach
     public void tearDown() throws Exception {
         executor.shutdown();
         executor.awaitTermination(5, TimeUnit.SECONDS);
     }
 
     @Test
-    public void testCollectingBatchIterator() throws Exception {
+    void testCollectingBatchIterator() throws Exception {
         var tester = BatchIteratorTester.forRows(
-            () -> CollectingBatchIterator.summingLong(TestingBatchIterators.range(0L, 10L))
+            () -> CollectingBatchIterator.summingLong(TestingBatchIterators.range(0L, 10L)), ResultOrder.EXACT
         );
         tester.verifyResultAndEdgeCaseBehaviour(EXPECTED_RESULT);
     }
 
     @Test
-    public void testCollectingBatchIteratorWithPagedSource() throws Exception {
+    void testCollectingBatchIteratorWithPagedSource() throws Exception {
         var tester = BatchIteratorTester.forRows(
             () -> CollectingBatchIterator.summingLong(
                 new BatchSimulatingIterator<>(TestingBatchIterators.range(0L, 10L), 2, 5, executor)
-            )
+            ), ResultOrder.EXACT
         );
         tester.verifyResultAndEdgeCaseBehaviour(EXPECTED_RESULT);
     }
 
     @Test
-    public void testCollectingBatchIteratorPropagatesExceptionOnLoadNextBatch() throws Exception {
+    void testCollectingBatchIteratorPropagatesExceptionOnLoadNextBatch() throws Exception {
         CompletableFuture<Iterable<Row>> loadItemsFuture = new CompletableFuture<>();
         BatchIterator<Row> collectingBatchIterator = CollectingBatchIterator.newInstance(
             () -> {},

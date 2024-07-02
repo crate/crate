@@ -21,9 +21,7 @@
 
 package io.crate.execution.dml.delete;
 
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -50,7 +48,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.execution.ddl.SchemaUpdateClient;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.jobs.TasksService;
 import io.crate.metadata.RelationName;
@@ -88,8 +85,7 @@ public class TransportShardDeleteActionTest extends CrateDummyClusterServiceUnit
             indicesService,
             mock(TasksService.class),
             mock(ThreadPool.class),
-            mock(ShardStateAction.class),
-            mock(SchemaUpdateClient.class)
+            mock(ShardStateAction.class)
         );
     }
 
@@ -107,8 +103,8 @@ public class TransportShardDeleteActionTest extends CrateDummyClusterServiceUnit
         TransportWriteAction.WritePrimaryResult<ShardDeleteRequest, ShardResponse> result =
             transportShardDeleteAction.processRequestItems(indexShard, request, new AtomicBoolean(true));
 
-        assertThat(result.finalResponseIfSuccessful.failure(), instanceOf(InterruptedException.class));
-        assertThat(request.skipFromLocation(), is(1));
+        assertThat(result.finalResponseIfSuccessful.failure()).isExactlyInstanceOf(InterruptedException.class);
+        assertThat(request.skipFromLocation()).isEqualTo(1);
     }
 
     @Test

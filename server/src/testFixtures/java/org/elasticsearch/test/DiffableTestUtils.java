@@ -19,6 +19,14 @@
 
 package org.elasticsearch.test;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.elasticsearch.test.AbstractWireTestCase.NUMBER_OF_TEST_RUNS;
+import static org.junit.Assert.assertNotSame;
+
+import java.io.IOException;
+import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
+
 import org.elasticsearch.cluster.Diff;
 import org.elasticsearch.cluster.Diffable;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -27,14 +35,6 @@ import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.io.stream.Writeable.Reader;
-
-import java.io.IOException;
-import java.util.function.Function;
-import java.util.function.Supplier;
-
-import static org.elasticsearch.test.AbstractWireSerializingTestCase.NUMBER_OF_TEST_RUNS;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotSame;
 
 /**
  * Utilities that simplify testing of diffable classes
@@ -52,8 +52,8 @@ public final class DiffableTestUtils {
      */
     public static <T extends Diffable<T>> T assertDiffApplication(T remoteChanges, T localInstance, Diff<T> diffs) {
         T localChanges = diffs.apply(localInstance);
-        assertEquals(remoteChanges, localChanges);
-        assertEquals(remoteChanges.hashCode(), localChanges.hashCode());
+        assertThat(localChanges).isEqualTo(remoteChanges);
+        assertThat(localChanges.hashCode()).isEqualTo(remoteChanges.hashCode());
         assertNotSame(remoteChanges, localChanges);
         return localChanges;
     }
@@ -76,7 +76,7 @@ public final class DiffableTestUtils {
      * diffs over the wire and appling these diffs on the other side.
      */
     public static <T extends Diffable<T>> void testDiffableSerialization(Supplier<T> testInstance,
-                                                                         Function<T, T> modifier,
+                                                                         UnaryOperator<T> modifier,
                                                                          NamedWriteableRegistry namedWriteableRegistry,
                                                                          Reader<T> reader,
                                                                          Reader<Diff<T>> diffReader) throws IOException {
@@ -97,8 +97,8 @@ public final class DiffableTestUtils {
     public static  <T extends Writeable> T assertSerialization(T testInstance, NamedWriteableRegistry namedWriteableRegistry,
                                                           Reader<T> reader) throws IOException {
         T deserializedInstance = copyInstance(testInstance, namedWriteableRegistry, reader);
-        assertEquals(testInstance, deserializedInstance);
-        assertEquals(testInstance.hashCode(), deserializedInstance.hashCode());
+        assertThat(deserializedInstance).isEqualTo(testInstance);
+        assertThat(deserializedInstance.hashCode()).isEqualTo(testInstance.hashCode());
         assertNotSame(testInstance, deserializedInstance);
         return deserializedInstance;
     }

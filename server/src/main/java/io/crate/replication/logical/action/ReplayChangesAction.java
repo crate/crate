@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.ActionListener;
@@ -43,7 +44,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.engine.Engine;
@@ -55,7 +55,7 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.unit.TimeValue;
 import io.crate.replication.logical.engine.SubscriberEngine;
 import io.crate.replication.logical.exceptions.InvalidShardEngineException;
@@ -73,7 +73,7 @@ public class ReplayChangesAction extends ActionType<ReplicationResponse> {
     @Singleton
     public static class TransportAction extends TransportWriteAction<Request, Request, ReplicationResponse> {
 
-        private static final Logger LOGGER = Loggers.getLogger(ReplayChangesAction.class);
+        private static final Logger LOGGER = LogManager.getLogger(ReplayChangesAction.class);
 
         @Inject
         public TransportAction(Settings settings,
@@ -229,7 +229,7 @@ public class ReplayChangesAction extends ActionType<ReplicationResponse> {
                 var result = replica.applyTranslogOperation(op, Engine.Operation.Origin.REPLICA);
                 if (result.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
                     throw new TransportReplicationAction.RetryOnReplicaException(
-                        replica.shardId(), "Mappings are not available on the replica yet, triggered update: " + result.getRequiredMappingUpdate());
+                        replica.shardId(), "Mappings are not available on the replica yet, triggered update");
                 }
                 location = syncOperationResultOrThrow(result, location);
             }

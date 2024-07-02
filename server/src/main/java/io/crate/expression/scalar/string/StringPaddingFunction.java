@@ -24,8 +24,8 @@ package io.crate.expression.scalar.string;
 import java.util.Locale;
 
 import io.crate.data.Input;
-import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.ThreeParametersFunction;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -40,15 +40,15 @@ public class StringPaddingFunction extends Scalar<String, Object> {
     public static final String DEFAULT_FILL = " ";
     public static final int LEN_LIMIT = 50000;
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(Functions.Builder module) {
         // lpad(string1, len)
-        module.register(
+        module.add(
             Signature.scalar(
                 LNAME,
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ),
+            ).withFeature(Feature.DETERMINISTIC),
             (signature, boundSignature) ->
                 new StringPaddingFunction(
                     signature,
@@ -57,14 +57,14 @@ public class StringPaddingFunction extends Scalar<String, Object> {
                 )
         );
         // lpad(string1, len, string2)
-        module.register(
+        module.add(
             Signature.scalar(
                 LNAME,
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ),
+            ).withFeature(Feature.DETERMINISTIC),
             (signature, boundSignature) ->
                 new StringPaddingFunction(
                     signature,
@@ -73,13 +73,13 @@ public class StringPaddingFunction extends Scalar<String, Object> {
                 )
         );
         // rpad(string1, len)
-        module.register(
+        module.add(
             Signature.scalar(
                 RNAME,
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ),
+            ).withFeature(Feature.DETERMINISTIC),
             (signature, boundSignature) ->
                 new StringPaddingFunction(
                     signature,
@@ -88,14 +88,14 @@ public class StringPaddingFunction extends Scalar<String, Object> {
                 )
         );
         // rpad(string1, len, string2)
-        module.register(
+        module.add(
             Signature.scalar(
                 RNAME,
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ),
+            ).withFeature(Feature.DETERMINISTIC),
             (signature, boundSignature) ->
                 new StringPaddingFunction(
                     signature,

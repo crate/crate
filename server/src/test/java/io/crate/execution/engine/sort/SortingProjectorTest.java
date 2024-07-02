@@ -21,9 +21,8 @@
 
 package io.crate.execution.engine.sort;
 
-import static io.crate.testing.TestingHelpers.isRow;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 
@@ -36,11 +35,12 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.breaker.ConcurrentRamAccounting;
-import io.crate.breaker.RowCellsAccountingWithEstimators;
+import io.crate.breaker.TypedCellsAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
 import io.crate.data.Projector;
 import io.crate.data.Row;
+import io.crate.data.RowN;
 import io.crate.data.breaker.RowAccounting;
 import io.crate.data.testing.TestingBatchIterators;
 import io.crate.data.testing.TestingRowConsumer;
@@ -51,7 +51,7 @@ import io.crate.types.DataTypes;
 
 public class SortingProjectorTest extends ESTestCase {
 
-    private TestingRowConsumer consumer = new TestingRowConsumer();
+    private final TestingRowConsumer consumer = new TestingRowConsumer();
 
     private SortingProjector createProjector(RowAccounting<Object[]> rowAccounting, int numOutputs, int offset) {
         RowCollectExpression input = new RowCollectExpression(0);
@@ -73,13 +73,13 @@ public class SortingProjectorTest extends ESTestCase {
     public void testOrderBy() throws Exception {
         SortingProjector projector = createProjector(2, 0);
 
-        BatchIterator batchIterator = projector.apply(TestingBatchIterators.range(1, 11));
+        BatchIterator<Row> batchIterator = projector.apply(TestingBatchIterators.range(1, 11));
         consumer.accept(batchIterator, null);
         Bucket rows = consumer.getBucket();
-        assertThat(rows.size(), is(10));
+        assertThat(rows).hasSize(10);
         int iterateLength = 1;
         for (Row row : rows) {
-            assertThat(row, isRow(iterateLength++, true));
+            assertThat(row).isEqualTo(new RowN(iterateLength++, true));
         }
     }
 
@@ -87,33 +87,30 @@ public class SortingProjectorTest extends ESTestCase {
     public void testOrderByWithOffset() throws Exception {
         SortingProjector projector = createProjector(2, 5);
 
-        BatchIterator batchIterator = projector.apply(TestingBatchIterators.range(1, 11));
+        BatchIterator<Row> batchIterator = projector.apply(TestingBatchIterators.range(1, 11));
         consumer.accept(batchIterator, null);
         Bucket rows = consumer.getBucket();
 
-        assertThat(rows.size(), is(5));
+        assertThat(rows).hasSize(5);
         int iterateLength = 6;
         for (Row row : rows) {
-            assertThat(row, isRow(iterateLength++, true));
+            assertThat(row).isEqualTo(new RowN(iterateLength++, true));
         }
     }
 
     @Test
     public void testInvalidOffset() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("invalid offset -1");
-
-        new SortingProjector(null, null, null, 2, null, -1);
+        assertThatThrownBy(() -> new SortingProjector(null, null, null, 2, null, -1))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("invalid offset -1");
     }
 
     @Test
     public void testUsedMemoryIsAccountedFor() throws Exception {
         MemoryCircuitBreaker circuitBreaker = new MemoryCircuitBreaker(new ByteSizeValue(30, ByteSizeUnit.BYTES),
-                                                                       1,
-                                                                       LogManager.getLogger(SortingProjectorTest.class)
-        );
-        RowCellsAccountingWithEstimators rowAccounting =
-            new RowCellsAccountingWithEstimators(
+                1,
+                LogManager.getLogger(SortingProjectorTest.class));
+        TypedCellsAccounting rowAccounting = new TypedCellsAccounting(
                 List.of(DataTypes.INTEGER, DataTypes.BOOLEAN),
                 ConcurrentRamAccounting.forCircuitBreaker("testContext", circuitBreaker, 0),
                 0);
@@ -121,7 +118,7 @@ public class SortingProjectorTest extends ESTestCase {
         Projector projector = createProjector(rowAccounting, 1, 0);
         consumer.accept(projector.apply(TestingBatchIterators.range(1, 11)), null);
 
-        expectedException.expect(CircuitBreakingException.class);
-        consumer.getResult();
+        assertThatThrownBy(() -> consumer.getResult())
+            .isExactlyInstanceOf(CircuitBreakingException.class);
     }
 }

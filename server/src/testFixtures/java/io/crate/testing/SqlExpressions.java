@@ -22,14 +22,11 @@
 package io.crate.testing;
 
 import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.mockito.Mockito.mock;
 
 import java.util.List;
 import java.util.Map;
 
 import org.jetbrains.annotations.Nullable;
-
-import org.elasticsearch.common.inject.AbstractModule;
 
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
@@ -41,7 +38,7 @@ import io.crate.analyze.relations.FullQualifiedNameFieldProvider;
 import io.crate.analyze.relations.ParentRelations;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.relations.StatementAnalysisContext;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -51,8 +48,9 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.Operation;
+import io.crate.planner.optimizer.LoadedRules;
+import io.crate.role.Role;
 import io.crate.sql.parser.SqlParser;
-import io.crate.user.User;
 
 public class SqlExpressions {
 
@@ -62,31 +60,31 @@ public class SqlExpressions {
     private final EvaluatingNormalizer normalizer;
     public final NodeContext nodeCtx;
 
-    public SqlExpressions(Map<RelationName, AnalyzedRelation> sources, AbstractModule... additionalModules) {
-        this(sources, null, User.CRATE_USER, additionalModules);
+    public SqlExpressions(Map<RelationName, AnalyzedRelation> sources) {
+        this(sources, null, Role.CRATE_USER);
+    }
+
+    public SqlExpressions(Map<RelationName, AnalyzedRelation> sources,
+                          @Nullable FieldResolver fieldResolver) {
+        this(sources, fieldResolver, Role.CRATE_USER);
     }
 
     public SqlExpressions(Map<RelationName, AnalyzedRelation> sources,
                           @Nullable FieldResolver fieldResolver,
-                          AbstractModule... additionalModules) {
-        this(sources, fieldResolver, User.CRATE_USER, additionalModules);
+                          Role sessionUser) {
+        this(sources, fieldResolver, sessionUser, List.of(), null);
     }
 
     public SqlExpressions(Map<RelationName, AnalyzedRelation> sources,
                           @Nullable FieldResolver fieldResolver,
-                          User sessionUser,
-                          AbstractModule... additionalModules) {
-        this(sources, fieldResolver, sessionUser, List.of(), additionalModules);
-    }
-
-    public SqlExpressions(Map<RelationName, AnalyzedRelation> sources,
-                          @Nullable FieldResolver fieldResolver,
-                          User sessionUser,
-                          List<User> additionalUsers,
-                          AbstractModule... additionalModules) {
-        this.nodeCtx = createNodeContext(Lists2.concat(additionalUsers, sessionUser), additionalModules);
+                          Role sessionUser,
+                          List<Role> additionalUsers,
+                          Schemas schemas,
+                          String... searchPaths) {
+        this.nodeCtx = createNodeContext(schemas, Lists.concat(additionalUsers, sessionUser));
         // In test_throws_error_when_user_is_not_found we explicitly inject null user but SessionContext user cannot be not null.
-        var sessionSettings = new CoordinatorSessionSettings(sessionUser == null ? User.CRATE_USER : sessionUser);
+        Role role = sessionUser == null ? Role.CRATE_USER : sessionUser;
+        var sessionSettings = new CoordinatorSessionSettings(role, role, LoadedRules.INSTANCE.disabledRules(), searchPaths);
         coordinatorTxnCtx = new CoordinatorTxnCtx(sessionSettings);
         expressionAnalyzer = new ExpressionAnalyzer(
             coordinatorTxnCtx,
@@ -97,7 +95,7 @@ public class SqlExpressions {
                 ParentRelations.NO_PARENTS,
                 sessionSettings.searchPath().currentSchema()),
             new SubqueryAnalyzer(
-                new RelationAnalyzer(nodeCtx, mock(Schemas.class)),
+                new RelationAnalyzer(nodeCtx),
                 new StatementAnalysisContext(ParamTypeHints.EMPTY, Operation.READ, coordinatorTxnCtx)
             )
         );

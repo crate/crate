@@ -29,16 +29,18 @@ import java.util.Map;
 import java.util.stream.Stream;
 
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
-import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.exceptions.JobKilledException;
+import io.crate.execution.dml.ShardResponse.Failure;
 
 class UpsertResults {
 
     private final Map<String, Result> resultsByUri = new HashMap<>(1);
     private final Map<String, String> nodeInfo;
+    private Failure failure;
 
     UpsertResults() {
         this.nodeInfo = null;
@@ -48,9 +50,12 @@ class UpsertResults {
         this.nodeInfo = nodeInfo;
     }
 
-    void addResult(long successRowCount) {
+    void addResult(long successRowCount, @Nullable Failure failure) {
         Result result = getResultSafe(null);
         result.successRowCount += successRowCount;
+        if (failure != null) {
+            this.failure = failure;
+        }
     }
 
     void addResultRows(List<Object[]> resultRows) {
@@ -94,7 +99,7 @@ class UpsertResults {
     }
 
     boolean containsErrors() {
-        return resultsByUri.values().stream().anyMatch(result -> result.errorRowCount > 0);
+        return failure != null || resultsByUri.values().stream().anyMatch(result -> result.errorRowCount > 0);
     }
 
     List<Object[]> getResultRowsForNoUri() {
@@ -102,6 +107,7 @@ class UpsertResults {
     }
 
     void merge(UpsertResults other) {
+        this.failure = this.failure == null ? other.failure : this.failure;
         for (Map.Entry<String, Result> entry : other.resultsByUri.entrySet()) {
             Result result = resultsByUri.get(entry.getKey());
             if (result == null) {
@@ -133,6 +139,9 @@ class UpsertResults {
             if (nodeName != null) {
                 sb.append("NODE: ").append(nodeName);
             }
+        }
+        if (results.failure != null) {
+            sb.append(results.failure.message());
         }
         var it = results.resultsByUri.entrySet().iterator();
         while (it.hasNext()) {

@@ -33,7 +33,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.collections.Maps;
 import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.ScopedSymbol;
@@ -72,7 +72,7 @@ public class Stats implements Writeable {
         int numColumnStats = in.readVInt();
         this.statsByColumn = new HashMap<>();
         for (int i = 0; i < numColumnStats; i++) {
-            statsByColumn.put(new ColumnIdent(in), new ColumnStats<>(in));
+            statsByColumn.put(ColumnIdent.of(in), new ColumnStats<>(in));
         }
     }
 
@@ -85,6 +85,10 @@ public class Stats implements Writeable {
             entry.getKey().writeTo(out);
             entry.getValue().writeTo(out);
         }
+    }
+
+    public boolean isEmpty() {
+        return numDocs == -1 && sizeInBytes == -1 && statsByColumn.isEmpty();
     }
 
     public Stats withNumDocs(long numDocs) {

@@ -25,23 +25,22 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.elasticsearch.Version;
 
-import io.crate.analyze.AnalyzedAlterTableDropColumn.DropColumn;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.NameFieldProvider;
 import io.crate.exceptions.ColumnUnknownException;
-import io.crate.expression.symbol.SymbolType;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.IndexReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.AlterTableDropColumn;
 import io.crate.sql.tree.Expression;
@@ -63,12 +62,13 @@ public class AlterTableDropColumnAnalyzer {
             throw new UnsupportedOperationException("Dropping a column from a single partition is not supported");
         }
 
-        DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(
+        CoordinatorSessionSettings sessionSettings = txnCtx.sessionSettings();
+        DocTableInfo tableInfo = schemas.findRelation(
             alterTable.table().getName(),
             Operation.ALTER,
-            txnCtx.sessionSettings().sessionUser(),
-            txnCtx.sessionSettings().searchPath());
-
+            sessionSettings.sessionUser(),
+            sessionSettings.searchPath()
+        );
         var expressionAnalyzer = new ExpressionAnalyzer(
             txnCtx,
             nodeCtx,
@@ -76,7 +76,7 @@ public class AlterTableDropColumnAnalyzer {
             new NameFieldProvider(new DocTableRelation(tableInfo)),
             null
         );
-        var expressionContext = new ExpressionAnalysisContext(txnCtx.sessionSettings());
+        var expressionContext = new ExpressionAnalysisContext(sessionSettings);
         List<DropColumn> dropColumns = new ArrayList<>(alterTable.tableElements().size());
 
         for (var dropColumnDefinition : alterTable.tableElements()) {
@@ -90,9 +90,8 @@ public class AlterTableDropColumnAnalyzer {
                 }
             }
         }
-        dropColumns = validateDynamic(tableInfo, dropColumns);
         validateStatic(tableInfo, dropColumns);
-
+        tableInfo.dropColumns(dropColumns);
         return new AnalyzedAlterTableDropColumn(tableInfo, dropColumns);
     }
 
@@ -114,17 +113,14 @@ public class AlterTableDropColumnAnalyzer {
             }
             uniqueSet.add(colToDrop);
 
-            if (refToDrop.symbolType() == SymbolType.INDEX_REFERENCE) {
+            if (colToDrop.isSystemColumn()) {
+                throw new IllegalArgumentException("Dropping a system column is not allowed");
+            }
+
+            if (refToDrop instanceof IndexReference indexRef && !indexRef.columns().isEmpty()) {
                 throw new UnsupportedOperationException("Dropping INDEX column '" + colToDrop.fqn() + "' is not supported");
             }
 
-            for (var indexRef : tableInfo.indexColumns()) {
-                if (indexRef.columns().contains(refToDrop)) {
-                    throw new UnsupportedOperationException("Dropping column: " + colToDrop.sqlFqn() + " which " +
-                                                            "is part of INDEX: " + indexRef +
-                                                            " is not allowed");
-                }
-            }
             if (tableInfo.primaryKey().contains(colToDrop)) {
                 throw new UnsupportedOperationException("Dropping column: " + colToDrop.sqlFqn() + " which " +
                                                         "is part of the PRIMARY KEY is not allowed");
@@ -138,40 +134,5 @@ public class AlterTableDropColumnAnalyzer {
                                                         "is part of the 'PARTITIONED BY' columns is not allowed");
             }
         }
-    }
-
-    /** Validate restrictions based on properties that change and need to be rechecked during execution*/
-    public static List<DropColumn> validateDynamic(DocTableInfo tableInfo, List<DropColumn> dropColumns) {
-        var generatedColRefs = new HashSet<>();
-        for (var genRef : tableInfo.generatedColumns()) {
-            generatedColRefs.addAll(genRef.referencedReferences());
-        }
-        var leftOverCols = tableInfo.columns().stream().map(Reference::column).collect(Collectors.toSet());
-        ArrayList<DropColumn> validatedDropCols = new ArrayList<>(dropColumns.size());
-
-        for (int i = 0 ; i < dropColumns.size(); i++) {
-            var refToDrop = dropColumns.get(i).ref();
-            var colToDrop = refToDrop.column();
-
-            for (var indexRef : tableInfo.indexColumns()) {
-                if (indexRef.columns().contains(refToDrop)) {
-                    throw new UnsupportedOperationException("Dropping column: " + colToDrop.sqlFqn() + " which " +
-                                                            "is part of INDEX: " + indexRef + " is not allowed");
-                }
-            }
-
-            if (generatedColRefs.contains(refToDrop)) {
-                throw new UnsupportedOperationException(
-                    "Dropping column: " + colToDrop.sqlFqn() + " which is used to produce values for " +
-                    "generated column is not allowed");
-            }
-            leftOverCols.remove(colToDrop);
-            validatedDropCols.add(new DropColumn(refToDrop, dropColumns.get(i).ifExists()));
-        }
-
-        if (leftOverCols.isEmpty()) {
-            throw new UnsupportedOperationException("Dropping all columns of a table is not allowed");
-        }
-        return validatedDropCols;
     }
 }

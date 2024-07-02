@@ -21,7 +21,7 @@
 
 package io.crate.integrationtests;
 
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
@@ -43,7 +43,7 @@ public class SqlAlchemyIntegrationTest extends IntegTestCase {
             "SELECT count(?) AS count_1 FROM test WHERE test.col2 = ?",
             new Object[]{"*", "foo"}
         );
-        assertEquals(1L, response.rows()[0][0]);
+        assertThat(response.rows()[0][0]).isEqualTo(1L);
     }
 
     @Test
@@ -61,7 +61,7 @@ public class SqlAlchemyIntegrationTest extends IntegTestCase {
             "SELECT count(test.col1) AS count_1 FROM test WHERE test.col2 = ?",
             new Object[]{"foo"}
         );
-        assertEquals(1L, response.rows()[0][0]);
+        assertThat(response.rows()[0][0]).isEqualTo(1L);
     }
 
     @Test
@@ -82,7 +82,7 @@ public class SqlAlchemyIntegrationTest extends IntegTestCase {
             new Object[]{"*"}
         );
 
-        assertEquals(2L, response.rows()[0][0]);
+        assertThat(response.rows()[0][0]).isEqualTo(2L);
     }
 
     @Test
@@ -103,6 +103,6 @@ public class SqlAlchemyIntegrationTest extends IntegTestCase {
             "GROUP BY test.col2 order by count_1 desc"
         );
 
-        assertEquals(2L, response.rows()[0][0]);
+        assertThat(response.rows()[0][0]).isEqualTo(2L);
     }
 }

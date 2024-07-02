@@ -128,7 +128,7 @@ public final class DataTypes {
             .collect(toSet());
 
 
-    public static final List<DataType<?>> NUMERIC_PRIMITIVE_TYPES = List.of(
+    public static final List<DataType<? extends Number>> NUMERIC_PRIMITIVE_TYPES = List.of(
         DOUBLE,
         FLOAT,
         BYTE,
@@ -307,7 +307,7 @@ public final class DataTypes {
         entry(TimeTZ.class, TimeTZType.INSTANCE)
     );
 
-    @SuppressWarnings({"unchecked", "rawtypes"})
+    @SuppressWarnings({"unchecked"})
     public static DataType<?> guessType(Object value) {
         if (value == null) {
             return UNDEFINED;

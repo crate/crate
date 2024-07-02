@@ -23,8 +23,7 @@ package io.crate.execution.engine.indexing;
 
 import static io.crate.data.SentinelRow.SENTINEL;
 import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.util.Collections;
@@ -67,7 +66,7 @@ import io.crate.types.DataTypes;
 
 public class IndexWriterProjectorUnitTest extends CrateDummyClusterServiceUnitTest {
 
-    private static final ColumnIdent ID_IDENT = new ColumnIdent("id");
+    private static final ColumnIdent ID_IDENT = ColumnIdent.of("id");
     private static final RelationName BULK_IMPORT_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "bulk_import");
     private static final SimpleReference RAW_SOURCE_REFERENCE = new SimpleReference(
         new ReferenceIdent(BULK_IMPORT_IDENT, "_raw"),
@@ -138,6 +137,6 @@ public class IndexWriterProjectorUnitTest extends CrateDummyClusterServiceUnitTe
         List<Object[]> result = testingBatchConsumer.getResult();
         // Zero affected rows as a NULL as a PK value will result in an exception.
         // It must never bubble up as other rows might already have been written.
-        assertThat(result.get(0)[0], is(0L));
+        assertThat(result.get(0)[0]).isEqualTo(0L);
     }
 }

@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.function.Function;
 
-import org.apache.lucene.document.FieldType;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -35,11 +34,13 @@ import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.statistics.ColumnStatsSupport;
 
 public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWidthType {
 
     public static final ByteType INSTANCE = new ByteType();
     public static final int ID = 2;
+    public static final int PRECISION = 8;
     private static final StorageSupport<Number> STORAGE = new StorageSupport<>(
             true,
             true,
@@ -48,9 +49,8 @@ public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWid
         @Override
         public ValueIndexer<Number> valueIndexer(RelationName table,
                                                  Reference ref,
-                                                 Function<String, FieldType> getFieldType,
                                                  Function<ColumnIdent, Reference> getRef) {
-            return new IntIndexer(ref, getFieldType.apply(ref.storageIdent()));
+            return new IntIndexer(ref);
         }
     };
 
@@ -70,6 +70,11 @@ public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWid
     @Override
     public String getName() {
         return "byte";
+    }
+
+    @Override
+    public Integer numericPrecision() {
+        return PRECISION;
     }
 
     @Override
@@ -144,5 +149,10 @@ public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWid
     @Override
     public StorageSupport<Number> storageSupport() {
         return STORAGE;
+    }
+
+    @Override
+    public ColumnStatsSupport<Byte> columnStatsSupport() {
+        return ColumnStatsSupport.singleValued(Byte.class, ByteType.this);
     }
 }

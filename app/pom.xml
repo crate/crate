@@ -6,7 +6,7 @@
   <parent>
     <groupId>io.crate</groupId>
     <artifactId>crate</artifactId>
-    <version>5.5.0</version>
+    <version>5.8.0</version>
   </parent>
 
   <artifactId>crate-app</artifactId>
@@ -15,6 +15,10 @@
     <timestamp>${maven.build.timestamp}</timestamp>
     <maven.build.timestamp.format>yyyy-MM-dd-HH-mm</maven.build.timestamp.format>
     <tarball.version>${project.version}-${timestamp}-${git.commit.id.abbrev}</tarball.version>
+
+    <!-- Use native git instead of jGit to be able to build & release from worktrees (an older version of CrateDB) -->
+    <!-- Open issue: https://github.com/git-commit-id/git-commit-id-maven-plugin/issues/215 -->
+    <maven.gitcommitid.nativegit>true</maven.gitcommitid.nativegit>
   </properties>
 
   <profiles>
@@ -31,7 +35,7 @@
     <plugins>
       <plugin>
         <artifactId>maven-assembly-plugin</artifactId>
-        <version>3.6.0</version>
+        <version>${versions.plugin.assembly}</version>
         <configuration>
           <appendAssemblyId>false</appendAssemblyId>
           <descriptors>
@@ -51,7 +55,7 @@
       <plugin>
         <groupId>com.googlecode.maven-download-plugin</groupId>
         <artifactId>download-maven-plugin</artifactId>
-        <version>1.7.1</version>
+        <version>${versions.plugin.download}</version>
         <executions>
           <execution>
             <id>download admin-ui</id>
@@ -62,10 +66,33 @@
           </execution>
         </executions>
         <configuration>
-          <url>https://cdn.crate.io/downloads/releases/crate-admin-1.24.4.tar.gz</url>
+          <url>https://cdn.crate.io/downloads/releases/crate-admin-1.24.7.tar.gz</url>
           <unpack>true</unpack>
           <outputDirectory>${project.build.directory}</outputDirectory>
-          <sha256>54a6ff90ba819f690cd6eee14b572df542f04e24ab647d05d2c7f9efd3eecc2b</sha256>
+          <sha256>9bf415bef68c39b3fb0a845ade2c86cb707d0457eba7badc6b9dd29ba7e773f0</sha256>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>io.github.git-commit-id</groupId>
+        <artifactId>git-commit-id-maven-plugin</artifactId>
+        <version>${versions.plugin.git-commit}</version>
+        <executions>
+          <execution>
+            <id>get-the-git-infos</id>
+            <goals>
+              <goal>revision</goal>
+            </goals>
+            <phase>initialize</phase>
+          </execution>
+        </executions>
+        <configuration>
+          <generateGitPropertiesFile>true</generateGitPropertiesFile>
+          <generateGitPropertiesFilename>${project.build.outputDirectory}/crate-build.properties</generateGitPropertiesFilename>
+          <includeOnlyProperties>
+            <includeOnlyProperty>^git.build.(time|version)$</includeOnlyProperty>
+            <includeOnlyProperty>^git.commit.id.(abbrev|full)$</includeOnlyProperty>
+          </includeOnlyProperties>
+          <commitIdGenerationMode>full</commitIdGenerationMode>
         </configuration>
       </plugin>
     </plugins>
@@ -143,6 +170,13 @@
     <dependency>
       <groupId>io.crate</groupId>
       <artifactId>es-repository-azure</artifactId>
+      <version>${project.version}</version>
+      <scope>runtime</scope>
+      <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>io.crate</groupId>
+      <artifactId>repository-gcs</artifactId>
       <version>${project.version}</version>
       <scope>runtime</scope>
       <optional>true</optional>

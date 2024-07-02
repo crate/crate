@@ -34,9 +34,16 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
+import org.elasticsearch.action.support.master.AcknowledgedRequest;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
+import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.MappingMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.IntegTestCase;
@@ -71,8 +78,34 @@ public class CreateTableIntegrationTest extends IntegTestCase {
                 .endObject()
             .endObject()
             .endObject();
-        client().admin().indices().putMapping(new PutMappingRequest("tbl").source(BytesReference.bytes(builder).utf8ToString()))
-            .get(5, TimeUnit.SECONDS);
+
+        ClusterService clusterService = cluster().getCurrentMasterNodeInstance(ClusterService.class);
+        var updateTask = new AckedClusterStateUpdateTask<AcknowledgedResponse>(new AcknowledgedRequest() {}) {
+
+            @Override
+            protected AcknowledgedResponse newResponse(boolean acknowledged) {
+                return new AcknowledgedResponse(acknowledged);
+            }
+
+            @Override
+            public ClusterState execute(ClusterState currentState) throws Exception {
+                Metadata metadata = currentState.metadata();
+                IndexMetadata indexMetadata = metadata.index("tbl");
+                BytesReference newMapping = BytesReference.bytes(builder);
+                return ClusterState.builder(currentState)
+                    .metadata(
+                        Metadata.builder(metadata)
+                            .put(
+                                IndexMetadata.builder(indexMetadata)
+                                    .putMapping(new MappingMetadata(new CompressedXContent(newMapping)))
+                                    .mappingVersion(indexMetadata.getMappingVersion() + 1)
+                            )
+                    )
+                    .build();
+                }
+        };
+        clusterService.submitStateUpdateTask("corrupt-mapping", updateTask);
+        assertThat(updateTask.completionFuture()).succeedsWithin(5, TimeUnit.SECONDS);
 
         assertThat(cluster().getInstance(ClusterService.class).state().metadata().hasIndex("tbl"))
             .isTrue();

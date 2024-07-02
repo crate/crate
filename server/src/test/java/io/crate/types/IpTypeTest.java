@@ -21,32 +21,46 @@
 
 package io.crate.types;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
+import static com.carrotsearch.randomizedtesting.RandomizedTest.assumeFalse;
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-public class IpTypeTest extends ESTestCase {
+public class IpTypeTest extends DataTypeTestCase<String> {
+
+    @Override
+    public DataType<String> getType() {
+        return IpType.INSTANCE;
+    }
 
     @Test
     public void test_sanitize_value() {
-        assertThat(IpType.INSTANCE.sanitizeValue(null), is(nullValue()));
-        assertThat(IpType.INSTANCE.sanitizeValue("127.0.0.1"), is("127.0.0.1"));
+        assertThat(IpType.INSTANCE.sanitizeValue(null)).isNull();
+        assertThat(IpType.INSTANCE.sanitizeValue("127.0.0.1")).isEqualTo("127.0.0.1");
     }
 
     @Test
     public void test_sanitize_invalid_ip_value_throws_exception() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Failed to validate ip [2000.0.0.1], not a valid ipv4 address");
-        IpType.INSTANCE.sanitizeValue("2000.0.0.1");
+        assertThatThrownBy(() -> IpType.INSTANCE.sanitizeValue("2000.0.0.1"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Failed to validate ip [2000.0.0.1], not a valid ipv4 address");
     }
 
     @Test
     public void test_cast_negative_bigint_value_to_ip_throws_exception() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Failed to convert long value: -9223372036854775808 to ipv4 address");
-        IpType.INSTANCE.implicitCast(Long.MIN_VALUE);
+        assertThatThrownBy(() -> IpType.INSTANCE.implicitCast(Long.MIN_VALUE))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Failed to convert long value: -9223372036854775808 to ipv4 address");
+    }
+
+    @Override
+    public void test_reference_resolver_docvalues_off() throws Exception {
+        assumeFalse("IpType cannot disable column store", true);
+    }
+
+    @Override
+    public void test_reference_resolver_index_and_docvalues_off() throws Exception {
+        assumeFalse("IpType cannot disable column store", true);
     }
 }

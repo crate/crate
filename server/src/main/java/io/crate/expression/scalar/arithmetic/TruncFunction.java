@@ -25,11 +25,11 @@ import static io.crate.metadata.functions.Signature.scalar;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import io.crate.data.Input;
-import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -43,18 +43,20 @@ public final class TruncFunction {
 
     public static final String NAME = "trunc";
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(Functions.Builder module) {
         for (var type : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             DataType<?> returnType = DataTypes.getIntegralReturnType(type);
             assert returnType != null : "Could not get integral type of " + type;
 
             // trunc(number)
-            module.register(
-                scalar(
-                    NAME,
-                    type.getTypeSignature(),
-                    returnType.getTypeSignature()
-                ).withForbiddenCoercion(),
+            module.add(
+                Signature.scalar(
+                        NAME,
+                        type.getTypeSignature(),
+                        returnType.getTypeSignature()
+                    ).withFeature(Scalar.Feature.DETERMINISTIC)
+                    .withForbiddenCoercion()
+                    .withFeature(Scalar.Feature.NULLABLE),
                 (signature, boundSignature) ->
                     new UnaryScalar<>(
                         signature,
@@ -62,7 +64,7 @@ public final class TruncFunction {
                         type,
                         n -> {
                             double val = ((Number) n).doubleValue();
-                            Function<Double, Double> f = val >= 0 ? Math::floor : Math::ceil;
+                            UnaryOperator<Double> f = val >= 0 ? Math::floor : Math::ceil;
                             return (Number) returnType.sanitizeValue(f.apply(val));
                         }
                     )
@@ -70,13 +72,14 @@ public final class TruncFunction {
 
         }
         // trunc(number, mode)
-        module.register(
+        module.add(
             scalar(
                 NAME,
                 DataTypes.DOUBLE.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE),
             TruncFunction::createTruncWithMode
         );
     }

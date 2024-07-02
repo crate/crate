@@ -56,9 +56,10 @@ import io.crate.action.sql.Sessions;
 import io.crate.auth.AccessControl;
 import io.crate.auth.Authentication;
 import io.crate.auth.AuthenticationMethod;
+import io.crate.auth.Credentials;
 import io.crate.auth.Protocol;
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Lists2;
+import org.jetbrains.annotations.VisibleForTesting;
+import io.crate.common.collections.Lists;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
@@ -68,10 +69,10 @@ import io.crate.protocols.postgres.DelayableWriteChannel.DelayedWrites;
 import io.crate.protocols.postgres.parser.PgArrayParser;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
+import io.crate.role.Role;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Statement;
 import io.crate.types.DataType;
-import io.crate.user.User;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandlerContext;
@@ -412,7 +413,8 @@ public class PostgresWireProtocol {
         InetAddress address = Netty4HttpServerTransport.getRemoteAddress(channel);
 
         SSLSession sslSession = getSession(channel);
-        ConnectionProperties connProperties = new ConnectionProperties(address, Protocol.POSTGRES, sslSession);
+        var credentials = new Credentials(userName, null);
+        ConnectionProperties connProperties = new ConnectionProperties(credentials, address, Protocol.POSTGRES, sslSession);
 
         AuthenticationMethod authMethod = authService.resolveAuthenticationType(userName, connProperties);
         if (authMethod == null) {
@@ -423,7 +425,12 @@ public class PostgresWireProtocol {
             );
             Messages.sendAuthenticationError(channel, errorMessage);
         } else {
-            authContext = new AuthenticationContext(authMethod, connProperties, userName, LOGGER);
+            authContext = new AuthenticationContext(
+                authMethod,
+                connProperties,
+                credentials,
+                LOGGER
+            );
             if (PASSWORD_AUTH_NAME.equals(authMethod.name())) {
                 Messages.sendAuthenticationCleartextPassword(channel);
                 return;
@@ -435,7 +442,7 @@ public class PostgresWireProtocol {
     private void finishAuthentication(Channel channel) {
         assert authContext != null : "finishAuthentication() requires an authContext instance";
         try {
-            User authenticatedUser = authContext.authenticate();
+            Role authenticatedUser = authContext.authenticate();
             String database = properties.getProperty("database");
             session = sessions.newSession(database, authenticatedUser);
             String options = properties.getProperty("options");
@@ -501,6 +508,7 @@ public class PostgresWireProtocol {
         Messages.sendParameterStatus(channel, "datestyle", sessionSettings.dateStyle());
         Messages.sendParameterStatus(channel, "TimeZone", "UTC");
         Messages.sendParameterStatus(channel, "integer_datetimes", "on");
+        Messages.sendParameterStatus(channel, "standard_conforming_strings", "on");
     }
 
     /**
@@ -713,7 +721,7 @@ public class PostgresWireProtocol {
                 delayedWrites,
                 session.transactionState(),
                 getAccessControl.apply(session.sessionSettings()),
-                Lists2.map(outputTypes, PGTypes::get),
+                Lists.map(outputTypes, PGTypes::get),
                 session.getResultFormatCodes(portalName)
             );
         }
@@ -817,7 +825,7 @@ public class PostgresWireProtocol {
                     delayedWrites,
                     TransactionState.IDLE,
                     accessControl,
-                    Lists2.map(fields, x -> PGTypes.get(x.valueType())),
+                    Lists.map(fields, x -> PGTypes.get(x.valueType())),
                     null
                 );
                 session.execute("", 0, resultSetReceiver);

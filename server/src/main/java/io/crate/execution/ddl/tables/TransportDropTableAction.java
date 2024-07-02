@@ -21,6 +21,7 @@
 
 package io.crate.execution.ddl.tables;
 
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
@@ -28,6 +29,7 @@ import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataDeleteIndexService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -36,13 +38,24 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import io.crate.execution.ddl.AbstractDDLTransportAction;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.cluster.DropTableClusterStateTaskExecutor;
 
 @Singleton
 public class TransportDropTableAction extends AbstractDDLTransportAction<DropTableRequest, AcknowledgedResponse> {
 
-    private static final String ACTION_NAME = "internal:crate:sql/table/drop";
+    public static final Action ACTION = new Action();
+
+    public static class Action extends ActionType<AcknowledgedResponse> {
+        public static final String NAME = "internal:crate:sql/table/drop";
+
+        private Action() {
+            super(NAME);
+        }
+    }
+
     // Delete index should work by default on both open and closed indices.
     private static final IndicesOptions INDICES_OPTIONS = IndicesOptions.fromOptions(false, true, true, true);
 
@@ -54,8 +67,16 @@ public class TransportDropTableAction extends AbstractDDLTransportAction<DropTab
                                     ThreadPool threadPool,
                                     MetadataDeleteIndexService deleteIndexService,
                                     DDLClusterStateService ddlClusterStateService) {
-        super(ACTION_NAME, transportService, clusterService, threadPool,
-            DropTableRequest::new, AcknowledgedResponse::new, AcknowledgedResponse::new, "drop-table");
+        super(
+            ACTION.name(),
+            transportService,
+            clusterService,
+            threadPool,
+            DropTableRequest::new,
+            AcknowledgedResponse::new,
+            AcknowledgedResponse::new,
+            "drop-table"
+        );
         executor = new DropTableClusterStateTaskExecutor(deleteIndexService, ddlClusterStateService);
     }
 
@@ -66,11 +87,17 @@ public class TransportDropTableAction extends AbstractDDLTransportAction<DropTab
 
     @Override
     protected ClusterBlockException checkBlock(DropTableRequest request, ClusterState state) {
-        IndicesOptions indicesOptions = INDICES_OPTIONS;
-        if (request.isPartitioned()) {
-            indicesOptions = IndicesOptions.lenientExpandOpen();
-        }
-        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE,
-            IndexNameExpressionResolver.concreteIndexNames(state.metadata(), indicesOptions, request.tableIdent().indexNameOrAlias()));
+        RelationName relation = request.tableIdent();
+        String templateName = PartitionName.templateName(relation.schema(), relation.name());
+        Metadata metadata = state.metadata();
+        boolean isPartitioned = metadata.templates().containsKey(templateName);
+        IndicesOptions indicesOptions = isPartitioned ? IndicesOptions.lenientExpandOpen() : INDICES_OPTIONS;
+        return state.blocks().indicesBlockedException(
+            ClusterBlockLevel.METADATA_WRITE,
+            IndexNameExpressionResolver.concreteIndexNames(
+                metadata,
+                indicesOptions,
+                relation.indexNameOrAlias()
+            ));
     }
 }

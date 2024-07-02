@@ -28,14 +28,13 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.blob.v2.BlobIndex;
 import io.crate.exceptions.InvalidRelationName;
@@ -169,6 +168,9 @@ public final class RelationName implements Writeable, Accountable {
         // But it is not allowed to be used as part of DDL statements.
         if (Schemas.READ_ONLY_SYSTEM_SCHEMAS.contains(schema)) {
             throw new IllegalArgumentException("Cannot create relation in read-only schema: " + schema);
+        }
+        if (schema.equalsIgnoreCase("_all") || name.equalsIgnoreCase("_all")) {
+            throw new IllegalArgumentException("\"_all\" cannot be used as schema or table name");
         }
     }
 

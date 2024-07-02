@@ -49,7 +49,6 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void setUpTester() throws Exception {
         QueryTester.Builder builder = new QueryTester.Builder(
-            createTempDir(),
             THREAD_POOL,
             clusterService,
             Version.CURRENT,
@@ -233,7 +232,7 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
             if (type.storageSupport() == null || type instanceof FloatVectorType) {
                 continue;
             }
-            if (type instanceof ObjectType objectType) {
+            if (type instanceof ObjectType) {
                 DataType<?> innerType = DataTypeTesting.randomType();
                 while (innerType instanceof FloatVectorType || innerType instanceof ObjectType) {
                     innerType = DataTypeTesting.randomType();
@@ -264,7 +263,6 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
             );
 
             try (QueryTester tester = new QueryTester.Builder(
-                createTempDir(),
                 THREAD_POOL,
                 clusterService,
                 Version.CURRENT,

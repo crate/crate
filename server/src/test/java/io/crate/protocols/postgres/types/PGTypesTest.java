@@ -21,10 +21,10 @@
 
 package io.crate.protocols.postgres.types;
 
-import static io.crate.testing.Asserts.assertThat;
 import static io.crate.types.DataTypes.GEO_POINT;
 import static io.crate.types.DataTypes.GEO_SHAPE;
 import static io.crate.types.DataTypes.PRIMITIVE_TYPES;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -237,6 +237,15 @@ public class PGTypesTest extends ESTestCase {
     }
 
     @Test
+    public void test_unknown_serialization() throws Exception {
+        ByteBuf buffer = Unpooled.buffer();
+        int written = UnknownType.INSTANCE.writeAsBinary(buffer, 2340);
+        int size = buffer.readInt();
+        String binaryValue = UnknownType.INSTANCE.readBinaryValue(buffer, written - size);
+        assertThat(binaryValue).isEqualTo("2340");
+    }
+
+    @Test
     public void test_bit_binary_round_trip_streaming() {
         int bitLength = randomIntBetween(1, 40);
         BitStringType type = new BitStringType(bitLength);
@@ -247,7 +256,6 @@ public class PGTypesTest extends ESTestCase {
     }
 
 
-    @SuppressWarnings("unchecked")
     @Test
     public void test_typsend_and_receive_names_match_postgresql() throws Exception {
         // Some types have `<name>send`, others `<name>_send`
@@ -266,7 +274,10 @@ public class PGTypesTest extends ESTestCase {
         );
 
         for (var type : PGTypes.pgTypes()) {
-            if (type.oid() == 2277) {
+            if (type.oid() == 705) {
+                assertThat(type.typSend().name()).isEqualTo("unknownsend");
+                assertThat(type.typReceive().name()).isEqualTo("unknownrecv");
+            } else if (type.oid() == 2277) {
                 assertThat(type.typSend().name()).isEqualTo("anyarray_send");
                 assertThat(type.typReceive().name()).isEqualTo("anyarray_recv");
             } else if (type.oid() == 2276) {

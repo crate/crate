@@ -21,11 +21,8 @@
 
 package io.crate.expression;
 
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.sameInstance;
-import static org.hamcrest.core.Is.is;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -66,11 +63,13 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
     private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
     private Function add = new Function(
         Signature.scalar(
-            ArithmeticFunctions.Names.ADD,
-            DataTypes.INTEGER.getTypeSignature(),
-            DataTypes.INTEGER.getTypeSignature(),
-            DataTypes.INTEGER.getTypeSignature()
-        ).withFeatures(Scalar.DETERMINISTIC_AND_COMPARISON_REPLACEMENT),
+                ArithmeticFunctions.Names.ADD,
+                DataTypes.INTEGER.getTypeSignature(),
+                DataTypes.INTEGER.getTypeSignature(),
+                DataTypes.INTEGER.getTypeSignature()
+            )
+            .withFeatures(Scalar.DETERMINISTIC_AND_COMPARISON_REPLACEMENT)
+            .withFeature(Scalar.Feature.NULLABLE),
         List.of(new InputColumn(1, DataTypes.INTEGER), Literal.of(10)),
         DataTypes.INTEGER
     );
@@ -118,7 +117,7 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
         InputFactory.Context<CollectExpression<Row, ?>> ctx = factory.ctxForAggregations(txnCtx);
         ctx.add(keys);
         ArrayList<CollectExpression<Row, ?>> expressions = new ArrayList<>(ctx.expressions());
-        assertThat(expressions.size(), is(2));
+        assertThat(expressions).hasSize(2);
 
         // keyExpressions: [ in0, in1 ]
 
@@ -126,15 +125,15 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
         for (CollectExpression<Row, ?> expression : expressions) {
             expression.setNextRow(row);
         }
-        assertThat(expressions.get(0).value(), is(1L));
-        assertThat(expressions.get(1).value(), is(2L)); // raw input value
+        assertThat(expressions.get(0).value()).isEqualTo(1L);
+        assertThat(expressions.get(1).value()).isEqualTo(2L); // raw input value
 
         // inputs: [ x, add ]
         List<Input<?>> inputs = ctx.topLevelInputs();
 
-        assertThat(inputs.size(), is(2));
-        assertThat(inputs.get(0).value(), is(1L));
-        assertThat(inputs.get(1).value(), is(12));  // + 10
+        assertThat(inputs).hasSize(2);
+        assertThat(inputs.get(0).value()).isEqualTo(1L);
+        assertThat(inputs.get(1).value()).isEqualTo(12);  // + 10
     }
 
     @Test
@@ -162,25 +161,25 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
         ctx.add(values);
 
         List<AggregationContext> aggregations = ctx.aggregations();
-        assertThat(aggregations.size(), is(1));
+        assertThat(aggregations).hasSize(1);
 
         // collectExpressions: [ in0, in1 ]
         List<CollectExpression<Row, ?>> expressions = new ArrayList<>(ctx.expressions());
-        assertThat(expressions.size(), is(2));
+        assertThat(expressions).hasSize(2);
 
         List<Input<?>> allInputs = ctx.topLevelInputs();
-        assertThat(allInputs.size(), is(2)); // only 2 because count is no input
+        assertThat(allInputs).hasSize(2); // only 2 because count is no input
 
         RowN row = new RowN(1L, 2L);
         for (CollectExpression<Row, ?> expression : expressions) {
             expression.setNextRow(row);
         }
-        assertThat(expressions.get(0).value(), is(1L));
-        assertThat(expressions.get(1).value(), is(2L)); // raw input value
+        assertThat(expressions.get(0).value()).isEqualTo(1L);
+        assertThat(expressions.get(1).value()).isEqualTo(2L); // raw input value
 
-        assertThat(keyInputs.size(), is(2));
-        assertThat(keyInputs.get(0).value(), is(1L));
-        assertThat(keyInputs.get(1).value(), is(12));  // 2 + 10
+        assertThat(keyInputs).hasSize(2);
+        assertThat(keyInputs.get(0).value()).isEqualTo(1L);
+        assertThat(keyInputs.get(1).value()).isEqualTo(12);  // 2 + 10
     }
 
     @Test
@@ -193,10 +192,10 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
         java.lang.reflect.Field f = FunctionExpression.class.getDeclaredField("scalar");
         f.setAccessible(true);
         FunctionImplementation impl = (FunctionImplementation) f.get(expression);
-        assertThat(impl.signature(), is(function.signature()));
+        assertThat(impl.signature()).isEqualTo(function.signature());
 
         FunctionImplementation uncompiled = expressions.nodeCtx.functions().getQualified(function);
-        assertThat(uncompiled, not(sameInstance(impl)));
+        assertThat(uncompiled).isNotSameAs(impl);
     }
 
     @Test
@@ -206,6 +205,6 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
         Input<?> input1 = ctx.add(symbol);
         Input<?> input2 = ctx.add(symbol);
 
-        assertThat(input1, sameInstance(input2));
+        assertThat(input1).isSameAs(input2);
     }
 }

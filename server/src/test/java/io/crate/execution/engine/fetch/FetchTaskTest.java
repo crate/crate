@@ -122,7 +122,7 @@ public class FetchTaskTest extends CrateDummyClusterServiceUnitTest {
                 null,
                 ibb.build(),
                 tableIndices,
-                List.of(createReference("i1", new ColumnIdent("x"), DataTypes.STRING))),
+                List.of(createReference("i1", ColumnIdent.of("x"), DataTypes.STRING))),
             0,
             "dummy",
             sharedShardContexts,

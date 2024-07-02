@@ -22,8 +22,7 @@
 package io.crate.protocols.postgres.types;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
@@ -75,14 +74,11 @@ public class TimestampTypeStringDecodeTest extends BasePGTypeTest<Long> {
             expectedMillis += Math.pow(10, 3 - numberOfFractionDigits);
         }
 
-        assertThat(
-            TimestampType.INSTANCE.decodeUTF8Text(fullTimestamp.toString().getBytes(StandardCharsets.UTF_8)),
-            is(expectedMillis));
+        assertThat(TimestampType.INSTANCE.decodeUTF8Text(fullTimestamp.toString().getBytes(StandardCharsets.UTF_8)))
+            .isEqualTo(expectedMillis);
 
-        assertThat(
-            TimestampType.INSTANCE.decodeUTF8Text(TimestampType.INSTANCE.encodeAsUTF8Text(expectedMillis)),
-            is(expectedMillis)
-        );
+        assertThat(TimestampType.INSTANCE.decodeUTF8Text(TimestampType.INSTANCE.encodeAsUTF8Text(expectedMillis)))
+            .isEqualTo(expectedMillis);
     }
 
     private void appendFractionOfSecDigits(StringBuilder fullTimestamp) {

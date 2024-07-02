@@ -25,15 +25,9 @@ package io.crate.metadata.pgcatalog;
 import java.util.Collections;
 import java.util.Map;
 
+import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.jetbrains.annotations.Nullable;
 
-import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-
-import io.crate.expression.udf.UserDefinedFunctionService;
-import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.metadata.SystemTable;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
@@ -42,48 +36,48 @@ import io.crate.replication.logical.metadata.pgcatalog.PgPublicationTable;
 import io.crate.replication.logical.metadata.pgcatalog.PgPublicationTablesTable;
 import io.crate.replication.logical.metadata.pgcatalog.PgSubscriptionRelTable;
 import io.crate.replication.logical.metadata.pgcatalog.PgSubscriptionTable;
+import io.crate.role.Roles;
 import io.crate.statistics.TableStats;
 
-@Singleton
 public final class PgCatalogSchemaInfo implements SchemaInfo {
 
     public static final String NAME = "pg_catalog";
     private final Map<String, TableInfo> tableInfoMap;
-    private final UserDefinedFunctionService udfService;
     private final SystemTable<PgClassTable.Entry> pgClassTable;
 
-    @Inject
-    public PgCatalogSchemaInfo(UserDefinedFunctionService udfService, TableStats tableStats) {
-        this.udfService = udfService;
+    public PgCatalogSchemaInfo(TableStats tableStats, Roles roles) {
         this.pgClassTable = PgClassTable.create(tableStats);
         tableInfoMap = Map.<String, TableInfo>ofEntries(
-            Map.entry(PgStatsTable.NAME.name(), PgStatsTable.create()),
-            Map.entry(PgTypeTable.IDENT.name(), PgTypeTable.create()),
+            Map.entry(PgStatsTable.NAME.name(), PgStatsTable.INSTANCE),
+            Map.entry(PgTypeTable.IDENT.name(), PgTypeTable.INSTANCE),
             Map.entry(PgClassTable.IDENT.name(), pgClassTable),
-            Map.entry(PgNamespaceTable.IDENT.name(), PgNamespaceTable.create()),
-            Map.entry(PgAttrDefTable.IDENT.name(), PgAttrDefTable.create()),
-            Map.entry(PgAttributeTable.IDENT.name(), PgAttributeTable.create()),
-            Map.entry(PgIndexTable.IDENT.name(), PgIndexTable.create()),
-            Map.entry(PgConstraintTable.IDENT.name(), PgConstraintTable.create()),
-            Map.entry(PgDatabaseTable.NAME.name(), PgDatabaseTable.create()),
-            Map.entry(PgDescriptionTable.NAME.name(), PgDescriptionTable.create()),
-            Map.entry(PgSettingsTable.IDENT.name(), PgSettingsTable.create()),
-            Map.entry(PgProcTable.IDENT.name(), PgProcTable.create()),
-            Map.entry(PgRangeTable.IDENT.name(), PgRangeTable.create()),
-            Map.entry(PgEnumTable.IDENT.name(), PgEnumTable.create()),
-            Map.entry(PgRolesTable.IDENT.name(), PgRolesTable.create()),
-            Map.entry(PgAmTable.IDENT.name(), PgAmTable.create()),
-            Map.entry(PgTablespaceTable.IDENT.name(), PgTablespaceTable.create()),
-            Map.entry(PgIndexesTable.IDENT.name(), PgIndexesTable.create()),
-            Map.entry(PgLocksTable.IDENT.name(), PgLocksTable.create()),
-            Map.entry(PgPublicationTable.IDENT.name(), PgPublicationTable.create()),
-            Map.entry(PgPublicationTablesTable.IDENT.name(), PgPublicationTablesTable.create()),
-            Map.entry(PgShdescriptionTable.IDENT.name(), PgShdescriptionTable.create()),
-            Map.entry(PgSubscriptionTable.IDENT.name(), PgSubscriptionTable.create()),
-            Map.entry(PgSubscriptionRelTable.IDENT.name(), PgSubscriptionRelTable.create()),
-            Map.entry(PgTablesTable.IDENT.name(), PgTablesTable.create()),
-            Map.entry(PgViewsTable.IDENT.name(), PgViewsTable.create()),
-            Map.entry(PgCursors.IDENT.name(), PgCursors.create())
+            Map.entry(PgNamespaceTable.IDENT.name(), PgNamespaceTable.INSTANCE),
+            Map.entry(PgAttrDefTable.IDENT.name(), PgAttrDefTable.INSTANCE),
+            Map.entry(PgAttributeTable.IDENT.name(), PgAttributeTable.INSTANCE),
+            Map.entry(PgIndexTable.IDENT.name(), PgIndexTable.INSTANCE),
+            Map.entry(PgConstraintTable.IDENT.name(), PgConstraintTable.INSTANCE),
+            Map.entry(PgDatabaseTable.NAME.name(), PgDatabaseTable.INSTANCE),
+            Map.entry(PgDescriptionTable.NAME.name(), PgDescriptionTable.INSTANCE),
+            Map.entry(PgSettingsTable.IDENT.name(), PgSettingsTable.INSTANCE),
+            Map.entry(PgProcTable.IDENT.name(), PgProcTable.INSTANCE),
+            Map.entry(PgRangeTable.IDENT.name(), PgRangeTable.INSTANCE),
+            Map.entry(PgEnumTable.IDENT.name(), PgEnumTable.INSTANCE),
+            Map.entry(PgRolesTable.IDENT.name(), PgRolesTable.create(roles)),
+            Map.entry(PgAmTable.IDENT.name(), PgAmTable.INSTANCE),
+            Map.entry(PgTablespaceTable.IDENT.name(), PgTablespaceTable.INSTANCE),
+            Map.entry(PgIndexesTable.IDENT.name(), PgIndexesTable.INSTANCE),
+            Map.entry(PgLocksTable.IDENT.name(), PgLocksTable.INSTANCE),
+            Map.entry(PgPublicationTable.IDENT.name(), PgPublicationTable.INSTANCE),
+            Map.entry(PgPublicationTablesTable.IDENT.name(), PgPublicationTablesTable.INSTANCE),
+            Map.entry(PgShdescriptionTable.IDENT.name(), PgShdescriptionTable.INSTANCE),
+            Map.entry(PgSubscriptionTable.IDENT.name(), PgSubscriptionTable.INSTANCE),
+            Map.entry(PgSubscriptionRelTable.IDENT.name(), PgSubscriptionRelTable.INSTANCE),
+            Map.entry(PgTablesTable.IDENT.name(), PgTablesTable.INSTANCE),
+            Map.entry(PgViewsTable.IDENT.name(), PgViewsTable.INSTANCE),
+            Map.entry(PgCursors.IDENT.name(), PgCursors.INSTANCE),
+            Map.entry(PgEventTrigger.NAME.name(), PgEventTrigger.INSTANCE),
+            Map.entry(PgDepend.NAME.name(), PgDepend.INSTANCE),
+            Map.entry(PgMatviews.NAME.name(), PgMatviews.INSTANCE)
         );
     }
 
@@ -103,10 +97,6 @@ public final class PgCatalogSchemaInfo implements SchemaInfo {
     }
 
     @Override
-    public void invalidateTableCache(String tableName) {
-    }
-
-    @Override
     public void close() throws Exception {
     }
 
@@ -115,7 +105,6 @@ public final class PgCatalogSchemaInfo implements SchemaInfo {
         return tableInfoMap.values();
     }
 
-
     @Override
     public Iterable<ViewInfo> getViews() {
         return Collections.emptyList();
@@ -123,14 +112,5 @@ public final class PgCatalogSchemaInfo implements SchemaInfo {
 
     @Override
     public void update(ClusterChangedEvent event) {
-        assert event.metadataChanged() : "metadataChanged must be true if update is called";
-        Metadata newMetadata = event.state().metadata();
-        // re register UDFs for this schema
-        UserDefinedFunctionsMetadata udfMetadata = newMetadata.custom(UserDefinedFunctionsMetadata.TYPE);
-        if (udfMetadata != null) {
-            udfService.updateImplementations(
-                NAME,
-                udfMetadata.functionsMetadata().stream().filter(f -> NAME.equals(f.schema())));
-        }
     }
 }

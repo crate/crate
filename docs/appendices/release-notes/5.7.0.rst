@@ -1,0 +1,119 @@
+.. _version_5.7.0:
+
+=============
+Version 5.7.0
+=============
+
+Released on 2024-04-05.
+
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 5.7.0.
+
+    We recommend that you upgrade to the latest 5.6 release before moving to
+    5.7.0.
+
+    A rolling upgrade from 5.6.x to 5.7.0 is supported.
+    Before upgrading, you should `back up your data`_.
+
+.. WARNING::
+
+    Tables that were created before CrateDB 4.x will not function with 5.x
+    and must be recreated before moving to 5.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+.. rubric:: Table of contents
+
+.. contents::
+   :local:
+
+
+Breaking Changes
+================
+
+- Added ``CURRENT_ROLE`` as a reserved keyword. If you have a column or table
+  named ``CURRENT_ROLE``, you must escape it using double quotes.
+
+- Changed :ref:`scalar-exp` to always return ``double`` type for its result,
+  independently of the input type.
+
+Deprecations
+============
+
+None
+
+Changes
+=======
+
+
+SQL Standard and PostgreSQL Compatibility
+-----------------------------------------
+
+- Allow shortcut one-char names for PostgreSQL style
+  :ref:`INTERVALs <type-interval>`, e.g.::
+
+    SELECT '1y 2w 3d 4h 5m 6s'::INTERVAL
+
+- Added initial support for foreign data wrappers, including a ``jdbc``
+  :ref:`foreign data wrapper <administration-fdw>`.
+
+- Added the :ref:`scalar-current_role` scalar function as an alias for
+  :ref:`scalar-current_user`.
+
+- `Dhruv Patel <https://github.com/DHRUV6029>`_ added support for the ``^``
+  operator as syntax sugar for the :ref:`scalar-power` scalar function. E.g.::
+
+    SELECT 5 ^ 2;
+
+Data Types
+----------
+
+- Added support for nested arrays in ``CREATE TABLE`` statements
+
+Scalar and Aggregation Functions
+--------------------------------
+
+- Removed the -1 to 1 value constraint from :ref:`scalar-atan`.
+
+- Added the :ref:`scalar-reverse` scalar function.
+
+- `rebdiaz <https://github.com/rebdiaz>`_ added support for lower case ``yyyy``
+  format string to :ref:`to_char <scalar-to_char>` scalar function, which
+  behaves exactly the same as uppercase ``YYYY`` to match PostgreSQL behaviour.
+
+Performance and Resilience Improvements
+---------------------------------------
+
+- Improved the performance for hash-joins when there is a large
+  imbalance between the size of the tables with a lookup-join optimization.
+  This optimization can be disabled if desired, with the session setting::
+
+      SET optimizer_equi_join_to_lookup_join = false
+
+  Note that this setting is experimental, and may change in the future.
+
+- Improved the performance of the :ref:`analyze` statement. CrateDB now uses much
+  less memory when collecting column statistics.
+
+Administration and Operations
+-----------------------------
+
+- `meteoiker <https://github.com/meteoiker>`_ added the ability to set a
+  :ref:`use_path_style_access <sql-create-repo-s3-use_path_style_access>` for
+  S3 repositories.
+
+- `Herman Bergwerf <https://github.com/bergwerf>`_ added support for
+  :ref:`Google Cloud Storage repositories <sql-create-repo-gcs>` to write and
+  restore snapshots on Google Cloud Storage.
+
+- Added ``jwt`` column to :ref:`sys.users<sys-users>` table which lists JWT
+  authentication specific properties of the user.
+
+- Added support for :ref:`JWT token authentication <auth_jwt>`.

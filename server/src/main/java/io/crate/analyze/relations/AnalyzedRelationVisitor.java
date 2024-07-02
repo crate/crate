@@ -21,11 +21,12 @@
 
 package io.crate.analyze.relations;
 
+import java.util.Locale;
+
 import io.crate.analyze.AnalyzedShowCreateTable;
 import io.crate.analyze.ExplainAnalyzedStatement;
 import io.crate.analyze.QueriedSelectRelation;
-
-import java.util.Locale;
+import io.crate.fdw.ForeignTableRelation;
 
 public abstract class AnalyzedRelationVisitor<C, R> {
 
@@ -42,6 +43,10 @@ public abstract class AnalyzedRelationVisitor<C, R> {
     }
 
     public R visitDocTableRelation(DocTableRelation relation, C context) {
+        return visitAnalyzedRelation(relation, context);
+    }
+
+    public R visitPlannedRelation(PlannedRelation relation, C context) {
         return visitAnalyzedRelation(relation, context);
     }
 
@@ -67,5 +72,9 @@ public abstract class AnalyzedRelationVisitor<C, R> {
 
     public R visitShowCreateTable(AnalyzedShowCreateTable analyzedShowCreateTable, C context) {
         return visitAnalyzedRelation(analyzedShowCreateTable, context);
+    }
+
+    public R visitForeignTable(ForeignTableRelation foreignTableRelation, C context) {
+        return visitAnalyzedRelation(foreignTableRelation, context);
     }
 }

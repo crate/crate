@@ -19,46 +19,75 @@
 
 package org.elasticsearch.index.engine;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
-
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
-import org.apache.lucene.analysis.standard.StandardAnalyzer;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.analysis.AnalyzerScope;
-import org.elasticsearch.index.analysis.IndexAnalyzers;
-import org.elasticsearch.index.analysis.NamedAnalyzer;
-import org.elasticsearch.index.mapper.DocumentMapper;
-import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.mapper.RootObjectMapper;
 import org.elasticsearch.index.mapper.SourceToParse;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.translog.Translog;
-import org.elasticsearch.indices.IndicesModule;
-import org.elasticsearch.indices.mapper.MapperRegistry;
 
-import io.crate.Constants;
+import io.crate.execution.dml.TranslogIndexer;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.IndexType;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.SimpleReference;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.sql.tree.ColumnPolicy;
+import io.crate.types.StringType;
 
 public class TranslogHandler implements Engine.TranslogRecoveryRunner {
 
-    private final MapperService mapperService;
+    private final String indexName;
+    private final TranslogIndexer indexer;
 
-    public TranslogHandler(NamedXContentRegistry xContentRegistry, IndexSettings indexSettings) {
-        NamedAnalyzer defaultAnalyzer = new NamedAnalyzer("default", AnalyzerScope.INDEX, new StandardAnalyzer());
-        IndexAnalyzers indexAnalyzers =
-                new IndexAnalyzers(indexSettings, defaultAnalyzer, defaultAnalyzer, defaultAnalyzer, emptyMap(), emptyMap(), emptyMap());
-        MapperRegistry mapperRegistry = new IndicesModule(emptyList()).getMapperRegistry();
-        mapperService = new MapperService(indexSettings, indexAnalyzers, xContentRegistry, mapperRegistry);
+    public TranslogHandler(IndexSettings indexSettings) {
+        this.indexName = indexSettings.getIndex().getName();
+        this.indexer = translogIndexer(indexName, indexSettings);
     }
 
-    private DocumentMapper docMapper(String type) {
-        RootObjectMapper.Builder rootBuilder = new RootObjectMapper.Builder(type);
-        DocumentMapper.Builder b = new DocumentMapper.Builder(rootBuilder, mapperService);
-        return b.build(mapperService);
+    private static TranslogIndexer translogIndexer(String indexName, IndexSettings indexSettings) {
+        RelationName relation = RelationName.fromIndexName(indexName);
+        Reference column = new SimpleReference(
+            new ReferenceIdent(relation, "value"),
+            RowGranularity.DOC,
+            StringType.INSTANCE,
+            ColumnPolicy.STRICT,
+            IndexType.PLAIN,
+            false,
+            true,
+            0,
+            Metadata.COLUMN_OID_UNASSIGNED,
+            false,
+            null);
+        DocTableInfo table = new DocTableInfo(
+            relation,
+            Map.of(ColumnIdent.of("value"), column),
+            Map.of(),
+            Map.of(),
+            null,
+            List.of(),
+            List.of(),
+            null,
+            indexSettings.getSettings(),
+            List.of(),
+            ColumnPolicy.DYNAMIC,
+            Version.CURRENT,
+            Version.CURRENT,
+            false,
+            Set.of(),
+            0
+        );
+        return new TranslogIndexer(table);
     }
 
     private void applyOperation(Engine engine, Engine.Operation operation) throws IOException {
@@ -82,20 +111,19 @@ public class TranslogHandler implements Engine.TranslogRecoveryRunner {
         int opsRecovered = 0;
         Translog.Operation operation;
         while ((operation = snapshot.next()) != null) {
-            applyOperation(engine, convertToEngineOp(operation, Engine.Operation.Origin.LOCAL_TRANSLOG_RECOVERY));
+            applyOperation(engine, convertToEngineOp(operation));
             opsRecovered++;
         }
         engine.syncTranslog();
         return opsRecovered;
     }
 
-    private Engine.Operation convertToEngineOp(Translog.Operation operation, Engine.Operation.Origin origin) {
-        switch (operation.opType()) {
-            case INDEX:
+    private Engine.Operation convertToEngineOp(Translog.Operation operation) {
+        return switch (operation.opType()) {
+            case INDEX -> {
                 final Translog.Index index = (Translog.Index) operation;
-                final String indexName = mapperService.index().getName();
-                return IndexShard.prepareIndex(
-                    docMapper(Constants.DEFAULT_MAPPING_TYPE),
+                yield IndexShard.prepareIndex(
+                    indexer,
                     new SourceToParse(
                         indexName,
                         index.id(),
@@ -106,32 +134,34 @@ public class TranslogHandler implements Engine.TranslogRecoveryRunner {
                     index.primaryTerm(),
                     index.version(),
                     null,
-                    origin,
+                    Engine.Operation.Origin.LOCAL_TRANSLOG_RECOVERY,
                     index.getAutoGeneratedIdTimestamp(),
                     true,
                     SequenceNumbers.UNASSIGNED_SEQ_NO,
                     0
                 );
-            case DELETE:
+            }
+            case DELETE -> {
                 final Translog.Delete delete = (Translog.Delete) operation;
-                return new Engine.Delete(
+                yield new Engine.Delete(
                     delete.id(),
                     delete.uid(),
                     delete.seqNo(),
                     delete.primaryTerm(),
                     delete.version(),
                     null,
-                    origin,
+                    Engine.Operation.Origin.LOCAL_TRANSLOG_RECOVERY,
                     System.nanoTime(),
                     SequenceNumbers.UNASSIGNED_SEQ_NO,
                     0
                 );
-            case NO_OP:
+            }
+            case NO_OP -> {
                 final Translog.NoOp noOp = (Translog.NoOp) operation;
-                return new Engine.NoOp(noOp.seqNo(), noOp.primaryTerm(), origin, System.nanoTime(), noOp.reason());
-            default:
-                throw new IllegalStateException("No operation defined for [" + operation + "]");
-        }
+                yield new Engine.NoOp(noOp.seqNo(), noOp.primaryTerm(), Engine.Operation.Origin.LOCAL_TRANSLOG_RECOVERY, System.nanoTime(), noOp.reason());
+            }
+            default -> throw new IllegalStateException("No operation defined for [" + operation + "]");
+        };
     }
 
 }

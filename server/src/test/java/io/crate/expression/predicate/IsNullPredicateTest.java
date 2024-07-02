@@ -57,17 +57,15 @@ public class IsNullPredicateTest extends ScalarTestCase {
         DocTableRelation relation = (DocTableRelation) tableSources.get(new RelationName("doc", "users"));
         DocTableInfo table = relation.tableInfo();
         try (var indexEnv = new IndexEnv(
+                sqlExpressions.nodeCtx,
                 THREAD_POOL,
                 table,
-                clusterService.state(),
-                Version.CURRENT,
-                createTempDir())) {
+                clusterService.state(), Version.CURRENT)) {
             Context context = luceneQueryBuilder.convert(
                 query,
                 txnCtx,
-                indexEnv.mapperService(),
                 indexEnv.indexService().index().getName(),
-                indexEnv.queryShardContext(),
+                indexEnv.indexService().indexAnalyzers(),
                 table,
                 indexEnv.queryCache()
             );
@@ -89,17 +87,15 @@ public class IsNullPredicateTest extends ScalarTestCase {
         DocTableRelation relation = (DocTableRelation) tableSources.get(new RelationName("doc", "users"));
         DocTableInfo table = relation.tableInfo();
         try (var indexEnv = new IndexEnv(
+            sqlExpressions.nodeCtx,
             THREAD_POOL,
             table,
-            clusterService.state(),
-            Version.CURRENT,
-            createTempDir())) {
+            clusterService.state(), Version.CURRENT)) {
             Query query = luceneQueryBuilder.convert(
                 sqlExpressions.asSymbol("obj_ignored['x'] is NULL"),
                 txnCtx,
-                indexEnv.mapperService(),
                 indexEnv.indexService().index().getName(),
-                indexEnv.queryShardContext(),
+                indexEnv.indexService().indexAnalyzers(),
                 table,
                 indexEnv.queryCache()
             ).query();

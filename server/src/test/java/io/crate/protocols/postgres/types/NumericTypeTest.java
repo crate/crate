@@ -21,8 +21,7 @@
 
 package io.crate.protocols.postgres.types;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.math.BigDecimal;
 import java.math.MathContext;
@@ -48,8 +47,8 @@ public class NumericTypeTest extends BasePGTypeTest<BigDecimal> {
             //noinspection unchecked
             pgType.writeAsText(buffer, expected);
             var actual = pgType.readTextValue(buffer, buffer.readInt());
-            assertThat(actual, is(expected));
-            assertThat(actual.toString(), is(expected.toString()));
+            assertThat(actual).isEqualTo(expected);
+            assertThat(actual.toString()).isEqualTo(expected.toString());
         } finally {
             buffer.release();
         }
@@ -72,8 +71,8 @@ public class NumericTypeTest extends BasePGTypeTest<BigDecimal> {
                 //noinspection unchecked
                 pgType.writeAsBinary(buffer, expected);
                 BigDecimal actual = (BigDecimal) pgType.readBinaryValue(buffer, buffer.readInt());
-                assertThat(actual.scale(), is(expected.scale()));
-                assertThat(actual.toString(), is(expected.toString()));
+                assertThat(actual.scale()).isEqualTo(expected.scale());
+                assertThat(actual.toString()).isEqualTo(expected.toString());
             } finally {
                 buffer.release();
             }

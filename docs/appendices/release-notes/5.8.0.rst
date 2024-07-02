@@ -1,0 +1,158 @@
+.. _version_5.8.0:
+
+==========================
+Version 5.8.0 - Unreleased
+==========================
+
+.. comment 1. Remove the " - Unreleased" from the header above and adjust the ==
+.. comment 2. Remove the NOTE below and replace with: "Released on 20XX-XX-XX."
+.. comment    (without a NOTE entry, simply starting from col 1 of the line)
+.. NOTE::
+
+    In development. 5.8.0 isn't released yet. These are the release notes for
+    the upcoming release.
+
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 5.8.0.
+
+    We recommend that you upgrade to the latest 5.7 release before moving to
+    5.8.0.
+
+    A rolling upgrade from 5.7.x to 5.8.0 is supported.
+    Before upgrading, you should `back up your data`_.
+
+.. WARNING::
+
+    Tables that were created before CrateDB 4.x will not function with 5.x
+    and must be recreated before moving to 5.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+.. rubric:: Table of contents
+
+.. contents::
+   :local:
+
+.. _version_5.8.0_breaking_changes:
+
+Breaking Changes
+================
+
+- Removed the ``index.warmer.enabled`` setting and its corresponding column
+  within the ``settings`` column of ``information_schema.tables`` and
+  ``information_schema.table_partitions``. The setting had been deprecated in
+  CrateDB 4.2.0.
+
+- Removed ``network`` column from :ref:`sys.nodes <sys-nodes>` table. The column
+  was deprecated since :ref:`version_2.3.0` and all of the sub-columns where
+  returning 0.
+
+- Tables created with version :ref:`version_5.8.0` onwards will have an
+  automatic
+  :ref:`number_of_routing_shards <sql-create-table-number-of-routing-shards>`
+  value set. As a result, documents maybe distributed across the shards
+  differently, compare with older versions. To maintain the same distribution,
+  as before :ref:`version_5.8.0` the
+  :ref:`number_of_routing_shards <sql-create-table-number-of-routing-shards>`
+  must be set to the same value as the number of shards in the
+  :ref:`CLUSTERED BY <sql-create-table-clustered>` clause of
+  :ref:`sql-create-table`.
+
+  .. NOTE:: If the number of routing shards equals the number of shard,
+            increasing the number of shards will not be supported.
+
+Deprecations
+============
+
+None
+
+
+Changes
+=======
+
+SQL Statements
+--------------
+
+- `dshunter107 <https://github.com/dshunter107>`_ added support for the
+  ``IF NOT EXISTS`` clause to :ref:`CREATE TABLE AS <ref-create-table-as>`
+  statement.
+
+- Added a calculated default value for
+  :ref:`number_of_routing_shards <sql-create-table-number-of-routing-shards>` is
+  now set during :ref:`table creation <sql-create-table>`, which allows to
+  :ref:`increase the number of shards <alter-shard-number-increase>` for a
+  table. For more details see also :ref`version_5.8.0_breaking_changes`.
+
+SQL Standard and PostgreSQL Compatibility
+-----------------------------------------
+
+- `Julia <https://github.com/julant7>`_  added an empty ``pg_catalog.pg_matviews`` table.
+
+Data Types
+----------
+
+None
+
+Scalar and Aggregation Functions
+--------------------------------
+
+- `azatyamanaev <https://github.com/azatyamanaev>`_ added support for the
+   :ref:`sign <scalar-sign>` function.
+
+- `Dhruv Patel <https://github.com/DHRUV6029>`_ added support for the
+  :ref:`strpos <scalar-strpos>` scalar function.
+
+- Added a :ref:`vector_similarity <scalar_vector_similarity>` scalar.
+
+- Added a :ref:`has_table_privilege <scalar-has-table-priv>` scalar.
+
+- Added a :ref:`pg_table_is_visible <scalar-pg_table_is_visible>` scalar.
+
+Performance and Resilience Improvements
+---------------------------------------
+
+- Extended push-down of constant join conditions to right, left and cross joins.
+  This optimization applies constant join conditions such as `x > 1` before the
+  join operation to reduce the number of rows to joins. This improves the performance
+  on queries such as::
+
+    select * from t1 left join t2 on t1.id = t2.id and t1.id > 1
+
+  This optimization can be disabled if desired, with the session setting::
+
+    SET optimizer_move_constant_join_conditions_beneath_join = false
+
+  Note that this setting is experimental, and may change in the future.
+
+- Extended the lookup-join optimization to make it applicable to more complex
+  queries when they include sub-queries, an inner-equi-join and if there is a
+  large imbalance in size between the joined tables. This optimization is
+  experimental and can lead to large memory consumptions and is therefore
+  disabled by default. It can be activated with the session setting::
+
+     SET optimizer_equi_join_to_lookup_join = true
+
+  Note that this setting is experimental, and may change in the future.
+
+- Improved the partition filtering logic to narrow partitions if the
+  partition is based on a generated column with a type not matching the return
+  type of the generated expression.
+
+Administration and Operations
+-----------------------------
+
+- Extended :ref:`Connections JMX MBean <jmx_monitoring-connections>`, to expose
+  more detailed network statistics information. On top of the previously exposed
+  open and total connections, number of messages and bytes sent and received per
+  protocol are also available.
+
+- Added ``transport['total']`` column to :ref:`sys.nodes <sys-nodes>`
+  :ref:`connections <sys-nodes-connections>` column, which exposes the number of
+  total connections via the Transport protocol.

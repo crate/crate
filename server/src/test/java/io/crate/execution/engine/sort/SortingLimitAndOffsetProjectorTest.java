@@ -21,9 +21,8 @@
 
 package io.crate.execution.engine.sort;
 
-import static io.crate.testing.TestingHelpers.isRow;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Comparator;
 import java.util.List;
@@ -37,12 +36,14 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.breaker.ConcurrentRamAccounting;
-import io.crate.breaker.RowCellsAccountingWithEstimators;
+import io.crate.breaker.TypedCellsAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
 import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
+import io.crate.data.Row1;
+import io.crate.data.RowN;
 import io.crate.data.breaker.RowAccounting;
 import io.crate.data.testing.TestingBatchIterators;
 import io.crate.data.testing.TestingRowConsumer;
@@ -60,7 +61,7 @@ public class SortingLimitAndOffsetProjectorTest extends ESTestCase {
     private static final List<CollectExpression<Row, ?>> COLLECT_EXPRESSIONS = List.of(INPUT);
     private static final Comparator<Object[]> FIRST_CELL_ORDERING = OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 0, false, false);
 
-    private TestingRowConsumer consumer = new TestingRowConsumer();
+    private final TestingRowConsumer consumer = new TestingRowConsumer();
 
     private Projector getProjector(RowAccounting<Object[]> rowAccounting, int numOutputs, int limit, int offset, Comparator<Object[]> ordering) {
         int unboundedCollectorThreshold = 10_000;
@@ -92,14 +93,14 @@ public class SortingLimitAndOffsetProjectorTest extends ESTestCase {
         consumer.accept(projector.apply(TestingBatchIterators.range(1, 11)), null);
 
         Bucket rows = consumer.getBucket();
-        assertThat(rows.size(), is(3));
+        assertThat(rows).hasSize(3);
 
         int iterateLength = 0;
         for (Row row : rows) {
-            assertThat(row, isRow(iterateLength + 6));
+            assertThat(row).isEqualTo(new Row1(iterateLength + 6));
             iterateLength++;
         }
-        assertThat(iterateLength, is(3));
+        assertThat(iterateLength).isEqualTo(3);
     }
 
     @Test
@@ -108,7 +109,7 @@ public class SortingLimitAndOffsetProjectorTest extends ESTestCase {
         consumer.accept(projector.apply(TestingBatchIterators.range(1, 11)), null);
 
         Bucket rows = consumer.getBucket();
-        assertThat(rows.size(), is(10));
+        assertThat(rows).hasSize(10);
     }
 
     @Test
@@ -117,81 +118,75 @@ public class SortingLimitAndOffsetProjectorTest extends ESTestCase {
         consumer.accept(projector.apply(TestingBatchIterators.range(1, 11)), null);
 
         Bucket rows = consumer.getBucket();
-        assertThat(rows.size(), is(10));
+        assertThat(rows).hasSize(10);
         int iterateLength = 0;
         for (Row row : consumer.getBucket()) {
-            assertThat(row, isRow(iterateLength + 1, true));
+            assertThat(row).isEqualTo(new RowN(iterateLength + 1, true));
             iterateLength++;
         }
-        assertThat(iterateLength, is(10));
+        assertThat(iterateLength).isEqualTo(10);
     }
 
     @Test
     public void testUsedMemoryIsAccountedFor() throws Exception {
         MemoryCircuitBreaker circuitBreaker = new MemoryCircuitBreaker(new ByteSizeValue(30, ByteSizeUnit.BYTES),
-                                                                       1,
-                                                                       LogManager.getLogger(
-                                                                           SortingLimitAndOffsetProjectorTest.class)
-        );
-        RowCellsAccountingWithEstimators rowAccounting =
-            new RowCellsAccountingWithEstimators(
-                List.of(DataTypes.INTEGER, DataTypes.BOOLEAN),
-                ConcurrentRamAccounting.forCircuitBreaker("testContext", circuitBreaker, 0),
-                0);
+            1,
+            LogManager.getLogger(
+                    SortingLimitAndOffsetProjectorTest.class));
+        TypedCellsAccounting rowAccounting = new TypedCellsAccounting(
+            List.of(DataTypes.INTEGER, DataTypes.BOOLEAN),
+            ConcurrentRamAccounting.forCircuitBreaker("testContext", circuitBreaker, 0),
+            0);
 
         Projector projector = getProjector(rowAccounting, 1, 100_000, LimitAndOffset.NO_OFFSET, FIRST_CELL_ORDERING);
         consumer.accept(projector.apply(TestingBatchIterators.range(1, 11)), null);
 
-        expectedException.expect(CircuitBreakingException.class);
-        consumer.getResult();
+        assertThatThrownBy(() -> consumer.getResult())
+            .isExactlyInstanceOf(CircuitBreakingException.class);
     }
 
     @Test
     public void testWithHighOffset() throws Exception {
         Projector projector = getProjector(2, 2, 30);
         consumer.accept(projector.apply(TestingBatchIterators.range(1, 10)), null);
-        assertThat(consumer.getBucket().size(), is(0));
+        assertThat(consumer.getBucket()).hasSize(0);
     }
 
     @Test
     public void testInvalidNegativeLimit() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid LIMIT: value must be > 0; got: -1");
-
-        getProjector(2, -1, 0);
+        assertThatThrownBy(() -> getProjector(2, -1, 0))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid LIMIT: value must be > 0; got: -1");
     }
 
     @Test
     public void test_zero_limit() throws Exception {
         Projector projector = getProjector(2, 0, 0);
         BatchIterator<Row> it = projector.apply(TestingBatchIterators.range(1, 6));
-        assertThat(it.moveNext(), is(false));
-        assertThat(it.allLoaded(), is(true));
+        assertThat(it.moveNext()).isFalse();
+        assertThat(it.allLoaded()).isTrue();
     }
 
     @Test
     public void testInvalidOffset() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid OFFSET: value must be >= 0; got: -1");
-
-        getProjector(2, 1, -1);
+        assertThatThrownBy(() -> getProjector(2, 1, -1))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid OFFSET: value must be >= 0; got: -1");
     }
 
     @Test
     public void testInvalidMaxSize() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid LIMIT + OFFSET: value must be <= 2147483630; got: 2147483646");
-
         int i = Integer.MAX_VALUE / 2;
-        getProjector(2, i, i);
+        assertThatThrownBy(() -> getProjector(2, i, i))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid LIMIT + OFFSET: value must be <= 2147483630; got: 2147483646");
     }
 
     @Test
     public void testInvalidMaxSizeExceedsIntegerRange() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid LIMIT + OFFSET: value must be <= 2147483630; got: -2147483648");
-
         int i = Integer.MAX_VALUE / 2 + 1;
-        getProjector(2, i, i);
+        assertThatThrownBy(() -> getProjector(2, i, i))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid LIMIT + OFFSET: value must be <= 2147483630; got: -2147483648");
     }
 }

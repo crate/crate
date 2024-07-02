@@ -29,22 +29,15 @@ import static io.crate.testing.Asserts.toCondition;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.carrotsearch.randomizedtesting.RandomizedTest;
 
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.Row;
@@ -75,7 +68,7 @@ import io.crate.types.DataTypes;
 public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
-    private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
+    private final TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
 
     @Before
     public void prepare() throws IOException {
@@ -83,7 +76,9 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private static SQLExecutor buildExecutor(ClusterService clusterService) throws IOException {
-        return SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
+        return SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .addPartitionedTable(
                 TableDefinitions.PARTED_PKS_TABLE_DEFINITION,
@@ -94,38 +89,37 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
                 "  name text," +
                 "  date timestamp with time zone" +
                 ")" +
-                " partitioned by (date)")
-            .build();
+                " partitioned by (date)");
     }
 
     @Test
     public void testUpdateByQueryPlan() throws Exception {
         UpdatePlanner.Update plan = e.plan("update users set name='Vogon lyric fan'");
         Merge merge = (Merge) plan.createExecutionPlan.create(
-            e.getPlannerContext(clusterService.state()), Row.EMPTY, SubQueryResults.EMPTY);
+            e.getPlannerContext(), Row.EMPTY, SubQueryResults.EMPTY);
 
         Collect collect = (Collect) merge.subPlan();
 
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
         Asserts.assertThat(collectPhase.where()).isSQL("true");
-        assertThat(collectPhase.projections().size(), is(1));
-        assertThat(collectPhase.projections().get(0), instanceOf(UpdateProjection.class));
-        assertThat(collectPhase.toCollect().size(), is(1));
-        assertThat(collectPhase.toCollect().get(0), instanceOf(Reference.class));
-        assertThat(((Reference) collectPhase.toCollect().get(0)).column().fqn(), is("_id"));
+        assertThat(collectPhase.projections()).hasSize(1);
+        assertThat(collectPhase.projections().getFirst()).isExactlyInstanceOf(UpdateProjection.class);
+        assertThat(collectPhase.toCollect()).hasSize(1);
+        assertThat(collectPhase.toCollect().getFirst()).isInstanceOf(Reference.class);
+        assertThat(((Reference) collectPhase.toCollect().getFirst()).column().fqn()).isEqualTo("_id");
 
-        UpdateProjection updateProjection = (UpdateProjection) collectPhase.projections().get(0);
-        assertThat(updateProjection.uidSymbol(), instanceOf(InputColumn.class));
+        UpdateProjection updateProjection = (UpdateProjection) collectPhase.projections().getFirst();
+        assertThat(updateProjection.uidSymbol()).isExactlyInstanceOf(InputColumn.class);
 
-        assertThat(updateProjection.assignmentsColumns()[0], is("name"));
+        assertThat(updateProjection.assignmentsColumns()[0]).isEqualTo("name");
         Symbol symbol = updateProjection.assignments()[0];
         Asserts.assertThat(symbol).isLiteral("Vogon lyric fan", DataTypes.STRING);
 
         MergePhase mergePhase = merge.mergePhase();
-        assertThat(mergePhase.projections().size(), is(1));
-        assertThat(mergePhase.projections().get(0), instanceOf(MergeCountProjection.class));
+        assertThat(mergePhase.projections()).hasSize(1);
+        assertThat(mergePhase.projections().getFirst()).isExactlyInstanceOf(MergeCountProjection.class);
 
-        assertThat(mergePhase.outputTypes().size(), is(1));
+        assertThat(mergePhase.outputTypes()).hasSize(1);
     }
 
     @Test
@@ -134,15 +128,15 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
 
         Asserts.assertThat(updateById.assignmentByTargetCol()).hasEntrySatisfying(
             toCondition(isReference("name")), toCondition(isLiteral("Vogon lyric fan")));
-        assertThat(updateById.docKeys().size(), is(1));
+        assertThat(updateById.docKeys()).hasSize(1);
 
-        assertThat(updateById.docKeys().getOnlyKey().getId(txnCtx, e.nodeCtx, Row.EMPTY, SubQueryResults.EMPTY), is("1"));
+        assertThat(updateById.docKeys().getOnlyKey().getId(txnCtx, e.nodeCtx, Row.EMPTY, SubQueryResults.EMPTY)).isEqualTo("1");
     }
 
     @Test
     public void testUpdatePlanWithMultiplePrimaryKeyValues() throws Exception {
         UpdateById update = e.plan("update users set name='Vogon lyric fan' where id in (1,2,3)");
-        assertThat(update.docKeys().size(), is(3));
+        assertThat(update.docKeys()).hasSize(3);
     }
 
     // bug: https://github.com/crate/crate/issues/14347
@@ -155,27 +149,37 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_update_with_subquery_and_pk_does_not_update_by_id() throws Exception {
+        Plan update = e.plan(
+            "update users set name = 'No!' where id = 1 and not exists (select 1 from users where id = 1)");
+        assertThat(update).isExactlyInstanceOf(MultiPhasePlan.class);
+
+        MultiPhasePlan multiPhasePlan = (MultiPhasePlan) update;
+        assertThat(multiPhasePlan.rootPlan).isExactlyInstanceOf(UpdatePlanner.Update.class);
+    }
+
+    @Test
     public void testUpdatePlanWithMultiplePrimaryKeyValuesPartitioned() throws Exception {
         Plan update = e.plan("update parted_pks set name='Vogon lyric fan' where " +
                                      "(id=2 and date = 0) OR" +
                                      "(id=3 and date=123)");
-        assertThat(update, instanceOf(UpdateById.class));
-        assertThat(((UpdateById) update).docKeys().size(), is(2));
+        assertThat(update).isExactlyInstanceOf(UpdateById.class);
+        assertThat(((UpdateById) update).docKeys()).hasSize(2);
     }
 
     @Test
     public void testUpdateOnEmptyPartitionedTable() throws Exception {
         UpdatePlanner.Update update = e.plan("update empty_parted set name='Vogon lyric fan'");
         Collect collect = (Collect) update.createExecutionPlan.create(
-            e.getPlannerContext(clusterService.state()), Row.EMPTY, SubQueryResults.EMPTY);
-        assertThat(((RoutedCollectPhase) collect.collectPhase()).routing().nodes(), Matchers.emptyIterable());
+            e.getPlannerContext(), Row.EMPTY, SubQueryResults.EMPTY);
+        assertThat(((RoutedCollectPhase) collect.collectPhase()).routing().nodes()).isEmpty();
     }
 
     @Test
     public void testUpdateUsingSeqNoRequiresPk() {
         UpdatePlanner.Update plan = e.plan("update users set name = 'should not update' where _seq_no = 11 and _primary_term = 1");
         assertThatThrownBy(() -> plan.createExecutionPlan.create(
-            e.getPlannerContext(clusterService.state()), Row.EMPTY, SubQueryResults.EMPTY))
+            e.getPlannerContext(), Row.EMPTY, SubQueryResults.EMPTY))
             .isExactlyInstanceOf(VersioningValidationException.class)
             .hasMessage(VersioningValidationException.SEQ_NO_AND_PRIMARY_TERM_USAGE_MSG);
     }
@@ -193,7 +197,7 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
         MultiPhasePlan plan = e.plan(
             "update users set ints = (" +
                 "   select count(id) from users where id in (select unnest([1, 2, 3, 4])))");
-        assertThat(plan.rootPlan, instanceOf(UpdatePlanner.Update.class));
+        assertThat(plan.rootPlan).isExactlyInstanceOf(UpdatePlanner.Update.class);
 
         Map<LogicalPlan, SelectSymbol> rootPlanDependencies = plan.dependencies;
         LogicalPlan outerSubSelectPlan = rootPlanDependencies.keySet().iterator().next();
@@ -206,13 +210,13 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
             "      └ ProjectSet[unnest([1, 2, 3, 4])] (rows=unknown)",
             "        └ TableFunction[empty_row | [] | true] (rows=unknown)");
         SelectSymbol outerSubSelectSymbol = rootPlanDependencies.values().iterator().next();
-        assertThat(outerSubSelectSymbol.getResultType(), is(SINGLE_COLUMN_SINGLE_VALUE));
-        assertThat(e.getStats(outerSubSelectPlan).numDocs(), is(1L));
+        assertThat(outerSubSelectSymbol.getResultType()).isEqualTo(SINGLE_COLUMN_SINGLE_VALUE);
+        assertThat(e.getStats(outerSubSelectPlan).numDocs()).isEqualTo(1L);
 
         LogicalPlan innerSubSelectPlan = outerSubSelectPlan.dependencies().keySet().iterator().next();
         SelectSymbol innerSubSelectSymbol = outerSubSelectPlan.dependencies().values().iterator().next();
-        assertThat(innerSubSelectSymbol.getResultType(), is(SINGLE_COLUMN_MULTIPLE_VALUES));
-        assertThat(e.getStats(innerSubSelectPlan).numDocs(), is(-1L));
+        assertThat(innerSubSelectSymbol.getResultType()).isEqualTo(SINGLE_COLUMN_MULTIPLE_VALUES);
+        assertThat(e.getStats(innerSubSelectPlan).numDocs()).isEqualTo(-1L);
     }
 
     @Test

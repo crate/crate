@@ -350,6 +350,35 @@ optimized.*
    Complex queries are broken down into subqueries that are run on their shards
    before joining.
 
+.. _join-optim-cross-join-elimination:
+
+Cross join elimination
+----------------------
+
+The optimizer will try to eliminate cross joins in the query plan by changing
+the join-order. Cross join elimination replaces a CROSS JOIN with an INNER JOIN
+if query conditions used in the WHERE clause or other join conditions allow
+for it. An example:
+
+.. code-block:: SQL
+
+    SELECT *
+    FROM t1 CROSS JOIN t2
+    INNER JOIN t3
+    ON t3.z = t1.x AND t3.z = t2.y
+
+The cross join elimination will change the order of the query from t1, t2, t3
+to t2, t1, t3 so that each join has a join condition and the CROSS JOIN can be
+replaced by an INNER JOIN. When reordering, it will try to preserve the
+original join order as much as possible. If a CROSS JOIN cannot be eliminated,
+the original join order will be maintained. This optimizer rule can be disabled
+with the :ref:`optimizer eliminate cross join session setting
+<conf-session-optimizer_eliminate_cross_join>`::
+
+    SET optimizer_eliminate_cross_join = false
+
+Note that this setting is experimental, and may change in the future.
+
 
 .. _hash table: https://en.wikipedia.org/wiki/Hash_table
 .. _here: http://www.dcs.ed.ac.uk/home/tz/phd/thesis.pdf

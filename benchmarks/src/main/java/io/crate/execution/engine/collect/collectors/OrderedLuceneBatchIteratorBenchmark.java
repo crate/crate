@@ -25,7 +25,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
@@ -52,7 +52,7 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.infra.Blackhole;
 
 import io.crate.analyze.OrderBy;
-import io.crate.breaker.RowAccountingWithEstimators;
+import io.crate.breaker.TypedRowAccounting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.breaker.RamAccounting;
@@ -74,7 +74,7 @@ import io.crate.types.LongType;
 @State(Scope.Benchmark)
 public class OrderedLuceneBatchIteratorBenchmark {
 
-    private static final RowAccountingWithEstimators ROW_ACCOUNTING = new RowAccountingWithEstimators(
+    private static final TypedRowAccounting ROW_ACCOUNTING = new TypedRowAccounting(
         List.of(LongType.INSTANCE),
         RamAccounting.NO_ACCOUNTING
     );
@@ -90,32 +90,32 @@ public class OrderedLuceneBatchIteratorBenchmark {
 
     @Setup
     public void createLuceneBatchIterator() throws Exception {
-        IndexWriter iw = new IndexWriter(
-            new ByteBuffersDirectory(), new IndexWriterConfig(new StandardAnalyzer())
-        );
-        dummyShardId = new ShardId("dummy", UUIDs.randomBase64UUID(), 1);
-        columnName = "x";
-        for (int i = 0; i < 10_000_000; i++) {
-            Document doc = new Document();
-            doc.add(new NumericDocValuesField(columnName, i));
-            iw.addDocument(doc);
+        try (IndexWriter iw = new IndexWriter(
+            new ByteBuffersDirectory(), new IndexWriterConfig(new StandardAnalyzer()))) {
+            dummyShardId = new ShardId("dummy", UUIDs.randomBase64UUID(), 1);
+            columnName = "x";
+            for (int i = 0; i < 10_000_000; i++) {
+                Document doc = new Document();
+                doc.add(new NumericDocValuesField(columnName, i));
+                iw.addDocument(doc);
+            }
+            iw.commit();
+            iw.forceMerge(1, true);
+            indexSearcher = new IndexSearcher(DirectoryReader.open(iw, true, true));
+            collectorContext = new CollectorContext(Set.of(), UnaryOperator.identity());
+            reference = new SimpleReference(
+                new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, "dummyTable"), columnName),
+                RowGranularity.DOC,
+                DataTypes.INTEGER,
+                1,
+                null
+            );
+            orderBy = new OrderBy(
+                Collections.singletonList(reference),
+                reverseFlags,
+                nullsFirst
+            );
         }
-        iw.commit();
-        iw.forceMerge(1, true);
-        indexSearcher = new IndexSearcher(DirectoryReader.open(iw, true, true));
-        collectorContext = new CollectorContext(Set.of(), Function.identity());
-        reference = new SimpleReference(
-            new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, "dummyTable"), columnName),
-            RowGranularity.DOC,
-            DataTypes.INTEGER,
-            1,
-            null
-        );
-        orderBy = new OrderBy(
-            Collections.singletonList(reference),
-            reverseFlags,
-            nullsFirst
-        );
     }
 
     @Benchmark

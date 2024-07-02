@@ -21,14 +21,12 @@ package org.elasticsearch.cluster.routing.allocation.decider;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singleton;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.routing.ShardRoutingState.INITIALIZING;
 import static org.elasticsearch.cluster.routing.ShardRoutingState.RELOCATING;
 import static org.elasticsearch.cluster.routing.ShardRoutingState.STARTED;
 import static org.elasticsearch.cluster.routing.ShardRoutingState.UNASSIGNED;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
@@ -43,6 +41,7 @@ import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.DiskUsage;
 import org.elasticsearch.cluster.ESAllocationTestCase;
+import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -115,7 +114,7 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
                     .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
                     .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
                     .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 1)
-                    .put(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, "false")))
+                    .put(AutoExpandReplicas.SETTING_KEY, "false")))
             .build();
 
         final RoutingTable initialRoutingTable = RoutingTable.builder()
@@ -137,23 +136,23 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
         logShardStates(clusterState);
 
         // Primary shard should be initializing, replica should not
-        assertThat(clusterState.getRoutingNodes().shardsWithState(INITIALIZING).size(), equalTo(1));
+        assertThat(clusterState.getRoutingNodes().shardsWithState(INITIALIZING)).hasSize(1);
 
         logger.info("--> start the shards (primaries)");
         clusterState = startInitializingShardsAndReroute(strategy, clusterState);
 
         logShardStates(clusterState);
         // Assert that we're able to start the primary
-        assertThat(clusterState.getRoutingNodes().shardsWithState(ShardRoutingState.STARTED).size(), equalTo(1));
+        assertThat(clusterState.getRoutingNodes().shardsWithState(ShardRoutingState.STARTED)).hasSize(1);
         // Assert that node1 didn't get any shards because its disk usage is too high
-        assertThat(clusterState.getRoutingNodes().node("node1").size(), equalTo(0));
+        assertThat(clusterState.getRoutingNodes().node("node1")).hasSize(0);
 
         logger.info("--> start the shards (replicas)");
         clusterState = startInitializingShardsAndReroute(strategy, clusterState);
 
         logShardStates(clusterState);
         // Assert that the replica couldn't be started since node1 doesn't have enough space
-        assertThat(clusterState.getRoutingNodes().shardsWithState(ShardRoutingState.STARTED).size(), equalTo(1));
+        assertThat(clusterState.getRoutingNodes().shardsWithState(ShardRoutingState.STARTED)).hasSize(1);
 
         logger.info("--> adding node3");
 
@@ -164,18 +163,18 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
 
         logShardStates(clusterState);
         // Assert that the replica is initialized now that node3 is available with enough space
-        assertThat(clusterState.getRoutingNodes().shardsWithState(ShardRoutingState.STARTED).size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().shardsWithState(ShardRoutingState.INITIALIZING).size(), equalTo(1));
+        assertThat(clusterState.getRoutingNodes().shardsWithState(ShardRoutingState.STARTED)).hasSize(1);
+        assertThat(clusterState.getRoutingNodes().shardsWithState(ShardRoutingState.INITIALIZING)).hasSize(1);
 
         logger.info("--> start the shards (replicas)");
         clusterState = startInitializingShardsAndReroute(strategy, clusterState);
 
         logShardStates(clusterState);
         // Assert that the replica couldn't be started since node1 doesn't have enough space
-        assertThat(clusterState.getRoutingNodes().shardsWithState(ShardRoutingState.STARTED).size(), equalTo(2));
-        assertThat(clusterState.getRoutingNodes().node("node1").size(), equalTo(0));
-        assertThat(clusterState.getRoutingNodes().node("node2").size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node3").size(), equalTo(1));
+        assertThat(clusterState.getRoutingNodes().shardsWithState(ShardRoutingState.STARTED)).hasSize(2);
+        assertThat(clusterState.getRoutingNodes().node("node1")).hasSize(0);
+        assertThat(clusterState.getRoutingNodes().node("node2")).hasSize(1);
+        assertThat(clusterState.getRoutingNodes().node("node3")).hasSize(1);
 
         logger.info("--> changing decider settings");
 
@@ -200,10 +199,10 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
         logShardStates(clusterState);
 
         // Shards remain started
-        assertThat(clusterState.getRoutingNodes().shardsWithState(STARTED).size(), equalTo(2));
-        assertThat(clusterState.getRoutingNodes().node("node1").size(), equalTo(0));
-        assertThat(clusterState.getRoutingNodes().node("node2").size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node3").size(), equalTo(1));
+        assertThat(clusterState.getRoutingNodes().shardsWithState(STARTED)).hasSize(2);
+        assertThat(clusterState.getRoutingNodes().node("node1")).hasSize(0);
+        assertThat(clusterState.getRoutingNodes().node("node2")).hasSize(1);
+        assertThat(clusterState.getRoutingNodes().node("node3")).hasSize(1);
 
         logger.info("--> changing settings again");
 
@@ -228,11 +227,11 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
 
         logShardStates(clusterState);
         // Shards remain started
-        assertThat(clusterState.getRoutingNodes().shardsWithState(STARTED).size(), equalTo(2));
-        assertThat(clusterState.getRoutingNodes().node("node1").size(), equalTo(0));
+        assertThat(clusterState.getRoutingNodes().shardsWithState(STARTED)).hasSize(2);
+        assertThat(clusterState.getRoutingNodes().node("node1")).hasSize(0);
         // Shard hasn't been moved off of node2 yet because there's nowhere for it to go
-        assertThat(clusterState.getRoutingNodes().node("node2").size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node3").size(), equalTo(1));
+        assertThat(clusterState.getRoutingNodes().node("node2")).hasSize(1);
+        assertThat(clusterState.getRoutingNodes().node("node3")).hasSize(1);
 
         logger.info("--> adding node4");
 
@@ -243,18 +242,18 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
 
         logShardStates(clusterState);
         // Shards remain started
-        assertThat(clusterState.getRoutingNodes().shardsWithState(STARTED).size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().shardsWithState(INITIALIZING).size(), equalTo(1));
+        assertThat(clusterState.getRoutingNodes().shardsWithState(STARTED)).hasSize(1);
+        assertThat(clusterState.getRoutingNodes().shardsWithState(INITIALIZING)).hasSize(1);
 
         logger.info("--> apply INITIALIZING shards");
         clusterState = startInitializingShardsAndReroute(strategy, clusterState);
 
         logShardStates(clusterState);
-        assertThat(clusterState.getRoutingNodes().node("node1").size(), equalTo(0));
+        assertThat(clusterState.getRoutingNodes().node("node1")).hasSize(0);
         // Node4 is available now, so the shard is moved off of node2
-        assertThat(clusterState.getRoutingNodes().node("node2").size(), equalTo(0));
-        assertThat(clusterState.getRoutingNodes().node("node3").size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node4").size(), equalTo(1));
+        assertThat(clusterState.getRoutingNodes().node("node2")).hasSize(0);
+        assertThat(clusterState.getRoutingNodes().node("node3")).hasSize(1);
+        assertThat(clusterState.getRoutingNodes().node("node4")).hasSize(1);
     }
 
     @Test
@@ -299,7 +298,7 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
                 Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
                     .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
                     .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 2)
-                    .put(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, "false")))
+                    .put(AutoExpandReplicas.SETTING_KEY, "false")))
             .build();
 
         RoutingTable initialRoutingTable = RoutingTable.builder()
@@ -319,7 +318,7 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
         logShardStates(clusterState);
 
         // Primary should initialize, even though both nodes are over the limit initialize
-        assertThat(clusterState.getRoutingNodes().shardsWithState(INITIALIZING).size(), equalTo(1));
+        assertThat(clusterState.getRoutingNodes().shardsWithState(INITIALIZING)).hasSize(1);
 
         String nodeWithPrimary, nodeWithoutPrimary;
         if (clusterState.getRoutingNodes().node("node1").size() == 1) {
@@ -353,18 +352,18 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
         logShardStates(clusterState);
 
         // Now the replica should be able to initialize
-        assertThat(clusterState.getRoutingNodes().shardsWithState(INITIALIZING).size(), equalTo(2));
+        assertThat(clusterState.getRoutingNodes().shardsWithState(INITIALIZING)).hasSize(2);
 
         logger.info("--> start the shards (primaries)");
         clusterState = startInitializingShardsAndReroute(strategy, clusterState);
 
         logShardStates(clusterState);
         // Assert that we're able to start the primary and replica, since they were both initializing
-        assertThat(clusterState.getRoutingNodes().shardsWithState(ShardRoutingState.STARTED).size(), equalTo(2));
+        assertThat(clusterState.getRoutingNodes().shardsWithState(ShardRoutingState.STARTED)).hasSize(2);
         // Assert that node1 got a single shard (the primary), even though its disk usage is too high
-        assertThat(clusterState.getRoutingNodes().node("node1").size(), equalTo(1));
+        assertThat(clusterState.getRoutingNodes().node("node1")).hasSize(1);
         // Assert that node2 got a single shard (a replica)
-        assertThat(clusterState.getRoutingNodes().node("node2").size(), equalTo(1));
+        assertThat(clusterState.getRoutingNodes().node("node2")).hasSize(1);
 
         // Assert that one replica is still unassigned
         //assertThat(clusterState.routingNodes().shardsWithState(ShardRoutingState.UNASSIGNED).size(), equalTo(1));
@@ -378,18 +377,18 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
 
         logShardStates(clusterState);
         // Assert that the replica is initialized now that node3 is available with enough space
-        assertThat(clusterState.getRoutingNodes().shardsWithState(ShardRoutingState.STARTED).size(), equalTo(2));
-        assertThat(clusterState.getRoutingNodes().shardsWithState(ShardRoutingState.INITIALIZING).size(), equalTo(1));
+        assertThat(clusterState.getRoutingNodes().shardsWithState(ShardRoutingState.STARTED)).hasSize(2);
+        assertThat(clusterState.getRoutingNodes().shardsWithState(ShardRoutingState.INITIALIZING)).hasSize(1);
 
         logger.info("--> start the shards (replicas)");
         clusterState = startInitializingShardsAndReroute(strategy, clusterState);
 
         logShardStates(clusterState);
         // Assert that all replicas could be started
-        assertThat(clusterState.getRoutingNodes().shardsWithState(ShardRoutingState.STARTED).size(), equalTo(3));
-        assertThat(clusterState.getRoutingNodes().node("node1").size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node2").size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node3").size(), equalTo(1));
+        assertThat(clusterState.getRoutingNodes().shardsWithState(ShardRoutingState.STARTED)).hasSize(3);
+        assertThat(clusterState.getRoutingNodes().node("node1")).hasSize(1);
+        assertThat(clusterState.getRoutingNodes().node("node2")).hasSize(1);
+        assertThat(clusterState.getRoutingNodes().node("node3")).hasSize(1);
 
         logger.info("--> changing decider settings");
 
@@ -415,10 +414,10 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
         logShardStates(clusterState);
 
         // Shards remain started
-        assertThat(clusterState.getRoutingNodes().shardsWithState(STARTED).size(), equalTo(3));
-        assertThat(clusterState.getRoutingNodes().node("node1").size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node2").size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node3").size(), equalTo(1));
+        assertThat(clusterState.getRoutingNodes().shardsWithState(STARTED)).hasSize(3);
+        assertThat(clusterState.getRoutingNodes().node("node1")).hasSize(1);
+        assertThat(clusterState.getRoutingNodes().node("node2")).hasSize(1);
+        assertThat(clusterState.getRoutingNodes().node("node3")).hasSize(1);
 
         logger.info("--> changing settings again");
 
@@ -444,11 +443,11 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
 
         logShardStates(clusterState);
         // Shards remain started
-        assertThat(clusterState.getRoutingNodes().shardsWithState(STARTED).size(), equalTo(3));
-        assertThat(clusterState.getRoutingNodes().node("node1").size(), equalTo(1));
+        assertThat(clusterState.getRoutingNodes().shardsWithState(STARTED)).hasSize(3);
+        assertThat(clusterState.getRoutingNodes().node("node1")).hasSize(1);
         // Shard hasn't been moved off of node2 yet because there's nowhere for it to go
-        assertThat(clusterState.getRoutingNodes().node("node2").size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node3").size(), equalTo(1));
+        assertThat(clusterState.getRoutingNodes().node("node2")).hasSize(1);
+        assertThat(clusterState.getRoutingNodes().node("node3")).hasSize(1);
 
         logger.info("--> adding node4");
 
@@ -460,21 +459,21 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
 
         logShardStates(clusterState);
         // Shards remain started
-        assertThat(clusterState.getRoutingNodes().shardsWithState(STARTED).size(), equalTo(2));
+        assertThat(clusterState.getRoutingNodes().shardsWithState(STARTED)).hasSize(2);
         // One shard is relocating off of node1
-        assertThat(clusterState.getRoutingNodes().shardsWithState(RELOCATING).size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().shardsWithState(INITIALIZING).size(), equalTo(1));
+        assertThat(clusterState.getRoutingNodes().shardsWithState(RELOCATING)).hasSize(1);
+        assertThat(clusterState.getRoutingNodes().shardsWithState(INITIALIZING)).hasSize(1);
 
         logger.info("--> apply INITIALIZING shards");
         clusterState = startInitializingShardsAndReroute(strategy, clusterState);
 
         logShardStates(clusterState);
         // primary shard already has been relocated away
-        assertThat(clusterState.getRoutingNodes().node(nodeWithPrimary).size(), equalTo(0));
+        assertThat(clusterState.getRoutingNodes().node(nodeWithPrimary)).hasSize(0);
         // node with increased space still has its shard
-        assertThat(clusterState.getRoutingNodes().node(nodeWithoutPrimary).size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node3").size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node4").size(), equalTo(1));
+        assertThat(clusterState.getRoutingNodes().node(nodeWithoutPrimary)).hasSize(1);
+        assertThat(clusterState.getRoutingNodes().node("node3")).hasSize(1);
+        assertThat(clusterState.getRoutingNodes().node("node4")).hasSize(1);
 
         logger.info("--> adding node5");
 
@@ -485,11 +484,11 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
 
         logShardStates(clusterState);
         // Shards remain started on node3 and node4
-        assertThat(clusterState.getRoutingNodes().shardsWithState(STARTED).size(), equalTo(2));
+        assertThat(clusterState.getRoutingNodes().shardsWithState(STARTED)).hasSize(2);
         // One shard is relocating off of node2 now
-        assertThat(clusterState.getRoutingNodes().shardsWithState(RELOCATING).size(), equalTo(1));
+        assertThat(clusterState.getRoutingNodes().shardsWithState(RELOCATING)).hasSize(1);
         // Initializing on node5
-        assertThat(clusterState.getRoutingNodes().shardsWithState(INITIALIZING).size(), equalTo(1));
+        assertThat(clusterState.getRoutingNodes().shardsWithState(INITIALIZING)).hasSize(1);
 
         logger.info("--> apply INITIALIZING shards");
         clusterState = startInitializingShardsAndReroute(strategy, clusterState);
@@ -497,19 +496,19 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
         logger.info("--> final cluster state:");
         logShardStates(clusterState);
         // Node1 still has no shards because it has no space for them
-        assertThat(clusterState.getRoutingNodes().node("node1").size(), equalTo(0));
+        assertThat(clusterState.getRoutingNodes().node("node1")).hasSize(0);
         // Node5 is available now, so the shard is moved off of node2
-        assertThat(clusterState.getRoutingNodes().node("node2").size(), equalTo(0));
-        assertThat(clusterState.getRoutingNodes().node("node3").size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node4").size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node5").size(), equalTo(1));
+        assertThat(clusterState.getRoutingNodes().node("node2")).hasSize(0);
+        assertThat(clusterState.getRoutingNodes().node("node3")).hasSize(1);
+        assertThat(clusterState.getRoutingNodes().node("node4")).hasSize(1);
+        assertThat(clusterState.getRoutingNodes().node("node5")).hasSize(1);
     }
 
     @Test
     public void testDiskThresholdWithShardSizes() {
         Settings diskSettings = Settings.builder()
             .put(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED_SETTING.getKey(), true)
-            .put(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, "false")
+            .put(AutoExpandReplicas.SETTING_KEY, "false")
             .put(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_LOW_DISK_WATERMARK_SETTING.getKey(), 0.7)
             .put(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_HIGH_DISK_WATERMARK_SETTING.getKey(), "71%").build();
 
@@ -543,7 +542,7 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
                 Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
                     .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0)
                     .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
-                    .put(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, "false")
+                    .put(AutoExpandReplicas.SETTING_KEY, "false")
                     .build()))
             .build();
 
@@ -569,9 +568,9 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
         logShardStates(clusterState);
 
         // Shard can't be allocated to node1 (or node2) because it would cause too much usage
-        assertThat(clusterState.getRoutingNodes().shardsWithState(INITIALIZING).size(), equalTo(0));
+        assertThat(clusterState.getRoutingNodes().shardsWithState(INITIALIZING)).hasSize(0);
         // No shards are started, no nodes have enough disk for allocation
-        assertThat(clusterState.getRoutingNodes().shardsWithState(STARTED).size(), equalTo(0));
+        assertThat(clusterState.getRoutingNodes().shardsWithState(STARTED)).hasSize(0);
     }
 
     @Test
@@ -612,7 +611,7 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
                 Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
                     .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
                     .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0)
-                    .put(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, "false")))
+                    .put(AutoExpandReplicas.SETTING_KEY, "false")))
             .build();
 
         RoutingTable routingTable = RoutingTable.builder()
@@ -633,7 +632,7 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
 
         // Shard can be allocated to node1, even though it only has 25% free,
         // because it's a primary that's never been allocated before
-        assertThat(clusterState.getRoutingNodes().shardsWithState(INITIALIZING).size(), equalTo(1));
+        assertThat(clusterState.getRoutingNodes().shardsWithState(INITIALIZING)).hasSize(1);
 
         logger.info("--> start the shards (primaries)");
         routingTable = startInitializingShardsAndReroute(strategy, clusterState).routingTable();
@@ -643,8 +642,8 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
         // A single shard is started on node1, even though it normally would not
         // be allowed, because it's a primary that hasn't been allocated, and node1
         // is still below the high watermark (unlike node3)
-        assertThat(clusterState.getRoutingNodes().shardsWithState(STARTED).size(), equalTo(1));
-        assertThat(clusterState.getRoutingNodes().node("node1").size(), equalTo(1));
+        assertThat(clusterState.getRoutingNodes().shardsWithState(STARTED)).hasSize(1);
+        assertThat(clusterState.getRoutingNodes().node("node1")).hasSize(1);
     }
 
     @Test
@@ -657,8 +656,8 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
         usages.put("node3", new DiskUsage("node3", "n3", "/dev/null", 100, 0));  // 100% used
 
         DiskUsage node1Usage = decider.averageUsage(rn, usages.build());
-        assertThat(node1Usage.getTotalBytes(), equalTo(100L));
-        assertThat(node1Usage.getFreeBytes(), equalTo(25L));
+        assertThat(node1Usage.getTotalBytes()).isEqualTo(100L);
+        assertThat(node1Usage.getFreeBytes()).isEqualTo(25L);
     }
 
     public void testFreeDiskPercentageAfterShardAssigned() {
@@ -673,7 +672,7 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
             ),
             11L
         );
-        assertThat(after, equalTo(19.0));
+        assertThat(after).isEqualTo(19.0);
     }
 
     public void testCanRemainWithShardRelocatingAway() {
@@ -704,12 +703,12 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
                     .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
                     .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 2)
                     .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0)
-                    .put(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, "false")))
+                    .put(AutoExpandReplicas.SETTING_KEY, "false")))
             .put(IndexMetadata.builder("foo").settings(
                 Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
                     .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
                     .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0)
-                    .put(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, "false")))
+                    .put(AutoExpandReplicas.SETTING_KEY, "false")))
             .build();
 
         RoutingTable initialRoutingTable = RoutingTable.builder()
@@ -749,11 +748,11 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
                 null, System.nanoTime());
         routingAllocation.debugDecision(true);
         Decision decision = diskThresholdDecider.canRemain(firstRouting, firstRoutingNode, routingAllocation);
-        assertThat(decision.type(), equalTo(Decision.Type.NO));
-        assertThat(decision.getExplanation(), containsString(
+        assertThat(decision.type()).isEqualTo(Decision.Type.NO);
+        assertThat(decision.getExplanation()).contains(
             "the shard cannot remain on this node because it is above the high watermark cluster setting " +
             "[cluster.routing.allocation.disk.watermark.high=70%] and there is less than the required [30.0%] free disk on node, " +
-            "actual free: [20.0%]"));
+            "actual free: [20.0%]");
 
         // Two shards consuming each 80% of disk space while 70% is allowed, but one is relocating, so shard 0 can stay
         firstRouting = TestShardRouting.newShardRouting("test", 0, "node1", null, true, ShardRoutingState.STARTED);
@@ -776,11 +775,10 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
             System.nanoTime());
         routingAllocation.debugDecision(true);
         decision = diskThresholdDecider.canRemain(firstRouting, firstRoutingNode, routingAllocation);
-        assertThat(decision.type(), equalTo(Decision.Type.YES));
-        assertEquals("there is enough disk on this node for the shard to remain, free: [60b]",
-                     decision.getExplanation());
+        assertThat(decision.type()).isEqualTo(Decision.Type.YES);
+        assertThat(decision.getExplanation()).isEqualTo("there is enough disk on this node for the shard to remain, free: [60b]");
         decision = diskThresholdDecider.canAllocate(fooRouting, firstRoutingNode, routingAllocation);
-        assertThat(decision.type(), equalTo(Decision.Type.NO));
+        assertThat(decision.type()).isEqualTo(Decision.Type.NO);
         if (fooRouting.recoverySource().getType() == RecoverySource.Type.EMPTY_STORE) {
             assertThat(decision.getExplanation(), containsString(
                 "the node is above the high watermark cluster setting [cluster.routing.allocation.disk.watermark.high=70%], using " +
@@ -807,13 +805,13 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
         // Ensure that the reroute call doesn't alter the routing table, since the first primary is relocating away
         // and therefor we will have sufficient disk space on node1.
         ClusterState result = strategy.reroute(clusterState, "reroute");
-        assertThat(result, equalTo(clusterState));
-        assertThat(result.routingTable().index("test").getShards().get(0).primaryShard().state(), equalTo(STARTED));
-        assertThat(result.routingTable().index("test").getShards().get(0).primaryShard().currentNodeId(), equalTo("node1"));
-        assertThat(result.routingTable().index("test").getShards().get(0).primaryShard().relocatingNodeId(), nullValue());
-        assertThat(result.routingTable().index("test").getShards().get(1).primaryShard().state(), equalTo(RELOCATING));
-        assertThat(result.routingTable().index("test").getShards().get(1).primaryShard().currentNodeId(), equalTo("node1"));
-        assertThat(result.routingTable().index("test").getShards().get(1).primaryShard().relocatingNodeId(), equalTo("node2"));
+        assertThat(result).isEqualTo(clusterState);
+        assertThat(result.routingTable().index("test").getShards().get(0).primaryShard().state()).isEqualTo(STARTED);
+        assertThat(result.routingTable().index("test").getShards().get(0).primaryShard().currentNodeId()).isEqualTo("node1");
+        assertThat(result.routingTable().index("test").getShards().get(0).primaryShard().relocatingNodeId()).isNull();
+        assertThat(result.routingTable().index("test").getShards().get(1).primaryShard().state()).isEqualTo(RELOCATING);
+        assertThat(result.routingTable().index("test").getShards().get(1).primaryShard().currentNodeId()).isEqualTo("node1");
+        assertThat(result.routingTable().index("test").getShards().get(1).primaryShard().relocatingNodeId()).isEqualTo("node2");
     }
 
     @Test
@@ -868,9 +866,9 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
         ClusterState result = strategy.reroute(clusterState, "reroute");
 
         ShardRouting shardRouting = result.routingTable().index("test").getShards().get(0).primaryShard();
-        assertThat(shardRouting.state(), equalTo(UNASSIGNED));
-        assertThat(shardRouting.currentNodeId(), nullValue());
-        assertThat(shardRouting.relocatingNodeId(), nullValue());
+        assertThat(shardRouting.state()).isEqualTo(UNASSIGNED);
+        assertThat(shardRouting.currentNodeId()).isNull();
+        assertThat(shardRouting.relocatingNodeId()).isNull();
 
         // force assign shard and validate that it cannot remain.
         ShardId shardId = shardRouting.shardId();
@@ -888,11 +886,11 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
             null, System.nanoTime());
         routingAllocation.debugDecision(true);
         Decision decision = diskThresholdDecider.canRemain(startedShard, clusterState.getRoutingNodes().node("data"), routingAllocation);
-        assertThat(decision.type(), equalTo(Decision.Type.NO));
-        assertThat(decision.getExplanation(), containsString(
+        assertThat(decision.type()).isEqualTo(Decision.Type.NO);
+        assertThat(decision.getExplanation()).contains(
             "the shard cannot remain on this node because it is above the high watermark cluster setting" +
                 " [cluster.routing.allocation.disk.watermark.high=70%] and there is less than the required [30.0%] free disk on node," +
-                " actual free: [20.0%]"));
+                " actual free: [20.0%]");
     }
 
     public void logShardStates(ClusterState state) {
@@ -912,33 +910,30 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
 
     @Test
     public void testDiskUsageWithRelocations() {
-        assertThat(new DiskThresholdDecider.DiskUsageWithRelocations(new DiskUsage("n", "n", "/dev/null", 1000L, 1000L), 0).getFreeBytes(),
-                   equalTo(1000L));
-        assertThat(new DiskThresholdDecider.DiskUsageWithRelocations(new DiskUsage("n", "n", "/dev/null", 1000L, 1000L), 9).getFreeBytes(),
-                   equalTo(991L));
-        assertThat(new DiskThresholdDecider.DiskUsageWithRelocations(new DiskUsage("n", "n", "/dev/null", 1000L, 1000L), -9).getFreeBytes(),
-                   equalTo(1009L));
+        assertThat(new DiskThresholdDecider.DiskUsageWithRelocations(new DiskUsage("n", "n", "/dev/null", 1000L, 1000L), 0).getFreeBytes()).isEqualTo(1000L);
+        assertThat(new DiskThresholdDecider.DiskUsageWithRelocations(new DiskUsage("n", "n", "/dev/null", 1000L, 1000L), 9).getFreeBytes()).isEqualTo(991L);
+        assertThat(new DiskThresholdDecider.DiskUsageWithRelocations(new DiskUsage("n", "n", "/dev/null", 1000L, 1000L), -9).getFreeBytes()).isEqualTo(1009L);
 
         assertThat(new DiskThresholdDecider.DiskUsageWithRelocations(new DiskUsage("n", "n", "/dev/null", 1000L, 1000L), 0)
-                       .getFreeDiskAsPercentage(), equalTo(100.0));
+                       .getFreeDiskAsPercentage()).isEqualTo(100.0);
         assertThat(new DiskThresholdDecider.DiskUsageWithRelocations(new DiskUsage("n", "n", "/dev/null", 1000L, 500L), 0)
-                       .getFreeDiskAsPercentage(), equalTo(50.0));
+                       .getFreeDiskAsPercentage()).isEqualTo(50.0);
         assertThat(new DiskThresholdDecider.DiskUsageWithRelocations(new DiskUsage("n", "n", "/dev/null", 1000L, 500L), 100)
-                       .getFreeDiskAsPercentage(), equalTo(40.0));
+                       .getFreeDiskAsPercentage()).isEqualTo(40.0);
 
         assertThat(new DiskThresholdDecider.DiskUsageWithRelocations(new DiskUsage("n", "n", "/dev/null", 1000L, 1000L), 0)
-                       .getUsedDiskAsPercentage(), equalTo(0.0));
+                       .getUsedDiskAsPercentage()).isEqualTo(0.0);
         assertThat(new DiskThresholdDecider.DiskUsageWithRelocations(new DiskUsage("n", "n", "/dev/null", 1000L, 500L), 0)
-                       .getUsedDiskAsPercentage(), equalTo(50.0));
+                       .getUsedDiskAsPercentage()).isEqualTo(50.0);
         assertThat(new DiskThresholdDecider.DiskUsageWithRelocations(new DiskUsage("n", "n", "/dev/null", 1000L, 500L), 100)
-                       .getUsedDiskAsPercentage(), equalTo(60.0));
+                       .getUsedDiskAsPercentage()).isEqualTo(60.0);
 
         assertThat(new DiskThresholdDecider.DiskUsageWithRelocations(
-            new DiskUsage("n", "n", "/dev/null", Long.MAX_VALUE, Long.MAX_VALUE), 0).getFreeBytes(), equalTo(Long.MAX_VALUE));
+            new DiskUsage("n", "n", "/dev/null", Long.MAX_VALUE, Long.MAX_VALUE), 0).getFreeBytes()).isEqualTo(Long.MAX_VALUE);
         assertThat(new DiskThresholdDecider.DiskUsageWithRelocations(
-            new DiskUsage("n", "n", "/dev/null", Long.MAX_VALUE, Long.MAX_VALUE), 10).getFreeBytes(), equalTo(Long.MAX_VALUE - 10));
+            new DiskUsage("n", "n", "/dev/null", Long.MAX_VALUE, Long.MAX_VALUE), 10).getFreeBytes()).isEqualTo(Long.MAX_VALUE - 10);
         assertThat(new DiskThresholdDecider.DiskUsageWithRelocations(
-            new DiskUsage("n", "n", "/dev/null", Long.MAX_VALUE, Long.MAX_VALUE), -10).getFreeBytes(), equalTo(Long.MAX_VALUE));
+            new DiskUsage("n", "n", "/dev/null", Long.MAX_VALUE, Long.MAX_VALUE), -10).getFreeBytes()).isEqualTo(Long.MAX_VALUE);
     }
 
     /**

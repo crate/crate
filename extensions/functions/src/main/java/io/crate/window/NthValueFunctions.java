@@ -25,6 +25,7 @@ import static io.crate.execution.engine.window.WindowFrameState.isLowerBoundIncr
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 
 import java.util.List;
+import java.util.function.LongConsumer;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -34,9 +35,10 @@ import io.crate.data.RowN;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.window.WindowFrameState;
 import io.crate.execution.engine.window.WindowFunction;
+import io.crate.metadata.Functions;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
-import io.crate.module.ExtraFunctionsModule;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
 
@@ -49,7 +51,7 @@ public class NthValueFunctions implements WindowFunction {
                                   WindowFrameState currentFrame,
                                   List<? extends CollectExpression<Row, ?>> expressions,
                                   boolean ignoreNulls,
-                                  Input... args) {
+                                  Input<?> ... args) {
                 if (ignoreNulls) {
                     for (int i = adjustForShrinkingWindow; i < currentFrame.upperBoundExclusive(); i++) {
                         Object[] nthRowCells = currentFrame.getRowInFrameAtIndexOrNull(i);
@@ -75,7 +77,7 @@ public class NthValueFunctions implements WindowFunction {
                                   WindowFrameState currentFrame,
                                   List<? extends CollectExpression<Row, ?>> expressions,
                                   boolean ignoreNulls,
-                                  Input... args) {
+                                  Input<?> ... args) {
                 if (ignoreNulls) {
                     for (int i = adjustForShrinkingWindow + currentFrame.size() - 1; i >= 0; i--) {
                         Object[] nthRowCells = currentFrame.getRowInFrameAtIndexOrNull(i);
@@ -101,7 +103,7 @@ public class NthValueFunctions implements WindowFunction {
                                   WindowFrameState currentFrame,
                                   List<? extends CollectExpression<Row, ?>> expressions,
                                   boolean ignoreNulls,
-                                  Input... args) {
+                                  Input<?> ... args) {
                 Number position = (Number) args[1].value();
                 if (position == null) {
                     return null;
@@ -134,11 +136,11 @@ public class NthValueFunctions implements WindowFunction {
                                        WindowFrameState currentFrame,
                                        List<? extends CollectExpression<Row, ?>> expressions,
                                        boolean ignoreNulls,
-                                       Input[] args);
+                                       Input<?> ... args);
 
         protected static Object extractValueFromRow(Object[] nthRowCells,
                                    List<? extends CollectExpression<Row, ?>> expressions,
-                                   Input... args) {
+                                   Input<?> ... args) {
             Row nthRowInFrame = new RowN(nthRowCells);
             for (CollectExpression<Row, ?> expression : expressions) {
                 expression.setNextRow(nthRowInFrame);
@@ -149,7 +151,7 @@ public class NthValueFunctions implements WindowFunction {
         protected static Object extractValueAtIndex(int index,
                                              WindowFrameState currentFrame,
                                              List<? extends CollectExpression<Row, ?>> expressions,
-                                             Input[] args) {
+                                             Input<?> ... args) {
             Object[] nthRowCells = currentFrame.getRowInFrameAtIndexOrNull(index);
             if (nthRowCells == null) {
                 return null;
@@ -158,13 +160,14 @@ public class NthValueFunctions implements WindowFunction {
         }
     }
 
-    public static void register(ExtraFunctionsModule module) {
-        module.register(
+    public static void register(Functions.Builder builder) {
+        builder.add(
             Signature.window(
-                FIRST_VALUE_NAME,
-                TypeSignature.parse("E"),
-                TypeSignature.parse("E")
-            ).withTypeVariableConstraints(typeVariable("E")),
+                    FIRST_VALUE_NAME,
+                    TypeSignature.parse("E"),
+                    TypeSignature.parse("E")
+                ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withTypeVariableConstraints(typeVariable("E")),
             (signature, boundSignature) ->
                 new NthValueFunctions(
                     signature,
@@ -173,12 +176,13 @@ public class NthValueFunctions implements WindowFunction {
                 )
         );
 
-        module.register(
+        builder.add(
             Signature.window(
-                LAST_VALUE_NAME,
-                TypeSignature.parse("E"),
-                TypeSignature.parse("E")
-            ).withTypeVariableConstraints(typeVariable("E")),
+                    LAST_VALUE_NAME,
+                    TypeSignature.parse("E"),
+                    TypeSignature.parse("E")
+                ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withTypeVariableConstraints(typeVariable("E")),
             (signature, boundSignature) ->
                 new NthValueFunctions(
                     signature,
@@ -187,13 +191,14 @@ public class NthValueFunctions implements WindowFunction {
                 )
         );
 
-        module.register(
+        builder.add(
             Signature.window(
-                NTH_VALUE_NAME,
-                TypeSignature.parse("E"),
-                DataTypes.INTEGER.getTypeSignature(),
-                TypeSignature.parse("E")
-            ).withTypeVariableConstraints(typeVariable("E")),
+                    NTH_VALUE_NAME,
+                    TypeSignature.parse("E"),
+                    DataTypes.INTEGER.getTypeSignature(),
+                    TypeSignature.parse("E")
+                ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withTypeVariableConstraints(typeVariable("E")),
             (signature, boundSignature) ->
                 new NthValueFunctions(
                     signature,
@@ -233,11 +238,12 @@ public class NthValueFunctions implements WindowFunction {
     }
 
     @Override
-    public Object execute(int idxInPartition,
+    public Object execute(LongConsumer allocateBytes,
+                          int idxInPartition,
                           WindowFrameState currentFrame,
                           List<? extends CollectExpression<Row, ?>> expressions,
                           @Nullable Boolean ignoreNulls,
-                          Input... args) {
+                          Input<?> ... args) {
         boolean ignoreNullsOrFalse = ignoreNulls != null && ignoreNulls;
         boolean shrinkingWindow = isLowerBoundIncreasing(currentFrame, seenFrameLowerBound);
         if (idxInPartition == 0 || currentFrame.upperBoundExclusive() > seenFrameUpperBound || shrinkingWindow) {

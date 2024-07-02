@@ -21,20 +21,20 @@
 
 package io.crate.analyze;
 
-import io.crate.data.Input;
-import io.crate.exceptions.VersioningValidationException;
-import io.crate.expression.operator.AndOperator;
-import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.doc.DocSysColumns;
-
-import org.jetbrains.annotations.Nullable;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
+
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.data.Input;
+import io.crate.exceptions.VersioningValidationException;
+import io.crate.expression.operator.AndOperator;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.doc.DocSysColumns;
 
 public class WhereClause {
 
@@ -99,19 +99,19 @@ public class WhereClause {
     }
 
     public static void validateVersioningColumnsUsage(Symbol query) {
-        if (Symbols.containsColumn(query, DocSysColumns.SEQ_NO)) {
-            if (!Symbols.containsColumn(query, DocSysColumns.PRIMARY_TERM)) {
+        if (query.hasColumn(DocSysColumns.SEQ_NO)) {
+            if (!query.hasColumn(DocSysColumns.PRIMARY_TERM)) {
                 throw VersioningValidationException.seqNoAndPrimaryTermUsage();
             } else {
-                if (Symbols.containsColumn(query, DocSysColumns.VERSION)) {
+                if (query.hasColumn(DocSysColumns.VERSION)) {
                     throw VersioningValidationException.mixedVersioningMeachanismsUsage();
                 }
             }
-        } else if (Symbols.containsColumn(query, DocSysColumns.PRIMARY_TERM)) {
-            if (!Symbols.containsColumn(query, DocSysColumns.SEQ_NO)) {
+        } else if (query.hasColumn(DocSysColumns.PRIMARY_TERM)) {
+            if (!query.hasColumn(DocSysColumns.SEQ_NO)) {
                 throw VersioningValidationException.seqNoAndPrimaryTermUsage();
             } else {
-                if (Symbols.containsColumn(query, DocSysColumns.VERSION)) {
+                if (query.hasColumn(DocSysColumns.VERSION)) {
                     throw VersioningValidationException.mixedVersioningMeachanismsUsage();
                 }
             }
@@ -122,7 +122,6 @@ public class WhereClause {
         return clusteredBy;
     }
 
-    @Nullable
     public Set<String> routingValues() {
         if (clusteredBy.isEmpty() == false) {
             HashSet<String> result = new HashSet<>(clusteredBy.size());
@@ -132,7 +131,7 @@ public class WhereClause {
             }
             return result;
         } else {
-            return null;
+            return Set.of();
         }
     }
 
@@ -158,12 +157,13 @@ public class WhereClause {
     }
 
     public boolean hasVersions() {
-        return Symbols.containsColumn(query, DocSysColumns.VERSION);
+        return query != null && query.hasColumn(DocSysColumns.VERSION);
     }
 
     public boolean hasSeqNoAndPrimaryTerm() {
-        return Symbols.containsColumn(query, DocSysColumns.SEQ_NO) &&
-               Symbols.containsColumn(query, DocSysColumns.PRIMARY_TERM);
+        return query != null
+            && query.hasColumn(DocSysColumns.SEQ_NO)
+            && query.hasColumn(DocSysColumns.PRIMARY_TERM);
     }
 
     /**

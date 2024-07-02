@@ -21,27 +21,35 @@
 
 package io.crate.analyze;
 
-import io.crate.user.Privilege;
-import io.crate.user.Privilege.State;
-import io.crate.user.User;
-import io.crate.common.collections.Lists2;
-import io.crate.exceptions.RelationUnknown;
-import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Schemas;
-import io.crate.metadata.SearchPath;
-import io.crate.metadata.information.InformationSchemaInfo;
-import io.crate.sql.tree.DenyPrivilege;
-import io.crate.sql.tree.GrantPrivilege;
-import io.crate.sql.tree.QualifiedName;
-import io.crate.sql.tree.RevokePrivilege;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+
+import org.jetbrains.annotations.NotNull;
+
+import io.crate.common.collections.Lists;
+import io.crate.exceptions.RelationUnknown;
+import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.metadata.RelationInfo;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.SearchPath;
+import io.crate.metadata.information.InformationSchemaInfo;
+import io.crate.metadata.table.Operation;
+import io.crate.role.GrantedRolesChange;
+import io.crate.role.Permission;
+import io.crate.role.Policy;
+import io.crate.role.Privilege;
+import io.crate.role.Role;
+import io.crate.role.Securable;
+import io.crate.sql.tree.DenyPrivilege;
+import io.crate.sql.tree.GrantPrivilege;
+import io.crate.sql.tree.PrivilegeStatement;
+import io.crate.sql.tree.QualifiedName;
+import io.crate.sql.tree.RevokePrivilege;
 
 /**
  * Analyzer for privileges related statements (ie GRANT/REVOKE statements)
@@ -55,38 +63,93 @@ class PrivilegesAnalyzer {
         this.schemas = schemas;
     }
 
-    AnalyzedPrivileges analyzeGrant(GrantPrivilege node, User user, SearchPath searchPath) {
-        Privilege.Clazz clazz = Privilege.Clazz.valueOf(node.clazz());
-        List<String> idents = validatePrivilegeIdents(clazz, node.privilegeIdents(), false, searchPath, schemas);
-
-        return new AnalyzedPrivileges(node.userNames(),
-            privilegeTypesToPrivileges(getPrivilegeTypes(node.all(), node.privileges()), user, State.GRANT, idents, clazz));
+    AnalyzedPrivileges analyzeGrant(GrantPrivilege node, Role grantor, SearchPath searchPath) {
+        return buildAnalyzedPrivileges(node, grantor, searchPath);
     }
 
-    AnalyzedPrivileges analyzeRevoke(RevokePrivilege node, User user, SearchPath searchPath) {
-        Privilege.Clazz clazz = Privilege.Clazz.valueOf(node.clazz());
-        List<String> idents = validatePrivilegeIdents(clazz, node.privilegeIdents(), true, searchPath, schemas);
-
-        return new AnalyzedPrivileges(node.userNames(),
-            privilegeTypesToPrivileges(getPrivilegeTypes(node.all(), node.privileges()), user, State.REVOKE, idents, clazz));
+    AnalyzedPrivileges analyzeRevoke(RevokePrivilege node, Role grantor, SearchPath searchPath) {
+        return buildAnalyzedPrivileges(node, grantor, searchPath);
     }
 
-    AnalyzedPrivileges analyzeDeny(DenyPrivilege node, User user, SearchPath searchPath) {
-        Privilege.Clazz clazz = Privilege.Clazz.valueOf(node.clazz());
-        List<String> idents = validatePrivilegeIdents(clazz, node.privilegeIdents(), false, searchPath, schemas);
-
-        return new AnalyzedPrivileges(node.userNames(),
-            privilegeTypesToPrivileges(getPrivilegeTypes(node.all(), node.privileges()), user, State.DENY, idents, clazz));
+    AnalyzedPrivileges analyzeDeny(DenyPrivilege node, Role grantor, SearchPath searchPath) {
+        return buildAnalyzedPrivileges(node, grantor, searchPath);
     }
 
-    private static Collection<Privilege.Type> getPrivilegeTypes(boolean all, List<String> typeNames) {
-        Collection<Privilege.Type> privilegeTypes;
-        if (all) {
-            privilegeTypes = Privilege.Type.VALUES;
-        } else {
-            privilegeTypes = parsePrivilegeTypes(typeNames);
+    @NotNull
+    private AnalyzedPrivileges buildAnalyzedPrivileges(PrivilegeStatement node, Role grantor, SearchPath searchPath) {
+        Policy policy;
+        switch (node) {
+            case GrantPrivilege ignored -> policy = Policy.GRANT;
+            case RevokePrivilege ignored -> policy = Policy.REVOKE;
+            case DenyPrivilege ignored -> policy = Policy.DENY;
         }
-        return privilegeTypes;
+        Securable securable = Securable.valueOf(node.securable());
+        List<String> idents = validatePrivilegeIdents(
+            grantor,
+            securable,
+            node.privilegeIdents(),
+            policy == Policy.REVOKE,
+            searchPath,
+            schemas);
+
+
+        if (securable == Securable.CLUSTER && node.all() == false) {
+            List<Permission> permissions = parsePermissions(node.privileges(), false);
+            if (permissions.isEmpty() == false) {
+                if (permissions.size() != node.privileges().size()) {
+                    throw new IllegalArgumentException("Mixing up cluster privileges with roles is not allowed");
+                } else {
+                    return AnalyzedPrivileges.ofPrivileges(node.userNames(),
+                        permissionsToPrivileges(getPermissions(node.all(), node.privileges()),
+                            grantor,
+                            policy,
+                            idents,
+                            securable));
+                }
+            }
+
+            if (policy == Policy.DENY) {
+                throw new IllegalArgumentException("Cannot DENY a role");
+            }
+            if (node.userNames().contains(Role.CRATE_USER.name())) {
+                throw new IllegalArgumentException("Cannot grant roles to " + Role.CRATE_USER.name() + " superuser");
+            }
+            if (node.privileges().contains(Role.CRATE_USER.name())) {
+                throw new IllegalArgumentException("Cannot grant " + Role.CRATE_USER.name() + " superuser, to other " +
+                    "users or roles");
+            }
+
+            for (var grantee : node.userNames()) {
+                for (var roleNameToGrant : node.privileges()) {
+                    if (roleNameToGrant.equals(grantee)) {
+                        throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                            "Cannot grant role %s to itself as a cycle will be created", grantee));
+                    }
+                }
+            }
+            return AnalyzedPrivileges.ofRolePrivileges(
+                node.userNames(),
+                new GrantedRolesChange(policy, new HashSet<>(node.privileges()),
+                    grantor.name()));
+        } else {
+            return AnalyzedPrivileges.ofPrivileges(node.userNames(),
+                permissionsToPrivileges(
+                    getPermissions(node.all(), node.privileges()),
+                    grantor,
+                    policy,
+                    idents,
+                    securable));
+        }
+    }
+
+    private static Collection<Permission> getPermissions(boolean all, List<String> permissionNames) {
+        Collection<Permission> permissions;
+        if (all) {
+            permissions = Permission.VALUES;
+        } else {
+            permissions = parsePermissions(permissionNames, true);
+        }
+        return permissions;
     }
 
     private static void validateSchemaNames(List<String> schemaNames) {
@@ -99,65 +162,65 @@ class PrivilegesAnalyzer {
         }
     }
 
-    private List<String> validatePrivilegeIdents(Privilege.Clazz clazz,
+    private List<String> validatePrivilegeIdents(Role sessionUser,
+                                                 Securable securable,
                                                  List<QualifiedName> tableOrSchemaNames,
                                                  boolean isRevoke,
                                                  SearchPath searchPath,
                                                  Schemas schemas) {
-        if (Privilege.Clazz.SCHEMA.equals(clazz)) {
-            List<String> schemaNames = Lists2.map(tableOrSchemaNames, QualifiedName::toString);
+        if (Securable.SCHEMA.equals(securable)) {
+            List<String> schemaNames = Lists.map(tableOrSchemaNames, QualifiedName::toString);
             if (isRevoke) {
                 return schemaNames;
             }
             validateSchemaNames(schemaNames);
             return schemaNames;
         } else {
-            return resolveAndValidateRelations(tableOrSchemaNames, searchPath, schemas, isRevoke);
+            return resolveAndValidateRelations(tableOrSchemaNames, sessionUser, searchPath, schemas, isRevoke);
         }
     }
 
-    private static List<Privilege.Type> parsePrivilegeTypes(List<String> privilegeTypeNames) {
-        List<Privilege.Type> privilegeTypes = new ArrayList<>(privilegeTypeNames.size());
-        for (String typeName : privilegeTypeNames) {
-            Privilege.Type privilegeType;
+    private static List<Permission> parsePermissions(List<String> permissionNames, boolean validate) {
+        List<Permission> permissions = new ArrayList<>(permissionNames.size());
+        for (String permissionName : permissionNames) {
+            Permission permission;
             try {
-                privilegeType = Privilege.Type.valueOf(typeName.toUpperCase(Locale.ENGLISH));
+                permission = Permission.valueOf(permissionName.toUpperCase(Locale.ENGLISH));
+                permissions.add(permission);
             } catch (IllegalArgumentException e) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "Unknown privilege type '%s'", typeName));
+                if (validate) {
+                    throw new IllegalArgumentException(String.format(Locale.ENGLISH,
+                        "Unknown permission '%s'", permissionName));
+                }
             }
-            //noinspection PointlessBooleanExpression
-            if (Privilege.Type.VALUES.contains(privilegeType) == false) {
-                throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                    "Unknown privilege type '%s'", typeName));
-            }
-            privilegeTypes.add(privilegeType);
         }
-        return privilegeTypes;
+        return permissions;
     }
 
-    private static Set<Privilege> privilegeTypesToPrivileges(Collection<Privilege.Type> privilegeTypes,
-                                                             User grantor,
-                                                             State state,
-                                                             List<String> idents,
-                                                             Privilege.Clazz clazz) {
-        Set<Privilege> privileges = new HashSet<>(privilegeTypes.size());
-        if (Privilege.Clazz.CLUSTER.equals(clazz)) {
-            for (Privilege.Type privilegeType : privilegeTypes) {
-                Privilege privilege = new Privilege(state,
-                    privilegeType,
-                    clazz,
+    private static Set<Privilege> permissionsToPrivileges(Collection<Permission> permissions,
+                                                          Role grantor,
+                                                          Policy policy,
+                                                          List<String> idents,
+                                                          Securable securable) {
+        Set<Privilege> privileges = new HashSet<>(permissions.size());
+        if (Securable.CLUSTER.equals(securable)) {
+            for (Permission permission : permissions) {
+                Privilege privilege = new Privilege(
+                    policy,
+                    permission,
+                    securable,
                     null,
                     grantor.name()
                 );
                 privileges.add(privilege);
             }
         } else {
-            for (Privilege.Type privilegeType : privilegeTypes) {
+            for (Permission permission : permissions) {
                 for (String ident : idents) {
-                    Privilege privilege = new Privilege(state,
-                        privilegeType,
-                        clazz,
+                    Privilege privilege = new Privilege(
+                        policy,
+                        permission,
+                        securable,
                         ident,
                         grantor.name()
                     );
@@ -170,12 +233,14 @@ class PrivilegesAnalyzer {
     }
 
     private static List<String> resolveAndValidateRelations(List<QualifiedName> relations,
+                                                            Role sessionUser,
                                                             SearchPath searchPath,
                                                             Schemas schemas,
                                                             boolean isRevoke) {
-        return Lists2.map(relations, q -> {
+        return Lists.map(relations, q -> {
             try {
-                RelationName relationName = schemas.resolveRelation(q, searchPath);
+                RelationInfo relation = schemas.findRelation(q, Operation.READ, sessionUser, searchPath);
+                RelationName relationName = relation.ident();
                 if (!isRevoke) {
                     validateSchemaName(relationName.schema());
                 }

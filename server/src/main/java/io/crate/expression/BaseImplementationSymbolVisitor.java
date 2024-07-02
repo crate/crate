@@ -24,7 +24,7 @@ package io.crate.expression;
 import java.util.List;
 import java.util.Locale;
 
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Input;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.expression.symbol.AliasSymbol;
@@ -58,7 +58,7 @@ public class BaseImplementationSymbolVisitor<C> extends SymbolVisitor<C, Input<?
 
         if (functionImplementation instanceof Scalar<?, ?>) {
             List<Symbol> arguments = function.arguments();
-            Scalar<?, ?> scalarImpl = ((Scalar) functionImplementation).compile(arguments, txnCtx.sessionSettings().userName(), nodeCtx.userLookup());
+            Scalar<?, ?> scalarImpl = ((Scalar) functionImplementation).compile(arguments, txnCtx.sessionSettings().userName(), nodeCtx.roles());
             Input[] argumentInputs = new Input[arguments.size()];
             int i = 0;
             for (Symbol argument : function.arguments()) {
@@ -71,7 +71,7 @@ public class BaseImplementationSymbolVisitor<C> extends SymbolVisitor<C, Input<?
                     Locale.ENGLISH,
                     "Function %s(%s) is not a scalar function.",
                     signature.getName(),
-                    Lists2.joinOn(", ", function.arguments(), x -> x.valueType().getName())
+                    Lists.joinOn(", ", function.arguments(), x -> x.valueType().getName())
                 )
             );
         }

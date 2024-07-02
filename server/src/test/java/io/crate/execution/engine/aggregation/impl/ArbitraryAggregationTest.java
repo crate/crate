@@ -29,6 +29,7 @@ import java.util.Map;
 import org.junit.Test;
 
 import io.crate.expression.symbol.Literal;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.functions.Signature;
 import io.crate.operation.aggregation.AggregationTestCase;
@@ -40,10 +41,10 @@ public class ArbitraryAggregationTest extends AggregationTestCase {
     private Object executeAggregation(DataType<?> argumentType, Object[][] data) throws Exception {
         return executeAggregation(
             Signature.aggregate(
-                ArbitraryAggregation.NAME,
-                argumentType.getTypeSignature(),
-                argumentType.getTypeSignature()
-            ),
+                    ArbitraryAggregation.NAME,
+                    argumentType.getTypeSignature(),
+                    argumentType.getTypeSignature())
+                .withFeature(Scalar.Feature.DETERMINISTIC),
             data,
             List.of()
         );
@@ -140,7 +141,7 @@ public class ArbitraryAggregationTest extends AggregationTestCase {
             "any_value",
             DataTypes.INTEGER.getTypeSignature(),
             DataTypes.INTEGER.getTypeSignature()
-        );
+        ).withFeature(Scalar.Feature.DETERMINISTIC);
         Object result = executeAggregation(aggregate, new Object[][] { new Object[] { 1 } }, List.of());
         assertThat(result).isEqualTo(1);
     }

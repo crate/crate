@@ -42,6 +42,7 @@ import io.crate.analyze.JoinRelation;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.QueriedSelectRelation;
+import io.crate.analyze.RelationNames;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.SubqueryAnalyzer;
@@ -51,10 +52,11 @@ import io.crate.analyze.validator.GroupBySymbolValidator;
 import io.crate.analyze.validator.HavingSymbolValidator;
 import io.crate.analyze.validator.SemanticSortValidator;
 import io.crate.analyze.where.WhereClauseValidator;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.RelationValidationException;
+import io.crate.exceptions.UnauthorizedException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.scalar.arithmetic.ArrayFunction;
@@ -65,20 +67,21 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.tablefunctions.TableFunctionFactory;
 import io.crate.expression.tablefunctions.ValuesFunction;
+import io.crate.fdw.ForeignTable;
+import io.crate.fdw.ForeignTableRelation;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
-import io.crate.metadata.view.View;
-import io.crate.metadata.view.ViewMetadata;
+import io.crate.metadata.view.ViewInfo;
 import io.crate.planner.consumer.OrderByWithAggregationValidator;
-import io.crate.planner.consumer.RelationNameCollector;
+import io.crate.role.Role;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.AliasedRelation;
 import io.crate.sql.tree.DefaultTraversalVisitor;
@@ -117,16 +120,14 @@ import io.crate.types.RowType;
 public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, StatementAnalysisContext> {
 
     private final NodeContext nodeCtx;
-    private final Schemas schemas;
 
     private static final List<Relation> EMPTY_ROW_TABLE_RELATION = List.of(
         new TableFunction(new FunctionCall(QualifiedName.of("empty_row"), Collections.emptyList()))
     );
 
     @Inject
-    public RelationAnalyzer(NodeContext nodeCtx, Schemas schemas) {
+    public RelationAnalyzer(NodeContext nodeCtx) {
         this.nodeCtx = nodeCtx;
-        this.schemas = schemas;
     }
 
     public AnalyzedRelation analyze(Node node, StatementAnalysisContext statementContext) {
@@ -181,7 +182,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             expressionAnalyzer,
             expressionAnalysisContext);
         for (Symbol field : childRelationFields) {
-            selectAnalysis.add(Symbols.pathFromSymbol(field), field);
+            selectAnalysis.add(field.toColumn(), field);
         }
 
         var normalizer = EvaluatingNormalizer.functionOnlyNormalizer(
@@ -290,7 +291,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
         var joinCondition = joinRelation.joinCondition();
         if (joinCondition != null) {
-            Set<RelationName> relationsInJoinConditions = RelationNameCollector.collect(joinCondition);
+            Set<RelationName> relationsInJoinConditions = RelationNames.getShallow(joinCondition);
             if (relationsInJoinConditions.size() > 1) {
                 // We have join conditions with two relations or more. The join conditions such as
                 // `t1.x = t2.x` determines which relations are joined together.
@@ -313,9 +314,11 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
         for (var joinColumn : joinUsing.getColumns()) {
 
+            boolean joinColumnExistsInLeft = false;
             for (var leftOutput : leftOutputs) {
-                var columnIdent = Symbols.pathFromSymbol(leftOutput);
+                var columnIdent = leftOutput.toColumn();
                 if (columnIdent.name().equals(joinColumn)) {
+                    joinColumnExistsInLeft = true;
                     if (lhsOutputs.put(joinColumn, leftOutput) != null) {
                         throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                                                                          "common column name %s appears more than once in left table", joinColumn));
@@ -323,14 +326,16 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 }
             }
 
-            if (lhsOutputs.isEmpty()) {
+            if (!joinColumnExistsInLeft) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                                                                  "column %s specified in USING clause does not exist in left table", joinColumn));
             }
 
+            boolean joinColumnExistsInRight = false;
             for (Symbol rightOutput : rightOutputs) {
-                var columnIdent = Symbols.pathFromSymbol(rightOutput);
+                var columnIdent = rightOutput.toColumn();
                 if (columnIdent.name().equals(joinColumn)) {
+                    joinColumnExistsInRight = true;
                     if (rhsOutputs.put(joinColumn, rightOutput) != null) {
                         throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                                                                          "common column name %s appears more than once in right table", joinColumn));
@@ -346,7 +351,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 }
             }
 
-            if (rhsOutputs.isEmpty()) {
+            if (!joinColumnExistsInRight) {
                 throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                                                                  "column %s specified in USING clause does not exist in right table", joinColumn));
             }
@@ -356,11 +361,11 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         var rhsRelationNames = new HashSet<RelationName>();
 
         for (Symbol symbol : lhsOutputs.values()) {
-            lhsRelationNames.addAll(RelationNameCollector.collect(symbol));
+            lhsRelationNames.addAll(RelationNames.getShallow(symbol));
         }
 
         for (Symbol symbol : rhsOutputs.values()) {
-            rhsRelationNames.addAll(RelationNameCollector.collect(symbol));
+            rhsRelationNames.addAll(RelationNames.getShallow(symbol));
         }
 
         return JoinUsing.toExpression(
@@ -696,38 +701,30 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         if (withQuery != null) {
             relation = withQuery;
         } else {
-            TableInfo tableInfo;
-            try {
-                tableInfo = schemas.resolveTableInfo(
-                    tableQualifiedName,
-                    context.currentOperation(),
-                    context.sessionSettings().sessionUser(),
-                    searchPath
-                );
-                if (tableInfo instanceof DocTableInfo docTable) {
+            RelationInfo relationInfo = nodeCtx.schemas().findRelation(
+                tableQualifiedName, context.currentOperation(), context.sessionSettings().sessionUser(), searchPath);
+            switch (relationInfo) {
+                case DocTableInfo docTable ->
                     // Dispatching of doc relations is based on the returned class of the schema information.
                     relation = new DocTableRelation(docTable);
-                } else {
-                    relation = new TableRelation(tableInfo);
+                case ForeignTable table -> relation = new ForeignTableRelation(table);
+                case TableInfo table -> relation = new TableRelation(table);
+                case ViewInfo viewInfo -> {
+                    Statement viewQuery = SqlParser.createStatement(viewInfo.definition());
+                    AnalyzedRelation resolvedView = context.withSearchPath(
+                            viewInfo.searchPath(),
+                            newContext -> viewQuery.accept(this, newContext)
+                    );
+                    Role owner = nodeCtx.roles().findRole(viewInfo.owner());
+                    if (owner == null) {
+                        throw new UnauthorizedException(
+                            "Owner \"" + owner + "\" of the view \"" + viewInfo.owner() + "\" not found");
+                    }
+                    relation = new AnalyzedView(viewInfo.ident(), owner, resolvedView);
                 }
-            } catch (RelationUnknown e) {
-                View view;
-                try {
-                    view = schemas.resolveView(tableQualifiedName, searchPath);
-                } catch (RelationUnknown e1) {
-                    // don't shadow original exception, as looking for the view is just a fallback
-                    throw e;
-                }
-                ViewMetadata viewMetadata = view.metadata();
-                Statement viewQuery = SqlParser.createStatement(viewMetadata.stmt());
-                AnalyzedRelation resolvedView = context.withSearchPath(
-                    viewMetadata.searchPath(),
-                    newContext -> viewQuery.accept(this, newContext)
-                );
-                relation = new AnalyzedView(view.name(), viewMetadata.owner(), resolvedView);
+                default -> throw new IllegalStateException("Unexpected relationInfo: " + relationInfo);
             }
         }
-
         relationContext.addSourceRelation(relation);
         return relation;
     }
@@ -850,7 +847,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         for (int c = 0; c < numColumns; c++) {
             DataType<?> targetType = targetTypes.get(c);
             ArrayType<?> arrayType = new ArrayType<>(targetType);
-            List<Symbol> columnValues = Lists2.map(
+            List<Symbol> columnValues = Lists.map(
                 columns.get(c),
                 s -> normalizer.normalize(s.cast(targetType), context.transactionContext())
             );

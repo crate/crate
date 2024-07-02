@@ -21,8 +21,7 @@
 
 package io.crate.integrationtests;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -51,11 +50,11 @@ public class TablesNeedUpgradeSysCheckTest extends IntegTestCase {
     public void testUpgradeRequired() throws Exception {
         startUpNodeWithDataDir("/indices/data_home/cratedata-4.3.0.zip");
         execute("select * from sys.shards where min_lucene_version = '8.6.2'");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
         execute("select * from sys.checks where id = 3");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows()[0][0], is(
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows()[0][0]).isEqualTo(
             "The following tables need to be recreated for compatibility with " +
-            "future major versions of CrateDB: [x.demo] https://cr8.is/d-cluster-check-3"));
+            "future major versions of CrateDB: [x.demo] https://cr8.is/d-cluster-check-3");
     }
 }

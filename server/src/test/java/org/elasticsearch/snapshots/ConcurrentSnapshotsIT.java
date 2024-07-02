@@ -190,7 +190,7 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         final String otherRepoName = "test-repo";
         createRepo(blockedRepoName, "mock");
         createRepo(otherRepoName, "fs");
-        createIndex("foo");
+        execute("create table doc.foo (x int) with (number_of_replicas = 0)");
         ensureGreen();
         createTableWithRecord("tbl_slow");
 

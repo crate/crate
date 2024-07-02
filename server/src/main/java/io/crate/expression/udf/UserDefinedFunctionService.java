@@ -21,74 +21,59 @@
 
 package io.crate.expression.udf;
 
-import static io.crate.metadata.doc.DocSchemaInfo.NO_BLOB_NOR_DANGLING;
-
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
+import java.util.function.Predicate;
 
-import org.jetbrains.annotations.Nullable;
 import javax.script.ScriptException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
+import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.component.AbstractLifecycleComponent;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
-import io.crate.analyze.ParamTypeHints;
-import io.crate.analyze.expressions.ExpressionAnalysisContext;
-import io.crate.analyze.expressions.ExpressionAnalyzer;
-import io.crate.analyze.expressions.TableReferenceResolver;
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.common.unit.TimeValue;
-import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.exceptions.UserDefinedFunctionAlreadyExistsException;
 import io.crate.exceptions.UserDefinedFunctionUnknownException;
-import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.FunctionProvider;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.GeneratedReference;
-import io.crate.metadata.IndexParts;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
-import io.crate.metadata.doc.DocTableInfoFactory;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
-import io.crate.sql.parser.SqlParser;
-import io.crate.sql.tree.Expression;
 import io.crate.types.DataType;
 
 
-@Singleton
-public class UserDefinedFunctionService {
+public class UserDefinedFunctionService extends AbstractLifecycleComponent implements ClusterStateListener {
 
     private static final Logger LOGGER = LogManager.getLogger(UserDefinedFunctionService.class);
 
     private final ClusterService clusterService;
     private final NodeContext nodeCtx;
     private final Map<String, UDFLanguage> languageRegistry = new HashMap<>();
-    private final DocTableInfoFactory docTableFactory;
 
-    @Inject
-    public UserDefinedFunctionService(ClusterService clusterService,
-                                      DocTableInfoFactory docTableFactory,
-                                      NodeContext nodeCtx) {
+    public UserDefinedFunctionService(ClusterService clusterService, NodeContext nodeCtx) {
         this.clusterService = clusterService;
-        this.docTableFactory = docTableFactory;
         this.nodeCtx = nodeCtx;
     }
 
@@ -152,6 +137,7 @@ public class UserDefinedFunctionService {
                 public ClusterState execute(ClusterState currentState) throws Exception {
                     Metadata metadata = currentState.metadata();
                     Metadata.Builder mdBuilder = Metadata.builder(currentState.metadata());
+                    ensureFunctionIsUnused(schema, name, argumentTypes);
                     UserDefinedFunctionsMetadata functions = removeFunction(
                         metadata.custom(UserDefinedFunctionsMetadata.TYPE),
                         schema,
@@ -160,12 +146,6 @@ public class UserDefinedFunctionService {
                         ifExists
                     );
                     mdBuilder.putCustom(UserDefinedFunctionsMetadata.TYPE, functions);
-                    validateFunctionIsNotInUseByGeneratedColumn(
-                        schema,
-                        schema + "." + UserDefinedFunctionMetadata.specificName(name, argumentTypes),
-                        functions,
-                        currentState
-                    );
                     return ClusterState.builder(currentState).metadata(mdBuilder).build();
                 }
 
@@ -227,28 +207,18 @@ public class UserDefinedFunctionService {
         }
     }
 
-
-    public void updateImplementations(String schema, Stream<UserDefinedFunctionMetadata> userDefinedFunctions) {
-        updateImplementations(schema, userDefinedFunctions, nodeCtx);
-    }
-
-    public void updateImplementations(String schema,
-                                      Stream<UserDefinedFunctionMetadata> userDefinedFunctions,
-                                      NodeContext nodeCtx) {
+    public void updateImplementations(List<UserDefinedFunctionMetadata> userDefinedFunctions) {
         final Map<FunctionName, List<FunctionProvider>> implementations = new HashMap<>();
-        Iterator<UserDefinedFunctionMetadata> it = userDefinedFunctions.iterator();
-        while (it.hasNext()) {
-            UserDefinedFunctionMetadata udf = it.next();
-            FunctionProvider resolver = buildFunctionResolver(udf);
-            if (resolver == null) {
+        for (var functionMetadata : userDefinedFunctions) {
+            FunctionProvider provider = buildFunctionResolver(functionMetadata);
+            if (provider == null) {
                 continue;
             }
-            var functionName = new FunctionName(udf.schema(), udf.name());
-            var resolvers = implementations.computeIfAbsent(
-                functionName, k -> new ArrayList<>());
-            resolvers.add(resolver);
+            FunctionName name = provider.signature().getName();
+            var providers = implementations.computeIfAbsent(name, k -> new ArrayList<>());
+            providers.add(provider);
         }
-        nodeCtx.functions().registerUdfFunctionImplementationsForSchema(schema, implementations);
+        nodeCtx.functions().setUDFs(implementations);
     }
 
     @Nullable
@@ -258,10 +228,11 @@ public class UserDefinedFunctionService {
             .name(functionName)
             .kind(FunctionType.SCALAR)
             .argumentTypes(
-                Lists2.map(
+                Lists.map(
                     udf.argumentTypes(),
                     DataType::getTypeSignature))
             .returnType(udf.returnType().getTypeSignature())
+            .feature(Scalar.Feature.DETERMINISTIC)
             .build();
 
         final Scalar<?, ?> scalar;
@@ -280,57 +251,60 @@ public class UserDefinedFunctionService {
         return new FunctionProvider(signature, (s, args) -> scalar);
     }
 
-    void validateFunctionIsNotInUseByGeneratedColumn(String schema,
-                                                             String functionName,
-                                                             UserDefinedFunctionsMetadata functionsMetadata,
-                                                             ClusterState currentState) {
-        // The iteration of schemas/tables must happen on the node context WITHOUT the UDF already removed.
-        // Otherwise the lazy table factories will already fail while evaluating generated functionsMetadata.
-        // To avoid that, a copy of the node context with the removed UDF function is used on concrete expression evaluation.
-        var nodeCtxWithRemovedFunction = new NodeContext(nodeCtx.functions().copyOf(), nodeCtx.userLookup());
-        updateImplementations(schema, functionsMetadata.functionsMetadata().stream(), nodeCtxWithRemovedFunction);
-
-        var metadata = currentState.metadata();
-        var indices = Stream.of(metadata.getConcreteAllIndices()).filter(NO_BLOB_NOR_DANGLING)
-            .map(IndexParts::new)
-            .filter(indexParts -> !indexParts.isPartitioned())
-            .collect(Collectors.toList());
-        var templates = metadata.templates().keysIt();
-        while (templates.hasNext()) {
-            var indexParts = new IndexParts(templates.next());
-            if (indexParts.isPartitioned()) {
-                indices.add(indexParts);
-            }
-        }
-
-        for (var indexParts : indices) {
-            var tableInfo = docTableFactory.create(indexParts.toRelationName(), currentState);
-            var functionParameters = getAllReferencedColumnsOfGeneratedColumns(tableInfo.generatedColumns());
-            TableReferenceResolver tableReferenceResolver = new TableReferenceResolver(functionParameters, tableInfo.ident());
-            CoordinatorTxnCtx coordinatorTxnCtx = CoordinatorTxnCtx.systemTransactionContext();
-            ExpressionAnalyzer exprAnalyzer = new ExpressionAnalyzer(
-                coordinatorTxnCtx, nodeCtxWithRemovedFunction, ParamTypeHints.EMPTY, tableReferenceResolver, null);
-            for (var ref : tableInfo.columns()) {
-                if (ref instanceof GeneratedReference genRef) {
-                    Expression expression = SqlParser.createExpression(genRef.formattedGeneratedExpression());
-                    try {
-                        exprAnalyzer.convert(expression, new ExpressionAnalysisContext(coordinatorTxnCtx.sessionSettings()));
-                    } catch (UnsupportedFunctionException e) {
-                        throw new IllegalArgumentException(
-                            "Cannot drop function '" + functionName + "', it is still in use by '" +
-                                tableInfo + "." + genRef + "'"
-                        );
+    /**
+     * Verifies that the function is not used in:
+     *
+     * <ul>
+     * <li>A generated column expression</li>
+     * </ul>
+     **/
+    void ensureFunctionIsUnused(String schema, String functionName, List<DataType<?>> argTypes) {
+        Schemas schemas = nodeCtx.schemas();
+        FunctionName name = new FunctionName(schema, functionName);
+        Predicate<Symbol> isFunction = s -> s instanceof Function fn
+            && fn.signature().getName().equals(name)
+            && fn.signature().getArgumentDataTypes().equals(argTypes);
+        for (var schemaInfo : schemas) {
+            for (var tableInfo : schemaInfo.getTables()) {
+                if (!(tableInfo instanceof DocTableInfo docTable)) {
+                    continue;
+                }
+                List<GeneratedReference> generatedColumns = docTable.generatedColumns();
+                for (var genColumn : generatedColumns) {
+                    if (genColumn.generatedExpression().any(isFunction)) {
+                        throw new IllegalArgumentException(String.format(
+                            Locale.ENGLISH,
+                            "Cannot drop function '%s'. It is in use by column '%s' of table '%s'",
+                            name.displayName(),
+                            genColumn.column(),
+                            docTable.ident()
+                        ));
                     }
                 }
             }
         }
     }
 
-    private List<Reference> getAllReferencedColumnsOfGeneratedColumns(List<GeneratedReference> generatedReferences) {
-        List<Reference> referencedReferences = new ArrayList<>();
-        for (var generatedRef : generatedReferences) {
-            referencedReferences.addAll(generatedRef.referencedReferences());
+    @Override
+    public void clusterChanged(ClusterChangedEvent event) {
+        if (event.changedCustomMetadataSet().contains(UserDefinedFunctionsMetadata.TYPE)) {
+            Metadata newMetadata = event.state().metadata();
+            UserDefinedFunctionsMetadata udfMetadata = newMetadata.custom(UserDefinedFunctionsMetadata.TYPE);
+            updateImplementations(udfMetadata == null ? List.of() : udfMetadata.functionsMetadata());
         }
-        return referencedReferences;
+    }
+
+    @Override
+    protected void doStart() {
+        clusterService.addListener(this);
+    }
+
+    @Override
+    protected void doStop() {
+        clusterService.removeListener(this);
+    }
+
+    @Override
+    protected void doClose() throws IOException {
     }
 }

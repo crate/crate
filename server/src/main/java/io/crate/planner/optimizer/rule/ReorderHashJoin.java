@@ -23,15 +23,10 @@ package io.crate.planner.optimizer.rule;
 
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 
-import java.util.function.Function;
-
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.Eval;
 import io.crate.planner.operators.HashJoin;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.Rule;
-import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
 
@@ -47,10 +42,8 @@ public class ReorderHashJoin implements Rule<HashJoin> {
     @Override
     public LogicalPlan apply(HashJoin plan,
                              Captures captures,
-                             PlanStats planStats,
-                             TransactionContext txnCtx,
-                             NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
+                             Rule.Context context) {
+        var planStats = context.planStats();
         var lhStats = planStats.get(plan.lhs());
         var rhStats = planStats.get(plan.rhs());
         boolean expectedRowsAvailable = lhStats.numDocs() != -1 && rhStats.numDocs() != -1;
@@ -63,7 +56,8 @@ public class ReorderHashJoin implements Rule<HashJoin> {
                 new HashJoin(
                     plan.rhs(),
                     plan.lhs(),
-                    plan.joinCondition()
+                    plan.joinCondition(),
+                    plan.lookUpJoin().invert()
                 ),
                 plan.outputs()
             );

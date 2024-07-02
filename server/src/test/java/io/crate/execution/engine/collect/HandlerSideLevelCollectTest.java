@@ -21,8 +21,7 @@
 
 package io.crate.execution.engine.collect;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -33,12 +32,10 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.test.IntegTestCase;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -57,6 +54,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
@@ -80,8 +78,8 @@ public class HandlerSideLevelCollectTest extends IntegTestCase {
 
     private MapSideDataCollectOperation operation;
     private Functions functions;
-    private RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), Collections.emptyList());
-    private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
+    private final RoutingProvider routingProvider = new RoutingProvider(Randomness.get().nextInt(), Collections.emptyList());
+    private final TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
 
     @Before
     public void prepare() {
@@ -112,14 +110,14 @@ public class HandlerSideLevelCollectTest extends IntegTestCase {
 
     @Test
     public void testClusterLevel() throws Exception {
-        Schemas schemas = cluster().getInstance(Schemas.class);
+        Schemas schemas = cluster().getInstance(NodeContext.class).schemas();
         TableInfo tableInfo = schemas.getTableInfo(new RelationName("sys", "cluster"));
         Routing routing = tableInfo.getRouting(
             clusterService().state(),
             routingProvider,
             WhereClause.MATCH_ALL, RoutingProvider.ShardSelection.ANY, CoordinatorSessionSettings.systemDefaults());
         SimpleReference clusterNameRef = new SimpleReference(
-            new ReferenceIdent(SysClusterTableInfo.IDENT, new ColumnIdent("name")),
+            new ReferenceIdent(SysClusterTableInfo.IDENT, ColumnIdent.of("name")),
             RowGranularity.CLUSTER,
             DataTypes.STRING,
             1,
@@ -127,8 +125,8 @@ public class HandlerSideLevelCollectTest extends IntegTestCase {
         );
         RoutedCollectPhase collectNode = collectNode(routing, List.of(clusterNameRef), RowGranularity.CLUSTER);
         Bucket result = collect(collectNode);
-        assertThat(result.size(), is(1));
-        assertThat(((String) result.iterator().next().get(0)), Matchers.startsWith("SUITE-"));
+        assertThat(result).hasSize(1);
+        assertThat(((String) result.iterator().next().get(0))).startsWith("SUITE-");
     }
 
     private Bucket collect(RoutedCollectPhase collectPhase) throws Exception {
@@ -161,8 +159,7 @@ public class HandlerSideLevelCollectTest extends IntegTestCase {
 
         RoutedCollectPhase collectNode = collectNode(routing, toCollect, RowGranularity.DOC, new WhereClause(whereClause));
         Bucket result = collect(collectNode);
-        assertThat(TestingHelpers.printedTable(result),
-            is("NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| shards| sys| BASE TABLE| NULL\n"));
+        assertThat(TestingHelpers.printedTable(result)).isEqualTo("NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| shards| sys| BASE TABLE| NULL\n");
     }
 
     @Test
@@ -185,29 +182,30 @@ public class HandlerSideLevelCollectTest extends IntegTestCase {
             .stream(collect(collectNode).spliterator(), false)
             .limit(10)
             .map(Row::materialize)
-            .collect(Collectors.toList());
+            .toList();
 
-        String expected =
-            "character_repertoire| text| character_sets\n" +
-            "character_set_catalog| text| character_sets\n" +
-            "character_set_name| text| character_sets\n" +
-            "character_set_schema| text| character_sets\n" +
-            "default_collate_catalog| text| character_sets\n" +
-            "default_collate_name| text| character_sets\n" +
-            "default_collate_schema| text| character_sets\n" +
-            "form_of_use| text| character_sets\n" +
-            "character_maximum_length| integer| columns\n" +
-            "character_octet_length| integer| columns\n";
+        String expected = """
+            character_repertoire| text| character_sets
+            character_set_catalog| text| character_sets
+            character_set_name| text| character_sets
+            character_set_schema| text| character_sets
+            default_collate_catalog| text| character_sets
+            default_collate_name| text| character_sets
+            default_collate_schema| text| character_sets
+            form_of_use| text| character_sets
+            character_maximum_length| integer| columns
+            character_octet_length| integer| columns
+            """;
 
 
-        assertThat(TestingHelpers.printedTable(result.toArray(new Object[0][])), Matchers.containsString(expected));
+        assertThat(TestingHelpers.printedTable(result.toArray(new Object[0][]))).contains(expected);
 
         // second time - to check if the internal iterator resets
         result = StreamSupport
             .stream(collect(collectNode).spliterator(), false)
             .limit(10)
             .map(Row::materialize)
-            .collect(Collectors.toList());
-        assertThat(TestingHelpers.printedTable(result.toArray(new Object[0][])), Matchers.containsString(expected));
+            .toList();
+        assertThat(TestingHelpers.printedTable(result.toArray(new Object[0][]))).contains(expected);
     }
 }

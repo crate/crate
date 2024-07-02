@@ -23,17 +23,21 @@ package io.crate.execution.dml.upsert;
 
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
 import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.junit.Test;
 
+import io.crate.analyze.Id;
 import io.crate.execution.dml.IndexItem;
 import io.crate.expression.reference.Doc;
 import io.crate.expression.symbol.InputColumn;
@@ -48,7 +52,7 @@ import io.crate.testing.SQLExecutor;
 
 public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
 
-    private static Doc doc(String index, Map<String, Object> source) {
+    private static Doc doc(String id, String index, Map<String, Object> source) {
         Supplier<String> rawSource = () -> {
             try {
                 return Strings.toString(JsonXContent.builder().map(source));
@@ -56,14 +60,13 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
                 throw new RuntimeException(e1);
             }
         };
-        return new Doc(1, index, "id-1", 1, 1, 1, source, rawSource);
+        return new Doc(1, index, id, 1, 1, 1, source, rawSource);
     }
 
     @Test
     public void test_update_one_column_generates_all_insert_values() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int, y int)")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int, y int)");
         DocTableInfo table = e.resolveTableInfo("tbl");
         UpdateToInsert updateToInsert = new UpdateToInsert(
             e.nodeCtx,
@@ -73,7 +76,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             null
         );
         Map<String, Object> source = Map.of("x", 10, "y", 5);
-        Doc doc = doc(table.concreteIndices()[0], source);
+        Doc doc = doc(UUIDs.randomBase64UUID(), table.concreteIndices(e.getPlannerContext().clusterState().metadata())[0], source);
 
         IndexItem item = updateToInsert.convert(
             doc,
@@ -86,9 +89,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_update_can_use_excluded_columns() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int, y int)")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int, y int)");
         DocTableInfo table = e.resolveTableInfo("tbl");
         UpdateToInsert updateToInsert = new UpdateToInsert(
             e.nodeCtx,
@@ -98,7 +100,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             null
         );
         Map<String, Object> source = Map.of("x", 10, "y", 5);
-        Doc doc = doc(table.concreteIndices()[0], source);
+        Doc doc = doc(UUIDs.randomBase64UUID(), table.concreteIndices(e.getPlannerContext().clusterState().metadata())[0], source);
 
         IndexItem item = updateToInsert.convert(
             doc,
@@ -111,9 +113,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_can_assign_value_to_object_child() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int, o object as (y int))")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int, o object as (y int))");
         DocTableInfo table = e.resolveTableInfo("tbl");
         UpdateToInsert updateToInsert = new UpdateToInsert(
             e.nodeCtx,
@@ -123,7 +124,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             null
         );
         Map<String, Object> source = Map.of("x", 1, "o", Map.of("y", 2));
-        Doc doc = doc(table.concreteIndices()[0], source);
+        Doc doc = doc(UUIDs.randomBase64UUID(), table.concreteIndices(e.getPlannerContext().clusterState().metadata())[0], source);
         IndexItem item = updateToInsert.convert(
             doc,
             new Symbol[] { Literal.of(3) },
@@ -135,9 +136,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_generated_columns_are_excluded() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int, y int as x + 4)")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int, y int as x + 4)");
         DocTableInfo table = e.resolveTableInfo("tbl");
         UpdateToInsert updateToInsert = new UpdateToInsert(
             e.nodeCtx,
@@ -147,7 +147,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             null
         );
         Map<String, Object> source = Map.of("x", 1, "y", 5);
-        Doc doc = doc(table.concreteIndices()[0], source);
+        Doc doc = doc(UUIDs.randomBase64UUID(), table.concreteIndices(e.getPlannerContext().clusterState().metadata())[0], source);
         IndexItem item = updateToInsert.convert(
             doc,
             new Symbol[] { Literal.of(8) },
@@ -162,9 +162,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         /**
          * Checks can be ignored because the index operation afterwards will run them.
          **/
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int check (x > 10))")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int check (x > 10))");
         DocTableInfo table = e.resolveTableInfo("tbl");
         UpdateToInsert updateToInsert = new UpdateToInsert(
             e.nodeCtx,
@@ -174,7 +173,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             null
         );
         Map<String, Object> source = Map.of("x", 12);
-        Doc doc = doc(table.concreteIndices()[0], source);
+        Doc doc = doc(UUIDs.randomBase64UUID(), table.concreteIndices(e.getPlannerContext().clusterState().metadata())[0], source);
 
         Symbol[] assignments = new Symbol[] { Literal.of(8) };
         IndexItem item = updateToInsert.convert(doc, assignments, new Object[0]);
@@ -184,9 +183,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_can_add_new_top_level_columns_via_update() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int) with (column_policy = 'dynamic')")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int) with (column_policy = 'dynamic')");
         DocTableInfo table = e.resolveTableInfo("tbl");
         UpdateToInsert updateToInsert = new UpdateToInsert(
             e.nodeCtx,
@@ -196,7 +194,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             null
         );
         Map<String, Object> source = Map.of("x", 12);
-        Doc doc = doc(table.concreteIndices()[0], source);
+        Doc doc = doc(UUIDs.randomBase64UUID(), table.concreteIndices(e.getPlannerContext().clusterState().metadata())[0], source);
         IndexItem item = updateToInsert.convert(
             doc,
             new Symbol[] { Literal.of(1), Literal.of(2) },
@@ -212,9 +210,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_adds_nested_primary_key_value_to_pkValues() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (o object as (x int primary key), y int)")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (o object as (x int primary key), y int)");
         DocTableInfo table = e.resolveTableInfo("tbl");
         UpdateToInsert updateToInsert = new UpdateToInsert(
             e.nodeCtx,
@@ -224,7 +221,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             null
         );
         Map<String, Object> source = Map.of("y", 1, "o", Map.of("x", 3));
-        Doc doc = doc(table.concreteIndices()[0], source);
+        Doc doc = doc("3", table.concreteIndices(e.getPlannerContext().clusterState().metadata())[0], source);
         IndexItem item = updateToInsert.convert(
             doc,
             new Symbol[] { Literal.of(1) },
@@ -235,9 +232,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_cannot_assign_to_nested_column_if_parent_is_missing() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int) with (column_policy = 'dynamic')")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int) with (column_policy = 'dynamic')");
         DocTableInfo table = e.resolveTableInfo("tbl");
         assertThatThrownBy(() -> new UpdateToInsert(
             e.nodeCtx,
@@ -251,13 +247,12 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_preserves_insert_column_order() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int, y int, z int)")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int, y int, z int)");
         DocTableInfo table = e.resolveTableInfo("tbl");
 
         // INSERT INTO tbl (z) VALUES (?) ON CONFLICT (...) DO UPDATE SET y = ?
-        Reference[] insertColumns = new Reference[] { table.getReference(new ColumnIdent("z")) };
+        Reference[] insertColumns = new Reference[] { table.getReference(ColumnIdent.of("z")) };
         String[] updateColumns = new String[] { "y" };
         UpdateToInsert updateToInsert = new UpdateToInsert(
             e.nodeCtx,
@@ -275,7 +270,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             );
 
         Map<String, Object> source = Map.of("x", 1, "y", 2, "z", 3);
-        Doc doc = doc(table.concreteIndices()[0], source);
+        Doc doc = doc(UUIDs.randomBase64UUID(), table.concreteIndices(e.getPlannerContext().clusterState().metadata())[0], source);
         IndexItem item = updateToInsert.convert(
             doc,
             new Symbol[] { Literal.of(20) },
@@ -284,9 +279,49 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         assertThat(item.insertValues()).containsExactly(3, 1, 20);
     }
 
+    /**
+     * Tests a regression where the wrong column list was used resulting in OutOfBounds exceptions or updating the
+     * wrong column.
+     * See https://github.com/crate/crate/issues/14906.
+     */
+    @Test
+    public void test_preserves_insert_column_order_when_updating_sub_column() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService)
+                .addTable("create table tbl (x int, y object as (a int), z int)");
+        DocTableInfo table = e.resolveTableInfo("tbl");
+
+        // INSERT INTO tbl (z) VALUES (?) ON CONFLICT (...) DO UPDATE SET y['a'] = ?
+        Reference[] insertColumns = new Reference[] { table.getReference(ColumnIdent.of("z")) };
+        String[] updateColumns = new String[] { "y.a" };
+        UpdateToInsert updateToInsert = new UpdateToInsert(
+                e.nodeCtx,
+                new CoordinatorTxnCtx(e.getSessionSettings()),
+                table,
+                updateColumns,
+                Arrays.asList(insertColumns)
+        );
+        assertThat(updateToInsert.columns())
+            .as("Start References of columns() must match insertColumns")
+            .satisfiesExactly(
+                    x -> assertThat(x).isReference().hasName("z"),
+                    x -> assertThat(x).isReference().hasName("x"),
+                    x -> assertThat(x).isReference().hasName("y")
+            );
+
+        Map<String, Object> source = Map.of("x", 1, "y", Map.of("a", 2), "z", 3);
+        String id = UUIDs.randomBase64UUID();
+        Doc doc = doc(id, table.concreteIndices(e.getPlannerContext().clusterState().metadata())[0], source);
+        IndexItem item = updateToInsert.convert(
+                doc,
+                new Symbol[] { Literal.of(20) },
+                new Object[] { Literal.of(3) }
+        );
+        assertThat(item.insertValues()).containsExactly(3, 1, Map.of("a", 20));
+    }
+
     @Test
     public void test_generates_missing_generated_pk_columns() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
+        SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("""
                 create table tbl (
                     x int,
@@ -294,14 +329,13 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
                     z int,
                     primary key (x, y)
                 )
-                """)
-            .build();
+                """);
         DocTableInfo table = e.resolveTableInfo("tbl");
 
         // insert into tbl (x, z) values (1, 20) on conflict (..) do update set z = excluded.z
         Reference[] insertColumns = new Reference[] {
-            table.getReference(new ColumnIdent("x")),
-            table.getReference(new ColumnIdent("z"))
+            table.getReference(ColumnIdent.of("x")),
+            table.getReference(ColumnIdent.of("z"))
         };
         String[] updateColumns = new String[] { "z" };
         UpdateToInsert updateToInsert = new UpdateToInsert(
@@ -312,7 +346,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             Arrays.asList(insertColumns)
         );
         Map<String, Object> source = Map.of("x", 1, "y", 2, "z", 3);
-        Doc doc = doc(table.concreteIndices()[0], source);
+        String id = Id.encode(List.of("1", "2"), -1);
+        Doc doc = doc(id, table.concreteIndices(e.getPlannerContext().clusterState().metadata())[0], source);
         IndexItem item = updateToInsert.convert(
             doc,
             new Symbol[] { new InputColumn(1) },
@@ -320,16 +355,15 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         );
         assertThat(updateToInsert.columns()).satisfiesExactly(
             x -> assertThat(x).isReference().hasName("x"),
-            x -> assertThat(x).isReference().hasName("z"),
-            x -> assertThat(x).isReference().hasName("y")
+            x -> assertThat(x).isReference().hasName("z")
         );
         assertThat(item.pkValues()).containsExactly("1", "2");
-        assertThat(item.insertValues()).containsExactly(1, 20, 2);
+        assertThat(item.insertValues()).containsExactly(1, 20);
     }
 
     @Test
     public void test_generates_nested_missing_generated_pk_columns() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
+        SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("""
                 create table tbl (
                     x int,
@@ -339,13 +373,12 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
                     z int,
                     primary key (x, o['y'])
                 )
-                """)
-            .build();
+                """);
         DocTableInfo table = e.resolveTableInfo("tbl");
         // insert into tbl (x, z) values (1, 20) on conflict (..) do update set z = excluded.z
         Reference[] insertColumns = new Reference[] {
-            table.getReference(new ColumnIdent("x")),
-            table.getReference(new ColumnIdent("z"))
+            table.getReference(ColumnIdent.of("x")),
+            table.getReference(ColumnIdent.of("z"))
         };
         String[] updateColumns = new String[] { "z" };
         UpdateToInsert updateToInsert = new UpdateToInsert(
@@ -360,7 +393,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             "o", Map.of("y", 2),
             "z", 3
         );
-        Doc doc = doc(table.concreteIndices()[0], source);
+        String id = Id.encode(List.of("1", "2"), -1);
+        Doc doc = doc(id, table.concreteIndices(e.getPlannerContext().clusterState().metadata())[0], source);
         IndexItem item = updateToInsert.convert(
             doc,
             new Symbol[] { new InputColumn(1) },
@@ -372,7 +406,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_generates_missing_pk_columns_with_default() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
+        SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("""
                 create table tbl (
                     x int,
@@ -380,13 +414,12 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
                     z int,
                     primary key (x, y)
                 )
-                """)
-            .build();
+                """);
         DocTableInfo table = e.resolveTableInfo("tbl");
         // insert into tbl (x, z) values (1, 20) on conflict (..) do update set z = excluded.z
         Reference[] insertColumns = new Reference[] {
-            table.getReference(new ColumnIdent("x")),
-            table.getReference(new ColumnIdent("z"))
+            table.getReference(ColumnIdent.of("x")),
+            table.getReference(ColumnIdent.of("z"))
         };
         String[] updateColumns = new String[] { "z" };
         UpdateToInsert updateToInsert = new UpdateToInsert(
@@ -401,7 +434,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             "y", 10,
             "z", 3
         );
-        Doc doc = doc(table.concreteIndices()[0], source);
+        String id = Id.encode(List.of("1", "10"), -1);
+        Doc doc = doc(id, table.concreteIndices(e.getPlannerContext().clusterState().metadata())[0], source);
         IndexItem item = updateToInsert.convert(
             doc,
             new Symbol[] { new InputColumn(1) },

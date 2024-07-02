@@ -31,6 +31,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.data.Offset.offset;
 
@@ -1365,7 +1366,6 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("insert into dyn_ts (id, ts) values (0, '2015-01-01')");
         refresh();
-        waitForMappingUpdateOnAll("dyn_ts", "ts");
         execute("insert into dyn_ts (id, ts) values (1, '2015-02-01')");
         // string is not converted to timestamp
         execute("select data_type from information_schema.columns where table_name='dyn_ts' and column_name='ts'");
@@ -1744,8 +1744,8 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("CREATE TABLE new_lines (obj OBJECT);");
         assertSQLError(() -> execute("INSERT INTO new_lines (obj) VALUES ('{\"a\\nb\":1}');"))
                 .hasPGError(INTERNAL_ERROR)
-                .hasHTTPError(BAD_REQUEST, 4003)
-                .hasMessageContaining("Column name 'a\nb' contains illegal whitespace character");
+                .hasHTTPError(BAD_REQUEST, 4008)
+                .hasMessageContaining("\"a\nb\" contains illegal whitespace character");
     }
 
 
@@ -1959,5 +1959,103 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             assertThat(persistedTopLevel).isEqualTo(returningTopLevel);
             assertThat(persistedSubColumn).isEqualTo(returningSubColumn);
         }
+    }
+
+    @Test
+    public void test_insert_on_conflict_with_generated_primary_key() throws Exception {
+        execute("""
+            CREATE TABLE tbl (
+               "real_id" BIGINT NOT NULL,
+               "date" TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+               "value" DOUBLE PRECISION,
+               "year" INTEGER GENERATED ALWAYS AS EXTRACT(YEAR FROM "date"),
+               PRIMARY KEY ("real_id", "date", "year")
+            )
+            """);
+        execute("""
+            INSERT INTO tbl (real_id, \"date\", value) VALUES (6, '2030-11-15 12:13:13', 99999)
+            ON CONFLICT (real_id, \"date\", year)
+            DO UPDATE SET value = excluded.value
+            """);
+        execute("refresh table tbl");
+        execute("select year, value from tbl");
+        assertThat(response).hasRows(
+            "2030| 99999.0"
+        );
+        execute("""
+            INSERT INTO tbl (real_id, \"date\", value) VALUES (6, '2030-11-15 12:13:13', 99998)
+            ON CONFLICT (real_id, \"date\", year)
+            DO UPDATE SET value = excluded.value
+            """);
+        execute("refresh table tbl");
+        execute("select year, value from tbl");
+        assertThat(response).hasRows(
+            "2030| 99998.0"
+        );
+    }
+
+    @Test
+    public void test_non_deterministic_sub_column_not_included_in_target_cols() {
+        execute("""
+            CREATE TABLE tbl (
+                a int PRIMARY KEY,
+                b text,
+                o1 object as (
+                    sub int as round((random() + 1) * 100)
+                )
+            )
+            """
+        );
+        ensureGreen();
+        execute("INSERT INTO tbl(a) VALUES (1)");
+        refresh();
+
+        // Replication of non-deterministic sub-columns had 2 issues:
+        // 1. Used to fail with IndexOutOfBoundsException when preparing replica request
+        //    because values size was less than columns size.
+        //    This is solved now by having dedicated indexers for INSERT and for UPSERT/UPDATE.
+        // 2. If object column is not updated, it's supposed to be taken from the existing doc.
+        //    Object was taken but sub-column used to be re-generated and merged into existing object.
+        execute("SELECT o1['sub'] FROM tbl");
+        int generatedBeforeUpsert = (int) response.rows()[0][0];
+        assertThat(generatedBeforeUpsert).isGreaterThan(0);
+
+
+        execute("INSERT INTO tbl(a) VALUES (1) " +
+            "ON CONFLICT (a) DO UPDATE SET b = 'updated'"
+        );
+        refresh();
+
+        // Some iterations to ensure it hits both primary and replica
+        // Ensure that non-deterministic sub-column is not re-genrated on replicas.
+        for (int i = 0; i < 10; i++) {
+            execute("SELECT o1['sub'] FROM tbl");
+            assertThat(response.rows()[0][0]).isEqualTo(generatedBeforeUpsert);
+        }
+    }
+
+
+    /**
+     * Tests a regression introduced in 5.3 (https://github.com/crate/crate/issues/15171).
+     */
+    @Test
+    public void test_insert_on_conflict_with_non_deterministic_column_succeed_on_replication() {
+        execute("""
+            CREATE TABLE tbl (
+               id int PRIMARY KEY,
+               value DOUBLE PRECISION,
+               value_text TEXT,
+               rnd_col int GENERATED ALWAYS AS random() + 10
+            ) with (number_of_replicas = 1)""");
+
+        ensureGreen();
+        execute("INSERT INTO tbl (id, value) " +
+            "VALUES (1, 99999) " +
+            "ON CONFLICT (id) DO UPDATE SET value = excluded.value");
+        assertThat(response.rowCount()).isEqualTo(1);
+        refresh();
+
+        execute("SELECT underreplicated_shards FROM sys.health WHERE table_name = 'tbl'");
+        assertThat(response).hasRows("0"); // Used to be > 0 because of class cast exception caused by column->value mismatch in the request
     }
 }

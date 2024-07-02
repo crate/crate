@@ -21,25 +21,28 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.lucene.util.RamUsageEstimator;
+import org.elasticsearch.Version;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.Functions;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.UncheckedObjectType;
-import org.apache.lucene.util.RamUsageEstimator;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.breaker.CircuitBreakingException;
-
-import org.jetbrains.annotations.Nullable;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 public class CollectSetAggregation extends AggregationFunction<Map<Object, Object>, List<Object>> {
 
@@ -51,15 +54,15 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
 
     public static final String NAME = "collect_set";
 
-    public static void register(AggregationImplModule mod) {
+    public static void register(Functions.Builder builder) {
         for (DataType<?> supportedType : DataTypes.PRIMITIVE_TYPES) {
             var returnType = new ArrayType<>(supportedType);
-            mod.register(
+            builder.add(
                 Signature.aggregate(
-                    NAME,
-                    supportedType.getTypeSignature(),
-                    returnType.getTypeSignature()
-                ),
+                        NAME,
+                        supportedType.getTypeSignature(),
+                        returnType.getTypeSignature())
+                    .withFeature(Scalar.Feature.DETERMINISTIC),
                 CollectSetAggregation::new
             );
         }

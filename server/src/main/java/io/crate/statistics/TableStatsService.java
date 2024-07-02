@@ -22,10 +22,9 @@
 package io.crate.statistics;
 
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -36,11 +35,12 @@ import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.action.sql.BaseResultReceiver;
 import io.crate.action.sql.Session;
 import io.crate.action.sql.Sessions;
-import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Row;
 
@@ -62,7 +62,9 @@ public class TableStatsService implements Runnable {
 
     private final ClusterService clusterService;
     private final ThreadPool threadPool;
-    private final Session session;
+    private final Sessions sessions;
+
+    private Session session;
 
     @VisibleForTesting
     volatile TimeValue refreshInterval;
@@ -74,12 +76,12 @@ public class TableStatsService implements Runnable {
     public TableStatsService(Settings settings,
                              ThreadPool threadPool,
                              ClusterService clusterService,
-                             Sessions sqlOperations) {
+                             Sessions sessions) {
         this.threadPool = threadPool;
         this.clusterService = clusterService;
+        this.sessions = sessions;
         refreshInterval = STATS_SERVICE_REFRESH_INTERVAL_SETTING.get(settings);
         scheduledRefresh = scheduleNextRefresh(refreshInterval);
-        session = sqlOperations.newSystemSession();
 
         clusterService.getClusterSettings().addSettingsUpdateConsumer(
             STATS_SERVICE_REFRESH_INTERVAL_SETTING, this::setRefreshInterval);
@@ -99,6 +101,12 @@ public class TableStatsService implements Runnable {
             LOGGER.debug("Could not retrieve table stats. localNode is not fully available yet.");
             return;
         }
+        if (clusterService.state().nodes().getMinNodeVersion().before(Version.V_5_7_0)) {
+            // Streaming format changed in 5.7.0, so wait until everything is upgraded before
+            // collecting stats
+            LOGGER.debug("Could not retrieve table stats.  Cluster not fully updated yet");
+            return;
+        }
         if (!clusterService.state().nodes().isLocalNodeElectedMaster()) {
             // `ANALYZE` will publish the new stats to all nodes, so we need only a single node running it.
             return;
@@ -111,6 +119,9 @@ public class TableStatsService implements Runnable {
                     LOGGER.error("Error running periodic " + STMT + "", err);
                 }
             });
+            if (session == null) {
+                session = sessions.newSystemSession();
+            }
             session.quickExec(STMT, resultReceiver, Row.EMPTY);
         } catch (Throwable t) {
             LOGGER.error("error retrieving table stats", t);

@@ -21,10 +21,8 @@
 
 package io.crate.integrationtests;
 
-import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.util.Iterator;
 
@@ -69,7 +67,7 @@ public class JobLogIntegrationTest extends IntegTestCase {
             boolean setStmtFound = false;
             for (JobsLogService jobsLogService : cluster().getDataNodeInstances(JobsLogService.class)) {
                 // each node must have received the new jobs_log_size setting change instruction
-                assertThat(jobsLogService.jobsLogSize(), is(1));
+                assertThat(jobsLogService.jobsLogSize()).isEqualTo(1);
                 JobsLogs jobsLogs = jobsLogService.get();
                 Iterator<JobContextLog> iterator = jobsLogs.jobsLog().iterator();
                 if (iterator.hasNext()) {
@@ -79,7 +77,7 @@ public class JobLogIntegrationTest extends IntegTestCase {
                 }
             }
             // at least one node must have the set statement logged
-            assertThat(setStmtFound, is(true));
+            assertThat(setStmtFound).isTrue();
         });
 
         // Each node can hold only 1 query (the latest one) so in total we should always see 2 queries in
@@ -101,20 +99,20 @@ public class JobLogIntegrationTest extends IntegTestCase {
 
         execute("set global transient stats.enabled = false");
         for (JobsLogService jobsLogService : cluster().getDataNodeInstances(JobsLogService.class)) {
-            assertBusy(() -> assertThat(jobsLogService.isEnabled(), is(false)));
+            assertBusy(() -> assertThat(jobsLogService.isEnabled()).isFalse());
         }
         execute("select * from sys.jobs_log");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response.rowCount()).isEqualTo(0L);
     }
 
     private void assertJobLogOnNodesHaveOnlyStatement(String statement) throws Exception {
         for (JobsLogService jobsLogService : cluster().getDataNodeInstances(JobsLogService.class)) {
             assertBusy(() -> {
-                assertThat(jobsLogService.jobsLogSize(), is(1));
+                assertThat(jobsLogService.jobsLogSize()).isEqualTo(1);
                 JobsLogs jobsLogs = jobsLogService.get();
                 Iterator<JobContextLog> iterator = jobsLogs.jobsLog().iterator();
                 if (iterator.hasNext()) {
-                    assertThat(iterator.next().statement(), is(statement));
+                    assertThat(iterator.next().statement()).isEqualTo(statement);
                 }
             });
         }
@@ -123,24 +121,24 @@ public class JobLogIntegrationTest extends IntegTestCase {
     @Test
     public void testSetSingleStatement() throws Exception {
         execute("select settings['stats']['jobs_log_size'] from sys.cluster");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows()[0][0], is(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getDefault(Settings.EMPTY)));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows()[0][0]).isEqualTo(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getDefault(Settings.EMPTY));
 
         execute("set global persistent stats.enabled= true, stats.jobs_log_size=7");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
 
         execute("select settings['stats']['jobs_log_size'] from sys.cluster");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows()[0][0], is(7));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows()[0][0]).isEqualTo(7);
 
         execute("reset global stats.jobs_log_size");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
         waitNoPendingTasksOnAll();
 
         execute("select settings['stats']['enabled'], settings['stats']['jobs_log_size'] from sys.cluster");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows()[0][0], is(JobsLogService.STATS_ENABLED_SETTING.getDefault(Settings.EMPTY)));
-        assertThat(response.rows()[0][1], is(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getDefault(Settings.EMPTY)));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows()[0][0]).isEqualTo(JobsLogService.STATS_ENABLED_SETTING.getDefault(Settings.EMPTY));
+        assertThat(response.rows()[0][1]).isEqualTo(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getDefault(Settings.EMPTY));
 
     }
 
@@ -155,11 +153,11 @@ public class JobLogIntegrationTest extends IntegTestCase {
         execute("refresh table characters");
         execute("delete from characters where id = 1");
         // make sure everything is deleted (nothing changed in whole class lifecycle cluster state)
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
         execute("refresh table characters");
 
         execute("select * from sys.jobs_log where stmt like 'insert into%' or stmt like 'delete%'");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response.rowCount()).isEqualTo(2L);
     }
 
     @Test
@@ -172,10 +170,7 @@ public class JobLogIntegrationTest extends IntegTestCase {
         }
         assertBusy(() -> {
             execute("select stmt from sys.jobs_log where error is not null order by ended desc limit 1");
-            assertThat(
-                printedTable(response.rows()),
-                is("select * from relation_not_known\n")
-            );
+            assertThat(response).hasRows("select * from relation_not_known");
         });
     }
 }

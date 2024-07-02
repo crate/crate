@@ -49,8 +49,11 @@ username, IP address,  protocol and connection scheme against these entries
 to determine which authentication method is required. If no entry matches, the
 client authentication request will be denied.
 
-For HTTP connections the ``X-REAL-IP`` request header has priority over the
-actual client IP address in order to allow proxied clients to authenticate.
+To support proxied clients to authenticate, the ``X-REAL-IP`` request header
+can be used. For security reasons, this is disabled by default as it allows
+clients to impersonate other clients. To enable this feature,
+set :ref:`auth.trust.http_support_x_real_ip` to ``true``. If enabled, the
+``X-REAL-IP`` request header has priority over the actual client IP address.
 
 If ``auth.host_based`` is not set, the host based authentication is disabled.
 In this case CrateDB **trusts all connections** and accepts the user provided by
@@ -94,6 +97,10 @@ For example, a host based configuration can look like this:
             protocol: http
             address: 127.0.0.1
             ssl: off
+          g:
+            user: john
+            method: jwt
+            protocol: http
           z:
             method: password
 
@@ -101,10 +108,11 @@ For example, a host based configuration can look like this:
 
    In the ``auth.host_based.config`` setting, the order of the entries is
    defined by the natural order of the group keys of the setting. The
-   authentication method of the first entry that matches the client user and
-   address will be used. If the authentication attempt fails, subsequent
-   entries will not be considered. The entry look-up order is determined by the
-   ``order`` identifier of each entry.
+   authentication method of the first entry that matches the client user,
+   address, protocol and connection properties will be used. If the
+   authentication attempt fails, subsequent entries will not be considered.
+   The entry look-up order is determined by the  ``order`` identifier of each
+   entry.
 
 In the example above:
 
@@ -138,13 +146,25 @@ the user ``trinity`` can authenticate to CrateDB over HTTP from the
 authentication method is specified, the ``trust`` method will be used by
 default.
 
+``{user: john, method: jwt, protocol: http}`` means
+that the user ``john`` can authenticate to CrateDB over HTTP protocol using the
+:ref:`JWT <auth_jwt>` method.
+
 And finally the entry ``{method: password}`` means that any existing user (or
 superuser) can authenticate to CrateDB from any IP address using the
 ``password`` method for both HTTP and PostgreSQL wire protocol.
 
 .. NOTE::
 
-   For general help managing users, see :ref:`administration_user_management`.
+   For general help managing users and roles, see :ref:`administration_user_management`.
+
+.. NOTE::
+
+   User in the HBA entry for ``method: jwt`` must match the user created by
+   :ref:`ref-create-user` statement. ``CREATE USER`` is case insensitive when
+   name is provided without quotes, see :ref:`sql_lexical_keywords_identifiers`.
+   Thus, if HBA entry has username with uppercase symbols, use ``CREATE USER``
+   with quotes.
 
 
 .. _admin_hba_user:

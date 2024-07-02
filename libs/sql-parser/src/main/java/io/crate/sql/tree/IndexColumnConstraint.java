@@ -25,7 +25,7 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class IndexColumnConstraint<T> extends ColumnConstraint<T> {
+public final class IndexColumnConstraint<T> extends ColumnConstraint<T> {
 
     private static final IndexColumnConstraint<?> OFF = new IndexColumnConstraint<>("OFF", GenericProperties.empty());
 
@@ -88,6 +88,6 @@ public class IndexColumnConstraint<T> extends ColumnConstraint<T> {
 
     @Override
     public void visit(Consumer<? super T> consumer) {
-        properties.properties().values().forEach(consumer);
+        properties.forValues(consumer);
     }
 }

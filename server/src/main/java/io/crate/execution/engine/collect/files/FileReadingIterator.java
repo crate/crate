@@ -50,7 +50,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.BatchIterator;
@@ -175,7 +175,7 @@ public class FileReadingIterator implements BatchIterator<FileReadingIterator.Li
         }
     }
 
-    public FileReadingIterator(Collection<String> fileUris,
+    public FileReadingIterator(Collection<URI> fileUris,
                                String compression,
                                Map<String, FileInputFactory> fileInputFactories,
                                Boolean shared,
@@ -347,7 +347,6 @@ public class FileReadingIterator implements BatchIterator<FileReadingIterator.Li
         closeReader();
         reset();
         killed = BatchIterator.CLOSED;
-        backOffPolicy.forEachRemaining((delay) -> {});
     }
 
     private void reset() {
@@ -399,8 +398,7 @@ public class FileReadingIterator implements BatchIterator<FileReadingIterator.Li
     }
 
     @Nullable
-    private FileInput toFileInput(String fileUri, Settings withClauseOptions) {
-        URI uri = toURI(fileUri);
+    private FileInput toFileInput(URI uri, Settings withClauseOptions) {
         FileInputFactory fileInputFactory = fileInputFactories.get(uri.getScheme());
         if (fileInputFactory != null) {
             try {

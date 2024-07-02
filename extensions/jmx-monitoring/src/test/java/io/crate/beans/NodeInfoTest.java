@@ -164,7 +164,7 @@ public class NodeInfoTest {
         // Unassigned shards are only counted on the master node
         assertThat(shardStats.getUnassigned()).isEqualTo(1);
 
-        assertThat(nodeInfo.getShardInfo().isEmpty()).isEqualTo(true);
+        assertThat(nodeInfo.getShardInfo().isEmpty()).isTrue();
     }
 
     @Test

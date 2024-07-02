@@ -21,11 +21,12 @@
 
 package io.crate.metadata.table;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RelationName;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * This class is used as information store of table constraints when
@@ -77,11 +78,19 @@ public class ConstraintInfo {
     private static List<Short> getConstraintColumnIndices(RelationInfo relationInfo, String constraintName, Type constraintType) {
         if (relationInfo instanceof TableInfo tableInfo) {
             if (constraintType == Type.PRIMARY_KEY) {
-                return relationInfo.primaryKey().stream().map(column -> (short) tableInfo.getReference(column).position()).collect(Collectors.toList());
+                return relationInfo.primaryKey().stream()
+                    .map(column -> (short) tableInfo.getReference(column).position())
+                    .toList();
             } else if (constraintType == Type.CHECK) {
                 return tableInfo.checkConstraints().stream()
                     .filter(checkConstraint -> checkConstraint.name().equals(constraintName))
-                    .map(checkConstraint -> checkConstraint.positions())
+                    .map(checkConstraint -> {
+                        List<Short> positions = new ArrayList<>();
+                        checkConstraint.expression().visit(Reference.class, r -> {
+                            positions.add((short) r.position());
+                        });
+                        return positions;
+                    })
                     .findFirst().orElse(List.of());
             }
         }

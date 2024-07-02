@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.function.IntPredicate;
 
 import io.crate.data.Input;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
@@ -56,15 +57,17 @@ public final class AllOperator extends Operator<Object> {
         }
     }
 
-    public static void register(OperatorModule module) {
+    public static void register(Functions.Builder builder) {
         for (var type : Type.values()) {
-            module.register(
+            builder.add(
                 Signature.scalar(
-                    type.fullQualifiedName,
-                    TypeSignature.parse("E"),
-                    TypeSignature.parse("array(E)"),
-                    Operator.RETURN_TYPE.getTypeSignature()
-                ).withTypeVariableConstraints(typeVariable("E")),
+                        type.fullQualifiedName,
+                        TypeSignature.parse("E"),
+                        TypeSignature.parse("array(E)"),
+                        Operator.RETURN_TYPE.getTypeSignature()
+                    ).withTypeVariableConstraints(typeVariable("E"))
+                    .withFeature(Feature.DETERMINISTIC)
+                    .withFeature(Feature.NULLABLE),
                 (signature, boundSignature) ->
                     new AllOperator(
                         signature,
@@ -76,19 +79,20 @@ public final class AllOperator extends Operator<Object> {
     }
 
     private final IntPredicate cmp;
-    private final DataType leftType;
+    private final DataType<Object> leftType;
 
+    @SuppressWarnings("unchecked")
     public AllOperator(Signature signature, BoundSignature boundSignature, IntPredicate cmp) {
         super(signature, boundSignature);
         this.cmp = cmp;
-        this.leftType = boundSignature.argTypes().get(0);
+        this.leftType = (DataType<Object>) boundSignature.argTypes().get(0);
     }
 
-    @SuppressWarnings("unchecked")
+    @SafeVarargs
     @Override
-    public Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>[] args) {
+    public final Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object> ... args) {
         var leftValue = args[0].value();
-        var rightValues = (Collection) args[1].value();
+        var rightValues = (Collection<?>) args[1].value();
         if (leftValue == null || rightValues == null) {
             return null;
         }

@@ -26,44 +26,39 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 import org.apache.lucene.document.Field;
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.FloatField;
 import org.apache.lucene.document.FloatPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
-import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
 
 import io.crate.execution.dml.Indexer.ColumnConstraint;
-import io.crate.execution.dml.Indexer.Synthetic;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
+import io.crate.metadata.doc.DocSysColumns;
 
 public class FloatIndexer implements ValueIndexer<Float> {
 
     private final Reference ref;
-    private final FieldType fieldType;
-    private String name;
+    private final String name;
 
-    public FloatIndexer(Reference ref, FieldType fieldType) {
+    public FloatIndexer(Reference ref) {
         this.ref = ref;
         this.name = ref.storageIdent();
-        this.fieldType = fieldType;
     }
 
     @Override
     public void indexValue(Float value,
                            XContentBuilder xcontentBuilder,
                            Consumer<? super IndexableField> addField,
-                           Map<ColumnIdent, Synthetic> synthetics,
+                           Synthetics synthetics,
                            Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
         xcontentBuilder.value(value);
         float floatValue = value.floatValue();
         if (ref.hasDocValues() && ref.indexType() != IndexType.NONE) {
-            addField.accept(new FloatField(name, floatValue, fieldType.stored() ? Field.Store.YES : Field.Store.NO));
+            addField.accept(new FloatField(name, floatValue, Field.Store.NO));
         } else {
             if (ref.indexType() != IndexType.NONE) {
                 addField.accept(new FloatPoint(name, floatValue));
@@ -74,12 +69,9 @@ public class FloatIndexer implements ValueIndexer<Float> {
                 );
             } else {
                 addField.accept(new Field(
-                        FieldNamesFieldMapper.NAME,
+                        DocSysColumns.FieldNames.NAME,
                         name,
-                        FieldNamesFieldMapper.Defaults.FIELD_TYPE));
-            }
-            if (fieldType.stored()) {
-                addField.accept(new StoredField(name, floatValue));
+                        DocSysColumns.FieldNames.FIELD_TYPE));
             }
         }
     }

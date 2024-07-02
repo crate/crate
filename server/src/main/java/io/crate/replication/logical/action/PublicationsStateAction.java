@@ -30,6 +30,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
@@ -44,7 +45,6 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportActionProxy;
@@ -54,15 +54,15 @@ import org.elasticsearch.transport.TransportService;
 import io.crate.metadata.RelationName;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
 import io.crate.replication.logical.metadata.RelationMetadata;
-import io.crate.user.User;
-import io.crate.user.UserLookup;
+import io.crate.role.Role;
+import io.crate.role.Roles;
 
 public class PublicationsStateAction extends ActionType<PublicationsStateAction.Response> {
 
     public static final String NAME = "internal:crate:replication/logical/publication/state";
     public static final PublicationsStateAction INSTANCE = new PublicationsStateAction();
 
-    private static final Logger LOGGER = Loggers.getLogger(PublicationsStateAction.class);
+    private static final Logger LOGGER = LogManager.getLogger(PublicationsStateAction.class);
 
     public PublicationsStateAction() {
         super(NAME);
@@ -76,13 +76,13 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
     @Singleton
     public static class TransportAction extends TransportMasterNodeReadAction<Request, Response> {
 
-        private final UserLookup userLookup;
+        private final Roles roles;
 
         @Inject
         public TransportAction(TransportService transportService,
                                ClusterService clusterService,
                                ThreadPool threadPool,
-                               UserLookup userLookup) {
+                               Roles roles) {
             super(Settings.EMPTY,
                   NAME,
                   false,
@@ -90,7 +90,7 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
                   clusterService,
                   threadPool,
                   Request::new);
-            this.userLookup = userLookup;
+            this.roles = roles;
 
             TransportActionProxy.registerProxyAction(transportService, NAME, Response::new);
         }
@@ -111,7 +111,7 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
                                        ActionListener<Response> listener) throws Exception {
             // Ensure subscribing user was not dropped after remote connection was established on another side.
             // Subscribing users must be checked on a publisher side as they belong to the publishing cluster.
-            User subscriber = userLookup.findUser(request.subscribingUserName());
+            Role subscriber = roles.findUser(request.subscribingUserName());
             if (subscriber == null) {
                 throw new IllegalStateException(
                     String.format(
@@ -138,8 +138,9 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
 
                 // Publication owner cannot be null as we ensure that users who owns publication cannot be dropped.
                 // Also, before creating publication or subscription we check that owner was not dropped right before creation.
-                User publicationOwner = userLookup.findUser(publication.owner());
-                allRelationsInPublications.putAll(publication.resolveCurrentRelations(state, publicationOwner, subscriber, publicationName));
+                Role publicationOwner = roles.findUser(publication.owner());
+                allRelationsInPublications.putAll(
+                    publication.resolveCurrentRelations(state, roles, publicationOwner, subscriber, publicationName));
             }
             listener.onResponse(new Response(allRelationsInPublications, unknownPublications));
         }
@@ -228,7 +229,7 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
             return relationsInPublications.values().stream()
                 .map(x -> x.template())
                 .filter(Objects::nonNull)
-                .map(x -> x.getName())
+                .map(x -> x.name())
                 .toList();
         }
 

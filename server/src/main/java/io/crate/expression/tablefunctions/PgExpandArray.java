@@ -30,6 +30,7 @@ import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.metadata.FunctionName;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
@@ -46,13 +47,15 @@ public final class PgExpandArray extends TableFunctionImplementation<List<Object
     private static final String NAME = "_pg_expandarray";
     private static final FunctionName FUNCTION_NAME = new FunctionName(InformationSchemaInfo.NAME, NAME);
 
-    public static void register(TableFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder builder) {
+        builder.add(
             Signature.table(
-                FUNCTION_NAME,
-                TypeSignature.parse("array(E)"),
-                TypeSignature.parse("record(x E, n integer)")
-            ).withTypeVariableConstraints(typeVariable("E")),
+                    FUNCTION_NAME,
+                    TypeSignature.parse("array(E)"),
+                    TypeSignature.parse("record(x E, n integer)")
+                ).withTypeVariableConstraints(typeVariable("E"))
+                .withFeature(Feature.DETERMINISTIC)
+                .withFeature(Feature.NON_NULLABLE),
             PgExpandArray::new
         );
     }

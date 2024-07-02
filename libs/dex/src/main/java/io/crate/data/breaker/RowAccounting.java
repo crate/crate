@@ -31,9 +31,10 @@ public interface RowAccounting<T> {
      * Accounts memory usage of the supplied row representation.
      * May throw an exception if it thinks that the entities accounted for
      * occupy too much memory.
-     * @throws CircuitBreakingException if too much memory would be consumer after materializing this row.
+     * @return estimated number of bytes for the row
+     * @throws CircuitBreakingException if too much memory would be consumed after materializing this row.
      */
-    void accountForAndMaybeBreak(T row);
+    long accountForAndMaybeBreak(T row);
 
     /**
      * Stops accounting for previously accounted rows.

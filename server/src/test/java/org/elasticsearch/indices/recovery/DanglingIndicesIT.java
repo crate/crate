@@ -19,10 +19,10 @@
 
 package org.elasticsearch.indices.recovery;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.metadata.IndexGraveyard.SETTING_MAX_TOMBSTONES;
 import static org.elasticsearch.gateway.DanglingIndicesState.AUTO_IMPORT_DANGLING_INDICES_SETTING;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -85,7 +85,7 @@ public class DanglingIndicesIT extends IntegTestCase {
                                     is((1L))));
         ensureGreen("test");
         final IndexMetadata indexMetadata = clusterService().state().metadata().index("test");
-        assertThat(indexMetadata.getSettings().get(IndexMetadata.SETTING_HISTORY_UUID), notNullValue());
+        assertThat(indexMetadata.getSettings().get(IndexMetadata.SETTING_HISTORY_UUID)).isNotNull();
     }
 
     /**

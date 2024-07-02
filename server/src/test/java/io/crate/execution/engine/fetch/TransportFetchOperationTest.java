@@ -21,9 +21,7 @@
 
 package io.crate.execution.engine.fetch;
 
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
@@ -43,7 +41,7 @@ public class TransportFetchOperationTest extends ESTestCase {
             RamAccounting.NO_ACCOUNTING,
             new IntObjectHashMap<>(),
             true);
-        assertThat(ramAccounting, is(RamAccounting.NO_ACCOUNTING));
+        assertThat(ramAccounting).isEqualTo(RamAccounting.NO_ACCOUNTING);
     }
 
     @Test
@@ -54,7 +52,7 @@ public class TransportFetchOperationTest extends ESTestCase {
             RamAccounting.NO_ACCOUNTING,
             toFetch,
             true);
-        assertThat(ramAccounting, instanceOf(BlockBasedRamAccounting.class));
+        assertThat(ramAccounting).isExactlyInstanceOf(BlockBasedRamAccounting.class);
     }
 
 }

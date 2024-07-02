@@ -22,23 +22,23 @@
 package io.crate.auth;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INVALID_AUTHORIZATION_SPECIFICATION;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static io.crate.testing.Asserts.assertSQLError;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.net.InetSocketAddress;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpRequest.BodyPublishers;
+import java.net.http.HttpResponse;
+import java.net.http.HttpResponse.BodyHandlers;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.Locale;
 import java.util.Properties;
 
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpOptions;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.test.IntegTestCase;
@@ -46,7 +46,6 @@ import org.junit.After;
 import org.junit.Test;
 import org.postgresql.util.PSQLException;
 
-import io.crate.testing.Asserts;
 import io.crate.testing.UseJdbc;
 import io.netty.handler.codec.http.HttpHeaderNames;
 
@@ -95,13 +94,18 @@ public class AuthenticationIntegrationTest extends IntegTestCase {
         HttpServerTransport httpTransport = cluster().getInstance(HttpServerTransport.class);
         InetSocketAddress address = httpTransport.boundAddress().publishAddress().address();
         String uri = String.format(Locale.ENGLISH, "http://%s:%s/", address.getHostName(), address.getPort());
-        HttpOptions request = new HttpOptions(uri);
-        request.setHeader(HttpHeaderNames.AUTHORIZATION.toString(), "Basic QXJ0aHVyOkV4Y2FsaWJ1cg==");
-        request.setHeader(HttpHeaderNames.ORIGIN.toString(), "http://example.com");
-        request.setHeader(HttpHeaderNames.ACCESS_CONTROL_REQUEST_METHOD.toString(), "GET");
-        CloseableHttpClient httpClient = HttpClients.createDefault();
-        CloseableHttpResponse resp = httpClient.execute(request);
-        assertThat(resp.getStatusLine().getReasonPhrase(), is("OK"));
+
+        try (var httpClient = HttpClient.newHttpClient()) {
+            HttpRequest request = HttpRequest.newBuilder(URI.create(uri))
+                .method("OPTIONS", BodyPublishers.noBody())
+                .setHeader(HttpHeaderNames.AUTHORIZATION.toString(), "Basic QXJ0aHVyOkV4Y2FsaWJ1cg==")
+                .setHeader(HttpHeaderNames.ORIGIN.toString(), "http://example.com")
+                .setHeader(HttpHeaderNames.ACCESS_CONTROL_REQUEST_METHOD.toString(), "GET")
+                .build();
+
+            HttpResponse<String> response = httpClient.send(request, BodyHandlers.ofString());
+            assertThat(response.statusCode()).isEqualTo(200);
+        }
     }
 
     @Test
@@ -116,7 +120,7 @@ public class AuthenticationIntegrationTest extends IntegTestCase {
     public void testInvalidUser() throws Exception {
         Properties properties = new Properties();
         properties.setProperty("user", "me");
-        Asserts.assertSQLError(() -> DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties))
+        assertSQLError(() -> DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties))
             .isExactlyInstanceOf(PSQLException.class)
             .hasPGError(INVALID_AUTHORIZATION_SPECIFICATION)
             .hasMessageContaining("No valid auth.host_based entry found for host \"127.0.0.1\", user \"me\". Did you enable TLS in your client?");
@@ -127,7 +131,7 @@ public class AuthenticationIntegrationTest extends IntegTestCase {
     public void testUserInHbaThatDoesNotExist() throws Exception {
         Properties properties = new Properties();
         properties.setProperty("user", "cr8");
-        Asserts.assertSQLError(() -> DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties))
+        assertSQLError(() -> DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties))
             .isExactlyInstanceOf(PSQLException.class)
             .hasPGError(INVALID_AUTHORIZATION_SPECIFICATION)
             .hasMessageContaining("trust authentication failed for user \"cr8\"");
@@ -137,7 +141,7 @@ public class AuthenticationIntegrationTest extends IntegTestCase {
     public void testInvalidAuthenticationMethod() throws Exception {
         Properties properties = new Properties();
         properties.setProperty("user", "foo");
-        Asserts.assertSQLError(() -> DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties))
+        assertSQLError(() -> DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties))
             .isExactlyInstanceOf(PSQLException.class)
             .hasPGError(INVALID_AUTHORIZATION_SPECIFICATION)
             .hasMessageContaining("No valid auth.host_based entry found for host \"127.0.0.1\", user \"foo\". Did you enable TLS in your client?");
@@ -155,7 +159,7 @@ public class AuthenticationIntegrationTest extends IntegTestCase {
         // connection with user arthur is possible
         properties.setProperty("user", "arthur");
         try (Connection conn = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {
-            assertThat(conn, is(notNullValue()));
+            assertThat(conn).isNotNull();
         }
     }
 
@@ -186,7 +190,7 @@ public class AuthenticationIntegrationTest extends IntegTestCase {
             }
             fail("We were able to proceed without SSL although requireSSL=required was set.");
         } catch (PSQLException e) {
-            assertThat(e.getMessage(), containsString("FATAL: No valid auth.host_based entry found"));
+            assertThat(e.getMessage()).contains("FATAL: No valid auth.host_based entry found");
         }
     }
 

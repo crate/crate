@@ -21,7 +21,7 @@
 
 package io.crate.sql.tree;
 
-import io.crate.common.collections.Lists2;
+import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -30,8 +30,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.StreamSupport;
 
-import static java.util.Objects.requireNonNull;
-import static java.util.stream.Collectors.toList;
+import io.crate.common.collections.Lists;
 
 public class QualifiedName {
 
@@ -54,7 +53,7 @@ public class QualifiedName {
     }
 
     public QualifiedName(Iterable<String> parts) {
-        var partsList = StreamSupport.stream(parts.spliterator(), false).collect(toList());
+        var partsList = StreamSupport.stream(parts.spliterator(), false).toList();
         if (partsList.isEmpty()) {
             throw new IllegalArgumentException("parts is empty");
         }
@@ -67,7 +66,7 @@ public class QualifiedName {
 
     @Override
     public String toString() {
-        return Lists2.joinOn(".", parts, x -> x);
+        return Lists.joinOn(".", parts, x -> x);
     }
 
     /**

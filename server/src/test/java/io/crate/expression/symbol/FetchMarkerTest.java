@@ -41,13 +41,13 @@ public class FetchMarkerTest {
         FetchMarker fetchMarker = new FetchMarker(relationName, List.of());
 
         BytesStreamOutput out = new BytesStreamOutput();
-        Symbols.toStream(fetchMarker, out);
+        Symbol.toStream(fetchMarker, out);
 
         StreamInput in = out.bytes().streamInput();
-        Symbol symbol = Symbols.fromStream(in);
+        Symbol symbol = Symbol.fromStream(in);
         assertThat(symbol)
             .isReference()
-            .hasColumnIdent(new ColumnIdent("_fetchid"))
+            .hasColumnIdent(ColumnIdent.of("_fetchid"))
             .hasTableIdent(relationName)
             .hasType(DataTypes.LONG);
     }

@@ -21,13 +21,32 @@
 
 package io.crate.protocols.http;
 
+import static io.netty.handler.codec.http.HttpResponseStatus.CONTINUE;
+import static io.netty.handler.codec.http.HttpResponseStatus.PARTIAL_CONTENT;
+import static io.netty.handler.codec.http.HttpResponseStatus.TEMPORARY_REDIRECT;
+import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
+
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.nio.channels.ClosedChannelException;
+import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
+import org.elasticsearch.http.netty4.cors.Netty4CorsConfig;
+import org.elasticsearch.http.netty4.cors.Netty4CorsHandler;
+import org.elasticsearch.index.IndexNotFoundException;
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.blob.BlobService;
 import io.crate.blob.RemoteDigestBlob;
 import io.crate.blob.exceptions.DigestMismatchException;
 import io.crate.blob.exceptions.DigestNotFoundException;
 import io.crate.blob.exceptions.MissingHTTPEndpointException;
 import io.crate.blob.v2.BlobIndex;
-import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
 import io.crate.blob.v2.BlobsDisabledException;
 import io.netty.buffer.ByteBuf;
@@ -39,7 +58,6 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelProgressiveFuture;
 import io.netty.channel.ChannelProgressiveFutureListener;
 import io.netty.channel.DefaultFileRegion;
-import io.netty.channel.FileRegion;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.DefaultHttpResponse;
@@ -55,25 +73,6 @@ import io.netty.handler.codec.http.LastHttpContent;
 import io.netty.handler.ssl.NotSslRecordException;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.stream.ChunkedFile;
-import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.Nullable;
-import org.apache.logging.log4j.LogManager;
-import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
-import org.elasticsearch.http.netty4.cors.Netty4CorsConfig;
-import org.elasticsearch.http.netty4.cors.Netty4CorsHandler;
-import org.elasticsearch.index.IndexNotFoundException;
-
-import java.io.IOException;
-import java.io.RandomAccessFile;
-import java.nio.channels.ClosedChannelException;
-import java.util.Locale;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import static io.netty.handler.codec.http.HttpResponseStatus.CONTINUE;
-import static io.netty.handler.codec.http.HttpResponseStatus.PARTIAL_CONTENT;
-import static io.netty.handler.codec.http.HttpResponseStatus.TEMPORARY_REDIRECT;
-import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
 
 public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
@@ -91,10 +90,7 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
 
     private final Matcher blobsMatcher = BLOBS_PATTERN.matcher("");
     private final BlobService blobService;
-    private final BlobIndicesService blobIndicesService;
     private final Netty4CorsConfig corsConfig;
-    private String activeScheme;
-    private boolean sslEnabled;
     private HttpRequest currentMessage;
 
     private RemoteDigestBlob digestBlob;
@@ -102,13 +98,10 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
     private String index;
     private String digest;
 
-    public HttpBlobHandler(BlobService blobService, BlobIndicesService blobIndicesService, Netty4CorsConfig corsConfig) {
+    public HttpBlobHandler(BlobService blobService, Netty4CorsConfig corsConfig) {
         super(false);
         this.blobService = blobService;
-        this.blobIndicesService = blobIndicesService;
         this.corsConfig = corsConfig;
-        this.activeScheme = SCHEME_HTTP;
-        this.sslEnabled = false;
     }
 
     private boolean possibleRedirect(HttpRequest request, String index, String digest) {
@@ -127,7 +120,7 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
 
             if (redirectAddress != null) {
                 LOGGER.trace("redirectAddress: {}", redirectAddress);
-                sendRedirect(request, activeScheme + redirectAddress);
+                sendRedirect(request, activeScheme() + redirectAddress);
                 return true;
             }
         }
@@ -298,7 +291,7 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
         // this method only supports local mode, which is ok, since there
         // should be a redirect upfront if data is not local
 
-        BlobShard blobShard = localBlobShard(index, digest);
+        BlobShard blobShard = blobService.localBlobShard(index, digest);
         long length = blobShard.blobContainer().getFile(digest).length();
         if (length < 1) {
             simpleResponse(request, HttpResponseStatus.NOT_FOUND);
@@ -319,10 +312,6 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
         }
     }
 
-    private BlobShard localBlobShard(String index, String digest) {
-        return blobIndicesService.localBlobShard(index, digest);
-    }
-
     private void partialContentResponse(String range, HttpRequest request, String index, final String digest)
         throws IOException {
         assert range != null : "Getting partial response but no byte-range is not present.";
@@ -332,7 +321,7 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
             fullContentResponse(request, index, digest);
             return;
         }
-        BlobShard blobShard = localBlobShard(index, digest);
+        BlobShard blobShard = blobService.localBlobShard(index, digest);
 
         final RandomAccessFile raf = blobShard.blobContainer().getRandomAccessFile(digest);
         long start;
@@ -380,18 +369,19 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
     }
 
     private void fullContentResponse(HttpRequest request, String index, final String digest) throws IOException {
-        BlobShard blobShard = localBlobShard(index, digest);
+        BlobShard blobShard = blobService.localBlobShard(index, digest);
         HttpResponse response = new DefaultHttpResponse(HTTP_1_1, HttpResponseStatus.OK);
         Netty4CorsHandler.setCorsResponseHeaders(request, response, corsConfig);
         final RandomAccessFile raf = blobShard.blobContainer().getRandomAccessFile(digest);
         try {
+            maybeSetConnectionCloseHeader(response);
             HttpUtil.setContentLength(response, raf.length());
             setDefaultGetHeaders(response);
             LOGGER.trace("HttpResponse: {}", response);
-            Channel channel = ctx.channel();
-            channel.write(response);
+            boolean keepAlive = HttpUtil.isKeepAlive(request);
+            ctx.channel().write(response);
             ChannelFuture writeFuture = transferFile(digest, raf, 0, raf.length());
-            if (!HttpUtil.isKeepAlive(request)) {
+            if (!keepAlive) {
                 writeFuture.addListener(ChannelFutureListener.CLOSE);
             }
         } catch (Throwable t) {
@@ -405,23 +395,31 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
         }
     }
 
-    private ChannelFuture transferFile(final String digest, RandomAccessFile raf, long position, long count)
-        throws IOException {
+    private boolean sslEnabled() {
+        return ctx.pipeline().get(SslHandler.class) != null;
+    }
 
+    private String activeScheme() {
+        return sslEnabled() ? SCHEME_HTTPS : SCHEME_HTTP;
+    }
+
+    private ChannelFuture transferFile(final String digest,
+                                       RandomAccessFile raf,
+                                       long position,
+                                       long count) throws IOException {
         Channel channel = ctx.channel();
         final ChannelFuture fileFuture;
-        final ChannelFuture endMarkerFuture;
-        if (sslEnabled) {
-            HttpChunkedInput httpChunkedInput =
-                new HttpChunkedInput(new ChunkedFile(raf, 0, count, HTTPS_CHUNK_SIZE));
-            fileFuture = channel.writeAndFlush(httpChunkedInput, ctx.newProgressivePromise());
-            // HttpChunkedInput also writes the end marker (LastHttpContent) for us.
-            endMarkerFuture = fileFuture;
+        final ChannelFuture lastContentFuture;
+        if (sslEnabled()) {
+            var chunkedFile = new ChunkedFile(raf, 0, count, HTTPS_CHUNK_SIZE);
+            fileFuture = channel.writeAndFlush(new HttpChunkedInput(chunkedFile), ctx.newProgressivePromise());
+
+            // HttpChunkedInput also writes the end marker (LastHttpContent)
+            lastContentFuture = fileFuture;
         } else {
-            FileRegion region = new DefaultFileRegion(raf.getChannel(), position, count);
+            var region = new DefaultFileRegion(raf.getChannel(), position, count);
             fileFuture = channel.write(region, ctx.newProgressivePromise());
-            // Flushes and sets the ending marker
-            endMarkerFuture = channel.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
+            lastContentFuture = channel.writeAndFlush(LastHttpContent.EMPTY_LAST_CONTENT);
         }
 
         fileFuture.addListener(new ChannelProgressiveFutureListener() {
@@ -436,7 +434,7 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
             }
         });
 
-        return endMarkerFuture;
+        return lastContentFuture;
     }
 
     private void setDefaultGetHeaders(HttpResponse response) {
@@ -515,12 +513,5 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
     @Override
     public void handlerAdded(ChannelHandlerContext ctx) throws Exception {
         this.ctx = ctx;
-        if (ctx.pipeline().get(SslHandler.class) == null) {
-            this.sslEnabled = false;
-            this.activeScheme = SCHEME_HTTP;
-        } else {
-            this.sslEnabled = true;
-            this.activeScheme = SCHEME_HTTPS;
-        }
     }
 }

@@ -21,6 +21,8 @@
 
 package io.crate.expression.scalar;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import org.junit.Test;
 
 import io.crate.exceptions.UnsupportedFunctionException;
@@ -89,41 +91,40 @@ public class ArrayUpperFunctionTest extends ScalarTestCase {
 
     @Test
     public void testZeroArguments() {
-        expectedException.expect(UnsupportedFunctionException.class);
-        expectedException.expectMessage("Unknown function: array_upper()." +
-                                        " Possible candidates: array_upper(array(E), integer):integer");
-        assertEvaluateNull("array_upper()");
+        assertThatThrownBy(() -> assertEvaluateNull("array_upper()"))
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessageStartingWith("Unknown function: array_upper(). " +
+                                    "Possible candidates: array_upper(array(E), integer):integer");
     }
 
     @Test
     public void testOneArgument() {
-        expectedException.expect(UnsupportedFunctionException.class);
-        expectedException.expectMessage("Unknown function: array_upper(_array(1))," +
-                                        " no overload found for matching argument types: (integer_array).");
-        assertEvaluateNull("array_upper([1])");
+        assertThatThrownBy(() -> assertEvaluateNull("array_upper([1])"))
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessageStartingWith("Unknown function: array_upper(_array(1)), " +
+                                    "no overload found for matching argument types: (integer_array).");
     }
 
     @Test
     public void testThreeArguments() {
-        expectedException.expect(UnsupportedFunctionException.class);
-        expectedException.expectMessage("Unknown function: array_upper(_array(1), 2, _array(3))," +
-                                        " no overload found for matching argument types: (integer_array, integer, integer_array).");
-        assertEvaluateNull("array_upper([1], 2, [3])");
+        assertThatThrownBy(() -> assertEvaluateNull("array_upper([1], 2, [3])"))
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessageStartingWith("Unknown function: array_upper(_array(1), 2, _array(3)), " +
+                "no overload found for matching argument types: (integer_array, integer, integer_array).");
     }
 
     @Test
     public void testSecondArgumentNotANumber() {
-        expectedException.expect(UnsupportedFunctionException.class);
-        expectedException.expectMessage("Unknown function: array_upper(_array(1), _array(2))," +
-                                        " no overload found for matching argument types: (integer_array, integer_array).");
-        assertEvaluateNull("array_upper([1], [2])");
+        assertThatThrownBy(() -> assertEvaluateNull("array_upper([1], [2])"))
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessageStartingWith("Unknown function: array_upper(_array(1), _array(2)), " +
+                "no overload found for matching argument types: (integer_array, integer_array).");
     }
 
     @Test
     public void testFirstArgumentIsNull() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage(
-            "The inner type of the array argument `array_upper` function cannot be undefined");
-        assertEvaluateNull("array_upper(null, 1)");
+        assertThatThrownBy(() -> assertEvaluateNull("array_upper(null, 1)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("The inner type of the array argument `array_upper` function cannot be undefined");
     }
 }

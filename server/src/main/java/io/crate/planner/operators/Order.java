@@ -27,22 +27,20 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedCollection;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.OrderedLimitAndOffsetProjection;
 import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
-import io.crate.expression.symbol.FieldsVisitor;
-import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
 import io.crate.expression.symbol.Symbols;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
@@ -65,7 +63,7 @@ public class Order extends ForwardingLogicalPlan {
 
     public Order(LogicalPlan source, OrderBy orderBy) {
         super(source);
-        this.outputs = Lists2.concatUnique(source.outputs(), orderBy.orderBySymbols());
+        this.outputs = Lists.concatUnique(source.outputs(), orderBy.orderBySymbols());
         this.orderBy = orderBy;
     }
 
@@ -74,13 +72,13 @@ public class Order extends ForwardingLogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
         LinkedHashSet<Symbol> toKeep = new LinkedHashSet<>();
         for (Symbol outputToKeep : outputsToKeep) {
-            SymbolVisitors.intersection(outputToKeep, source.outputs(), toKeep::add);
+            Symbols.intersection(outputToKeep, source.outputs(), toKeep::add);
         }
         for (Symbol orderBySymbol : orderBy.orderBySymbols()) {
-            SymbolVisitors.intersection(orderBySymbol, source.outputs(), toKeep::add);
+            Symbols.intersection(orderBySymbol, source.outputs(), toKeep::add);
         }
         LogicalPlan newSource = source.pruneOutputsExcept(toKeep);
         if (newSource == source) {
@@ -106,7 +104,7 @@ public class Order extends ForwardingLogicalPlan {
             // e.g. OrderBy [x + y] where the source provides [x, y]
             // We need to extend replacedOutputs in this case because it must always contain entries for all outputs
             LinkedHashMap<Symbol, Symbol> newReplacedOutputs = new LinkedHashMap<>(replacedOutputs);
-            Function<Symbol, Symbol> mapToFetchStubs = fetchRewrite.mapToFetchStubs();
+            UnaryOperator<Symbol> mapToFetchStubs = fetchRewrite.mapToFetchStubs();
             for (int i = newSource.outputs().size(); i < newOrderBy.outputs.size(); i++) {
                 Symbol extraOutput = newOrderBy.outputs.get(i);
                 newReplacedOutputs.put(extraOutput, mapToFetchStubs.apply(extraOutput));
@@ -168,8 +166,7 @@ public class Order extends ForwardingLogicalPlan {
                     symbol));
         };
         for (Symbol orderByInputColumn : orderByInputColumns) {
-            FieldsVisitor.visitFields(orderByInputColumn, raiseExpressionMissingInOutputsError);
-            RefVisitor.visitRefs(orderByInputColumn, raiseExpressionMissingInOutputsError);
+            orderByInputColumn.visit(Symbol.IS_COLUMN, raiseExpressionMissingInOutputsError);
         }
     }
 
@@ -180,7 +177,7 @@ public class Order extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new Order(Lists2.getOnlyElement(sources), orderBy);
+        return new Order(Lists.getOnlyElement(sources), orderBy);
     }
 
     @Override

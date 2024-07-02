@@ -21,42 +21,49 @@
 
 package io.crate.auth;
 
-import io.crate.user.User;
-import io.crate.user.UserLookup;
-import io.crate.protocols.SSL;
-import io.crate.protocols.postgres.ConnectionProperties;
-import org.elasticsearch.common.settings.SecureString;
-
-import org.jetbrains.annotations.Nullable;
 import java.security.cert.Certificate;
 import java.util.Objects;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.protocols.SSL;
+import io.crate.protocols.postgres.ConnectionProperties;
+import io.crate.role.Role;
+import io.crate.role.Roles;
+
 public class ClientCertAuth implements AuthenticationMethod {
 
-    static final String NAME = "cert";
-    private final UserLookup userLookup;
+    private static final Logger LOGGER = LogManager.getLogger(ConnectionProperties.class);
 
-    ClientCertAuth(UserLookup userLookup) {
-        this.userLookup = userLookup;
+    static final String NAME = "cert";
+    private final Roles roles;
+
+    ClientCertAuth(Roles roles) {
+        this.roles = roles;
     }
 
     @Nullable
     @Override
-    public User authenticate(String userName, SecureString passwd, ConnectionProperties connProperties) {
+    public Role authenticate(Credentials credentials, ConnectionProperties connProperties) {
+        var username = credentials.username();
+        assert username != null : "User name must be not null on cert authentication method";
         Certificate clientCert = connProperties.clientCert();
         if (clientCert != null) {
             String commonName = SSL.extractCN(clientCert);
-            if (Objects.equals(userName, commonName) || connProperties.protocol() == Protocol.TRANSPORT) {
-                User user = userLookup.findUser(userName);
+            if (Objects.equals(username, commonName) || connProperties.protocol() == Protocol.TRANSPORT) {
+                Role user = roles.findUser(username);
                 if (user != null) {
                     return user;
                 }
             } else {
                 throw new RuntimeException(
-                    "Common name \"" + commonName + "\" in client certificate doesn't match username \"" + userName + "\"");
+                    "Common name \"" + commonName + "\" in client certificate doesn't match username \"" + username + "\"");
             }
         }
-        throw new RuntimeException("Client certificate authentication failed for user \"" + userName + "\"");
+        LOGGER.debug("Client certificate not available");
+        throw new RuntimeException("Client certificate authentication failed for user \"" + username + "\"");
     }
 
     @Override

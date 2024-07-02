@@ -19,21 +19,19 @@
 
 package org.elasticsearch.cluster.node;
 
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasToString;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Set;
 
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
 
 public class DiscoveryNodeRoleTests extends ESTestCase {
 
+    @Test
     public void testDiscoveryNodeSetPossibleRolesRejectsDuplicateRoleNames() {
-        final IllegalStateException e = expectThrows(
-                IllegalStateException.class,
-                () -> DiscoveryNode.setPossibleRoles(Set.of(
+        assertThatThrownBy(() -> DiscoveryNode.setPossibleRoles(Set.of(
                         new DiscoveryNodeRole("foo", "f") {
 
                             @Override
@@ -49,14 +47,14 @@ public class DiscoveryNodeRoleTests extends ESTestCase {
                                 return null;
                             }
 
-                        })));
-        assertThat(e, hasToString(containsString("Duplicate key foo ")));
+                        }))
+        ).isExactlyInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("Duplicate key foo ");
     }
 
+    @Test
     public void testDiscoveryNodeSetPossibleRolesRejectsDuplicateRoleNameAbbreviations() {
-        final IllegalStateException e = expectThrows(
-                IllegalStateException.class,
-                () -> DiscoveryNode.setPossibleRoles(Set.of(
+        assertThatThrownBy(() -> DiscoveryNode.setPossibleRoles(Set.of(
                         new DiscoveryNodeRole("foo_1", "f") {
 
                             @Override
@@ -72,8 +70,9 @@ public class DiscoveryNodeRoleTests extends ESTestCase {
                                 return null;
                             }
 
-                        })));
-        assertThat(e, hasToString(containsString("Duplicate key f ")));
+                        }))
+        ).isExactlyInstanceOf(IllegalStateException.class)
+            .hasMessageContaining("Duplicate key f ");
     }
 
 }

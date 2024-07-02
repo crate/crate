@@ -19,15 +19,11 @@
 
 package org.elasticsearch.common.geo.builders;
 
+import java.util.Objects;
+
 import org.elasticsearch.common.geo.GeoShapeType;
-import org.elasticsearch.common.geo.parsers.GeoWKTParser;
-import org.elasticsearch.common.geo.parsers.ShapeParser;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.spatial4j.shape.Rectangle;
-
-import java.io.IOException;
-import java.util.Objects;
 
 public class EnvelopeBuilder extends ShapeBuilder<Rectangle, EnvelopeBuilder> {
 
@@ -49,55 +45,14 @@ public class EnvelopeBuilder extends ShapeBuilder<Rectangle, EnvelopeBuilder> {
         this.bottomRight = bottomRight;
     }
 
-    public Coordinate topLeft() {
-        return this.topLeft;
-    }
-
-    public Coordinate bottomRight() {
-        return this.bottomRight;
+    @Override
+    public Rectangle buildS4J() {
+        return SHAPE_FACTORY.rect(topLeft.x, bottomRight.x, bottomRight.y, topLeft.y);
     }
 
     @Override
-    protected StringBuilder contentToWKT() {
-        StringBuilder sb = new StringBuilder();
-
-        sb.append(GeoWKTParser.LPAREN);
-        // minX, maxX, maxY, minY
-        sb.append(topLeft.x);
-        sb.append(GeoWKTParser.COMMA);
-        sb.append(GeoWKTParser.SPACE);
-        sb.append(bottomRight.x);
-        sb.append(GeoWKTParser.COMMA);
-        sb.append(GeoWKTParser.SPACE);
-        // TODO support Z??
-        sb.append(topLeft.y);
-        sb.append(GeoWKTParser.COMMA);
-        sb.append(GeoWKTParser.SPACE);
-        sb.append(bottomRight.y);
-        sb.append(GeoWKTParser.RPAREN);
-
-        return sb;
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject();
-        builder.field(ShapeParser.FIELD_TYPE.getPreferredName(), TYPE.shapeName());
-        builder.startArray(ShapeParser.FIELD_COORDINATES.getPreferredName());
-        toXContent(builder, topLeft);
-        toXContent(builder, bottomRight);
-        builder.endArray();
-        return builder.endObject();
-    }
-
-    @Override
-    public Rectangle build() {
-        return SPATIAL_CONTEXT.makeRectangle(topLeft.x, bottomRight.x, bottomRight.y, topLeft.y);
-    }
-
-    @Override
-    public GeoShapeType type() {
-        return TYPE;
+    public org.apache.lucene.geo.Rectangle buildLucene() {
+        return new org.apache.lucene.geo.Rectangle(bottomRight.y, topLeft.y, topLeft.x, bottomRight.x);
     }
 
     @Override

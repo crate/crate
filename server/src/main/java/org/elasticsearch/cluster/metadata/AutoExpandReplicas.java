@@ -19,22 +19,25 @@
 
 package org.elasticsearch.cluster.metadata;
 
-import com.carrotsearch.hppc.cursors.ObjectCursor;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import io.crate.common.Booleans;
-import io.crate.types.DataTypes;
-
-import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
-import org.elasticsearch.cluster.routing.allocation.decider.Decision;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Setting.Property;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.isIndexVerifiedBeforeClosed;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
+import org.elasticsearch.cluster.routing.allocation.decider.Decision;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Setting.Property;
+
+import com.carrotsearch.hppc.cursors.ObjectCursor;
+
+import io.crate.common.Booleans;
+import io.crate.types.DataTypes;
 
 /**
  * This class acts as a functional wrapper around the {@code index.auto_expand_replicas} setting.
@@ -47,8 +50,9 @@ public final class AutoExpandReplicas {
 
     private static final AutoExpandReplicas FALSE_INSTANCE = new AutoExpandReplicas(0, 0, false);
 
+    public static final String SETTING_KEY = "index.auto_expand_replicas";
     public static final Setting<AutoExpandReplicas> SETTING = new Setting<>(
-        IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS,
+        SETTING_KEY,
         "0-1",
         AutoExpandReplicas::parse,
         DataTypes.STRING,
@@ -64,13 +68,13 @@ public final class AutoExpandReplicas {
         }
         final int dash = value.indexOf('-');
         if (-1 == dash) {
-            throw new IllegalArgumentException("failed to parse [" + IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS + "] from value: [" + value + "] at index " + dash);
+            throw new IllegalArgumentException("failed to parse [" + AutoExpandReplicas.SETTING_KEY + "] from value: [" + value + "] at index " + dash);
         }
         final String sMin = value.substring(0, dash);
         try {
             min = Integer.parseInt(sMin);
         } catch (NumberFormatException e) {
-            throw new IllegalArgumentException("failed to parse [" + IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS + "] from value: [" + value + "] at index " + dash, e);
+            throw new IllegalArgumentException("failed to parse [" + AutoExpandReplicas.SETTING_KEY + "] from value: [" + value + "] at index " + dash, e);
         }
         String sMax = value.substring(dash + 1);
         if (sMax.equals(ALL_NODES_VALUE)) {
@@ -79,7 +83,7 @@ public final class AutoExpandReplicas {
             try {
                 max = Integer.parseInt(sMax);
             } catch (NumberFormatException e) {
-                throw new IllegalArgumentException("failed to parse [" + IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS + "] from value: [" + value + "] at index " + dash, e);
+                throw new IllegalArgumentException("failed to parse [" + AutoExpandReplicas.SETTING_KEY + "] from value: [" + value + "] at index " + dash, e);
             }
         }
         return new AutoExpandReplicas(min, max, true);
@@ -91,7 +95,7 @@ public final class AutoExpandReplicas {
 
     private AutoExpandReplicas(int minReplicas, int maxReplicas, boolean enabled) {
         if (minReplicas > maxReplicas) {
-            throw new IllegalArgumentException("[" + IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS + "] minReplicas must be =< maxReplicas but wasn't " + minReplicas + " > " + maxReplicas);
+            throw new IllegalArgumentException("[" + AutoExpandReplicas.SETTING_KEY + "] minReplicas must be =< maxReplicas but wasn't " + minReplicas + " > " + maxReplicas);
         }
         this.minReplicas = minReplicas;
         this.maxReplicas = maxReplicas;
@@ -156,7 +160,7 @@ public final class AutoExpandReplicas {
         Map<Integer, List<String>> nrReplicasChanged = new HashMap<>();
 
         for (final IndexMetadata indexMetadata : metadata) {
-            if (indexMetadata.getState() != IndexMetadata.State.CLOSE) {
+            if (indexMetadata.getState() == IndexMetadata.State.OPEN || isIndexVerifiedBeforeClosed(indexMetadata)) {
                 AutoExpandReplicas autoExpandReplicas = SETTING.get(indexMetadata.getSettings());
                 autoExpandReplicas.getDesiredNumberOfReplicas(indexMetadata, allocation).ifPresent(numberOfReplicas -> {
                     if (numberOfReplicas != indexMetadata.getNumberOfReplicas()) {

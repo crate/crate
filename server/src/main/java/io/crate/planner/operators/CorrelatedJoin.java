@@ -21,20 +21,18 @@
 
 package io.crate.planner.operators;
 
-import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedCollection;
 import java.util.Set;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.relations.AbstractTableRelation;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.CorrelatedJoinProjection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.LimitAndOffset;
-import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;
 import io.crate.expression.symbol.OuterColumn;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
@@ -76,7 +74,7 @@ public class CorrelatedJoin implements LogicalPlan {
     public CorrelatedJoin(LogicalPlan inputPlan,
                           SelectSymbol selectSymbol,
                           LogicalPlan subQueryPlan) {
-        this(inputPlan, selectSymbol, subQueryPlan, Lists2.concat(inputPlan.outputs(), selectSymbol));
+        this(inputPlan, selectSymbol, subQueryPlan, Lists.concat(inputPlan.outputs(), selectSymbol));
     }
 
     private CorrelatedJoin(LogicalPlan inputPlan,
@@ -135,11 +133,6 @@ public class CorrelatedJoin implements LogicalPlan {
     }
 
     @Override
-    public List<AbstractTableRelation<?>> baseTables() {
-        return inputPlan.baseTables();
-    }
-
-    @Override
     public List<LogicalPlan> sources() {
         return List.of(inputPlan);
     }
@@ -147,22 +140,18 @@ public class CorrelatedJoin implements LogicalPlan {
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
         return new CorrelatedJoin(
-            Lists2.getOnlyElement(sources),
+            Lists.getOnlyElement(sources),
             selectSymbol,
             subQueryPlan
         );
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
         var toCollect = new LinkedHashSet<>(outputsToKeep);
-        var collectOuterColumns = new DefaultTraversalSymbolVisitor<Void, Void>() {
-            public Void visitOuterColumn(OuterColumn outerColumn, Void ignored) {
-                toCollect.add(outerColumn.symbol());
-                return null;
-            }
-        };
-        selectSymbol.relation().visitSymbols(symbol -> symbol.accept(collectOuterColumns, null));
+        selectSymbol.relation().visitSymbols(tree ->
+            tree.visit(OuterColumn.class, outerColumn -> toCollect.add(outerColumn.symbol()))
+        );
         LogicalPlan newInputPlan = inputPlan.pruneOutputsExcept(toCollect);
 
         if (inputPlan == newInputPlan) {
@@ -173,7 +162,7 @@ public class CorrelatedJoin implements LogicalPlan {
             newInputPlan,
             selectSymbol,
             subQueryPlan,
-            outputs
+            Lists.concat(newInputPlan.outputs(), selectSymbol)
         );
     }
 
@@ -188,8 +177,8 @@ public class CorrelatedJoin implements LogicalPlan {
     }
 
     @Override
-    public List<RelationName> getRelationNames() {
-        return inputPlan.getRelationNames();
+    public List<RelationName> relationNames() {
+        return inputPlan.relationNames();
     }
 
     @Override
@@ -197,10 +186,10 @@ public class CorrelatedJoin implements LogicalPlan {
         printContext
             .text(getClass().getSimpleName())
             .text("[")
-            .text(Lists2.joinOn(", ", outputs(), Symbol::toString))
+            .text(Lists.joinOn(", ", outputs(), Symbol::toString))
             .text("]");
         printStats(printContext);
-        printContext.nest(Lists2.map(sources(), x -> x::print))
+        printContext.nest(Lists.map(sources(), x -> x::print))
             .nest(p -> {
                 p.text("SubPlan");
                 p.nest(subQueryPlan::print);

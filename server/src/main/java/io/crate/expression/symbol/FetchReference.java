@@ -22,6 +22,7 @@
 package io.crate.expression.symbol;
 
 import java.io.IOException;
+import java.util.function.Predicate;
 
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -61,6 +62,16 @@ public class FetchReference implements Symbol {
 
     public Reference ref() {
         return ref;
+    }
+
+    @Override
+    public boolean isDeterministic() {
+        return fetchId.isDeterministic() && ref.isDeterministic();
+    }
+
+    @Override
+    public boolean any(Predicate<? super Symbol> predicate) {
+        return predicate.test(this) || fetchId.any(predicate) || ref.any(predicate);
     }
 
     public FetchReference(StreamInput in) throws IOException {

@@ -22,13 +22,8 @@
 package io.crate.analyze;
 
 import static io.crate.testing.Asserts.isReference;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsNot.not;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertThrows;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 
@@ -51,9 +46,8 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
 
     @Before
     public void setUpExecutor() throws Exception {
-        e = SQLExecutor.builder(clusterService)
-            .addTable("create table t (x int)")
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table t (x int)");
     }
 
     @Test
@@ -61,14 +55,14 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
         QueriedSelectRelation analysis = e.analyze("select avg(x) OVER () from t");
 
         List<Symbol> outputSymbols = analysis.outputs();
-        assertThat(outputSymbols.size(), is(1));
-        assertThat(outputSymbols.get(0), instanceOf(WindowFunction.class));
+        assertThat(outputSymbols).hasSize(1);
+        assertThat(outputSymbols.get(0)).isExactlyInstanceOf(WindowFunction.class);
         WindowFunction windowFunction = (WindowFunction) outputSymbols.get(0);
-        assertThat(windowFunction.arguments().size(), is(1));
+        assertThat(windowFunction.arguments()).hasSize(1);
         WindowDefinition windowDefinition = windowFunction.windowDefinition();
-        assertThat(windowDefinition.partitions().isEmpty(), is(true));
-        assertThat(windowDefinition.orderBy(), is(nullValue()));
-        assertThat(windowDefinition.windowFrameDefinition(), is(WindowDefinition.RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW));
+        assertThat(windowDefinition.partitions()).isEmpty();
+        assertThat(windowDefinition.orderBy()).isNull();
+        assertThat(windowDefinition.windowFrameDefinition()).isEqualTo(WindowDefinition.RANGE_UNBOUNDED_PRECEDING_CURRENT_ROW);
     }
 
     @Test
@@ -76,52 +70,52 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
         QueriedSelectRelation analysis = e.analyze("select avg(x) OVER (PARTITION BY x) from t");
 
         List<Symbol> outputSymbols = analysis.outputs();
-        assertThat(outputSymbols.size(), is(1));
-        assertThat(outputSymbols.get(0), instanceOf(WindowFunction.class));
+        assertThat(outputSymbols).hasSize(1);
+        assertThat(outputSymbols.get(0)).isExactlyInstanceOf(WindowFunction.class);
         WindowFunction windowFunction = (WindowFunction) outputSymbols.get(0);
-        assertThat(windowFunction.arguments().size(), is(1));
+        assertThat(windowFunction.arguments()).hasSize(1);
         WindowDefinition windowDefinition = windowFunction.windowDefinition();
-        assertThat(windowDefinition.partitions().size(), is(1));
+        assertThat(windowDefinition.partitions()).hasSize(1);
     }
 
     @Test
     public void testInvalidPartitionByField() {
-        expectedException.expect(ColumnUnknownException.class);
-        expectedException.expectMessage("Column zzz unknown");
-        e.analyze("select avg(x) OVER (PARTITION BY zzz) from t");
+        assertThatThrownBy(() -> e.analyze("select avg(x) OVER (PARTITION BY zzz) from t"))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column zzz unknown");
     }
 
     @Test
     public void testInvalidOrderByField() {
-        expectedException.expect(ColumnUnknownException.class);
-        expectedException.expectMessage("Column zzz unknown");
-        e.analyze("select avg(x) OVER (ORDER BY zzz) from t");
+        assertThatThrownBy(() -> e.analyze("select avg(x) OVER (ORDER BY zzz) from t"))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column zzz unknown");
     }
 
     @Test
     public void testOnlyAggregatesAndWindowFunctionsAreAllowedWithOver() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("OVER clause was specified, but abs is neither a window nor an aggregate function.");
-        e.analyze("select abs(x) OVER() from t");
+        assertThatThrownBy(() -> e.analyze("select abs(x) OVER() from t"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("OVER clause was specified, but abs is neither a window nor an aggregate function.");
     }
 
     @Test
     public void testAggregatesCannotAcceptIgnoreOrRespectNullsFlag() {
-        var exception = assertThrows(IllegalArgumentException.class,
-                     () -> e.analyze("select avg(x) ignore nulls OVER() from t"));
-        assertEquals("avg cannot accept RESPECT or IGNORE NULLS flag.", exception.getMessage());
+        assertThatThrownBy(() -> e.analyze("select avg(x) ignore nulls OVER() from t"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("avg cannot accept RESPECT or IGNORE NULLS flag.");
         //without over clause
-        var exception2 = assertThrows(IllegalArgumentException.class,
-                                     () -> e.analyze("select avg(x) ignore nulls from t"));
-        assertEquals("avg cannot accept RESPECT or IGNORE NULLS flag.", exception2.getMessage());
+        assertThatThrownBy(() -> e.analyze("select avg(x) ignore nulls from t"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("avg cannot accept RESPECT or IGNORE NULLS flag.");
     }
 
     @Test
     public void testNonAggregateAndNonWindowFunctionCannotAcceptIgnoreOrRespectNullsFlag() {
         //without over clause
-        var exception = assertThrows(IllegalArgumentException.class,
-                                     () -> e.analyze("select abs(x) ignore nulls from t"));
-        assertEquals("abs cannot accept RESPECT or IGNORE NULLS flag.", exception.getMessage());
+        assertThatThrownBy(() -> e.analyze("select abs(x) ignore nulls from t"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("abs cannot accept RESPECT or IGNORE NULLS flag.");
     }
 
     @Test
@@ -129,12 +123,12 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
         QueriedSelectRelation analysis = e.analyze("select avg(x) OVER (ORDER BY x) from t");
 
         List<Symbol> outputSymbols = analysis.outputs();
-        assertThat(outputSymbols.size(), is(1));
-        assertThat(outputSymbols.get(0), instanceOf(WindowFunction.class));
+        assertThat(outputSymbols).hasSize(1);
+        assertThat(outputSymbols.get(0)).isExactlyInstanceOf(WindowFunction.class);
         WindowFunction windowFunction = (WindowFunction) outputSymbols.get(0);
-        assertThat(windowFunction.arguments().size(), is(1));
+        assertThat(windowFunction.arguments()).hasSize(1);
         WindowDefinition windowDefinition = windowFunction.windowDefinition();
-        assertThat(windowDefinition.orderBy().orderBySymbols().size(), is(1));
+        assertThat(windowDefinition.orderBy().orderBySymbols()).hasSize(1);
     }
 
     @Test
@@ -142,13 +136,13 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
         QueriedSelectRelation analysis = e.analyze("select avg(x) OVER (PARTITION BY x ORDER BY x) from t");
 
         List<Symbol> outputSymbols = analysis.outputs();
-        assertThat(outputSymbols.size(), is(1));
-        assertThat(outputSymbols.get(0), instanceOf(WindowFunction.class));
+        assertThat(outputSymbols).hasSize(1);
+        assertThat(outputSymbols.get(0)).isExactlyInstanceOf(WindowFunction.class);
         WindowFunction windowFunction = (WindowFunction) outputSymbols.get(0);
-        assertThat(windowFunction.arguments().size(), is(1));
+        assertThat(windowFunction.arguments()).hasSize(1);
         WindowDefinition windowDefinition = windowFunction.windowDefinition();
-        assertThat(windowDefinition.partitions().size(), is(1));
-        assertThat(windowDefinition.orderBy().orderBySymbols().size(), is(1));
+        assertThat(windowDefinition.partitions()).hasSize(1);
+        assertThat(windowDefinition.orderBy().orderBySymbols()).hasSize(1);
     }
 
     @Test
@@ -157,14 +151,14 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
                                                    "RANGE BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) from t");
 
         List<Symbol> outputSymbols = analysis.outputs();
-        assertThat(outputSymbols.size(), is(1));
-        assertThat(outputSymbols.get(0), instanceOf(WindowFunction.class));
+        assertThat(outputSymbols).hasSize(1);
+        assertThat(outputSymbols.get(0)).isExactlyInstanceOf(WindowFunction.class);
         WindowFunction windowFunction = (WindowFunction) outputSymbols.get(0);
-        assertThat(windowFunction.arguments().size(), is(1));
+        assertThat(windowFunction.arguments()).hasSize(1);
         WindowFrameDefinition frameDefinition = windowFunction.windowDefinition().windowFrameDefinition();
-        assertThat(frameDefinition.mode(), is(WindowFrame.Mode.RANGE));
-        assertThat(frameDefinition.start().type(), is(FrameBound.Type.UNBOUNDED_PRECEDING));
-        assertThat(frameDefinition.end().type(), is(FrameBound.Type.UNBOUNDED_FOLLOWING));
+        assertThat(frameDefinition.mode()).isEqualTo(WindowFrame.Mode.RANGE);
+        assertThat(frameDefinition.start().type()).isEqualTo(FrameBound.Type.UNBOUNDED_PRECEDING);
+        assertThat(frameDefinition.end().type()).isEqualTo(FrameBound.Type.UNBOUNDED_FOLLOWING);
     }
 
     @Test
@@ -179,8 +173,8 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
         Asserts.assertThat(windowDefinition.partitions()).satisfiesExactly(isReference("x"));
 
         OrderBy orderBy = windowDefinition.orderBy();
-        assertThat(orderBy, not(nullValue()));
-        assertThat(orderBy.orderBySymbols().size(), is(1));
+        assertThat(orderBy).isNotNull();
+        assertThat(orderBy.orderBySymbols()).hasSize(1);
     }
 
     @Test
@@ -195,23 +189,24 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
         Asserts.assertThat(windowDefinition.partitions()).satisfiesExactly(isReference("x"));
 
         OrderBy orderBy = windowDefinition.orderBy();
-        assertThat(orderBy, not(nullValue()));
-        assertThat(orderBy.orderBySymbols().size(), is(1));
+        assertThat(orderBy).isNotNull();
+        assertThat(orderBy.orderBySymbols()).hasSize(1);
     }
 
     @Test
     public void test_over_references_not_defined_window() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Window w does not exist");
-        e.analyze("SELECT AVG(x) OVER w FROM t WINDOW ww AS ()");
+        assertThatThrownBy(() -> e.analyze("SELECT AVG(x) OVER w FROM t WINDOW ww AS ()"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Window w does not exist");
     }
 
     @Test
     public void test_window_function_symbols_not_in_grouping_raises_an_error() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("'x' must appear in the GROUP BY clause or be used in an aggregation function.");
-        e.analyze("select y, sum(x) over(partition by x) " +
+        assertThatThrownBy(() -> e.analyze(
+                "select y, sum(x) over(partition by x) " +
                 "FROM unnest([1], [6]) as t (x, y) " +
-                "group by 1");
+                "group by 1"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageStartingWith("'x' must appear in the GROUP BY clause or be used in an aggregation function.");
     }
 }

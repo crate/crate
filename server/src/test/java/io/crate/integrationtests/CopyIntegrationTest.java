@@ -27,6 +27,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -54,10 +55,15 @@ import org.junit.rules.TemporaryFolder;
 
 import com.carrotsearch.randomizedtesting.LifecycleScope;
 
+import io.crate.action.sql.Sessions;
+import io.crate.exceptions.UnauthorizedException;
+import io.crate.role.Role;
+import io.crate.role.Roles;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseNewCluster;
+import io.crate.testing.UseRandomizedSchema;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2)
 public class CopyIntegrationTest extends SQLHttpIntegrationTest {
@@ -537,12 +543,13 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
     @Test
     public void testCopyFromNestedArrayRow() throws Exception {
-        // assert that rows with nested arrays aren't imported
+        // assert that rows with nested arrays are not imported, because they would
+        // dynamically create a new nested array column which is not supported
         execute("create table users (id int, " +
             "name string) with (number_of_replicas=0, column_policy = 'dynamic')");
         execute("copy users from ? with (shared=true)", new Object[]{
             nestedArrayCopyFilePath + "nested_array_copy_from.json"});
-        assertThat(response).hasRowCount(1L); // only 1 document got inserted
+        assertThat(response).hasRowCount(1L);
         refresh();
 
         execute("select * from users");
@@ -594,7 +601,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
         String r1 = "{\"id\": 1, \"name\":\"Marvin\"}";
         String r2 = "{\"id\": 2, \"name\":\"Slartibartfast\"}";
-        List<String> urls = List.of(upload("blobs", r1), upload("blobs", r2));
+        List<String> urls = List.of(upload("blobs", r1).toString(), upload("blobs", r2).toString());
 
         execute("copy names from ?", new Object[]{urls});
         assertThat(response).hasRowCount(2L);
@@ -614,7 +621,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         String r2 = "{\"id\": 2, \"name\":\"Slartibartfast\"}";
 
         Files.write(file.toPath(), Collections.singletonList(r1), StandardCharsets.UTF_8);
-        List<String> urls = List.of(tmpDir.toUri().toString() + "*.json", upload("blobs", r2));
+        List<String> urls = List.of(tmpDir.toUri().toString() + "*.json", upload("blobs", r2).toString());
 
         execute("copy names from ?", new Object[]{urls});
         assertThat(response).hasRowCount(2L);
@@ -1164,6 +1171,55 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
             execute("select x, created from tbl").rows();
             assertThat(response.rows()[0][0]).isEqualTo(x);
             assertThat(response.rows()[0][1]).isEqualTo(created);
+        }
+    }
+
+    @Test
+    public void test_copy_from_can_import_json_with_same_columns_in_different_order() throws Exception {
+        execute("""
+            create table t (
+                 id long,
+                 first_column long,
+                 second_column string,
+                 third_column long,
+                 primary key (id)
+            )
+            """
+        );
+
+        var lines = List.of(
+            """
+                {"id":1,"first_column":38392,"second_column":"apple safari","third_column":151155}
+                {"id":2,"second_column":"apple safari","third_column":23073,"first_column":31123}
+            """
+        );
+        File file = folder.newFile(UUID.randomUUID().toString());
+        Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
+
+        execute("copy t from ? with (shared = true)", new Object[]{Paths.get(file.toURI()).toUri().toString()});
+        execute("refresh table t");
+        execute("select * from t order by id");
+        assertThat(response).hasRows(
+            "1| 38392| apple safari| 151155",
+            "2| 31123| apple safari| 23073"
+        );
+    }
+
+    @UseRandomizedSchema(random = false)
+    @Test
+    public void test_copy_from_local_file_is_only_allowed_for_superusers() {
+        execute("CREATE TABLE quotes (id INT PRIMARY KEY, " +
+            "quote STRING INDEX USING FULLTEXT) WITH (number_of_replicas = 0)");
+        execute("CREATE USER test_user");
+        execute("GRANT ALL TO test_user");
+
+        var roles = cluster().getInstance(Roles.class);
+        Role user = roles.getUser("test_user");
+        Sessions sqlOperations = cluster().getInstance(Sessions.class);
+        try (var session = sqlOperations.newSession(null, user)) {
+            assertThatThrownBy(() -> execute("COPY quotes FROM ?", new Object[]{copyFilePath + "test_copy_from.json"}, session))
+                .isExactlyInstanceOf(UnauthorizedException.class)
+                .hasMessage("Only a superuser can read from the local file system");
         }
     }
 }

@@ -26,7 +26,7 @@ import java.util.Comparator;
 import java.util.List;
 
 import io.crate.analyze.OrderBy;
-import io.crate.common.collections.Ordering;
+import io.crate.common.collections.CompoundOrdering;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.expression.symbol.Symbol;
@@ -69,7 +69,7 @@ public final class OrderingByPosition {
             Comparator<Row> rowOrdering = rowOrdering(rowTypes.get(position), position, reverseFlags[i], nullsFirst[i]);
             comparators.add(rowOrdering);
         }
-        return Ordering.compound(comparators);
+        return CompoundOrdering.of(comparators);
     }
 
     @SuppressWarnings("unchecked")
@@ -91,7 +91,7 @@ public final class OrderingByPosition {
             int position = positions[i];
             comparators.add(arrayOrdering(rowTypes.get(position), position, reverse[i], nullsFirst[i]));
         }
-        return Ordering.compound(comparators);
+        return CompoundOrdering.of(comparators);
     }
 
     @SuppressWarnings("unchecked")

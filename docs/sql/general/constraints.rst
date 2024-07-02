@@ -33,6 +33,47 @@ can be declared as ``PRIMARY KEY`` instead.
 
 Adding a ``PRIMARY KEY`` column is only possible if the table is empty.
 
+Syntax::
+
+  [CONSTRAINT <name>] PRIMARY KEY [ column_name [, ... ] ]
+
+For example, a table with a named ``PRIMARY KEY`` constraint can be created
+with::
+
+    cr> CREATE TABLE person (
+    ...     firstname TEXT,
+    ...     lastname TEXT,
+    ...     CONSTRAINT c PRIMARY KEY (firstname, lastname)
+    ... );
+    CREATE OK, 1 row affected  (... sec)
+
+The named ``PRIMARY KEY`` constraints can be inlined::
+
+    cr> CREATE TABLE person2 (
+    ...     firstname TEXT CONSTRAINT c PRIMARY KEY,
+    ...     lastname TEXT CONSTRAINT c PRIMARY KEY
+    ... );
+    CREATE OK, 1 row affected  (... sec)
+
+If a new column is required to be added as a ``PRIMARY KEY`` column::
+
+    cr> ALTER TABLE person2 ADD COLUMN middleName text PRIMARY KEY;
+    ALTER OK, -1 rows affected  (... sec)
+
+The ``PRIMARY KEY`` constraint can also be unnamed, e.g.::
+
+    cr> CREATE TABLE person3 (
+    ...     firstname TEXT PRIMARY KEY,
+    ...     lastname TEXT PRIMARY KEY
+    ... );
+    CREATE OK, 1 row affected  (... sec)
+
+If ``CONSTRAINT <name>`` is omitted, CrateDB generates a unique name
+automatically.  This name is visible in
+:ref:`information_schema_table_constraints`.
+
+
+
 .. WARNING::
 
     The verification if the table is empty and the schema update isn't atomic.
@@ -70,21 +111,21 @@ satisfy a :ref:`boolean expression <sql-literal-value>` on ``INSERT`` and
 
 Syntax::
 
-  [CONSTRAINT check_name>] CHECK (boolean_expression)
+  [CONSTRAINT <check_name>] CHECK (boolean_expression)
 
-If ``CONSTAINT check_name`` is omitted, CrateDB generates a unique name
+If ``CONSTRAINT <check_name>`` is omitted, CrateDB generates a unique name
 automatically.  This name is visible in
 :ref:`information_schema_table_constraints`. This name can be used with
 :ref:`DROP CONSTRAINT <sql-alter-drop-constraint>` to remove the constraint.
 
-The ``CONSTRAINT`` definition can either be inline with a column, like this::
+The ``CONSTRAINT`` definition can either be inlined with a column, like this::
 
     cr> CREATE TABLE metrics1 (
     ...     weight REAL CONSTRAINT weight_is_positive CHECK (weight >= 0)
     ... );
     CREATE OK, 1 row affected  (... sec)
 
-Or, also inline, but without explicit name::
+Or, also inlined, but without explicit name::
 
     cr> CREATE TABLE metrics2 (
     ...     weight REAL CHECK (weight >= 0)
@@ -106,6 +147,8 @@ Or without name::
     ...     CHECK (weight >= 0)
     ... );
     CREATE OK, 1 row affected  (... sec)
+
+.. _check_constraint_multiple_cols:
 
 You can reference multiple columns using table constraints::
 
@@ -167,6 +210,25 @@ The supported column constraints are:
 - :ref:`primary_key_constraint`
 
 - :ref:`check_constraint`
+
+
+.. _null_constraint:
+
+``NULL``
+--------
+
+The ``NULL`` constraint specifies that a column of a table can also contain
+null values.
+
+The columns that are part of the primary key of a table cannot be declared as
+``NULL``.
+
+A column cannot be declared both as ``NULL`` and ``NOT NULL``.
+
+.. NOTE::
+
+    ``NULL`` constraint is not shown in :ref:`ref-show-create-table`, as is the
+    default for every column.
 
 
 .. _not_null_constraint:

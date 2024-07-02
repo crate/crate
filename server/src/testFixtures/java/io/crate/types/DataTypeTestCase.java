@@ -21,18 +21,17 @@
 
 package io.crate.types;
 
+import static io.crate.execution.dml.IndexerTest.getIndexer;
+import static io.crate.execution.dml.IndexerTest.item;
 import static io.crate.testing.Asserts.assertThat;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.IndexSearcher;
@@ -41,25 +40,19 @@ import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.elasticsearch.Version;
-import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.ParsedDocument;
-import org.elasticsearch.index.mapper.SourceToParse;
 import org.junit.Test;
 
 import io.crate.Streamer;
-import io.crate.execution.dml.ValueIndexer;
+import io.crate.execution.dml.Indexer;
+import io.crate.execution.dml.IndexerTest;
 import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.DocReferences;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -72,78 +65,61 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
 
     public abstract DataType<T> getType();
 
-    @Test
-    public void test_doc_values_write_and_read_roundtrip_inclusive_doc_mapper_parse() throws Exception {
-        DataType<T> type = getType();
-        StorageSupport<? super T> storageSupport = type.storageSupport();
-        if (storageSupport == null) {
-            return;
-        }
-        var sqlExecutor = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (id int, x " + type.getTypeSignature().toString() + ")")
-            .build();
+    protected record DataDef<T>(DataType<T> type, String definition, Supplier<T> data) {}
 
-        Supplier<T> dataGenerator = DataTypeTesting.getDataGenerator(type);
+    protected DataDef<T> getDataDef() {
+        DataType<T> type = getType();
+        return new DataDef<>(type, type.getTypeSignature().toString(), DataTypeTesting.getDataGenerator(type));
+    }
+
+    public void test_reference_resolver() throws Exception {
+        DataDef<T> dataDef = getDataDef();
+        doReferenceResolveTest(dataDef.type, dataDef.definition, dataDef.data.get());
+    }
+
+    public void test_reference_resolver_index_off() throws Exception {
+        DataDef<T> dataDef = getDataDef();
+        doReferenceResolveTest(dataDef.type, dataDef.definition + " INDEX OFF", dataDef.data.get());
+    }
+
+    public void test_reference_resolver_docvalues_off() throws Exception {
+        DataDef<T> dataDef = getDataDef();
+        doReferenceResolveTest(dataDef.type, dataDef.definition + " STORAGE WITH (columnstore=false)", dataDef.data.get());
+    }
+
+    public void test_reference_resolver_index_and_docvalues_off() throws Exception {
+        DataDef<T> dataDef = getDataDef();
+        doReferenceResolveTest(dataDef.type, dataDef.definition + " INDEX OFF STORAGE WITH (columnstore=false)", dataDef.data.get());
+    }
+
+    protected void doReferenceResolveTest(DataType<T> type, String definition, T data) throws Exception {
+
+        StorageSupport<? super T> storageSupport = type.storageSupport();
+        assumeTrue("Data type " + type + " does not support storage", storageSupport != null);
+
+        var sqlExecutor = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (id int, x " + definition + ")");
+
         DocTableInfo table = sqlExecutor.resolveTableInfo("tbl");
-        Reference reference = table.getReference(new ColumnIdent("x"));
+        Reference reference = table.getReference(ColumnIdent.of("x"));
         assertThat(reference).isNotNull();
 
         try (var indexEnv = new IndexEnv(
+                sqlExecutor.nodeCtx,
                 THREAD_POOL,
                 table,
                 clusterService.state(),
-                Version.CURRENT,
-                createTempDir())) {
-            T value = dataGenerator.get();
+                Version.CURRENT)) {
 
-            MapperService mapperService = indexEnv.mapperService();
-            ValueIndexer<? super T> valueIndexer = storageSupport.valueIndexer(
-                table.ident(),
-                reference,
-                mapperService::getLuceneFieldType,
-                table::getReference
-            );
-
+            Indexer indexer = getIndexer(sqlExecutor, table.ident().name(), "x");
+            ParsedDocument doc = indexer.index(item(data));
             IndexWriter writer = indexEnv.writer();
-            try (XContentBuilder xContentBuilder = XContentFactory.json(new BytesStreamOutput())) {
-                List<IndexableField> fields = new ArrayList<>();
-                xContentBuilder.startObject();
-                valueIndexer.indexValue(
-                    value,
-                    reference.storageIdent(),
-                    xContentBuilder,
-                    fields::add,
-                    Map.of(),
-                    Map.of()
-                );
-                xContentBuilder.endObject();
-                writer.addDocument(fields);
-                writer.commit();
-
-                // going through the document mapper must create the same fields
-                String id = "1";
-                ParsedDocument parsedDocument = mapperService.documentMapper().parse(new SourceToParse(
-                    table.ident().indexNameOrAlias(),
-                    id,
-                    BytesReference.bytes(xContentBuilder),
-                    XContentType.JSON
-                ));
-                IndexableField[] fieldsFromMapper = parsedDocument.doc().getFields(reference.storageIdent());
-                assertThat(fieldsFromMapper).hasSize(fields.size());
-                for (int i = 0; i < fields.size(); i++) {
-                    var field1 = fields.get(i);
-                    var field2 = fieldsFromMapper[i];
-                    assertThat(field1.binaryValue()).isEqualTo(field2.binaryValue());
-                    assertThat(field1.stringValue()).isEqualTo(field2.stringValue());
-                    assertThat(field1.numericValue()).isEqualTo(field2.numericValue());
-                }
-            }
+            writer.addDocument(doc.doc().getFields());
+            writer.commit();
 
             LuceneReferenceResolver luceneReferenceResolver = indexEnv.luceneReferenceResolver();
             LuceneCollectorExpression<?> docValueImpl = luceneReferenceResolver.getImplementation(reference);
-            LuceneCollectorExpression<?> sourceLookup = luceneReferenceResolver.getImplementation(DocReferences.toSourceLookup(reference));
             assertThat(docValueImpl).isNotNull();
-            assertThat(sourceLookup).isNotNull();
 
             IndexSearcher indexSearcher;
             try {
@@ -154,7 +130,7 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
 
             List<LeafReaderContext> leaves = indexSearcher.getTopReaderContext().leaves();
             assertThat(leaves).hasSize(1);
-            LeafReaderContext leafReader = leaves.get(0);
+            LeafReaderContext leafReader = leaves.getFirst();
 
             Weight weight = indexSearcher.createWeight(
                 new MatchAllDocsQuery(),
@@ -171,8 +147,30 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
             docValueImpl.startCollect(collectorContext);
             docValueImpl.setNextReader(readerContext);
             docValueImpl.setNextDocId(nextDoc);
-            assertThat(docValueImpl.value()).isEqualTo(value);
+            assertEquals((T) docValueImpl.value(), data);
         }
+    }
+
+    protected void assertEquals(T actual, T expected) {
+        assertThat(actual).isEqualTo(expected);
+    }
+
+    @Test
+    public void test_translog_streaming_roundtrip() throws Exception {
+        DataType<T> type = getType();
+        assumeTrue("Data type " + type + " does not support storage", type.storageSupport() != null);
+        var sqlExecutor = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (id int, x " + type.getTypeSignature().toString() + ")");
+
+        Supplier<T> dataGenerator = DataTypeTesting.getDataGenerator(type);
+        DocTableInfo table = sqlExecutor.resolveTableInfo("tbl");
+        Reference reference = table.getReference(ColumnIdent.of("x"));
+        assertThat(reference).isNotNull();
+
+        T value = dataGenerator.get();
+        Indexer indexer = getIndexer(sqlExecutor, table.ident().name(), "x");
+        ParsedDocument doc = indexer.index(item(value));
+        IndexerTest.assertTranslogParses(doc, table);
     }
 
     @Test

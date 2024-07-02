@@ -29,7 +29,6 @@ import org.apache.lucene.search.Query;
 import io.crate.data.Input;
 import io.crate.expression.operator.LikeOperators;
 import io.crate.expression.operator.Operator;
-import io.crate.expression.operator.OperatorModule;
 import io.crate.expression.operator.any.AnyRangeOperator.Comparison;
 import io.crate.expression.scalar.ArrayUnnestFunction;
 import io.crate.expression.symbol.Function;
@@ -37,6 +36,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder.Context;
 import io.crate.metadata.FunctionProvider.FunctionFactory;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
@@ -79,27 +79,28 @@ public abstract sealed class AnyOperator extends Operator<Object>
 
     protected final DataType<Object> leftType;
 
-    public static void register(OperatorModule operatorModule) {
-        reg(operatorModule, AnyEqOperator.NAME, (sig, boundSig) -> new AnyEqOperator(sig, boundSig));
-        reg(operatorModule, AnyNeqOperator.NAME, (sig, boundSig) -> new AnyNeqOperator(sig, boundSig));
-        regRange(operatorModule, AnyRangeOperator.Comparison.GT);
-        regRange(operatorModule, AnyRangeOperator.Comparison.GTE);
-        regRange(operatorModule, AnyRangeOperator.Comparison.LT);
-        regRange(operatorModule, AnyRangeOperator.Comparison.LTE);
+    public static void register(Functions.Builder builder) {
+        reg(builder, AnyEqOperator.NAME, (sig, boundSig) -> new AnyEqOperator(sig, boundSig));
+        reg(builder, AnyNeqOperator.NAME, (sig, boundSig) -> new AnyNeqOperator(sig, boundSig));
+        regRange(builder, AnyRangeOperator.Comparison.GT);
+        regRange(builder, AnyRangeOperator.Comparison.GTE);
+        regRange(builder, AnyRangeOperator.Comparison.LT);
+        regRange(builder, AnyRangeOperator.Comparison.LTE);
     }
 
-    private static void regRange(OperatorModule operatorModule, Comparison comparison) {
-        reg(operatorModule, comparison.opName(), (sig, boundSig) -> new AnyRangeOperator(sig, boundSig, comparison));
+    private static void regRange(Functions.Builder builder, Comparison comparison) {
+        reg(builder, comparison.opName(), (sig, boundSig) -> new AnyRangeOperator(sig, boundSig, comparison));
     }
 
-    private static void reg(OperatorModule module, String name, FunctionFactory operatorFactory) {
-        module.register(
+    private static void reg(Functions.Builder builder, String name, FunctionFactory operatorFactory) {
+        builder.add(
             Signature.scalar(
-                name,
-                TypeSignature.parse("E"),
-                TypeSignature.parse("array(E)"),
-                Operator.RETURN_TYPE.getTypeSignature()
-            ).withTypeVariableConstraints(TypeVariableConstraint.typeVariable("E")),
+                    name,
+                    TypeSignature.parse("E"),
+                    TypeSignature.parse("array(E)"),
+                    Operator.RETURN_TYPE.getTypeSignature()
+                ).withTypeVariableConstraints(TypeVariableConstraint.typeVariable("E"))
+                .withFeature(Feature.DETERMINISTIC),
             operatorFactory
         );
     }

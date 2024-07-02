@@ -21,16 +21,16 @@
 
 package io.crate.analyze;
 
-import io.crate.analyze.relations.AnalyzedRelation;
-import io.crate.user.User;
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.RelationName;
-import io.crate.sql.tree.Query;
-
 import java.util.function.Consumer;
 
 import org.jetbrains.annotations.Nullable;
+
+import io.crate.analyze.relations.AnalyzedRelation;
+import org.jetbrains.annotations.VisibleForTesting;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.RelationName;
+import io.crate.sql.tree.Query;
+import io.crate.role.Role;
 
 public final class CreateViewStmt implements AnalyzedStatement {
 
@@ -39,13 +39,13 @@ public final class CreateViewStmt implements AnalyzedStatement {
     private final Query query;
     private final boolean replaceExisting;
     @Nullable
-    private final User owner;
+    private final Role owner;
 
     CreateViewStmt(RelationName name,
                    AnalyzedRelation analyzedQuery,
                    Query query,
                    boolean replaceExisting,
-                   @Nullable User owner) {
+                   @Nullable Role owner) {
         this.name = name;
         this.analyzedQuery = analyzedQuery;
         this.query = query;
@@ -71,7 +71,7 @@ public final class CreateViewStmt implements AnalyzedStatement {
     }
 
     @Nullable
-    public User owner() {
+    public Role owner() {
         return owner;
     }
 

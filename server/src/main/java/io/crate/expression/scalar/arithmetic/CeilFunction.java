@@ -21,28 +21,31 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.expression.scalar.UnaryScalar;
-import io.crate.types.DataType;
-import io.crate.types.DataTypes;
+import static io.crate.metadata.functions.Signature.scalar;
 
 import java.util.List;
 
-import static io.crate.metadata.functions.Signature.scalar;
+import io.crate.expression.scalar.UnaryScalar;
+import io.crate.metadata.Functions;
+import io.crate.metadata.Scalar;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 public final class CeilFunction {
 
     public static final String CEIL = "ceil";
     public static final String CEILING = "ceiling";
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(Functions.Builder module) {
         for (var type : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             var typeSignature = type.getTypeSignature();
             DataType<?> returnType = DataTypes.getIntegralReturnType(type);
             assert returnType != null : "Could not get integral type of " + type;
             for (var name : List.of(CEIL, CEILING)) {
-                module.register(
-                    scalar(name, typeSignature, returnType.getTypeSignature()),
+                module.add(
+                    scalar(name, typeSignature, returnType.getTypeSignature())
+                        .withFeature(Scalar.Feature.DETERMINISTIC)
+                        .withFeature(Scalar.Feature.NULLABLE),
                     (signature, boundSignature) ->
                         new UnaryScalar<>(
                             signature,

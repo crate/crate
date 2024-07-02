@@ -24,7 +24,7 @@ package io.crate.analyze.expressions;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
@@ -61,7 +61,7 @@ public final class ValueNormalizer {
     public static Symbol normalizeInputForReference(Symbol valueSymbol,
                                                     Reference reference,
                                                     TableInfo tableInfo,
-                                                    Function<Symbol, Symbol> normalizer) {
+                                                    UnaryOperator<Symbol> normalizer) {
         assert valueSymbol != null : "valueSymbol must not be null";
 
         DataType<?> targetType = getTargetType(valueSymbol, reference);
@@ -89,10 +89,9 @@ public final class ValueNormalizer {
         }
         try {
             if (targetType.id() == ObjectType.ID) {
-                //noinspection unchecked
-                normalizeObjectValue((Map) value, reference, tableInfo);
+                normalizeObjectValue(uncheckedCast(value), reference, tableInfo);
             } else if (isObjectArray(targetType)) {
-                normalizeObjectArrayValue((List<Map<String, Object>>) value, reference, tableInfo);
+                normalizeObjectArrayValue(uncheckedCast(value), reference, tableInfo);
             }
         } catch (PgArrayParsingException | ConversionException e) {
             throw new ColumnValidationException(
@@ -106,6 +105,11 @@ public final class ValueNormalizer {
                 ));
         }
         return valueSymbol;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static final <T> T uncheckedCast(Object value) {
+        return (T) value;
     }
 
     private static DataType<?> getTargetType(Symbol valueSymbol, Reference reference) {
@@ -135,7 +139,7 @@ public final class ValueNormalizer {
                 if (dynamicReference == null) {
                     throw new ColumnUnknownException(nestedIdent, tableInfo.ident());
                 }
-                DataType type = DataTypes.guessType(entry.getValue());
+                DataType<?> type = DataTypes.guessType(entry.getValue());
                 if (type == null) {
                     throw new ColumnValidationException(
                         info.column().sqlFqn(), tableInfo.ident(), "Invalid value");
@@ -157,14 +161,14 @@ public final class ValueNormalizer {
         }
     }
 
-    private static boolean isObjectArray(DataType type) {
-        return type.id() == ArrayType.ID && ((ArrayType) type).innerType().id() == ObjectType.ID;
+    private static boolean isObjectArray(DataType<?> type) {
+        return type instanceof ArrayType<?> arrayType && arrayType.innerType().id() == ObjectType.ID;
     }
 
+    @SuppressWarnings("unchecked")
     private static void normalizeObjectArrayValue(List<Map<String, Object>> values, Reference arrayInfo, TableInfo tableInfo) {
         for (Object value : values) {
             // return value not used and replaced in value as arrayItem is a map that is mutated
-            //noinspection unchecked
             normalizeObjectValue((Map<String, Object>) value, arrayInfo, tableInfo);
         }
     }

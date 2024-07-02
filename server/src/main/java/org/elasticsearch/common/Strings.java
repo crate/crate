@@ -28,12 +28,13 @@ import java.util.StringTokenizer;
 import java.util.TreeSet;
 
 import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.jetbrains.annotations.Nullable;
+
+import io.crate.common.exceptions.Exceptions;
 
 
 public class Strings {
@@ -501,7 +502,7 @@ public class Strings {
                 XContentBuilder builder = createBuilder(pretty, human);
                 builder.startObject();
                 builder.field("error", "error building toString out of XContent: " + e.getMessage());
-                builder.field("stack_trace", ExceptionsHelper.stackTrace(e));
+                builder.field("stack_trace", Exceptions.stackTrace(e));
                 builder.endObject();
                 return toString(builder);
             } catch (IOException e2) {

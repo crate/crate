@@ -27,34 +27,27 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.BitSet;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
 
-import com.pholser.junit.quickcheck.From;
-import com.pholser.junit.quickcheck.Property;
-import com.pholser.junit.quickcheck.generator.GenerationStatus;
-import com.pholser.junit.quickcheck.generator.Generator;
-import com.pholser.junit.quickcheck.random.SourceOfRandomness;
-import com.pholser.junit.quickcheck.runner.JUnitQuickcheck;
+import net.jqwik.api.Arbitraries;
+import net.jqwik.api.Arbitrary;
+import net.jqwik.api.ForAll;
+import net.jqwik.api.Property;
+import net.jqwik.api.Provide;
 
-@RunWith(JUnitQuickcheck.class)
+
 public class BitStringTest {
 
-    public static class BitStringGen extends Generator<BitString> {
-
-        public BitStringGen() {
-            super(BitString.class);
-        }
-
-        @Override
-        public BitString generate(SourceOfRandomness random, GenerationStatus status) {
+    @Provide
+    Arbitrary<BitString> bitStrings() {
+        return Arbitraries.randomValue(random -> {
             int length = random.nextInt(3, 6);
             BitSet bitSet = new BitSet(length);
             for (int i = 0; i < length; i++) {
                 bitSet.set(i, random.nextBoolean());
             }
             return new BitString(bitSet, length);
-        }
+        });
     }
 
     @Test
@@ -91,8 +84,8 @@ public class BitStringTest {
 
 
     @Property
-    public void test_bitstring_compare_behaves_like_asBitString_compareTo(@From(BitStringGen.class) BitString a,
-                                                                          @From(BitStringGen.class) BitString b) {
+    public void test_bitstring_compare_behaves_like_asBitString_compareTo(@ForAll("bitStrings") BitString a,
+                                                                          @ForAll("bitStrings") BitString b) {
         assertThat(a.compareTo(b)).isEqualTo(Integer.signum(a.asPrefixedBitString().compareTo(b.asPrefixedBitString())));
     }
 }

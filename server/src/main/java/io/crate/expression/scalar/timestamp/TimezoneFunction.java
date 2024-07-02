@@ -28,7 +28,7 @@ import java.time.ZonedDateTime;
 import java.util.Locale;
 
 import io.crate.data.Input;
-import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -41,34 +41,34 @@ public class TimezoneFunction extends Scalar<Long, Object> {
 
     public static final String NAME = "timezone";
     private static final ZoneId UTC = ZoneId.of("UTC");
-    private final DataType returnType;
+    private final DataType<?> returnType;
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder module) {
+        module.add(
             Signature.scalar(
                 NAME,
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.TIMESTAMPZ.getTypeSignature(),
                 DataTypes.TIMESTAMP.getTypeSignature()
-            ),
+            ).withFeature(Feature.DETERMINISTIC),
             TimezoneFunction::new
         );
-        module.register(
+        module.add(
             Signature.scalar(
                 NAME,
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.TIMESTAMP.getTypeSignature(),
                 DataTypes.TIMESTAMPZ.getTypeSignature()
-            ),
+            ).withFeature(Feature.DETERMINISTIC),
             TimezoneFunction::new
         );
-        module.register(
+        module.add(
             Signature.scalar(
                 NAME,
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.LONG.getTypeSignature(),
                 DataTypes.TIMESTAMPZ.getTypeSignature()
-            ),
+            ).withFeature(Feature.DETERMINISTIC),
             TimezoneFunction::new
         );
     }
@@ -92,7 +92,7 @@ public class TimezoneFunction extends Scalar<Long, Object> {
             zoneId = ZoneId.of(zoneStr);
         } catch (DateTimeException e) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
-                                                             " time zone \"%s\" not recognized",
+                                                             "time zone \"%s\" not recognized",
                                                              zoneStr));
         }
         Number utcTimestamp = (Number) args[1].value();

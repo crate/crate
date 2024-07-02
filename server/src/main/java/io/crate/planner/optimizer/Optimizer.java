@@ -24,16 +24,13 @@ package io.crate.planner.optimizer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 
+import org.elasticsearch.Version;
 import org.jetbrains.annotations.Nullable;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.Version;
-
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
@@ -41,10 +38,9 @@ import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
+import io.crate.planner.optimizer.tracer.OptimizerTracer;
 
 public class Optimizer {
-
-    private static final Logger LOGGER = LogManager.getLogger(Optimizer.class);
 
     private final List<Rule<?>> rules;
     private final Supplier<Version> minNodeVersionInCluster;
@@ -58,15 +54,19 @@ public class Optimizer {
         this.nodeCtx = nodeCtx;
     }
 
-    public LogicalPlan optimize(LogicalPlan plan, PlanStats planStats, CoordinatorTxnCtx txnCtx) {
+    public LogicalPlan optimize(LogicalPlan plan,
+                                PlanStats planStats,
+                                CoordinatorTxnCtx txnCtx,
+                                OptimizerTracer tracer) {
         var applicableRules = removeExcludedRules(rules, txnCtx.sessionSettings().excludedOptimizerRules());
-        LogicalPlan optimizedRoot = tryApplyRules(applicableRules, plan, planStats, txnCtx);
-        var optimizedSources = Lists2.mapIfChange(optimizedRoot.sources(), x -> optimize(x, planStats, txnCtx));
+        LogicalPlan optimizedRoot = tryApplyRules(applicableRules, plan, planStats, txnCtx, tracer);
+        var optimizedSources = Lists.mapIfChange(optimizedRoot.sources(), x -> optimize(x, planStats, txnCtx, tracer));
         return tryApplyRules(
             applicableRules,
             optimizedSources == optimizedRoot.sources() ? optimizedRoot : optimizedRoot.replaceSources(optimizedSources),
             planStats,
-            txnCtx
+            txnCtx,
+            tracer
         );
     }
 
@@ -85,14 +85,17 @@ public class Optimizer {
         return result;
     }
 
-    private LogicalPlan tryApplyRules(List<Rule<?>> rules, LogicalPlan plan, PlanStats planStats, TransactionContext txnCtx) {
-        final boolean isTraceEnabled = LOGGER.isTraceEnabled();
+    private LogicalPlan tryApplyRules(List<Rule<?>> rules,
+                                      LogicalPlan plan,
+                                      PlanStats planStats,
+                                      TransactionContext txnCtx,
+                                      OptimizerTracer tracer) {
         LogicalPlan node = plan;
         // Some rules may only become applicable after another rule triggered, so we keep
         // trying to re-apply the rules as long as at least one plan was transformed.
         boolean done = false;
         int numIterations = 0;
-        Function<LogicalPlan, LogicalPlan> resolvePlan = Function.identity();
+        Rule.Context ruleContext = new Rule.Context(planStats, txnCtx, nodeCtx, UnaryOperator.identity());
         Version minVersion = minNodeVersionInCluster.get();
         while (!done && numIterations < 10_000) {
             done = true;
@@ -100,11 +103,9 @@ public class Optimizer {
                 if (minVersion.before(rule.requiredVersion())) {
                     continue;
                 }
-                LogicalPlan transformedPlan = tryMatchAndApply(rule, node, planStats, nodeCtx, txnCtx, resolvePlan, isTraceEnabled);
+                LogicalPlan transformedPlan = tryMatchAndApply(rule, node, ruleContext, tracer);
                 if (transformedPlan != null) {
-                    if (isTraceEnabled) {
-                        LOGGER.trace("Rule '" + rule.getClass().getSimpleName() + "' transformed the logical plan");
-                    }
+                    tracer.ruleApplied(rule, transformedPlan, ruleContext.planStats());
                     node = transformedPlan;
                     done = false;
                 }
@@ -119,17 +120,12 @@ public class Optimizer {
     @Nullable
     public static <T> LogicalPlan tryMatchAndApply(Rule<T> rule,
                                                    LogicalPlan node,
-                                                   PlanStats planStats,
-                                                   NodeContext nodeCtx,
-                                                   TransactionContext txnCtx,
-                                                   Function<LogicalPlan, LogicalPlan> resolvePlan,
-                                                   boolean traceEnabled) {
-        Match<T> match = rule.pattern().accept(node, Captures.empty(), resolvePlan);
+                                                   Rule.Context ruleContext,
+                                                   OptimizerTracer tracer) {
+        Match<T> match = rule.pattern().accept(node, Captures.empty(), ruleContext.resolvePlan());
         if (match.isPresent()) {
-            if (traceEnabled) {
-                LOGGER.trace("Rule " + rule.sessionSettingName() + " matched");
-            }
-            return rule.apply(match.value(), match.captures(), planStats, txnCtx, nodeCtx, resolvePlan);
+            tracer.ruleMatched(rule);
+            return rule.apply(match.value(), match.captures(), ruleContext);
         }
         return null;
     }

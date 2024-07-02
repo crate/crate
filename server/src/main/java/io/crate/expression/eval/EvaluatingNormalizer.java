@@ -177,7 +177,7 @@ public class EvaluatingNormalizer {
                         } else {
                             TEXT_MATCH.writeAsFunctionInfo(out, TEXT_MATCH.getArgumentDataTypes());
                             if (out.getVersion().onOrAfter(Version.V_4_1_0)) {
-                                Symbols.nullableToStream(filter, out);
+                                Symbol.nullableToStream(filter, out);
                             }
                             Symbols.toStream(arguments, out);
                             if (out.getVersion().onOrAfter(Version.V_4_2_0)) {

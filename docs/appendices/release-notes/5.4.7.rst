@@ -1,0 +1,86 @@
+.. _version_5.4.7:
+
+=============
+Version 5.4.7
+=============
+
+Released on 2023-12-21.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 5.4.7.
+
+    We recommend that you upgrade to the latest 5.3 release before moving to
+    5.4.7.
+
+    A rolling upgrade from 5.3.x to 5.4.7 is supported.
+    Before upgrading, you should `back up your data`_.
+
+.. WARNING::
+
+    Tables that were created before CrateDB 4.x will not function with 5.x
+    and must be recreated before moving to 5.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+See the :ref:`version_5.4.0` release notes for a full list of changes in the
+5.4 series.
+
+
+Security Fixes
+==============
+
+- The HTTP transport will not trust any ``X-Real-IP`` header by default anymore.
+  This prevents a client from spoofing its IP address by setting these headers
+  and thus bypassing IP based authentication with is enabled by default for the
+  ``crate`` superuser.
+  To keep allowing the ``X-Real-IP`` header to be trusted, you have to
+  explicitly enable it via the
+  :ref:`auth.trust.http_support_x_real_ip <auth.trust.http_support_x_real_ip>`
+  node setting.
+
+Packaging Changes
+=================
+
+- The RPM and DEB packages changed slightly to unify the build process. The most
+  important change is that the ``crate`` service no longer automatically starts
+  after package installation, to allow changing the configuration first.
+
+  Other than that, the structure is now:
+
+    - ``bin``, ``jdk`` and ``lib`` are installed into ``/usr/share/crate``. In the RPM
+      package this used to be in ``/opt/crate``.
+
+    - The home directory of the crate user is ``/usr/share/crate``
+
+    - changes, notice, license are in ``/usr/share/doc/crate``
+
+    - service file is in ``/usr/lib/systemd/system``
+
+    - The ``crate.yml`` configuration file is in ``/etc/crate/``
+
+    - The default environment configuration file at RPM packages changed to
+      ``/etc/default/crate`` to be consistent with the DEB package. The old
+      location at ``/etc/sysconfig/crate`` is not supported anymore.
+
+  If you haven't made any significant configuration changes the new packages
+  should keep working out of the box.
+
+  Important for Debian and Ubuntu users: There is now a `new repository
+  <https://cdn.crate.io/downloads/debian/stable/>`_.
+
+  You'll have to update the repository configuration to install CrateDB newer
+  than 5.5.1.
+
+  This new repository keeps old CrateDB versions in the ``Package`` index and
+  also contains packages for ARM64.

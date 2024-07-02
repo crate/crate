@@ -21,12 +21,7 @@
 
 package io.crate.metadata;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.isOneOf;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -57,7 +52,7 @@ public class SchemasITest extends IntegTestCase {
 
     @Before
     public void setUpService() {
-        schemas = cluster().getInstance(Schemas.class);
+        schemas = cluster().getInstance(NodeContext.class).schemas();
     }
 
     @Test
@@ -71,16 +66,16 @@ public class SchemasITest extends IntegTestCase {
         ensureYellow();
 
         DocTableInfo ti = schemas.getTableInfo(new RelationName(sqlExecutor.getCurrentSchema(), "t1"));
-        assertThat(ti.ident().name(), is("t1"));
+        assertThat(ti.ident().name()).isEqualTo("t1");
 
-        assertThat(ti.columns().size(), is(3));
-        assertThat(ti.primaryKey().size(), is(1));
-        assertThat(ti.primaryKey().get(0), is(new ColumnIdent("id")));
-        assertThat(ti.clusteredBy(), is(new ColumnIdent("id")));
+        assertThat(ti.columns()).hasSize(3);
+        assertThat(ti.primaryKey()).hasSize(1);
+        assertThat(ti.primaryKey().get(0)).isEqualTo(ColumnIdent.of("id"));
+        assertThat(ti.clusteredBy()).isEqualTo(ColumnIdent.of("id"));
         List<CheckConstraint<Symbol>> checkConstraints = ti.checkConstraints();
-        assertEquals(1, checkConstraints.size());
-        assertEquals(checkConstraints.get(0).name(), "not_miguel");
-        assertThat(checkConstraints.get(0).expressionStr(), equalTo("\"name\" <> 'miguel'"));
+        assertThat(checkConstraints.size()).isEqualTo(1);
+        assertThat("not_miguel").isEqualTo(checkConstraints.get(0).name());
+        assertThat(checkConstraints.get(0).expressionStr()).isEqualTo("\"name\" <> 'miguel'");
 
         ClusterService clusterService = clusterService();
         Routing routing = ti.getRouting(
@@ -93,16 +88,16 @@ public class SchemasITest extends IntegTestCase {
 
         Set<String> nodes = routing.nodes();
 
-        assertThat(nodes.size(), isOneOf(1, 2)); // for the rare case
+        assertThat(nodes.size()).isBetween(1, 2); // for the rare case
         // where all shards are on 1 node
         int numShards = 0;
         for (Map.Entry<String, Map<String, IntIndexedContainer>> nodeEntry : routing.locations().entrySet()) {
             for (Map.Entry<String, IntIndexedContainer> indexEntry : nodeEntry.getValue().entrySet()) {
-                assertThat(indexEntry.getKey(), is(getFqn("t1")));
+                assertThat(indexEntry.getKey()).isEqualTo(getFqn("t1"));
                 numShards += indexEntry.getValue().size();
             }
         }
-        assertThat(numShards, is(10));
+        assertThat(numShards).isEqualTo(10);
     }
 
     @Test
@@ -111,10 +106,10 @@ public class SchemasITest extends IntegTestCase {
         ClusterService clusterService = clusterService();
         Routing routing = ti.getRouting(
             clusterService.state(), routingProvider, null, null, CoordinatorSessionSettings.systemDefaults());
-        assertTrue(routing.hasLocations());
-        assertEquals(1, routing.nodes().size());
+        assertThat(routing.hasLocations()).isTrue();
+        assertThat(routing.nodes().size()).isEqualTo(1);
         for (Map<String, ?> indices : routing.locations().values()) {
-            assertEquals(1, indices.size());
+            assertThat(indices.size()).isEqualTo(1);
         }
     }
 
@@ -138,8 +133,8 @@ public class SchemasITest extends IntegTestCase {
                 numShards += indexEntry.getValue().size();
             }
         }
-        assertThat(numShards, is(12));
-        assertThat(tables, is(expectedTables));
+        assertThat(numShards).isEqualTo(12);
+        assertThat(tables).isEqualTo(expectedTables);
     }
 
     @Test
@@ -148,6 +143,6 @@ public class SchemasITest extends IntegTestCase {
         ClusterService clusterService = clusterService();
         assertThat(ti.getRouting(
             clusterService.state(), routingProvider, null, null, CoordinatorSessionSettings.systemDefaults()
-        ).locations().size(), is(1));
+        ).locations()).hasSize(1);
     }
 }

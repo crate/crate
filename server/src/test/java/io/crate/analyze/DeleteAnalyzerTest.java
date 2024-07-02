@@ -24,6 +24,7 @@ package io.crate.analyze;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.exactlyInstanceOf;
+import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -39,6 +40,7 @@ import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.operator.EqOperator;
+import io.crate.expression.scalar.timestamp.NowFunction;
 import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.table.TableInfo;
@@ -52,12 +54,11 @@ public class DeleteAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .addPartitionedTable(
                 TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION,
-                TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS)
-            .build();
+                TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS);
     }
 
     @Test
@@ -76,7 +77,7 @@ public class DeleteAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThatThrownBy(() -> e.analyze("delete from sys.nodes where name='Trillian'"))
             .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
             .hasMessage("The relation \"sys.nodes\" doesn't support or allow DELETE " +
-                        "operations, as it is read-only.");
+                        "operations");
     }
 
     @Test
@@ -123,5 +124,14 @@ public class DeleteAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThatThrownBy(() -> e.analyze("delete from (select * from users) u"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("Cannot delete from relations other than base tables");
+    }
+
+    @Test
+    public void test_non_deterministic_function_is_not_normalized() {
+        AnalyzedDeleteStatement analyzedDeleteStatement = e.analyze("delete from parted where date = now()");
+        assertThat(analyzedDeleteStatement.query()).isFunction(
+            EqOperator.NAME,
+            isReference("date"),
+            isFunction(NowFunction.NAME));
     }
 }

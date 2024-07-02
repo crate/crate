@@ -7,7 +7,7 @@
   <parent>
     <groupId>io.crate</groupId>
     <artifactId>crate</artifactId>
-    <version>5.5.0</version>
+    <version>5.8.0</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
 
@@ -19,7 +19,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
-        <version>3.3.0</version>
+        <version>${versions.plugin.jar}</version>
         <executions>
           <execution>
             <goals>
@@ -31,7 +31,7 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>build-helper-maven-plugin</artifactId>
-        <version>3.4.0</version>
+        <version>${versions.plugin.build-helper}</version>
         <executions>
           <execution>
             <id>add-testfixtures</id>
@@ -57,13 +57,6 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
-      <groupId>io.crate</groupId>
-      <artifactId>crate-libs-shared</artifactId>
-      <version>${project.version}</version>
-      <type>test-jar</type>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>org.jetbrains</groupId>
       <artifactId>annotations</artifactId>
       <version>${versions.annotations}</version>
@@ -77,20 +70,14 @@
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter</artifactId>
+      <artifactId>junit-jupiter-api</artifactId>
       <version>${versions.junit5}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.junit.vintage</groupId>
-      <artifactId>junit-vintage-engine</artifactId>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-params</artifactId>
       <version>${versions.junit5}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.carrotsearch.randomizedtesting</groupId>
-      <artifactId>randomizedtesting-runner</artifactId>
-      <version>${versions.randomizedrunner}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>

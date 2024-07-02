@@ -22,11 +22,7 @@ package org.elasticsearch.test.test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.discovery.DiscoveryModule.DISCOVERY_SEED_PROVIDERS_SETTING;
-import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertFileExists;
-import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertFileNotExists;
 import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
@@ -61,7 +57,6 @@ import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.MockHttpTransport;
 import org.elasticsearch.test.NodeConfigurationSource;
 import org.elasticsearch.test.TestCluster;
-import org.elasticsearch.transport.Netty4Plugin;
 import org.junit.Test;
 
 import io.crate.common.io.IOUtils;
@@ -74,7 +69,7 @@ import io.crate.common.io.IOUtils;
 public class InternalTestClusterTests extends ESTestCase {
 
     private static Collection<Class<? extends Plugin>> mockPlugins() {
-        return Arrays.asList(MockHttpTransport.TestPlugin.class, Netty4Plugin.class);
+        return Arrays.asList(MockHttpTransport.TestPlugin.class);
     }
 
     @Test
@@ -129,8 +124,8 @@ public class InternalTestClusterTests extends ESTestCase {
             if (clusterUniqueSettings.contains(key) && checkClusterUniqueSettings == false) {
                 continue;
             }
-            assertTrue("key [" + key + "] is missing in " + keys1, keys1.contains(key));
-            assertEquals(key, right.get(key), left.get(key));
+            assertThat(keys1.contains(key)).as("key [" + key + "] is missing in " + keys1).isTrue();
+            assertThat(left.get(key)).as(key).isEqualTo(right.get(key));
         }
     }
 
@@ -224,7 +219,7 @@ public class InternalTestClusterTests extends ESTestCase {
             assertArrayEquals(cluster0.getNodeNames(), cluster1.getNodeNames());
             Iterator<Client> iterator1 = cluster1.getClients().iterator();
             for (Client client : cluster0.getClients()) {
-                assertTrue(iterator1.hasNext());
+                assertThat(iterator1.hasNext()).isTrue();
                 Client other = iterator1.next();
                 assertSettings(client.settings(), other.settings(), false);
             }
@@ -292,7 +287,7 @@ public class InternalTestClusterTests extends ESTestCase {
             final Path testMarker = dataPath.resolve("testMarker");
             Files.createDirectories(testMarker);
             cluster.stopRandomNode(TestCluster.nameFilter(poorNode));
-            assertFileExists(testMarker); // stopping a node half way shouldn't clean data
+            assertThat(testMarker).exists(); // stopping a node half way shouldn't clean data
 
             final String stableNode = randomFrom(cluster.getNodeNames());
             final Path stableDataPath = getNodePaths(cluster, stableNode)[0];
@@ -302,7 +297,7 @@ public class InternalTestClusterTests extends ESTestCase {
 
             final String newNode1 =  cluster.startNode();
             assertThat(getNodePaths(cluster, newNode1)[0]).isNotEqualTo(dataPath);
-            assertFileExists(testMarker); // starting a node should re-use data folders and not clean it
+            assertThat(testMarker).exists(); // starting a node should re-use data folders and not clean it
             final String newNode2 =  cluster.startNode();
             final Path newDataPath = getNodePaths(cluster, newNode2)[0];
             final Path newTestMarker = newDataPath.resolve("newTestMarker");
@@ -311,9 +306,9 @@ public class InternalTestClusterTests extends ESTestCase {
             final String newNode3 =  cluster.startNode(poorNodeDataPathSettings);
             assertThat(getNodePaths(cluster, newNode3)[0]).isEqualTo(dataPath);
             cluster.beforeTest(random());
-            assertFileNotExists(newTestMarker); // the cluster should be reset for a new test, cleaning up the extra path we made
-            assertFileNotExists(testMarker); // a new unknown node used this path, it should be cleaned
-            assertFileExists(stableTestMarker); // but leaving the structure of existing, reused nodes
+            assertThat(newTestMarker).doesNotExist(); // the cluster should be reset for a new test, cleaning up the extra path we made
+            assertThat(testMarker).doesNotExist(); // a new unknown node used this path, it should be cleaned
+            assertThat(stableTestMarker).exists(); // but leaving the structure of existing, reused nodes
             for (String name: cluster.getNodeNames()) {
                 assertThat(getNodePaths(cluster, name))
                     .as("data paths for " + name + " changed")
@@ -321,7 +316,7 @@ public class InternalTestClusterTests extends ESTestCase {
             }
 
             cluster.beforeTest(random());
-            assertFileExists(stableTestMarker); // but leaving the structure of existing, reused nodes
+            assertThat(stableTestMarker).exists(); // but leaving the structure of existing, reused nodes
             for (String name: cluster.getNodeNames()) {
                 assertThat(getNodePaths(cluster, name))
                     .as("data paths for " + name + " changed")
@@ -394,7 +389,7 @@ public class InternalTestClusterTests extends ESTestCase {
                 }
                 Set<String> rolePaths = pathsPerRole.computeIfAbsent(role, k -> new HashSet<>());
                 for (Path path : getNodePaths(cluster, node)) {
-                    assertTrue(rolePaths.add(path.toString()));
+                    assertThat(rolePaths.add(path.toString())).isTrue();
                 }
             }
             cluster.validateClusterFormed();

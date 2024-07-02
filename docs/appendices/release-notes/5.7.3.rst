@@ -1,0 +1,91 @@
+.. _version_5.7.3:
+
+==========================
+Version 5.7.3 - Unreleased
+==========================
+
+
+.. comment 1. Remove the " - Unreleased" from the header above and adjust the ==
+.. comment 2. Remove the NOTE below and replace with: "Released on 20XX-XX-XX."
+.. comment    (without a NOTE entry, simply starting from col 1 of the line)
+.. NOTE::
+
+    In development. 5.7.3 isn't released yet. These are the release notes for
+    the upcoming release.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 5.7.3.
+
+    We recommend that you upgrade to the latest 5.6 release before moving to
+    5.7.3.
+
+    A rolling upgrade from 5.6.x to 5.7.3 is supported.
+    Before upgrading, you should `back up your data`_.
+
+.. WARNING::
+
+    Tables that were created before CrateDB 4.x will not function with 5.x
+    and must be recreated before moving to 5.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+.. rubric:: Table of contents
+
+.. contents::
+   :local:
+
+
+See the :ref:`version_5.7.0` release notes for a full list of changes in the
+5.7 series.
+
+
+Fixes
+=====
+
+- Fixed an issue that resulted in ``ColumnUnknownException`` errors when using a
+  subscript expression on a ``object(ignored)`` column of a foreign table
+  despite having set :ref:`error_on_unknown_object_key
+  <conf-session-error_on_unknown_object_key>` to false.
+
+- Fixed an issue that caused snapshots in progress to not be shown in the
+  ``sys.snapshots`` table.
+
+- Fixed an issue that caused queries to incorrectly filter out rows when the
+  ``WHERE`` clause contained :ref:`scalar-format_type` function under ``NOT`` or
+  ``!=`` operators.
+
+- Fixed an issue that resulted in an ``unsupported ExecutionNode`` error if
+  joining a foreign table with another table that's sharded across many nodes.
+
+- Fixed an issue that prevented sub-columns of a view to be shown in the
+  ``information_schema.columns`` table if only top-level columns were used in
+  the view's SELECT query. Workaround: explicitly select sub-columns in the
+  view definition, e.g.::
+
+      CREATE VIEW v AS SELECT a, a['b'] FROM t;
+
+- Fixed an issue that caused ``SQLParseException`` when a
+  :ref:`PostgreSQL foreign table <administration-fdw-jdbc-psql>` has columns of
+  type ``JSONB``, or ``JSONB[]``.
+
+- Fixed an issue that caused ``WHERE`` clause to fail to filter rows when
+  the clause contained :ref:`scalar-pg_get_partkeydef` scalar function under
+  ``NOT`` operator.
+
+- Changed :ref:`scalar-pg_get_function_result` functions to be registered under
+  :ref:`postgres-pg_catalog` schema, in order to be compatible with PostgreSQL
+  behaviour.
+
+- Fixed an issue leading to incorrect results joining tables with a ``=`` and
+  on either side (or both) of the equality there is ``=`` or ``!`` operator and
+  multiple relations involved, e.g.::
+
+      SELECT * from t1 JOIN t2 ON (t1.a >= 1) = ((t1.a = t1.a) AND (t2.b <= t2.b))
+
+

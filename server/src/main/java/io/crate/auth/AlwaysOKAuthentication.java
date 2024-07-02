@@ -21,9 +21,10 @@
 
 package io.crate.auth;
 
-import io.crate.user.UserLookup;
+import io.crate.role.Roles;
 import io.crate.protocols.postgres.ConnectionProperties;
 import org.elasticsearch.common.inject.Inject;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Fallback if host-based authentication is disabled
@@ -31,15 +32,15 @@ import org.elasticsearch.common.inject.Inject;
  */
 public class AlwaysOKAuthentication implements Authentication {
 
-    private final UserLookup userLookup;
+    private final Roles roles;
 
     @Inject
-    public AlwaysOKAuthentication(UserLookup userLookup) {
-        this.userLookup = userLookup;
+    public AlwaysOKAuthentication(Roles roles) {
+        this.roles = roles;
     }
 
     @Override
-    public AuthenticationMethod resolveAuthenticationType(String user, ConnectionProperties connectionProperties) {
-        return new TrustAuthenticationMethod(userLookup);
+    public AuthenticationMethod resolveAuthenticationType(@Nullable String user, ConnectionProperties connectionProperties) {
+        return new TrustAuthenticationMethod(roles);
     }
 }

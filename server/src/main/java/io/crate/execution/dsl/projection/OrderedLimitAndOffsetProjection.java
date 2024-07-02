@@ -21,22 +21,22 @@
 
 package io.crate.execution.dsl.projection;
 
-import io.crate.analyze.OrderBy;
-import io.crate.common.collections.Lists2;
-import io.crate.common.collections.MapBuilder;
-import io.crate.expression.symbol.SelectSymbol;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
-import io.crate.expression.symbol.Symbols;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+
+import io.crate.analyze.OrderBy;
+import io.crate.common.collections.Lists;
+import io.crate.common.collections.MapBuilder;
+import io.crate.expression.symbol.SelectSymbol;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.Symbols;
 
 public class OrderedLimitAndOffsetProjection extends Projection {
 
@@ -53,9 +53,9 @@ public class OrderedLimitAndOffsetProjection extends Projection {
                                            List<Symbol> orderBy,
                                            boolean[] reverseFlags,
                                            boolean[] nullsFirst) {
-        assert outputs.stream().noneMatch(s -> SymbolVisitors.any(Symbols.IS_COLUMN.or(x -> x instanceof SelectSymbol), s))
+        assert outputs.stream().noneMatch(s -> s.any(Symbol.IS_COLUMN.or(x -> x instanceof SelectSymbol)))
             : "OrderedLimitAndOffsetProjection outputs cannot contain Field, Reference or SelectSymbol symbols: " + outputs;
-        assert orderBy.stream().noneMatch(s -> SymbolVisitors.any(Symbols.IS_COLUMN.or(x -> x instanceof SelectSymbol), s))
+        assert orderBy.stream().noneMatch(s -> s.any(Symbol.IS_COLUMN.or(x -> x instanceof SelectSymbol)))
             : "OrderedLimitAndOffsetProjection orderBy cannot contain Field, Reference or SelectSymbol symbols: " + orderBy;
         assert orderBy.size() == reverseFlags.length : "reverse flags length does not match orderBy items count";
         assert orderBy.size() == nullsFirst.length : "nullsFirst length does not match orderBy items count";
@@ -71,7 +71,7 @@ public class OrderedLimitAndOffsetProjection extends Projection {
     public OrderedLimitAndOffsetProjection(StreamInput in) throws IOException {
         limit = in.readVInt();
         offset = in.readVInt();
-        outputs = Symbols.listFromStream(in);
+        outputs = Symbols.fromStream(in);
         int numOrderBy = in.readVInt();
         if (numOrderBy == 0) {
             orderBy = Collections.emptyList();
@@ -82,7 +82,7 @@ public class OrderedLimitAndOffsetProjection extends Projection {
             reverseFlags = new boolean[numOrderBy];
             nullsFirst = new boolean[numOrderBy];
             for (int i = 0; i < numOrderBy; i++) {
-                orderBy.add(Symbols.fromStream(in));
+                orderBy.add(Symbol.fromStream(in));
                 reverseFlags[i] = in.readBoolean();
                 nullsFirst[i] = in.readBoolean();
             }
@@ -131,7 +131,7 @@ public class OrderedLimitAndOffsetProjection extends Projection {
         Symbols.toStream(outputs, out);
         out.writeVInt(orderBy.size());
         for (int i = 0; i < orderBy.size(); i++) {
-            Symbols.toStream(orderBy.get(i), out);
+            Symbol.toStream(orderBy.get(i), out);
             out.writeBoolean(reverseFlags[i]);
             out.writeBoolean(nullsFirst[i]);
         }
@@ -171,7 +171,7 @@ public class OrderedLimitAndOffsetProjection extends Projection {
             .put("type", "OrderLimitAndOffset")
             .put("limit", limit)
             .put("offset", offset)
-            .put("outputs", Lists2.joinOn(", ", outputs, Symbol::toString))
+            .put("outputs", Lists.joinOn(", ", outputs, Symbol::toString))
             .put("orderBy", OrderBy.explainRepresentation(
                 new StringBuilder("["), orderBy, reverseFlags, nullsFirst, Symbol::toString).append("]").toString())
             .map();

@@ -27,8 +27,8 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.rtsp.RtspResponseStatuses.BAD_REQUEST;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
@@ -38,6 +38,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.testing.Asserts;
+import io.crate.testing.UseRandomizedSchema;
 
 public class OpenCloseTableIntegrationTest extends IntegTestCase {
 
@@ -208,12 +209,12 @@ public class OpenCloseTableIntegrationTest extends IntegTestCase {
     @Test
     public void testOpenCloseTable() throws Exception {
         execute("select closed from information_schema.tables where table_name = 't'");
-        assertEquals(1, response.rowCount());
-        assertEquals(true, response.rows()[0][0]);
+        assertThat(response.rowCount()).isEqualTo(1);
+        assertThat(response.rows()[0][0]).isEqualTo(true);
 
         IndexMetadata indexMetadata = client().admin().cluster().state(new ClusterStateRequest()).get().getState().metadata()
             .indices().get(getFqn("t"));
-        assertEquals(IndexMetadata.State.CLOSE, indexMetadata.getState());
+        assertThat(indexMetadata.getState()).isEqualTo(IndexMetadata.State.CLOSE);
 
         execute("alter table t open");
 
@@ -221,9 +222,9 @@ public class OpenCloseTableIntegrationTest extends IntegTestCase {
             .indices().get(getFqn("t"));
 
         execute("select closed from information_schema.tables where table_name = 't'");
-        assertEquals(1, response.rowCount());
-        assertEquals(false, response.rows()[0][0]);
-        assertEquals(IndexMetadata.State.OPEN, indexMetadata.getState());
+        assertThat(response.rowCount()).isEqualTo(1);
+        assertThat(response.rows()[0][0]).isEqualTo(false);
+        assertThat(indexMetadata.getState()).isEqualTo(IndexMetadata.State.OPEN);
     }
 
     @Test
@@ -281,24 +282,24 @@ public class OpenCloseTableIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void testSelectPartitionedTableWhilePartitionIsClosed() throws Exception {
+    public void test_select_partitioned_table_containing_closed_partition() throws Exception {
         execute("create table partitioned_table (i int) partitioned by (i)");
-        ensureYellow();
         execute("insert into partitioned_table values (1), (2), (3), (4), (5)");
         refresh();
+        ensureGreen(); // index must be active to be included in close
         execute("alter table partitioned_table partition (i=1) close");
         execute("select i from partitioned_table");
-        assertEquals(4, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(4);
         execute("select i from partitioned_table where i = 1");
-        assertEquals(0, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(0);
     }
 
     @Test
     public void testSelectClosedPartitionTable() throws Exception {
         execute("create table partitioned_table (i int) partitioned by (i)");
-        ensureYellow();
         execute("insert into partitioned_table values (1), (2), (3), (4), (5)");
         refresh();
+        ensureGreen(); // index must be active to be included in close
         execute("alter table partitioned_table close");
         Asserts.assertSQLError(() -> execute("select i from partitioned_table"))
             .hasPGError(INTERNAL_ERROR)
@@ -325,5 +326,21 @@ public class OpenCloseTableIntegrationTest extends IntegTestCase {
             .hasHTTPError(BAD_REQUEST, 4007)
             .hasMessageContaining(String.format("The relation \"%s\" doesn't support or allow INSERT operations," +
                                                               " as it is currently closed.", getFqn("partitioned_table")));
+    }
+
+    @UseRandomizedSchema(random = false)
+    public void test_auto_expand_closed_tables() throws IOException {
+        execute("create table test(a int) clustered into 6 shards with (number_of_replicas = '0-all')");
+        ensureGreen();
+
+        execute("alter table test close");
+        ensureGreen();
+
+        allowNodes("test", 3);
+        ensureGreen();
+
+        execute("select count(*), primary from sys.shards where table_name = 'test' group by 2 order by 2 ");
+        // Used to be "6| true", ie no replicas were created after closing table and re-balancing a cluster.
+        assertThat(response).hasRows("12| false", "6| true");
     }
 }

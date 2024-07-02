@@ -20,12 +20,8 @@
 package org.elasticsearch.common.geo.builders;
 
 import org.elasticsearch.common.geo.GeoShapeType;
-import org.elasticsearch.common.geo.parsers.ShapeParser;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.spatial4j.shape.Point;
-
-import java.io.IOException;
 
 public class PointBuilder extends ShapeBuilder<Point, PointBuilder> {
     public static final GeoShapeType TYPE = GeoShapeType.POINT;
@@ -38,42 +34,19 @@ public class PointBuilder extends ShapeBuilder<Point, PointBuilder> {
         this.coordinates.add(ZERO_ZERO);
     }
 
-    public PointBuilder(double lon, double lat) {
-        //super(new ArrayList<>(1));
-        super();
-        this.coordinates.add(new Coordinate(lon, lat));
-    }
-
     public PointBuilder coordinate(Coordinate coordinate) {
         this.coordinates.set(0, coordinate);
         return this;
     }
 
-    public double longitude() {
-        return coordinates.get(0).x;
-    }
-
-    public double latitude() {
-        return coordinates.get(0).y;
+    @Override
+    public Point buildS4J() {
+        return SHAPE_FACTORY.pointXY(coordinates.get(0).x, coordinates.get(0).y);
     }
 
     @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject();
-        builder.field(ShapeParser.FIELD_TYPE.getPreferredName(), TYPE.shapeName());
-        builder.field(ShapeParser.FIELD_COORDINATES.getPreferredName());
-        toXContent(builder, coordinates.get(0));
-        return builder.endObject();
-    }
-
-    @Override
-    public Point build() {
-        return SPATIAL_CONTEXT.makePoint(coordinates.get(0).x, coordinates.get(0).y);
-    }
-
-    @Override
-    public GeoShapeType type() {
-        return TYPE;
+    public org.apache.lucene.geo.Point buildLucene() {
+        return new org.apache.lucene.geo.Point(coordinates.get(0).y, coordinates.get(0).x);
     }
 
     @Override

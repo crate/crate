@@ -24,13 +24,9 @@ package io.crate.planner.optimizer.rule;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 
-import java.util.function.Function;
-
 import org.elasticsearch.Version;
 
 import io.crate.expression.symbol.Literal;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.GroupHashAggregate;
 import io.crate.planner.operators.Limit;
 import io.crate.planner.operators.LimitDistinct;
@@ -78,8 +74,7 @@ public final class RewriteGroupByKeysLimitToLimitDistinct implements Rule<Limit>
                 );
     }
 
-    private static boolean eagerTerminateIsLikely(TransactionContext txnCtx,
-                                                  Limit limit,
+    private static boolean eagerTerminateIsLikely(Limit limit,
                                                   GroupHashAggregate groupAggregate,
                                                   PlanStats planStats) {
         if (groupAggregate.outputs().size() > 1 || !groupAggregate.outputs().get(0).valueType().equals(DataTypes.STRING)) {
@@ -169,12 +164,9 @@ public final class RewriteGroupByKeysLimitToLimitDistinct implements Rule<Limit>
     @Override
     public LogicalPlan apply(Limit limit,
                              Captures captures,
-                             PlanStats planStats,
-                             TransactionContext txnCtx,
-                             NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
+                             Rule.Context context) {
         GroupHashAggregate groupBy = captures.get(groupCapture);
-        if (!eagerTerminateIsLikely(txnCtx, limit, groupBy, planStats)) {
+        if (!eagerTerminateIsLikely(limit, groupBy, context.planStats())) {
             return null;
         }
         return new LimitDistinct(

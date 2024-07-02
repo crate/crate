@@ -22,12 +22,11 @@
 
 package io.crate.statistics;
 
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Map;
 
 import org.elasticsearch.test.ESTestCase;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 public class StatsTest extends ESTestCase {
@@ -35,6 +34,6 @@ public class StatsTest extends ESTestCase {
     @Test
     public void test_average_size_calc_if_numDocs_is_zero() throws Exception {
         Stats stats = new Stats(0L, 200L, Map.of());
-        assertThat(stats.averageSizePerRowInBytes(), Matchers.is(0L));
+        assertThat(stats.averageSizePerRowInBytes()).isZero();
     }
 }

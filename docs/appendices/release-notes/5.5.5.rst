@@ -1,0 +1,28 @@
+.. _version_5.5.5:
+
+============================
+Version 5.5.5 - Not released
+============================
+
+
+.. comment This version will be skipped and instead a 5.5.6 will be released,
+.. comment if needed, see note below for details
+
+.. NOTE::
+    5.5.5 is not released and won't be released in the future. Please use
+    :ref:`version_5.5.4` instead. The :ref:`version_5.5.4` release was
+    accidentally marked as `5.5.5` in the relevant `Docker PR`_, and to remedy
+    this mistake, `5.5.6` will be released, if needed, in the future.
+
+.. contents::
+   :local:
+
+See the :ref:`version_5.5.0` release notes for a full list of changes in the
+5.5 series.
+
+Fixes
+=====
+
+None
+
+.. _Docker PR: https://github.com/docker-library/official-images/pull/16181/files

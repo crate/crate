@@ -25,34 +25,35 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.crate.data.testing.BatchIteratorTester;
+import io.crate.data.testing.BatchIteratorTester.ResultOrder;
 import io.crate.data.testing.BatchSimulatingIterator;
 import io.crate.data.testing.TestingBatchIterators;
 
-public class LimitingBatchIteratorTest {
+class LimitingBatchIteratorTest {
 
     private static final int LIMIT = 5;
     private static final List<Object[]> EXPECTED_RESULT = IntStream.range(0, 10).limit(LIMIT)
         .mapToObj(l -> new Object[] {l}).collect(Collectors.toList());
 
     @Test
-    public void testLimitingBatchIterator() throws Exception {
+    void testLimitingBatchIterator() throws Exception {
         var tester = BatchIteratorTester.forRows(
-            () -> LimitingBatchIterator.newInstance(TestingBatchIterators.range(0, 10), LIMIT)
+            () -> LimitingBatchIterator.newInstance(TestingBatchIterators.range(0, 10), LIMIT), ResultOrder.EXACT
         );
         tester.verifyResultAndEdgeCaseBehaviour(EXPECTED_RESULT);
     }
 
     @Test
-    public void testLimitingBatchIteratorWithBatchedSource() throws Exception {
+    void testLimitingBatchIteratorWithBatchedSource() throws Exception {
         var tester = BatchIteratorTester.forRows(
             () -> {
                 BatchSimulatingIterator<Row> batchSimulatingIt = new BatchSimulatingIterator<>(
                     TestingBatchIterators.range(0, 10), 2, 5, null);
                 return LimitingBatchIterator.newInstance(batchSimulatingIt, LIMIT);
-            }
+            }, ResultOrder.EXACT
         );
         tester.verifyResultAndEdgeCaseBehaviour(EXPECTED_RESULT);
     }

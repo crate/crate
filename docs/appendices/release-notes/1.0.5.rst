@@ -36,13 +36,13 @@ Changelog
 Fixes
 -----
 
- - Case sensitivity of aliases wasn't handled correctly. Aliases are now fully
-   case sensitive.
+- Case sensitivity of aliases wasn't handled correctly. Aliases are now fully
+  case sensitive.
 
- - Fixed a race condition that could have caused that not all columns were
-   written to the metadata when a lot of new dynamic columns were generated
-   concurrently.
+- Fixed a race condition that could have caused that not all columns were
+  written to the metadata when a lot of new dynamic columns were generated
+  concurrently.
 
- - Fixed an issue that caused joins on ``information_schema.columns`` to
-   produce a wrong result if ``information_schema.columns`` was used as the
-   right table.
+- Fixed an issue that caused joins on ``information_schema.columns`` to
+  produce a wrong result if ``information_schema.columns`` was used as the
+  right table.

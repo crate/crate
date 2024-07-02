@@ -19,7 +19,7 @@
 
 package org.elasticsearch.gateway;
 
-import static org.junit.Assert.assertFalse;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -32,7 +32,6 @@ import org.elasticsearch.cluster.coordination.Coordinator;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.discovery.Discovery;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.test.IntegTestCase;
@@ -90,8 +89,7 @@ public class MetadataWriteDataNodesIT extends IntegTestCase {
     protected void assertIndexDirectoryDeleted(final String nodeName, final Index index) throws Exception {
         assertBusy(() -> {
                        logger.info("checking if index directory exists...");
-                       assertFalse("Expecting index directory of " + index + " to be deleted from node " + nodeName,
-                                   indexDirectoryExists(nodeName, index));
+                       assertThat(indexDirectoryExists(nodeName, index)).as("Expecting index directory of " + index + " to be deleted from node " + nodeName).isFalse();
                    }
         );
     }
@@ -106,8 +104,7 @@ public class MetadataWriteDataNodesIT extends IntegTestCase {
         assertBusy(() -> {
                        logger.info("checking if meta state exists...");
                        try {
-                           assertTrue("Expecting meta state of index " + indexName + " to be on node " + nodeName,
-                                      getIndicesMetadataOnNode(nodeName).containsKey(indexName));
+                           assertThat(getIndicesMetadataOnNode(nodeName).containsKey(indexName)).as("Expecting meta state of index " + indexName + " to be on node " + nodeName).isTrue();
                        } catch (Exception e) {
                            logger.info("failed to load meta state", e);
                            fail("could not load meta state");
@@ -129,7 +126,7 @@ public class MetadataWriteDataNodesIT extends IntegTestCase {
     }
 
     private ImmutableOpenMap<String, IndexMetadata> getIndicesMetadataOnNode(String nodeName) {
-        final Coordinator coordinator = (Coordinator) cluster().getInstance(Discovery.class, nodeName);
+        final Coordinator coordinator = cluster().getInstance(Coordinator.class, nodeName);
         return coordinator.getApplierState().metadata().indices();
     }
 }

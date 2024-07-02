@@ -30,7 +30,6 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.util.Accountable;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -47,6 +46,7 @@ import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.Expression;
+import io.crate.statistics.ColumnStatsSupport;
 
 public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable, Comparator<T>, Accountable {
 
@@ -248,10 +248,9 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
     @Nullable
     public final ValueIndexer<? super T> valueIndexer(RelationName table,
                                                       Reference ref,
-                                                      Function<String, FieldType> getFieldType,
                                                       Function<ColumnIdent, Reference> getRef) {
         StorageSupport<? super T> storageSupport = storageSupportSafe();
-        return storageSupport.valueIndexer(table, ref, getFieldType, getRef);
+        return storageSupport.valueIndexer(table, ref, getRef);
     }
 
 
@@ -263,6 +262,11 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
     }
 
     public Integer characterMaximumLength() {
+        return null;
+    }
+
+    @Nullable
+    public Integer numericPrecision() {
         return null;
     }
 
@@ -282,5 +286,9 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
      * The mapping is for the cluster state's {@link IndexMetadata}
      */
     public void addMappingOptions(Map<String, Object> mapping) {
+    }
+
+    public ColumnStatsSupport<T> columnStatsSupport() {
+        throw new UnsupportedOperationException("Datatype " + this + " does not support column stats");
     }
 }

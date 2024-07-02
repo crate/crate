@@ -21,14 +21,12 @@
 
 package io.crate.metadata;
 
-import static org.hamcrest.core.Is.is;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
 
 import java.util.List;
 
 import org.elasticsearch.Version;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -50,7 +48,7 @@ public class SysNodesTableInfoTest extends CrateDummyClusterServiceUnitTest {
      */
     @Test
     public void testRegistered() {
-        var info = SysNodesTableInfo.create();
+        var info = SysNodesTableInfo.INSTANCE;
         ReferenceResolver<?> referenceResolver = new StaticTableReferenceResolver<>(info.expressions());
         for (var reference : info) {
             assertNotNull(referenceResolver.getImplementation(reference));
@@ -59,32 +57,30 @@ public class SysNodesTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCompatibilityVersion() {
-        RowCollectExpressionFactory<NodeStatsContext> sysNodeTableStats = SysNodesTableInfo.create().expressions().get(
+        RowCollectExpressionFactory<NodeStatsContext> sysNodeTableStats = SysNodesTableInfo.INSTANCE.expressions().get(
             SysNodesTableInfo.Columns.VERSION);
 
-        assertThat(sysNodeTableStats.create().getChild("minimum_index_compatibility_version").value(),
-                   is(Version.CURRENT.minimumIndexCompatibilityVersion().externalNumber()));
+        assertThat(sysNodeTableStats.create().getChild("minimum_index_compatibility_version").value()).isEqualTo(Version.CURRENT.minimumIndexCompatibilityVersion().externalNumber());
 
-        assertThat(sysNodeTableStats.create().getChild("minimum_wire_compatibility_version").value(),
-                   is(Version.CURRENT.minimumCompatibilityVersion().externalNumber()));
+        assertThat(sysNodeTableStats.create().getChild("minimum_wire_compatibility_version").value()).isEqualTo(Version.CURRENT.minimumCompatibilityVersion().externalNumber());
     }
 
     @Test
     public void test_column_that_is_a_child_of_an_array_has_array_type_on_select() {
-        var table = SysNodesTableInfo.create();
-        Reference ref = table.getReference(new ColumnIdent("fs", List.of("data", "path")));
-        assertThat(ref.valueType(), is(new ArrayType<>(DataTypes.STRING)));
+        var table = SysNodesTableInfo.INSTANCE;
+        Reference ref = table.getReference(ColumnIdent.of("fs", List.of("data", "path")));
+        assertThat(ref.valueType()).isEqualTo(new ArrayType<>(DataTypes.STRING));
 
         SQLExecutor e = SQLExecutor.builder(clusterService).build();
         AnalyzedRelation statement = e.analyze("select fs['data']['path'] from sys.nodes");
-        assertThat(statement.outputs().get(0).valueType(), is(new ArrayType<>(DataTypes.STRING)));
+        assertThat(statement.outputs().get(0).valueType()).isEqualTo(new ArrayType<>(DataTypes.STRING));
     }
 
     @Test
     public void test_fs_data_is_a_object_array() {
-        var table = SysNodesTableInfo.create();
-        Reference ref = table.getReference(new ColumnIdent("fs", "data"));
-        assertThat(ref.valueType().id(), Matchers.is(ArrayType.ID));
-        assertThat(((ArrayType<?>) ref.valueType()).innerType().id(), is(ObjectType.ID));
+        var table = SysNodesTableInfo.INSTANCE;
+        Reference ref = table.getReference(ColumnIdent.of("fs", "data"));
+        assertThat(ref.valueType().id()).isEqualTo(ArrayType.ID);
+        assertThat(((ArrayType<?>) ref.valueType()).innerType().id()).isEqualTo(ObjectType.ID);
     }
 }

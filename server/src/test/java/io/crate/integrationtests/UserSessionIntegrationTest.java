@@ -23,42 +23,15 @@ package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
 
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
-import io.crate.execution.engine.collect.stats.JobsLogService;
-
 @IntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
-public class UserSessionIntegrationTest extends BaseUsersIntegrationTest {
-
-    @Override
-    protected Settings nodeSettings(int nodeOrdinal) {
-        Settings settings = super.nodeSettings(nodeOrdinal);
-        if (nodeOrdinal == 0) { // Enterprise enabled
-            return Settings.builder().put(settings)
-                .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true).build();
-        }
-        // Enterprise disabled
-        return Settings.builder().put(settings)
-            .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true).build();
-    }
-
-    @Test
-    public void testSystemExecutorUsesSuperuserSession() {
-        systemExecute("select username from sys.jobs", "sys", getNodeByEnterpriseNode(true));
-        assertThat(response).hasRows("crate");
-    }
-
-    @Test
-    public void testSystemExecutorNullUser() {
-        systemExecute("select username from sys.jobs", "sys", getNodeByEnterpriseNode(false));
-        assertThat(response).hasRows("crate");
-    }
+public class UserSessionIntegrationTest extends BaseRolesIntegrationTest {
 
     @Test
     public void test_set_session_user_from_auth_superuser_to_unprivileged_user_round_trip() {
-        try (var session = createSuperUserSession()) {
+        try (var session = sqlExecutor.newSession()) {
             execute("SELECT SESSION_USER", session);
             assertThat(response).hasRows("crate");
 
@@ -71,12 +44,5 @@ public class UserSessionIntegrationTest extends BaseUsersIntegrationTest {
             execute("SELECT SESSION_USER", session);
             assertThat(response).hasRows("crate");
         }
-    }
-
-    private String getNodeByEnterpriseNode(boolean enterpriseEnabled) {
-        if (enterpriseEnabled) {
-            return cluster().getNodeNames()[0];
-        }
-        return cluster().getNodeNames()[1];
     }
 }

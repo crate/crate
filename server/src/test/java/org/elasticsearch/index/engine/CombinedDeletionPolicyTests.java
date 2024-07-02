@@ -19,12 +19,12 @@
 
 package org.elasticsearch.index.engine;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.index.seqno.SequenceNumbers.NO_OPS_PERFORMED;
 import static org.elasticsearch.index.translog.TranslogDeletionPolicies.createTranslogDeletionPolicy;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -88,10 +88,9 @@ public class CombinedDeletionPolicyTests extends ESTestCase {
                 verify(commitList.get(i), never()).delete();
             }
         }
-        assertThat(translogPolicy.getLocalCheckpointOfSafeCommit(), equalTo(getLocalCheckpoint(commitList.get(keptIndex))));
-        assertThat(softDeletesPolicy.getMinRetainedSeqNo(),
-            equalTo(Math.max(NO_OPS_PERFORMED,
-                Math.min(getLocalCheckpoint(commitList.get(keptIndex)) + 1, globalCheckpoint.get() + 1 - extraRetainedOps))));
+        assertThat(translogPolicy.getLocalCheckpointOfSafeCommit()).isEqualTo(getLocalCheckpoint(commitList.get(keptIndex)));
+        assertThat(softDeletesPolicy.getMinRetainedSeqNo()).isEqualTo(Math.max(NO_OPS_PERFORMED,
+                Math.min(getLocalCheckpoint(commitList.get(keptIndex)) + 1, globalCheckpoint.get() + 1 - extraRetainedOps)));
     }
 
     public void testAcquireIndexCommit() throws Exception {
@@ -125,19 +124,19 @@ public class CombinedDeletionPolicyTests extends ESTestCase {
             commitList.forEach(this::resetDeletion);
             indexPolicy.onCommit(commitList);
             IndexCommit safeCommit = CombinedDeletionPolicy.findSafeCommitPoint(commitList, globalCheckpoint.get());
-            assertThat(softDeletesPolicy.getMinRetainedSeqNo(), equalTo(
-                Math.max(NO_OPS_PERFORMED, Math.min(getLocalCheckpoint(safeCommit) + 1, globalCheckpoint.get() + 1 - extraRetainedOps))));
+            assertThat(softDeletesPolicy.getMinRetainedSeqNo()).isEqualTo(
+                Math.max(NO_OPS_PERFORMED, Math.min(getLocalCheckpoint(safeCommit) + 1, globalCheckpoint.get() + 1 - extraRetainedOps)));
             // Captures and releases some commits
             int captures = between(0, 5);
             for (int n = 0; n < captures; n++) {
                 boolean safe = randomBoolean();
                 final IndexCommit snapshot = indexPolicy.acquireIndexCommit(safe);
-                expectThrows(UnsupportedOperationException.class, snapshot::delete);
+                assertThatThrownBy(snapshot::delete).isExactlyInstanceOf(UnsupportedOperationException.class);
                 snapshottingCommits.add(snapshot);
                 if (safe) {
-                    assertThat(snapshot.getUserData(), equalTo(commitList.get(safeIndex).getUserData()));
+                    assertThat(snapshot.getUserData()).isEqualTo(commitList.get(safeIndex).getUserData());
                 } else {
-                    assertThat(snapshot.getUserData(), equalTo(commitList.get(commitList.size() - 1).getUserData()));
+                    assertThat(snapshot.getUserData()).isEqualTo(commitList.get(commitList.size() - 1).getUserData());
                 }
             }
             final List<IndexCommit> releasingSnapshots = randomSubsetOf(snapshottingCommits);
@@ -146,29 +145,28 @@ public class CombinedDeletionPolicyTests extends ESTestCase {
                 final long pendingSnapshots = snapshottingCommits.stream().filter(snapshot::equals).count();
                 final IndexCommit lastCommit = commitList.get(commitList.size() - 1);
                 safeCommit = CombinedDeletionPolicy.findSafeCommitPoint(commitList, globalCheckpoint.get());
-                assertThat(indexPolicy.releaseCommit(snapshot),
-                    equalTo(pendingSnapshots == 0 && snapshot.equals(lastCommit) == false && snapshot.equals(safeCommit) == false));
+                assertThat(indexPolicy.releaseCommit(snapshot)).isEqualTo(pendingSnapshots == 0 && snapshot.equals(lastCommit) == false && snapshot.equals(safeCommit) == false);
             }
             // Snapshotting commits must not be deleted.
             snapshottingCommits.forEach(snapshot -> assertThat(snapshot.isDeleted(), equalTo(false)));
             // We don't need to retain translog for snapshotting commits.
-            assertThat(translogPolicy.getLocalCheckpointOfSafeCommit(), equalTo(getLocalCheckpoint(commitList.get(safeIndex))));
-            assertThat(softDeletesPolicy.getMinRetainedSeqNo(), equalTo(
+            assertThat(translogPolicy.getLocalCheckpointOfSafeCommit()).isEqualTo(getLocalCheckpoint(commitList.get(safeIndex)));
+            assertThat(softDeletesPolicy.getMinRetainedSeqNo()).isEqualTo(
                 Math.max(NO_OPS_PERFORMED,
-                    Math.min(getLocalCheckpoint(commitList.get(safeIndex)) + 1, globalCheckpoint.get() + 1 - extraRetainedOps))));
+                    Math.min(getLocalCheckpoint(commitList.get(safeIndex)) + 1, globalCheckpoint.get() + 1 - extraRetainedOps)));
         }
         snapshottingCommits.forEach(indexPolicy::releaseCommit);
         globalCheckpoint.set(randomLongBetween(lastMaxSeqNo, Long.MAX_VALUE));
         commitList.forEach(this::resetDeletion);
         indexPolicy.onCommit(commitList);
         for (int i = 0; i < commitList.size() - 1; i++) {
-            assertThat(commitList.get(i).isDeleted(), equalTo(true));
+            assertThat(commitList.get(i).isDeleted()).isTrue();
         }
-        assertThat(commitList.get(commitList.size() - 1).isDeleted(), equalTo(false));
-        assertThat(translogPolicy.getLocalCheckpointOfSafeCommit(), equalTo(getLocalCheckpoint(commitList.get(commitList.size() - 1))));
+        assertThat(commitList.get(commitList.size() - 1).isDeleted()).isFalse();
+        assertThat(translogPolicy.getLocalCheckpointOfSafeCommit()).isEqualTo(getLocalCheckpoint(commitList.get(commitList.size() - 1)));
         IndexCommit safeCommit = CombinedDeletionPolicy.findSafeCommitPoint(commitList, globalCheckpoint.get());
-        assertThat(softDeletesPolicy.getMinRetainedSeqNo(), equalTo(
-            Math.max(NO_OPS_PERFORMED, Math.min(getLocalCheckpoint(safeCommit) + 1, globalCheckpoint.get() + 1 - extraRetainedOps))));
+        assertThat(softDeletesPolicy.getMinRetainedSeqNo()).isEqualTo(
+            Math.max(NO_OPS_PERFORMED, Math.min(getLocalCheckpoint(safeCommit) + 1, globalCheckpoint.get() + 1 - extraRetainedOps)));
     }
 
     public void testDeleteInvalidCommits() throws Exception {
@@ -199,8 +197,7 @@ public class CombinedDeletionPolicyTests extends ESTestCase {
         for (int i = 0; i < invalidCommits - 1; i++) {
             verify(commitList.get(i), times(1)).delete();
         }
-        assertThat(softDeletesPolicy.getMinRetainedSeqNo(),
-            equalTo(getLocalCheckpoint(CombinedDeletionPolicy.findSafeCommitPoint(commitList, globalCheckpoint.get())) + 1));
+        assertThat(softDeletesPolicy.getMinRetainedSeqNo()).isEqualTo(getLocalCheckpoint(CombinedDeletionPolicy.findSafeCommitPoint(commitList, globalCheckpoint.get())) + 1);
     }
 
     public void testCheckUnreferencedCommits() throws Exception {
@@ -225,25 +222,25 @@ public class CombinedDeletionPolicyTests extends ESTestCase {
 
         if (safeCommitIndex == commitList.size() - 1) {
             // Safe commit is the last commit - no need to clean up
-            assertThat(translogPolicy.getLocalCheckpointOfSafeCommit(), equalTo(getLocalCheckpoint(commitList.get(commitList.size() - 1))));
-            assertThat(indexPolicy.hasUnreferencedCommits(), equalTo(false));
+            assertThat(translogPolicy.getLocalCheckpointOfSafeCommit()).isEqualTo(getLocalCheckpoint(commitList.get(commitList.size() - 1)));
+            assertThat(indexPolicy.hasUnreferencedCommits()).isFalse();
         } else {
             // Advanced but not enough for any commit after the safe commit becomes safe
             IndexCommit nextSafeCommit = commitList.get(safeCommitIndex + 1);
             globalCheckpoint.set(randomLongBetween(globalCheckpoint.get(),
                 Long.parseLong(nextSafeCommit.getUserData().get(SequenceNumbers.MAX_SEQ_NO)) - 1));
-            assertFalse(indexPolicy.hasUnreferencedCommits());
+            assertThat(indexPolicy.hasUnreferencedCommits()).isFalse();
             // Advanced enough for some index commit becomes safe
             globalCheckpoint.set(randomLongBetween(
                 Long.parseLong(nextSafeCommit.getUserData().get(SequenceNumbers.MAX_SEQ_NO)), lastMaxSeqNo));
-            assertTrue(indexPolicy.hasUnreferencedCommits());
+            assertThat(indexPolicy.hasUnreferencedCommits()).isTrue();
             // Advanced enough for the last commit becomes safe
             globalCheckpoint.set(randomLongBetween(lastMaxSeqNo, Long.MAX_VALUE));
             commitList.forEach(this::resetDeletion);
             indexPolicy.onCommit(commitList);
             // Safe commit is the last commit - no need to clean up
-            assertThat(translogPolicy.getLocalCheckpointOfSafeCommit(), equalTo(getLocalCheckpoint(commitList.get(commitList.size() - 1))));
-            assertThat(indexPolicy.hasUnreferencedCommits(), equalTo(false));
+            assertThat(translogPolicy.getLocalCheckpointOfSafeCommit()).isEqualTo(getLocalCheckpoint(commitList.get(commitList.size() - 1)));
+            assertThat(indexPolicy.hasUnreferencedCommits()).isFalse();
         }
     }
 

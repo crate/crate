@@ -37,7 +37,7 @@ import io.netty.buffer.ByteBuf;
 
 final class TimeTZType extends PGType<TimeTZ> {
 
-    public static final PGType<TimeTZ> INSTANCE = new TimeTZType();
+    public static final TimeTZType INSTANCE = new TimeTZType();
     private static final int OID = 1266;
     private static final String OID_TYPE_NAME = "timetz";
     private static final int TYPE_MOD = -1;

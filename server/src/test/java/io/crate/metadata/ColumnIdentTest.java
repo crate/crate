@@ -21,16 +21,13 @@
 
 package io.crate.metadata;
 
-import static junit.framework.TestCase.assertTrue;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.exceptions.InvalidColumnNameException;
@@ -40,103 +37,102 @@ public class ColumnIdentTest {
 
     @Test
     public void testSqlFqn() throws Exception {
-        ColumnIdent ident = new ColumnIdent("foo", Arrays.asList("x", "y", "z"));
-        assertThat(ident.sqlFqn(), is("foo['x']['y']['z']"));
+        ColumnIdent ident = ColumnIdent.of("foo", Arrays.asList("x", "y", "z"));
+        assertThat(ident.sqlFqn()).isEqualTo("foo['x']['y']['z']");
 
-        ident = new ColumnIdent("a");
-        assertThat(ident.sqlFqn(), is("a"));
+        ident = ColumnIdent.of("a");
+        assertThat(ident.sqlFqn()).isEqualTo("a");
 
-        ident = new ColumnIdent("a", Collections.singletonList(""));
-        assertThat(ident.sqlFqn(), is("a['']"));
+        ident = ColumnIdent.of("a", Collections.singletonList(""));
+        assertThat(ident.sqlFqn()).isEqualTo("a['']");
 
-        ident = new ColumnIdent("a.b", Collections.singletonList("c"));
-        assertThat(ident.sqlFqn(), is("a.b['c']"));
+        ident = ColumnIdent.of("a.b", Collections.singletonList("c"));
+        assertThat(ident.sqlFqn()).isEqualTo("a.b['c']");
     }
 
     @Test
     public void testShiftRight() throws Exception {
-        assertThat(new ColumnIdent("foo", "bar").shiftRight(), is(new ColumnIdent("bar")));
-        assertThat(new ColumnIdent("foo", Arrays.asList("x", "y", "z")).shiftRight(),
-            is(new ColumnIdent("x", Arrays.asList("y", "z"))));
-        assertThat(new ColumnIdent("foo").shiftRight(), Matchers.nullValue());
+        assertThat(ColumnIdent.of("foo", "bar").shiftRight()).isEqualTo(ColumnIdent.of("bar"));
+        assertThat(ColumnIdent.of("foo", Arrays.asList("x", "y", "z")).shiftRight()).isEqualTo(ColumnIdent.of("x", Arrays.asList("y", "z")));
+        assertThat(ColumnIdent.of("foo").shiftRight()).isNull();
     }
 
     @Test
     public void testIsChildOf() throws Exception {
-        ColumnIdent root = new ColumnIdent("root");
-        ColumnIdent rootX = new ColumnIdent("root", "x");
-        ColumnIdent rootXY = new ColumnIdent("root", Arrays.asList("x", "y"));
-        ColumnIdent rootYX = new ColumnIdent("root", Arrays.asList("y", "x"));
+        ColumnIdent root = ColumnIdent.of("root");
+        ColumnIdent rootX = ColumnIdent.of("root", "x");
+        ColumnIdent rootXY = ColumnIdent.of("root", Arrays.asList("x", "y"));
+        ColumnIdent rootYX = ColumnIdent.of("root", Arrays.asList("y", "x"));
 
-        assertThat(root.isChildOf(root), is(false));
+        assertThat(root.isChildOf(root)).isFalse();
 
-        assertThat(rootX.isChildOf(root), is(true));
-        assertThat(rootXY.isChildOf(root), is(true));
-        assertThat(rootXY.isChildOf(rootX), is(true));
+        assertThat(rootX.isChildOf(root)).isTrue();
+        assertThat(rootXY.isChildOf(root)).isTrue();
+        assertThat(rootXY.isChildOf(rootX)).isTrue();
 
-        assertThat(rootYX.isChildOf(root), is(true));
-        assertThat(rootYX.isChildOf(rootX), is(false));
+        assertThat(rootYX.isChildOf(root)).isTrue();
+        assertThat(rootYX.isChildOf(rootX)).isFalse();
     }
 
     @Test
     public void testPrepend() throws Exception {
-        ColumnIdent foo = new ColumnIdent("foo");
-        assertThat(foo.prepend(DocSysColumns.DOC.name()),
-            is(new ColumnIdent(DocSysColumns.DOC.name(), "foo")));
+        ColumnIdent foo = ColumnIdent.of("foo");
+        assertThat(foo.prepend(DocSysColumns.DOC.name())).isEqualTo(ColumnIdent.of(DocSysColumns.DOC.name(), "foo"));
 
-        ColumnIdent fooBar = new ColumnIdent("foo", "bar");
-        assertThat(fooBar.prepend("x"), is(new ColumnIdent("x", Arrays.asList("foo", "bar"))));
+        ColumnIdent fooBar = ColumnIdent.of("foo", "bar");
+        assertThat(fooBar.prepend("x")).isEqualTo(ColumnIdent.of("x", Arrays.asList("foo", "bar")));
     }
 
     @Test
     public void test_get_parents() throws Exception {
-        assertThat(new ColumnIdent("foo").parents()).hasSize(0);
-        assertThat(new ColumnIdent("foo", "x").parents()).containsExactly(
-            new ColumnIdent("foo")
+        assertThat(ColumnIdent.of("foo").parents()).hasSize(0);
+        assertThat(ColumnIdent.of("foo", "x").parents()).containsExactly(
+            ColumnIdent.of("foo")
         );
 
-        assertThat(new ColumnIdent("foo", List.of("x", "y")).parents()).containsExactly(
-            new ColumnIdent("foo", "x"),
-            new ColumnIdent("foo")
+        assertThat(ColumnIdent.of("foo", List.of("x", "y")).parents()).containsExactly(
+            ColumnIdent.of("foo", "x"),
+            ColumnIdent.of("foo")
         );
 
-        assertThat(new ColumnIdent("foo", List.of("x", "y", "z")).parents()).containsExactly(
-            new ColumnIdent("foo", List.of("x", "y")),
-            new ColumnIdent("foo", "x"),
-            new ColumnIdent("foo")
+        assertThat(ColumnIdent.of("foo", List.of("x", "y", "z")).parents()).containsExactly(
+            ColumnIdent.of("foo", List.of("x", "y")),
+            ColumnIdent.of("foo", "x"),
+            ColumnIdent.of("foo")
         );
     }
 
     @Test
     public void testValidColumnNameValidation() throws Exception {
         // Allowed.
-        ColumnIdent.validateColumnName("valid");
-        ColumnIdent.validateColumnName("field_name_");
-        ColumnIdent.validateColumnName("_Name");
-        ColumnIdent.validateColumnName("_name_");
-        ColumnIdent.validateColumnName("__name");
-        ColumnIdent.validateColumnName("____name");
-        ColumnIdent.validateColumnName("_name__");
-        ColumnIdent.validateColumnName("_name1");
-        ColumnIdent.validateColumnName("'index'");
-        ColumnIdent.validateColumnName("ident'index");
-        ColumnIdent.validateColumnName("1'");
+        ColumnIdent.fromNameSafe("valid", List.of());
+        ColumnIdent.fromNameSafe("field_name_", List.of());
+        ColumnIdent.fromNameSafe("_Name", List.of());
+        ColumnIdent.fromNameSafe("_name_", List.of());
+        ColumnIdent.fromNameSafe("__name", List.of());
+        ColumnIdent.fromNameSafe("____name", List.of());
+        ColumnIdent.fromNameSafe("_name__", List.of());
+        ColumnIdent.fromNameSafe("_name1", List.of());
+        ColumnIdent.fromNameSafe("'index'", List.of());
+        ColumnIdent.fromNameSafe("ident'index", List.of());
+        ColumnIdent.fromNameSafe("1'", List.of());
     }
 
     @Test
     public void testIllegalColumnNameValidation() throws Exception {
-        assertExceptionIsThrownOnValidation(".name", "contains a dot");
-        assertExceptionIsThrownOnValidation("column.name", "contains a dot");
-        assertExceptionIsThrownOnValidation(".", "contains a dot");
-        assertExceptionIsThrownOnValidation("_a", "system column");
-        assertExceptionIsThrownOnValidation("_name", "system column");
-        assertExceptionIsThrownOnValidation("_field_name", "system column");
-        assertExceptionIsThrownOnValidation("ident['index']", "subscript");
-        assertExceptionIsThrownOnValidation("ident['index]", "subscript");
-        assertExceptionIsThrownOnValidation("ident[0]", "subscript");
-        assertExceptionIsThrownOnValidation("\"a[1]\"", "subscript");
-        assertExceptionIsThrownOnValidation("\"fda_32$@%^nf[ffDA&^\"", "subscript");
-        assertExceptionIsThrownOnValidation("[", "subscript");
+        assertNameValidationThrows(".name", "\".name\" contains a dot");
+        assertNameValidationThrows("column.name", "\"column.name\" contains a dot");
+        assertNameValidationThrows(".", "\".\" contains a dot");
+        assertNameValidationThrows("_a", "\"_a\" conflicts with system column pattern");
+        assertNameValidationThrows("_name", "\"_name\" conflicts with system column pattern");
+        assertNameValidationThrows("_field_name", "\"_field_name\" conflicts with system column pattern");
+        assertNameValidationThrows("ident['index']", "\"ident['index']\" conflicts with subscript pattern, square brackets are not allowed");
+        assertNameValidationThrows("ident['index]", "\"ident['index]\" conflicts with subscript pattern, square brackets are not allowed");
+        assertNameValidationThrows("ident[0]", "\"ident[0]\" conflicts with subscript pattern, square brackets are not allowed");
+        assertNameValidationThrows("\"a[1]\"", "\"\"a[1]\"\" conflicts with subscript pattern, square brackets are not allowed");
+        assertNameValidationThrows("\"fda_32$@%^nf[ffDA&^\"", "\"\"fda_32$@%^nf[ffDA&^\"\" conflicts with subscript pattern, square brackets are not allowed");
+        assertNameValidationThrows("[", "\"[\" conflicts with subscript pattern, square brackets are not allowed");
+        assertNameValidationThrows("no\tpe", "\"no\tpe\" contains illegal whitespace character");
     }
 
     /**
@@ -146,16 +142,40 @@ public class ColumnIdentTest {
      * @param columnName      the column name which causes an exception to be thrown
      * @param expectedMessage exception message that is expected
      */
-    private void assertExceptionIsThrownOnValidation(String columnName, String expectedMessage) {
-        boolean expecedExceptionIsThrown = false;
-        try {
-            ColumnIdent.validateColumnName(columnName);
-        } catch (InvalidColumnNameException e) {
-            if (expectedMessage == null || e.getMessage().contains(expectedMessage)) {
-                expecedExceptionIsThrown = true;
-            }
-        }
+    private void assertNameValidationThrows(String columnName, String expectedMessage) {
+        assertThatThrownBy(() -> ColumnIdent.fromNameSafe(columnName, List.of()))
+            .isExactlyInstanceOf(InvalidColumnNameException.class)
+            .hasMessage(expectedMessage);
+    }
 
-        assertTrue(expecedExceptionIsThrown);
+    @Test
+    public void test_replace_paths() {
+        var a = ColumnIdent.of("a");
+        var b = ColumnIdent.of("b");
+        var aa = ColumnIdent.of("a", List.of("a"));
+        var ba = ColumnIdent.of("b", List.of("a"));
+        var ab = ColumnIdent.of("a", List.of("b"));
+        var bb = ColumnIdent.of("b", List.of("b"));
+        var aaa = ColumnIdent.of("a", List.of("a", "a"));
+        var baa = ColumnIdent.of("b", List.of("a", "a"));
+        var aba = ColumnIdent.of("a", List.of("b", "a"));
+        var aab = ColumnIdent.of("a", List.of("a", "b"));
+
+        assertThat(a.replacePrefix(a)).isEqualTo(a);
+        assertThat(a.replacePrefix(b)).isEqualTo(b);
+        assertThatThrownBy(() -> a.replacePrefix(ab)).isExactlyInstanceOf(AssertionError.class);
+
+        assertThat(aa.replacePrefix(a)).isEqualTo(aa);
+        assertThat(aa.replacePrefix(b)).isEqualTo(ba);
+        assertThat(aa.replacePrefix(ab)).isEqualTo(ab);
+        assertThatThrownBy(() -> aa.replacePrefix(ba)).isExactlyInstanceOf(AssertionError.class);
+        assertThatThrownBy(() -> aa.replacePrefix(bb)).isExactlyInstanceOf(AssertionError.class);
+        assertThatThrownBy(() -> aa.replacePrefix(aaa)).isExactlyInstanceOf(AssertionError.class);
+
+        assertThat(aaa.replacePrefix(a)).isEqualTo(aaa);
+        assertThat(aaa.replacePrefix(b)).isEqualTo(baa);
+        assertThat(aaa.replacePrefix(aa)).isEqualTo(aaa);
+        assertThat(aaa.replacePrefix(ab)).isEqualTo(aba);
+        assertThat(aaa.replacePrefix(aab)).isEqualTo(aab);
     }
 }

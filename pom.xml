@@ -4,47 +4,103 @@
 
   <groupId>io.crate</groupId>
   <artifactId>crate</artifactId>
-  <version>5.5.0</version>
+  <version>5.8.0</version>
   <packaging>pom</packaging>
 
   <build>
     <plugins>
       <plugin>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <version>${versions.plugin.enforcer}</version>
+        <executions>
+          <execution>
+            <id>enforce-maven</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <requireMavenVersion>
+                  <version>${versions.min_maven}</version>
+                </requireMavenVersion>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <artifactId>maven-clean-plugin</artifactId>
+        <version>${versions.plugin.clean}</version>
+      </plugin>
+      <plugin>
+        <artifactId>maven-resources-plugin</artifactId>
+        <version>${versions.plugin.resources}</version>
+      </plugin>
+      <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.11.0</version>
+        <version>${versions.plugin.compiler}</version>
         <configuration>
         </configuration>
       </plugin>
       <plugin>
+        <artifactId>maven-install-plugin</artifactId>
+        <version>${versions.plugin.install}</version>
+      </plugin>
+      <plugin>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>${versions.plugin.jar}</version>
+      </plugin>
+      <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>3.1.2</version>
+        <version>${versions.plugin.surefire}</version>
         <configuration>
           <parallel>suites</parallel>
+          <redirectTestOutputToFile>true</redirectTestOutputToFile>
           <includes>
             <include>**/Test*.java</include>
             <include>**/*IT.java</include>
             <include>**/*Test.java</include>
             <include>**/*Tests.java</include>
           </includes>
+          <systemPropertyVariables>
+            <worker-id>$${surefire.forkNumber}</worker-id>
+          </systemPropertyVariables>
+          <properties>
+            <configurationParameters>
+              junit.jupiter.execution.parallel.enabled = true
+            </configurationParameters>
+          </properties>
+          <!-- by default is false but is set to true by `serverTest` profile to avoid running tests
+               for modules on which `server` module depends on, when running `mvn -Pserver test` -->
+          <skip>${skipRunTests}</skip>
+          <argLine>-XX:+UseSerialGC -XX:TieredStopAtLevel=1 -XX:ReservedCodeCacheSize=512M</argLine>
         </configuration>
       </plugin>
       <plugin>
         <artifactId>maven-surefire-report-plugin</artifactId>
-        <version>3.1.2</version>
+        <version>${versions.plugin.surefire}</version>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-checkstyle-plugin</artifactId>
-        <version>3.3.0</version>
+        <version>${versions.plugin.checkstyle}</version>
         <configuration>
           <configLocation>checkstyle.xml</configLocation>
           <suppressionsLocation>checkstyle-suppressions.xml</suppressionsLocation>
           <suppressionsFileExpression>checkstyle.suppressions.file</suppressionsFileExpression>
           <consoleOutput>true</consoleOutput>
           <failsOnError>true</failsOnError>
+          <includeTestSourceDirectory>true</includeTestSourceDirectory>
           <includeTestResources>false</includeTestResources>
           <linkXRef>false</linkXRef>
         </configuration>
+         <dependencies>
+            <dependency>
+              <groupId>com.puppycrawl.tools</groupId>
+              <artifactId>checkstyle</artifactId>
+              <version>10.17.0</version>
+            </dependency>
+          </dependencies>
         <executions>
           <execution>
             <id>validate</id>
@@ -56,9 +112,21 @@
         </executions>
       </plugin>
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <version>3.6.1</version>
+        <dependencies>
+          <dependency>
+            <groupId>org.ow2.asm</groupId>
+            <artifactId>asm</artifactId>
+            <version>9.7</version>
+          </dependency>
+        </dependencies>
+      </plugin>
+      <plugin>
         <groupId>org.mvnsearch</groupId>
         <artifactId>toolchains-maven-plugin</artifactId>
-        <version>4.5.0</version>
+        <version>${versions.plugin.toolchains}</version>
         <executions>
           <execution>
             <goals>
@@ -78,7 +146,7 @@
       <plugin>
         <groupId>org.jacoco</groupId>
         <artifactId>jacoco-maven-plugin</artifactId>
-        <version>0.8.10</version>
+        <version>${versions.plugin.jacoco}</version>
         <executions>
           <execution>
             <id>default-prepare-agent</id>
@@ -91,7 +159,7 @@
       <plugin>
         <groupId>de.thetaphi</groupId>
         <artifactId>forbiddenapis</artifactId>
-        <version>3.6</version>
+        <version>${versions.plugin.forbiddenapis}</version>
           <configuration>
             <failOnUnsupportedJava>false</failOnUnsupportedJava>
             <bundledSignatures>
@@ -119,7 +187,7 @@
       </plugin>
       <plugin>
         <artifactId>maven-jlink-plugin</artifactId>
-        <version>3.1.0</version>
+        <version>${versions.plugin.jlink}</version>
         <extensions>true</extensions>
         <configuration>
           <addModules>
@@ -145,23 +213,10 @@
 
             <!-- To support -XX:StartFlightRecording=[...] -->
             <addModule>jdk.jfr</addModule>
+
+            <addModule>jdk.jcmd</addModule>
+            <addModule>jdk.jdwp.agent</addModule>
           </addModules>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>io.github.git-commit-id</groupId>
-        <artifactId>git-commit-id-maven-plugin</artifactId>
-        <version>6.0.0</version>
-        <executions>
-          <execution>
-            <id>get-the-git-infos</id>
-            <goals>
-              <goal>revision</goal>
-            </goals>
-            <phase>initialize</phase>
-          </execution>
-        </executions>
-        <configuration>
         </configuration>
       </plugin>
     </plugins>
@@ -171,7 +226,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-checkstyle-plugin</artifactId>
-        <version>3.3.0</version>
+        <version>${versions.plugin.checkstyle}</version>
         <reportSets>
           <reportSet>
             <reports>
@@ -196,44 +251,86 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <maven.compiler.source>20</maven.compiler.source>
-    <maven.compiler.target>20</maven.compiler.target>
+    <maven.compiler.source>22</maven.compiler.source>
+    <maven.compiler.target>22</maven.compiler.target>
 
-    <versions.jdk>20.0.2</versions.jdk>
-    <versions.annotations>24.0.1</versions.annotations>
-    <versions.log4j>2.19.0</versions.log4j>
-    <versions.assertj>3.23.1</versions.assertj>
-    <versions.junit5>5.9.3</versions.junit5>
+    <!-- see surefire plugin configuration for explanation -->
+    <skipRunTests>false</skipRunTests>
+
+    <versions.jdk>22.0.1+8</versions.jdk>
+    <versions.annotations>24.1.0</versions.annotations>
+    <versions.log4j>2.22.0</versions.log4j>
+    <versions.assertj>3.26.0</versions.assertj>
+    <versions.junit5>5.10.2</versions.junit5>
     <versions.junit>4.13.2</versions.junit>
     <versions.randomizedrunner>2.8.1</versions.randomizedrunner>
-    <versions.jackson>2.15.2</versions.jackson>
+    <versions.jackson>2.17.1</versions.jackson>
     <versions.jopt_simple>6.0-alpha-3</versions.jopt_simple>
     <versions.antlr>4.13.1</versions.antlr>
     <versions.quickcheck>1.0</versions.quickcheck>
     <versions.hppc>0.8.2</versions.hppc>
-    <versions.netty>4.1.100.Final</versions.netty>
-    <versions.lucene>9.8.0</versions.lucene>
+    <versions.netty>4.1.111.Final</versions.netty>
+    <versions.lucene>9.11.1</versions.lucene>
     <versions.spatial4j>0.8</versions.spatial4j>
     <versions.jts>1.19.0</versions.jts>
-    <versions.jna>5.12.1</versions.jna>
-    <versions.tdigest>3.2</versions.tdigest>
+    <versions.jna>5.13.0</versions.jna>
+    <versions.tdigest>3.3</versions.tdigest>
+    <versions.datasketches>5.0.2</versions.datasketches>
     <versions.hdrhistogram>2.1.12</versions.hdrhistogram>
-    <versions.caffeine>3.1.6</versions.caffeine>
-    <versions.jodatime>2.12.2</versions.jodatime>
+    <versions.caffeine>3.1.8</versions.caffeine>
+    <versions.jodatime>2.12.5</versions.jodatime>
     <versions.aws>1.12.353</versions.aws>
     <versions.commonsmath>3.6.1</versions.commonsmath>
+    <versions.commonscodec>1.17.0</versions.commonscodec>
     <versions.jaxb_api>2.3.1</versions.jaxb_api>
-    <versions.graalvm>22.3.0</versions.graalvm>
+    <versions.graalvm>24.0.1</versions.graalvm>
+    <versions.jwt>4.4.0</versions.jwt>
+    <versions.jwks-rsa>0.22.1</versions.jwks-rsa>
+
+    <versions.google.gax>2.43.0</versions.google.gax>
+    <versions.google.auth>1.23.0</versions.google.auth>
+    <versions.google.oauth2>1.23.0</versions.google.oauth2>
+    <versions.google.cloud.storage>1.113.1</versions.google.cloud.storage>
+    <versions.google.cloud.core>2.30.0</versions.google.cloud.core>
+    <versions.google.cloud.core.http>2.23.0</versions.google.cloud.core.http>
+
+    <versions.guava>32.0.1-jre</versions.guava>
+    <versions.google.gson>1.43.1</versions.google.gson>
+    <versions.google.errorprone>2.19.1</versions.google.errorprone>
+    <versions.google.j2objc>2.8</versions.google.j2objc>
+    <versions.checkerframework>3.35.0</versions.checkerframework>
+    <versions.grpc>1.55.1</versions.grpc>
 
     <versions.hamcrest>2.2</versions.hamcrest>
-    <versions.mockito>4.9.0</versions.mockito>
-    <versions.jdbc>42.6.0</versions.jdbc>
-    <versions.jsonassert>1.5.1</versions.jsonassert>
+    <versions.mockito>5.12.0</versions.mockito>
+    <versions.jdbc>42.7.3</versions.jdbc>
 
     <versions.azure_storage>8.6.6</versions.azure_storage>
     <versions.azure_keyvault>1.2.4</versions.azure_keyvault>
 
     <versions.jmh>1.37</versions.jmh>
+
+    <versions.min_maven>3.6.3</versions.min_maven>
+    <!-- Maven Plugins -->
+    <versions.plugin.enforcer>3.4.1</versions.plugin.enforcer>
+    <versions.plugin.clean>3.3.2</versions.plugin.clean>
+    <versions.plugin.resources>3.3.1</versions.plugin.resources>
+    <versions.plugin.install>3.1.1</versions.plugin.install>
+    <versions.plugin.compiler>3.13.0</versions.plugin.compiler>
+    <versions.plugin.jar>3.3.0</versions.plugin.jar>
+    <versions.plugin.surefire>3.3.0</versions.plugin.surefire>
+    <versions.plugin.checkstyle>3.3.1</versions.plugin.checkstyle>
+    <versions.plugin.toolchains>4.5.0</versions.plugin.toolchains>
+    <versions.plugin.jacoco>0.8.12</versions.plugin.jacoco>
+    <versions.plugin.forbiddenapis>3.7</versions.plugin.forbiddenapis>
+    <versions.plugin.jlink>3.1.0</versions.plugin.jlink>
+    <versions.plugin.assembly>3.7.1</versions.plugin.assembly>
+    <versions.plugin.download>1.9.0</versions.plugin.download>
+    <versions.plugin.git-commit>8.0.2</versions.plugin.git-commit>
+    <versions.plugin.shade>3.6.0</versions.plugin.shade>
+    <versions.plugin.jar>3.4.1</versions.plugin.jar>
+    <versions.plugin.build-helper>3.6.0</versions.plugin.build-helper>
+    <versions.plugin.antlr>4.13.1</versions.plugin.antlr>
   </properties>
 
   <modules>
@@ -251,6 +348,7 @@
     <module>plugins/es-repository-s3</module>
     <module>plugins/es-repository-url</module>
     <module>plugins/es-repository-azure</module>
+    <module>plugins/repository-gcs</module>
     <module>plugins/dns-discovery</module>
     <module>plugins/cr8-copy-s3</module>
     <module>extensions/functions</module>
@@ -260,4 +358,16 @@
     <module>app</module>
     <module>benchmarks</module>
   </modules>
+
+  <profiles>
+    <profile>
+      <id>server</id>
+      <properties>
+        <skipRunTests>true</skipRunTests>
+      </properties>
+      <modules>
+        <module>server</module>
+      </modules>
+    </profile>
+  </profiles>
 </project>

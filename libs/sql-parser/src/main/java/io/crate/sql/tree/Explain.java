@@ -30,26 +30,21 @@ public class Explain extends Statement {
 
     public enum Option {
         ANALYZE,
-        COSTS
+        COSTS,
+        VERBOSE
     }
 
     private final Statement statement;
     // Possible values for options is `true`, `false`, `null`
     private final Map<Option, Boolean> options;
-    private final boolean analyze;
 
-    public Explain(Statement statement, boolean analyze, Map<Option, Boolean> options) {
+    public Explain(Statement statement, Map<Option, Boolean> options) {
         this.statement = requireNonNull(statement, "statement is null");
-        this.analyze = analyze;
         this.options = options;
     }
 
     public Statement getStatement() {
         return statement;
-    }
-
-    public boolean isAnalyze() {
-        return analyze;
     }
 
     public Map<Option, Boolean> options() {
@@ -60,6 +55,10 @@ public class Explain extends Statement {
         // Option is activated if key is present and value true or null
         // e.g. explain (analyze true) or explain (analyze)
         return options.containsKey(option) && (options.get(option) == null || options.get(option) == true);
+    }
+
+    public boolean isOptionExplicitlyDeactivated(Explain.Option option) {
+        return options.containsKey(option) && options.get(option) == false;
     }
 
     @Override
@@ -76,20 +75,19 @@ public class Explain extends Statement {
             return false;
         }
         Explain explain = (Explain) o;
-        return analyze == explain.analyze && Objects.equals(statement, explain.statement) &&
-               Objects.equals(options, explain.options);
+        return Objects.equals(statement, explain.statement) &&
+            Objects.equals(options, explain.options);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(statement, options, analyze);
+        return Objects.hash(statement, options);
     }
 
     public String toString() {
         return "Explain{" +
                "statement=" + statement +
                ", options=" + options +
-               ", analyze=" + analyze +
                '}';
     }
 }

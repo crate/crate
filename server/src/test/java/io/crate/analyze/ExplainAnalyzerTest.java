@@ -40,9 +40,8 @@ public class ExplainAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService)
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
     }
 
     @Test
@@ -57,6 +56,12 @@ public class ExplainAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void test_cost_and_analyze_raises_errors() {
         assertThatThrownBy(() -> e.analyze("explain (costs, analyze) select id from sys.cluster"))
             .hasMessage("The ANALYZE and COSTS options are not allowed together");
+    }
+
+    @Test
+    public void test_analyze_and_verbose_raises_errors() {
+        assertThatThrownBy(() -> e.analyze("explain (analyze, verbose) select id from sys.cluster"))
+            .hasMessage("The ANALYZE and VERBOSE options are not allowed together");
     }
 
     @Test
@@ -99,5 +104,19 @@ public class ExplainAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThatThrownBy(() -> e.analyze("explain optimize table parted"))
             .isExactlyInstanceOf(UnsupportedFeatureException.class)
             .hasMessageStartingWith("EXPLAIN is not supported for OptimizeStatement");
+    }
+
+    @Test
+    public void test_explain_verbose() {
+        ExplainAnalyzedStatement stmt = e.analyze("explain verbose select id from sys.cluster");
+        assertThat(stmt.statement()).isExactlyInstanceOf(QueriedSelectRelation.class);
+        assertThat(stmt.outputs()).satisfiesExactly(isField("STEP"), isField("QUERY PLAN"));
+    }
+
+    @Test
+    public void test_explain_verbose_copy_from_unsupported() {
+        assertThatThrownBy(() -> e.analyze("explain verbose copy users from '/tmp/*' WITH (shared=True)"))
+            .isExactlyInstanceOf(UnsupportedFeatureException.class)
+            .hasMessageStartingWith("EXPLAIN VERBOSE is not supported for CopyFrom");
     }
 }

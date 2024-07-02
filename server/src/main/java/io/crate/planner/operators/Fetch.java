@@ -22,16 +22,16 @@
 package io.crate.planner.operators;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedCollection;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.FetchPhase;
 import io.crate.execution.dsl.projection.FetchProjection;
@@ -103,7 +103,7 @@ public final class Fetch extends ForwardingLogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
         return this;
     }
 
@@ -135,7 +135,7 @@ public final class Fetch extends ForwardingLogicalPlan {
             plannerContext
         );
         ReaderAllocations readerAllocations = plannerContext.buildReaderAllocations();
-        Function<Symbol, Symbol> paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
+        UnaryOperator<Symbol> paramBinder = new SubQueryAndParamBinder(params, subQueryResults);
         FetchPhase fetchPhase = new FetchPhase(
             plannerContext.nextExecutionPhaseId(),
             readerAllocations.nodeReaders().keySet(),
@@ -172,7 +172,7 @@ public final class Fetch extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new Fetch(replacedOutputs, fetchRefs, fetchSourceByRelation, Lists2.getOnlyElement(sources));
+        return new Fetch(replacedOutputs, fetchRefs, fetchSourceByRelation, Lists.getOnlyElement(sources));
     }
 
     @Override

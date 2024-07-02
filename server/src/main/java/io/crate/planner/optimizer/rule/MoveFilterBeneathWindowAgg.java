@@ -21,31 +21,26 @@
 
 package io.crate.planner.optimizer.rule;
 
-import io.crate.analyze.WindowDefinition;
-import io.crate.expression.operator.AndOperator;
-import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
-import io.crate.expression.symbol.WindowFunction;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.TransactionContext;
-import io.crate.planner.operators.Filter;
-import io.crate.planner.operators.LogicalPlan;
-import io.crate.planner.operators.WindowAgg;
-import io.crate.planner.optimizer.Rule;
-import io.crate.planner.optimizer.costs.PlanStats;
-import io.crate.planner.optimizer.matcher.Capture;
-import io.crate.planner.optimizer.matcher.Captures;
-import io.crate.planner.optimizer.matcher.Pattern;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Function;
-import java.util.function.Predicate;
-
 import static io.crate.planner.operators.LogicalPlanner.extractColumns;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 import static io.crate.planner.optimizer.rule.Util.transpose;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Predicate;
+
+import io.crate.analyze.WindowDefinition;
+import io.crate.expression.operator.AndOperator;
+import io.crate.expression.symbol.Symbol;
+import io.crate.expression.symbol.WindowFunction;
+import io.crate.planner.operators.Filter;
+import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.operators.WindowAgg;
+import io.crate.planner.optimizer.Rule;
+import io.crate.planner.optimizer.matcher.Capture;
+import io.crate.planner.optimizer.matcher.Captures;
+import io.crate.planner.optimizer.matcher.Pattern;
 
 public final class MoveFilterBeneathWindowAgg implements Rule<Filter> {
 
@@ -66,10 +61,7 @@ public final class MoveFilterBeneathWindowAgg implements Rule<Filter> {
     @Override
     public LogicalPlan apply(Filter filter,
                              Captures captures,
-                             PlanStats planStats,
-                             TransactionContext txnCtx,
-                             NodeContext nodeCtx,
-                             Function<LogicalPlan, LogicalPlan> resolvePlan) {
+                             Rule.Context context) {
         WindowAgg windowAgg = captures.get(windowAggCapture);
         WindowDefinition windowDefinition = windowAgg.windowDefinition();
         List<WindowFunction> windowFunctions = windowAgg.windowFunctions();
@@ -84,7 +76,7 @@ public final class MoveFilterBeneathWindowAgg implements Rule<Filter> {
         ArrayList<Symbol> windowPartitionedBasedFilters = new ArrayList<>();
 
         for (Symbol part : filterParts) {
-            if (SymbolVisitors.any(containsWindowFunction, part) == false
+            if (part.any(containsWindowFunction) == false
                 && windowDefinition.partitions().containsAll(extractColumns(part))) {
                 windowPartitionedBasedFilters.add(part);
             } else {

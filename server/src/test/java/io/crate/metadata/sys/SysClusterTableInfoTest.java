@@ -21,9 +21,9 @@
 
 package io.crate.metadata.sys;
 
-import static org.junit.Assert.assertThat;
 
-import org.hamcrest.Matchers;
+import static org.assertj.core.api.Assertions.assertThat;
+
 import org.junit.Test;
 
 import io.crate.execution.engine.collect.NestableCollectExpression;
@@ -38,22 +38,22 @@ public class SysClusterTableInfoTest extends CrateDummyClusterServiceUnitTest {
         var clusterTable = SysClusterTableInfo.of(clusterService);
 
         StaticTableReferenceResolver<Void> refResolver = new StaticTableReferenceResolver<>(clusterTable.expressions());
-        NestableCollectExpression<Void, ?> expiryDate = refResolver.getImplementation(clusterTable.getReference(new ColumnIdent(
+        NestableCollectExpression<Void, ?> expiryDate = refResolver.getImplementation(clusterTable.getReference(ColumnIdent.of(
             "license",
             "expiry_date")));
         expiryDate.setNextRow(null);
-        assertThat(expiryDate.value(), Matchers.nullValue());
+        assertThat(expiryDate.value()).isNull();
 
-        NestableCollectExpression<Void, ?> issuedTo = refResolver.getImplementation(clusterTable.getReference(new ColumnIdent(
+        NestableCollectExpression<Void, ?> issuedTo = refResolver.getImplementation(clusterTable.getReference(ColumnIdent.of(
             "license",
             "issued_to")));
         issuedTo.setNextRow(null);
-        assertThat(issuedTo.value(), Matchers.nullValue());
+        assertThat(issuedTo.value()).isNull();
 
-        NestableCollectExpression<Void, ?> maxNodes = refResolver.getImplementation(clusterTable.getReference(new ColumnIdent(
+        NestableCollectExpression<Void, ?> maxNodes = refResolver.getImplementation(clusterTable.getReference(ColumnIdent.of(
             "license",
             "max_nodes")));
         maxNodes.setNextRow(null);
-        assertThat(maxNodes.value(), Matchers.nullValue());
+        assertThat(maxNodes.value()).isNull();
     }
 }

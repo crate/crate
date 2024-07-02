@@ -1,7 +1,7 @@
 pipeline {
   agent any
   tools {
-    // used to run gradle
+    // used to run maven
     jdk 'jdk11'
   }
   options {
@@ -16,6 +16,8 @@ pipeline {
         stage('sphinx') {
           agent { label 'small' }
           steps {
+            sh 'git clean -xdff'
+	    checkout scm
             sh './blackbox/bin/sphinx'
             sh 'find ./blackbox/*/src/ -type f -name "*.py" | xargs ./blackbox/.venv/bin/pycodestyle'
           }
@@ -32,8 +34,11 @@ pipeline {
             sh '''
               x=(~/.m2/jdks/jdk-$(./mvnw help:evaluate -Dexpression=versions.jdk -q -DforceStdout)*); JAVA_HOME="$x/" ./mvnw test \
                 -DforkCount=8 \
-                -Dtests.crate.slow=true \
+                -DthreadCount=2 \
                 -Dcheckstyle.skip \
+                -Dforbiddenapis.skip=true \
+                -Dmaven.javadoc.skip=true \
+                -Dtests.crate.slow=true \
                 jacoco:report
             '''.stripIndent()
 
@@ -60,7 +65,7 @@ pipeline {
           }
         }
         stage('itest') {
-          agent { label 'medium' }
+          agent { label 'medium && x64' }
           steps {
             sh 'git clean -xdff'
             checkout scm
@@ -69,7 +74,7 @@ pipeline {
           }
         }
         stage('blackbox tests') {
-          agent { label 'medium' }
+          agent { label 'medium && x64' }
           steps {
             sh 'git clean -xdff'
             checkout scm

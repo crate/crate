@@ -23,7 +23,6 @@ package io.crate.integrationtests;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
-import static io.crate.Constants.DEFAULT_MAPPING_TYPE;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNIQUE_VIOLATION;
 import static io.crate.testing.Asserts.assertThat;
@@ -32,19 +31,17 @@ import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.rtsp.RtspResponseStatuses.BAD_REQUEST;
 import static io.netty.handler.codec.rtsp.RtspResponseStatuses.INTERNAL_SERVER_ERROR;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.both;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.isOneOf;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -60,20 +57,14 @@ import java.util.Map;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
-import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateRequest;
-import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequest;
-import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.IntegTestCase;
-import org.hamcrest.CoreMatchers;
 import org.hamcrest.Matchers;
 import org.hamcrest.core.Is;
 import org.junit.After;
@@ -81,8 +72,10 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import io.crate.action.sql.BaseResultReceiver;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexMappings;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
@@ -123,16 +116,16 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("copy quotes partition (date=1400507539938) from ?", new Object[]{
             copyFilePath + "test_copy_from.json"});
-        assertEquals(3L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(3L);
         refresh();
         execute("select id, date, quote from quotes order by id asc");
-        assertEquals(3L, response.rowCount());
-        assertThat(response.rows()[0][0], is(1));
-        assertThat(response.rows()[0][1], is(1400507539938L));
-        assertThat(response.rows()[0][2], is("Don't pa\u00f1ic."));
+        assertThat(response.rowCount()).isEqualTo(3L);
+        assertThat(response.rows()[0][0]).isEqualTo(1);
+        assertThat(response.rows()[0][1]).isEqualTo(1400507539938L);
+        assertThat(response.rows()[0][2]).isEqualTo("Don't pa\u00f1ic.");
 
         execute("select count(*) from information_schema.table_partitions where table_name = 'quotes'");
-        assertThat((Long) response.rows()[0][0], is(1L));
+        assertThat((Long) response.rows()[0][0]).isEqualTo(1L);
 
         execute("copy quotes partition (date=1800507539938) from ?", new Object[]{
             copyFilePath + "test_copy_from.json"});
@@ -141,9 +134,9 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("select partition_ident from information_schema.table_partitions " +
                 "where table_name = 'quotes' " +
                 "order by partition_ident");
-        assertThat(response.rowCount(), is(2L));
-        assertThat(response.rows()[0][0], is("04732d1g60qj0dpl6csjicpo"));
-        assertThat(response.rows()[1][0], is("04732e1g60qj0dpl6csjicpo"));
+        assertThat(response.rowCount()).isEqualTo(2L);
+        assertThat(response.rows()[0][0]).isEqualTo("04732d1g60qj0dpl6csjicpo");
+        assertThat(response.rows()[1][0]).isEqualTo("04732e1g60qj0dpl6csjicpo");
     }
 
     @Test
@@ -155,7 +148,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         ensureYellow();
 
         execute("copy quotes from ?", new Object[]{copyFilePath + "test_copy_from.json"});
-        assertEquals(3L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(3L);
         refresh();
         ensureYellow();
 
@@ -170,8 +163,8 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         }
 
         execute("select * from quotes");
-        assertEquals(3L, response.rowCount());
-        assertThat(response.rows()[0].length, is(2));
+        assertThat(response.rowCount()).isEqualTo(3L);
+        assertThat(response.rows()[0].length).isEqualTo(2);
     }
 
     @Test
@@ -185,13 +178,13 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         ensureYellow();
 
         execute("copy quotes from ?", new Object[]{copyFilePath + "test_copy_from.json"});
-        assertEquals(3L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(3L);
         refresh();
         ensureYellow();
 
         execute("select * from quotes");
-        assertEquals(3L, response.rowCount());
-        assertThat(response.rows()[0].length, is(3));
+        assertThat(response.rowCount()).isEqualTo(3L);
+        assertThat(response.rows()[0].length).isEqualTo(3);
     }
 
     @Test
@@ -208,9 +201,9 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         });
 
         execute("insert into t (a, b) values (1, 'bar')");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response.rowCount()).isEqualTo(0L);
         execute("select count(*) from t");
-        assertEquals(0L, response.rows()[0][0]);
+        assertThat(response.rows()[0][0]).isEqualTo(0L);
     }
 
     @Test
@@ -225,7 +218,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
                 .hasRows($(true));
         });
         execute("select count(*) from t");
-        assertEquals(0L, response.rows()[0][0]);
+        assertThat(response.rows()[0][0]).isEqualTo(0L);
     }
 
     @Test
@@ -247,7 +240,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         String uriPath = Paths.get(copyFromFile.toURI()).toUri().toString();
 
         execute("copy my_schema.parted from ? with (shared=true)", new Object[]{uriPath});
-        assertEquals(2L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(2L);
         refresh();
 
         ensureGreen();
@@ -255,16 +248,16 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
 
         execute("select table_schema, table_name, number_of_shards, number_of_replicas, clustered_by, partitioned_by " +
                 "from information_schema.tables where table_schema='my_schema' and table_name='parted'");
-        assertThat(printedTable(response.rows()), is("my_schema| parted| 4| 0| _id| [month]\n"));
+        assertThat(printedTable(response.rows())).isEqualTo("my_schema| parted| 4| 0| _id| [month]\n");
 
         // no other tables with that name, e.g. partitions considered as tables or such
         execute("select table_schema, table_name from information_schema.tables where table_name like '%parted%'");
-        assertThat(printedTable(response.rows()), is(
-            "my_schema| parted\n"));
+        assertThat(printedTable(response.rows())).isEqualTo(
+            "my_schema| parted\n");
 
         execute("select count(*) from my_schema.parted");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((Long) response.rows()[0][0], is(2L));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat((Long) response.rows()[0][0]).isEqualTo(2L);
     }
 
     @Test
@@ -276,16 +269,16 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             "   timestamp timestamp with time zone" +
             ") partitioned by(timestamp) with (number_of_replicas=0)");
         execute("select * from information_schema.tables where table_schema = ? order by table_name", new Object[]{sqlExecutor.getCurrentSchema()});
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows()[0][12], is("quotes"));
-        assertThat(response.rows()[0][8], is(IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME));
-        assertThat(response.rows()[0][1], is(false));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows()[0][12]).isEqualTo("quotes");
+        assertThat(response.rows()[0][8]).isEqualTo(IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME);
+        assertThat((boolean) response.rows()[0][1]).isFalse();
         TestingHelpers.assertCrateVersion(response.rows()[0][15], Version.CURRENT, null);
         execute("select * from information_schema.columns where table_name='quotes' order by ordinal_position");
-        assertThat(response.rowCount(), is(3L));
-        assertThat(response.rows()[0][12], is("id"));
-        assertThat(response.rows()[1][12], is("quote"));
-        assertThat(response.rows()[2][12], is("timestamp"));
+        assertThat(response.rowCount()).isEqualTo(3L);
+        assertThat(response.rows()[0][12]).isEqualTo("id");
+        assertThat(response.rows()[1][12]).isEqualTo("quote");
+        assertThat(response.rows()[2][12]).isEqualTo("timestamp");
     }
 
     @Test
@@ -296,46 +289,39 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             "   name string," +
             "   date timestamp with time zone" +
             ") partitioned by (date)");
-        ensureYellow();
+
         String templateName = PartitionName.templateName(sqlExecutor.getCurrentSchema(), "parted");
-        GetIndexTemplatesResponse templatesResponse = client().admin().indices()
-            .getTemplates(new GetIndexTemplatesRequest(templateName)).get();
-        assertThat(templatesResponse.getIndexTemplates().get(0).patterns(),
-            contains(is(templateName + "*")));
-        assertThat(templatesResponse.getIndexTemplates().get(0).name(),
-            is(templateName));
-        assertTrue(templatesResponse.getIndexTemplates().get(0).getAliases().get(getFqn("parted")) != null);
 
         execute("insert into parted (id, name, date) values (?, ?, ?)",
             new Object[]{1, "Ford", 13959981214861L});
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response).hasRowCount(1);
         ensureYellow();
         refresh();
 
-        assertTrue(clusterService().state().metadata().hasAlias(getFqn("parted")));
+        Metadata metadata = clusterService().state().metadata();
+        String fqTablename = getFqn("parted");
+        assertThat(metadata.hasAlias(fqTablename)).isTrue();
+        assertThat(metadata.templates().containsKey(templateName)).isTrue();
 
         String partitionName = new PartitionName(
             new RelationName(sqlExecutor.getCurrentSchema(), "parted"),
             Collections.singletonList(String.valueOf(13959981214861L))
         ).asIndexName();
-        Metadata metadata = client().admin().cluster().state(new ClusterStateRequest()).get()
-            .getState().metadata();
-        assertNotNull(metadata.indices().get(partitionName).getAliases().get(getFqn("parted")));
+
+        assertThat(metadata.indices().get(partitionName).getAliases().get(fqTablename)).isNotNull();
 
         execute("select id, name, date from parted");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((Integer) response.rows()[0][0], is(1));
-        assertThat((String) response.rows()[0][1], is("Ford"));
-        assertThat((Long) response.rows()[0][2], is(13959981214861L));
+        assertThat(response).hasRows(
+            "1| Ford| 13959981214861"
+        );
     }
 
     private void validateInsertPartitionedTable() {
         execute("select table_name, partition_ident from information_schema.table_partitions order by 2 ");
         assertThat(
-            printedTable(response.rows()),
-            is("parted| 0400\n" +
+            printedTable(response.rows())).isEqualTo("parted| 0400\n" +
                "parted| 04130\n" +
-               "parted| 047j2cpp6ksjie1h68oj8e1m64\n"));
+               "parted| 047j2cpp6ksjie1h68oj8e1m64\n");
     }
 
     @Test
@@ -349,7 +335,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
                 2, "Trillian", 0L,
                 3, "Zaphod", null
             });
-        assertThat(response.rowCount(), is(3L));
+        assertThat(response.rowCount()).isEqualTo(3L);
         ensureYellow();
         refresh();
 
@@ -380,7 +366,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
 
         execute("insert into parted (name, date) values (?, ?)",
             new Object[]{"Ford", 13959981214861L});
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
 
         execute("refresh table parted");
 
@@ -392,12 +378,11 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute(
             "select count(*) from information_schema.table_partitions where partition_ident = ?",
             $(partitionName.ident()));
-        assertThat(response.rows()[0][0], is(1L));
+        assertThat(response.rows()[0][0]).isEqualTo(1L);
 
         execute("select date, name from parted");
         assertThat(
-            printedTable(response.rows()),
-            is("13959981214861| Ford\n"));
+            printedTable(response.rows())).isEqualTo("13959981214861| Ford\n");
     }
 
     @Test
@@ -408,22 +393,22 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
 
         execute("insert into parted (name, date) values (?, ?)",
             new Object[]{"Ford", 13959981214861L});
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
         ensureYellow();
         refresh();
         execute("insert into parted (name, date) values (?, ?)",
             new Object[]{"Ford", 13959981214861L});
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
         ensureYellow();
         refresh();
 
         execute("select name, date from parted");
-        assertThat(response.rowCount(), is(2L));
-        assertThat(response.rows()[0][0], is("Ford"));
-        assertThat(response.rows()[1][0], is("Ford"));
+        assertThat(response.rowCount()).isEqualTo(2L);
+        assertThat(response.rows()[0][0]).isEqualTo("Ford");
+        assertThat(response.rows()[1][0]).isEqualTo("Ford");
 
-        assertThat(response.rows()[0][1], is(13959981214861L));
-        assertThat(response.rows()[1][1], is(13959981214861L));
+        assertThat(response.rows()[0][1]).isEqualTo(13959981214861L);
+        assertThat(response.rows()[1][1]).isEqualTo(13959981214861L);
     }
 
     @Test
@@ -438,7 +423,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         Long dateValue = System.currentTimeMillis();
         execute("insert into parted (id, name, date) values (?, ?, ?)",
             new Object[]{42, "Zaphod", dateValue});
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
         ensureYellow();
         refresh();
 
@@ -462,7 +447,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         Long dateValue = System.currentTimeMillis();
         execute("insert into parted (id, date, name) values (?, ?, ?)",
             new Object[]{1, dateValue, "Trillian"});
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
         ensureYellow();
         refresh();
         String partitionName = new PartitionName(
@@ -488,7 +473,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("select day from parted_generated");
-        assertThat(response.rows()[0][0], is(1448236800000L));
+        assertThat(response.rows()[0][0]).isEqualTo(1448236800000L);
     }
 
     @Test
@@ -504,7 +489,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("select id, quote from quotes where (timestamp = 1395961200000 or timestamp = 1395874800000) and id = 1");
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
     }
 
     @Test
@@ -520,11 +505,11 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("select count(*) from quotes where (timestamp = 1395961200000 or timestamp = 1395874800000)");
-        assertEquals(1L, response.rowCount());
-        assertEquals(2L, response.rows()[0][0]);
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows()[0][0]).isEqualTo(2L);
 
         execute("select count(*) from quotes where timestamp = 1");
-        assertEquals(0L, response.rows()[0][0]);
+        assertThat(response.rows()[0][0]).isEqualTo(0L);
     }
 
     @Test
@@ -539,10 +524,10 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         ensureYellow();
         refresh();
         execute("select id, quote, timestamp as ts, timestamp from quotes where timestamp > 1395874800000");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows()[0][0], is(2));
-        assertThat(response.rows()[0][1], is("Time is an illusion. Lunchtime doubly so"));
-        assertThat(response.rows()[0][2], is(1395961200000L));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows()[0][0]).isEqualTo(2);
+        assertThat(response.rows()[0][1]).isEqualTo("Time is an illusion. Lunchtime doubly so");
+        assertThat(response.rows()[0][2]).isEqualTo(1395961200000L);
     }
 
     @Test
@@ -562,23 +547,23 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         ensureYellow();
 
         execute("select id, type, content from stuff where id=2 and type=126");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((Integer) response.rows()[0][0], is(2));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat((Integer) response.rows()[0][0]).isEqualTo(2);
         byte b = 126;
-        assertThat((Byte) response.rows()[0][1], is(b));
-        assertThat((String) response.rows()[0][2], is("Time is an illusion. Lunchtime doubly so"));
+        assertThat((Byte) response.rows()[0][1]).isEqualTo(b);
+        assertThat((String) response.rows()[0][2]).isEqualTo("Time is an illusion. Lunchtime doubly so");
 
         // multiget
         execute("select id, type, content from stuff where id in (2, 3) and type=126 order by id");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response.rowCount()).isEqualTo(2L);
 
-        assertThat((Integer) response.rows()[0][0], is(2));
-        assertThat((Byte) response.rows()[0][1], is(b));
-        assertThat((String) response.rows()[0][2], is("Time is an illusion. Lunchtime doubly so"));
+        assertThat((Integer) response.rows()[0][0]).isEqualTo(2);
+        assertThat((Byte) response.rows()[0][1]).isEqualTo(b);
+        assertThat((String) response.rows()[0][2]).isEqualTo("Time is an illusion. Lunchtime doubly so");
 
-        assertThat((Integer) response.rows()[1][0], is(3));
-        assertThat((Byte) response.rows()[1][1], is(b));
-        assertThat((String) response.rows()[1][2], is("Now panic"));
+        assertThat((Integer) response.rows()[1][0]).isEqualTo(3);
+        assertThat((Byte) response.rows()[1][1]).isEqualTo(b);
+        assertThat((String) response.rows()[1][2]).isEqualTo("Now panic");
     }
 
     @Test
@@ -595,22 +580,22 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
 
         execute("update quotes set quote = ? where timestamp = ?",
             new Object[]{"I'd far rather be happy than right any day.", 1395874800000L});
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
         refresh();
 
         execute("select id, quote from quotes where timestamp = 1395874800000");
-        assertEquals(1L, response.rowCount());
-        assertEquals(1, response.rows()[0][0]);
-        assertEquals("I'd far rather be happy than right any day.", response.rows()[0][1]);
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows()[0][0]).isEqualTo(1);
+        assertThat(response.rows()[0][1]).isEqualTo("I'd far rather be happy than right any day.");
 
         execute("update quotes set quote = ?",
             new Object[]{"Don't panic"});
-        assertEquals(2L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(2L);
         refresh();
 
         execute("select id, quote from quotes where quote = ?",
             new Object[]{"Don't panic"});
-        assertEquals(2L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(2L);
     }
 
     @Test
@@ -634,7 +619,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("select * from quotes where quote = 'now panic'");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response.rowCount()).isEqualTo(0L);
     }
 
     @Test
@@ -658,7 +643,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("select * from quotes where quote = 'now panic'");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response.rowCount()).isEqualTo(0L);
     }
 
     @Test
@@ -675,11 +660,11 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
 
         execute("update quotes set quote='now panic' where timestamp = ? and quote=?",
             new Object[]{1395874800123L, "Don't panic"});
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response.rowCount()).isEqualTo(0L);
         refresh();
 
         execute("select * from quotes where quote = 'now panic'");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response.rowCount()).isEqualTo(0L);
     }
 
     @Test
@@ -698,7 +683,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             new Object[]{1395874800000L, "Don't panic"});
         refresh();
         execute("select * from quotes where quote = 'now panic'");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
     }
 
     @Test
@@ -708,7 +693,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         ensureYellow();
 
         execute("update empty_parted set id = 10 where timestamp = 1396303200000");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response.rowCount()).isEqualTo(0L);
     }
 
     @Test
@@ -730,21 +715,21 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("delete from quotes where timestamp = 1395874800000 and id = 1");
-        assertEquals(1, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1);
         refresh();
 
         execute("select id, quote from quotes where timestamp = 1395874800000");
-        assertEquals(0L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(0L);
 
         execute("select id, quote from quotes");
-        assertEquals(2L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(2L);
 
         execute("delete from quotes");
         assertThat(response.rowCount(), anyOf(is(0L), is(-1L)));
         refresh();
 
         execute("select id, quote from quotes");
-        assertEquals(0L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(0L);
     }
 
     @Test
@@ -754,11 +739,11 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         SQLResponse response = execute("select partition_ident from information_schema.table_partitions " +
                                        "where table_name='parted' and table_schema = ? " +
                                        "order by partition_ident", new Object[]{defaultSchema});
-        assertThat(response.rowCount(), is(2L));
-        assertThat((String) response.rows()[0][0], is(new PartitionName(
-            new RelationName(defaultSchema, "parted"), List.of("1388534400000")).ident()));
-        assertThat((String) response.rows()[1][0], is(new PartitionName(
-            new RelationName(defaultSchema, "parted"), List.of("1391212800000")).ident()));
+        assertThat(response.rowCount()).isEqualTo(2L);
+        assertThat((String) response.rows()[0][0]).isEqualTo(new PartitionName(
+            new RelationName(defaultSchema, "parted"), List.of("1388534400000")).ident());
+        assertThat((String) response.rows()[1][0]).isEqualTo(new PartitionName(
+            new RelationName(defaultSchema, "parted"), List.of("1391212800000")).ident());
 
         execute("delete from parted where date = '2014-03-01'");
         refresh();
@@ -766,7 +751,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         SQLResponse newResponse = execute("select partition_ident from information_schema.table_partitions " +
                                           "where table_name='parted' and table_schema = ? " +
                                           "order by partition_ident", new Object[]{defaultSchema});
-        assertThat(newResponse.rows(), is(response.rows()));
+        assertThat(newResponse.rows()).isEqualTo(response.rows());
     }
 
     @Test
@@ -776,11 +761,11 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         SQLResponse response = execute("select partition_ident from information_schema.table_partitions " +
                                        "where table_name='parted' and table_schema = ? " +
                                        "order by partition_ident", new Object[]{sqlExecutor.getCurrentSchema()});
-        assertThat(response.rowCount(), is(2L));
-        assertThat((String) response.rows()[0][0], is(new PartitionName(
-            new RelationName(defaultSchema, "parted"), List.of("1388534400000")).ident()));
-        assertThat((String) response.rows()[1][0], is(new PartitionName(
-            new RelationName(defaultSchema, "parted"), List.of("1391212800000")).ident()));
+        assertThat(response.rowCount()).isEqualTo(2L);
+        assertThat((String) response.rows()[0][0]).isEqualTo(new PartitionName(
+            new RelationName(defaultSchema, "parted"), List.of("1388534400000")).ident());
+        assertThat((String) response.rows()[1][0]).isEqualTo(new PartitionName(
+            new RelationName(defaultSchema, "parted"), List.of("1391212800000")).ident());
 
         execute("delete from parted where o['dat'] = '2014-03-01'");
         refresh();
@@ -788,7 +773,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         SQLResponse newResponse = execute("select partition_ident from information_schema.table_partitions " +
                                           "where table_name='parted' and table_schema = ? " +
                                           "order by partition_ident", new Object[]{defaultSchema});
-        assertThat(newResponse.rows(), is(response.rows()));
+        assertThat(newResponse.rows()).isEqualTo(response.rows());
     }
 
     @Test
@@ -814,25 +799,25 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         SQLResponse response = execute("select partition_ident from information_schema.table_partitions " +
                                        "where table_name='quotes' and table_schema = ? " +
                                        "order by partition_ident", new Object[]{defaultSchema});
-        assertThat(response.rowCount(), is(3L));
-        assertThat((String) response.rows()[0][0], is(new PartitionName(
-            new RelationName(defaultSchema, "parted"), List.of("1395874800000")).ident()));
-        assertThat((String) response.rows()[1][0], is(new PartitionName(
-            new RelationName(defaultSchema, "parted"), List.of("1395961200000")).ident()));
-        assertThat((String) response.rows()[2][0], is(new PartitionName(
-            new RelationName(defaultSchema, "parted"), List.of("1396303200000")).ident()));
+        assertThat(response.rowCount()).isEqualTo(3L);
+        assertThat((String) response.rows()[0][0]).isEqualTo(new PartitionName(
+            new RelationName(defaultSchema, "parted"), List.of("1395874800000")).ident());
+        assertThat((String) response.rows()[1][0]).isEqualTo(new PartitionName(
+            new RelationName(defaultSchema, "parted"), List.of("1395961200000")).ident());
+        assertThat((String) response.rows()[2][0]).isEqualTo(new PartitionName(
+            new RelationName(defaultSchema, "parted"), List.of("1396303200000")).ident());
 
         execute("delete from quotes where quote = 'Don''t panic'");
         refresh();
 
         execute("select * from quotes where quote = 'Don''t panic'");
-        assertThat(this.response.rowCount(), is(0L));
+        assertThat(this.response.rowCount()).isEqualTo(0L);
 
         // Test that no partitions were deleted
         SQLResponse newResponse = execute("select partition_ident from information_schema.table_partitions " +
                                           "where table_name='quotes' and table_schema = ? " +
                                           "order by partition_ident", new Object[]{defaultSchema});
-        assertThat(newResponse.rows(), is(response.rows()));
+        assertThat(newResponse.rows()).isEqualTo(response.rows());
     }
 
     @Test
@@ -860,18 +845,18 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("delete from quotes where quote = 'Don''t panic' and timestamp=?", new Object[]{1396303200000L});
         refresh();
         execute("select * from quotes where timestamp=?", new Object[]{1396303200000L});
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
 
         // matches
         execute("delete from quotes where quote = 'I''d far rather be happy than right any day' and timestamp=?", new Object[]{1396303200000L});
         refresh();
         execute("select * from quotes where timestamp=?", new Object[]{1396303200000L});
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response.rowCount()).isEqualTo(0L);
 
         execute("delete from quotes where timestamp=? and o['x']=5", new Object[]{1395874800000L});
         refresh();
         execute("select * from quotes where timestamp=?", new Object[]{1395874800000L});
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response.rowCount()).isEqualTo(2L);
 
 
     }
@@ -892,7 +877,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("delete from quotes where not timestamp=? and quote=?", new Object[]{1396303200000L, "Don't panic"});
         refresh();
         execute("select * from quotes");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
     }
 
     @Test
@@ -902,7 +887,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         ensureYellow();
 
         execute("delete from empty_parted where not timestamp = 1396303200000");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response.rowCount()).isEqualTo(0L);
     }
 
     @Test
@@ -912,9 +897,9 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("select count(distinct date), count(*), min(date), max(date), " +
                 "arbitrary(date) as any_date, avg(date) from parted");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((Long) response.rows()[0][0], is(0L));
-        assertThat((Long) response.rows()[0][1], is(0L));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat((Long) response.rows()[0][0]).isEqualTo(0L);
+        assertThat((Long) response.rows()[0][1]).isEqualTo(0L);
         assertNull(response.rows()[0][2]);
         assertNull(response.rows()[0][3]);
         assertNull(response.rows()[0][4]);
@@ -927,13 +912,13 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
 
         execute("select count(distinct date), count(*), min(date), max(date), " +
                 "arbitrary(date) as any_date, avg(date) from parted");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((Long) response.rows()[0][0], is(1L));
-        assertThat((Long) response.rows()[0][1], is(1L));
-        assertThat((Long) response.rows()[0][2], is(100L));
-        assertThat((Long) response.rows()[0][3], is(100L));
-        assertThat((Long) response.rows()[0][4], is(100L));
-        assertThat((Double) response.rows()[0][5], is(100.0));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat((Long) response.rows()[0][0]).isEqualTo(1L);
+        assertThat((Long) response.rows()[0][1]).isEqualTo(1L);
+        assertThat((Long) response.rows()[0][2]).isEqualTo(100L);
+        assertThat((Long) response.rows()[0][3]).isEqualTo(100L);
+        assertThat((Long) response.rows()[0][4]).isEqualTo(100L);
+        assertThat((Double) response.rows()[0][5]).isEqualTo(100.0);
 
         execute("insert into parted (id, name, date) values (?, ?, ?)",
             new Object[]{1, "Ford", 1001L});
@@ -947,13 +932,13 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
 
         execute("select count(distinct date), count(*), min(date), max(date), " +
                 "arbitrary(date) as any_date, avg(date) from parted");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((Long) response.rows()[0][0], is(2L));
-        assertThat((Long) response.rows()[0][1], is(3L));
-        assertThat((Long) response.rows()[0][2], is(100L));
-        assertThat((Long) response.rows()[0][3], is(1001L));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat((Long) response.rows()[0][0]).isEqualTo(2L);
+        assertThat((Long) response.rows()[0][1]).isEqualTo(3L);
+        assertThat((Long) response.rows()[0][2]).isEqualTo(100L);
+        assertThat((Long) response.rows()[0][3]).isEqualTo(1001L);
         assertThat((Long) response.rows()[0][4], isOneOf(100L, 1001L));
-        assertThat((Double) response.rows()[0][5], is(700.6666666666666));
+        assertThat((Double) response.rows()[0][5]).isEqualTo(700.6666666666666);
     }
 
     @Test
@@ -962,7 +947,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
                 "partitioned by (date)");
         ensureYellow();
         execute("select date, count(*) from parted group by date");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response.rowCount()).isEqualTo(0L);
 
         execute("insert into parted (id, name, date) values (?, ?, ?)",
             new Object[]{0, "Trillian", 100L});
@@ -970,9 +955,9 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("select date, count(*) from parted group by date");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((Long) response.rows()[0][0], is(100L));
-        assertThat((Long) response.rows()[0][1], is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat((Long) response.rows()[0][0]).isEqualTo(100L);
+        assertThat((Long) response.rows()[0][1]).isEqualTo(1L);
 
         execute("insert into parted (id, name, date) values (?, ?, ?), (?, ?, ?)",
             new Object[]{
@@ -983,11 +968,11 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("select date, count(*) from parted group by date order by count(*) desc");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response.rowCount()).isEqualTo(2L);
         assertNull(response.rows()[0][0]);
-        assertThat((Long) response.rows()[0][1], is(2L));
-        assertThat((Long) response.rows()[1][0], is(100L));
-        assertThat((Long) response.rows()[1][1], is(1L));
+        assertThat((Long) response.rows()[0][1]).isEqualTo(2L);
+        assertThat((Long) response.rows()[1][0]).isEqualTo(100L);
+        assertThat((Long) response.rows()[1][1]).isEqualTo(1L);
     }
 
     @Test
@@ -996,7 +981,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
                 "partitioned by (date)");
         ensureYellow();
         execute("select date, count(*) from parted where date > 0 group by date");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response.rowCount()).isEqualTo(0L);
 
         execute("insert into parted (id, name, date) values (?, ?, ?)",
             new Object[]{0, "Trillian", 100L});
@@ -1004,7 +989,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("select date, count(*) from parted where date > 0 group by date");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
 
         execute("insert into parted (id, name, date) values (?, ?, ?), (?, ?, ?)",
             new Object[]{
@@ -1016,9 +1001,9 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("select date, count(*) from parted where date > 100 group by date");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows()[0][0], is(2437646253L));
-        assertThat(response.rows()[0][1], is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows()[0][0]).isEqualTo(2437646253L);
+        assertThat(response.rows()[0][1]).isEqualTo(1L);
     }
 
     @Test
@@ -1028,9 +1013,9 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("select count(distinct date), count(*), min(date), max(date), " +
                 "arbitrary(date) as any_date, avg(date) from parted where date > 0");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows()[0][0], is(0L));
-        assertThat(response.rows()[0][1], is(0L));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows()[0][0]).isEqualTo(0L);
+        assertThat(response.rows()[0][1]).isEqualTo(0L);
         assertNull(response.rows()[0][2]);
         assertNull(response.rows()[0][3]);
         assertNull(response.rows()[0][4]);
@@ -1044,19 +1029,19 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
                 3, "Zaphod", 1L,
                 4, "Trillian", 0L
             });
-        assertThat(response.rowCount(), is(4L));
+        assertThat(response.rowCount()).isEqualTo(4L);
         ensureYellow();
         refresh();
 
         execute("select count(distinct date), count(*), min(date), max(date), " +
                 "arbitrary(date) as any_date, avg(date) from parted where date > 0");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((Long) response.rows()[0][0], is(2L));
-        assertThat((Long) response.rows()[0][1], is(2L));
-        assertThat((Long) response.rows()[0][2], is(1L));
-        assertThat((Long) response.rows()[0][3], is(2437646253L));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat((Long) response.rows()[0][0]).isEqualTo(2L);
+        assertThat((Long) response.rows()[0][1]).isEqualTo(2L);
+        assertThat((Long) response.rows()[0][2]).isEqualTo(1L);
+        assertThat((Long) response.rows()[0][3]).isEqualTo(2437646253L);
         assertThat((Long) response.rows()[0][4], isOneOf(1L, 2437646253L));
-        assertThat((Double) response.rows()[0][5], is(1.218823127E9));
+        assertThat((Double) response.rows()[0][5]).isEqualTo(1.218823127E9);
     }
 
     @Test
@@ -1066,23 +1051,19 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
                 "  quote string, " +
                 "  date timestamp with time zone" +
                 ") partitioned by (date) with (number_of_replicas=0)");
-        ensureYellow();
         execute("insert into quotes (id, quote, date) values(?, ?, ?), (?, ?, ?)",
             new Object[]{1, "Don't panic", 1395874800000L,
                 2, "Time is an illusion. Lunchtime doubly so", 1395961200000L});
         ensureYellow();
-        refresh();
+        execute("refresh table quotes");
 
         execute("drop table quotes");
-        assertEquals(1L, response.rowCount());
-
-        GetIndexTemplatesResponse getIndexTemplatesResponse = client().admin().indices()
-            .getTemplates(new GetIndexTemplatesRequest(PartitionName.templateName(Schemas.DOC_SCHEMA_NAME, "quotes"))).get();
-        assertThat(getIndexTemplatesResponse.getIndexTemplates().size(), is(0));
+        assertThat(response).hasRowCount(1);
 
         ClusterState state = cluster().clusterService().state();
-        assertThat(state.metadata().indices().size(), is(0));
-        assertThat(state.metadata().hasAlias("quotes"), is(false));
+        assertThat(state.metadata().indices()).isEmpty();
+        assertThat(state.metadata().hasAlias("quotes")).isFalse();
+        assertThat(state.metadata().templates()).isEmpty();
     }
 
     @Test
@@ -1097,11 +1078,11 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         ensureYellow();
         refresh();
         execute("select * from quotes where id = 1 and num = 4");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(String.join(", ", response.cols()), is("id, quote, num"));
-        assertThat((Integer) response.rows()[0][0], is(1));
-        assertThat((String) response.rows()[0][1], is("Don't panic"));
-        assertThat((Double) response.rows()[0][2], is(4.0d));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(String.join(", ", response.cols())).isEqualTo("id, quote, num");
+        assertThat((Integer) response.rows()[0][0]).isEqualTo(1);
+        assertThat((String) response.rows()[0][1]).isEqualTo("Don't panic");
+        assertThat((Double) response.rows()[0][2]).isEqualTo(4.0d);
     }
 
     @Test
@@ -1128,7 +1109,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("select * from information_schema.columns where table_name = 'quotes'");
-        assertEquals(5L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(5L);
 
         execute("insert into quotes (id, quote, date, author) values(?, ?, ?, ?)",
             new Object[]{3, "I'd far rather be happy than right any day", 1395874800000L,
@@ -1139,16 +1120,15 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             });
         ensureYellow();
         refresh();
-        waitForMappingUpdateOnAll("quotes", "author.surname");
 
         execute("select * from information_schema.columns where table_name = 'quotes'");
-        assertEquals(6L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(6L);
 
         execute("select author['surname'] from quotes order by id");
-        assertEquals(3L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(3L);
         assertNull(response.rows()[0][0]);
         assertNull(response.rows()[1][0]);
-        assertEquals("Adams", response.rows()[2][0]);
+        assertThat(response.rows()[2][0]).isEqualTo("Adams");
     }
 
     @Test
@@ -1159,33 +1139,33 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("insert into quotes (id, quote, date, user_id) values(?, ?, ?, ?)",
             new Object[]{1, "Don't panic", 1395874800000L, "Arthur"});
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
         execute("insert into quotes (id, quote, date, user_id) values(?, ?, ?, ?)",
             new Object[]{2, "Time is an illusion. Lunchtime doubly so", 1395961200000L, "Ford"});
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
         ensureYellow();
         refresh();
 
         execute("select id, quote from quotes where user_id = 'Arthur'");
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
 
         execute("update quotes set quote = ? where user_id = ?",
             new Object[]{"I'd far rather be happy than right any day", "Arthur"});
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
         refresh();
 
         execute("delete from quotes where user_id = 'Arthur' and id = 1 and date = 1395874800000");
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
         refresh();
 
         execute("select * from quotes");
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
 
         execute("delete from quotes"); // this will delete all partitions
         execute("delete from quotes"); // this should still work even though only the template exists
 
         execute("drop table quotes");
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
     }
 
     @Test
@@ -1196,33 +1176,33 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("insert into my_schema.quotes (id, quote, date, user_id) values(?, ?, ?, ?)",
             new Object[]{1, "Don't panic", 1395874800000L, "Arthur"});
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
         execute("insert into my_schema.quotes (id, quote, date, user_id) values(?, ?, ?, ?)",
             new Object[]{2, "Time is an illusion. Lunchtime doubly so", 1395961200000L, "Ford"});
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
         ensureYellow();
         refresh();
 
         execute("select id, quote from my_schema.quotes where user_id = 'Arthur'");
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
 
         execute("update my_schema.quotes set quote = ? where user_id = ?",
             new Object[]{"I'd far rather be happy than right any day", "Arthur"});
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
         refresh();
 
         execute("delete from my_schema.quotes where user_id = 'Arthur' and id = 1 and date = 1395874800000");
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
         refresh();
 
         execute("select * from my_schema.quotes");
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
 
         execute("delete from my_schema.quotes"); // this will delete all partitions
         execute("delete from my_schema.quotes"); // this should still work even though only the template exists
 
         execute("drop table my_schema.quotes");
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
     }
 
     @Test
@@ -1247,7 +1227,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             Thread.sleep(100);
             retry++;
         }
-        assertTrue(retry < 100);
+        assertThat(retry < 100).isTrue();
     }
 
     @Test
@@ -1262,165 +1242,120 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("insert into quotes (id, quote, created) values(?, ?, ?)",
             new Object[]{1, "Don't panic", Map.of("date", 1395874800000L, "user_id", "Arthur")});
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
         execute("insert into quotes (id, quote, created) values(?, ?, ?)",
             new Object[]{2, "Time is an illusion. Lunchtime doubly so", Map.of("date", 1395961200000L, "user_id", "Ford")});
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
         ensureYellow();
         refresh();
 
         execute("select id, quote, created['date'] from quotes where created['user_id'] = 'Arthur'");
-        assertEquals(1L, response.rowCount());
-        assertThat((Long) response.rows()[0][2], is(1395874800000L));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat((Long) response.rows()[0][2]).isEqualTo(1395874800000L);
 
         execute("update quotes set quote = ? where created['date'] = ?",
             new Object[]{"I'd far rather be happy than right any day", 1395874800000L});
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
 
         execute("refresh table quotes");
 
         execute("select count(*) from quotes where quote=?", new Object[]{"I'd far rather be happy than right any day"});
-        assertThat((Long) response.rows()[0][0], is(1L));
+        assertThat((Long) response.rows()[0][0]).isEqualTo(1L);
 
         execute("delete from quotes where created['user_id'] = 'Arthur' and id = 1 and created['date'] = 1395874800000");
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
         refresh();
 
         execute("select * from quotes");
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
 
         execute("drop table quotes");
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
     }
 
     @Test
     public void testAlterNumberOfReplicas() throws Exception {
         String defaultSchema = sqlExecutor.getCurrentSchema();
         execute(
-            "create table quotes (" +
-            "   id integer," +
-            "   quote string," +
-            "   date timestamp with time zone" +
-            ") partitioned by(date) " +
-            "clustered into 3 shards with (number_of_replicas='0-all')");
-        ensureYellow();
-
-        String templateName = PartitionName.templateName(defaultSchema, "quotes");
-        GetIndexTemplatesResponse templatesResponse = client().admin().indices()
-            .getTemplates(new GetIndexTemplatesRequest(templateName)).get();
-        Settings templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
-        assertThat(templateSettings.get(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS), is("0-all"));
-
-        execute("alter table quotes set (number_of_replicas=0)");
-        ensureYellow();
-
-        templatesResponse = client().admin().indices()
-            .getTemplates(new GetIndexTemplatesRequest(templateName)).get();
-        templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
-        assertThat(templateSettings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 1), is(0));
-        assertThat(templateSettings.getAsBoolean(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS, true), is(false));
-
-        execute("insert into quotes (id, quote, date) values (?, ?, ?), (?, ?, ?)",
-            new Object[]{1, "Don't panic", 1395874800000L,
-                2, "Now panic", 1395961200000L}
+            "create table tbl (id int, p int) partitioned by (p) " +
+            "clustered into 3 shards with (number_of_replicas = '0-all')"
         );
-        assertThat(response.rowCount(), is(2L));
+
+        execute("select number_of_replicas from information_schema.tables where table_name = 'tbl'");
+        assertThat(response).hasRows("0-all");
+        execute("alter table tbl set (number_of_replicas=0)");
+        execute("select number_of_replicas from information_schema.tables where table_name = 'tbl'");
+        assertThat(response).hasRows("0");
+
+        execute("select count(*) from sys.shards where id = 0 and table_name = 'tbl'");
+        assertThat(response)
+            .as("has no partitions yet")
+            .hasRows("0");
+
+        execute("insert into tbl (id, p) values (1, 1), (2, 2)");
+        assertThat(response).hasRowCount(2);
         ensureYellow();
         refresh();
 
-        assertTrue(clusterService().state().metadata().hasAlias(getFqn("quotes")));
+        assertThat(clusterService().state().metadata().hasAlias(getFqn("tbl"))).isTrue();
 
+        RelationName relationName = new RelationName(defaultSchema, "tbl");
         List<String> partitions = List.of(
-            new PartitionName(
-                new RelationName(defaultSchema, "quotes"),
-                Collections.singletonList("1395874800000")).asIndexName(),
-            new PartitionName(
-                new RelationName(defaultSchema, "quotes"),
-                Collections.singletonList("1395961200000")).asIndexName()
+            new PartitionName(relationName, List.of("1")).asIndexName(),
+            new PartitionName(relationName, List.of("2")).asIndexName()
         );
 
         execute("select number_of_replicas from information_schema.table_partitions");
-        assertThat(
-            printedTable(response.rows()),
-            is("0\n" +
-               "0\n"));
+        assertThat(response).hasRows(
+            "0",
+            "0"
+        );
 
-        execute("select number_of_replicas, number_of_shards from information_schema.tables where table_name = 'quotes'");
-        assertEquals("0", response.rows()[0][0]);
-        assertEquals(3, response.rows()[0][1]);
-
-        execute("alter table quotes set (number_of_replicas='1-all')");
+        execute("alter table tbl set (number_of_replicas='1-all')");
         ensureYellow();
 
-        execute("select number_of_replicas from information_schema.tables where table_name = 'quotes'");
-        assertEquals("1-all", response.rows()[0][0]);
-
-        templatesResponse = client().admin().indices()
-            .getTemplates(new GetIndexTemplatesRequest(templateName)).get();
-        templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
-        assertThat(templateSettings.get(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS), is("1-all"));
+        execute("select number_of_replicas from information_schema.tables where table_name = 'tbl'");
+        assertThat(response).hasRows("1-all");
 
 
         execute("select number_of_replicas from information_schema.table_partitions");
-        assertThat(
-            printedTable(response.rows()),
-            is("1-all\n" +
-               "1-all\n"));
-    }
-
-    @Test
-    public void testAlterTableResetEmptyPartitionedTable() throws Exception {
-        execute("create table quotes (id integer, quote string, date timestamp with time zone) " +
-                "partitioned by(date) clustered into 3 shards with (number_of_replicas='1')");
-        ensureYellow();
-
-        String templateName = PartitionName.templateName(sqlExecutor.getCurrentSchema(), "quotes");
-        GetIndexTemplatesResponse templatesResponse = client().admin().indices()
-            .getTemplates(new GetIndexTemplatesRequest(templateName)).get();
-        Settings templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
-        assertThat(templateSettings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0), is(1));
-        assertThat(templateSettings.get(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS), is("false"));
-
-        execute("alter table quotes reset (number_of_replicas)");
-        ensureYellow();
-
-        templatesResponse = client().admin().indices()
-            .getTemplates(new GetIndexTemplatesRequest(templateName)).get();
-        templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
-        assertThat(templateSettings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0), is(0));
-        assertThat(templateSettings.get(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS), is("0-1"));
-
-    }
-
-    @Test
-    public void testAlterTableResetPartitionedTable() throws Exception {
-        execute("create table quotes (id integer, quote string, date timestamp with time zone) " +
-                "partitioned by(date) clustered into 3 shards with( number_of_replicas = '1-all')");
-        ensureYellow();
-
-        execute("insert into quotes (id, quote, date) values (?, ?, ?), (?, ?, ?)",
-            new Object[]{1, "Don't panic", 1395874800000L,
-                2, "Now panic", 1395961200000L}
+        assertThat(response).hasRows(
+            "1-all",
+            "1-all"
         );
-        assertThat(response.rowCount(), is(2L));
-        ensureYellow();
-        refresh();
 
-        execute("alter table quotes reset (number_of_replicas)");
-        ensureYellow();
+        execute("select count(*) from sys.shards where table_name = 'tbl'");
+        assertThat(response)
+            .as("3 shards per data node and partition due to `1-all`")
+            .hasRows(Integer.toString(2 * 3 * cluster().numDataNodes()));
+    }
 
-        String templateName = PartitionName.templateName(sqlExecutor.getCurrentSchema(), "quotes");
-        GetIndexTemplatesResponse templatesResponse = client().admin().indices()
-            .getTemplates(new GetIndexTemplatesRequest(templateName)).get();
-        Settings templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
-        assertThat(templateSettings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0), is(0));
-        assertThat(templateSettings.get(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS), is("0-1"));
+    @Test
+    public void test_can_reset_number_of_replicas_on_partitioned_table() throws Exception {
+        execute("create table tbl (id int, p int) partitioned by (p) with (number_of_replicas = 1)");
+        execute("insert into tbl (id, p) values (1, 1)");
+
+        String templateName = PartitionName.templateName(sqlExecutor.getCurrentSchema(), "tbl");
+        IndexTemplateMetadata indexTemplateMetadata = clusterService().state().metadata().templates().get(templateName);
+        Settings settings = indexTemplateMetadata.settings();
+
+        assertThat(IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(settings)).isEqualTo(1);
+        AutoExpandReplicas autoExpand1 = AutoExpandReplicas.SETTING.get(settings);
+        assertThat(autoExpand1.isEnabled()).isFalse();
+
+        execute("alter table tbl reset (number_of_replicas)");
+
+        indexTemplateMetadata = clusterService().state().metadata().templates().get(templateName);
+        settings = indexTemplateMetadata.settings();
+
+        assertThat(IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(settings)).isEqualTo(0);
+        AutoExpandReplicas autoExpand2 = AutoExpandReplicas.SETTING.get(settings);
+        assertThat(autoExpand2.isEnabled()).isTrue();
+        assertThat(autoExpand2.toString()).isEqualTo("0-1");
+
         assertBusy(() -> {
             execute("select number_of_replicas from information_schema.table_partitions");
-            assertThat(
-                printedTable(response.rows()),
-                is("0-1\n" +
-                   "0-1\n"));
+            assertThat(response).hasRows("0-1");
         });
     }
 
@@ -1428,13 +1363,12 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     public void testAlterPartitionedTablePartition() throws Exception {
         execute("create table quotes (id integer, quote string, date timestamp with time zone) " +
                 "partitioned by(date) clustered into 3 shards with (number_of_replicas=0)");
-        ensureYellow();
 
         execute("insert into quotes (id, quote, date) values (?, ?, ?), (?, ?, ?)",
             new Object[]{1, "Don't panic", 1395874800000L,
                 2, "Now panic", 1395961200000L}
         );
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response).hasRowCount(2);
         ensureYellow();
         refresh();
 
@@ -1442,18 +1376,18 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         ensureYellow();
 
         execute("select partition_ident, number_of_replicas from information_schema.table_partitions order by 1");
-        assertThat(
-            printedTable(response.rows()),
-            is("04732cpp6ks3ed1o60o30c1g| 1\n" +
-               "04732cpp6ksjcc9i60o30c1g| 0\n")
+        assertThat(response).hasRows(
+            "04732cpp6ks3ed1o60o30c1g| 1",
+            "04732cpp6ksjcc9i60o30c1g| 0"
         );
 
         String templateName = PartitionName.templateName(sqlExecutor.getCurrentSchema(), "quotes");
-        GetIndexTemplatesResponse templatesResponse = client().admin().indices()
-            .getTemplates(new GetIndexTemplatesRequest(templateName)).get();
-        Settings templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
-        assertThat(templateSettings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0), is(0));
-        assertThat(templateSettings.get(IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS), is("false"));
+        IndexTemplateMetadata indexTemplateMetadata = clusterService().state().metadata().templates().get(templateName);
+        Settings settings = indexTemplateMetadata.settings();
+
+        assertThat(IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(settings)).isEqualTo(0);
+        AutoExpandReplicas autoExpand1 = AutoExpandReplicas.SETTING.get(settings);
+        assertThat(autoExpand1.isEnabled()).isFalse();
     }
 
     @Test
@@ -1472,8 +1406,8 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             Map.entry("require", Map.of()),
             Map.entry("exclude", Map.of())
         );
-        assertEquals(routingAllocation, response.rows()[0][0]);
-        assertEquals(routingAllocation, response.rows()[1][0]);
+        assertThat(response.rows()[0][0]).isEqualTo(routingAllocation);
+        assertThat(response.rows()[1][0]).isEqualTo(routingAllocation);
 
         execute("alter table attrs set (\"routing.allocation.total_shards_per_node\"=1)");
         execute("alter table attrs PARTITION (name = 'foo') set (\"routing.allocation.exclude.foo\" = 'dummy')");
@@ -1493,7 +1427,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             Map.entry("require", Map.of()),
             Map.entry("exclude", Map.of())
         );
-        assertEquals(routingAllocation, response.rows()[0][0]);
+        assertThat(response.rows()[0][0]).isEqualTo(routingAllocation);
         routingAllocation = Map.ofEntries(
             Map.entry("enable", "all"),
             Map.entry("total_shards_per_node", 1),
@@ -1501,7 +1435,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             Map.entry("require", Map.of()),
             Map.entry("exclude", Map.of("foo", "dummy"))
         );
-        assertEquals(routingAllocation, response.rows()[1][0]);
+        assertThat(response.rows()[1][0]).isEqualTo(routingAllocation);
     }
 
     @Test
@@ -1517,8 +1451,8 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
 
         // setting is not changed for existing partitions
         execute("select settings['routing']['allocation']['total_shards_per_node'] from information_schema.table_partitions where table_name='attrs'");
-        assertThat((Integer) response.rows()[0][0], is(5));
-        assertThat((Integer) response.rows()[1][0], is(5));
+        assertThat((Integer) response.rows()[0][0]).isEqualTo(5);
+        assertThat((Integer) response.rows()[1][0]).isEqualTo(5);
 
         // new partitions must use new settings
         execute("insert into attrs (name, attr, value) values (?, ?, ?), (?, ?, ?)",
@@ -1526,10 +1460,10 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("select settings['routing']['allocation']['total_shards_per_node'] from information_schema.table_partitions where table_name='attrs' order by 1");
-        assertThat((Integer) response.rows()[0][0], is(1));
-        assertThat((Integer) response.rows()[1][0], is(1));
-        assertThat((Integer) response.rows()[2][0], is(5));
-        assertThat((Integer) response.rows()[3][0], is(5));
+        assertThat((Integer) response.rows()[0][0]).isEqualTo(1);
+        assertThat((Integer) response.rows()[1][0]).isEqualTo(1);
+        assertThat((Integer) response.rows()[2][0]).isEqualTo(5);
+        assertThat((Integer) response.rows()[3][0]).isEqualTo(5);
     }
 
     @Test
@@ -1543,7 +1477,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("insert into parted (id, name, date) values " +
                 "(1, 'Trillian', '1970-01-01'), " +
                 "(2, 'Arthur', '1970-01-07')");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response.rowCount()).isEqualTo(2L);
         ensureYellow();
 
         // cannot tell what rows are visible
@@ -1553,11 +1487,11 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         assertThat((Long) response.rows()[0][0], lessThanOrEqualTo(2L));
 
         execute("refresh table parted");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response.rowCount()).isEqualTo(2L);
 
         // assert that all is available after refresh
         execute("select count(*) from parted");
-        assertThat((Long) response.rows()[0][0], is(2L));
+        assertThat((Long) response.rows()[0][0]).isEqualTo(2L);
     }
 
     @Test
@@ -1590,20 +1524,20 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("insert into parted (id, name, date) values " +
                 "(1, 'Trillian', '1970-01-01')," +
                 "(2, 'Arthur', '1970-01-07')");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response.rowCount()).isEqualTo(2L);
 
         ensureYellow();
         execute("refresh table parted");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response.rowCount()).isEqualTo(2L);
 
         // assert that after refresh all columns are available
         execute("select * from parted");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response.rowCount()).isEqualTo(2L);
 
         execute("insert into parted (id, name, date) values " +
                 "(3, 'Zaphod', '1970-01-01')," +
                 "(4, 'Marvin', '1970-01-07')");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response.rowCount()).isEqualTo(2L);
 
         // cannot exactly tell which rows are visible
         execute("select * from parted");
@@ -1611,18 +1545,18 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         assertThat(response.rowCount(), lessThanOrEqualTo(4L));
 
         execute("refresh table parted PARTITION (date='1970-01-01')");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
 
         // assert all partition rows are available after refresh
         execute("select * from parted where date='1970-01-01'");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response.rowCount()).isEqualTo(2L);
 
         execute("refresh table parted PARTITION (date='1970-01-07')");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
 
         // assert all partition rows are available after refresh
         execute("select * from parted where date='1970-01-07'");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response.rowCount()).isEqualTo(2L);
     }
 
     @Test
@@ -1641,14 +1575,14 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
                 "(2, 'Marvin', 50, '1970-01-07')," +
                 "(3, 'Arthur', 50, '1970-01-07')," +
                 "(4, 'Zaphod', 90, '1970-01-01')");
-        assertThat(response.rowCount(), is(4L));
+        assertThat(response.rowCount()).isEqualTo(4L);
 
         execute("select * from t1 where age in (50, 90)");
         assertThat(response.rowCount(), lessThanOrEqualTo(2L));
 
         execute("refresh table t1 partition (age=50, date='1970-01-07'), " +
                 "              t1 partition (age=90, date='1970-01-01')");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response.rowCount()).isEqualTo(2L);
 
         execute("select * from t1 where age in (50, 90) and date in ('1970-01-07', '1970-01-01')");
         assertThat(response.rowCount(), lessThanOrEqualTo(4L));
@@ -1692,77 +1626,58 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         ensureYellow();
 
         execute("select count(*) from parted");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((Long) response.rows()[0][0], is(0L));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat((Long) response.rows()[0][0]).isEqualTo(0L);
 
         execute("insert into parted (id, name, date) values (1, 'Trillian', '1970-01-01'), (2, 'Ford', '2010-01-01')");
         ensureYellow();
         execute("refresh table parted");
 
         execute("select count(*) from parted");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows()[0][0], is(2L));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows()[0][0]).isEqualTo(2L);
     }
 
     @Test
     @UseRandomizedSchema(random = false)
-    public void testAlterTableAddColumnOnPartitionedTableWithoutPartitions() throws Exception {
+    public void test_can_add_column_via_alter_table_on_partitioned_table() throws Exception {
         execute("create table t (id int primary key, date timestamp with time zone primary key) " +
                 "partitioned by (date) " +
                 "clustered into 1 shards " +
                 "with (number_of_replicas=0)");
-        ensureYellow();
+
+        if (randomBoolean()) {
+            // presence of partition must not make a difference
+            execute("insert into t (id, date) values (1, now())");
+        }
 
         execute("alter table t add column name string");
         execute("alter table t add column ft_name string index using fulltext");
-        ensureYellow();
 
         execute("select * from t");
-        assertThat(Arrays.asList(response.cols()), Matchers.containsInAnyOrder("date", "ft_name", "id", "name"));
+        assertThat(response).hasColumns("id", "date", "name", "ft_name");
 
-        GetIndexTemplatesResponse templatesResponse = client().admin().indices().getTemplates(new GetIndexTemplatesRequest(".partitioned.t.")).get();
-        IndexTemplateMetadata metadata = templatesResponse.getIndexTemplates().get(0);
-        String mappingSource = metadata.mapping().toString();
-        Map mapping = (Map) JsonXContent.JSON_XCONTENT
-            .createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, mappingSource)
-            .map()
-            .get(DEFAULT_MAPPING_TYPE);
-        assertNotNull(((Map) mapping.get("properties")).get("name"));
-        assertNotNull(((Map) mapping.get("properties")).get("ft_name"));
-    }
-
-    @Test
-    @UseRandomizedSchema(random = false)
-    public void testAlterTableAddColumnOnPartitionedTable() throws Exception {
-        execute("create table t (id int primary key, date timestamp with time zone primary key) " +
-                "partitioned by (date) " +
-                "clustered into 1 shards " +
-                "with (number_of_replicas=0)");
-
-        execute("insert into t (id, date) values (1, '2014-01-01')");
-        execute("insert into t (id, date) values (10, '2015-01-01')");
-        ensureYellow();
-        refresh();
-
-        execute("alter table t add name string");
+        execute("show create table t");
+        assertThat((String) response.rows()[0][0]).startsWith(
+            """
+            CREATE TABLE IF NOT EXISTS "doc"."t" (
+               "id" INTEGER NOT NULL,
+               "date" TIMESTAMP WITH TIME ZONE NOT NULL,
+               "name" TEXT,
+               "ft_name" TEXT INDEX USING FULLTEXT WITH (
+                  analyzer = 'standard'
+               ),
+               PRIMARY KEY ("id", "date")
+            )
+            """.stripLeading()
+        );
 
         // Verify that ADD COLUMN gets advanced OID.
-        Schemas schemas = cluster().getMasterNodeInstance(Schemas.class);
+        Schemas schemas = cluster().getMasterNodeInstance(NodeContext.class).schemas();
         DocTableInfo table = schemas.getTableInfo(RelationName.fromIndexName("t"));
-        var dateRef = table.getReference(new ColumnIdent("date"));
-        var nameRef = table.getReference(new ColumnIdent("name"));
+        var dateRef = table.getReference(ColumnIdent.of("date"));
+        var nameRef = table.getReference(ColumnIdent.of("name"));
         assertThat(nameRef.oid()).isGreaterThan(dateRef.oid());
-
-        execute("select * from t");
-        assertThat(Arrays.asList(response.cols()), Matchers.containsInAnyOrder("date", "id", "name"));
-
-        GetIndexTemplatesResponse templatesResponse = client().admin().indices().getTemplates(new GetIndexTemplatesRequest(".partitioned.t.")).get();
-        IndexTemplateMetadata metadata = templatesResponse.getIndexTemplates().get(0);
-        String mappingSource = metadata.mapping().toString();
-        Map mapping = (Map) JsonXContent.JSON_XCONTENT
-            .createParser(NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, mappingSource)
-            .map().get(DEFAULT_MAPPING_TYPE);
-        assertNotNull(((Map) mapping.get("properties")).get("name"));
     }
 
     @Test
@@ -1771,7 +1686,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("refresh table locations");
 
         execute("select name from locations order by id");
-        assertThat(response.rowCount(), is(13L));
+        assertThat(response.rowCount()).isEqualTo(13L);
         String firstName = (String) response.rows()[0][0];
 
         execute("create table locations_parted (" +
@@ -1782,12 +1697,12 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         ensureYellow();
 
         execute("insert into locations_parted (id, name, date) (select id, name, date from locations)");
-        assertThat(response.rowCount(), is(13L));
+        assertThat(response.rowCount()).isEqualTo(13L);
 
         execute("refresh table locations_parted");
         execute("select name from locations_parted order by id");
-        assertThat(response.rowCount(), is(13L));
-        assertThat(response.rows()[0][0], is(firstName));
+        assertThat(response.rowCount()).isEqualTo(13L);
+        assertThat(response.rows()[0][0]).isEqualTo(firstName);
     }
 
     @Test
@@ -1798,7 +1713,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("select o['i'], o['name'] from t");
         assertThat(response.rows()[0][0], Matchers.is(1));
         execute("select distinct table_name, partition_ident from sys.shards where table_name = 't'");
-        assertEquals("t| 04132\n", printedTable(response.rows()));
+        assertThat(printedTable(response.rows())).isEqualTo("t| 04132\n");
     }
 
 
@@ -1815,68 +1730,39 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
 
     @Test
     public void testAlterNumberOfShards() throws Exception {
-        execute("create table quotes (" +
-                "  id integer, " +
-                "  quote string, " +
-                "  date timestamp with time zone) " +
-                "partitioned by(date) clustered into 3 shards with (number_of_replicas='0-all')");
-        ensureYellow();
+        execute("create table tbl (x int, p int) partitioned by (p) " +
+                "clustered into 1 shards with (number_of_replicas = '0-all')");
 
-        String templateName = PartitionName.templateName(sqlExecutor.getCurrentSchema(), "quotes");
-        GetIndexTemplatesResponse templatesResponse = client().admin().indices()
-            .getTemplates(new GetIndexTemplatesRequest(templateName)).get();
-        Settings templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
-        assertThat(templateSettings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 0), is(3));
+        execute("select number_of_shards from information_schema.tables where table_name = 'tbl'");
+        assertThat(response).hasRows("1");
 
-        execute("alter table quotes set (number_of_shards=6)");
-        ensureGreen();
+        execute("alter table tbl set (number_of_shards = 2)");
 
-        templatesResponse = client().admin().indices()
-            .getTemplates(new GetIndexTemplatesRequest(templateName)).get();
-        templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
-        assertThat(templateSettings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 0), is(6));
+        execute("select number_of_shards from information_schema.tables where table_name = 'tbl'");
+        assertThat(response).hasRows("2");
 
-        execute("insert into quotes (id, quote, date) values (?, ?, ?)",
-            new Object[]{1, "Don't panic", 1395874800000L}
-        );
-        assertThat(response.rowCount(), is(1L));
+        execute("insert into tbl (x, p) values (1, 1)");
+        assertThat(response).hasRowCount(1);
         refresh();
 
-        assertTrue(clusterService().state().metadata().hasAlias(getFqn("quotes")));
+        execute("select number_of_shards from information_schema.table_partitions where table_name='tbl'");
+        assertThat(response).hasRows("2");
 
-        execute("select number_of_replicas, number_of_shards from information_schema.tables where table_name = 'quotes'");
-        assertEquals("0-all", response.rows()[0][0]);
-        assertEquals(6, response.rows()[0][1]);
-
-        execute("select number_of_shards from information_schema.table_partitions where table_name='quotes'");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((Integer) response.rows()[0][0], is(6));
-
-        execute("alter table quotes set (number_of_shards=2)");
-        ensureYellow();
-
-        execute("insert into quotes (id, quote, date) values (?, ?, ?)",
-            new Object[]{2, "Now panic", 1395961200000L}
-        );
-        assertThat(response.rowCount(), is(1L));
+        execute("alter table tbl set (number_of_shards = 1)");
+        assertThat(execute("insert into tbl (x, p) values (2, 2)")).hasRowCount(1);
         ensureYellow();
         refresh();
 
-        execute("select number_of_replicas, number_of_shards from information_schema.tables where table_name = 'quotes'");
-        assertEquals("0-all", response.rows()[0][0]);
-        assertEquals(2, response.rows()[0][1]);
+        execute("select number_of_replicas, number_of_shards from information_schema.tables where table_name = 'tbl'");
+        assertThat(response).hasRows("0-all| 1");
 
-        execute("select partition_ident, number_of_shards from information_schema.table_partitions " +
-                "where table_name = 'quotes' order by number_of_shards ASC");
-        assertThat(
-            printedTable(response.rows()),
-            is("04732cpp6ksjcc9i60o30c1g| 2\n" +
-               "04732cpp6ks3ed1o60o30c1g| 6\n")
+        execute("select values, number_of_shards from information_schema.table_partitions " +
+                "where table_name = 'tbl' " +
+                "order by number_of_shards ASC");
+        assertThat(response).as("only new partition has updated number of shards").hasRows(
+            "{p=2}| 1",
+            "{p=1}| 2"
         );
-        templatesResponse = client().admin().indices()
-            .getTemplates(new GetIndexTemplatesRequest(templateName)).get();
-        templateSettings = templatesResponse.getIndexTemplates().get(0).getSettings();
-        assertThat(templateSettings.getAsInt(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 0), is(2));
     }
 
     @Test
@@ -1888,7 +1774,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("insert into event (day, data) values ('2015-01-03', {sessionid = null})");
         execute("insert into event (day, data) values ('2015-01-01', {sessionid = 'hello'})");
         execute("refresh table event");
-        waitForMappingUpdateOnAll("event", "data.sessionid");
         execute("select data['sessionid'] from event group by data['sessionid'] " +
                 "order by format('%s', data['sessionid'])");
         assertThat(response.rows().length, Is.is(2));
@@ -1909,7 +1794,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("insert into event (day, data) values ('2015-01-01', {sessionid = 'hello'})");
         execute("insert into event (day, data) values ('2015-02-08', {sessionid = 'ciao'})");
         execute("refresh table event");
-        waitForMappingUpdateOnAll("event", "data.sessionid");
         execute("select data['sessionid'] from event where " +
                 "format('%s', data['sessionid']) = 'ciao' order by data['sessionid']");
         assertThat(response.rows().length, Is.is(1));
@@ -1930,30 +1814,29 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("insert into event (day, data, number) values ('2015-01-01', {sessionid = 'hello'}, 42)");
         execute("insert into event (day, data, number) values ('2015-02-08', {sessionid = 'ciao'}, 42)");
         execute("refresh table event");
-        waitForMappingUpdateOnAll("event", "data.sessionid");
         execute("select data['sessionid'] from event order by data['sessionid'] ASC nulls first");
-        assertThat(printedTable(response.rows()), is(
+        assertThat(printedTable(response.rows())).isEqualTo(
             "NULL\n" +
             "ciao\n" +
-            "hello\n"));
+            "hello\n");
 
         execute("select data['sessionid'] from event order by data['sessionid'] ASC nulls last");
-        assertThat(printedTable(response.rows()), is(
+        assertThat(printedTable(response.rows())).isEqualTo(
             "ciao\n" +
             "hello\n" +
-            "NULL\n"));
+            "NULL\n");
 
         execute("select data['sessionid'] from event order by data['sessionid'] DESC nulls first");
-        assertThat(printedTable(response.rows()), is(
+        assertThat(printedTable(response.rows())).isEqualTo(
             "NULL\n" +
             "hello\n" +
-            "ciao\n"));
+            "ciao\n");
 
         execute("select data['sessionid'] from event order by data['sessionid'] DESC nulls last");
-        assertThat(printedTable(response.rows()), is(
+        assertThat(printedTable(response.rows())).isEqualTo(
             "hello\n" +
             "ciao\n" +
-            "NULL\n"));
+            "NULL\n");
     }
 
     @Test
@@ -1971,28 +1854,27 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("insert into event (day, data, number) values ('2015-02-08', {sessionid = 'ciao'}, 42)");
         execute("insert into event (day, number) values ('2015-03-08', 84)");
         execute("refresh table event");
-        waitForMappingUpdateOnAll("event", "data.sessionid");
 
         execute("select data " +
                 "from event " +
                 "where data['sessionid'] is null " +
                 "order by number");
-        assertThat(response.rowCount(), is(2L));
-        assertThat(printedTable(response.rows()), is(
+        assertThat(response.rowCount()).isEqualTo(2L);
+        assertThat(printedTable(response.rows())).isEqualTo(
             "{sessionid=NULL}\n" +
-            "NULL\n"));
+            "NULL\n");
 
         execute("select data " +
                 "from event " +
                 "where data['sessionid'] = 'ciao'");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
 
         execute("select data " +
                 "from event " +
                 "where data['sessionid'] in ('hello', 'goodbye') " +
                 "order by number DESC");
-        assertThat(printedTable(response.rows()), is(
-            "{sessionid=hello}\n"));
+        assertThat(printedTable(response.rows())).isEqualTo(
+            "{sessionid=hello}\n");
     }
 
     @Test
@@ -2005,7 +1887,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("insert into event (day, sessionid) values ('2015-01-01', 'hello')");
         execute("refresh table event");
 
-        waitForMappingUpdateOnAll("event", "sessionid");
         execute("select sessionid from event group by sessionid order by sessionid");
         assertThat(response.rows().length, Is.is(2));
         assertThat((String) response.rows()[0][0], Is.is("hello"));
@@ -2027,27 +1908,9 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("insert into fetch_partition_test (name, p) values (?, ?)", bulkArgs);
         execute("refresh table fetch_partition_test");
         execute("select count(*) from fetch_partition_test");
-        assertThat(response.rows()[0][0], is(3L));
+        assertThat(response.rows()[0][0]).isEqualTo(3L);
         execute("select count(*), job_id, arbitrary(name) from sys.operations_log where name='fetch' group by 2");
-        assertThat(response.rowCount(), is(lessThanOrEqualTo(1L)));
-    }
-
-    @Test
-    public void testDeleteOrphanedPartitions() throws Throwable {
-        execute("create table foo (name string, p string) partitioned by (p) with (number_of_replicas=0, refresh_interval = 0)");
-        ensureYellow();
-        execute("insert into foo (name, p) values (?, ?)", new Object[]{"Marvin", 1});
-        execute("refresh table foo");
-
-        String templateName = PartitionName.templateName(sqlExecutor.getCurrentSchema(), "foo");
-        client().admin().indices().deleteTemplate(new DeleteIndexTemplateRequest(templateName)).get();
-        waitNoPendingTasksOnAll();
-        execute("select * from sys.shards where table_name = 'foo'");
-        assertThat(response.rowCount(), Matchers.greaterThan(0L));
-        execute("drop table foo");
-
-        execute("select * from sys.shards where table_name = 'foo'");
-        assertThat(response.rowCount(), CoreMatchers.is(0L));
+        assertThat(response.rowCount()).isLessThanOrEqualTo(1);
     }
 
     @Test
@@ -2079,7 +1942,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("insert into t (p, v) values ('a', 'Marvin')");
         execute("refresh table t");
         execute("select _raw from t");
-        assertThat(((String) response.rows()[0][0]), is("{\"2\":\"Marvin\"}"));
+        assertThat(((String) response.rows()[0][0])).isEqualTo("{\"2\":\"Marvin\"}");
     }
 
     @Test
@@ -2091,8 +1954,8 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("refresh table foo");
 
         execute("select id from foo where match(name, 'Ford')");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows()[0][0], is(2));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows()[0][0]).isEqualTo(2);
     }
 
     @Test
@@ -2104,8 +1967,8 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("refresh table foo");
 
         execute("select id from foo where match(name, 'Marvin')");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows()[0][0], is(1));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows()[0][0]).isEqualTo(1);
     }
 
     @Test
@@ -2122,8 +1985,8 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
 
         execute("select table_name, number_of_replicas from information_schema.tables where table_schema = ? order by table_name",
             new Object[]{sqlExecutor.getCurrentSchema()});
-        assertThat((String) response.rows()[0][1], is("3"));
-        assertThat((String) response.rows()[1][1], is("0"));
+        assertThat((String) response.rows()[0][1]).isEqualTo("3");
+        assertThat((String) response.rows()[1][1]).isEqualTo("0");
     }
 
     @Test
@@ -2132,7 +1995,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
                 " partitioned by (entity) with (number_of_replicas=0)");
         ensureYellow();
         execute("select * from test where entity = 0 and id = 0");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response.rowCount()).isEqualTo(0L);
     }
 
     @Test
@@ -2141,7 +2004,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
                 " partitioned by (entity) with (number_of_replicas=0)");
         ensureYellow();
         execute("select * from test where entity = 0 and (id = 0 or id = 1)");
-        assertThat(response.rowCount(), is(0L));
+        assertThat(response.rowCount()).isEqualTo(0L);
     }
 
     @Test
@@ -2166,7 +2029,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("insert into t1 (p, obj) values (1, {p=10})");
 
         execute("select values['p'], values['obj[''p'']'] from information_schema.table_partitions");
-        assertThat(printedTable(response.rows()), is("1| 10\n"));
+        assertThat(printedTable(response.rows())).isEqualTo("1| 10\n");
     }
 
     @Test
@@ -2175,7 +2038,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
                 "partitioned by (p) clustered into 1 shards with (number_of_replicas = 0, refresh_interval = 0)");
         execute("insert into t (x, p) values (1, 1), (2, 2)");
         execute("alter table t partition (p = 2) close");
-        assertThat(execute("refresh table t").rowCount(), is(1L));
+        assertThat(execute("refresh table t").rowCount()).isEqualTo(1L);
         assertThat(
             printedTable(execute("select * from t").rows()),
             is("1| 1\n")
@@ -2210,7 +2073,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("refresh table t");
 
         execute("select * from t where p='a' and v='Marvin'");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("a| Marvin\n"));
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("a| Marvin\n");
     }
 
     @Test
@@ -2225,7 +2088,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("refresh table t");
 
         execute("select count(*) from t where t > 1000");
-        assertThat(TestingHelpers.printedTable(response.rows()), is("2\n"));
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("2\n");
     }
 
     @Test
@@ -2305,7 +2168,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("insert into doc.p1 (id, p) values (1, 2)");
         execute("select version['created'] from information_schema.table_partitions where table_name='p1'");
 
-        assertThat(response.rows()[0][0], is(Version.CURRENT.externalNumber()));
+        assertThat(response.rows()[0][0]).isEqualTo(Version.CURRENT.externalNumber());
     }
 
     @Test
@@ -2345,9 +2208,8 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             "FROM information_schema.table_partitions " +
             "ORDER BY table_name, partition_ident");
         assertThat(
-            printedTable(response.rows()),
-            is("test| 04732d1g64p36d9i60o30c1g| {metadata['date']=1401235200000}\n"));
-        assertThat(printedTable(execute("SELECT count(*) FROM test").rows()), is("2\n"));
+            printedTable(response.rows())).isEqualTo("test| 04732d1g64p36d9i60o30c1g| {metadata['date']=1401235200000}\n");
+        assertThat(printedTable(execute("SELECT count(*) FROM test").rows())).isEqualTo("2\n");
     }
 
     @UseNewCluster
@@ -2385,18 +2247,18 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("refresh table doc.tbl");
 
         execute("explain (costs false) select p, name from doc.tbl order by ordinal limit 100");
-        assertThat(printedTable(response.rows()), is(
+        assertThat(printedTable(response.rows())).isEqualTo(
             "Eval[p, name]\n" +
             "  └ Fetch[p, name, ordinal]\n" +
             "    └ Limit[100::bigint;0]\n" +
             "      └ OrderBy[ordinal ASC]\n" +
             "        └ Collect[doc.tbl | [_fetchid, ordinal] | true]\n"
-        ));
+        );
         execute("select p, name from doc.tbl order by ordinal limit 100");
-        assertThat(printedTable(response.rows()), is(
+        assertThat(printedTable(response.rows())).isEqualTo(
             "1| Arthur\n" +
             "1| Trillian\n"
-        ));
+        );
     }
 
     @Test
@@ -2449,5 +2311,48 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         assertThat(response.rows()[0][0].toString())
             .as("Column values must match: " + Arrays.toString(response.rows()[0]))
             .isEqualTo(response.rows()[0][1]);
+    }
+
+    @Test
+    public void can_reuse_prepared_statement_to_select_from_partitioned_tables_with_newly_created_partition() throws Exception {
+        execute("""
+            CREATE TABLE doc.t (
+                a int
+            ) PARTITIONED BY (a);
+            """);
+        execute(
+            """
+                CREATE TABLE doc.t2 (
+                    b int
+                );
+                """
+        );
+        // create a partition before creating a prepared statement
+        execute("INSERT INTO doc.t VALUES (1)");
+        refresh();
+
+        try (var session = sqlExecutor.newSession()) {
+            // create a prepared statement that selects from 'doc.t'
+            session.parse(
+                "preparedStatement",
+                "INSERT INTO doc.t2 SELECT a FROM doc.t",
+                List.of()
+            );
+
+            // create another partition for 'doc.t' after creating the prepared statement
+            execute("INSERT INTO doc.t VALUES (2)");
+            refresh();
+
+            // execute the prepared statement
+            session.bind("portalName", "preparedStatement", List.of(), null);
+            session.execute("portalName", 0, new BaseResultReceiver());
+            session.sync().get();
+        }
+        refresh();
+
+        // verify that '2' is inserted which implies that the prepared statement
+        // can access the latest partition info and select from it
+        execute("SELECT b FROM doc.t2 order by 1");
+        assertThat(printedTable(response.rows())).isEqualTo("1\n2\n");
     }
 }

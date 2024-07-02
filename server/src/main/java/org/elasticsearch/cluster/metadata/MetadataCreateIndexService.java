@@ -19,7 +19,6 @@
 
 package org.elasticsearch.cluster.metadata;
 
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_CREATION_DATE;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
@@ -29,7 +28,6 @@ import java.io.UnsupportedEncodingException;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -74,20 +72,16 @@ import org.elasticsearch.common.logging.DeprecationLogger;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.mapper.DocumentMapper;
-import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.mapper.MapperService.MergeReason;
+import org.elasticsearch.index.analysis.IndexAnalyzers;
+import org.elasticsearch.index.analysis.NamedAnalyzer;
 import org.elasticsearch.indices.IndexCreationException;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.InvalidIndexNameException;
 import org.elasticsearch.indices.ShardLimitValidator;
-import org.elasticsearch.indices.cluster.IndicesClusterStateService.AllocatedIndices.IndexRemovalReason;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jetbrains.annotations.Nullable;
 
@@ -95,6 +89,7 @@ import io.crate.execution.ddl.tables.CreateTableRequest;
 import io.crate.execution.ddl.tables.MappingUtil;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.IndexParts;
+import io.crate.metadata.IndexReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
@@ -118,7 +113,6 @@ public class MetadataCreateIndexService {
     private final Environment env;
     private final IndexScopedSettings indexScopedSettings;
     private final ActiveShardsObserver activeShardsObserver;
-    private final NamedXContentRegistry xContentRegistry;
     private final boolean forbidPrivateIndexSettings;
     private final Settings settings;
     private final ShardLimitValidator shardLimitValidator;
@@ -132,7 +126,6 @@ public class MetadataCreateIndexService {
             final Environment env,
             final IndexScopedSettings indexScopedSettings,
             final ThreadPool threadPool,
-            final NamedXContentRegistry xContentRegistry,
             final boolean forbidPrivateIndexSettings) {
         this.settings = settings;
         this.clusterService = clusterService;
@@ -141,7 +134,6 @@ public class MetadataCreateIndexService {
         this.env = env;
         this.indexScopedSettings = indexScopedSettings;
         this.activeShardsObserver = new ActiveShardsObserver(clusterService);
-        this.xContentRegistry = xContentRegistry;
         this.forbidPrivateIndexSettings = forbidPrivateIndexSettings;
         this.shardLimitValidator = shardLimitValidator;
     }
@@ -250,7 +242,6 @@ public class MetadataCreateIndexService {
                     createTableRequest,
                     listener,
                     indicesService,
-                    xContentRegistry,
                     settings,
                     this::validate,
                     indexScopedSettings,
@@ -264,7 +255,6 @@ public class MetadataCreateIndexService {
     static class IndexCreationTask extends AckedClusterStateUpdateTask<ClusterStateUpdateResponse> {
 
         private final IndicesService indicesService;
-        private final NamedXContentRegistry xContentRegistry;
         private final CreateIndexClusterStateUpdateRequest request;
         private final CreateTableRequest createTableRequest;
         private final Logger logger;
@@ -280,7 +270,6 @@ public class MetadataCreateIndexService {
                           @Nullable CreateTableRequest createTableRequest,
                           ActionListener<ClusterStateUpdateResponse> listener,
                           IndicesService indicesService,
-                          NamedXContentRegistry xContentRegistry,
                           Settings settings,
                           IndexValidator validator,
                           IndexScopedSettings indexScopedSettings,
@@ -291,7 +280,6 @@ public class MetadataCreateIndexService {
             this.logger = logger;
             this.allocationService = allocationService;
             this.indicesService = indicesService;
-            this.xContentRegistry = xContentRegistry;
             this.settings = settings;
             this.validator = validator;
             this.indexScopedSettings = indexScopedSettings;
@@ -305,180 +293,168 @@ public class MetadataCreateIndexService {
 
         @Override
         public ClusterState execute(ClusterState currentState) throws Exception {
-            Index createdIndex = null;
-            String removalExtraInfo = null;
-            IndexRemovalReason removalReason = IndexRemovalReason.FAILURE;
+            validator.validate(request, currentState);
+
+            for (Alias alias : request.aliases()) {
+                AliasValidator.validateAlias(alias, request.index(), currentState.metadata());
+            }
+
+            // No template handling here since neither of usages of this service is relevant to them:
+            // 1. Create non-partitioned tables, templates are not related. Partitioned tables are handled by MetadataIndexTemplateService.
+            // 2. Resize partitioned tables. findTemplates always returns an empty list since
+            //    request.index() has prefix "resized" which doesn't match table pattern. See testShrinkShardsOfPartition
+            // 3. Creating partitions/indices by inserting into a partitioned table.
+            //    We don't use this service anymore after introducing https://github.com/crate/crate/commit/f1c96b517d6d4f31ada5c7b42da49f5a41c12869
+            //    where we have dedicated TransportCreatePartitionsAction, which is an optimized version of MetadataCreateIndexService
+            IndexTemplateMetadata template = null;
             try {
-                validator.validate(request, currentState);
+                template = currentState.metadata().templates().get(PartitionName.templateName(request.index()));
+            } catch (Exception ex) {
+                // Creation of regular tables or resizing a partition don't pass validation.
+                // Catching validation errors to do a safe assertion.
+            }
+            assert template == null : String.format(Locale.ENGLISH, "Found a matching template for index %s, invalid usage.", request.index());
 
-                for (Alias alias : request.aliases()) {
-                    AliasValidator.validateAlias(alias, request.index(), currentState.metadata());
-                }
-
-                // No template handling here since neither of usages of this service is relevant to them:
-                // 1. Create non-partitioned tables, templates are not related. Partitioned tables are handled by MetadataIndexTemplateService.
-                // 2. Resize partitioned tables. findTemplates always returns an empty list since
-                //    request.index() has prefix "resized" which doesn't match table pattern. See testShrinkShardsOfPartition
-                // 3. Creating partitions/indices by inserting into a partitioned table.
-                //    We don't use this service anymore after introducing https://github.com/crate/crate/commit/f1c96b517d6d4f31ada5c7b42da49f5a41c12869
-                //    where we have dedicated TransportCreatePartitionsAction, which is an optimized version of MetadataCreateIndexService
-                IndexTemplateMetadata template = null;
-                try {
-                    template = currentState.metadata().templates().get(PartitionName.templateName(request.index()));
-                } catch (Exception ex) {
-                    // Creation of regular tables or resizing a partition don't pass validation.
-                    // Catching validation errors to do a safe assertion.
-                }
-                assert template == null : String.format(Locale.ENGLISH, "Found a matching template for index %s, invalid usage.", request.index());
-
-                Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
-                Map<String, Object> mapping;
-                String mappingStr = request.mapping();
-                if (mappingStr == null) {
-                    // Can be null on resize.
-                    if (createTableRequest == null) {
-                        mapping = new HashMap<>(); // resize doesn't change mapping, will be merged below as is.
-                    } else {
-                        List<Reference> references = DocReferences.applyOid(
-                                createTableRequest.references(),
-                                metadataBuilder.columnOidSupplier()
-                        );
-
-                        mapping = MappingUtil.createMapping(
-                            MappingUtil.AllocPosition.forNewTable(),
-                            references,
-                            createTableRequest.pKeyIndices(),
-                            createTableRequest.checkConstraints(),
-                            createTableRequest.partitionedBy(),
-                            createTableRequest.tableColumnPolicy(),
-                            createTableRequest.routingColumn()
-                        );
-                    }
-                } else {
-                    // BWC code path. Do not remove in 5.5 or later since it's used on direct CreateIndexRequest creation.
-                    mapping = MapperService.parseMapping(xContentRegistry, mappingStr);
-                }
-
-                Settings.Builder indexSettingsBuilder = Settings.builder();
-                // now, put the request settings, so they override templates
-                indexSettingsBuilder.put(request.settings());
-                if (indexSettingsBuilder.get(SETTING_NUMBER_OF_SHARDS) == null) {
-                    throw new IllegalArgumentException("Number of shards must be supplied");
-                }
-                if (indexSettingsBuilder.get(SETTING_NUMBER_OF_REPLICAS) == null) {
-                    indexSettingsBuilder.put(SETTING_NUMBER_OF_REPLICAS, settings.getAsInt(SETTING_NUMBER_OF_REPLICAS, 1));
-                }
-                if (settings.get(SETTING_AUTO_EXPAND_REPLICAS) != null && indexSettingsBuilder.get(SETTING_AUTO_EXPAND_REPLICAS) == null) {
-                    indexSettingsBuilder.put(SETTING_AUTO_EXPAND_REPLICAS, settings.get(SETTING_AUTO_EXPAND_REPLICAS));
-                }
-
-                setIndexVersionCreatedSetting(indexSettingsBuilder, currentState);
-                validateSoftDeletesSetting(indexSettingsBuilder.build());
-
-                if (indexSettingsBuilder.get(SETTING_CREATION_DATE) == null) {
-                    indexSettingsBuilder.put(SETTING_CREATION_DATE, Instant.now().toEpochMilli());
-                }
-                indexSettingsBuilder.put(IndexMetadata.SETTING_INDEX_PROVIDED_NAME, request.getProvidedName());
-                indexSettingsBuilder.put(SETTING_INDEX_UUID, UUIDs.randomBase64UUID());
-                final IndexMetadata.Builder tmpImdBuilder = IndexMetadata.builder(request.index());
-
-                final int routingNumShards;
-
-                final Index recoverFromIndex = request.recoverFrom();
+            Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
+            final Index recoverFromIndex = request.recoverFrom();
+            MappingMetadata mapping;
+            if (createTableRequest == null) {
                 if (recoverFromIndex == null) {
-                    Settings idxSettings = indexSettingsBuilder.build();
+                    mapping = new MappingMetadata(Map.of());
+                } else {
+                    IndexMetadata sourceMetadata = currentState.metadata().getIndexSafe(recoverFromIndex);
+                    mapping = sourceMetadata.mapping();
+                }
+            } else {
+                List<Reference> references = DocReferences.applyOid(
+                        createTableRequest.references(),
+                        metadataBuilder.columnOidSupplier()
+                );
+
+                mapping = new MappingMetadata(Map.of("default", MappingUtil.createMapping(
+                    MappingUtil.AllocPosition.forNewTable(),
+                    createTableRequest.pkConstraintName(),
+                    references,
+                    createTableRequest.pKeyIndices(),
+                    createTableRequest.checkConstraints(),
+                    createTableRequest.partitionedBy(),
+                    createTableRequest.tableColumnPolicy(),
+                    createTableRequest.routingColumn()
+                )));
+            }
+
+            Settings.Builder indexSettingsBuilder = Settings.builder();
+            // now, put the request settings, so they override templates
+            indexSettingsBuilder.put(request.settings());
+            if (indexSettingsBuilder.get(SETTING_NUMBER_OF_SHARDS) == null) {
+                throw new IllegalArgumentException("Number of shards must be supplied");
+            }
+            if (indexSettingsBuilder.get(SETTING_NUMBER_OF_REPLICAS) == null) {
+                indexSettingsBuilder.put(SETTING_NUMBER_OF_REPLICAS, settings.getAsInt(SETTING_NUMBER_OF_REPLICAS, 1));
+            }
+            if (settings.get(AutoExpandReplicas.SETTING_KEY) != null && indexSettingsBuilder.get(AutoExpandReplicas.SETTING_KEY) == null) {
+                indexSettingsBuilder.put(AutoExpandReplicas.SETTING_KEY, settings.get(AutoExpandReplicas.SETTING_KEY));
+            }
+
+            setIndexVersionCreatedSetting(indexSettingsBuilder, currentState);
+            validateSoftDeletesSetting(indexSettingsBuilder.build());
+
+            if (indexSettingsBuilder.get(SETTING_CREATION_DATE) == null) {
+                indexSettingsBuilder.put(SETTING_CREATION_DATE, Instant.now().toEpochMilli());
+            }
+            indexSettingsBuilder.put(IndexMetadata.SETTING_INDEX_PROVIDED_NAME, request.getProvidedName());
+            indexSettingsBuilder.put(SETTING_INDEX_UUID, UUIDs.randomBase64UUID());
+            final IndexMetadata.Builder tmpImdBuilder = IndexMetadata.builder(request.index());
+            final Settings idxSettings = indexSettingsBuilder.build();
+            int numTargetShards = IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.get(idxSettings);
+            final int routingNumShards;
+            final Version indexVersionCreated = idxSettings.getAsVersion(IndexMetadata.SETTING_VERSION_CREATED, null);
+            final IndexMetadata sourceMetadata = recoverFromIndex == null ? null :
+                currentState.metadata().getIndexSafe(recoverFromIndex);
+            if (sourceMetadata == null || sourceMetadata.getNumberOfShards() == 1) {
+                // in this case we either have no index to recover from or
+                // we have a source index with 1 shard and without an explicit split factor
+                // or one that is valid in that case we can split into whatever and auto-generate a new factor.
+                if (IndexMetadata.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING.exists(idxSettings)) {
                     routingNumShards = IndexMetadata.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING.get(idxSettings);
                 } else {
-                    assert IndexMetadata.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING.exists(indexSettingsBuilder.build()) == false
-                        : "index.number_of_routing_shards should be present on the target index on resize";
-                    final IndexMetadata sourceMetadata = currentState.metadata().getIndexSafe(recoverFromIndex);
-                    routingNumShards = sourceMetadata.getRoutingNumShards();
+                    routingNumShards = calculateNumRoutingShards(numTargetShards, indexVersionCreated);
                 }
-                // remove the setting it's temporary and is only relevant once we create the index
-                indexSettingsBuilder.remove(IndexMetadata.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING.getKey());
-                tmpImdBuilder.setRoutingNumShards(routingNumShards);
+            } else {
+                assert IndexMetadata.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING.exists(indexSettingsBuilder.build()) == false
+                    : "index.number_of_routing_shards should not be present on the target index on resize";
 
-                if (recoverFromIndex != null) {
-                    assert request.resizeType() != null;
-                    prepareResizeIndexSettings(
-                            currentState,
-                            indexSettingsBuilder,
-                            recoverFromIndex,
-                            request.index(),
-                            request.resizeType(),
-                            request.copySettings(),
-                            indexScopedSettings);
-                }
-                final Settings actualIndexSettings = indexSettingsBuilder.build();
-                tmpImdBuilder.settings(actualIndexSettings);
+                routingNumShards = sourceMetadata.getRoutingNumShards();
+            }
+            // remove the setting it's temporary and is only relevant once we create the index
+            indexSettingsBuilder.remove(IndexMetadata.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING.getKey());
+            tmpImdBuilder.setRoutingNumShards(routingNumShards);
 
-                if (recoverFromIndex != null) {
-                    /*
-                     * We need to arrange that the primary term on all the shards in the shrunken index is at least as large as
-                     * the maximum primary term on all the shards in the source index. This ensures that we have correct
-                     * document-level semantics regarding sequence numbers in the shrunken index.
-                     */
-                    final IndexMetadata sourceMetadata = currentState.metadata().getIndexSafe(recoverFromIndex);
-                    final long primaryTerm =
-                        IntStream
-                            .range(0, sourceMetadata.getNumberOfShards())
-                            .mapToLong(sourceMetadata::primaryTerm)
-                            .max()
-                            .getAsLong();
-                    for (int shardId = 0; shardId < tmpImdBuilder.numberOfShards(); shardId++) {
-                        tmpImdBuilder.primaryTerm(shardId, primaryTerm);
-                    }
-                }
-                // Set up everything, now locally create the index to see that things are ok, and apply
-                final IndexMetadata tmpImd = tmpImdBuilder.build();
-                ActiveShardCount waitForActiveShards = request.waitForActiveShards();
-                if (waitForActiveShards == ActiveShardCount.DEFAULT) {
-                    waitForActiveShards = tmpImd.getWaitForActiveShards();
-                }
-                if (waitForActiveShards.validate(tmpImd.getNumberOfReplicas()) == false) {
-                    throw new IllegalArgumentException("invalid wait_for_active_shards[" + request.waitForActiveShards() +
-                        "]: cannot be greater than number of shard copies [" +
-                        (tmpImd.getNumberOfReplicas() + 1) + "]");
-                }
-                // create the index here (on the master) to validate it can be created, as well as adding the mapping
-                final IndexService indexService = indicesService.createIndex(tmpImd, Collections.emptyList(), false);
-                createdIndex = indexService.index();
-                // now add the mappings
+            if (recoverFromIndex != null) {
+                assert request.resizeType() != null;
+                prepareResizeIndexSettings(
+                        currentState,
+                        indexSettingsBuilder,
+                        recoverFromIndex,
+                        request.index(),
+                        request.resizeType(),
+                        request.copySettings(),
+                        indexScopedSettings);
+            }
+            final Settings actualIndexSettings = indexSettingsBuilder.build();
+            tmpImdBuilder.settings(actualIndexSettings);
 
-                MapperService mapperService = indexService.mapperService();
-                try {
-                    mapperService.merge(mapping, MergeReason.MAPPING_UPDATE);
-                } catch (Exception e) {
-                    removalExtraInfo = "failed on parsing default mapping/mappings on index creation";
-                    throw e;
+            if (recoverFromIndex != null) {
+                /*
+                    * We need to arrange that the primary term on all the shards in the shrunken index is at least as large as
+                    * the maximum primary term on all the shards in the source index. This ensures that we have correct
+                    * document-level semantics regarding sequence numbers in the shrunken index.
+                    */
+                final long primaryTerm =
+                    IntStream
+                        .range(0, sourceMetadata.getNumberOfShards())
+                        .mapToLong(sourceMetadata::primaryTerm)
+                        .max()
+                        .getAsLong();
+                for (int shardId = 0; shardId < tmpImdBuilder.numberOfShards(); shardId++) {
+                    tmpImdBuilder.primaryTerm(shardId, primaryTerm);
                 }
-
-                // now, update the mappings with the actual source
-
+            }
+            // Set up everything, now locally create the index to see that things are ok, and apply
+            final IndexMetadata tmpImd = tmpImdBuilder.build();
+            ActiveShardCount waitForActiveShards = request.waitForActiveShards();
+            if (waitForActiveShards == ActiveShardCount.DEFAULT) {
+                waitForActiveShards = tmpImd.getWaitForActiveShards();
+            }
+            if (waitForActiveShards.validate(tmpImd.getNumberOfReplicas()) == false) {
+                throw new IllegalArgumentException("invalid wait_for_active_shards[" + request.waitForActiveShards() +
+                    "]: cannot be greater than number of shard copies [" +
+                    (tmpImd.getNumberOfReplicas() + 1) + "]");
+            }
+            // create the index here (on the master) to validate it can be created, as well as adding the mapping
+            return indicesService.withTempIndexService(tmpImd, indexService -> {
                 final IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(request.index())
                     .settings(actualIndexSettings)
-                    .setRoutingNumShards(routingNumShards);
+                    .setRoutingNumShards(routingNumShards)
+                    .state(State.OPEN)
+                    .putMapping(mapping);
 
+                if (createTableRequest != null) {
+                    IndexAnalyzers indexAnalyzers = indexService.indexAnalyzers();
+                    ensureUsedAnalyzersExist(indexAnalyzers, createTableRequest.references());
+                }
                 for (int shardId = 0; shardId < tmpImd.getNumberOfShards(); shardId++) {
                     indexMetadataBuilder.primaryTerm(shardId, tmpImd.primaryTerm(shardId));
-                }
-
-                DocumentMapper mapper = mapperService.documentMapper();
-                if (mapper != null) {
-                    indexMetadataBuilder.putMapping(new MappingMetadata(mapper));
                 }
                 for (Alias alias : request.aliases()) {
                     AliasMetadata aliasMetadata = new AliasMetadata(alias.name());
                     indexMetadataBuilder.putAlias(aliasMetadata);
                 }
 
-                indexMetadataBuilder.state(State.OPEN);
-
                 final IndexMetadata indexMetadata;
                 try {
                     indexMetadata = indexMetadataBuilder.build();
                 } catch (Exception e) {
-                    removalExtraInfo = "failed to build index metadata";
                     throw e;
                 }
 
@@ -503,16 +479,24 @@ public class MetadataCreateIndexService {
                 updatedState = allocationService.reroute(
                     ClusterState.builder(updatedState).routingTable(routingTableBuilder.build()).build(),
                     "index [" + request.index() + "] created");
-                removalExtraInfo = "cleaning up after validating index on master";
-                removalReason = IndexRemovalReason.NO_LONGER_ASSIGNED;
 
                 ensureTableInfoCanBeCreated(request.index(), updatedState);
-
                 return updatedState;
-            } finally {
-                if (createdIndex != null) {
-                    // Index was already partially created - need to clean up
-                    indicesService.removeIndex(createdIndex, removalReason, removalExtraInfo);
+            });
+        }
+
+        private void ensureUsedAnalyzersExist(IndexAnalyzers indexAnalyzers, List<Reference> references) {
+            for (var ref : references) {
+                if (ref instanceof IndexReference indexRef) {
+                    NamedAnalyzer namedAnalyzer = indexAnalyzers.get(indexRef.analyzer());
+                    if (namedAnalyzer == null) {
+                        throw new IllegalArgumentException(String.format(
+                            Locale.ENGLISH,
+                            "Analyzer \"%s\" not found for column \"%s\"",
+                            indexRef.analyzer(),
+                            indexRef.column()
+                        ));
+                    }
                 }
             }
         }
@@ -523,7 +507,7 @@ public class MetadataCreateIndexService {
                 return;
             }
             var relationName = RelationName.fromIndexName(request.index());
-            new DocTableInfoFactory(nodeContext).create(relationName, updatedState);
+            new DocTableInfoFactory(nodeContext).create(relationName, updatedState.metadata());
         }
 
         @Override
@@ -728,4 +712,26 @@ public class MetadataCreateIndexService {
         }
     }
 
+    /**
+     * Returns a default number of routing shards based on the number of shards of the index. The default number of routing shards will
+     * allow any index to be split at least once and at most 10 times by a factor of two. The closer the number or shards gets to 1024
+     * the less default split operations are supported
+     */
+    public static int calculateNumRoutingShards(int numShards, Version indexVersionCreated) {
+        if (indexVersionCreated.onOrAfter(Version.V_5_8_0)) {
+            // only select this automatically for indices that are created on or after 5.8, this will prevent this new behaviour
+            // until we have a fully upgraded cluster. Additionally, it will make integrating testing easier since mixed clusters
+            // will always have the behavior of the min node in the cluster.
+            //
+            // We use as a default number of routing shards the higher number that can be expressed
+            // as {@code numShards * 2^x`} that is less than or equal to the maximum number of shards: 1024.
+            int log2MaxNumShards = 10; // logBase2(1024)
+            int log2NumShards = 32 - Integer.numberOfLeadingZeros(numShards - 1); // ceil(logBase2(numShards))
+            int numSplits = log2MaxNumShards - log2NumShards;
+            numSplits = Math.max(1, numSplits); // Ensure the index can be split at least once
+            return numShards << numSplits;
+        } else {
+            return numShards;
+        }
+    }
 }

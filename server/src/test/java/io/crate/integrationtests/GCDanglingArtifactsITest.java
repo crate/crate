@@ -21,8 +21,7 @@
 
 package io.crate.integrationtests;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.test.IntegTestCase;
@@ -37,11 +36,11 @@ public class GCDanglingArtifactsITest extends IntegTestCase {
         createIndex(".resized.foobar");
 
         ClusterService clusterService = cluster().getInstance(ClusterService.class);
-        assertThat(clusterService.state().metadata().hasIndex(".resized.foobar"), is(true));
+        assertThat(clusterService.state().metadata().hasIndex(".resized.foobar")).isTrue();
 
         execute("alter cluster gc dangling artifacts");
 
-        assertThat(clusterService.state().metadata().hasIndex(".resized.foobar"), is(false));
-        assertThat(clusterService.state().metadata().hasIndex("t1"), is(true));
+        assertThat(clusterService.state().metadata().hasIndex(".resized.foobar")).isFalse();
+        assertThat(clusterService.state().metadata().hasIndex("t1")).isTrue();
     }
 }

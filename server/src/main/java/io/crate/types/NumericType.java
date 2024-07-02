@@ -36,7 +36,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.Streamer;
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 
 public class NumericType extends DataType<BigDecimal> implements Streamer<BigDecimal> {
 
@@ -162,16 +162,15 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
         return NumericType.size(first) - NumericType.size(second);
     }
 
-    @VisibleForTesting
-    @Nullable
-    Integer scale() {
-        return scale;
+    @Override
+    public Integer numericPrecision() {
+        return precision;
     }
 
     @VisibleForTesting
     @Nullable
-    Integer precision() {
-        return precision;
+    Integer scale() {
+        return scale;
     }
 
     private MathContext mathContextOrDefault() {
@@ -275,5 +274,16 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
             return RamUsageEstimator.NUM_BYTES_OBJECT_HEADER;
         }
         return size(value);
+    }
+
+    @Override
+    public String toString() {
+        if (getTypeParameters().isEmpty()) {
+            return super.toString();
+        }
+        if (scale == null) {
+            return "numeric(" + precision + ")";
+        }
+        return "numeric(" + precision + "," + scale + ")";
     }
 }

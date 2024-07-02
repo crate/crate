@@ -35,27 +35,25 @@ public class SysAllocationsTableInfo {
 
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "allocations");
 
-    public static SystemTable<SysAllocation> create() {
-        return SystemTable.<SysAllocation>builder(IDENT)
-            .add("table_schema", STRING, SysAllocation::tableSchema)
-            .add("table_name", STRING, SysAllocation::tableName)
-            .add("partition_ident", STRING, SysAllocation::partitionIdent)
-            .add("shard_id", INTEGER, SysAllocation::shardId)
-            .add("node_id", STRING, SysAllocation::nodeId)
-            .add("primary", BOOLEAN, SysAllocation::primary)
-            .add("current_state", STRING, s -> s.currentState().toString())
-            .add("explanation", STRING, SysAllocation::explanation)
-            .startObjectArray("decisions", SysAllocation::decisions)
-                .add("node_id", STRING, SysAllocation.SysAllocationNodeDecision::nodeId)
-                .add("node_name", STRING, SysAllocation.SysAllocationNodeDecision::nodeName)
-                .add("explanations", STRING_ARRAY, SysAllocation.SysAllocationNodeDecision::explanations)
-            .endObjectArray()
-            .setPrimaryKeys(
-                new ColumnIdent("table_schema"),
-                new ColumnIdent("table_name"),
-                new ColumnIdent("partition_ident"),
-                new ColumnIdent("shard_id")
-            )
-            .build();
-    }
+    public static SystemTable<SysAllocation> INSTANCE = SystemTable.<SysAllocation>builder(IDENT)
+        .add("table_schema", STRING, SysAllocation::tableSchema)
+        .add("table_name", STRING, SysAllocation::tableName)
+        .add("partition_ident", STRING, SysAllocation::partitionIdent)
+        .add("shard_id", INTEGER, SysAllocation::shardId)
+        .add("node_id", STRING, SysAllocation::nodeId)
+        .add("primary", BOOLEAN, SysAllocation::primary)
+        .add("current_state", STRING, s -> s.currentState().toString())
+        .add("explanation", STRING, SysAllocation::explanation)
+        .startObjectArray("decisions", SysAllocation::decisions)
+            .add("node_id", STRING, SysAllocation.SysAllocationNodeDecision::nodeId)
+            .add("node_name", STRING, SysAllocation.SysAllocationNodeDecision::nodeName)
+            .add("explanations", STRING_ARRAY, SysAllocation.SysAllocationNodeDecision::explanations)
+        .endObjectArray()
+        .setPrimaryKeys(
+            ColumnIdent.of("table_schema"),
+            ColumnIdent.of("table_name"),
+            ColumnIdent.of("partition_ident"),
+            ColumnIdent.of("shard_id")
+        )
+        .build();
 }

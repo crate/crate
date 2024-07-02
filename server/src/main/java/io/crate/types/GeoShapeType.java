@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.util.Map;
 import java.util.function.Function;
 
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -47,14 +46,23 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
 
     public static final int ID = 14;
     public static final GeoShapeType INSTANCE = new GeoShapeType();
+
+
+    public static class Names {
+        public static final String TREE_GEOHASH = "geohash";
+        public static final String TREE_QUADTREE = "quadtree";
+        public static final String TREE_LEGACY_QUADTREE = "legacyquadtree";
+        public static final String TREE_BKD = "bkdtree";
+    }
+
+
     private static final StorageSupport<Map<String, Object>> STORAGE = new StorageSupport<>(false, false, null) {
 
         @Override
         public ValueIndexer<Map<String, Object>> valueIndexer(RelationName table,
                                                               Reference ref,
-                                                              Function<String, FieldType> getFieldType,
                                                               Function<ColumnIdent, Reference> getRef) {
-            return new GeoShapeIndexer(ref, getFieldType.apply(ref.storageIdent()));
+            return new GeoShapeIndexer(ref);
         }
     };
 

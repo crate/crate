@@ -21,6 +21,9 @@
 
 package io.crate.execution.engine.collect.sources;
 
+import static java.util.Objects.requireNonNull;
+
+import java.net.URI;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -36,10 +39,11 @@ import org.elasticsearch.threadpool.ThreadPool;
 import io.crate.analyze.AnalyzedCopyFrom;
 import io.crate.analyze.CopyFromParserProperties;
 import io.crate.analyze.SymbolEvaluator;
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.SkippingBatchIterator;
+import io.crate.exceptions.UnauthorizedException;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.execution.engine.collect.CollectTask;
@@ -53,7 +57,8 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.SubQueryResults;
-import io.crate.types.ArrayType;
+import io.crate.role.Role;
+import io.crate.role.Roles;
 import io.crate.types.DataTypes;
 
 @Singleton
@@ -64,17 +69,20 @@ public class FileCollectSource implements CollectSource {
     private final InputFactory inputFactory;
     private final NodeContext nodeCtx;
     private final ThreadPool threadPool;
+    private final Roles roles;
 
     @Inject
     public FileCollectSource(NodeContext nodeCtx,
                              ClusterService clusterService,
                              Map<String, FileInputFactory> fileInputFactoryMap,
-                             ThreadPool threadPool) {
+                             ThreadPool threadPool,
+                             Roles roles) {
         this.fileInputFactoryMap = fileInputFactoryMap;
         this.nodeCtx = nodeCtx;
         this.inputFactory = new InputFactory(nodeCtx);
         this.clusterService = clusterService;
         this.threadPool = threadPool;
+        this.roles = roles;
     }
 
     @Override
@@ -87,7 +95,16 @@ public class FileCollectSource implements CollectSource {
             inputFactory.ctxForRefs(txnCtx, FileLineReferenceResolver::getImplementation);
         ctx.add(collectPhase.toCollect());
 
-        List<String> fileUris = targetUriToStringList(txnCtx, nodeCtx, fileUriCollectPhase.targetUri());
+        Role user = requireNonNull(roles.findUser(txnCtx.sessionSettings().userName()), "User who invoked a statement must exist");
+        List<URI> fileUris = targetUriToStringList(txnCtx, nodeCtx, fileUriCollectPhase.targetUri()).stream()
+            .map(s -> {
+                var uri = FileReadingIterator.toURI(s);
+                if (uri.getScheme().equals("file") && user.isSuperUser() == false) {
+                    throw new UnauthorizedException("Only a superuser can read from the local file system");
+                }
+                return uri;
+            })
+            .toList();
         FileReadingIterator fileReadingIterator = new FileReadingIterator(
             fileUris,
             fileUriCollectPhase.compression(),
@@ -126,10 +143,8 @@ public class FileCollectSource implements CollectSource {
         if (targetUri.valueType().id() == DataTypes.STRING.id()) {
             String uri = (String) value;
             return Collections.singletonList(uri);
-        } else if (DataTypes.isArray(targetUri.valueType()) &&
-                   ArrayType.unnest(targetUri.valueType()).id() == DataTypes.STRING.id()) {
-            //noinspection unchecked
-            return (List<String>) value;
+        } else if (DataTypes.STRING_ARRAY.equals(targetUri.valueType())) {
+            return DataTypes.STRING_ARRAY.implicitCast(value);
         }
 
         // this case actually never happens because the check is already done in the analyzer

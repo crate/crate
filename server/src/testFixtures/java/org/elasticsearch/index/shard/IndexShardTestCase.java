@@ -20,14 +20,11 @@
  */
 package org.elasticsearch.index.shard;
 
+import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.routing.TestShardRouting.newShardRouting;
 import static org.elasticsearch.index.translog.Translog.UNSET_AUTO_GENERATED_TIMESTAMP;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasSize;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -43,6 +40,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.lucene.store.Directory;
@@ -51,6 +49,7 @@ import org.elasticsearch.action.admin.indices.flush.FlushRequest;
 import org.elasticsearch.action.support.PlainActionFuture;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
@@ -67,18 +66,16 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.Index;
-import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.MapperTestUtils;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.cache.query.DisabledQueryCache;
 import org.elasticsearch.index.engine.DocIdSeqNoAndSource;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.EngineFactory;
 import org.elasticsearch.index.engine.EngineTestCase;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.mapper.SourceToParse;
 import org.elasticsearch.index.seqno.ReplicationTracker;
 import org.elasticsearch.index.seqno.RetentionLeaseSyncer;
@@ -106,10 +103,15 @@ import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jetbrains.annotations.Nullable;
+import org.mockito.Mockito;
 
 import io.crate.action.FutureActionListener;
 import io.crate.common.CheckedFunction;
 import io.crate.common.io.IOUtils;
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.doc.DocTableInfoFactory;
 
 /**
  * A base class for unit tests that need to create and shutdown {@link IndexShard} instances easily,
@@ -217,18 +219,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
                 0,
                 UNSET_AUTO_GENERATED_TIMESTAMP,
                 false);
-            if (result.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
-                updateMappings(shard, IndexMetadata.builder(shard.indexSettings().getIndexMetadata())
-                    .putMapping(result.getRequiredMappingUpdate().toString()).build());
-                result = shard.applyIndexOperationOnPrimary(
-                    Versions.MATCH_ANY,
-                    VersionType.INTERNAL,
-                    sourceToParse,
-                    SequenceNumbers.UNASSIGNED_SEQ_NO,
-                    0,
-                    UNSET_AUTO_GENERATED_TIMESTAMP,
-                    false);
-            }
+            assert result.getResultType() != Engine.Result.Type.MAPPING_UPDATE_REQUIRED;
             shard.sync(); // advance local checkpoint
             shard.updateLocalCheckpointForShard(shard.routingEntry().allocationId().getId(),
                                                 shard.getLocalCheckpoint());
@@ -240,8 +231,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
             if (result.getResultType() == Engine.Result.Type.MAPPING_UPDATE_REQUIRED) {
                 throw new TransportReplicationAction.RetryOnReplicaException(
                     shard.shardId,
-                    "Mappings are not available on the replica yet, triggered update: " +
-                    result.getRequiredMappingUpdate());
+                    "Mappings are not available on the replica yet, triggered update");
             }
         }
         return result;
@@ -249,11 +239,19 @@ public abstract class IndexShardTestCase extends ESTestCase {
 
     protected void updateMappings(IndexShard shard, IndexMetadata indexMetadata) {
         shard.indexSettings().updateIndexMetadata(indexMetadata);
-        shard.mapperService().merge(indexMetadata, MapperService.MergeReason.MAPPING_UPDATE);
+    }
+
+    protected DocTableInfo getDocTable(Supplier<IndexMetadata> getIndexMetadata) {
+        NodeContext nodeCtx = createNodeContext();
+        DocTableInfoFactory tableFactory = new DocTableInfoFactory(nodeCtx);
+        IndexMetadata indexMetadata = getIndexMetadata.get();
+        Metadata metadata = new Metadata.Builder().put(indexMetadata, false).build();
+        RelationName relationName = RelationName.fromIndexName(indexMetadata.getIndex().getName());
+        return tableFactory.create(relationName, metadata);
     }
 
     protected void assertDocCount(IndexShard shard, int docDount) throws IOException {
-        assertThat(getShardDocUIDs(shard), hasSize(docDount));
+        assertThat(getShardDocUIDs(shard)).hasSize(docDount);
     }
 
     protected Engine.DeleteResult deleteDoc(IndexShard shard, String id) throws IOException {
@@ -284,7 +282,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
     }
 
     public static boolean recoverFromStore(IndexShard newShard) throws IOException {
-        final FutureActionListener<Boolean, Boolean> future = FutureActionListener.newInstance();
+        final FutureActionListener<Boolean> future = new FutureActionListener<>();
         newShard.recoverFromStore(future);
         return FutureUtils.get(future);
     }
@@ -503,7 +501,10 @@ public abstract class IndexShardTestCase extends ESTestCase {
                                   RetentionLeaseSyncer retentionLeaseSyncer,
                                   IndexEventListener indexEventListener,
                                   IndexingOperationListener... listeners) throws IOException {
-        final Settings nodeSettings = Settings.builder().put("node.name", routing.currentNodeId()).build();
+        final Settings nodeSettings = Settings.builder()
+            .put("node.name", routing.currentNodeId())
+            .put(Environment.PATH_HOME_SETTING.getKey(), createTempDir())
+            .build();
         final IndexSettings indexSettings = new IndexSettings(indexMetadata, nodeSettings);
         final IndexShard indexShard;
         if (storeProvider == null) {
@@ -513,30 +514,25 @@ public abstract class IndexShardTestCase extends ESTestCase {
         boolean success = false;
         try {
             var queryCache = DisabledQueryCache.instance();
-            MapperService mapperService = MapperTestUtils.newMapperService(
-                xContentRegistry(),
-                createTempDir(),
-                indexSettings.getSettings(),
-                "index"
-            );
-            mapperService.merge(indexMetadata, MapperService.MergeReason.MAPPING_RECOVERY);
+            TestAnalysis testAnalysis = createTestAnalysis(indexSettings, indexSettings.getSettings());
             ClusterSettings clusterSettings = new ClusterSettings(nodeSettings, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
             CircuitBreakerService breakerService = new HierarchyCircuitBreakerService(nodeSettings, clusterSettings);
             indexShard = new IndexShard(
+                Mockito.mock(NodeContext.class),
                 routing,
                 indexSettings,
                 shardPath,
                 store,
                 queryCache,
-                mapperService,
+                testAnalysis.indexAnalyzers,
+                () -> getDocTable(() -> indexSettings.getIndexMetadata()),
                 engineFactoryProviders,
                 indexEventListener,
                 threadPool,
                 BigArrays.NON_RECYCLING_INSTANCE,
                 Arrays.asList(listeners),
                 globalCheckpointSyncer,
-                retentionLeaseSyncer,
-                breakerService
+                retentionLeaseSyncer, breakerService
             );
             indexShard.addShardFailureCallback(DEFAULT_SHARD_FAILURE_HANDLER);
             success = true;
@@ -672,7 +668,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
         IndexShard shard = shardFunction.apply(primary);
         if (primary) {
             recoverShardFromStore(shard);
-            assertThat(shard.getMaxSeqNoOfUpdatesOrDeletes(), equalTo(shard.seqNoStats().getMaxSeqNo()));
+            assertThat(shard.getMaxSeqNoOfUpdatesOrDeletes()).isEqualTo(shard.seqNoStats().getMaxSeqNo());
         } else {
             recoveryEmptyReplica(shard, true);
         }
@@ -796,7 +792,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
         if (markAsRecovering) {
             replica.markAsRecovering("remote", new RecoveryState(replica.routingEntry(), pNode, rNode));
         } else {
-            assertEquals(replica.state(), IndexShardState.RECOVERING);
+            assertThat(IndexShardState.RECOVERING).isEqualTo(replica.state());
         }
         replica.prepareForIndexRecovery();
         final RecoveryTarget recoveryTarget = targetSupplier.apply(replica, pNode);
@@ -871,7 +867,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
      * promotes a replica to primary, incrementing it's term and starting it if needed
      */
     protected void promoteReplica(IndexShard replica, Set<String> inSyncIds, IndexShardRoutingTable routingTable) throws IOException {
-        assertThat(inSyncIds, contains(replica.routingEntry().allocationId().getId()));
+        assertThat(inSyncIds).containsExactly(replica.routingEntry().allocationId().getId());
         final ShardRouting routingEntry = newShardRouting(
             replica.routingEntry().shardId(),
             replica.routingEntry().currentNodeId(),
@@ -891,20 +887,6 @@ public abstract class IndexShardTestCase extends ESTestCase {
             inSyncIds, newRoutingTable);
     }
 
-    private Store.MetadataSnapshot getMetadataSnapshotOrEmpty(IndexShard replica) throws IOException {
-        Store.MetadataSnapshot result;
-        try {
-            result = replica.snapshotStoreMetadata();
-        } catch (IndexNotFoundException e) {
-            // OK!
-            result = Store.MetadataSnapshot.EMPTY;
-        } catch (IOException e) {
-            logger.warn("failed read store, treating as empty", e);
-            result = Store.MetadataSnapshot.EMPTY;
-        }
-        return result;
-    }
-
     public static Set<String> getShardDocUIDs(final IndexShard shard) throws IOException {
         return getDocIdAndSeqNos(shard).stream().map(DocIdSeqNoAndSource::getId).collect(Collectors.toSet());
     }
@@ -919,16 +901,9 @@ public abstract class IndexShardTestCase extends ESTestCase {
         }
         final Engine engine = shard.getEngineOrNull();
         if (engine != null) {
-            EngineTestCase.assertConsistentHistoryBetweenTranslogAndLuceneIndex(engine, shard.mapperService());
+            EngineTestCase.assertConsistentHistoryBetweenTranslogAndLuceneIndex(engine);
         }
     }
-
-    protected void assertDocs(IndexShard shard, String... ids) throws IOException {
-        final Set<String> shardDocUIDs = getShardDocUIDs(shard);
-        assertThat(shardDocUIDs, contains(ids));
-        assertThat(shardDocUIDs, hasSize(ids.length));
-    }
-
 
     /** Recover a shard from a snapshot using a given repository **/
     protected void recoverShardFromSnapshot(final IndexShard shard,
@@ -942,7 +917,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
             new RecoverySource.SnapshotRecoverySource(UUIDs.randomBase64UUID(), snapshot, version, indexId);
         final ShardRouting shardRouting = newShardRouting(shardId, node.getId(), true, ShardRoutingState.INITIALIZING, recoverySource);
         shard.markAsRecovering("from snapshot", new RecoveryState(shardRouting, node, null));
-        final FutureActionListener<Void, Void> future = FutureActionListener.newInstance();
+        final FutureActionListener<Void> future = new FutureActionListener<>();
         repository.restoreShard(shard.store(),
                                 snapshot.getSnapshotId(),
                                 indexId,
@@ -965,17 +940,17 @@ public abstract class IndexShardTestCase extends ESTestCase {
         final IndexShardSnapshotStatus snapshotStatus = IndexShardSnapshotStatus.newInitializing(
             ESBlobStoreTestCase.getRepositoryData(repository).shardGenerations().getShardGen(
                 indexId, shard.shardId().id()));
-        final FutureActionListener<String, String> future = FutureActionListener.newInstance();
+        final FutureActionListener<String> future = new FutureActionListener<>();
         final String shardGen;
         try (Engine.IndexCommitRef indexCommitRef = shard.acquireLastIndexCommit(true)) {
-            repository.snapshotShard(shard.store(), shard.mapperService(), snapshot.getSnapshotId(), indexId,
+            repository.snapshotShard(shard.store(), snapshot.getSnapshotId(), indexId,
                                      indexCommitRef.getIndexCommit(), null, snapshotStatus, Version.CURRENT, future);
             shardGen = FutureUtils.get(future);
         }
 
         final IndexShardSnapshotStatus.Copy lastSnapshotStatus = snapshotStatus.asCopy();
-        assertEquals(IndexShardSnapshotStatus.Stage.DONE, lastSnapshotStatus.getStage());
-        assertEquals(shard.snapshotStoreMetadata().size(), lastSnapshotStatus.getTotalFileCount());
+        assertThat(lastSnapshotStatus.getStage()).isEqualTo(IndexShardSnapshotStatus.Stage.DONE);
+        assertThat(lastSnapshotStatus.getTotalFileCount()).isEqualTo(shard.snapshotStoreMetadata().size());
         assertNull(lastSnapshotStatus.getFailure());
         return shardGen;
     }

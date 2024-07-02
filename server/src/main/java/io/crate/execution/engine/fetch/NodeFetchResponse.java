@@ -21,20 +21,22 @@
 
 package io.crate.execution.engine.fetch;
 
+import java.io.IOException;
+import java.util.Objects;
+
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.transport.TransportResponse;
+import org.jetbrains.annotations.Nullable;
+
 import com.carrotsearch.hppc.IntObjectHashMap;
 import com.carrotsearch.hppc.IntObjectMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
+
 import io.crate.Streamer;
 import io.crate.data.Bucket;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.distribution.StreamBucket;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.transport.TransportResponse;
-
-import org.jetbrains.annotations.Nullable;
-import java.io.IOException;
-import java.util.Objects;
 
 public class NodeFetchResponse extends TransportResponse {
 
@@ -50,7 +52,7 @@ public class NodeFetchResponse extends TransportResponse {
         return fetched;
     }
 
-    public NodeFetchResponse(StreamInput in, IntObjectMap<Streamer[]> streamers, RamAccounting ramAccounting) throws IOException {
+    public NodeFetchResponse(StreamInput in, IntObjectMap<Streamer<?>[]> streamers, RamAccounting ramAccounting) throws IOException {
         ramAccounting.addBytes(in.available());
         int numReaders = in.readVInt();
         if (numReaders > 0) {

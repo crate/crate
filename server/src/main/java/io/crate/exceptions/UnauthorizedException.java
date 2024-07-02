@@ -21,10 +21,25 @@
 
 package io.crate.exceptions;
 
-public class UnauthorizedException extends RuntimeException implements UnscopedException {
+import java.io.IOException;
+
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.common.io.stream.StreamInput;
+
+import io.crate.rest.action.HttpErrorStatus;
+
+public class UnauthorizedException extends ElasticsearchException implements UnscopedException {
 
     public UnauthorizedException(String message) {
         super(message);
     }
 
+    public UnauthorizedException(StreamInput in) throws IOException {
+        super(in);
+    }
+
+    @Override
+    public HttpErrorStatus httpErrorStatus() {
+        return HttpErrorStatus.USER_NOT_AUTHORIZED_TO_PERFORM_STATEMENT;
+    }
 }

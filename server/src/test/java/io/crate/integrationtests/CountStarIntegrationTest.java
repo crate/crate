@@ -23,8 +23,7 @@ package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_COLUMN;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
@@ -40,8 +39,8 @@ public class CountStarIntegrationTest extends IntegTestCase {
         ensureYellow();
 
         execute("select count(*) from t");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((Long) response.rows()[0][0], is(0L));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat((Long) response.rows()[0][0]).isEqualTo(0L);
 
         execute("insert into t (name, p) values ('Arthur', 'foo')");
         execute("insert into t (name, p) values ('Trillian', 'foobar')");
@@ -49,8 +48,8 @@ public class CountStarIntegrationTest extends IntegTestCase {
         refresh();
 
         execute("select count(*) from t where p = 'foobar'");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((Long) response.rows()[0][0], is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat((Long) response.rows()[0][0]).isEqualTo(1L);
     }
 
     @Test
@@ -65,14 +64,14 @@ public class CountStarIntegrationTest extends IntegTestCase {
                 "('Hintere Achmühler Str. 1', 8, '1,2'), " +
                 "('Ritterstr.', 12, '1')," +
                 "('Unknown Street', 69, '')");
-        assertThat(response.rowCount(), is(3L));
+        assertThat(response.rowCount()).isEqualTo(3L);
         execute("refresh table count_routing");
 
         execute("select count(*) from count_routing where zipcode='1,2'");
-        assertThat((Long) response.rows()[0][0], is(1L)); // FOUND ONLY ONE
+        assertThat((Long) response.rows()[0][0]).isEqualTo(1L); // FOUND ONLY ONE
 
         execute("select count(*) from count_routing where zipcode=''");
-        assertThat((Long) response.rows()[0][0], is(1L)); // FOUND ONE
+        assertThat((Long) response.rows()[0][0]).isEqualTo(1L); // FOUND ONE
     }
 
     @Test
@@ -96,9 +95,9 @@ public class CountStarIntegrationTest extends IntegTestCase {
         execute("refresh table auto_id");
 
         execute("select count(*) from auto_id where _id=''");
-        assertThat((Long) response.rows()[0][0], is(0L)); // FOUND NONE
+        assertThat((Long) response.rows()[0][0]).isEqualTo(0L); // FOUND NONE
 
         execute("select count(*) from auto_id AS a where name=','");
-        assertThat((Long) response.rows()[0][0], is(1L)); // FOUND ONE
+        assertThat((Long) response.rows()[0][0]).isEqualTo(1L); // FOUND ONE
     }
 }

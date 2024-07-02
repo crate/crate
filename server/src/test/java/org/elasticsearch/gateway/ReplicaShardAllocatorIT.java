@@ -19,8 +19,8 @@
 
 package org.elasticsearch.gateway;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -170,7 +170,7 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
             SyncedFlushResponse syncedFlushResponse = client()
                 .execute(SyncedFlushAction.INSTANCE, new SyncedFlushRequest(indexName))
                 .get(5, TimeUnit.SECONDS);
-            assertThat(syncedFlushResponse.successfulShards(), equalTo(2));
+            assertThat(syncedFlushResponse.successfulShards()).isEqualTo(2);
         });
         cluster().stopRandomNode(TestCluster.nameFilter(nodeWithReplica));
         if (randomBoolean()) {
@@ -206,7 +206,7 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
             assertBusy(() -> {
                 execute("select unnest(retention_leases['leases']['id']) from sys.shards where table_name = 'test'");
                 for (var row : response.rows()) {
-                    assertThat(row[0], not(equalTo((ReplicationTracker.getPeerRecoveryRetentionLeaseId(discoNodeWithReplica.getId())))));
+                    assertThat(row[0]).isNotEqualTo((ReplicationTracker.getPeerRecoveryRetentionLeaseId(discoNodeWithReplica.getId())));
                 }
             });
             // AllocationService only calls GatewayAllocator if there are unassigned shards
@@ -383,9 +383,9 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
                 new Object[]{indexName});
             long globalCheckPoint = (long) response.rows()[0][0];
             long maxSeqNo = (long) response.rows()[0][1];
-            assertThat(globalCheckPoint, equalTo(maxSeqNo));
+            assertThat(globalCheckPoint).isEqualTo(maxSeqNo);
             List<Map<String, Object>> rentetionLease = (List<Map<String, Object>>) response.rows()[0][2];
-            assertThat(rentetionLease.size(), is(activeRetentionLeaseIds.size()));
+            assertThat(rentetionLease).hasSize(activeRetentionLeaseIds.size());
             for (var activeRetentionLease : rentetionLease) {
                 assertThat(
                     DataTypes.LONG.explicitCast(activeRetentionLease.get("retaining_seq_no"), CoordinatorTxnCtx.systemTransactionContext().sessionSettings()),

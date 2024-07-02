@@ -29,7 +29,7 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Symbol;
@@ -57,7 +57,7 @@ public class JoinRelation implements AnalyzedRelation {
                         AnalyzedRelation right,
                         JoinType joinType,
                         @Nullable Symbol joinCondition) {
-        this.outputs = Lists2.concat(left.outputs(), right.outputs());
+        this.outputs = Lists.concat(left.outputs(), right.outputs());
         this.left = left;
         this.right = right;
         this.joinType = joinType;

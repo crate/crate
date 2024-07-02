@@ -49,7 +49,6 @@ import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.RateLimiter;
 import org.apache.lucene.util.ArrayUtil;
 import org.apache.lucene.util.SetOnce;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRunnable;
@@ -91,6 +90,7 @@ import org.elasticsearch.transport.Transports;
 
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
+import io.crate.exceptions.SQLExceptions;
 
 /**
  * RecoverySourceHandler handles the three phases of shard recovery, which is
@@ -1071,7 +1071,7 @@ public class RecoverySourceHandler {
     }
 
     private void handleErrorOnSendFiles(Store store, Exception e, StoreFileMetadata[] mds) throws Exception {
-        final IOException corruptIndexException = ExceptionsHelper.unwrapCorruption(e);
+        final IOException corruptIndexException = SQLExceptions.unwrapCorruption(e);
         assert Transports.assertNotTransportThread(RecoverySourceHandler.this + "[handle error on send/clean files]");
         if (corruptIndexException != null) {
             Exception localException = null;

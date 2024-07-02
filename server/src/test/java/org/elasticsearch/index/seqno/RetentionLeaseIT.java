@@ -19,13 +19,11 @@
 
 package org.elasticsearch.index.seqno;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.emptyCollectionOf;
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.Closeable;
@@ -66,14 +64,14 @@ import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Test;
 
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.common.unit.TimeValue;
 
 public class RetentionLeaseIT extends IntegTestCase  {
 
     @Override
     protected Collection<Class<? extends Plugin>> nodePlugins() {
-        return Lists2.concat(super.nodePlugins(), MockTransportService.TestPlugin.class);
+        return Lists.concat(super.nodePlugins(), MockTransportService.TestPlugin.class);
     }
 
     @After
@@ -112,8 +110,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
             retentionLock.close();
 
             // check retention leases have been written on the primary
-            assertThat(currentRetentionLeases,
-                equalTo(RetentionLeaseUtils.toMapExcludingPeerRecoveryRetentionLeases(primary.loadRetentionLeases())));
+            assertThat(currentRetentionLeases).isEqualTo(RetentionLeaseUtils.toMapExcludingPeerRecoveryRetentionLeases(primary.loadRetentionLeases()));
 
             // check current retention leases have been synced to all replicas
             for (final ShardRouting replicaShard : clusterService().state().routingTable().index("tbl").shard(0).replicaShards()) {
@@ -124,11 +121,10 @@ public class RetentionLeaseIT extends IntegTestCase  {
                     .getShardOrNull(new ShardId(resolveIndex("tbl"), 0));
                 final Map<String, RetentionLease> retentionLeasesOnReplica =
                     RetentionLeaseUtils.toMapExcludingPeerRecoveryRetentionLeases(replica.getRetentionLeases());
-                assertThat(retentionLeasesOnReplica, equalTo(currentRetentionLeases));
+                assertThat(retentionLeasesOnReplica).isEqualTo(currentRetentionLeases);
 
                 // check retention leases have been written on the replica
-                assertThat(currentRetentionLeases,
-                    equalTo(RetentionLeaseUtils.toMapExcludingPeerRecoveryRetentionLeases(replica.loadRetentionLeases())));
+                assertThat(currentRetentionLeases).isEqualTo(RetentionLeaseUtils.toMapExcludingPeerRecoveryRetentionLeases(replica.loadRetentionLeases()));
             }
         }
     }
@@ -173,8 +169,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
             retentionLock.close();
 
             // check retention leases have been written on the primary
-            assertThat(currentRetentionLeases,
-                       equalTo(RetentionLeaseUtils.toMapExcludingPeerRecoveryRetentionLeases(primary.loadRetentionLeases())));
+            assertThat(currentRetentionLeases).isEqualTo(RetentionLeaseUtils.toMapExcludingPeerRecoveryRetentionLeases(primary.loadRetentionLeases()));
 
             // check current retention leases have been synced to all replicas
             for (final ShardRouting replicaShard : clusterService().state().routingTable().index("tbl").shard(0).replicaShards()) {
@@ -185,11 +180,10 @@ public class RetentionLeaseIT extends IntegTestCase  {
                     .getShardOrNull(new ShardId(resolveIndex("tbl"), 0));
                 final Map<String, RetentionLease> retentionLeasesOnReplica =
                     RetentionLeaseUtils.toMapExcludingPeerRecoveryRetentionLeases(replica.getRetentionLeases());
-                assertThat(retentionLeasesOnReplica, equalTo(currentRetentionLeases));
+                assertThat(retentionLeasesOnReplica).isEqualTo(currentRetentionLeases);
 
                 // check retention leases have been written on the replica
-                assertThat(currentRetentionLeases,
-                           equalTo(RetentionLeaseUtils.toMapExcludingPeerRecoveryRetentionLeases(replica.loadRetentionLeases())));
+                assertThat(currentRetentionLeases).isEqualTo(RetentionLeaseUtils.toMapExcludingPeerRecoveryRetentionLeases(replica.loadRetentionLeases()));
             }
         }
     }
@@ -321,7 +315,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
                     final IndexShard replica = cluster()
                             .getInstance(IndicesService.class, replicaShardNodeName)
                             .getShardOrNull(new ShardId(resolveIndex("tbl"), 0));
-                    assertThat(replica.getRetentionLeases(), equalTo(primary.getRetentionLeases()));
+                    assertThat(replica.getRetentionLeases()).isEqualTo(primary.getRetentionLeases());
                 }
             });
         }
@@ -402,11 +396,10 @@ public class RetentionLeaseIT extends IntegTestCase  {
                 .getShardOrNull(new ShardId(resolveIndex("tbl"), 0));
             final Map<String, RetentionLease> retentionLeasesOnReplica
                 = RetentionLeaseUtils.toMapExcludingPeerRecoveryRetentionLeases(replica.getRetentionLeases());
-            assertThat(retentionLeasesOnReplica, equalTo(currentRetentionLeases));
+            assertThat(retentionLeasesOnReplica).isEqualTo(currentRetentionLeases);
 
             // check retention leases have been written on the replica; see RecoveryTarget#finalizeRecovery
-            assertThat(currentRetentionLeases,
-                equalTo(RetentionLeaseUtils.toMapExcludingPeerRecoveryRetentionLeases(replica.loadRetentionLeases())));
+            assertThat(currentRetentionLeases).isEqualTo(RetentionLeaseUtils.toMapExcludingPeerRecoveryRetentionLeases(replica.loadRetentionLeases()));
         }
     }
 
@@ -517,7 +510,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
                 }
             );
             actionLatch.await();
-            assertTrue(success.get());
+            assertThat(success.get()).isTrue();
             afterSync.accept(primary);
         } finally {
             execute("alter table doc.tbl reset (\"blocks." + block + "\")");
@@ -600,7 +593,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
         ensureYellowAndNoInitializingShards("tbl");
         var clusterHealthResponse = FutureUtils.get(
             client().admin().cluster().health(new ClusterHealthRequest("tbl").waitForActiveShards(numDataNodes)));
-        assertFalse(clusterHealthResponse.isTimedOut());
+        assertThat(clusterHealthResponse.isTimedOut()).isFalse();
 
         final String primaryShardNodeId = clusterService().state().routingTable().index("tbl").shard(0).primaryShard().currentNodeId();
         final String primaryShardNodeName = clusterService().state().nodes().get(primaryShardNodeId).getName();
@@ -637,7 +630,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
 
                 });
         actionLatch.await();
-        assertTrue(success.get());
+        assertThat(success.get()).isTrue();
         afterSync.accept(primary);
     }
 

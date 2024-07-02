@@ -32,15 +32,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.function.LongConsumer;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.common.inject.AbstractModule;
 import org.junit.Before;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Input;
@@ -63,23 +63,18 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.role.Role;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.DataType;
-import io.crate.user.User;
 
 public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServiceUnitTest {
 
-    private final AbstractModule[] additionalModules;
     private final TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
     private SqlExpressions sqlExpressions;
     private InputFactory inputFactory;
     private OnHeapMemoryManager memoryManager;
-
-    public AbstractWindowFunctionTest(AbstractModule... additionalModules) {
-        this.additionalModules = additionalModules;
-    }
 
     @Before
     public void prepareFunctions() {
@@ -93,8 +88,7 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
         sqlExpressions = new SqlExpressions(
             tableSources,
             tableRelation,
-            User.CRATE_USER,
-            additionalModules
+            Role.CRATE_USER
         );
         inputFactory = new InputFactory(sqlExpressions.nodeCtx);
     }
@@ -109,11 +103,28 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
         }
     }
 
-    @SuppressWarnings("rawtypes")
+    protected void assertEvaluate(String functionExpression,
+                   Object[] expectedValue,
+                   List<ColumnIdent> rowsColumnDescription,
+                   LongConsumer allocateBytes,
+                   Object[]... inputRows
+                   ) throws Throwable {
+        evaluate(functionExpression, expectedValue, rowsColumnDescription, allocateBytes, inputRows);
+    }
+
     protected void assertEvaluate(String functionExpression,
                                   Object[] expectedValue,
                                   List<ColumnIdent> rowsColumnDescription,
                                   Object[]... inputRows) throws Throwable {
+        evaluate(functionExpression, expectedValue, rowsColumnDescription, ignored -> {}, inputRows);
+    }
+
+    @SuppressWarnings("rawtypes")
+    private void evaluate(String functionExpression,
+                          Object[] expectedValue,
+                          List<ColumnIdent> rowsColumnDescription,
+                          LongConsumer allocateBytes,
+                          Object[]... inputRows) throws Throwable {
         performInputSanityChecks(inputRows);
 
         Symbol normalizedFunctionSymbol = sqlExpressions.normalize(sqlExpressions.asSymbol(functionExpression));
@@ -123,7 +134,7 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
         ReferenceResolver<RowCollectExpression> referenceResolver =
             r -> new RowCollectExpression(rowsColumnDescription.indexOf(r.column()));
 
-        var sourceSymbols = Lists2.map(rowsColumnDescription, x -> sqlExpressions.normalize(sqlExpressions.asSymbol(x.sqlFqn())));
+        var sourceSymbols = Lists.map(rowsColumnDescription, x -> sqlExpressions.normalize(sqlExpressions.asSymbol(x.sqlFqn())));
         ensureInputRowsHaveCorrectType(sourceSymbols, inputRows);
         var argsCtx = inputFactory.ctxForRefs(txnCtx, referenceResolver);
         argsCtx.add(windowFunctionSymbol.arguments());
@@ -160,7 +171,8 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
         var mappedWindowDef = windowDef.map(s -> InputColumns.create(s, inputColSources));
         BatchIterator<Row> iterator = WindowFunctionBatchIterator.of(
             InMemoryBatchIterator.of(Arrays.stream(inputRows).map(RowN::new).toList(), SENTINEL,
-                                     true),
+                true),
+            allocateBytes,
             new IgnoreRowAccounting(),
             WindowProjector.createComputeStartFrameBoundary(numCellsInSourceRows, txnCtx, sqlExpressions.nodeCtx, mappedWindowDef, cmpOrderBy),
             WindowProjector.createComputeEndFrameBoundary(numCellsInSourceRows, txnCtx, sqlExpressions.nodeCtx, mappedWindowDef, cmpOrderBy),

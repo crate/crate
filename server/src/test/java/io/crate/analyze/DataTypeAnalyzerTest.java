@@ -21,8 +21,7 @@
 
 package io.crate.analyze;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import org.junit.Test;
 
@@ -38,6 +37,6 @@ public class DataTypeAnalyzerTest {
     public void testCastToNestedArrayExpressionReturnsArrayType() {
         Cast cast = (Cast) SqlParser.createExpression("xs::array(array(int))");
         DataType<?> dataType = DataTypeAnalyzer.convert(cast.getType());
-        assertThat(dataType, is(new ArrayType<>(new ArrayType<>(DataTypes.INTEGER))));
+        assertThat(dataType).isEqualTo(new ArrayType<>(new ArrayType<>(DataTypes.INTEGER)));
     }
 }

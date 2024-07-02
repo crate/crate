@@ -41,13 +41,13 @@ public abstract class TransportAction<Request extends TransportRequest, Response
     }
 
     public final <T> CompletableFuture<T> execute(Request request, Function<? super Response, ? extends T> mapper) {
-        FutureActionListener<Response, T> listener = new FutureActionListener<>(mapper);
+        FutureActionListener<Response> listener = new FutureActionListener<>();
         try {
             doExecute(request, listener);
         } catch (Exception e) {
             listener.onFailure(e);
         }
-        return listener;
+        return listener.thenApply(mapper);
     }
 
     protected abstract void doExecute(Request request, ActionListener<Response> listener);

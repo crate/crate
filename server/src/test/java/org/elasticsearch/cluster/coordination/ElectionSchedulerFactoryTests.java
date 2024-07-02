@@ -19,20 +19,17 @@
 
 package org.elasticsearch.cluster.coordination;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.coordination.ElectionSchedulerFactory.ELECTION_BACK_OFF_TIME_SETTING;
 import static org.elasticsearch.cluster.coordination.ElectionSchedulerFactory.ELECTION_DURATION_SETTING;
 import static org.elasticsearch.cluster.coordination.ElectionSchedulerFactory.ELECTION_INITIAL_TIMEOUT_SETTING;
 import static org.elasticsearch.cluster.coordination.ElectionSchedulerFactory.ELECTION_MAX_TIMEOUT_SETTING;
 import static org.elasticsearch.cluster.coordination.ElectionSchedulerFactory.toPositiveLongAtMost;
 import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -42,6 +39,7 @@ import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.Settings.Builder;
 import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
 
 import io.crate.common.unit.TimeValue;
 
@@ -73,7 +71,7 @@ public class ElectionSchedulerFactoryTests extends ESTestCase {
                     }
                     deterministicTaskQueue.runAllRunnableTasks();
                 }
-                assertTrue(electionStarted.compareAndSet(true, false));
+                assertThat(electionStarted.compareAndSet(true, false)).isTrue();
 
                 final long thisElectionStartTime = deterministicTaskQueue.getCurrentTimeMillis();
 
@@ -107,7 +105,7 @@ public class ElectionSchedulerFactoryTests extends ESTestCase {
             }
         }
         deterministicTaskQueue.runAllTasks();
-        assertFalse(electionStarted.get());
+        assertThat(electionStarted.get()).isFalse();
     }
 
     public void testRetriesOnCorrectSchedule() {
@@ -154,43 +152,48 @@ public class ElectionSchedulerFactoryTests extends ESTestCase {
         assertElectionSchedule(deterministicTaskQueue, electionSchedulerFactory, initialTimeout, backOffTime, maxTimeout, duration);
     }
 
+    @Test
     public void testSettingsValidation() {
         {
             final Settings settings = Settings.builder().put(ELECTION_INITIAL_TIMEOUT_SETTING.getKey(), "0s").build();
-            IllegalArgumentException e = expectThrows(IllegalArgumentException.class, () -> ELECTION_INITIAL_TIMEOUT_SETTING.get(settings));
-            assertThat(e.getMessage(), is("failed to parse value [0s] for setting [cluster.election.initial_timeout], must be >= [1ms]"));
+            assertThatThrownBy(() -> ELECTION_INITIAL_TIMEOUT_SETTING.get(settings))
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("failed to parse value [0s] for setting [cluster.election.initial_timeout], must be >= [1ms]");
         }
 
         {
             final Settings settings = Settings.builder().put(ELECTION_INITIAL_TIMEOUT_SETTING.getKey(), "10001ms").build();
-            IllegalArgumentException e = expectThrows(IllegalArgumentException.class, () -> ELECTION_INITIAL_TIMEOUT_SETTING.get(settings));
-            assertThat(e.getMessage(),
-                is("failed to parse value [10001ms] for setting [cluster.election.initial_timeout], must be <= [10s]"));
+            assertThatThrownBy(() -> ELECTION_INITIAL_TIMEOUT_SETTING.get(settings))
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("failed to parse value [10001ms] for setting [cluster.election.initial_timeout], must be <= [10s]");
         }
 
         {
             final Settings settings = Settings.builder().put(ELECTION_BACK_OFF_TIME_SETTING.getKey(), "0s").build();
-            IllegalArgumentException e = expectThrows(IllegalArgumentException.class, () -> ELECTION_BACK_OFF_TIME_SETTING.get(settings));
-            assertThat(e.getMessage(), is("failed to parse value [0s] for setting [cluster.election.back_off_time], must be >= [1ms]"));
+            assertThatThrownBy(() -> ELECTION_BACK_OFF_TIME_SETTING.get(settings))
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("failed to parse value [0s] for setting [cluster.election.back_off_time], must be >= [1ms]");
         }
 
         {
             final Settings settings = Settings.builder().put(ELECTION_BACK_OFF_TIME_SETTING.getKey(), "60001ms").build();
-            IllegalArgumentException e = expectThrows(IllegalArgumentException.class, () -> ELECTION_BACK_OFF_TIME_SETTING.get(settings));
-            assertThat(e.getMessage(),
-                is("failed to parse value [60001ms] for setting [cluster.election.back_off_time], must be <= [60s]"));
+            assertThatThrownBy(() -> ELECTION_BACK_OFF_TIME_SETTING.get(settings))
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("failed to parse value [60001ms] for setting [cluster.election.back_off_time], must be <= [60s]");
         }
 
         {
             final Settings settings = Settings.builder().put(ELECTION_MAX_TIMEOUT_SETTING.getKey(), "199ms").build();
-            IllegalArgumentException e = expectThrows(IllegalArgumentException.class, () -> ELECTION_MAX_TIMEOUT_SETTING.get(settings));
-            assertThat(e.getMessage(), is("failed to parse value [199ms] for setting [cluster.election.max_timeout], must be >= [200ms]"));
+            assertThatThrownBy(() -> ELECTION_MAX_TIMEOUT_SETTING.get(settings))
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("failed to parse value [199ms] for setting [cluster.election.max_timeout], must be >= [200ms]");
         }
 
         {
             final Settings settings = Settings.builder().put(ELECTION_MAX_TIMEOUT_SETTING.getKey(), "301s").build();
-            IllegalArgumentException e = expectThrows(IllegalArgumentException.class, () -> ELECTION_MAX_TIMEOUT_SETTING.get(settings));
-            assertThat(e.getMessage(), is("failed to parse value [301s] for setting [cluster.election.max_timeout], must be <= [300s]"));
+            assertThatThrownBy(() -> ELECTION_MAX_TIMEOUT_SETTING.get(settings))
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("failed to parse value [301s] for setting [cluster.election.max_timeout], must be <= [300s]");
         }
 
         {
@@ -204,11 +207,11 @@ public class ElectionSchedulerFactoryTests extends ESTestCase {
                 .put(ELECTION_MAX_TIMEOUT_SETTING.getKey(), maxTimeoutMillis + "ms")
                 .build();
 
-            assertThat(ELECTION_INITIAL_TIMEOUT_SETTING.get(settings), is(TimeValue.timeValueMillis(initialTimeoutMillis)));
-            assertThat(ELECTION_BACK_OFF_TIME_SETTING.get(settings), is(TimeValue.timeValueMillis(backOffMillis)));
-            assertThat(ELECTION_MAX_TIMEOUT_SETTING.get(settings), is(TimeValue.timeValueMillis(maxTimeoutMillis)));
+            assertThat(ELECTION_INITIAL_TIMEOUT_SETTING.get(settings)).isEqualTo(TimeValue.timeValueMillis(initialTimeoutMillis));
+            assertThat(ELECTION_BACK_OFF_TIME_SETTING.get(settings)).isEqualTo(TimeValue.timeValueMillis(backOffMillis));
+            assertThat(ELECTION_MAX_TIMEOUT_SETTING.get(settings)).isEqualTo(TimeValue.timeValueMillis(maxTimeoutMillis));
 
-            assertThat(new ElectionSchedulerFactory(settings, random(), null), not(nullValue())); // doesn't throw an IAE
+            assertThat(new ElectionSchedulerFactory(settings, random(), null)).isNotNull(); // doesn't throw an IAE
         }
 
         {
@@ -220,12 +223,13 @@ public class ElectionSchedulerFactoryTests extends ESTestCase {
                 .put(ELECTION_MAX_TIMEOUT_SETTING.getKey(), maxTimeoutMillis + "ms")
                 .build();
 
-            IllegalArgumentException e = expectThrows(IllegalArgumentException.class,
-                () -> new ElectionSchedulerFactory(settings, random(), null));
-            assertThat(e.getMessage(), equalTo("[cluster.election.max_timeout] is ["
-                + TimeValue.timeValueMillis(maxTimeoutMillis)
-                + "], but must be at least [cluster.election.initial_timeout] which is ["
-                + TimeValue.timeValueMillis(initialTimeoutMillis) + "]"));
+            assertThatThrownBy(() -> new ElectionSchedulerFactory(settings, random(), null))
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage(
+                    "[cluster.election.max_timeout] is ["
+                    + TimeValue.timeValueMillis(maxTimeoutMillis)
+                    + "], but must be at least [cluster.election.initial_timeout] which is ["
+                    + TimeValue.timeValueMillis(initialTimeoutMillis) + "]");
         }
     }
 

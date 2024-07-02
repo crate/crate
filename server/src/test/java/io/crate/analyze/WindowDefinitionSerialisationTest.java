@@ -22,9 +22,7 @@
 package io.crate.analyze;
 
 import static java.util.Collections.singletonList;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 
@@ -50,8 +48,8 @@ public class WindowDefinitionSerialisationTest {
         StreamInput input = output.bytes().streamInput();
         WindowDefinition fromInputWindowDefinition = new WindowDefinition(input);
 
-        assertThat(fromInputWindowDefinition, is(equalTo(windowDefinition)));
-        assertThat(fromInputWindowDefinition.hashCode(), is(equalTo(windowDefinition.hashCode())));
+        assertThat(fromInputWindowDefinition).isEqualTo(windowDefinition);
+        assertThat(fromInputWindowDefinition.hashCode()).isEqualTo(windowDefinition.hashCode());
     }
 
     @Test
@@ -68,7 +66,7 @@ public class WindowDefinitionSerialisationTest {
         StreamInput input = output.bytes().streamInput();
         WindowDefinition fromInputWindowDefinition = new WindowDefinition(input);
 
-        assertThat(fromInputWindowDefinition, is(equalTo(windowDefinition)));
-        assertThat(fromInputWindowDefinition.hashCode(), is(equalTo(windowDefinition.hashCode())));
+        assertThat(fromInputWindowDefinition).isEqualTo(windowDefinition);
+        assertThat(fromInputWindowDefinition.hashCode()).isEqualTo(windowDefinition.hashCode());
     }
 }

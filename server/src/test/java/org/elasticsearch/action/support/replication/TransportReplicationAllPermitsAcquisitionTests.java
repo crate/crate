@@ -16,9 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 package org.elasticsearch.action.support.replication;
 
 import static java.util.Collections.emptyMap;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_CREATION_DATE;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
@@ -33,16 +35,9 @@ import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -158,16 +153,18 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
             .build();
 
         primary = newStartedShard(p -> newShard(shardRouting, indexSettings, List.of()), true);
-        for (int i = 0; i < 10; i++) {
-            final String id = Integer.toString(i);
-            indexDoc(primary, id, "{\"value\":" + id + "}");
-        }
-
         IndexMetadata indexMetadata = IndexMetadata.builder(shardId.getIndexName())
             .settings(indexSettings)
             .primaryTerm(shardId.id(), primary.getOperationPrimaryTerm())
             .putMapping("{ \"properties\": { \"value\":  { \"type\": \"short\", \"position\": 1}}}")
             .build();
+        updateMappings(primary, indexMetadata);
+
+        for (int i = 0; i < 10; i++) {
+            final String id = Integer.toString(i);
+            indexDoc(primary, id, "{\"value\":" + id + "}");
+        }
+
         state.metadata(Metadata.builder().put(indexMetadata, false).generateClusterUuidIfNeeded());
 
         replica = newShard(primary.shardId(), false, node2.getId(), indexMetadata, null);
@@ -187,7 +184,7 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
             @Override
             protected void onSendRequest(long requestId, String action, TransportRequest request, DiscoveryNode node) {
                 assertThat(action, allOf(startsWith("cluster:admin/test/"), endsWith("[r]")));
-                assertThat(node, equalTo(node2));
+                assertThat(node).isEqualTo(node2);
                 // node2 doesn't really exist, but we are performing some trickery in mockIndicesService() to pretend that node1 holds both
                 // the primary and the replica, so redirect the request back to node1.
                 transportService.sendRequest(transportService.getLocalNode(), action, request,
@@ -298,10 +295,10 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
                             if (delayed) {
                                 final ClusterState clusterState = clusterService.state();
                                 if (globalBlock) {
-                                    assertTrue("Global block must exist", clusterState.blocks().hasGlobalBlock(block));
+                                    assertThat(clusterState.blocks().hasGlobalBlock(block)).as("Global block must exist").isTrue();
                                 } else {
                                     String indexName = primary.shardId().getIndexName();
-                                    assertTrue("Index block must exist", clusterState.blocks().hasIndexBlock(indexName, block));
+                                    assertThat(clusterState.blocks().hasIndexBlock(indexName, block)).as("Index block must exist").isTrue();
                                 }
                             }
                         }
@@ -326,18 +323,17 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
                 allPermitsAction.new AsyncPrimaryAction(primaryRequest, allPermitFuture) {
                     @Override
                     void runWithPrimaryShardReference(final TransportReplicationAction.PrimaryShardReference reference) {
-                        assertEquals("All permits must be acquired",
-                            IndexShard.OPERATIONS_BLOCKED, reference.indexShard.getActiveOperationsCount());
+                        assertThat(reference.indexShard.getActiveOperationsCount()).as("All permits must be acquired").isEqualTo(IndexShard.OPERATIONS_BLOCKED);
                         assertSame(primary, reference.indexShard);
 
                         final ClusterState clusterState = clusterService.state();
                         final ClusterBlocks.Builder blocks = ClusterBlocks.builder();
                         if (globalBlock) {
-                            assertFalse("Global block must not exist yet", clusterState.blocks().hasGlobalBlock(block));
+                            assertThat(clusterState.blocks().hasGlobalBlock(block)).as("Global block must not exist yet").isFalse();
                             blocks.addGlobalBlock(block);
                         } else {
                             String indexName = reference.indexShard.shardId().getIndexName();
-                            assertFalse("Index block must not exist yet", clusterState.blocks().hasIndexBlock(indexName, block));
+                            assertThat(clusterState.blocks().hasIndexBlock(indexName, block)).as("Index block must not exist yet").isFalse();
                             blocks.addIndexBlock(indexName, block);
                         }
 
@@ -389,17 +385,27 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
 
     private void assertSuccessfulOperation(final TestAction action, final Response response) {
         final String name = action.getActionName();
-        assertThat(name + " operation should have been executed on primary", action.executedOnPrimary.get(), is(true));
-        assertThat(name + " operation should have been executed on replica", action.executedOnReplica.get(), is(true));
-        assertThat(name + " operation must have a non null result", response, notNullValue());
-        assertThat(name + " operation should have been successful on 2 shards", response.getShardInfo().getSuccessful(), equalTo(2));
+        assertThat(action.executedOnPrimary.get())
+          .as(name + " operation should have been executed on primary")
+          .isTrue();
+        assertThat(action.executedOnReplica.get())
+          .as(name + " operation should have been executed on replica")
+          .isTrue();
+        assertThat(response)
+            .as(name + " operation must have a non null result")
+            .isNotNull();
+        assertThat(response.getShardInfo().getSuccessful()).as(name + " operation should have been successful on 2 shards").isEqualTo(2);
     }
 
     private void assertFailedOperation(final TestAction action,final ExecutionException exception) {
         final String name = action.getActionName();
-        assertThat(name + " operation should not have been executed on primary", action.executedOnPrimary.get(), nullValue());
-        assertThat(name + " operation should not have been executed on replica", action.executedOnReplica.get(), nullValue());
-        assertThat(exception.getCause(), instanceOf(ClusterBlockException.class));
+        assertThat(action.executedOnPrimary.get())
+            .as(name + " operation should not have been executed on primary")
+            .isNull();
+        assertThat(action.executedOnReplica.get())
+            .as(name + " operation should not have been executed on replica")
+            .isNull();
+        assertThat(exception.getCause()).isExactlyInstanceOf(ClusterBlockException.class);
         ClusterBlockException clusterBlockException = (ClusterBlockException) exception.getCause();
         assertThat(clusterBlockException.blocks(), hasItem(equalTo(block)));
     }
@@ -452,9 +458,9 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
             );
             this.shardId = Objects.requireNonNull(shardId);
             this.primary = Objects.requireNonNull(primary);
-            assertEquals(shardId, primary.shardId());
+            assertThat(primary.shardId()).isEqualTo(shardId);
             this.replica = Objects.requireNonNull(replica);
-            assertEquals(shardId, replica.shardId());
+            assertThat(replica.shardId()).isEqualTo(shardId);
             this.executedOnPrimary = executedOnPrimary;
         }
 
@@ -479,8 +485,7 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
 
         @Override
         protected ReplicaResult shardOperationOnReplica(Request shardRequest, IndexShard shard) throws Exception {
-            assertEquals("Replica is always assigned to node 2 in this test", clusterService.state().nodes().get("_node2").getId(),
-                shard.routingEntry().currentNodeId());
+            assertThat(shard.routingEntry().currentNodeId()).as("Replica is always assigned to node 2 in this test").isEqualTo(clusterService.state().nodes().get("_node2").getId());
             executedOnReplica.set(true);
             // The TransportReplicationAction.getIndexShard() method is overridden for testing purpose but we double check here
             // that the permit has been acquired on the replica shard
@@ -546,8 +551,8 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
 
         private void assertNoBlocks(final String error) {
             final ClusterState clusterState = clusterService.state();
-            assertFalse("Global level " + error, clusterState.blocks().hasGlobalBlock(block));
-            assertFalse("Index level " + error, clusterState.blocks().hasIndexBlock(shardId.getIndexName(), block));
+            assertThat(clusterState.blocks().hasGlobalBlock(block)).as("Global level " + error).isFalse();
+            assertThat(clusterState.blocks().hasIndexBlock(shardId.getIndexName(), block)).as("Index level " + error).isFalse();
         }
     }
 
@@ -579,13 +584,13 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
         @Override
         protected void shardOperationOnPrimary(Request shardRequest, IndexShard shard,
                 ActionListener<PrimaryResult<Request, Response>> listener) {
-            assertEquals("All permits must be acquired", IndexShard.OPERATIONS_BLOCKED, shard.getActiveOperationsCount());
+            assertThat(shard.getActiveOperationsCount()).as("All permits must be acquired").isEqualTo(IndexShard.OPERATIONS_BLOCKED);
             super.shardOperationOnPrimary(shardRequest, shard, listener);
         }
 
         @Override
         protected ReplicaResult shardOperationOnReplica(Request shardRequest, IndexShard shard) throws Exception {
-            assertEquals("All permits must be acquired", IndexShard.OPERATIONS_BLOCKED, shard.getActiveOperationsCount());
+            assertThat(shard.getActiveOperationsCount()).as("All permits must be acquired").isEqualTo(IndexShard.OPERATIONS_BLOCKED);
             return super.shardOperationOnReplica(shardRequest, shard);
         }
     }

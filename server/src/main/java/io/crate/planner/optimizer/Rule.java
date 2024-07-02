@@ -21,7 +21,9 @@
 
 package io.crate.planner.optimizer;
 
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
+
+import org.elasticsearch.Version;
 
 import io.crate.common.StringUtils;
 import io.crate.metadata.NodeContext;
@@ -30,7 +32,6 @@ import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
-import org.elasticsearch.Version;
 
 public interface Rule<T> {
 
@@ -46,10 +47,7 @@ public interface Rule<T> {
      */
     LogicalPlan apply(T plan,
                       Captures captures,
-                      PlanStats planStats,
-                      TransactionContext txnCtx,
-                      NodeContext nodeCtx,
-                      Function<LogicalPlan, LogicalPlan> resolvePlan);
+                      Rule.Context context);
 
     /**
      * @return The version all nodes in the cluster must have to be able to use this optimization.
@@ -67,6 +65,14 @@ public interface Rule<T> {
         return false;
     }
 
+    /**
+     * Every rule is enabled by default, but rules can be disabled by default when they are
+     * not suited for general usage because they are experimental.
+     */
+    default boolean defaultEnabled() {
+        return true;
+    }
+
     default String sessionSettingName() {
         return sessionSettingName(getClass());
     }
@@ -74,4 +80,12 @@ public interface Rule<T> {
     static String sessionSettingName(Class<?> rule) {
         return "optimizer_" + StringUtils.camelToSnakeCase(rule.getSimpleName());
     }
+
+    record Context(
+        PlanStats planStats,
+        TransactionContext txnCtx,
+        NodeContext nodeCtx,
+        UnaryOperator<LogicalPlan> resolvePlan
+    ) {}
+
 }

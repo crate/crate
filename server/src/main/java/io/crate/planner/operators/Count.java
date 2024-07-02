@@ -21,10 +21,10 @@
 
 package io.crate.planner.operators;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedCollection;
 import java.util.Set;
 
 import org.jetbrains.annotations.Nullable;
@@ -97,7 +97,8 @@ public class Count implements LogicalPlan {
             where.map(binder),
             tableRelation,
             plannerContext.transactionContext(),
-            plannerContext.nodeContext());
+            plannerContext.nodeContext(),
+            plannerContext.clusterState().metadata());
         Routing routing = plannerContext.allocateRouting(
             tableRelation.tableInfo(),
             boundWhere,
@@ -130,17 +131,12 @@ public class Count implements LogicalPlan {
     }
 
     @Override
-    public List<AbstractTableRelation<?>> baseTables() {
-        return List.of(tableRelation);
-    }
-
-    @Override
     public List<LogicalPlan> sources() {
         return List.of();
     }
 
     @Override
-    public List<RelationName> getRelationNames() {
+    public List<RelationName> relationNames() {
         return List.of(tableRelation.relationName());
     }
 
@@ -151,7 +147,7 @@ public class Count implements LogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
         return this;
     }
 

@@ -29,9 +29,8 @@ import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntArrayList;
 
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
@@ -40,6 +39,8 @@ import io.crate.types.DataTypes;
 
 public record BoundCreateTable(
         RelationName tableName,
+        @Nullable
+        String pkConstraintName,
         boolean ifNotExists,
         /**
          * In order of definition
@@ -68,11 +69,11 @@ public record BoundCreateTable(
     }
 
     public List<List<String>> partitionedBy() {
-        return Lists2.map(partitionedByColumns, BoundCreateTable::toPartitionMapping);
+        return Lists.map(partitionedByColumns, BoundCreateTable::toPartitionMapping);
     }
 
-    private static List<String> toPartitionMapping(Symbol symbol) {
-        String fqn = Symbols.pathFromSymbol(symbol).fqn();
+    public static List<String> toPartitionMapping(Symbol symbol) {
+        String fqn = symbol.toColumn().fqn();
         String typeMappingName = DataTypes.esMappingNameFrom(symbol.valueType().id());
         return List.of(fqn, typeMappingName);
     }

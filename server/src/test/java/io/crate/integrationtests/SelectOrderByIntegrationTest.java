@@ -21,17 +21,13 @@
 
 package io.crate.integrationtests;
 
-import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
+
+import static io.crate.testing.Asserts.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.testing.SQLResponse;
-import io.crate.testing.TestingHelpers;
 
 public class SelectOrderByIntegrationTest extends IntegTestCase {
 
@@ -39,56 +35,56 @@ public class SelectOrderByIntegrationTest extends IntegTestCase {
     public void testSelectOrderByNullSortingASC() throws Exception {
         new Setup(sqlExecutor).groupBySetup();
         execute("select age from characters order by age");
-        assertThat(TestingHelpers.printedTable(response.rows()),
-            is("32\n" +
-               "34\n" +
-               "43\n" +
-               "112\n" +
-               "NULL\n" +
-               "NULL\n" +
-               "NULL\n"));
+        assertThat(response).hasRows(
+            "32",
+            "34",
+            "43",
+            "112",
+            "NULL",
+            "NULL",
+            "NULL");
     }
 
     @Test
     public void testSelectOrderByNullSortingDESC() throws Exception {
         new Setup(sqlExecutor).groupBySetup();
         execute("select age from characters order by age desc");
-        assertThat(TestingHelpers.printedTable(response.rows()),
-            is("NULL\n" +
-               "NULL\n" +
-               "NULL\n" +
-               "112\n" +
-               "43\n" +
-               "34\n" +
-               "32\n"));
+        assertThat(response).hasRows(
+            "NULL",
+            "NULL",
+            "NULL",
+            "112",
+            "43",
+            "34",
+            "32");
     }
 
     @Test
     public void testSelectOrderByNullSortingASCWithFunction() throws Exception {
         new Setup(sqlExecutor).groupBySetup();
         execute("select abs(age) from characters order by 1 asc");
-        assertThat(TestingHelpers.printedTable(response.rows()),
-            is("32\n" +
-               "34\n" +
-               "43\n" +
-               "112\n" +
-               "NULL\n" +
-               "NULL\n" +
-               "NULL\n"));
+        assertThat(response).hasRows(
+            "32",
+            "34",
+            "43",
+            "112",
+            "NULL",
+            "NULL",
+            "NULL");
     }
 
     @Test
     public void testSelectOrderByNullSortingDESCWithFunction() throws Exception {
         new Setup(sqlExecutor).groupBySetup();
         execute("select abs(age) from characters order by 1 desc");
-        assertThat(TestingHelpers.printedTable(response.rows()),
-            is("NULL\n" +
-               "NULL\n" +
-               "NULL\n" +
-               "112\n" +
-               "43\n" +
-               "34\n" +
-               "32\n"));
+        assertThat(response).hasRows(
+            "NULL",
+            "NULL",
+            "NULL",
+            "112",
+            "43",
+            "34",
+            "32");
     }
 
 
@@ -96,24 +92,24 @@ public class SelectOrderByIntegrationTest extends IntegTestCase {
     public void testSelectGroupByOrderByNullSortingASC() throws Exception {
         new Setup(sqlExecutor).groupBySetup();
         execute("select age from characters group by age order by age");
-        assertThat(TestingHelpers.printedTable(response.rows()),
-            is("32\n" +
-               "34\n" +
-               "43\n" +
-               "112\n" +
-               "NULL\n"));
+        assertThat(response).hasRows(
+            "32",
+            "34",
+            "43",
+            "112",
+            "NULL");
     }
 
     @Test
     public void testSelectGroupByOrderByNullSortingDESC() throws Exception {
         new Setup(sqlExecutor).groupBySetup();
         execute("select age from characters group by age order by age desc");
-        assertThat(TestingHelpers.printedTable(response.rows()),
-            is("NULL\n" +
-               "112\n" +
-               "43\n" +
-               "34\n" +
-               "32\n"));
+        assertThat(response).hasRows(
+            "NULL",
+            "112",
+            "43",
+            "34",
+            "32");
     }
 
     @Test
@@ -121,24 +117,24 @@ public class SelectOrderByIntegrationTest extends IntegTestCase {
         new Setup(sqlExecutor).groupBySetup();
         SQLResponse response = execute(
             "select details['job'] from characters order by details['job'] nulls first limit 1");
-        assertNull(response.rows()[0][0]);
+        assertThat(response.rows()[0][0]).isNull();
 
         response = execute(
             "select details['job'] from characters order by details['job'] desc nulls first limit 1");
-        assertNull(response.rows()[0][0]);
+        assertThat(response.rows()[0][0]).isNull();
 
         response = execute(
             "select details['job'] from characters order by details['job'] nulls last");
-        assertNull(response.rows()[((Long) response.rowCount()).intValue() - 1][0]);
+        assertThat(response.rows()[((Long) response.rowCount()).intValue() - 1][0]).isNull();
 
         response = execute(
             "select details['job'] from characters order by details['job'] desc nulls last");
-        assertNull(response.rows()[((Long) response.rowCount()).intValue() - 1][0]);
+        assertThat(response.rows()[((Long) response.rowCount()).intValue() - 1][0]).isNull();
 
 
         response = execute(
             "select distinct details['job'] from characters order by details['job'] desc nulls last");
-        assertNull(response.rows()[((Long) response.rowCount()).intValue() - 1][0]);
+        assertThat(response.rows()[((Long) response.rowCount()).intValue() - 1][0]).isNull();
     }
 
     @Test
@@ -157,37 +153,37 @@ public class SelectOrderByIntegrationTest extends IntegTestCase {
                 "(null, 3.3, 1521479461, null), " +
                 "(4, null, 1521479462, 'b'), " +
                 "(null, 1.0, null, null)");
-        refresh();
+        execute("refresh table t1");
 
         execute("select str from t1 order by upper(str) limit 5");
-        assertThat(printedTable(response.rows()), is(
-            "a\n" +
-            "b\n" +
-            "NULL\n" +
-            "NULL\n" +
-            "NULL\n"
-        ));
+        assertThat(response).hasRows(
+            "a",
+            "b",
+            "NULL",
+            "NULL",
+            "NULL");
 
         execute("select i from t1 order by ln(i)");
-        assertThat(response.rows()[0][0], is(2));
+        assertThat(response.rows()[0][0]).isEqualTo(2);
 
         execute("select d from t1 order by ceil(d)");
-        assertThat(response.rows()[0][0], is(1.0));
+        assertThat(response.rows()[0][0]).isEqualTo(1.0);
 
         execute("select i from t1 order by ceil(i)");
-        assertThat(response.rows()[0][0], is(2));
+        assertThat(response.rows()[0][0]).isEqualTo(2);
 
         execute("select t from t1 order by date_trunc('year', 'Europe/London', t)");
-        assertThat(response.rows()[0][0], is(1521479461L));
+        assertThat(response.rows()[0][0]).isEqualTo(1521479461L);
     }
 
     @Test
     public void testOrderByLiteralConstant() {
         execute("create table t1 (id int)");
         execute("insert into t1 (id) values (1), (2)");
-        refresh();
+        execute("refresh table t1");
         execute("select 1 + 0, id from t1 order by 1, 2"); // add 2nd order by to get deterministic results
-        assertThat(printedTable(response.rows()), Matchers.is("1| 1\n" +
-                                                              "1| 2\n"));
+        assertThat(response).hasRows(
+            "1| 1",
+            "1| 2");
     }
 }

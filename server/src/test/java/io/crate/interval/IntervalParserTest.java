@@ -24,6 +24,8 @@ package io.crate.interval;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.Locale;
+
 import org.elasticsearch.test.ESTestCase;
 import org.joda.time.Period;
 import org.joda.time.PeriodType;
@@ -128,35 +130,35 @@ public class IntervalParserTest extends ESTestCase {
     public void parse_days_seconds() {
         assertThatThrownBy(() -> IntervalParser.apply("1 1"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Invalid interval format 1 1");
+            .hasMessage("Invalid interval format: 1 1");
     }
 
     @Test
     public void parse_negative_days_negative_seconds() {
         assertThatThrownBy(() -> IntervalParser.apply("-1 -1"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Invalid interval format -1 -1");
+            .hasMessage("Invalid interval format: -1 -1");
     }
 
     @Test
     public void parse_invalid_input_0() {
         assertThatThrownBy(() -> IntervalParser.apply("10-1-1-1-1-1"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Invalid interval format 10-1-1-1-1-1");
+            .hasMessage("Invalid interval format: 10-1-1-1-1-1");
     }
 
     @Test
     public void parse_invalid_input_1() {
         assertThatThrownBy(() -> IntervalParser.apply("10:1:1:1:N1:1"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Invalid interval format 10:1:1:1:N1:1");
+            .hasMessage("Invalid interval format: 10:1:1:1:N1:1");
     }
 
     @Test
     public void parse_invalid_input_2() {
         assertThatThrownBy(() -> IntervalParser.apply("1-2 3 4-5-6"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Invalid interval format 1-2 3 4-5-6");
+            .hasMessage("Invalid interval format: 1-2 3 4-5-6");
     }
 
     @Test
@@ -169,18 +171,18 @@ public class IntervalParserTest extends ESTestCase {
     public void parse_invalid_input_4() {
         assertThatThrownBy(() -> IntervalParser.apply("A-B C D:E:F"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Invalid interval format A-B C D:E:F");
+            .hasMessage("Invalid interval format: A-B C D:E:F");
     }
 
     @Test
     public void test_psql_format_from_string() {
-        Period period = PGIntervalParser.apply("@ 1 year 1 mon 1 day 1 hour 1 minute 1 secs");
+        Period period = PGIntervalParser.apply("@ 1 year 1 mon 1 day 1 hour 1 minute 1 secs  ");
         assertThat(period).isEqualTo(new Period().withYears(1).withMonths(1).withDays(1).withHours(1).withMinutes(1).withSeconds(1));
     }
 
     @Test
     public void test_psql_verbose_format_from_string_with_ago() {
-        Period period = IntervalParser.apply("@ 1 year 1 mon 1 day 1 hour 1 minute 1 secs ago");
+        Period period = IntervalParser.apply("  @ 1 year 1 mon 1 day 1 hour 1 minute 1 secs ago  ");
         assertThat(period).isEqualTo(
             new Period().withYears(-1).withMonths(-1).withDays(-1).withHours(-1).withMinutes(-1).withSeconds(-1)
                 .withPeriodType(PeriodType.yearMonthDayTime()));
@@ -196,7 +198,7 @@ public class IntervalParserTest extends ESTestCase {
 
     @Test
     public void test_psql_verbose_format_from_string_with_negative_values_and_ago() {
-        Period period = IntervalParser.apply("@ 1 year -23 hours -3 mins -3.30 secs ago");
+        Period period = IntervalParser.apply("@ 1 year -23 hours -3 mins -3.30 secs AGO");
         assertThat(period).isEqualTo(
             new Period().withYears(-1).withHours(23).withMinutes(3).withSeconds(3).withMillis(300)
                 .withPeriodType(PeriodType.yearMonthDayTime()));
@@ -217,17 +219,67 @@ public class IntervalParserTest extends ESTestCase {
     }
 
     @Test
-    public void test_characters() {
+    public void test_invalid_values() {
         assertThatThrownBy(() -> IntervalParser.apply("a week b mons c days"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Invalid interval format a week b mons c days");
+            .hasMessage("Invalid interval format: a week b mons c days");
+    }
+
+    @Test
+    public void test_invalid_types() {
+        assertThatThrownBy(() -> IntervalParser.apply("1 week 2 monthss 3 days"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid interval format: 1 week 2 monthss 3 days");
+    }
+
+    @Test
+    public void test_invalid_duplicate_units() {
+        assertThatThrownBy(() -> IntervalParser.apply("1 week 2 mons 3 days 4w"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid interval format: 1 week 2 mons 3 days 4w");
+        assertThatThrownBy(() -> IntervalParser.apply("1y 11:22:33 11:22:33"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid interval format: 1y 11:22:33 11:22:33");
+        assertThatThrownBy(() -> IntervalParser.apply("2sec 11:22:33"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid interval format: 2sec 11:22:33");
+        assertThatThrownBy(() -> IntervalParser.apply("1 years 2 mons 3 days 2 years"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Invalid interval format: 1 years 2 mons 3 days 2 years");
     }
 
     @Test
     public void test_normalization() {
-        Period period = IntervalParser.apply("1 year 1 month 763 days 1204 hours 642 mins 7123 secs");
-        assertThat(period).isEqualTo(
-            new Period(1, 1, 0, 813, 16, 40, 43, 0)
-                .withPeriodType(PeriodType.yearMonthDayTime()));
+        var expected = new Period(1, 2, 0, 827, 4, 40, 43, 0)
+            .withPeriodType(PeriodType.yearMonthDayTime());
+
+
+        var year = randomWhiteSpaces() + randomFrom("year", "years", "y");
+        var month = randomWhiteSpaces() + randomFrom("month", "months", "mon", "mons");
+        var week = randomWhiteSpaces() + randomFrom("week", "weeks", "w");
+        var day = randomWhiteSpaces() + randomFrom("day", "days", "d");
+        var hour = randomWhiteSpaces() + randomFrom("hour", "hours", "h");
+        var minute = randomWhiteSpaces() + randomFrom("minute", "minutes", "min", "mins", "m");
+        var second = randomWhiteSpaces() + randomFrom("second", "seconds", "sec", "secs", "s");
+
+        year = randomBoolean() ? year : year.toUpperCase(Locale.ENGLISH);
+        month = randomBoolean() ? month : month.toUpperCase(Locale.ENGLISH);
+        week = randomBoolean() ? week : week.toUpperCase(Locale.ENGLISH);
+        day = randomBoolean() ? day : day.toUpperCase(Locale.ENGLISH);
+        hour = randomBoolean() ? hour : hour.toUpperCase(Locale.ENGLISH);
+        minute = randomBoolean() ? minute : minute.toUpperCase(Locale.ENGLISH);
+        second = randomBoolean() ? second : second.toUpperCase(Locale.ENGLISH);
+
+        assertThat(IntervalParser.apply("1" + year + " 2" + month + " 3" + week + " 763" + day + " 1024" + hour +
+                                        " 642" + minute + " 7123" + second)).isEqualTo(expected);
+    }
+
+    private static String randomWhiteSpaces() {
+        var numWhitespaces = randomInt(5);
+        StringBuilder whiteSpaces = new StringBuilder();
+        for (int i = 0; i < numWhitespaces; i++) {
+            whiteSpaces.append(randomFrom(" ", "\t"));
+        }
+        return whiteSpaces.toString();
     }
 }

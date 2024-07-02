@@ -19,8 +19,7 @@
 
 package org.elasticsearch.common.bytes;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -29,7 +28,6 @@ import java.util.List;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.ReleasableBytesStreamOutput;
 import org.elasticsearch.common.util.ByteArray;
-import org.hamcrest.Matchers;
 
 public class ReleasableBytesReferenceTests extends AbstractBytesReferenceTestCase {
 
@@ -50,19 +48,19 @@ public class ReleasableBytesReferenceTests extends AbstractBytesReferenceTestCas
             for (int i = 0; i < length; i++) {
                 out.writeByte((byte) random().nextInt(1 << 8));
             }
-            assertThat(length, equalTo(out.size()));
+            assertThat(length).isEqualTo(out.size());
             BytesArray ref = new BytesArray(out.bytes().toBytesRef().bytes, 0, length);
-            assertThat(length, equalTo(ref.length()));
-            assertThat(ref.length(), Matchers.equalTo(length));
+            assertThat(length).isEqualTo(ref.length());
+            assertThat(ref.length()).isEqualTo(length);
             delegate = ref;
         } else if (paged.equals(type)) {
             ByteArray byteArray = bigarrays.newByteArray(length);
             for (int i = 0; i < length; i++) {
                 byteArray.set(i, (byte) random().nextInt(1 << 8));
             }
-            assertThat(byteArray.size(), Matchers.equalTo((long) length));
+            assertThat(byteArray.size()).isEqualTo(length);
             BytesReference ref = BytesReference.fromByteArray(byteArray, length);
-            assertThat(ref.length(), Matchers.equalTo(length));
+            assertThat(ref.length()).isEqualTo(length);
             delegate = ref;
         } else {
             assert composite.equals(type);
@@ -74,13 +72,13 @@ public class ReleasableBytesReferenceTests extends AbstractBytesReferenceTestCas
                     for (int j = 0; j < sliceLength; j++) {
                         out.writeByte((byte) random().nextInt(1 << 8));
                     }
-                    assertThat(sliceLength, equalTo(out.size()));
+                    assertThat(sliceLength).isEqualTo(out.size());
                     referenceList.add(out.bytes());
                 }
                 i += sliceLength;
             }
             BytesReference ref = CompositeBytesReference.of(referenceList.toArray(new BytesReference[0]));
-            assertThat(length, equalTo(ref.length()));
+            assertThat(length).isEqualTo(ref.length());
             delegate = ref;
         }
         return ReleasableBytesReference.wrap(delegate);

@@ -21,22 +21,24 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.Functions;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-
-import org.elasticsearch.Version;
-import org.elasticsearch.common.breaker.CircuitBreakingException;
-
-import org.jetbrains.annotations.Nullable;
-import java.util.ArrayList;
-import java.util.List;
 
 class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
 
@@ -46,24 +48,24 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
         DataTypes.register(TDigestStateType.ID, in -> TDigestStateType.INSTANCE);
     }
 
-    public static void register(AggregationImplModule mod) {
+    public static void register(Functions.Builder builder) {
         for (var supportedType : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
-            mod.register(
+            builder.add(
                 Signature.aggregate(
-                    NAME,
-                    supportedType.getTypeSignature(),
-                    DataTypes.DOUBLE.getTypeSignature(),
-                    DataTypes.DOUBLE.getTypeSignature()
-                ),
+                        NAME,
+                        supportedType.getTypeSignature(),
+                        DataTypes.DOUBLE.getTypeSignature(),
+                        DataTypes.DOUBLE.getTypeSignature())
+                    .withFeature(Scalar.Feature.DETERMINISTIC),
                 PercentileAggregation::new
             );
-            mod.register(
+            builder.add(
                 Signature.aggregate(
-                    NAME,
-                    supportedType.getTypeSignature(),
-                    DataTypes.DOUBLE_ARRAY.getTypeSignature(),
-                    DataTypes.DOUBLE_ARRAY.getTypeSignature()
-                ),
+                        NAME,
+                        supportedType.getTypeSignature(),
+                        DataTypes.DOUBLE_ARRAY.getTypeSignature(),
+                        DataTypes.DOUBLE_ARRAY.getTypeSignature())
+                    .withFeature(Scalar.Feature.DETERMINISTIC),
                 PercentileAggregation::new
             );
         }

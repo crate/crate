@@ -21,10 +21,6 @@
 
 package io.crate.execution.support;
 
-import io.crate.common.collections.Iterables;
-import io.crate.common.collections.Lists2;
-import io.crate.common.concurrent.CompletableFutures;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -34,6 +30,10 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.IntSupplier;
 import java.util.function.Supplier;
+
+import io.crate.common.collections.Iterables;
+import io.crate.common.collections.Lists;
+import io.crate.common.concurrent.CompletableFutures;
 
 public class ThreadPools {
 
@@ -70,7 +70,7 @@ public class ThreadPools {
 
             ArrayList<CompletableFuture<List<T>>> futures = new ArrayList<>(threadsToUse + 1);
             for (List<Supplier<T>> partition : partitions) {
-                Supplier<List<T>> executePartition = () -> Lists2.map(partition, Supplier::get);
+                Supplier<List<T>> executePartition = () -> Lists.map(partition, Supplier::get);
                 futures.add(CompletableFutures.supplyAsync(executePartition, executor));
             }
             return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))

@@ -24,9 +24,9 @@ package io.crate.metadata;
 import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.blob.v2.BlobIndex;
-import io.crate.common.annotations.VisibleForTesting;
 import io.crate.execution.ddl.tables.AlterTableOperation;
 import io.crate.metadata.blob.BlobSchemaInfo;
 
@@ -49,10 +49,6 @@ public class IndexParts {
     private final String partitionIdent;
 
     public IndexParts(String indexName) {
-        this(indexName, Schemas.DOC_SCHEMA_NAME);
-    }
-
-    public IndexParts(String indexName, String defaultSchema) {
         if (BlobIndex.isBlobIndex(indexName)) {
             schema = BlobSchemaInfo.NAME;
             table = BlobIndex.stripPrefix(indexName);
@@ -63,7 +59,7 @@ public class IndexParts {
             switch (parts.length) {
                 case 1:
                     // "table_name"
-                    schema = defaultSchema;
+                    schema = Schemas.DOC_SCHEMA_NAME;
                     table = indexName;
                     partitionIdent = null;
                     break;
@@ -76,7 +72,7 @@ public class IndexParts {
                 case 4:
                     // ""."partitioned"."table_name". ["ident"]
                     assertEmpty(parts[0]);
-                    schema = defaultSchema;
+                    schema = Schemas.DOC_SCHEMA_NAME;
                     assertPartitionPrefix(parts[1]);
                     table = parts[2];
                     partitionIdent = parts[3];
@@ -131,28 +127,20 @@ public class IndexParts {
         return toIndexName(relationName.schema(), relationName.name(), partitionIdent);
     }
 
-    public static String toIndexName(PartitionName partitionName) {
-        RelationName relationName = partitionName.relationName();
-        return toIndexName(relationName.schema(), relationName.name(), partitionName.ident());
-    }
-
     /**
      * Encodes the given parts to a CrateDB index name.
      */
     public static String toIndexName(String schema, String table, @Nullable String partitionIdent) {
-        StringBuilder stringBuilder = new StringBuilder();
-        final boolean isPartitioned = partitionIdent != null;
-        if (!schema.equals(Schemas.DOC_SCHEMA_NAME)) {
-            stringBuilder.append(schema).append(".");
+        if (partitionIdent == null) {
+            if (schema.equals(Schemas.DOC_SCHEMA_NAME)) {
+                return table;
+            }
+            return schema + "." + table;
         }
-        if (isPartitioned) {
-            stringBuilder.append(PARTITIONED_TABLE_PART);
+        if (schema.equals(Schemas.DOC_SCHEMA_NAME)) {
+            return IndexParts.PARTITIONED_TABLE_PART + table + "." + partitionIdent;
         }
-        stringBuilder.append(table);
-        if (isPartitioned) {
-            stringBuilder.append(".").append(partitionIdent);
-        }
-        return stringBuilder.toString();
+        return schema + "." + IndexParts.PARTITIONED_TABLE_PART + table + "." + partitionIdent;
     }
 
     /**

@@ -25,15 +25,12 @@ import static io.crate.testing.T3.T1;
 import static io.crate.testing.T3.T1_DEFINITION;
 import static io.crate.testing.T3.T4;
 import static io.crate.testing.T3.T4_DEFINITION;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -49,10 +46,9 @@ public class ColumnsIterableTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
+        SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable(T1_DEFINITION)
-            .addTable(T4_DEFINITION)
-            .build();
+            .addTable(T4_DEFINITION);
         t1Info = e.resolveTableInfo(T1.fqn());
         t4Info = e.resolveTableInfo(T4.fqn());
     }
@@ -60,12 +56,10 @@ public class ColumnsIterableTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testColumnsIteratorCanBeMaterializedToList() {
         InformationSchemaIterables.ColumnsIterable columns = new InformationSchemaIterables.ColumnsIterable(t1Info);
-        List<ColumnContext> contexts = StreamSupport.stream(columns.spliterator(), false)
-            .collect(Collectors.toList());
+        List<ColumnContext> contexts = StreamSupport.stream(columns.spliterator(), false).toList();
 
-        assertThat(
-            contexts.stream().map(c -> c.ref().column().name()).collect(Collectors.toList()),
-            Matchers.contains("a", "x", "i"));
+        assertThat(contexts.stream().map(c -> c.ref().column().name()).toList())
+            .containsExactly("a", "x", "i");
     }
 
     @Test
@@ -78,32 +72,30 @@ public class ColumnsIterableTest extends CrateDummyClusterServiceUnitTest {
         for (ColumnContext column : columns) {
             names.add(column.ref().column().name());
         }
-        assertThat(names, Matchers.contains("a", "x", "i", "a", "x", "i"));
+        assertThat(names).containsExactly("a", "x", "i", "a", "x", "i");
     }
 
     @Test
     public void testOrdinalIsNotNullOnSubColumns() throws Exception {
         InformationSchemaIterables.ColumnsIterable columns = new InformationSchemaIterables.ColumnsIterable(t4Info);
-        List<ColumnContext> contexts = StreamSupport.stream(columns.spliterator(), false)
-            .collect(Collectors.toList());
+        List<ColumnContext> contexts = StreamSupport.stream(columns.spliterator(), false).toList();
 
         // sub columns must have NON-NULL ordinal value
-        assertThat(contexts.get(1).ref().position(), is(2));
-        assertThat(contexts.get(2).ref().position(), is(3));
+        assertThat(contexts.get(1).ref().position()).isEqualTo(2);
+        assertThat(contexts.get(2).ref().position()).isEqualTo(3);
 
         // array of object sub columns also
-        assertThat(contexts.get(3).ref().position(), is(4));
-        assertThat(contexts.get(4).ref().position(), is(5));
+        assertThat(contexts.get(3).ref().position()).isEqualTo(4);
+        assertThat(contexts.get(4).ref().position()).isEqualTo(5);
     }
 
     @Test
     public void test_bit_type_has_character_maximum_length_set() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table bit_table (xs bit(12))")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table bit_table (xs bit(12))");
         var columns = new InformationSchemaIterables.ColumnsIterable(e.resolveTableInfo("bit_table"));
         var contexts = StreamSupport.stream(columns.spliterator(), false).toList();
 
-        assertThat(contexts.get(0).ref().valueType().characterMaximumLength(), is(12));
+        assertThat(contexts.getFirst().ref().valueType().characterMaximumLength()).isEqualTo(12);
     }
 }

@@ -22,8 +22,7 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
@@ -50,9 +49,9 @@ public class OuterJoinIntegrationTest extends IntegTestCase {
         execute("select persons.name, offices.name from" +
                 " employees as persons left join offices on office_id = offices.id" +
                 " order by persons.id");
-        assertThat(printedTable(response.rows()), is("Trillian| Entresol\n" +
+        assertThat(printedTable(response.rows())).isEqualTo("Trillian| Entresol\n" +
                                                      "Ford Perfect| NULL\n" +
-                                                     "Douglas Adams| Chief Office\n"));
+                                                     "Douglas Adams| Chief Office\n");
     }
 
     @Test
@@ -61,9 +60,9 @@ public class OuterJoinIntegrationTest extends IntegTestCase {
         execute("select persons.name, offices.name from" +
                 " employees as persons left join offices on office_id = offices.id" +
                 " order by offices.name nulls first");
-        assertThat(printedTable(response.rows()), is("Ford Perfect| NULL\n" +
+        assertThat(printedTable(response.rows())).isEqualTo("Ford Perfect| NULL\n" +
                                                      "Douglas Adams| Chief Office\n" +
-                                                     "Trillian| Entresol\n"));
+                                                     "Trillian| Entresol\n");
     }
 
     @Test
@@ -73,10 +72,10 @@ public class OuterJoinIntegrationTest extends IntegTestCase {
             " professions left join employees on profession_id = professions.id" +
             " left join offices on office_id = offices.id" +
             " order by professions.id");
-        assertThat(printedTable(response.rows()), is("Writer| Douglas Adams| Chief Office\n" +
+        assertThat(printedTable(response.rows())).isEqualTo("Writer| Douglas Adams| Chief Office\n" +
                                                      "Traveler| Ford Perfect| NULL\n" +
                                                      "Commander| Trillian| Entresol\n" +
-                                                     "Janitor| NULL| NULL\n"));
+                                                     "Janitor| NULL| NULL\n");
     }
 
     @Test
@@ -86,10 +85,10 @@ public class OuterJoinIntegrationTest extends IntegTestCase {
             " professions left join employees on profession_id = professions.id" +
             " left join offices on office_id = offices.id" +
             " order by offices.name nulls first, professions.id nulls first");
-        assertThat(printedTable(response.rows()), is("Traveler| Ford Perfect| NULL\n" +
+        assertThat(printedTable(response.rows())).isEqualTo("Traveler| Ford Perfect| NULL\n" +
                                                      "Janitor| NULL| NULL\n" +
                                                      "Writer| Douglas Adams| Chief Office\n" +
-                                                     "Commander| Trillian| Entresol\n"));
+                                                     "Commander| Trillian| Entresol\n");
     }
 
     @Test
@@ -97,9 +96,9 @@ public class OuterJoinIntegrationTest extends IntegTestCase {
         execute("select offices.name, persons.name from" +
                 " employees as persons right join offices on office_id = offices.id" +
                 " order by offices.id");
-        assertThat(printedTable(response.rows()), is("Hobbit House| NULL\n" +
+        assertThat(printedTable(response.rows())).isEqualTo("Hobbit House| NULL\n" +
                                                      "Entresol| Trillian\n" +
-                                                     "Chief Office| Douglas Adams\n"));
+                                                     "Chief Office| Douglas Adams\n");
     }
 
     @Test
@@ -109,10 +108,10 @@ public class OuterJoinIntegrationTest extends IntegTestCase {
             " offices left join employees on office_id = offices.id" +
             " right join professions on profession_id = professions.id" +
             " order by professions.id");
-        assertThat(printedTable(response.rows()), is("Writer| Douglas Adams| Chief Office\n" +
+        assertThat(printedTable(response.rows())).isEqualTo("Writer| Douglas Adams| Chief Office\n" +
                                                      "Traveler| NULL| NULL\n" +
                                                      "Commander| Trillian| Entresol\n" +
-                                                     "Janitor| NULL| NULL\n"));
+                                                     "Janitor| NULL| NULL\n");
     }
 
     @Test
@@ -120,10 +119,10 @@ public class OuterJoinIntegrationTest extends IntegTestCase {
         execute("select persons.name, offices.name from" +
                 " offices full join employees as persons on office_id = offices.id" +
                 " order by offices.id");
-        assertThat(printedTable(response.rows()), is("NULL| Hobbit House\n" +
+        assertThat(printedTable(response.rows())).isEqualTo("NULL| Hobbit House\n" +
                                                      "Trillian| Entresol\n" +
                                                      "Douglas Adams| Chief Office\n" +
-                                                     "Ford Perfect| NULL\n"));
+                                                     "Ford Perfect| NULL\n");
     }
 
     @Test
@@ -133,7 +132,7 @@ public class OuterJoinIntegrationTest extends IntegTestCase {
                 " offices full join employees as persons on office_id = offices.id" +
                 " where offices.name='Entresol' and persons.name='Trillian' " +
                 " order by offices.id");
-        assertThat(printedTable(response.rows()), is("Trillian| Entresol\n"));
+        assertThat(printedTable(response.rows())).isEqualTo("Trillian| Entresol\n");
     }
 
     @Test
@@ -154,8 +153,8 @@ public class OuterJoinIntegrationTest extends IntegTestCase {
                 "FROM t2 " +
                 "FULL OUTER JOIN t1 ON (t1.id = t2.t1_id) " +
                 "WHERE (t1.is_match = 1) ");
-        assertThat(printedTable(response.rows()), is("2| 2| 2| 1\n" +
-                                                     "NULL| NULL| 36| 1\n"));
+        assertThat(printedTable(response.rows())).isEqualTo("2| 2| 2| 1\n" +
+                                                     "NULL| NULL| 36| 1\n");
     }
 
     @Test
@@ -163,10 +162,10 @@ public class OuterJoinIntegrationTest extends IntegTestCase {
         execute("select coalesce(persons.name, ''), coalesce(offices.name, '') from" +
                 " offices full join employees as persons on office_id = offices.id" +
                 " order by 1, 2");
-        assertThat(printedTable(response.rows()), is("| Hobbit House\n" +
+        assertThat(printedTable(response.rows())).isEqualTo("| Hobbit House\n" +
                                                      "Douglas Adams| Chief Office\n" +
                                                      "Ford Perfect| \n" +
-                                                     "Trillian| Entresol\n"));
+                                                     "Trillian| Entresol\n");
     }
 
     @Test
@@ -175,8 +174,8 @@ public class OuterJoinIntegrationTest extends IntegTestCase {
                 " employees left join offices on office_id = offices.id" +
                 " where employees.id < 3" +
                 " order by offices.id");
-        assertThat(printedTable(response.rows()), is("Trillian| Entresol\n" +
-                                                     "Ford Perfect| NULL\n"));
+        assertThat(printedTable(response.rows())).isEqualTo("Trillian| Entresol\n" +
+                                                     "Ford Perfect| NULL\n");
     }
 
     @Test
@@ -186,7 +185,7 @@ public class OuterJoinIntegrationTest extends IntegTestCase {
                 " employees left join offices on office_id = offices.id" +
                 " where offices.size > 100" +
                 " order by offices.id");
-        assertThat(printedTable(response.rows()), is("Douglas Adams| Chief Office\n"));
+        assertThat(printedTable(response.rows())).isEqualTo("Douglas Adams| Chief Office\n");
     }
 
     @Test
@@ -196,8 +195,7 @@ public class OuterJoinIntegrationTest extends IntegTestCase {
                 " employees left join offices on office_id = offices.id" +
                 " where coalesce(offices.size, cast(110 as integer)) > 100" +
                 " order by offices.id");
-        assertThat(printedTable(response.rows()),
-            is("Douglas Adams| Chief Office\n" +
-               "Ford Perfect| NULL\n"));
+        assertThat(printedTable(response.rows())).isEqualTo("Douglas Adams| Chief Office\n" +
+               "Ford Perfect| NULL\n");
     }
 }

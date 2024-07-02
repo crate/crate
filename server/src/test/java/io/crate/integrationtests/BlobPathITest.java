@@ -21,13 +21,7 @@
 
 package io.crate.integrationtests;
 
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.lessThan;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -36,24 +30,19 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.http.HttpServerTransport;
 import org.elasticsearch.test.IntegTestCase;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
-import io.crate.blob.v2.BlobAdminClient;
-import io.crate.blob.v2.BlobIndicesService;
 
 @IntegTestCase.ClusterScope(numDataNodes = 0, numClientNodes = 0)
 @WindowsIncompatible
 public class BlobPathITest extends BlobIntegrationTestBase {
 
     private BlobHttpClient client;
-    private BlobAdminClient blobAdminClient;
     private Path globalBlobPath;
 
     private Settings configureGlobalBlobPath() {
@@ -64,18 +53,10 @@ public class BlobPathITest extends BlobIntegrationTestBase {
             .build();
     }
 
-    private Settings oneShardAndZeroReplicas() {
-        return Settings.builder()
-            .put(SETTING_NUMBER_OF_REPLICAS, 0)
-            .put(SETTING_NUMBER_OF_SHARDS, 1)
-            .build();
-    }
-
     private void launchNodeAndInitClient(Settings settings) throws Exception {
         // using numDataNodes = 1 to launch the node doesn't work:
         // if globalBlobPath is created within nodeSetting it is sometimes not available for the tests
         cluster().startNode(settings);
-        blobAdminClient = cluster().getInstance(BlobAdminClient.class);
 
         HttpServerTransport httpServerTransport = cluster().getInstance(HttpServerTransport.class);
         InetSocketAddress address = httpServerTransport.boundAddress().publishAddress().address();
@@ -90,25 +71,24 @@ public class BlobPathITest extends BlobIntegrationTestBase {
             .put("path.data", data1.toString())
             .build()
         );
-        blobAdminClient.createBlobTable("b1", oneShardAndZeroReplicas()).get(5, TimeUnit.SECONDS);
+        execute("create blob table b1 clustered into 1 shards with (number_of_replicas = 0)");
 
         client.put("b1", "abcdefg");
-        assertThat(gatherDigests(data1).size(), is(1));
+        assertThat(gatherDigests(data1)).hasSize(1);
         cluster().stopRandomDataNode();
-        assertThat(gatherDigests(data1).size(), is(1));
+        assertThat(gatherDigests(data1)).hasSize(1);
     }
 
     @Test
     public void testDataIsStoredInGlobalBlobPath() throws Exception {
         launchNodeAndInitClient(configureGlobalBlobPath());
 
-        Settings indexSettings = oneShardAndZeroReplicas();
-        blobAdminClient.createBlobTable("test", indexSettings).get();
+        execute("create blob table test clustered into 1 shards with (number_of_replicas = 0)");
 
         client.put("test", "abcdefg");
         String digest = "2fb5e13419fc89246865e7a324f476ec624e8740";
         try (Stream<Path> files = Files.walk(globalBlobPath)) {
-            assertThat(files.anyMatch(i -> digest.equals(i.getFileName().toString())), is(true));
+            assertThat(files.anyMatch(i -> digest.equals(i.getFileName().toString()))).isTrue();
         }
     }
 
@@ -117,16 +97,15 @@ public class BlobPathITest extends BlobIntegrationTestBase {
         launchNodeAndInitClient(configureGlobalBlobPath());
 
         Path tableBlobPath = createTempDir("tableBlobPath");
-        Settings indexSettings = Settings.builder()
-            .put(oneShardAndZeroReplicas())
-            .put(BlobIndicesService.SETTING_INDEX_BLOBS_PATH.getKey(), tableBlobPath.toString())
-            .build();
-        blobAdminClient.createBlobTable("test", indexSettings).get();
+        execute(
+            "create blob table test clustered into 1 shards with (number_of_replicas = 0, blobs_path = ?)",
+            new Object[] { tableBlobPath.toString() }
+        );
 
         client.put("test", "abcdefg");
         String digest = "2fb5e13419fc89246865e7a324f476ec624e8740";
         try (Stream<Path> files = Files.walk(tableBlobPath)) {
-            assertThat(files.anyMatch(i -> digest.equals(i.getFileName().toString())), is(true));
+            assertThat(files.anyMatch(i -> digest.equals(i.getFileName().toString()))).isTrue();
         }
     }
 
@@ -135,16 +114,15 @@ public class BlobPathITest extends BlobIntegrationTestBase {
         launchNodeAndInitClient(configureGlobalBlobPath());
 
         Path tableBlobPath = createTempDir("tableBlobPath");
-        Settings indexSettings = Settings.builder()
-            .put(oneShardAndZeroReplicas())
-            .put(BlobIndicesService.SETTING_INDEX_BLOBS_PATH.getKey(), tableBlobPath.toString())
-            .build();
-        blobAdminClient.createBlobTable("test", indexSettings).get();
+        execute(
+            "create blob table test clustered into 1 shards with (number_of_replicas = 0, blobs_path = ?)",
+            new Object[] { tableBlobPath.toString() }
+        );
         client.put("test", "abcdefg");
-        blobAdminClient.dropBlobTable("test");
+        execute("drop blob table test");
         String blobRootPath = String.format("%s/nodes/0/indices/.blob_test", tableBlobPath.toString());
 
-        assertBusy(() -> assertFalse(Files.exists(Paths.get(blobRootPath))), 5, TimeUnit.SECONDS);
+        assertBusy(() -> assertThat(Files.exists(Paths.get(blobRootPath))).isFalse(), 5, TimeUnit.SECONDS);
     }
 
     @Test
@@ -156,11 +134,7 @@ public class BlobPathITest extends BlobIntegrationTestBase {
             .put("path.data", data1.toString() + "," + data2.toString())
             .build();
         launchNodeAndInitClient(settings);
-        Settings indexSettings = Settings.builder()
-            .put(SETTING_NUMBER_OF_REPLICAS, 0)
-            .put(SETTING_NUMBER_OF_SHARDS, 2)
-            .build();
-        blobAdminClient.createBlobTable("test", indexSettings).get();
+        execute("create blob table test clustered into 2 shards with (number_of_replicas = 0)");
 
         for (int i = 0; i < 10; i++) {
             client.put("test", "body" + i);
@@ -168,9 +142,9 @@ public class BlobPathITest extends BlobIntegrationTestBase {
         List<String> data1Files = gatherDigests(data1);
         List<String> data2Files = gatherDigests(data2);
 
-        assertThat(data1Files.size(), Matchers.allOf(lessThan(10), greaterThan(0)));
-        assertThat(data2Files.size(), Matchers.allOf(lessThan(10), greaterThan(0)));
-        assertThat(data1Files.size() + data2Files.size(), is(10));
+        assertThat(data1Files.size()).isGreaterThan(0).isLessThan(10);
+        assertThat(data2Files.size()).isGreaterThan(0).isLessThan(10);
+        assertThat(data1Files.size() + data2Files.size()).isEqualTo(10);
     }
 
     private List<String> gatherDigests(Path data1) throws IOException {
@@ -179,7 +153,7 @@ public class BlobPathITest extends BlobIntegrationTestBase {
                 .map(Path::getFileName)
                 .map(Path::toString)
                 .filter(i -> i.length() == 40)
-                .collect(Collectors.toList());
+                .toList();
         }
     }
 }

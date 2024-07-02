@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -39,10 +40,8 @@ import java.util.function.Function;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.StoredField;
-import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
@@ -50,7 +49,6 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.elasticsearch.index.mapper.IdFieldMapper;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.SequenceIDFields;
 import org.elasticsearch.index.mapper.Uid;
@@ -72,6 +70,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
@@ -117,7 +116,6 @@ public class Indexer {
 
     private final List<ValueIndexer<?>> valueIndexers;
     private final List<Reference> columns;
-    private final SymbolEvaluator symbolEval;
     private final Map<ColumnIdent, Synthetic> synthetics;
     private final List<CollectExpression<IndexItem, Object>> expressions;
     private final Map<ColumnIdent, ColumnConstraint> columnConstraints = new HashMap<>();
@@ -126,14 +124,9 @@ public class Indexer {
     private final List<Input<?>> returnValueInputs;
     private final List<Synthetic> undeterministic = new ArrayList<>();
     private final BytesStreamOutput stream;
-    private final boolean writeOids;
+    private final Function<ColumnIdent, Reference> getRef;
 
-    /**
-     * Function to resolve a field type based on the columns {@link Reference#storageIdent()}.
-     */
-    private final Function<String, FieldType> getFieldType;
-
-    record IndexColumn(Reference reference, FieldType fieldType, List<Input<?>> inputs) {
+    record IndexColumn(Reference reference, List<Input<?>> inputs) {
     }
 
     static class RefResolver implements ReferenceResolver<CollectExpression<IndexItem, Object>> {
@@ -176,7 +169,7 @@ public class Indexer {
             //  - Can be a child column, where the root is part of the targetColumns / insertValues
 
             ColumnIdent column = ref.column();
-            if (column.equals(DocSysColumns.ID)) {
+            if (column.equals(DocSysColumns.ID.COLUMN)) {
                 return NestableCollectExpression.forFunction(IndexItem::id);
             } else if (column.equals(DocSysColumns.SEQ_NO)) {
                 return NestableCollectExpression.forFunction(IndexItem::seqNo);
@@ -203,9 +196,6 @@ public class Indexer {
                 }
             }
             if (column.isRoot()) {
-                if (targetColumns.contains(ref)) {
-                    return NestableCollectExpression.constant(null);
-                }
                 Symbol defaultExpression = ref.defaultExpression();
                 if (defaultExpression == null) {
                     if (ref instanceof GeneratedReference generated) {
@@ -272,7 +262,7 @@ public class Indexer {
      *
      * Cached value must be cleared per-row.
      **/
-    public class Synthetic implements Input<Object> {
+    private static class Synthetic implements Input<Object> {
 
         private final Reference ref;
         private final Input<?> input;
@@ -286,10 +276,6 @@ public class Indexer {
             this.ref = ref;
             this.input = input;
             this.indexer = indexer;
-        }
-
-        public Reference ref() {
-            return ref;
         }
 
         public ValueIndexer<Object> indexer() {
@@ -409,27 +395,25 @@ public class Indexer {
     }
 
     /**
-     * @param getFieldType  A function to resolve a {@link FieldType} by {@link Reference#storageIdent()}
+     *
      */
     @SuppressWarnings("unchecked")
     public Indexer(String indexName,
                    DocTableInfo table,
                    TransactionContext txnCtx,
                    NodeContext nodeCtx,
-                   Function<String, FieldType> getFieldType,
                    List<Reference> targetColumns,
                    Symbol[] returnValues) {
-        this.symbolEval = new SymbolEvaluator(txnCtx, nodeCtx, SubQueryResults.EMPTY);
         this.columns = targetColumns;
         this.synthetics = new HashMap<>();
         this.stream = new BytesStreamOutput();
-        this.writeOids = table.versionCreated().onOrAfter(Version.V_5_5_0);
-        this.getFieldType = getFieldType;
-        Function<ColumnIdent, Reference> getRef = table::getReference;
+        boolean writeOids = table.versionCreated().onOrAfter(Version.V_5_5_0);
+        this.getRef = table::getReference;
         PartitionName partitionName = table.isPartitioned()
             ? PartitionName.fromIndexOrTemplate(indexName)
             : null;
         InputFactory inputFactory = new InputFactory(nodeCtx);
+        SymbolEvaluator symbolEval = new SymbolEvaluator(txnCtx, nodeCtx, SubQueryResults.EMPTY);
         var referenceResolver = new RefResolver(symbolEval, partitionName, targetColumns, table);
         Context<CollectExpression<IndexItem, Object>> ctxForRefs = inputFactory.ctxForRefs(
             txnCtx,
@@ -439,7 +423,7 @@ public class Indexer {
         int position = -1;
         for (var ref : targetColumns) {
             ValueIndexer<?> valueIndexer;
-            if (ref instanceof DynamicReference dynamic) {
+            if (ref instanceof DynamicReference) {
                 if (table.columnPolicy() == ColumnPolicy.STRICT) {
                     throw new IllegalArgumentException(String.format(
                         Locale.ENGLISH,
@@ -450,13 +434,12 @@ public class Indexer {
                 }
                 // Empty arrays are not registered as known references, such they are stored in the source as unknown columns
                 var storageIdentPrefixForEmptyArrays = writeOids ? UNKNOWN_COLUMN_PREFIX : null;
-                valueIndexer = new DynamicIndexer(ref.ident(), position, getFieldType, getRef, storageIdentPrefixForEmptyArrays);
+                valueIndexer = new DynamicIndexer(ref.ident(), position, getRef, storageIdentPrefixForEmptyArrays);
                 position--;
             } else {
                 valueIndexer = ref.valueType().valueIndexer(
                     table.ident(),
                     ref,
-                    getFieldType,
                     getRef
                 );
             }
@@ -482,32 +465,7 @@ public class Indexer {
             }
             ColumnIdent column = ref.column();
 
-            // To ensure default expressions of object children are evaluated it's necessary
-            // to ensure the parent has values (or is present in the insert)
-            // This is because of how the index routine works:
-            // Processing objects is recursive, it skips null values -> it needs root synthetics as entry points
-            for (ColumnIdent parent : column.parents()) {
-                if (synthetics.containsKey(parent) || Symbols.containsColumn(targetColumns, parent)) {
-                    continue;
-                }
-                Reference parentRef = table.getReference(parent);
-                assert parentRef != null
-                    : "Must be able to retrieve Reference for parent of a `defaultExpressionColumn`";
-
-                int dimensions = ArrayType.dimensions(parentRef.valueType());
-                if (dimensions > 0) {
-                    break;
-                }
-                Input<?> input = HashMap::new;
-                ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) parentRef.valueType().valueIndexer(
-                    table.ident(),
-                    parentRef,
-                    getFieldType,
-                    getRef
-                );
-                Synthetic synthetic = new Synthetic(parentRef, input, valueIndexer);
-                this.synthetics.put(parent, synthetic);
-            }
+            createParentSynthetics(table, targetColumns, column, getRef);
 
             Input<?> input = table.primaryKey().contains(column)
                 ? ctxForRefs.add(ref)
@@ -515,13 +473,12 @@ public class Indexer {
             ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) ref.valueType().valueIndexer(
                 table.ident(),
                 ref,
-                getFieldType,
                 getRef
             );
             Synthetic synthetic = new Synthetic(ref, input, valueIndexer);
             this.synthetics.put(column, synthetic);
 
-            if (!Symbols.isDeterministic(ref.defaultExpression())) {
+            if (!ref.defaultExpression().isDeterministic()) {
                 undeterministic.add(synthetic);
             }
         }
@@ -532,24 +489,25 @@ public class Indexer {
             if (targetColumns.contains(ref)) {
                 continue;
             }
+
+            createParentSynthetics(table, targetColumns, ref.column(), getRef);
+
             Input<?> input = ctxForRefs.add(ref.generatedExpression());
             ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) ref.valueType().valueIndexer(
                 table.ident(),
                 ref,
-                getFieldType,
                 getRef
             );
             Synthetic synthetic = new Synthetic(ref, input, valueIndexer);
             this.synthetics.put(ref.column(), synthetic);
 
-            if (!Symbols.isDeterministic(ref.generatedExpression())) {
+            if (!ref.isDeterministic()) {
                 undeterministic.add(synthetic);
             }
         }
         this.indexColumns = new ArrayList<>(table.indexColumns().size());
         for (var ref : table.indexColumns()) {
             ArrayList<Input<?>> indexInputs = new ArrayList<>(ref.columns().size());
-            FieldType fieldType = getFieldType.apply(ref.storageIdent());
 
             for (var sourceRef : ref.columns()) {
                 Reference reference = table.getReference(sourceRef.column());
@@ -558,8 +516,8 @@ public class Indexer {
                 Input<?> input = ctxForRefs.add(sourceRef);
                 indexInputs.add(input);
             }
-            if (fieldType.indexOptions() != IndexOptions.NONE) {
-                indexColumns.add(new IndexColumn(ref, fieldType, indexInputs));
+            if (ref.indexType() != IndexType.NONE) {
+                indexColumns.add(new IndexColumn(ref, indexInputs));
             }
         }
         if (returnValues == null) {
@@ -584,6 +542,40 @@ public class Indexer {
             }
         }
         this.expressions = ctxForRefs.expressions();
+    }
+
+    /**
+     * To ensure default or generated expressions of object children are evaluated
+     * it's necessary to ensure the parent has values (or is present in the insert)
+     * This is because of how the index routine works:
+     * Processing objects is recursive, it skips null values -> it needs root synthetics as entry points
+     */
+    @SuppressWarnings("unchecked")
+    private void createParentSynthetics(DocTableInfo table,
+                                        List<Reference> targetColumns,
+                                        ColumnIdent column,
+                                        Function<ColumnIdent, Reference> getRef) {
+        for (ColumnIdent parent : column.parents()) {
+            if (synthetics.containsKey(parent) || Symbols.hasColumn(targetColumns, parent)) {
+                continue;
+            }
+            Reference parentRef = table.getReference(parent);
+            assert parentRef != null
+                : "Must be able to retrieve Reference for parent of a `defaultExpressionColumn`";
+
+            int dimensions = ArrayType.dimensions(parentRef.valueType());
+            if (dimensions > 0) {
+                break;
+            }
+            Input<?> input = HashMap::new;
+            ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) parentRef.valueType().valueIndexer(
+                table.ident(),
+                parentRef,
+                getRef
+            );
+            Synthetic synthetic = new Synthetic(parentRef, input, valueIndexer);
+            this.synthetics.put(parent, synthetic);
+        }
     }
 
     /**
@@ -614,7 +606,6 @@ public class Indexer {
                     valueIndexers.set(idx, newRef.valueType().valueIndexer(
                             newRef.ident().tableIdent(),
                             newRef,
-                            getFieldType,
                             getRef
                     ));
                 }
@@ -656,11 +647,10 @@ public class Indexer {
     }
 
     private static void addGeneratedToVerify(Map<ColumnIdent, ColumnConstraint> columnConstraints,
-                                      DocTableInfo table,
-                                      Context<?> ctxForRefs,
-                                      Reference ref) {
-        if (ref instanceof GeneratedReference generated
-                && Symbols.isDeterministic(generated.generatedExpression())) {
+                                             DocTableInfo table,
+                                             Context<?> ctxForRefs,
+                                             Reference ref) {
+        if (ref instanceof GeneratedReference generated && generated.isDeterministic()) {
             Input<?> input = ctxForRefs.add(generated.generatedExpression());
             columnConstraints.put(ref.column(), new CheckGeneratedValue(input, generated));
         }
@@ -684,8 +674,7 @@ public class Indexer {
     public List<Reference> collectSchemaUpdates(IndexItem item) throws IOException {
         ArrayList<Reference> newColumns = new ArrayList<>();
         Consumer<? super Reference> onDynamicColumn = ref -> {
-            ColumnIdent.validateColumnName(ref.column().name());
-            ref.column().path().forEach(ColumnIdent::validateObjectKey);
+            ref.column().validForCreate();
             newColumns.add(ref);
         };
 
@@ -702,7 +691,7 @@ public class Indexer {
                 continue;
             }
             ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) valueIndexers.get(i);
-            valueIndexer.collectSchemaUpdates(reference.valueType().sanitizeValue(value), onDynamicColumn, synthetics);
+            valueIndexer.collectSchemaUpdates(reference.valueType().sanitizeValue(value), onDynamicColumn, synthetics::get);
         }
         // Generated columns can result in new columns. For example: details object generated always as {\"a1\" = {\"b1\" = 'test'}},
         for (var entry : synthetics.entrySet()) {
@@ -719,7 +708,7 @@ public class Indexer {
             indexer.collectSchemaUpdates(
                 value,
                 onDynamicColumn,
-                synthetics
+                synthetics::get
             );
         }
         return newColumns;
@@ -768,7 +757,7 @@ public class Indexer {
                     reference.storageIdentLeafName(),
                     xContentBuilder,
                     addField,
-                    synthetics,
+                    synthetics::get,
                     columnConstraints
                 );
             }
@@ -789,7 +778,7 @@ public class Indexer {
                     synthetic.ref.storageIdentLeafName(),
                     xContentBuilder,
                     addField,
-                    synthetics,
+                    synthetics::get,
                     columnConstraints
                 );
             }
@@ -807,11 +796,11 @@ public class Indexer {
                             if (val == null) {
                                 continue;
                             }
-                            Field field = new Field(fqn, val.toString(), indexColumn.fieldType);
+                            Field field = new Field(fqn, val.toString(), FulltextIndexer.FIELD_TYPE);
                             doc.add(field);
                         }
                     } else {
-                        Field field = new Field(fqn, value.toString(), indexColumn.fieldType);
+                        Field field = new Field(fqn, value.toString(), FulltextIndexer.FIELD_TYPE);
                         doc.add(field);
                     }
                 }
@@ -829,7 +818,7 @@ public class Indexer {
             doc.add(new StoredField("_source", sourceRef.bytes, sourceRef.offset, sourceRef.length));
 
             BytesRef idBytes = Uid.encodeId(item.id());
-            doc.add(new Field(DocSysColumns.Names.ID, idBytes, IdFieldMapper.Defaults.FIELD_TYPE));
+            doc.add(new Field(DocSysColumns.Names.ID, idBytes, DocSysColumns.ID.FIELD_TYPE));
 
             SequenceIDFields seqID = SequenceIDFields.emptySeqID();
             // Actual values are set via ParsedDocument.updateSeqID
@@ -841,8 +830,7 @@ public class Indexer {
                 seqID,
                 item.id(),
                 doc,
-                source,
-                null
+                source
             );
         }
     }
@@ -931,8 +919,21 @@ public class Indexer {
         }
         List<Reference> newColumns = new ArrayList<>(columns);
         for (var synthetic : undeterministic) {
-            if (synthetic.ref.column().isRoot() && !newColumns.contains(synthetic.ref)) {
-                newColumns.add(synthetic.ref);
+            if (synthetic.ref.column().isRoot()) {
+                if (newColumns.contains(synthetic.ref) == false) {
+                    newColumns.add(synthetic.ref);
+                }
+            } else {
+                var rootIdent = synthetic.ref.column().getRoot();
+                int rootIndex = Reference.indexOf(newColumns, rootIdent);
+                if (rootIndex == -1) {
+                    // Synthetic is a generated/default sub-column with root not listed in the insert/upsert targets.
+                    // We need to add the root to replica targets
+                    // since we will generate object value in addGeneratedValues().
+                    Reference rootRef = getRef.apply(rootIdent);
+                    assert rootRef != null : "Root must exist in the table";
+                    newColumns.add(rootRef);
+                }
             }
         }
         return newColumns;
@@ -941,33 +942,41 @@ public class Indexer {
     @SuppressWarnings("unchecked")
     public Object[] addGeneratedValues(IndexItem item) {
         Object[] insertValues = item.insertValues();
-        int numExtra = (int) undeterministic.stream()
-            .filter(x -> x.ref().column().isRoot())
-            .count();
-        Object[] result = new Object[insertValues.length + numExtra];
-        System.arraycopy(insertValues, 0, result, 0, insertValues.length);
+        //  We don't know in advance how many values we will add: we can have multiple generated sub-columns.
+        //  Some of them can have their root listed in the insert/upsert targets (and thus not causing array expansion) and some not.
+        List<Object> extendedValues = new ArrayList<>(insertValues.length);
+        Collections.addAll(extendedValues, insertValues);
 
-        int i = 0;
         for (var synthetic : undeterministic) {
             ColumnIdent column = synthetic.ref.column();
             if (column.isRoot()) {
-                result[insertValues.length + i] = synthetic.value();
-                i++;
+                extendedValues.add(synthetic.value());
             } else {
                 int valueIdx = Reference.indexOf(columns, column.getRoot());
-                assert valueIdx > -1 : "synthetic column must exist in columns";
-
+                Map<String, Object> root;
+                if (valueIdx == -1) {
+                    // Object column is unused in the insert statement and doesn't exist in targets.
+                    root = new HashMap<>();
+                    extendedValues.add(root);
+                } else {
+                    assert valueIdx < insertValues.length : "Target columns and values must have the same size";
+                    root = (Map<String, Object>) insertValues[valueIdx];
+                }
                 ColumnIdent child = column.shiftRight();
                 Object value = synthetic.value();
-                Object object = insertValues[valueIdx];
+                // We don't override value if it exists.
+                // It's needed when:
+                // - users explicitly provide the whole object (including generated sub-column), then we take user provided value.
+                // - when upsert/update takes existing value from the existing document, it needs to take the whole object as is.
                 Maps.mergeInto(
-                    (Map<String, Object>) object,
+                    root,
                     child.name(),
                     child.path(),
-                    value
+                    value,
+                    Map::putIfAbsent
                 );
             }
         }
-        return result;
+        return extendedValues.toArray();
     }
 }

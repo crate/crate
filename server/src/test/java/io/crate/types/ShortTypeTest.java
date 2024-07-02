@@ -21,70 +21,74 @@
 
 package io.crate.types;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
 import java.util.Map;
 
-import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 
-public class ShortTypeTest extends ESTestCase {
+public class ShortTypeTest extends DataTypeTestCase<Short> {
+
+    @Override
+    public DataType<Short> getType() {
+        return ShortType.INSTANCE;
+    }
 
     @Test
     public void test_cast_text_to_smallint() {
-        assertThat(ShortType.INSTANCE.implicitCast("123"), is((short) 123));
+        assertThat(ShortType.INSTANCE.implicitCast("123")).isEqualTo((short) 123);
     }
 
     @Test
     public void test_cast_bigint_to_smallint() {
-        assertThat(ShortType.INSTANCE.implicitCast(123L), is((short) 123));
+        assertThat(ShortType.INSTANCE.implicitCast(123L)).isEqualTo((short) 123);
     }
 
     @Test
     public void test_cast_numeric_to_integer() {
-        assertThat(ShortType.INSTANCE.implicitCast(BigDecimal.valueOf(123)), is((short) 123));
+        assertThat(ShortType.INSTANCE.implicitCast(BigDecimal.valueOf(123))).isEqualTo((short) 123);
     }
 
     @Test
     public void test_sanitize_numeric_value() {
-        assertThat(ShortType.INSTANCE.sanitizeValue(1f), is((short) 1));
+        assertThat(ShortType.INSTANCE.sanitizeValue(1f)).isEqualTo((short) 1);
     }
 
     @Test
     public void test_cast_boolean_to_smallint_throws_exception() {
-        expectedException.expect(ClassCastException.class);
-        expectedException.expectMessage("Can't cast 'true' to smallint");
-        ShortType.INSTANCE.implicitCast(true);
+        assertThatThrownBy(() -> ShortType.INSTANCE.implicitCast(true))
+            .isExactlyInstanceOf(ClassCastException.class)
+            .hasMessage("Can't cast 'true' to smallint");
     }
 
     @Test
     public void test_cast_object_to_smallint_throws_exception() {
-        expectedException.expect(ClassCastException.class);
-        expectedException.expectMessage("Can't cast '{}' to smallint");
-        ShortType.INSTANCE.implicitCast(Map.of());
+        assertThatThrownBy(() -> ShortType.INSTANCE.implicitCast(Map.of()))
+            .isExactlyInstanceOf(ClassCastException.class)
+            .hasMessage("Can't cast '{}' to smallint");
     }
 
     @Test
     public void test_cast_int_to_short_out_of_positive_range_throws_exception() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("short value out of range: 2147483647");
-        ShortType.INSTANCE.implicitCast(Integer.MAX_VALUE);
+        assertThatThrownBy(() -> ShortType.INSTANCE.implicitCast(Integer.MAX_VALUE))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("short value out of range: 2147483647");
     }
 
     @Test
     public void test_cast_out_of_range_numeric_to_integer_throws_exception() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("short value out of range: 2147483647");
-        ShortType.INSTANCE.implicitCast(BigDecimal.valueOf(Integer.MAX_VALUE));
+        assertThatThrownBy(() -> ShortType.INSTANCE.implicitCast(Integer.MAX_VALUE))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("short value out of range: 2147483647");
     }
 
     @Test
     public void test_cast_int_to_short_out_of_negative_range_throws_exception() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("short value out of range: -2147483648");
-        ShortType.INSTANCE.implicitCast(Integer.MIN_VALUE);
+        assertThatThrownBy(() -> ShortType.INSTANCE.implicitCast(Integer.MIN_VALUE))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("short value out of range: -2147483648");
     }
 }

@@ -21,16 +21,21 @@
 
 package io.crate.analyze;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.ShardedTable;
 import io.crate.sql.tree.AlterTableReroute;
@@ -38,14 +43,11 @@ import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.PromoteReplica;
+import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.RerouteAllocateReplicaShard;
 import io.crate.sql.tree.RerouteCancelShard;
 import io.crate.sql.tree.RerouteMoveShard;
-
-import java.util.HashMap;
-import java.util.List;
-
-import static io.crate.metadata.RelationName.fromBlobTable;
+import io.crate.sql.tree.Table;
 
 public class AlterTableRerouteAnalyzer {
 
@@ -65,20 +67,23 @@ public class AlterTableRerouteAnalyzer {
         // safe to expect a `ShardedTable` since getTableInfo with
         // Operation.ALTER_REROUTE raises a appropriate error for sys tables
         ShardedTable tableInfo;
-        RelationName relationName;
-        if (alterTableReroute.blob()) {
-            relationName = fromBlobTable(alterTableReroute.table());
-        } else {
-            relationName = schemas.resolveRelation(
-                alterTableReroute.table().getName(),
-                transactionContext.sessionSettings().searchPath());
-        }
-        tableInfo = schemas.getTableInfo(relationName, Operation.ALTER_REROUTE);
+        Table<Expression> table = alterTableReroute.table();
+        QualifiedName qName = alterTableReroute.blob()
+            ? RelationName.fromBlobTable(table).toQualifiedName()
+            : table.getName();
+
+        CoordinatorSessionSettings sessionSettings = transactionContext.sessionSettings();
+        tableInfo = schemas.findRelation(
+            qName,
+            Operation.ALTER_REROUTE,
+            sessionSettings.sessionUser(),
+            sessionSettings.searchPath()
+        );
         return alterTableReroute.rerouteOption().accept(
             rerouteOptionVisitor,
             new Context(
                 tableInfo,
-                alterTableReroute.table().partitionProperties(),
+                table.partitionProperties(),
                 transactionContext,
                 nodeCtx,
                 paramTypeHints
@@ -114,7 +119,7 @@ public class AlterTableRerouteAnalyzer {
         public RerouteAnalyzedStatement visitRerouteMoveShard(RerouteMoveShard<?> node, Context context) {
             return new AnalyzedRerouteMoveShard(
                 context.tableInfo,
-                Lists2.map(
+                Lists.map(
                     context.partitionProperties,
                     p -> p.map(a -> context.exprAnalyzerWithFields.convert(a, context.exprCtx))
                 ),
@@ -127,7 +132,7 @@ public class AlterTableRerouteAnalyzer {
                                                                          Context context) {
             return new AnalyzedRerouteAllocateReplicaShard(
                 context.tableInfo,
-                Lists2.map(
+                Lists.map(
                     context.partitionProperties,
                     p -> p.map(a -> context.exprAnalyzerWithFields.convert(a, context.exprCtx))
                 ),
@@ -139,7 +144,7 @@ public class AlterTableRerouteAnalyzer {
         public RerouteAnalyzedStatement visitRerouteCancelShard(RerouteCancelShard<?> node, Context context) {
             return new AnalyzedRerouteCancelShard(
                 context.tableInfo,
-                Lists2.map(
+                Lists.map(
                     context.partitionProperties,
                     p -> p.map(a -> context.exprAnalyzerWithFields.convert(a, context.exprCtx))
                 ),
@@ -151,7 +156,7 @@ public class AlterTableRerouteAnalyzer {
         public RerouteAnalyzedStatement visitReroutePromoteReplica(PromoteReplica<?> node, Context context) {
             var promoteReplica = node.map(x -> context.exprAnalyzer.convert((Expression) x, context.exprCtx));
 
-            HashMap<String, Symbol> properties = new HashMap<>(promoteReplica.properties().properties());
+            Map<String, Symbol> properties = promoteReplica.properties().toMap(HashMap::new);
             Symbol acceptDataLoss = properties.remove(PromoteReplica.Properties.ACCEPT_DATA_LOSS);
             if (!properties.isEmpty()) {
                 throw new IllegalArgumentException(
@@ -160,7 +165,7 @@ public class AlterTableRerouteAnalyzer {
 
             return new AnalyzedPromoteReplica(
                 context.tableInfo,
-                Lists2.map(
+                Lists.map(
                     context.partitionProperties,
                     p -> p.map(a -> context.exprAnalyzerWithFields.convert(a, context.exprCtx))
                 ),

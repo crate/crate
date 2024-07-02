@@ -23,11 +23,13 @@ package io.crate.integrationtests;
 
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.List;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
+import io.crate.action.sql.BaseResultReceiver;
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.dsl.projection.AbstractIndexWriterProjection;
 import io.crate.testing.UseJdbc;
@@ -303,5 +305,32 @@ public class DeleteIntegrationTest extends IntegTestCase {
         assertThat(response).hasRows(
             "1"
         );
+    }
+
+    @Test
+    public void test_can_reuse_prepared_statement_for_delete_containing_non_deterministic_function() throws Exception {
+        execute("CREATE TABLE doc.t (a timestamp with time zone)");
+
+        try (var session = sqlExecutor.newSession()) {
+            session.parse(
+                "preparedStatement",
+                "DELETE FROM doc.t WHERE a < now() - '3 minute'::INTERVAL",
+                List.of()
+            );
+
+            // insert a value that the prepared statement will delete
+            execute("INSERT INTO doc.t SELECT now() - '3 minute'::INTERVAL");
+            refresh();
+
+            // execute the prepared statement to delete the inserted value
+            session.bind("portalName", "preparedStatement", List.of(), null);
+            session.execute("portalName", 0, new BaseResultReceiver());
+            session.sync().get();
+        }
+        refresh();
+
+        // empty rows implies that the now() in the prepared statement is evaluated during execution
+        execute("SELECT * FROM doc.t");
+        assertThat(response).isEmpty();
     }
 }

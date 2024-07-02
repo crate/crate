@@ -25,9 +25,9 @@ import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 
 import io.crate.data.Input;
 import io.crate.exceptions.ConversionException;
-import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -40,14 +40,15 @@ public class ExplicitCastFunction extends Scalar<Object, Object> {
 
     public static final String NAME = "cast";
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder module) {
+        module.add(
             Signature
                 .scalar(
                     NAME,
                     TypeSignature.parse("E"),
                     TypeSignature.parse("V"),
                     TypeSignature.parse("V"))
+                .withFeature(Feature.DETERMINISTIC)
                 .withTypeVariableConstraints(typeVariable("E"), typeVariable("V")),
             ExplicitCastFunction::new
         );

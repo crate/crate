@@ -18,9 +18,7 @@
  */
 package org.elasticsearch.cluster.coordination;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -43,54 +41,54 @@ public class CoordinationMetadataTests extends ESTestCase {
 
     public void testVotingConfiguration() {
         VotingConfiguration config0 = new VotingConfiguration(Set.of());
-        assertThat(config0, equalTo(VotingConfiguration.EMPTY_CONFIG));
-        assertThat(config0.getNodeIds(), equalTo(Set.of()));
-        assertThat(config0.isEmpty(), equalTo(true));
-        assertThat(config0.hasQuorum(Set.of()), equalTo(false));
-        assertThat(config0.hasQuorum(Set.of("id1")), equalTo(false));
+        assertThat(config0).isEqualTo(VotingConfiguration.EMPTY_CONFIG);
+        assertThat(config0.getNodeIds()).isEqualTo(Set.of());
+        assertThat(config0.isEmpty()).isTrue();
+        assertThat(config0.hasQuorum(Set.of())).isFalse();
+        assertThat(config0.hasQuorum(Set.of("id1"))).isFalse();
 
         VotingConfiguration config1 = new VotingConfiguration(Set.of("id1"));
-        assertThat(config1.getNodeIds(), equalTo(Set.of("id1")));
-        assertThat(config1.isEmpty(), equalTo(false));
-        assertThat(config1.hasQuorum(Set.of("id1")), equalTo(true));
-        assertThat(config1.hasQuorum(Set.of("id1", "id2")), equalTo(true));
-        assertThat(config1.hasQuorum(Set.of("id2")), equalTo(false));
-        assertThat(config1.hasQuorum(Set.of()), equalTo(false));
+        assertThat(config1.getNodeIds()).isEqualTo(Set.of("id1"));
+        assertThat(config1.isEmpty()).isFalse();
+        assertThat(config1.hasQuorum(Set.of("id1"))).isTrue();
+        assertThat(config1.hasQuorum(Set.of("id1", "id2"))).isTrue();
+        assertThat(config1.hasQuorum(Set.of("id2"))).isFalse();
+        assertThat(config1.hasQuorum(Set.of())).isFalse();
 
         VotingConfiguration config2 = new VotingConfiguration(Set.of("id1", "id2"));
-        assertThat(config2.getNodeIds(), equalTo(Set.of("id1", "id2")));
-        assertThat(config2.isEmpty(), equalTo(false));
-        assertThat(config2.hasQuorum(Set.of("id1", "id2")), equalTo(true));
-        assertThat(config2.hasQuorum(Set.of("id1", "id2", "id3")), equalTo(true));
-        assertThat(config2.hasQuorum(Set.of("id1")), equalTo(false));
-        assertThat(config2.hasQuorum(Set.of("id2")), equalTo(false));
-        assertThat(config2.hasQuorum(Set.of("id3")), equalTo(false));
-        assertThat(config2.hasQuorum(Set.of("id1", "id3")), equalTo(false));
-        assertThat(config2.hasQuorum(Set.of()), equalTo(false));
+        assertThat(config2.getNodeIds()).isEqualTo(Set.of("id1", "id2"));
+        assertThat(config2.isEmpty()).isFalse();
+        assertThat(config2.hasQuorum(Set.of("id1", "id2"))).isTrue();
+        assertThat(config2.hasQuorum(Set.of("id1", "id2", "id3"))).isTrue();
+        assertThat(config2.hasQuorum(Set.of("id1"))).isFalse();
+        assertThat(config2.hasQuorum(Set.of("id2"))).isFalse();
+        assertThat(config2.hasQuorum(Set.of("id3"))).isFalse();
+        assertThat(config2.hasQuorum(Set.of("id1", "id3"))).isFalse();
+        assertThat(config2.hasQuorum(Set.of())).isFalse();
 
         VotingConfiguration config3 = new VotingConfiguration(Set.of("id1", "id2", "id3"));
-        assertThat(config3.getNodeIds(), equalTo(Set.of("id1", "id2", "id3")));
-        assertThat(config3.isEmpty(), equalTo(false));
-        assertThat(config3.hasQuorum(Set.of("id1", "id2")), equalTo(true));
-        assertThat(config3.hasQuorum(Set.of("id2", "id3")), equalTo(true));
-        assertThat(config3.hasQuorum(Set.of("id1", "id3")), equalTo(true));
-        assertThat(config3.hasQuorum(Set.of("id1", "id2", "id3")), equalTo(true));
-        assertThat(config3.hasQuorum(Set.of("id1", "id2", "id4")), equalTo(true));
-        assertThat(config3.hasQuorum(Set.of("id1")), equalTo(false));
-        assertThat(config3.hasQuorum(Set.of("id2")), equalTo(false));
-        assertThat(config3.hasQuorum(Set.of("id3")), equalTo(false));
-        assertThat(config3.hasQuorum(Set.of("id1", "id4")), equalTo(false));
-        assertThat(config3.hasQuorum(Set.of("id1", "id4", "id5")), equalTo(false));
-        assertThat(config3.hasQuorum(Set.of()), equalTo(false));
+        assertThat(config3.getNodeIds()).isEqualTo(Set.of("id1", "id2", "id3"));
+        assertThat(config3.isEmpty()).isFalse();
+        assertThat(config3.hasQuorum(Set.of("id1", "id2"))).isTrue();
+        assertThat(config3.hasQuorum(Set.of("id2", "id3"))).isTrue();
+        assertThat(config3.hasQuorum(Set.of("id1", "id3"))).isTrue();
+        assertThat(config3.hasQuorum(Set.of("id1", "id2", "id3"))).isTrue();
+        assertThat(config3.hasQuorum(Set.of("id1", "id2", "id4"))).isTrue();
+        assertThat(config3.hasQuorum(Set.of("id1"))).isFalse();
+        assertThat(config3.hasQuorum(Set.of("id2"))).isFalse();
+        assertThat(config3.hasQuorum(Set.of("id3"))).isFalse();
+        assertThat(config3.hasQuorum(Set.of("id1", "id4"))).isFalse();
+        assertThat(config3.hasQuorum(Set.of("id1", "id4", "id5"))).isFalse();
+        assertThat(config3.hasQuorum(Set.of())).isFalse();
     }
 
     public void testVotingConfigurationSerializationEqualsHashCode() {
         VotingConfiguration initialConfig = randomVotingConfig();
         // Note: the explicit cast of the CopyFunction is needed for some IDE (specifically Eclipse 4.8.0) to infer the right type
-        EqualsHashCodeTestUtils.checkEqualsAndHashCode(initialConfig,
-                (CopyFunction<VotingConfiguration>) orig -> ESTestCase.copyWriteable(orig,
-                        new NamedWriteableRegistry(Collections.emptyList()), VotingConfiguration::new),
-                cfg -> randomlyChangeVotingConfiguration(cfg));
+        EqualsHashCodeTestUtils.checkEqualsAndHashCode(
+            initialConfig,
+            orig -> ESTestCase.copyWriteable(orig, new NamedWriteableRegistry(Collections.emptyList()), VotingConfiguration::new),
+            cfg -> randomlyChangeVotingConfiguration(cfg));
     }
 
     private static VotingConfiguration randomVotingConfig() {
@@ -100,10 +98,10 @@ public class CoordinationMetadataTests extends ESTestCase {
     public void testVotingTombstoneSerializationEqualsHashCode() {
         VotingConfigExclusion tombstone = new VotingConfigExclusion(randomAlphaOfLength(10), randomAlphaOfLength(10));
         // Note: the explicit cast of the CopyFunction is needed for some IDE (specifically Eclipse 4.8.0) to infer the right type
-        EqualsHashCodeTestUtils.checkEqualsAndHashCode(tombstone,
-                (CopyFunction<VotingConfigExclusion>) orig -> ESTestCase.copyWriteable(orig,
-                        new NamedWriteableRegistry(Collections.emptyList()), VotingConfigExclusion::new),
-                orig -> randomlyChangeVotingTombstone(orig));
+        EqualsHashCodeTestUtils.checkEqualsAndHashCode(
+            tombstone,
+            orig -> ESTestCase.copyWriteable(orig, new NamedWriteableRegistry(Collections.emptyList()), VotingConfigExclusion::new),
+            orig -> randomlyChangeVotingTombstone(orig));
     }
 
     public void testVotingTombstoneXContent() throws IOException {
@@ -114,7 +112,7 @@ public class CoordinationMetadataTests extends ESTestCase {
 
         try (XContentParser parser = createParser(JsonXContent.JSON_XCONTENT, BytesReference.bytes(builder))) {
             final VotingConfigExclusion fromXContentTombstone = VotingConfigExclusion.fromXContent(parser);
-            assertThat(originalTombstone, equalTo(fromXContentTombstone));
+            assertThat(originalTombstone).isEqualTo(fromXContentTombstone);
         }
     }
 
@@ -146,7 +144,7 @@ public class CoordinationMetadataTests extends ESTestCase {
         final int size = randomIntBetween(1, 10);
         final Set<VotingConfigExclusion> nodes = new HashSet<>(size);
         while (nodes.size() < size) {
-            assertTrue(nodes.add(new VotingConfigExclusion(randomAlphaOfLength(10), randomAlphaOfLength(10))));
+            assertThat(nodes.add(new VotingConfigExclusion(randomAlphaOfLength(10), randomAlphaOfLength(10)))).isTrue();
         }
         return nodes;
     }
@@ -193,7 +191,7 @@ public class CoordinationMetadataTests extends ESTestCase {
 
         try (XContentParser parser = createParser(JsonXContent.JSON_XCONTENT, BytesReference.bytes(builder))) {
             final CoordinationMetadata fromXContentMeta = CoordinationMetadata.fromXContent(parser);
-            assertThat(originalMeta, equalTo(fromXContentMeta));
+            assertThat(originalMeta).isEqualTo(fromXContentMeta);
         }
     }
 }

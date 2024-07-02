@@ -29,6 +29,7 @@ import java.util.List;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -41,14 +42,16 @@ class ArrayLowerFunction extends Scalar<Integer, Object> {
 
     public static final String NAME = "array_lower";
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder module) {
+        module.add(
             Signature.scalar(
-                NAME,
-                TypeSignature.parse("array(E)"),
-                DataTypes.INTEGER.getTypeSignature(),
-                DataTypes.INTEGER.getTypeSignature()
-            ).withTypeVariableConstraints(typeVariable("E")),
+                    NAME,
+                    TypeSignature.parse("array(E)"),
+                    DataTypes.INTEGER.getTypeSignature(),
+                    DataTypes.INTEGER.getTypeSignature()
+                ).withFeature(Feature.DETERMINISTIC)
+                .withTypeVariableConstraints(typeVariable("E"))
+                .withFeature(Feature.NULLABLE),
             ArrayLowerFunction::new
         );
     }

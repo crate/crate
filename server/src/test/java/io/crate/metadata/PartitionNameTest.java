@@ -28,10 +28,17 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.util.Arrays;
 import java.util.List;
 
-import org.elasticsearch.test.ESTestCase;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.junit.Test;
 
-public class PartitionNameTest extends ESTestCase {
+import io.crate.exceptions.PartitionUnknownException;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.sql.tree.Assignment;
+import io.crate.sql.tree.QualifiedName;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
+
+public class PartitionNameTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSingleColumn() throws Exception {
@@ -239,5 +246,45 @@ public class PartitionNameTest extends ESTestCase {
             .isNotEqualTo(new PartitionName(new RelationName("schema", "table"), Arrays.asList("xxx")));
         PartitionName name = new PartitionName(new RelationName("doc", "table"), Arrays.asList("xxx"));
         assertThat(name.equals(PartitionName.fromIndexOrTemplate(name.asIndexName()))).isTrue();
+    }
+
+
+    @Test
+    public void test_PartitionName_from_assignments_with_relation_name() {
+        PartitionName partitionName = PartitionName.ofAssignments(new RelationName("dummy", "tbl"), List.of(
+            new Assignment<>(new QualifiedName("p1"), 10),
+            new Assignment<>(new QualifiedName("a"), 20)
+        ));
+        assertThat(partitionName.values()).containsExactly("10", "20");
+        assertThat(partitionName.asIndexName()).isEqualTo("dummy..partitioned.tbl.081j2c0368o0");
+    }
+
+    @Test
+    public void test_PartitionName_from_assignment_with_partitioned_table() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addPartitionedTable(
+                "create table doc.users (x int, p1 int) partitioned by (p1)",
+                ".partitioned.users.041j2c0"
+            );
+
+        DocTableInfo tableInfo = e.resolveTableInfo("doc.users");
+        Metadata metadata = e.getPlannerContext().clusterState().metadata();
+        PartitionName partitionName = PartitionName.ofAssignments(tableInfo, List.of(new Assignment<>(new QualifiedName("p1"), 10)), metadata);
+        assertThat(partitionName.values()).containsExactly("10");
+        assertThat(partitionName.asIndexName()).isEqualTo(tableInfo.concreteIndices(metadata)[0]);
+
+        assertThatThrownBy(() -> PartitionName.ofAssignments(tableInfo, List.of(new Assignment<>(new QualifiedName("p1"), 20)), metadata)).isExactlyInstanceOf(PartitionUnknownException.class);
+    }
+
+    @Test
+    public void test_PartitionName_from_assignments_of_regular_table() {
+        DocTableInfo tableInfo = SQLExecutor.tableInfo(
+            new RelationName("doc", "users"),
+            "create table doc.users (name text primary key)",
+            clusterService);
+
+        assertThatThrownBy(() -> PartitionName.ofAssignments(tableInfo, List.of(new Assignment<>(new QualifiedName("name"), "foo")), Metadata.EMPTY_METADATA))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("table 'doc.users' is not partitioned");
     }
 }

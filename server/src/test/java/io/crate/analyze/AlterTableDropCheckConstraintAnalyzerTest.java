@@ -21,6 +21,8 @@
 
 package io.crate.analyze;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.io.IOException;
 
 import org.assertj.core.api.Assertions;
@@ -30,21 +32,18 @@ import org.junit.Test;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 public class AlterTableDropCheckConstraintAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addTable("create table t (" +
                       "     id integer primary key," +
                       "     qty integer constraint check_qty_gt_zero check (qty > 0)," +
                       "     constraint check_id_ge_zero check (id >= 0)" +
-                      ")")
-            .build();
+                      ")");
     }
 
 

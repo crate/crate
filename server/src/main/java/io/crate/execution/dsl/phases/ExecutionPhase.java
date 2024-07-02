@@ -22,13 +22,15 @@
 package io.crate.execution.dsl.phases;
 
 
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.Writeable;
-
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.Writeable;
+
+import io.crate.Streamer;
 
 public interface ExecutionPhase extends Writeable {
 
@@ -48,7 +50,8 @@ public interface ExecutionPhase extends Writeable {
         HASH_JOIN(HashJoinPhase::new),
         TABLE_FUNCTION_COLLECT(in -> {
             throw new UnsupportedOperationException("TableFunctionCollectPhase is not streamable"); }),
-        PKLookup(PKLookupPhase::new);
+        PKLookup(PKLookupPhase::new),
+        FOREIGN_COLLECT(ForeignCollectPhase::new);
 
         public static final List<Type> VALUES = List.of(values());
 
@@ -72,6 +75,11 @@ public interface ExecutionPhase extends Writeable {
     Collection<String> nodeIds();
 
     <C, R> R accept(ExecutionPhaseVisitor<C, R> visitor, C context);
+
+    /**
+     * Streamers that can serialize the output of this phase
+     **/
+    Streamer<?>[] getStreamers();
 
     default String label() {
         return name() + ": " + phaseId();

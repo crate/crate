@@ -22,6 +22,7 @@
 package io.crate.expression.scalar;
 
 import io.crate.data.Input;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -30,16 +31,16 @@ import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
 public class ConcatWsFunction extends Scalar<String, String> {
-
     public static final String NAME = "concat_ws";
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder module) {
+        module.add(
             Signature.scalar(
                 NAME,
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ).withVariableArity(),
+            ).withFeature(Feature.DETERMINISTIC)
+            .withVariableArity(),
             ConcatWsFunction::new
         );
     }

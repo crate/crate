@@ -21,6 +21,7 @@
 
 package io.crate.types;
 
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.OidHash;
 
@@ -36,7 +37,7 @@ public class Regproc {
 
     public static Regproc of(@NotNull String name) {
         return new Regproc(
-            OidHash.functionOid(Signature.scalar(name, DataTypes.UNDEFINED.getTypeSignature())),
+            OidHash.functionOid(Signature.scalar(name, DataTypes.UNDEFINED.getTypeSignature()).withFeature(Scalar.Feature.DETERMINISTIC)),
             name
         );
     }
@@ -56,7 +57,7 @@ public class Regproc {
     }
 
     public Signature asDummySignature() {
-        return Signature.scalar(name, DataTypes.UNDEFINED.getTypeSignature());
+        return Signature.scalar(name, DataTypes.UNDEFINED.getTypeSignature()).withFeature(Scalar.Feature.DETERMINISTIC);
     }
 
     public int oid() {

@@ -33,9 +33,10 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.apache.lucene.document.FieldType;
+import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.TermInSetQuery;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.util.BytesRef;
@@ -49,6 +50,7 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.Streamer;
+import io.crate.common.collections.Lists;
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.dml.FulltextIndexer;
 import io.crate.execution.dml.StringIndexer;
@@ -62,6 +64,7 @@ import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.Expression;
+import io.crate.statistics.ColumnStatsSupport;
 
 public class StringType extends DataType<String> implements Streamer<String> {
 
@@ -70,14 +73,26 @@ public class StringType extends DataType<String> implements Streamer<String> {
     public static final String T = "t";
     public static final String F = "f";
 
+    /**
+        * The default position_increment_gap is set to 100 so that phrase
+        * queries of reasonably high slop will not match across field values.
+        */
+    public static final int POSITION_INCREMENT_GAP = 100;
+
     private static final StorageSupport<Object> STORAGE = new StorageSupport<>(
         true,
         true,
         new EqQuery<Object>() {
 
             @Override
-            public Query termQuery(String field, Object value) {
-                return new TermQuery(new Term(field, BytesRefs.toBytesRef(value)));
+            public Query termQuery(String field, Object value, boolean hasDocValues, boolean isIndexed) {
+                if (isIndexed) {
+                    return new TermQuery(new Term(field, BytesRefs.toBytesRef(value)));
+                }
+                if (hasDocValues) {
+                    return SortedSetDocValuesField.newSlowExactQuery(field, BytesRefs.toBytesRef(value));
+                }
+                return null;
             }
 
             @Override
@@ -86,31 +101,50 @@ public class StringType extends DataType<String> implements Streamer<String> {
                                     Object upperTerm,
                                     boolean includeLower,
                                     boolean includeUpper,
-                                    boolean hasDocValues) {
-                return new TermRangeQuery(
-                    field,
-                    BytesRefs.toBytesRef(lowerTerm),
-                    BytesRefs.toBytesRef(upperTerm),
-                    includeLower,
-                    includeUpper
-                );
+                                    boolean hasDocValues,
+                                    boolean isIndexed) {
+                if (isIndexed) {
+                    return new TermRangeQuery(
+                        field,
+                        BytesRefs.toBytesRef(lowerTerm),
+                        BytesRefs.toBytesRef(upperTerm),
+                        includeLower,
+                        includeUpper
+                    );
+                }
+                if (hasDocValues) {
+                    return SortedSetDocValuesField.newSlowRangeQuery(
+                        field,
+                        BytesRefs.toBytesRef(lowerTerm),
+                        BytesRefs.toBytesRef(upperTerm),
+                        includeLower,
+                        includeUpper
+                    );
+                }
+                return null;
+            }
+
+            @Override
+            public Query termsQuery(String field, List<Object> nonNullValues, boolean hasDocValues, boolean isIndexed) {
+                if (isIndexed) {
+                    return new TermInSetQuery(field, nonNullValues.stream().map(BytesRefs::toBytesRef).toList());
+                }
+                if (hasDocValues) {
+                    return SortedSetDocValuesField.newSlowSetQuery(field, Lists.map(nonNullValues, BytesRefs::toBytesRef));
+                }
+                return null;
             }
         }
     ) {
 
         @Override
-        @SuppressWarnings({"rawtypes", "unchecked"})
+        @SuppressWarnings({"rawtypes"})
         public ValueIndexer<Object> valueIndexer(RelationName table,
                                                  Reference ref,
-                                                 Function<String, FieldType> getFieldType,
                                                  Function<ColumnIdent, Reference> getRef) {
-            FieldType fieldType = getFieldType.apply(ref.storageIdent());
-            if (fieldType == null) {
-                return (ValueIndexer) new StringIndexer(ref, fieldType);
-            }
             return switch (ref.indexType()) {
-                case FULLTEXT -> (ValueIndexer) new FulltextIndexer(ref, fieldType);
-                case NONE, PLAIN -> (ValueIndexer) new StringIndexer(ref, fieldType);
+                case FULLTEXT -> (ValueIndexer) new FulltextIndexer(ref);
+                case NONE, PLAIN -> (ValueIndexer) new StringIndexer(ref);
             };
         }
     };
@@ -372,6 +406,14 @@ public class StringType extends DataType<String> implements Streamer<String> {
     }
 
     @Override
+    public String toString() {
+        if (unbound()) {
+            return super.toString();
+        }
+        return "text(" + lengthLimit + ")";
+    }
+
+    @Override
     public long valueBytes(String value) {
         return RamUsageEstimator.sizeOf(value);
     }
@@ -381,5 +423,10 @@ public class StringType extends DataType<String> implements Streamer<String> {
         if (!unbound()) {
             mapping.put("length_limit", lengthLimit);
         }
+    }
+
+    @Override
+    public ColumnStatsSupport<String> columnStatsSupport() {
+        return ColumnStatsSupport.singleValued(String.class, StringType.this);
     }
 }

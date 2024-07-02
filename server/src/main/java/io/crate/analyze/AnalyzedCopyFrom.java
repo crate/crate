@@ -75,7 +75,7 @@ public class AnalyzedCopyFrom implements AnalyzedStatement {
         for (var partitionProperty : table.partitionProperties()) {
             partitionProperty.expressions().forEach(consumer);
         }
-        properties.properties().values().forEach(consumer);
+        properties.forValues(consumer);
         consumer.accept(uri);
     }
 

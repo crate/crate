@@ -21,11 +21,10 @@
 
 package io.crate.planner.operators;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedCollection;
 
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
@@ -45,7 +44,7 @@ public abstract class ForwardingLogicalPlan implements LogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
         LogicalPlan newSource = source.pruneOutputsExcept(outputsToKeep);
         if (newSource == source) {
             return this;
@@ -59,13 +58,8 @@ public abstract class ForwardingLogicalPlan implements LogicalPlan {
     }
 
     @Override
-    public List<AbstractTableRelation<?>> baseTables() {
-        return source.baseTables();
-    }
-
-    @Override
-    public List<RelationName> getRelationNames() {
-        return source.getRelationNames();
+    public List<RelationName> relationNames() {
+        return source.relationNames();
     }
 
     @Override
@@ -78,4 +72,8 @@ public abstract class ForwardingLogicalPlan implements LogicalPlan {
         return source.dependencies();
     }
 
+    @Override
+    public boolean supportsDistributedReads() {
+        return source.supportsDistributedReads();
+    }
 }

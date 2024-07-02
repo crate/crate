@@ -41,12 +41,12 @@ import io.crate.expression.operator.GtOperator;
 import io.crate.expression.operator.GteOperator;
 import io.crate.expression.operator.LtOperator;
 import io.crate.expression.operator.LteOperator;
-import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.lucene.LuceneQueryBuilder.Context;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
@@ -59,14 +59,15 @@ public class DistanceFunction extends Scalar<Double, Point> {
 
     public static final String NAME = "distance";
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder module) {
+        module.add(
             scalar(
                 NAME,
                 DataTypes.GEO_POINT.getTypeSignature(),
                 DataTypes.GEO_POINT.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()
-            ),
+            ).withFeature(Feature.DETERMINISTIC)
+                .withFeature(Feature.NULLABLE),
             DistanceFunction::new
         );
     }

@@ -21,9 +21,9 @@
 
 package io.crate.expression.tablefunctions;
 
-import org.hamcrest.BaseMatcher;
-import org.hamcrest.Description;
-import org.hamcrest.Matcher;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import org.assertj.core.api.ThrowingConsumer;
 import org.junit.Test;
 
 import io.crate.metadata.Scalar;
@@ -33,19 +33,11 @@ public class MatchesFunctionTest extends AbstractTableFunctionsTest {
 
     @Test
     public void test_compile_creates_regex_matcher_instance_on_table_function() throws Exception {
-        Matcher<Scalar> matcher = new BaseMatcher<>() {
-            @Override
-            public boolean matches(Object item) {
-                MatchesFunction regexpImpl = (MatchesFunction) item;
-                // ensure that the RegexMatcher was created due to compilation
-                return regexpImpl.pattern() != null;
-            }
-
-            @Override
-            public void describeTo(Description description) {
-            }
+        ThrowingConsumer<Scalar<?, ?>> matcher = func -> {
+            assertThat(func).isExactlyInstanceOf(MatchesFunction.class);
+            assertThat(((MatchesFunction) func).pattern()).isNotNull();
         };
-        assertCompile("regexp_matches(name, '.*(ba).*')", (s) -> matcher);
+        assertCompile("regexp_matches(name, '.*(ba).*')", matcher);
     }
 
     @Test
@@ -61,13 +53,17 @@ public class MatchesFunctionTest extends AbstractTableFunctionsTest {
     @Test
     public void test_execute_with_g_flag() throws Exception {
         assertExecute("regexp_matches('#abc #abc   #def #def #ghi #ghi', '(#[^\\s]*) (#[^\\s]*)', 'g')",
-                      "[#abc, #abc]\n" +
-                      "[#def, #def]\n" +
-                      "[#ghi, #ghi]\n");
+            """
+                [#abc, #abc]
+                [#def, #def]
+                [#ghi, #ghi]
+                """);
         assertExecute("regexp_matches('#abc #abc   #def #def #ghi #ghi', '#[^\\s]* #[^\\s]*', 'g')",
-                      "[#abc #abc]\n" +
-                      "[#def #def]\n" +
-                      "[#ghi #ghi]\n");
+            """
+                [#abc #abc]
+                [#def #def]
+                [#ghi #ghi]
+                """);
     }
 
     @Test
@@ -81,15 +77,19 @@ public class MatchesFunctionTest extends AbstractTableFunctionsTest {
     @Test
     public void test_execute_postgres_example() {
         assertExecute("regexp_matches('foobarbequebazilbarfbonk', '(b[^b]+)(b[^b]+)', 'g')",
-                      "[bar, beque]\n" +
-                      "[bazil, barf]\n");
+            """
+                [bar, beque]
+                [bazil, barf]
+                """);
     }
 
     @Test
     public void test_matches_null_group() throws Exception {
         assertExecute("regexp_matches('gcc -Wall --std=c99 -o source source.c', '\\w+( --?\\w+)*( \\w+)*', 'g')",
-                      "[ --std, null]\n" +
-                      "[ -o,  source]\n" +
-                      "[null, null]\n");
+            """
+                [ --std, null]
+                [ -o,  source]
+                [null, null]
+                """);
     }
 }

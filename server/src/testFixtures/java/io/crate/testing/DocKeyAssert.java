@@ -28,7 +28,7 @@ import java.util.List;
 import org.assertj.core.api.AbstractAssert;
 
 import io.crate.analyze.where.DocKeys;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.expression.symbol.Literal;
 
 public final class DocKeyAssert extends AbstractAssert<DocKeyAssert, DocKeys.DocKey> {
@@ -39,7 +39,7 @@ public final class DocKeyAssert extends AbstractAssert<DocKeyAssert, DocKeys.Doc
 
     public DocKeyAssert isDocKey(Object... expectedKeyValues) {
         isNotNull();
-        List<Object> docKeyValues = Lists2.map(actual.values(), s -> ((Literal<?>) s).value());
+        List<Object> docKeyValues = Lists.map(actual.values(), s -> ((Literal<?>) s).value());
         assertThat(docKeyValues).containsExactly(expectedKeyValues);
         return this;
     }

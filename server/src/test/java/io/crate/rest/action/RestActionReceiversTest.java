@@ -21,7 +21,7 @@
 
 package io.crate.rest.action;
 
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -33,7 +33,7 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import io.crate.breaker.RowAccountingWithEstimators;
+import io.crate.breaker.TypedRowAccounting;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowN;
@@ -60,10 +60,9 @@ public class RestActionReceiversTest extends ESTestCase {
     private final Row row = new Row1(1L);
 
     private static void assertXContentBuilder(XContentBuilder expected, XContentBuilder actual) throws IOException {
-        assertEquals(
-            stripDuration(Strings.toString(expected)),
-            stripDuration(Strings.toString(actual))
-        );
+        assertThat(stripDuration(Strings.toString(actual))
+        ).isEqualTo(
+            stripDuration(Strings.toString(expected)));
     }
 
     private static String stripDuration(String s) {
@@ -93,7 +92,7 @@ public class RestActionReceiversTest extends ESTestCase {
             JsonXContent.builder(),
             fields,
             0L,
-            new RowAccountingWithEstimators(Symbols.typeView(fields), RamAccounting.NO_ACCOUNTING),
+            new TypedRowAccounting(Symbols.typeView(fields), RamAccounting.NO_ACCOUNTING),
             true
         );
         for (Row row : rows) {
@@ -124,6 +123,6 @@ public class RestActionReceiversTest extends ESTestCase {
         ResultToXContentBuilder builder = ResultToXContentBuilder.builder(JsonXContent.builder())
             .bulkRows(results);
         String s = Strings.toString(builder.build());
-        assertEquals(s, "{\"results\":[{\"rowcount\":1},{\"rowcount\":2},{\"rowcount\":3}]}");
+        assertThat("{\"results\":[{\"rowcount\":1},{\"rowcount\":2},{\"rowcount\":3}]}").isEqualTo(s);
     }
 }

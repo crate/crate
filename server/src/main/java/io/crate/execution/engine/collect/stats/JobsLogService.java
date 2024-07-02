@@ -29,14 +29,11 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
 
 import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.ClusterSettings;
@@ -45,13 +42,13 @@ import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.NameFieldProvider;
 import io.crate.analyze.relations.TableRelation;
-import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.BlockingEvictingQueue;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Input;
@@ -137,33 +134,14 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
     volatile int operationsLogSize;
     volatile TimeValue operationsLogExpiration;
 
-    @Inject
     public JobsLogService(Settings settings,
                           ClusterService clusterService,
-                          ClusterSettings clusterSettings,
                           NodeContext nodeCtx,
                           CircuitBreakerService breakerService) {
-        this(
-            settings,
-            clusterService::localNode,
-            clusterSettings,
-            nodeCtx,
-            Executors.newSingleThreadScheduledExecutor(),
-            breakerService
-        );
-    }
-
-    @VisibleForTesting
-    JobsLogService(Settings settings,
-                   Supplier<DiscoveryNode> localNode,
-                   ClusterSettings clusterSettings,
-                   NodeContext nodeCtx,
-                   ScheduledExecutorService scheduler,
-                   CircuitBreakerService breakerService) {
-        this.scheduler = scheduler;
+        this.scheduler = Executors.newSingleThreadScheduledExecutor();
         this.breakerService = breakerService;
         this.inputFactory = new InputFactory(nodeCtx);
-        var jobsLogTable = SysJobsLogTableInfo.create(localNode);
+        var jobsLogTable = SysJobsLogTableInfo.create(clusterService::localNode);
         this.refResolver = new StaticTableReferenceResolver<>(jobsLogTable.expressions());
         TableRelation sysJobsLogRelation = new TableRelation(jobsLogTable);
         systemTransactionCtx = CoordinatorTxnCtx.systemTransactionContext();
@@ -191,6 +169,7 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
         setOperationsLogSink(
             STATS_OPERATIONS_LOG_SIZE_SETTING.get(settings), STATS_OPERATIONS_LOG_EXPIRATION_SETTING.get(settings));
 
+        ClusterSettings clusterSettings = clusterService.getClusterSettings();
         clusterSettings.addSettingsUpdateConsumer(STATS_JOBS_LOG_FILTER, filter -> {
             JobsLogService.this.memoryFilter = createFilter(filter, STATS_JOBS_LOG_FILTER.getKey());
             updateJobSink(jobsLogSize, jobsLogExpiration);

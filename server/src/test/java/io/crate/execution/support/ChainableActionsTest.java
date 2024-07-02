@@ -21,14 +21,7 @@
 
 package io.crate.execution.support;
 
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -93,10 +86,10 @@ public class ChainableActionsTest {
         }
 
         CompletableFuture<Integer> result = ChainableActions.run(actions);
-        assertThat(result.get(1, TimeUnit.SECONDS), is(0));
+        assertThat(result.get(1, TimeUnit.SECONDS)).isEqualTo(0);
 
-        assertThat(doCalls, contains(0, 1, 2));
-        assertThat(undoCalls, empty());
+        assertThat(doCalls).containsExactly(0, 1, 2);
+        assertThat(undoCalls).isEmpty();;
     }
 
     @Test
@@ -125,10 +118,10 @@ public class ChainableActionsTest {
 
         CompletableFuture<Integer> result = ChainableActions.run(actions);
 
-        assertThat(result.isCompletedExceptionally(), is(true));
+        assertThat(result.isCompletedExceptionally()).isTrue();
 
-        assertThat(doCalls, contains(0, 1, 2));
-        assertThat(undoCalls, contains(1, 0));
+        assertThat(doCalls).containsExactly(0, 1, 2);
+        assertThat(undoCalls).containsExactly(1, 0);
     }
 
     @Test
@@ -146,15 +139,15 @@ public class ChainableActionsTest {
             () -> CompletableFuture.completedFuture(0)));
 
         CompletableFuture<Integer> result = ChainableActions.run(actions);
-        assertThat(result.isCompletedExceptionally(), is(true));
+        assertThat(result.isCompletedExceptionally()).isTrue();
         try {
             result.get();
         } catch (ExecutionException e) {
-            assertThat(e.getCause().getMessage(), is("do operation failed"));
+            assertThat(e.getCause().getMessage()).isEqualTo("do operation failed");
         }
 
-        assertThat(doCalls, contains(0));
-        assertThat(undoCalls, contains(0));
+        assertThat(doCalls).containsExactly(0);
+        assertThat(undoCalls).containsExactly(0);
     }
 
     @Test
@@ -182,15 +175,15 @@ public class ChainableActionsTest {
 
         CompletableFuture<Integer> result = ChainableActions.run(actions);
 
-        assertThat(result.isCompletedExceptionally(), is(true));
+        assertThat(result.isCompletedExceptionally()).isTrue();
         try {
             result.get();
         } catch (ExecutionException e) {
-            assertThat(e.getCause().getMessage(), is("do operation failed"));
+            assertThat(e.getCause().getMessage()).isEqualTo("do operation failed");
         }
 
-        assertThat(doCalls, contains(2));
-        assertThat(undoCalls, contains(2));
+        assertThat(doCalls).containsExactly(2);
+        assertThat(undoCalls).containsExactly(2);
     }
 
     @Test
@@ -225,23 +218,23 @@ public class ChainableActionsTest {
 
         CompletableFuture<Integer> result = ChainableActions.run(actions);
 
-        assertThat(result.isCompletedExceptionally(), is(true));
-        assertThat(doCalls, contains(0, 1, 2));
+        assertThat(result.isCompletedExceptionally()).isTrue();
+        assertThat(doCalls).containsExactly(0, 1, 2);
         // Undo was only called on action 1 as 2 failed and this undo action failed also,
         // so no other action was rolled back.
-        assertThat(undoCalls, contains(1));
+        assertThat(undoCalls).containsExactly(1);
 
         try {
             result.get();
         } catch (Throwable t) {
             t = SQLExceptions.unwrap(t);
-            assertThat(t, instanceOf(MultiException.class));
+            assertThat(t).isExactlyInstanceOf(MultiException.class);
 
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             t.printStackTrace(new PrintStream(out));
-            assertThat(new String(out.toByteArray()), allOf(
-                containsString("do operation failed"),
-                containsString("undo operation failed")));
+            assertThat(new String(out.toByteArray()))
+                .contains("do operation failed")
+                .contains("undo operation failed");
         }
     }
 
@@ -277,23 +270,23 @@ public class ChainableActionsTest {
 
         CompletableFuture<Integer> result = ChainableActions.run(actions);
 
-        assertThat(result.isCompletedExceptionally(), is(true));
-        assertThat(doCalls, contains(0));
+        assertThat(result.isCompletedExceptionally()).isTrue();
+        assertThat(doCalls).containsExactly(0);
         // undo was only called on action 0 as it failed, so rollback only action 0
-        assertThat(undoCalls, contains(0));
+        assertThat(undoCalls).containsExactly(0);
 
         try {
             result.get();
         } catch (Throwable t) {
             t = SQLExceptions.unwrap(t);
-            assertThat(t, not(instanceOf(MultiException.class)));
+            assertThat(t).isNotInstanceOf(MultiException.class);
 
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             t.printStackTrace(new PrintStream(out));
-            assertThat(new String(out.toByteArray()), containsString("the first do operation failed"));
-            assertThat(new String(out.toByteArray()), allOf(
-                not(containsString("the do operation failed")),
-                not(containsString("the undo operation failed"))));
+            assertThat(new String(out.toByteArray()))
+                .contains("the first do operation failed")
+                .doesNotContain("the do operation failed")
+                .doesNotContain("the undo operation failed");
         }
     }
 }

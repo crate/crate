@@ -21,15 +21,11 @@
 
 package io.crate.execution.engine.distribution;
 
-import static io.crate.testing.TestingHelpers.isNullRow;
-import static io.crate.testing.TestingHelpers.isRow;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.StreamSupport;
 
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -38,6 +34,8 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.Streamer;
+import io.crate.data.Bucket;
+import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.types.DataTypes;
@@ -63,11 +61,19 @@ public class DistributedResultRequestTest extends ESTestCase {
         StreamInput in = out.bytes().streamInput();
         DistributedResultRequest r2 = new DistributedResultRequest(in);
 
-        assertEquals(r1.readRows(streamers).size(), r2.readRows(streamers).size());
-        assertThat(r1.isLast(), is(r2.isLast()));
-        assertThat(r1.executionPhaseInputId(), is(r2.executionPhaseInputId()));
+        assertThat(r2.readRows(streamers).size()).isEqualTo(r1.readRows(streamers).size());
+        assertThat(r1.isLast()).isEqualTo(r2.isLast());
+        assertThat(r1.executionPhaseInputId()).isEqualTo(r2.executionPhaseInputId());
 
-        assertThat(r2.readRows(streamers), contains(isRow("ab"), isNullRow(), isRow("cd")));
+        Bucket result = r2.readRows(streamers);
+        List<Object[]> rows = StreamSupport.stream(result.spliterator(), false)
+            .map(Row::materialize)
+            .toList();
+        assertThat(rows).containsExactly(
+            new Object[] {"ab"},
+            new Object[] {null},
+            new Object[] {"cd"}
+        );
     }
 
     @Test
@@ -85,7 +91,7 @@ public class DistributedResultRequestTest extends ESTestCase {
         StreamInput in = StreamInput.wrap(BytesReference.toBytes(out.bytes()));
         DistributedResultRequest r2 = new DistributedResultRequest(in);
 
-        assertThat(r2.throwable(), instanceOf(throwable.getClass()));
-        assertThat(r2.isKilled(), is(r1.isKilled()));
+        assertThat(r2.throwable()).isExactlyInstanceOf(throwable.getClass());
+        assertThat(r2.isKilled()).isEqualTo(r1.isKilled());
     }
 }

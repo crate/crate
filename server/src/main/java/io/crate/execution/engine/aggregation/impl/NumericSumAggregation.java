@@ -25,16 +25,15 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
+import org.jetbrains.annotations.Nullable;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
@@ -44,7 +43,9 @@ import io.crate.execution.engine.aggregation.impl.util.OverflowAwareMutableLong;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -62,14 +63,14 @@ public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDe
 
     public static final String NAME = "sum";
     public static final Signature SIGNATURE = Signature.aggregate(
-        NAME,
-        DataTypes.NUMERIC.getTypeSignature(),
-        DataTypes.NUMERIC.getTypeSignature()
-    );
+            NAME,
+            DataTypes.NUMERIC.getTypeSignature(),
+            DataTypes.NUMERIC.getTypeSignature())
+        .withFeature(Scalar.Feature.DETERMINISTIC);
     private static final long INIT_BIG_DECIMAL_SIZE = NumericType.size(BigDecimal.ZERO);
 
-    public static void register(AggregationImplModule mod) {
-        mod.register(SIGNATURE, NumericSumAggregation::new);
+    public static void register(Functions.Builder builder) {
+        builder.add(SIGNATURE, NumericSumAggregation::new);
     }
 
     private final Signature signature;
@@ -106,7 +107,7 @@ public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDe
     public BigDecimal iterate(RamAccounting ramAccounting,
                               MemoryManager memoryManager,
                               BigDecimal state,
-                              Input<?>[]args) throws CircuitBreakingException {
+                              Input<?> ... args) throws CircuitBreakingException {
         BigDecimal value = returnType.implicitCast(args[0].value());
         if (value != null) {
             if (state != null) {

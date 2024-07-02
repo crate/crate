@@ -23,10 +23,7 @@ package io.crate.execution.engine.window;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.execution.engine.window.WindowFunctionBatchIterator.sortAndComputeWindowFunctions;
-import static java.util.stream.Collectors.toList;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -34,6 +31,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.function.LongConsumer;
 import java.util.stream.IntStream;
 import java.util.stream.StreamSupport;
 
@@ -41,19 +39,21 @@ import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.junit.Test;
 
 import io.crate.breaker.ConcurrentRamAccounting;
-import io.crate.breaker.RowAccountingWithEstimators;
-import io.crate.common.collections.Lists2;
+import io.crate.breaker.TypedRowAccounting;
+import io.crate.common.collections.Lists;
 import io.crate.common.collections.Tuple;
 import io.crate.data.BatchIterator;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.data.testing.BatchIteratorTester;
+import io.crate.data.testing.BatchIteratorTester.ResultOrder;
 import io.crate.data.testing.BatchSimulatingIterator;
 import io.crate.data.testing.TestingBatchIterators;
 import io.crate.data.testing.TestingRowConsumer;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.sort.OrderingByPosition;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.FrameBound;
@@ -62,10 +62,10 @@ import io.crate.types.DataTypes;
 
 public class WindowBatchIteratorTest {
 
-    private Input[][] args = {new Input[0]};
+    private final Input<?>[][] args = {new Input[0]};
 
-    private List<Object[]> expectedRowNumberResult = IntStream.range(0, 10)
-        .mapToObj(l -> new Object[]{l, l + 1}).collect(toList());
+    private final List<Object[]> expectedRowNumberResult = IntStream.range(0, 10)
+        .mapToObj(l -> new Object[]{l, l + 1}).toList();
 
     @Test
     public void testWindowBatchIterator() throws Exception {
@@ -74,6 +74,7 @@ public class WindowBatchIteratorTest {
                 Comparator<Object[]> cmpOrderBy = OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 0, false, false);
                 return WindowFunctionBatchIterator.of(
                     TestingBatchIterators.range(0, 10),
+                    ignored -> {},
                     new IgnoreRowAccounting(),
                     getComputeFrameStart(cmpOrderBy, FrameBound.Type.UNBOUNDED_PRECEDING),
                     getComputeFrameEnd(cmpOrderBy, FrameBound.Type.CURRENT_ROW),
@@ -86,7 +87,7 @@ public class WindowBatchIteratorTest {
                     Collections.emptyList(),
                     new Boolean[]{null},
                     new Input[0]);
-            }
+            }, ResultOrder.EXACT
         );
         tester.verifyResultAndEdgeCaseBehaviour(expectedRowNumberResult);
     }
@@ -98,6 +99,7 @@ public class WindowBatchIteratorTest {
                 Comparator<Object[]> cmpOrderBy = OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 0, false, false);
                 return WindowFunctionBatchIterator.of(
                     new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 10), 4, 2, null),
+                    ignored -> {},
                     new IgnoreRowAccounting(),
                     getComputeFrameStart(cmpOrderBy, FrameBound.Type.UNBOUNDED_PRECEDING),
                     getComputeFrameEnd(cmpOrderBy, FrameBound.Type.CURRENT_ROW),
@@ -110,16 +112,17 @@ public class WindowBatchIteratorTest {
                     Collections.emptyList(),
                     new Boolean[]{null},
                     new Input[0]);
-            }
+            }, ResultOrder.EXACT
         );
         tester.verifyResultAndEdgeCaseBehaviour(expectedRowNumberResult);
     }
 
     @Test
     public void testFrameBoundsEmptyWindow() throws Exception {
-        var rows = IntStream.range(0, 10).mapToObj(i -> new Object[]{i, null}).collect(toList());
+        var rows = IntStream.range(0, 10).mapToObj(i -> new Object[]{i, null}).toList();
         var result = StreamSupport.stream(sortAndComputeWindowFunctions(
             new ArrayList<>(rows),
+            ignored -> {},
             getComputeFrameStart(null, FrameBound.Type.UNBOUNDED_PRECEDING),
             getComputeFrameEnd(null, FrameBound.Type.CURRENT_ROW),
             null,
@@ -131,17 +134,18 @@ public class WindowBatchIteratorTest {
             List.of(),
             new Boolean[]{null},
             args).get(5, TimeUnit.SECONDS).spliterator(), false)
-            .collect(toList());
+            .toList();
         var expectedBounds = new Tuple<>(0, 10);
-        IntStream.range(0, 10).forEach(i -> assertThat(result.get(i), is(new Object[] { i, expectedBounds})));
+        IntStream.range(0, 10).forEach(i -> assertThat(result.get(i)).isEqualTo(new Object[]{i, expectedBounds}));
     }
 
     @Test
     public void testFrameBoundsForPartitionedWindow() throws Exception {
         var rows = Arrays.asList(-1, 1, 1, 2, 2, 3, 4, 5, null, null);
-        var rowsWithSpare = Lists2.map(rows, i -> new Object[] { i, null });
+        var rowsWithSpare = Lists.map(rows, i -> new Object[] { i, null });
         var result = sortAndComputeWindowFunctions(
             rowsWithSpare,
+            ignored -> {},
             getComputeFrameStart(null, FrameBound.Type.UNBOUNDED_PRECEDING),
             getComputeFrameEnd(null, FrameBound.Type.CURRENT_ROW),
             OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 0, false, false),
@@ -154,9 +158,7 @@ public class WindowBatchIteratorTest {
             new Boolean[]{null},
             args
         ).get(5, TimeUnit.SECONDS);
-        assertThat(
-            result,
-            contains(
+        assertThat(result).containsExactly(
                 $(-1, new Tuple<>(0, 1)),
                 $(1, new Tuple<>(0, 2)),
                 $(1, new Tuple<>(0, 2)),
@@ -167,7 +169,6 @@ public class WindowBatchIteratorTest {
                 $(5, new Tuple<>(0, 1)),
                 $(null, new Tuple<>(0, 2)),
                 $(null, new Tuple<>(0, 2))
-            )
         );
     }
 
@@ -189,6 +190,7 @@ public class WindowBatchIteratorTest {
         Comparator<Object[]> cmpOrderBy = OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 1, false, false);
         var result = sortAndComputeWindowFunctions(
             rows,
+            ignored -> {},
             getComputeFrameStart(cmpOrderBy, FrameBound.Type.UNBOUNDED_PRECEDING),
             getComputeFrameEnd(cmpOrderBy, FrameBound.Type.CURRENT_ROW),
             OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 0, false, false),
@@ -201,20 +203,17 @@ public class WindowBatchIteratorTest {
             new Boolean[]{null},
             args
         ).get(5, TimeUnit.SECONDS);
-        assertThat(
-            result,
-            contains(
-                $(-1, -1, new Tuple<>(0, 1)),
-                $(1, 0, new Tuple<>(0, 1)),
-                $(1, 1, new Tuple<>(0, 2)),
-                $(2, -1, new Tuple<>(0, 1)),
-                $(2, 2, new Tuple<>(0, 2)),
-                $(3, 3, new Tuple<>(0, 1)),
-                $(4, 4, new Tuple<>(0, 1)),
-                $(5, 5, new Tuple<>(0, 1)),
-                $(null, null, new Tuple<>(0, 2)),
-                $(null, null, new Tuple<>(0, 2))
-            )
+        assertThat(result).containsExactly(
+            $(-1, -1, new Tuple<>(0, 1)),
+            $(1, 0, new Tuple<>(0, 1)),
+            $(1, 1, new Tuple<>(0, 2)),
+            $(2, -1, new Tuple<>(0, 1)),
+            $(2, 2, new Tuple<>(0, 2)),
+            $(3, 3, new Tuple<>(0, 1)),
+            $(4, 4, new Tuple<>(0, 1)),
+            $(5, 5, new Tuple<>(0, 1)),
+            $(null, null, new Tuple<>(0, 2)),
+            $(null, null, new Tuple<>(0, 2))
         );
     }
 
@@ -237,6 +236,7 @@ public class WindowBatchIteratorTest {
         Comparator<Object[]> cmpOrderBy = OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 1, false, false);
         var result = sortAndComputeWindowFunctions(
             rows,
+            ignored -> {},
             getComputeFrameStart(cmpOrderBy, FrameBound.Type.CURRENT_ROW),
             getComputeFrameEnd(cmpOrderBy, FrameBound.Type.UNBOUNDED_FOLLOWING),
             OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 0, false, false),
@@ -249,21 +249,18 @@ public class WindowBatchIteratorTest {
             new Boolean[]{null},
             args
         ).get(5, TimeUnit.SECONDS);
-        assertThat(
-            result,
-            contains(
-                $(-1, -1, new Tuple<>(0, 1)),
-                $(1, 0, new Tuple<>(0, 3)),
-                $(1, 1, new Tuple<>(1, 3)),
-                $(1, 1, new Tuple<>(1, 3)),
-                $(2, -1, new Tuple<>(0, 2)),
-                $(2, 2, new Tuple<>(1, 2)),
-                $(3, 3, new Tuple<>(0, 1)),
-                $(4, 4, new Tuple<>(0, 1)),
-                $(5, 5, new Tuple<>(0, 1)),
-                $(null, null, new Tuple<>(0, 2)),
-                $(null, null, new Tuple<>(0, 2))
-            )
+        assertThat(result).containsExactly(
+            $(-1, -1, new Tuple<>(0, 1)),
+            $(1, 0, new Tuple<>(0, 3)),
+            $(1, 1, new Tuple<>(1, 3)),
+            $(1, 1, new Tuple<>(1, 3)),
+            $(2, -1, new Tuple<>(0, 2)),
+            $(2, 2, new Tuple<>(1, 2)),
+            $(3, 3, new Tuple<>(0, 1)),
+            $(4, 4, new Tuple<>(0, 1)),
+            $(5, 5, new Tuple<>(0, 1)),
+            $(null, null, new Tuple<>(0, 2)),
+            $(null, null, new Tuple<>(0, 2))
         );
     }
 
@@ -310,6 +307,7 @@ public class WindowBatchIteratorTest {
         );
         var result = sortAndComputeWindowFunctions(
             rows,
+            ignored -> {},
             getComputeFrameStart(null, FrameBound.Type.CURRENT_ROW),
             getComputeFrameEnd(null, FrameBound.Type.UNBOUNDED_FOLLOWING),
             OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 0, false, false),
@@ -322,20 +320,17 @@ public class WindowBatchIteratorTest {
             new Boolean[]{null},
             args
         ).get(5, TimeUnit.SECONDS);
-        assertThat(
-            result,
-            contains(
-                $(-1, new Tuple<>(0, 1)),
-                $(1, new Tuple<>(0, 2)),
-                $(1, new Tuple<>(1, 2)),
-                $(2, new Tuple<>(0, 2)),
-                $(2, new Tuple<>(1, 2)),
-                $(3, new Tuple<>(0, 1)),
-                $(4, new Tuple<>(0, 1)),
-                $(5, new Tuple<>(0, 1)),
-                $(null, new Tuple<>(0, 2)),
-                $(null, new Tuple<>(1, 2))
-            )
+        assertThat(result).containsExactly(
+            $(-1, new Tuple<>(0, 1)),
+            $(1, new Tuple<>(0, 2)),
+            $(1, new Tuple<>(1, 2)),
+            $(2, new Tuple<>(0, 2)),
+            $(2, new Tuple<>(1, 2)),
+            $(3, new Tuple<>(0, 1)),
+            $(4, new Tuple<>(0, 1)),
+            $(5, new Tuple<>(0, 1)),
+            $(null, new Tuple<>(0, 2)),
+            $(null, new Tuple<>(1, 2))
         );
     }
 
@@ -344,9 +339,10 @@ public class WindowBatchIteratorTest {
         RamAccounting ramAccounting = ConcurrentRamAccounting.forCircuitBreaker("test", new NoopCircuitBreaker("dummy"), 0);
         BatchIterator<Row> iterator = WindowFunctionBatchIterator.of(
             TestingBatchIterators.range(0, 10),
-            new RowAccountingWithEstimators(List.of(DataTypes.INTEGER), ramAccounting, 32),
-            (partitionStart, partitionEnd, currentIndex, sortedRows) -> 0,
-            (partitionStart, partitionEnd, currentIndex, sortedRows) -> currentIndex,
+            ignored -> {},
+            new TypedRowAccounting(List.of(DataTypes.INTEGER), ramAccounting, 32),
+            (_, _, _, _) -> 0,
+            (_, _, currentIndex, _) -> currentIndex,
             null,
             null,
             1,
@@ -360,7 +356,7 @@ public class WindowBatchIteratorTest {
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(iterator, null);
         // should've accounted for 10 integers of 48 bytes each (16 for the integer, 32 for the ArrayList element)
-        assertThat(ramAccounting.totalBytes(), is(480L));
+        assertThat(ramAccounting.totalBytes()).isEqualTo(480L);
     }
 
     @Test
@@ -371,8 +367,9 @@ public class WindowBatchIteratorTest {
         );
         var result = sortAndComputeWindowFunctions(
             rows,
-            (partitionStart, partitionEnd, currentIndex, sortedRows) -> 0,
-            (partitionStart, partitionEnd, currentIndex, sortedRows) -> currentIndex,
+            ignored -> {},
+            (_, _, _, _) -> 0,
+            (_, _, currentIndex, _) -> currentIndex,
             null,
             OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 0, true, true),
             1,
@@ -383,29 +380,27 @@ public class WindowBatchIteratorTest {
             new Boolean[]{null},
             args
         ).get(5, TimeUnit.SECONDS);
-        assertThat(
-            result,
-            contains(
-                $(null, null),
-                $(2, null)
-            )
+        assertThat(result).containsExactly(
+            $(null, null),
+            $(2, null)
         );
     }
 
     private static WindowFunction firstCellValue() {
         return new WindowFunction() {
             @Override
-            public Object execute(int idxInPartition,
+            public Object execute(LongConsumer allocateBytes,
+                                  int idxInPartition,
                                   WindowFrameState currentFrame,
                                   List<? extends CollectExpression<Row, ?>> expressions,
                                   Boolean ignoreNulls,
-                                  Input... args) {
+                                  Input<?> ... args) {
                 return currentFrame.getRows().iterator().next()[0];
             }
 
             @Override
             public Signature signature() {
-                return Signature.window("first_cell_value", DataTypes.INTEGER.getTypeSignature());
+                return Signature.window("first_cell_value", DataTypes.INTEGER.getTypeSignature()).withFeature(Scalar.Feature.DETERMINISTIC);
             }
 
             @Override
@@ -418,17 +413,18 @@ public class WindowBatchIteratorTest {
     private static WindowFunction frameBoundsWindowFunction() {
         return new WindowFunction() {
             @Override
-            public Object execute(int idxInPartition,
+            public Object execute(LongConsumer allocateBytes,
+                                  int idxInPartition,
                                   WindowFrameState currentFrame,
                                   List<? extends CollectExpression<Row, ?>> expressions,
                                   Boolean ignoreNulls,
-                                  Input... args) {
+                                  Input<?> ... args) {
                 return new Tuple<>(currentFrame.lowerBound(), currentFrame.upperBoundExclusive());
             }
 
             @Override
             public Signature signature() {
-                return Signature.window("a_frame_bounded_window_function", DataTypes.INTEGER.getTypeSignature());
+                return Signature.window("a_frame_bounded_window_function", DataTypes.INTEGER.getTypeSignature()).withFeature(Scalar.Feature.DETERMINISTIC);
             }
 
             @Override
@@ -441,17 +437,19 @@ public class WindowBatchIteratorTest {
     private static WindowFunction rowNumberWindowFunction() {
         return new WindowFunction() {
             @Override
-            public Object execute(int idxInPartition,
+            public Object execute(LongConsumer allocateBytes,
+                                  int idxInPartition,
                                   WindowFrameState currentFrame,
                                   List<? extends CollectExpression<Row, ?>> expressions,
                                   Boolean ignoreNulls,
-                                  Input... args) {
-                return idxInPartition + 1; // sql row numbers are 1-indexed;
+                                  Input<?> ... args) {
+                // sql row numbers are 1-indexed
+                return idxInPartition + 1;
             }
 
             @Override
             public Signature signature() {
-                return Signature.window("row_number", DataTypes.INTEGER.getTypeSignature());
+                return Signature.window("row_number", DataTypes.INTEGER.getTypeSignature()).withFeature(Scalar.Feature.DETERMINISTIC);
             }
 
             @Override

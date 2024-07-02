@@ -21,13 +21,12 @@
 
 package io.crate.metadata;
 
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.util.Arrays;
 import java.util.Collections;
 
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.expression.NestableInput;
@@ -41,16 +40,16 @@ public class MapBackedRefResolverTest {
     @Test
     public void testGetImplementation() throws Exception {
         ReferenceResolver<NestableInput<?>> refResolver = new MapBackedRefResolver(
-            Collections.singletonMap(new ColumnIdent("obj"), mock(NestableInput.class)));
-        NestableInput implementation = refResolver.getImplementation(
+            Collections.singletonMap(ColumnIdent.of("obj"), mock(NestableInput.class)));
+        NestableInput<?> implementation = refResolver.getImplementation(
             new SimpleReference(
-                new ReferenceIdent(USERS_TI, new ColumnIdent("obj", Arrays.asList("x", "z"))),
+                new ReferenceIdent(USERS_TI, ColumnIdent.of("obj", Arrays.asList("x", "z"))),
                 RowGranularity.DOC,
                 DataTypes.STRING,
                 0,
                 null
             ));
 
-        assertThat(implementation, Matchers.nullValue());
+        assertThat(implementation).isNull();
     }
 }

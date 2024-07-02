@@ -21,77 +21,79 @@
 
 package io.crate.types;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
 import java.util.Map;
 
-import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-public class IntegerTypeTest extends ESTestCase {
+public class IntegerTypeTest extends DataTypeTestCase<Integer> {
+
+    @Override
+    public DataType<Integer> getType() {
+        return IntegerType.INSTANCE;
+    }
 
     @Test
     public void test_cast_text_to_integer() {
-        assertThat(IntegerType.INSTANCE.implicitCast("123"), is(123));
+        assertThat(IntegerType.INSTANCE.implicitCast("123")).isEqualTo(123);
     }
 
     @Test
     public void test_cast_bigint_to_integer() {
-        assertThat(IntegerType.INSTANCE.implicitCast(123L), is(123));
+        assertThat(IntegerType.INSTANCE.implicitCast(123L)).isEqualTo(123);
     }
 
     @Test
     public void test_cast_numeric_to_integer() {
-        assertThat(IntegerType.INSTANCE.implicitCast(BigDecimal.valueOf(123)), is(123));
+        assertThat(IntegerType.INSTANCE.implicitCast(BigDecimal.valueOf(123))).isEqualTo(123);
     }
 
     @Test
     public void test_sanitize_numeric_value() {
-        assertThat(IntegerType.INSTANCE.sanitizeValue(1f), is(1));
+        assertThat(IntegerType.INSTANCE.sanitizeValue(1f)).isEqualTo(1);
     }
 
     @Test
     public void test_cast_boolean_to_integer_throws_exception() {
-        expectedException.expect(ClassCastException.class);
-        expectedException.expectMessage("Can't cast 'true' to integer");
-        IntegerType.INSTANCE.implicitCast(true);
+        assertThatThrownBy(() -> IntegerType.INSTANCE.implicitCast(true))
+            .isExactlyInstanceOf(ClassCastException.class)
+            .hasMessage("Can't cast 'true' to integer");
     }
 
     @Test
     public void test_cast_object_to_integer_throws_exception() {
-        expectedException.expect(ClassCastException.class);
-        expectedException.expectMessage("Can't cast '{}' to integer");
-        IntegerType.INSTANCE.implicitCast(Map.of());
+        assertThatThrownBy(() -> IntegerType.INSTANCE.implicitCast(Map.of()))
+            .isExactlyInstanceOf(ClassCastException.class)
+            .hasMessage("Can't cast '{}' to integer");
     }
 
     @Test
     public void test_cast_bigint_to_integer_out_of_negative_range_throws_exception() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("integer value out of range: -9223372036854775808");
-        IntegerType.INSTANCE.implicitCast(Long.MIN_VALUE);
+        assertThatThrownBy(() -> IntegerType.INSTANCE.implicitCast(Long.MIN_VALUE))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("integer value out of range: -9223372036854775808");
     }
 
     @Test
     public void test_cast_bigint_to_integer_out_of_positive_range_throws_exception() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("integer value out of range: 9223372036854775807");
-        IntegerType.INSTANCE.implicitCast(Long.MAX_VALUE);
+        assertThatThrownBy(() -> IntegerType.INSTANCE.implicitCast(Long.MAX_VALUE))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("integer value out of range: 9223372036854775807");
     }
 
     @Test
     public void test_cast_out_of_range_numeric_to_integer_throws_exception() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("integer value out of range: 9223372036854775807");
-        IntegerType.INSTANCE.implicitCast(BigDecimal.valueOf(Long.MAX_VALUE));
+        assertThatThrownBy(() -> IntegerType.INSTANCE.implicitCast(BigDecimal.valueOf(Long.MAX_VALUE)))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("integer value out of range: 9223372036854775807");
     }
 
     @Test
     public void test_cast_numeric_with_fraction_to_integer_looses_fraction() {
-        assertThat(
-            IntegerType.INSTANCE.implicitCast(BigDecimal.valueOf(12.12)),
-            is(12)
-        );
+        assertThat(IntegerType.INSTANCE.implicitCast(BigDecimal.valueOf(12.12))).isEqualTo(12);
     }
+
 }

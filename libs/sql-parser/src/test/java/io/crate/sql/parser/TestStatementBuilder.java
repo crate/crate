@@ -32,11 +32,12 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.assertj.core.api.InstanceOfAssertFactories;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import io.crate.sql.Literals;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.tree.AlterPublication;
+import io.crate.sql.tree.AlterRole;
 import io.crate.sql.tree.AlterSubscription;
 import io.crate.sql.tree.ArrayComparisonExpression;
 import io.crate.sql.tree.ArrayLikePredicate;
@@ -47,24 +48,31 @@ import io.crate.sql.tree.Close;
 import io.crate.sql.tree.CommitStatement;
 import io.crate.sql.tree.ComparisonExpression;
 import io.crate.sql.tree.CopyFrom;
+import io.crate.sql.tree.CreateForeignTable;
 import io.crate.sql.tree.CreateFunction;
 import io.crate.sql.tree.CreatePublication;
+import io.crate.sql.tree.CreateRole;
+import io.crate.sql.tree.CreateServer;
 import io.crate.sql.tree.CreateSubscription;
 import io.crate.sql.tree.CreateTable;
-import io.crate.sql.tree.CreateUser;
+import io.crate.sql.tree.CreateTableAs;
+import io.crate.sql.tree.CreateUserMapping;
 import io.crate.sql.tree.DeallocateStatement;
 import io.crate.sql.tree.Declare;
 import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.DenyPrivilege;
 import io.crate.sql.tree.DropAnalyzer;
 import io.crate.sql.tree.DropBlobTable;
+import io.crate.sql.tree.DropForeignTable;
 import io.crate.sql.tree.DropFunction;
 import io.crate.sql.tree.DropPublication;
 import io.crate.sql.tree.DropRepository;
+import io.crate.sql.tree.DropRole;
+import io.crate.sql.tree.DropServer;
 import io.crate.sql.tree.DropSnapshot;
 import io.crate.sql.tree.DropSubscription;
 import io.crate.sql.tree.DropTable;
-import io.crate.sql.tree.DropUser;
+import io.crate.sql.tree.DropUserMapping;
 import io.crate.sql.tree.DropView;
 import io.crate.sql.tree.EscapedCharStringLiteral;
 import io.crate.sql.tree.Explain;
@@ -447,6 +455,10 @@ public class TestStatementBuilder {
         printStatement("explain (costs, analyze) select * from foo");
         printStatement("explain (costs true, analyze true) select * from foo");
         printStatement("explain (costs false, analyze false) select * from foo");
+        printStatement("explain verbose select * from foo");
+        printStatement("explain (costs, verbose) select * from foo");
+        printStatement("explain (verbose) select * from foo");
+        printStatement("explain (costs false, verbose true) select * from foo");
     }
 
     @Test
@@ -630,6 +642,7 @@ public class TestStatementBuilder {
     public void testAlterTableStmtBuilder() {
         printStatement("alter table t add foo integer");
         printStatement("alter table t add foo['1']['2'] integer");
+        printStatement("alter table t add foo integer null");
 
         printStatement("alter table t set (number_of_replicas=4)");
         printStatement("alter table schema.t set (number_of_replicas=4)");
@@ -638,6 +651,7 @@ public class TestStatementBuilder {
 
         printStatement("alter table t add foo integer");
         printStatement("alter table t add column foo integer");
+        printStatement("alter table t add column foo integer null");
         printStatement("alter table t add foo integer primary key");
         printStatement("alter table t add foo string index using fulltext");
         printStatement("alter table t add column foo['x'] integer");
@@ -656,6 +670,10 @@ public class TestStatementBuilder {
 
         printStatement("alter table t drop column foo['x']");
         printStatement("alter table t drop if exists foo['x']['y']");
+
+        printStatement("alter table t rename foo to bar");
+        printStatement("alter table t rename foo['x'] to foo['y']");
+        printStatement("alter table t rename column foo to bar");
 
         printStatement("alter table t partition (partitioned_col=1) set (number_of_replicas=4)");
         printStatement("alter table only t set (number_of_replicas=4)");
@@ -680,11 +698,14 @@ public class TestStatementBuilder {
     public void testCreateTableStmtBuilder() {
         printStatement("create table if not exists t (id integer primary key, name string)");
         printStatement("create table t (id double precision)");
+        printStatement("create table t (id double precision null)");
         printStatement("create table t (id character varying)");
         printStatement("create table t (id integer primary key, value array(double precision))");
         printStatement("create table t (id integer, value double precision not null)");
         printStatement("create table t (id integer primary key, name string)");
+        printStatement("create table t (id integer primary key, name string null)");
         printStatement("create table t (id integer primary key, name string) clustered into 3 shards");
+        printStatement("create table t (id integer primary key, name string null) clustered into 3 shards");
         printStatement("create table t (id integer primary key, name string) clustered into ? shards");
         printStatement("create table t (id integer primary key, name string) clustered into CAST('123' AS int) shards");
         printStatement("create table t (id integer primary key, name string) clustered by (id)");
@@ -696,8 +717,11 @@ public class TestStatementBuilder {
         printStatement("create table t (id integer primary key, name string) clustered by (id) with (number_of_replicas=4)");
         printStatement("create table t (id integer primary key, name string) clustered by (id) into 999 shards with (number_of_replicas=4)");
         printStatement("create table t (id integer primary key, name string) with (number_of_replicas=-4)");
+        printStatement("create table t (id integer constraint my_constraint_1 check (id > 0) constraint my_constraint_2 primary key not null)");
+        printStatement("create table t (id integer, constraint my_constraint_1 primary key (id))");
         printStatement("create table t (o object(dynamic) as (i integer, d double))");
         printStatement("create table t (id integer, name string, primary key (id))");
+        printStatement("create table t (id integer, name string null, primary key (id))");
         printStatement("create table t (" +
             "  \"_i\" integer, " +
             "  \"in\" int," +
@@ -743,6 +767,24 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void testCreateTableAs() {
+        printStatement("create table test as select * from created");
+        printStatement("create table if not exists test  as Select * FROM created");
+    }
+
+    @Test
+    public void test_named_primary_key_constraint_without_name_is_not_allowed() {
+        assertThatThrownBy(
+            () -> printStatement("create table t (a int CONSTRAINT primary key)"))
+            .isExactlyInstanceOf(ParsingException.class)
+            .hasMessage("line 1:34: no viable alternative at input 'CONSTRAINT primary key'");
+        assertThatThrownBy(
+            () -> printStatement("create table t (a int, CONSTRAINT primary key (a))"))
+            .isExactlyInstanceOf(ParsingException.class)
+            .hasMessage("line 1:35: no viable alternative at input 'CONSTRAINT primary key'");
+    }
+
+    @Test
     public void testCreateTableColumnTypeOrGeneratedExpressionAreDefined() {
         assertThatThrownBy(
             () -> printStatement("create table test (col1)"))
@@ -755,6 +797,7 @@ public class TestStatementBuilder {
     public void testCreateTableDefaultExpression() {
         printStatement("create table test (col1 int default 1)");
         printStatement("create table test (col1 int default random())");
+        printStatement("create table test (col1 int not null default 1)");
     }
 
     @Test
@@ -763,6 +806,54 @@ public class TestStatementBuilder {
             () -> printStatement("create table test (col1 int default random() as 1+1)"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Column [col1]: the default and generated expressions are mutually exclusive");
+    }
+
+    @Test
+    public void test_create_table_column_with_duplicated_constraints_is_not_allowed() {
+        var constraintDefinitions = List.of(
+            "INDEX OFF",
+            "DEFAULT 1",
+            "GENERATED ALWAYS AS 1+1",
+            "PRIMARY KEY",
+            "STORAGE WITH(foobar=1)"
+        );
+        for (var constraintDefinition : constraintDefinitions) {
+            assertThatThrownBy(
+                () -> printStatement("CREATE TABLE test (col1 INT " + constraintDefinition + " " + constraintDefinition + ")"))
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessageStartingWith("Column [col1]: multiple")
+                .hasMessageEndingWith("constraints found");
+        }
+    }
+
+    @Test
+    public void test_create_table_column_with_allowed_duplicated_constraints() {
+        printStatement("CREATE TABLE test (col1 INT NULL NULL)");
+        printStatement("CREATE TABLE test (col1 INT NOT NULL NOT NULL)");
+    }
+
+    @Test
+    public void test_alter_table_add_column_with_duplicated_constraints_is_not_allowed() {
+        var constraintDefinitions = List.of(
+            "INDEX OFF",
+            "DEFAULT 1",
+            "GENERATED ALWAYS AS 1+1",
+            "PRIMARY KEY",
+            "STORAGE WITH(foobar=1)"
+        );
+        for (var constraintDefinition : constraintDefinitions) {
+            assertThatThrownBy(
+                () -> printStatement("ALTER TABLE test ADD COLUMN col1 INT " + constraintDefinition + " " + constraintDefinition))
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessageStartingWith("Column [\"col1\"]: multiple")
+                .hasMessageEndingWith("constraints found");
+        }
+    }
+
+    @Test
+    public void test_alter_table_add_column_with_ignored_duplicated_constraints() {
+        printStatement("ALTER TABLE test ADD COLUMN col1 INT NULL NULL");
+        printStatement("ALTER TABLE test ADD COLUMN col1 INT NOT NULL NOT NULL");
     }
 
     @Test
@@ -787,6 +878,12 @@ public class TestStatementBuilder {
         printStatement("alter blob table screenshots set (number_of_replicas=3)");
         printStatement("alter blob table screenshots set (number_of_replicas='0-all')");
         printStatement("alter blob table screenshots reset (number_of_replicas)");
+
+        assertThatThrownBy(() -> printStatement("alter blob table notblob.screenshots reset (number_of_replicas)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class);
+
+        assertThatThrownBy(() -> printStatement("alter blob table this.isnota.tablename reset (number_of_replicas)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -827,6 +924,21 @@ public class TestStatementBuilder {
         printStatement("create user \"Günter\"");
         printStatement("create user root");
         printStatement("create user foo with (password = 'foo')");
+        printStatement("create user foo with password 'foo'");
+        printStatement("create user foo with password ?");
+    }
+
+    @Test
+    public void test_create_role_statement() {
+        // No option
+        printStatement("create role admin");
+        // Single option
+        printStatement("create role admin with inherit password 'foo'");
+        printStatement("create role admin inherit");
+        printStatement("create role admin InheRit");
+
+        printStatement("create role admin inherit password 'foo' login");
+        printStatement("create role admin inherit password ? login");
     }
 
     @Test
@@ -834,6 +946,13 @@ public class TestStatementBuilder {
         printStatement("drop user \"Günter\"");
         printStatement("drop user root");
         printStatement("drop user if exists root");
+    }
+
+    @Test
+    public void testDropRoleStmtBuilder() {
+        printStatement("drop role \"Günter\"");
+        printStatement("drop role root");
+        printStatement("drop role if exists root");
     }
 
     @Test
@@ -845,6 +964,7 @@ public class TestStatementBuilder {
         printStatement("grant ALL PRIVILEGES to wolfie, anna");
         printStatement("grant ALL to wolfie, anna");
         printStatement("grant ALL to anna");
+        printStatement("grant role1, role2 to anna, trillian");
     }
 
     @Test
@@ -917,6 +1037,7 @@ public class TestStatementBuilder {
         printStatement("revoke ALL from wolfie");
         printStatement("revoke ALL PRIVILEGES from wolfie, anna, herald");
         printStatement("revoke ALL from wolfie, anna, herald");
+        printStatement("revoke role1, role2 from anna, trillian");
     }
 
     @Test
@@ -1124,6 +1245,7 @@ public class TestStatementBuilder {
         printStatement("select * from information_schema.tables where table_schema = pg_catalog.current_schema()");
 
         printStatement("select current_user");
+        printStatement("select current_role");
         printStatement("select user");
         printStatement("select session_user");
     }
@@ -1759,7 +1881,7 @@ public class TestStatementBuilder {
     }
 
     @Test
-    public void testAlterTableRename() {
+    public void testAlterTableRenameTable() {
         printStatement("alter table t rename to t2");
     }
 
@@ -1783,7 +1905,13 @@ public class TestStatementBuilder {
     @Test
     public void testAlterUser() {
         printStatement("alter user crate set (password = 'password')");
-        printStatement("alter user crate set (password = null)");
+        printStatement("alter user crate set (password = null, session_setting='foo')");
+    }
+
+    @Test
+    public void testAlterRole() {
+        printStatement("alter role r1 set (password = 'password')");
+        printStatement("alter role r1 set (password = null, session_setting='foo')");
     }
 
     @Test
@@ -1792,6 +1920,14 @@ public class TestStatementBuilder {
             () -> printStatement("alter user crate"))
             .isExactlyInstanceOf(ParsingException.class)
             .hasMessage("line 1:17: mismatched input '<EOF>' expecting 'SET'");
+    }
+
+    @Test
+    public void testAlterRoleWithMissingProperties() {
+        assertThatThrownBy(
+            () -> printStatement("alter role r1"))
+            .isExactlyInstanceOf(ParsingException.class)
+            .hasMessage("line 1:14: mismatched input '<EOF>' expecting 'SET'");
     }
 
     @Test
@@ -1984,6 +2120,81 @@ public class TestStatementBuilder {
             .hasMessage("line 1:30: mismatched input 'add' expecting 'DROP'");
     }
 
+    @Test
+    public void test_like_with_pattern_as_a_c_style_string() {
+        printStatement("select 'TextToMatch' LIKE E'Te\\%tch'");
+        printStatement("select 'TextToMatch' NOT LIKE E'Te\\%tch'");
+        printStatement("select 'TextToMatch' ILIKE E'te\\%tch'");
+        printStatement("select 'TextToMatch' NOT ILIKE E'te\\%tch'");
+        printStatement("select 'TextToMatch' LIKE ANY (array[E'Te\\%tch'])");
+        printStatement("select 'TextToMatch' NOT LIKE ANY (array[E'Te\\%tch'])");
+        printStatement("select 'TextToMatch' ILIKE ANY (array[E'te\\%tch'])");
+        printStatement("select 'TextToMatch' NOT ILIKE ANY (array[E'te\\%tch'])");
+    }
+
+    @Test
+    public void test_escape_in_like() {
+        printStatement("select 'ab' LIKE 'a%' ESCAPE ''");  // Empty
+        printStatement("select 'ab' LIKE 'a%' ESCAPE ?");   // Parameter
+        printStatement("select 'ab' LIKE 'a%' ESCAPE 't'"); // Regular character
+    }
+
+    @Test
+    public void test_create_server() throws Exception {
+        printStatement("create server jarvis foreign data wrapper postgres_fdw");
+        printStatement("create server if not exists jarvis foreign data wrapper postgres_fdw");
+        printStatement("create server jarvis foreign data wrapper postgres_fdw options (host 'foo', dbname 'foodb', port '5432')");
+        printStatement("create server jarvis foreign data wrapper postgres_fdw options (host ?, xs array[1, 2, 3])");
+    }
+
+    @Test
+    public void test_drop_server() throws Exception {
+        printStatement("drop server jarvis");
+        printStatement("drop server pg1, pg2");
+        printStatement("drop server if exists pg1, pg2");
+        printStatement("drop server if exists pg1, pg2 cascade");
+        printStatement("drop server if exists pg1, pg2 restrict");
+    }
+
+    @Test
+    public void test_create_foreign_table() throws Exception {
+        printStatement("create foreign table tbl (x int) server pg");
+        printStatement("create foreign table if not exists tbl (x int) server pg");
+        printStatement("create foreign table tbl (x int) server pg options (schema_name 'public')");
+        printStatement("create foreign table tbl (x int) server pg options (schema_name 'public', dummy 'xy')");
+    }
+
+    @Test
+    public void test_drop_foreign_table() throws Exception {
+        printStatement("drop foreign table tbl");
+        printStatement("drop foreign table tbl cascade");
+        printStatement("drop foreign table if exists tbl");
+        printStatement("drop foreign table if exists t1, t2, t3");
+        printStatement("drop foreign table if exists doc.t1, s1.t2, t3");
+        printStatement("drop foreign table if exists t1, t2, t3 cascade");
+        printStatement("drop foreign table if exists t1, t2, t3 restrict");
+    }
+
+
+    @Test
+    public void test_create_user_mapping() throws Exception {
+        printStatement("create user mapping for crate server pg");
+        printStatement("create user mapping if not exists for crate server pg");
+        printStatement("create user mapping for CURRENT_ROLE server pg");
+        printStatement("create user mapping for USER server pg");
+        printStatement("create user mapping for CURRENT_USER server pg");
+        printStatement("create user mapping if not exists for arthur server pg options (\"username\" 'bob', password 'secret')");
+    }
+
+    @Test
+    public void test_drop_user_mapping() throws Exception {
+        printStatement("drop user mapping for crate server pg");
+        printStatement("drop user mapping if exists for crate server pg");
+        printStatement("drop user mapping for current_role server pg");
+        printStatement("drop user mapping for current_user server pg");
+        printStatement("drop user mapping for user server pg");
+    }
+
     private static void printStatement(String sql) {
         println(sql.trim());
         println("");
@@ -1995,15 +2206,18 @@ public class TestStatementBuilder {
         // TODO: support formatting all statement types
         if (statement instanceof Query ||
             statement instanceof CreateTable ||
+            statement instanceof CreateTableAs ||
+            statement instanceof CreateForeignTable ||
             statement instanceof CopyFrom ||
             statement instanceof SwapTable ||
             statement instanceof GCDanglingArtifacts ||
             statement instanceof CreateFunction ||
-            statement instanceof CreateUser ||
+            statement instanceof CreateRole ||
             statement instanceof GrantPrivilege ||
             statement instanceof DenyPrivilege ||
             statement instanceof RevokePrivilege ||
-            statement instanceof DropUser ||
+            statement instanceof AlterRole ||
+            statement instanceof DropRole ||
             statement instanceof DropAnalyzer ||
             statement instanceof DropFunction ||
             statement instanceof DropTable ||
@@ -2025,7 +2239,13 @@ public class TestStatementBuilder {
             statement instanceof With ||
             statement instanceof Declare ||
             statement instanceof Fetch ||
-            statement instanceof Close) {
+            statement instanceof Close ||
+            statement instanceof CreateServer ||
+            statement instanceof CreateUserMapping ||
+            statement instanceof DropServer ||
+            statement instanceof DropForeignTable ||
+            statement instanceof DropUserMapping) {
+
 
             println(SqlFormatter.formatSql(statement));
             println("");

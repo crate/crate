@@ -21,6 +21,8 @@
 
 package io.crate.execution.engine.collect.files;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -42,8 +44,8 @@ public class URLFileInputTest extends ESTestCase {
             expectedMessage = "doesnt_exist (The system cannot find the file specified)";
         }
 
-        expectedException.expect(FileNotFoundException.class);
-        expectedException.expectMessage(expectedMessage);
-        input.getStream(file.toURI());
+        assertThatThrownBy(() -> input.getStream(file.toURI()))
+            .isExactlyInstanceOf(FileNotFoundException.class)
+            .hasMessageContaining(expectedMessage);
     }
 }

@@ -34,10 +34,6 @@ import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.admin.indices.create.CreateIndexAction;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexAction;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.action.admin.indices.mapping.put.PutMappingAction;
-import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequest;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryAction;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryRequest;
 import org.elasticsearch.action.admin.indices.recovery.RecoveryResponse;
@@ -49,13 +45,6 @@ import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsAction;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequest;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsResponse;
-import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateAction;
-import org.elasticsearch.action.admin.indices.template.delete.DeleteIndexTemplateRequest;
-import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesAction;
-import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesRequest;
-import org.elasticsearch.action.admin.indices.template.get.GetIndexTemplatesResponse;
-import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateAction;
-import org.elasticsearch.action.admin.indices.template.put.PutIndexTemplateRequest;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.AdminClient;
 import org.elasticsearch.client.Client;
@@ -173,16 +162,6 @@ public abstract class AbstractClient implements Client {
         }
 
         @Override
-        public CompletableFuture<AcknowledgedResponse> delete(final DeleteIndexRequest request) {
-            return execute(DeleteIndexAction.INSTANCE, request);
-        }
-
-        @Override
-        public CompletableFuture<AcknowledgedResponse> putMapping(final PutMappingRequest request) {
-            return execute(PutMappingAction.INSTANCE, request);
-        }
-
-        @Override
         public CompletableFuture<RefreshResponse> refresh(final RefreshRequest request) {
             return execute(RefreshAction.INSTANCE, request);
         }
@@ -200,21 +179,6 @@ public abstract class AbstractClient implements Client {
         @Override
         public CompletableFuture<AcknowledgedResponse> updateSettings(UpdateSettingsRequest request) {
             return execute(UpdateSettingsAction.INSTANCE, request);
-        }
-
-        @Override
-        public CompletableFuture<AcknowledgedResponse> putTemplate(final PutIndexTemplateRequest request) {
-            return execute(PutIndexTemplateAction.INSTANCE, request);
-        }
-
-        @Override
-        public CompletableFuture<GetIndexTemplatesResponse> getTemplates(final GetIndexTemplatesRequest request) {
-            return execute(GetIndexTemplatesAction.INSTANCE, request);
-        }
-
-        @Override
-        public CompletableFuture<AcknowledgedResponse> deleteTemplate(final DeleteIndexTemplateRequest request) {
-            return execute(DeleteIndexTemplateAction.INSTANCE, request);
         }
     }
 }

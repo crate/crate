@@ -21,8 +21,7 @@
 
 package io.crate.execution.dml;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
@@ -39,13 +38,13 @@ public class ShardResponseTest extends ESTestCase {
         var result = new ShardResponse.CompressedResult();
         result.update(shardResponse);
 
-        assertThat(result.successfulWrites(0), is(true));
-        assertThat(result.failed(0), is(false));
+        assertThat(result.successfulWrites(0)).isTrue();
+        assertThat(result.failed(0)).isFalse();
 
-        assertThat(result.successfulWrites(1), is(true));
-        assertThat(result.failed(1), is(false));
+        assertThat(result.successfulWrites(1)).isTrue();
+        assertThat(result.failed(1)).isFalse();
 
-        assertThat(result.successfulWrites(2), is(false));
-        assertThat(result.failed(2), is(true));
+        assertThat(result.successfulWrites(2)).isFalse();
+        assertThat(result.failed(2)).isTrue();
     }
 }

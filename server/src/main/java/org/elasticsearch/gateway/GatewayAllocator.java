@@ -22,6 +22,7 @@ package org.elasticsearch.gateway;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -45,7 +46,6 @@ import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.lease.Releasables;
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.gateway.AsyncShardFetch.Lister;
 import org.elasticsearch.gateway.TransportNodesListGatewayStartedShards.NodeGatewayStartedShards;
 import org.elasticsearch.index.shard.ShardId;
@@ -68,9 +68,9 @@ public class GatewayAllocator implements ExistingShardsAllocator {
     private final ReplicaShardAllocator replicaShardAllocator;
 
     private final ConcurrentMap<ShardId, AsyncShardFetch<NodeGatewayStartedShards>>
-        asyncFetchStarted = ConcurrentCollections.newConcurrentMap();
+        asyncFetchStarted = new ConcurrentHashMap<>();
     private final ConcurrentMap<ShardId, AsyncShardFetch<NodeStoreFilesMetadata>>
-        asyncFetchStore = ConcurrentCollections.newConcurrentMap();
+        asyncFetchStore = new ConcurrentHashMap<>();
     private Set<String> lastSeenEphemeralIds = Collections.emptySet();
 
     @Inject
@@ -214,7 +214,7 @@ public class GatewayAllocator implements ExistingShardsAllocator {
     class InternalAsyncFetch<T extends BaseNodeResponse> extends AsyncShardFetch<T> {
 
         InternalAsyncFetch(Logger logger, String type, ShardId shardId, String customDataPath,
-                           Lister<? extends BaseNodesResponse<T>, T> action) {
+                           Lister<BaseNodesResponse<T>, T> action) {
             super(logger, type, shardId, customDataPath, action);
         }
 

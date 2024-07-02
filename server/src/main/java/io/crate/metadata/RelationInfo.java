@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.table.Operation;
@@ -38,7 +39,8 @@ public interface RelationInfo extends Iterable<Reference> {
 
     enum RelationType {
         BASE_TABLE("BASE TABLE"),
-        VIEW("VIEW");
+        VIEW("VIEW"),
+        FOREIGN("FOREIGN");
 
         private final String prettyName;
 
@@ -60,9 +62,22 @@ public interface RelationInfo extends Iterable<Reference> {
         return List.of();
     }
 
+    default int maxPosition() {
+        return columns().stream()
+            .filter(ref -> !ref.column().isSystemColumn())
+            .mapToInt(Reference::position)
+            .max()
+            .orElse(0);
+    }
+
     RowGranularity rowGranularity();
 
     RelationName ident();
+
+    @Nullable
+    default String pkConstraintName() {
+        return null;
+    }
 
     List<ColumnIdent> primaryKey();
 

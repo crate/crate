@@ -43,12 +43,12 @@ import org.locationtech.spatial4j.shape.SpatialRelation;
 
 import io.crate.data.Input;
 import io.crate.expression.operator.EqOperator;
-import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.geo.GeoJSONUtils;
 import io.crate.lucene.LuceneQueryBuilder.Context;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
@@ -61,27 +61,28 @@ public class WithinFunction extends Scalar<Boolean, Object> {
 
     public static final String NAME = "within";
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder module) {
+        module.add(
             Signature.scalar(
                 NAME,
                 DataTypes.GEO_SHAPE.getTypeSignature(),
                 DataTypes.GEO_SHAPE.getTypeSignature(),
                 DataTypes.BOOLEAN.getTypeSignature()
-            ),
+            ).withFeature(Feature.DETERMINISTIC),
             WithinFunction::new
         );
         // Needed to avoid casts on references of `geo_point` and thus to avoid generic function filter on lucene.
         // Coercion must be forbidden, as string representation could be a `geo_shape` and thus must match
         // the other signature
         for (var type : List.of(DataTypes.GEO_SHAPE, DataTypes.STRING, DataTypes.UNTYPED_OBJECT, DataTypes.UNDEFINED)) {
-            module.register(
+            module.add(
                 Signature.scalar(
                     NAME,
                     DataTypes.GEO_POINT.getTypeSignature(),
                     type.getTypeSignature(),
                     DataTypes.BOOLEAN.getTypeSignature()
-                ).withForbiddenCoercion(),
+                ).withFeature(Feature.DETERMINISTIC)
+                    .withForbiddenCoercion(),
                 WithinFunction::new
             );
         }

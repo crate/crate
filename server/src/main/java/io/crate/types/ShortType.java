@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.function.Function;
 
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -36,20 +35,21 @@ import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.statistics.ColumnStatsSupport;
 
 public class ShortType extends DataType<Short> implements Streamer<Short>, FixedWidthType {
 
     public static final ShortType INSTANCE = new ShortType();
     public static final int ID = 8;
+    public static final int PRECISION = 16;
     private static final int SHORT_SIZE = (int) RamUsageEstimator.shallowSizeOfInstance(Short.class);
     private static final StorageSupport<Number> STORAGE = new StorageSupport<>(true, true, new IntEqQuery()) {
 
         @Override
         public ValueIndexer<Number> valueIndexer(RelationName table,
                                                  Reference ref,
-                                                 Function<String, FieldType> getFieldType,
                                                  Function<ColumnIdent, Reference> getRef) {
-            return new IntIndexer(ref, getFieldType.apply(ref.storageIdent()));
+            return new IntIndexer(ref);
         }
     };
 
@@ -64,6 +64,11 @@ public class ShortType extends DataType<Short> implements Streamer<Short>, Fixed
     @Override
     public Precedence precedence() {
         return Precedence.SHORT;
+    }
+
+    @Override
+    public Integer numericPrecision() {
+        return PRECISION;
     }
 
     @Override
@@ -138,6 +143,11 @@ public class ShortType extends DataType<Short> implements Streamer<Short>, Fixed
     @Override
     public StorageSupport<Number> storageSupport() {
         return STORAGE;
+    }
+
+    @Override
+    public ColumnStatsSupport<Short> columnStatsSupport() {
+        return ColumnStatsSupport.singleValued(Short.class, ShortType.this);
     }
 
     @Override

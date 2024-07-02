@@ -22,10 +22,7 @@
 package io.crate.planner.operators;
 
 import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 
@@ -42,65 +39,64 @@ public class StatementClassifierTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService)
-            .addTable(USER_TABLE_DEFINITION)
-            .build();
+        e = SQLExecutor.of(clusterService)
+            .addTable(USER_TABLE_DEFINITION);
     }
 
     @Test
     public void test_classify_qtf_statement_contains_fetch_limit_and_collect() throws Exception {
         LogicalPlan plan = e.logicalPlan("SELECT * FROM users LIMIT 10");
         StatementClassifier.Classification classification = StatementClassifier.classify(plan);
-        assertThat(classification.type(), is(Plan.StatementType.SELECT));
-        assertThat(classification.labels(), contains("Collect", "Fetch", "Limit"));
+        assertThat(classification.type()).isEqualTo(Plan.StatementType.SELECT);
+        assertThat(classification.labels()).containsExactly("Collect", "Fetch", "Limit");
     }
 
     @Test
     public void testClassifySelectStatements() {
         LogicalPlan plan = e.logicalPlan("SELECT 1");
         StatementClassifier.Classification classification = StatementClassifier.classify(plan);
-        assertThat(classification.type(), is(Plan.StatementType.SELECT));
-        assertThat(classification.labels(), contains("Eval", "TableFunction"));
+        assertThat(classification.type()).isEqualTo(Plan.StatementType.SELECT);
+        assertThat(classification.labels()).containsExactly("Eval", "TableFunction");
 
         plan = e.logicalPlan("SELECT * FROM users WHERE id = 1");
         classification = StatementClassifier.classify(plan);
-        assertThat(classification.type(), is(Plan.StatementType.SELECT));
-        assertThat(classification.labels(), contains("Get"));
+        assertThat(classification.type()).isEqualTo(Plan.StatementType.SELECT);
+        assertThat(classification.labels()).containsExactly("Get");
 
         plan = e.logicalPlan("SELECT * FROM users ORDER BY id");
         classification = StatementClassifier.classify(plan);
-        assertThat(classification.type(), is(Plan.StatementType.SELECT));
-        assertThat(classification.labels(), contains("Collect", "Fetch", "Order"));
+        assertThat(classification.type()).isEqualTo(Plan.StatementType.SELECT);
+        assertThat(classification.labels()).containsExactly("Collect", "Fetch", "Order");
 
         plan = e.logicalPlan("SELECT a.id, b.id FROM users a, users b WHERE a.id = b.id");
         classification = StatementClassifier.classify(plan);
-        assertThat(classification.type(), is(Plan.StatementType.SELECT));
-        assertThat(classification.labels(), contains("Collect", "HashJoin"));
+        assertThat(classification.type()).isEqualTo(Plan.StatementType.SELECT);
+        assertThat(classification.labels()).containsExactly("Collect", "HashJoin");
 
         plan = e.logicalPlan("SELECT a.id, b.id FROM users a, users b WHERE a.id > b.id");
         classification = StatementClassifier.classify(plan);
-        assertThat(classification.type(), is(Plan.StatementType.SELECT));
-        assertThat(classification.labels(), contains("Collect", "NestedLoopJoin"));
+        assertThat(classification.type()).isEqualTo(Plan.StatementType.SELECT);
+        assertThat(classification.labels()).containsExactly("Collect", "NestedLoopJoin");
 
         plan = e.logicalPlan("SELECT id FROM users UNION ALL SELECT id FROM users");
         classification = StatementClassifier.classify(plan);
-        assertThat(classification.type(), is(Plan.StatementType.SELECT));
-        assertThat(classification.labels(), contains("Collect", "Union"));
+        assertThat(classification.type()).isEqualTo(Plan.StatementType.SELECT);
+        assertThat(classification.labels()).containsExactly("Collect", "Union");
 
         plan = e.logicalPlan("SELECT count(*) FROM users");
         classification = StatementClassifier.classify(plan);
-        assertThat(classification.type(), is(Plan.StatementType.SELECT));
-        assertThat(classification.labels(), contains("Count"));
+        assertThat(classification.type()).isEqualTo(Plan.StatementType.SELECT);
+        assertThat(classification.labels()).containsExactly("Count");
 
         plan = e.logicalPlan("SELECT count(*), name FROM users GROUP BY 2");
         classification = StatementClassifier.classify(plan);
-        assertThat(classification.type(), is(Plan.StatementType.SELECT));
-        assertThat(classification.labels(), contains("Collect", "Eval", "GroupHashAggregate"));
+        assertThat(classification.type()).isEqualTo(Plan.StatementType.SELECT);
+        assertThat(classification.labels()).containsExactly("Collect", "Eval", "GroupHashAggregate");
 
         plan = e.logicalPlan("SELECT * FROM users WHERE id = (SELECT 1) OR name = (SELECT 'Arthur')");
         classification = StatementClassifier.classify(plan);
-        assertThat(classification.type(), is(Plan.StatementType.SELECT));
-        assertThat(classification.labels(), contains("Collect", "Eval", "Limit", "MultiPhase", "TableFunction"));
+        assertThat(classification.type()).isEqualTo(Plan.StatementType.SELECT);
+        assertThat(classification.labels()).containsExactly("Collect", "Eval", "Limit", "MultiPhase", "TableFunction");
     }
 
 
@@ -114,41 +110,41 @@ public class StatementClassifierTest extends CrateDummyClusterServiceUnitTest {
             "  (SELECT x, generate_series(0, 3) as y FROM unnest([1, 2]) as t (x)) as tt " +
             "WHERE y >= 2");
         var classification = StatementClassifier.classify(plan);
-        assertThat(classification.type(), is(Plan.StatementType.SELECT));
-        assertThat(classification.labels(), contains("Eval", "Filter", "ProjectSet", "TableFunction", "WindowAgg"));
+        assertThat(classification.type()).isEqualTo(Plan.StatementType.SELECT);
+        assertThat(classification.labels()).containsExactly("Eval", "Filter", "ProjectSet", "TableFunction", "WindowAgg");
     }
 
     @Test
     public void testClassifyInsertStatements() {
         Plan plan = e.logicalPlan("INSERT INTO users (id, name) VALUES (1, 'foo')");
         StatementClassifier.Classification classification = StatementClassifier.classify(plan);
-        assertThat(classification.type(), is(Plan.StatementType.INSERT));
-        assertThat(classification.labels(), contains("InsertFromValues"));
+        assertThat(classification.type()).isEqualTo(Plan.StatementType.INSERT);
+        assertThat(classification.labels()).containsExactly("InsertFromValues");
 
         plan = e.logicalPlan("INSERT INTO users (id, name) (SELECT id, name FROM users)");
         classification = StatementClassifier.classify(plan);
-        assertThat(classification.type(), is(Plan.StatementType.INSERT));
-        assertThat(classification.labels(), contains("Collect"));
+        assertThat(classification.type()).isEqualTo(Plan.StatementType.INSERT);
+        assertThat(classification.labels()).containsExactly("Collect");
 
         plan = e.logicalPlan("INSERT INTO users (id, name) (SELECT * FROM unnest([1], ['foo']))");
         classification = StatementClassifier.classify(plan);
-        assertThat(classification.type(), is(Plan.StatementType.INSERT));
-        assertThat(classification.labels(), contains("TableFunction"));
+        assertThat(classification.type()).isEqualTo(Plan.StatementType.INSERT);
+        assertThat(classification.labels()).containsExactly("TableFunction");
     }
 
     @Test
     public void test_classify_multiphase_delete_statement() {
         Plan plan = e.plan("DELETE FROM users WHERE id in (SELECT id from users)");
         StatementClassifier.Classification classification = StatementClassifier.classify(plan);
-        assertThat(classification.type(), is(Plan.StatementType.DELETE));
-        assertThat(classification.labels(), is(empty()));
+        assertThat(classification.type()).isEqualTo(Plan.StatementType.DELETE);
+        assertThat(classification.labels()).isEmpty();
     }
 
     @Test
     public void test_classify_multiphase_update_statement() {
         Plan plan = e.plan("UPDATE users set name = 'a' WHERE id in (SELECT id from users)");
         StatementClassifier.Classification classification = StatementClassifier.classify(plan);
-        assertThat(classification.type(), is(Plan.StatementType.UPDATE));
-        assertThat(classification.labels(), is(empty()));
+        assertThat(classification.type()).isEqualTo(Plan.StatementType.UPDATE);
+        assertThat(classification.labels()).isEmpty();
     }
 }

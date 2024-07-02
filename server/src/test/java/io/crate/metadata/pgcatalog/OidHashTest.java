@@ -26,9 +26,7 @@ import static io.crate.metadata.pgcatalog.OidHash.relationOid;
 import static io.crate.metadata.pgcatalog.OidHash.schemaOid;
 import static io.crate.testing.T3.T1;
 import static io.crate.testing.T3.T1_DEFINITION;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collections;
 import java.util.List;
@@ -38,6 +36,7 @@ import org.junit.Test;
 
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.SearchPath;
 import io.crate.metadata.table.ConstraintInfo;
 import io.crate.metadata.view.ViewInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -47,7 +46,7 @@ import io.crate.types.TypeSignature;
 
 public class OidHashTest extends CrateDummyClusterServiceUnitTest {
 
-    private static final RelationInfo VIEW_INFO = new ViewInfo(T1, "", Collections.emptyList(), null);
+    private static final RelationInfo VIEW_INFO = new ViewInfo(T1, "", Collections.emptyList(), null, SearchPath.pathWithPGCatalogAndDoc());
     private RelationInfo t1Info;
 
     @Before
@@ -59,20 +58,19 @@ public class OidHashTest extends CrateDummyClusterServiceUnitTest {
     public void testRelationOid() {
         int tableOid = relationOid(t1Info);
         int viewOid = relationOid(VIEW_INFO);
-        assertThat(tableOid, not(viewOid));
-        assertThat(tableOid, is(728874843));
-        assertThat(viewOid, is(1782608760));
+        assertThat(tableOid).isNotEqualTo(viewOid);
+        assertThat(tableOid).isEqualTo(728874843);
+        assertThat(viewOid).isEqualTo(1782608760);
     }
 
     @Test
     public void testSchemaOid() {
-        assertThat(schemaOid(Schemas.DOC_SCHEMA_NAME), is(-2048275947));
+        assertThat(schemaOid(Schemas.DOC_SCHEMA_NAME)).isEqualTo(-2048275947);
     }
 
     @Test
     public void testConstraintOid() {
-        assertThat(constraintOid(T1.fqn(), "id_pk", ConstraintInfo.Type.PRIMARY_KEY.toString()),
-            is(279835673));
+        assertThat(constraintOid(T1.fqn(), "id_pk", ConstraintInfo.Type.PRIMARY_KEY.toString())).isEqualTo(279835673);
     }
 
     @Test
@@ -83,6 +81,6 @@ public class OidHashTest extends CrateDummyClusterServiceUnitTest {
                            TypeSignature.parse("array(Q)"),
                            TypeSignature.parse("P"),
                            DataTypes.INTEGER.getTypeSignature()
-                       )), is("array_array_E array_Q P integer"));
+                       ))).isEqualTo("array_array_E array_Q P integer");
     }
 }

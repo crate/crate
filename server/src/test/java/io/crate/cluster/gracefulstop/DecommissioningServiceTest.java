@@ -21,8 +21,7 @@
 
 package io.crate.cluster.gracefulstop;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -32,12 +31,11 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.action.admin.cluster.health.TransportClusterHealthAction;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
@@ -76,16 +74,16 @@ public class DecommissioningServiceTest extends CrateDummyClusterServiceUnitTest
     @Test
     public void testExitIfNoActiveRequests() throws Exception {
         decommissioningService.exitIfNoActiveRequests(0);
-        assertThat(exited.get(), is(true));
-        assertThat(decommissioningService.forceStopOrAbortCalled, is(false));
+        assertThat(exited.get()).isTrue();
+        assertThat(decommissioningService.forceStopOrAbortCalled).isFalse();
     }
 
     @Test
     public void testNoExitIfRequestAreActive() throws Exception {
         jobsLogs.logExecutionEnd(UUID.randomUUID(), null);
         decommissioningService.exitIfNoActiveRequests(System.nanoTime());
-        assertThat(exited.get(), is(false));
-        assertThat(decommissioningService.forceStopOrAbortCalled, is(false));
+        assertThat(exited.get()).isFalse();
+        assertThat(decommissioningService.forceStopOrAbortCalled).isFalse();
         verify(executorService, times(1)).schedule(
             Mockito.any(Runnable.class), Mockito.anyLong(), Mockito.any(TimeUnit.class));
     }
@@ -94,7 +92,7 @@ public class DecommissioningServiceTest extends CrateDummyClusterServiceUnitTest
     public void testAbortOrForceStopIsCalledOnTimeout() throws Exception {
         jobsLogs.logExecutionEnd(UUID.randomUUID(), null);
         decommissioningService.exitIfNoActiveRequests(System.nanoTime() - TimeValue.timeValueHours(3).nanos());
-        assertThat(decommissioningService.forceStopOrAbortCalled, is(true));
+        assertThat(decommissioningService.forceStopOrAbortCalled).isTrue();
         verify(sqlOperations, times(1)).enable();
     }
 

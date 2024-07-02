@@ -22,7 +22,6 @@
 package io.crate.execution.ddl.tables;
 
 import static io.crate.metadata.Reference.buildTree;
-import static io.crate.metadata.table.ColumnPolicies.ES_MAPPING_NAME;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.util.ArrayList;
@@ -40,8 +39,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.Reference;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.table.ColumnPolicies;
+import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -61,10 +59,18 @@ public final class MappingUtil {
         /**
          * Important: The table must be based on the _latest_ cluster state, retrieved from within a clusterState update routine.
          */
-        public static AllocPosition forTable(DocTableInfo table) {
+        public static AllocPosition forTable(TableInfo table) {
             return new AllocPosition(table.maxPosition(), column -> {
                 var reference = table.getReference(column);
-                return reference == null ? -1 : reference.position();
+                if (reference == null) {
+                    for (Reference droppedColumn : table.droppedColumns()) {
+                        if (droppedColumn.column().equals(column)) {
+                            return droppedColumn.position();
+                        }
+                    }
+                    return -1;
+                }
+                return reference.position();
             });
         }
 
@@ -93,6 +99,7 @@ public final class MappingUtil {
      *
      */
     public static Map<String, Object> createMapping(AllocPosition allocPosition,
+                                                    @Nullable String pkConstraintName,
                                                     List<Reference> columns,
                                                     IntArrayList pKeyIndices,
                                                     Map<String, String> checkConstraints,
@@ -101,18 +108,21 @@ public final class MappingUtil {
                                                     @Nullable String routingColumn) {
 
         HashMap<ColumnIdent, List<Reference>> tree = buildTree(columns);
-        Map<String, Map<String, Object>> propertiesMap = createPropertiesMap(allocPosition, null, tree);
+        Map<String, Map<String, Object>> propertiesMap = toProperties(allocPosition, null, tree);
         assert propertiesMap != null : "ADD COLUMN mapping can not be null"; // Only intermediate result can be null.
 
         Map<String, Object> mapping = new HashMap<>();
         Map<String, Object> meta = new HashMap<>();
+        if (pkConstraintName != null) {
+            meta.put("pk_constraint_name", pkConstraintName);
+        }
         mergeConstraints(meta, columns, pKeyIndices, checkConstraints);
         if (routingColumn != null) {
             meta.put("routing", routingColumn);
         }
 
         if (tableColumnPolicy != null) {
-            mapping.put(ES_MAPPING_NAME, ColumnPolicies.encodeMappingValue(tableColumnPolicy));
+            mapping.put(ColumnPolicy.MAPPING_KEY, tableColumnPolicy.toMappingValue());
         }
 
         Map<String, Object> indices = new HashMap<>();
@@ -134,41 +144,11 @@ public final class MappingUtil {
         return mapping;
     }
 
-    public static Map<String, Object> createMappingForDroppedCols(DocTableInfo tableInfo,
-                                                                  HashMap<ColumnIdent, List<Reference>> tree) {
-        Map<String, Map<String, Object>> propertiesMap =
-            createPropertiesMap(AllocPosition.forTable(tableInfo), null, tree);
-
-        Map<String, Object> mapping = new HashMap<>();
-        mapping.put("_meta", Map.of());
-        mapping.put("properties", propertiesMap);
-        return mapping;
-    }
-
 
     /**
-     * Creates a mapping containing only column names, can be nested.
-     */
-    public static Map<String, Object> createMappingToRemove(HashMap<ColumnIdent, List<Reference>> tree,
-                                                            @Nullable ColumnIdent currentNode) {
-        List<Reference> children = tree.get(currentNode);
-        if (children == null) {
-            assert currentNode != null : "Root must have children nodes";
-            return null;
-        }
-
-        Map<String, Object> allColumnsMap = new HashMap<>();
-        for (Reference child: children) {
-            allColumnsMap.put(child.column().leafName(), createMappingToRemove(tree, child.column()));
-        }
-
-        Map<String, Object> mapping = new HashMap<>();
-        mapping.put("properties", allColumnsMap);
-        return mapping;
-    }
-
-    /**
-     * Returns properties map including all nested sub-columns if there any.
+     * Creates the "properties" part of a mapping.
+     * Includes all nested sub-columns.
+     *
      * Format of the top level properties field:
      * {
      *     col1: {
@@ -184,12 +164,19 @@ public final class MappingUtil {
      *     },
      *     col2: {...}
      * }
+     */
+    public static Map<String, Map<String, Object>> toProperties(AllocPosition allocPosition,
+                                                                HashMap<ColumnIdent, List<Reference>> tree) {
+        return toProperties(allocPosition, null, tree);
+    }
 
+    /**
+     * See {@link #toProperties(AllocPosition, HashMap)}
      */
     @Nullable
-    private static Map<String, Map<String, Object>> createPropertiesMap(AllocPosition position,
-                                                                        @Nullable ColumnIdent currentNode,
-                                                                        HashMap<ColumnIdent, List<Reference>> tree) {
+    private static Map<String, Map<String, Object>> toProperties(AllocPosition position,
+                                                                 @Nullable ColumnIdent currentNode,
+                                                                 HashMap<ColumnIdent, List<Reference>> tree) {
         List<Reference> children = tree.get(currentNode);
         if (children == null) {
             return null;
@@ -233,8 +220,8 @@ public final class MappingUtil {
                                       Map<String, Object> propertiesMap,
                                       Reference reference,
                                       HashMap<ColumnIdent, List<Reference>> tree) {
-        propertiesMap.put("dynamic", ColumnPolicies.encodeMappingValue(reference.columnPolicy()));
-        Map<String, Map<String, Object>> nestedObjectMap = createPropertiesMap(position, reference.column(), tree);
+        propertiesMap.put(ColumnPolicy.MAPPING_KEY, reference.columnPolicy().toMappingValue());
+        Map<String, Map<String, Object>> nestedObjectMap = toProperties(position, reference.column(), tree);
         if (nestedObjectMap != null) {
             propertiesMap.put("properties", nestedObjectMap);
         }

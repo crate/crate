@@ -22,8 +22,6 @@
 package io.crate.execution.engine.collect.count;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -52,6 +50,7 @@ import io.crate.analyze.relations.TableRelation;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
@@ -80,10 +79,10 @@ public class InternalCountOperationTest extends IntegTestCase {
 
         {
             CompletableFuture<Long> count = countOperation.count(txnCtx, indexShards, Literal.BOOLEAN_TRUE);
-            assertThat(count.get(5, TimeUnit.SECONDS), is(3L));
+            assertThat(count.get(5, TimeUnit.SECONDS)).isEqualTo(3L);
         }
 
-        Schemas schemas = cluster().getInstance(Schemas.class);
+        Schemas schemas = cluster().getInstance(NodeContext.class).schemas();
         TableInfo tableInfo = schemas.getTableInfo(new RelationName(sqlExecutor.getCurrentSchema(), "t"));
         TableRelation tableRelation = new TableRelation(tableInfo);
         Map<RelationName, AnalyzedRelation> tableSources = Map.of(tableInfo.ident(), tableRelation);
@@ -92,7 +91,7 @@ public class InternalCountOperationTest extends IntegTestCase {
         Symbol filter = sqlExpressions.normalize(sqlExpressions.asSymbol("name = 'Marvin'"));
         {
             CompletableFuture<Long> count = countOperation.count(txnCtx, indexShards, filter);
-            assertThat(count.get(5, TimeUnit.SECONDS), is(1L));
+            assertThat(count.get(5, TimeUnit.SECONDS)).isEqualTo(1L);
         }
     }
 

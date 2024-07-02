@@ -29,7 +29,7 @@ import org.joda.time.DateTimeZone;
 import org.joda.time.Period;
 
 import io.crate.data.Input;
-import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -41,15 +41,16 @@ import io.crate.types.IntervalType;
 
 public class IntervalTimestampArithmeticScalar extends Scalar<Long, Object> implements BiFunction<Long, Period, Long> {
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(Functions.Builder module) {
         for (var timestampType : List.of(DataTypes.TIMESTAMP, DataTypes.TIMESTAMPZ)) {
-            module.register(
+            module.add(
                 Signature.scalar(
-                    ArithmeticFunctions.Names.ADD,
-                    DataTypes.INTERVAL.getTypeSignature(),
-                    timestampType.getTypeSignature(),
-                    timestampType.getTypeSignature()
-                ).withForbiddenCoercion(),
+                        ArithmeticFunctions.Names.ADD,
+                        DataTypes.INTERVAL.getTypeSignature(),
+                        timestampType.getTypeSignature(),
+                        timestampType.getTypeSignature()
+                    ).withFeature(Feature.DETERMINISTIC)
+                    .withForbiddenCoercion(),
                 (signature, boundSignature) ->
                     new IntervalTimestampArithmeticScalar(
                         "+",
@@ -57,7 +58,7 @@ public class IntervalTimestampArithmeticScalar extends Scalar<Long, Object> impl
                         boundSignature
                     )
             );
-            module.register(
+            module.add(
                 signatureFor(timestampType, ArithmeticFunctions.Names.ADD),
                 (signature, boundSignature) ->
                     new IntervalTimestampArithmeticScalar(
@@ -67,7 +68,7 @@ public class IntervalTimestampArithmeticScalar extends Scalar<Long, Object> impl
                     )
             );
 
-            module.register(
+            module.add(
                 signatureFor(timestampType, ArithmeticFunctions.Names.SUBTRACT),
                 (signature, boundSignature) ->
                     new IntervalTimestampArithmeticScalar(
@@ -81,11 +82,12 @@ public class IntervalTimestampArithmeticScalar extends Scalar<Long, Object> impl
 
     public static Signature signatureFor(DataType<?> timestampType, String name) {
         return Signature.scalar(
-            name,
-            timestampType.getTypeSignature(),
-            DataTypes.INTERVAL.getTypeSignature(),
-            timestampType.getTypeSignature()
-        ).withForbiddenCoercion();
+                name,
+                timestampType.getTypeSignature(),
+                DataTypes.INTERVAL.getTypeSignature(),
+                timestampType.getTypeSignature()
+            ).withFeature(Feature.DETERMINISTIC)
+            .withForbiddenCoercion();
     }
 
     private final BiFunction<DateTime, Period, DateTime> operation;

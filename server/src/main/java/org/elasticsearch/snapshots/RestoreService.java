@@ -19,8 +19,11 @@
 
 package org.elasticsearch.snapshots;
 
+import static io.crate.analyze.SnapshotSettings.SCHEMA_RENAME_PATTERN;
+import static io.crate.analyze.SnapshotSettings.SCHEMA_RENAME_REPLACEMENT;
+import static io.crate.analyze.SnapshotSettings.TABLE_RENAME_PATTERN;
+import static io.crate.analyze.SnapshotSettings.TABLE_RENAME_REPLACEMENT;
 import static java.util.Collections.unmodifiableSet;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_AUTO_EXPAND_REPLICAS;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_CREATION_DATE;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_HISTORY_UUID;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
@@ -32,10 +35,12 @@ import static org.elasticsearch.snapshots.SnapshotUtils.filterIndices;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -50,6 +55,7 @@ import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.ResourceNotFoundException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest.TableOrPartition;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
@@ -63,6 +69,7 @@ import org.elasticsearch.cluster.RestoreInProgress.ShardRestoreStatus;
 import org.elasticsearch.cluster.SnapshotDeletionsInProgress;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.AliasMetadata;
+import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -92,9 +99,12 @@ import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.ShardLimitValidator;
+import org.elasticsearch.plugins.MetadataUpgrader;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.repositories.RepositoryData;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
@@ -103,15 +113,19 @@ import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
+import io.crate.exceptions.PartitionAlreadyExistsException;
+import io.crate.exceptions.RelationAlreadyExists;
+import io.crate.execution.ddl.Templates;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 
 /**
  * Service responsible for restoring snapshots
  * <p>
  * Restore operation is performed in several stages.
  * <p>
- * First {@link #restoreSnapshot(RestoreRequest, org.elasticsearch.action.ActionListener)}
+ * First {@link #restoreSnapshot(RestoreRequest, List, org.elasticsearch.action.ActionListener)}
  * method reads information about snapshot and metadata from repository. In update cluster state task it checks restore
  * preconditions, restores global state if needed, creates {@link RestoreInProgress} record with list of shards that needs
  * to be restored and adds this shard to the routing table using {@link RoutingTable.Builder#addAsRestore(IndexMetadata, SnapshotRecoverySource)}
@@ -145,7 +159,7 @@ public class RestoreService implements ClusterStateApplier {
         Set<String> unremovable = new HashSet<>(UNMODIFIABLE_SETTINGS.size() + 4);
         unremovable.addAll(UNMODIFIABLE_SETTINGS);
         unremovable.add(SETTING_NUMBER_OF_REPLICAS);
-        unremovable.add(SETTING_AUTO_EXPAND_REPLICAS);
+        unremovable.add(AutoExpandReplicas.SETTING_KEY);
         unremovable.add(SETTING_VERSION_UPGRADED);
         UNREMOVABLE_SETTINGS = unmodifiableSet(unremovable);
     }
@@ -166,11 +180,14 @@ public class RestoreService implements ClusterStateApplier {
 
     private final ShardLimitValidator shardLimitValidator;
 
+    private final MetadataUpgrader metadataUpgrader;
+
     public RestoreService(ClusterService clusterService,
                           RepositoriesService repositoriesService,
                           AllocationService allocationService,
                           MetadataCreateIndexService createIndexService,
                           MetadataIndexUpgradeService metadataIndexUpgradeService,
+                          MetadataUpgrader metadataUpgrader,
                           ClusterSettings clusterSettings,
                           ShardLimitValidator shardLimitValidator) {
         this.clusterService = clusterService;
@@ -178,6 +195,7 @@ public class RestoreService implements ClusterStateApplier {
         this.allocationService = allocationService;
         this.createIndexService = createIndexService;
         this.metadataIndexUpgradeService = metadataIndexUpgradeService;
+        this.metadataUpgrader = metadataUpgrader;
         if (DiscoveryNode.isMasterEligibleNode(clusterService.getSettings())) {
             clusterService.addStateApplier(this);
         }
@@ -190,9 +208,13 @@ public class RestoreService implements ClusterStateApplier {
      * Restores snapshot specified in the restore request.
      *
      * @param request  restore request
+     * @param tablesToRestore contains tables to restore when used in CREATE SNAPSHOT
+     *                        and NULL when used in logical replication.
      * @param listener restore listener
      */
-    public void restoreSnapshot(final RestoreRequest request, final ActionListener<RestoreCompletionResponse> listener) {
+    public void restoreSnapshot(final RestoreRequest request,
+                                @Nullable final List<TableOrPartition> tablesToRestore,
+                                final ActionListener<RestoreCompletionResponse> listener) {
         final String repositoryName = request.repositoryName;
         Repository repository;
         try {
@@ -219,15 +241,41 @@ public class RestoreService implements ClusterStateApplier {
                 validateSnapshotRestorable(repositoryName, snapshotInfo);
 
                 // Resolve the indices from the snapshot that need to be restored
-                final List<String> indicesInSnapshot = request.includeIndices()
-                    ? filterIndices(snapshotInfo.indices(), request.indices(), request.indicesOptions())
+
+                List<String> resolvedIndices = new ArrayList<>();
+                List<String> resolvedTemplates = new ArrayList<>();
+
+                resolveIndices(
+                    request,
+                    tablesToRestore,
+                    snapshotInfo.indices(),
+                    resolvedIndices,
+                    resolvedTemplates
+                );
+
+                boolean includeIndices = request.includeIndices();
+                if (includeIndices) {
+                    // Empty list is resolved to "all indices" and we don't want break this behavior since RestoreService is used
+                    // in other components (index recovery, logical replication).
+                    // However, when restoring an empty partitioned table, there are no resolved indices
+                    // but this should not be treated as "select all".
+                    // In this case we force ignoring indices.
+                    // See https://github.com/crate/crate/issues/14144
+                    if (resolvedIndices.isEmpty() && tablesToRestore != null && tablesToRestore.size() > 0) {
+                        includeIndices = false;
+                    }
+                }
+
+                final List<String> indicesInSnapshot = includeIndices
+                    ? filterIndices(snapshotInfo.indices(), resolvedIndices, request.indicesOptions())
                     : List.of();
+
 
                 CompletableFuture<Metadata> futureGlobalMetadata;
                 if (request.includeCustomMetadata()
                     || request.includeGlobalSettings()
-                    || request.allTemplates()
-                    || (request.templates() != null && request.templates().length > 0)) {
+                    || allTemplates(resolvedTemplates)
+                    || (resolvedTemplates.isEmpty() == false)) {
                     futureGlobalMetadata = repository.getSnapshotGlobalMetadata(snapshotId);
                 } else {
                     futureGlobalMetadata = CompletableFuture.completedFuture(Metadata.EMPTY_METADATA);
@@ -243,7 +291,7 @@ public class RestoreService implements ClusterStateApplier {
                         final Metadata metadata = metadataBuilder.build();
                         // Apply renaming on index names, returning a map of names where
                         // the key is the renamed index and the value is the original name
-                        final Map<String, String> indices = renamedIndices(request, indicesInSnapshot);
+                        final Map<String, String> indices = applyRenameToIndices(request, indicesInSnapshot);
 
                         // Now we can start the actual restore process by adding shards to be recovered in the cluster state
                         // and updating cluster metadata (global and index) as needed
@@ -255,6 +303,7 @@ public class RestoreService implements ClusterStateApplier {
                             listener,
                             request,
                             indices,
+                            resolvedTemplates,
                             metadata
                         );
                         clusterService.submitStateUpdateTask("restore_snapshot[" + snapshotName + ']', updateTask);
@@ -265,6 +314,87 @@ public class RestoreService implements ClusterStateApplier {
             listener.onFailure(Exceptions.toException(t));
             return null;
         });
+    }
+
+    private boolean allTemplates(Collection<String> resolvedTemplates) {
+        return resolvedTemplates.size() == 1 && resolvedTemplates.contains(Metadata.ALL);
+    }
+
+    /**
+    * Resolves indices and templates from the request.
+    * @param resolvedIndices is used to accumulate all resolved indices (or empty list to indicate all indices).
+    * @param resolvedTemplates is used to accumulate all resolved templates (or "_all" to indicate all templates).
+    */
+    @VisibleForTesting
+    static void resolveIndices(RestoreRequest request,
+                               @Nullable List<TableOrPartition> tablesToRestore,
+                               List<String> availableIndices,
+                               List<String> resolvedIndices,
+                               List<String> resolvedTemplates) {
+        if (tablesToRestore != null) {
+            for (TableOrPartition tableOrPartition : tablesToRestore) {
+                String partitionTemplate = PartitionName.templateName(
+                    tableOrPartition.table().schema(),
+                    tableOrPartition.table().name()
+                );
+
+                if (tableOrPartition.partitionIdent() != null) {
+                    resolvedIndices.add(
+                        IndexParts.toIndexName(
+                            tableOrPartition.table().schema(),
+                            tableOrPartition.table().name(),
+                            tableOrPartition.partitionIdent()
+                        )
+                    );
+                    resolvedTemplates.add(partitionTemplate);
+                } else if (request.indicesOptions().ignoreUnavailable()) {
+                    // If ignoreUnavailable is true, it's cheaper to simply
+                    // return indexName and the partitioned wildcard instead
+                    // checking if it's a partitioned table or not
+                    resolvedIndices.add(tableOrPartition.table().indexNameOrAlias());
+                    // For the case its a partitioned table we restore all partitions and the templates
+                    resolvedIndices.add(partitionTemplate + "*");
+                    resolvedTemplates.add(partitionTemplate);
+                } else {
+                    String name = tableOrPartition.table().indexNameOrAlias();
+                    boolean found = false;
+                    for (String index : availableIndices) {
+                        if (name.equals(index)) {
+                            resolvedIndices.add(index);
+                            found = true;
+                            break;
+                        } else if (isIndexPartitionOfTable(index, tableOrPartition.table())) {
+                            // add a partitions wildcard
+                            // to match all partitions if a partitioned table was meant
+                            resolvedIndices.add(partitionTemplate + "*");
+                            resolvedTemplates.add(partitionTemplate);
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (found == false) {
+                        resolvedTemplates.add(partitionTemplate);
+                    }
+                }
+            }
+        } else {
+            // Use request values, for BWC and for restore from logical replication.
+            for (String index: request.indices()) {
+                resolvedIndices.add(index);
+            }
+            for (String template: request.templates()) {
+                resolvedTemplates.add(template);
+            }
+        }
+
+        if (request.includeIndices() && resolvedTemplates.isEmpty()) {
+            resolvedTemplates.add(Metadata.ALL);
+        }
+    }
+
+    public static boolean isIndexPartitionOfTable(String index, RelationName relationName) {
+        return IndexParts.isPartitioned(index) &&
+            PartitionName.fromIndexOrTemplate(index).relationName().equals(relationName);
     }
 
     public static RestoreInProgress updateRestoreStateWithDeletedIndices(RestoreInProgress oldRestore, Set<Index> deletedIndices) {
@@ -305,18 +435,21 @@ public class RestoreService implements ClusterStateApplier {
         private final ActionListener<RestoreCompletionResponse> listener;
         private final RestoreRequest request;
         private final Map<String, String> indices;
+        private final List<String> templates;
+
         private final Metadata metadata;
         final String restoreUUID = UUIDs.randomBase64UUID();
         RestoreInfo restoreInfo = null;
 
         private RestoreSnapshotUpdateTask(SnapshotInfo snapshotInfo,
-                                                SnapshotId snapshotId,
-                                                RepositoryData repositoryData,
-                                                Snapshot snapshot,
-                                                ActionListener<RestoreCompletionResponse> listener,
-                                                RestoreRequest request,
-                                                Map<String, String> indices,
-                                                Metadata metadata) {
+                                          SnapshotId snapshotId,
+                                          RepositoryData repositoryData,
+                                          Snapshot snapshot,
+                                          ActionListener<RestoreCompletionResponse> listener,
+                                          RestoreRequest request,
+                                          Map<String, String> indices,
+                                          List<String> templates,
+                                          Metadata metadata) {
             this.snapshotInfo = snapshotInfo;
             this.snapshotId = snapshotId;
             this.repositoryData = repositoryData;
@@ -324,6 +457,7 @@ public class RestoreService implements ClusterStateApplier {
             this.listener = listener;
             this.request = request;
             this.indices = indices;
+            this.templates = templates;
             this.metadata = metadata;
         }
 
@@ -388,6 +522,17 @@ public class RestoreService implements ClusterStateApplier {
                         IndexMetadata.Builder indexMdBuilder = IndexMetadata.builder(snapshotIndexMetadata)
                             .state(IndexMetadata.State.OPEN)
                             .index(renamedIndexName);
+
+                        if (request.hasNonDefaultRenamePatterns() && snapshotIndexMetadata.getAliases().isEmpty() == false) {
+                            // Partitioned tables are created with an alias.
+                            // A new index, created on top of an existing index with a different name,
+                            // must use renamed alias instead of the copied one to avoid restoring into the source tables instead of renamed ones.
+                            // Regular tables don't have AliasMetadata, so we reflect that for renamed indices.
+                            var renamedAlias = RelationName.fromIndexName(renamedIndexName).indexNameOrAlias();
+                            indexMdBuilder.removeAllAliases();
+                            indexMdBuilder.putAlias(new AliasMetadata(renamedAlias));
+                        }
+
                         Builder indexSettingsBuilder = Settings.builder()
                             .put(snapshotIndexMetadata.getSettings())
                             .put(IndexMetadata.SETTING_INDEX_UUID, UUIDs.randomBase64UUID());
@@ -475,10 +620,10 @@ public class RestoreService implements ClusterStateApplier {
                 shards = ImmutableOpenMap.of();
             }
 
-            validateExistingTemplates();
+            validateExistingTemplates(templates);
             checkAliasNameConflicts(indices, aliases);
             // Restore templates (but do NOT overwrite existing templates)
-            restoreTemplates(mdBuilder, currentState);
+            restoreTemplates(templates, mdBuilder, currentState);
 
             // Restore global state if needed
             if (request.includeGlobalSettings() && metadata.persistentSettings() != null) {
@@ -562,9 +707,13 @@ public class RestoreService implements ClusterStateApplier {
             // Index exist - checking that it's closed
             if (currentIndexMetadata.getState() != IndexMetadata.State.CLOSE) {
                 // TODO: Enable restore for open indices
-                throw new SnapshotRestoreException(snapshot, "cannot restore index [" + renamedIndex + "] because an open index " +
-                                                                "with same name already exists in the cluster. Either close or delete the existing index or restore the " +
-                                                                "index under a different name by providing a rename pattern and replacement name");
+                IndexParts indexParts = new IndexParts(renamedIndex);
+                RelationName relationName = new RelationName(indexParts.getSchema(), indexParts.getTable());
+                if (indexParts.isPartitioned()) {
+                    throw new PartitionAlreadyExistsException(new PartitionName(relationName, indexParts.getPartitionIdent()));
+                } else {
+                    throw new RelationAlreadyExists(relationName);
+                }
             }
             // Index exist - checking if it's partial restore
             if (partial) {
@@ -634,23 +783,60 @@ public class RestoreService implements ClusterStateApplier {
             return builder.settings(settingsBuilder).build();
         }
 
-        private void restoreTemplates(Metadata.Builder mdBuilder, ClusterState currentState) {
-            List<String> toRestore = Arrays.asList(request.templates());
-            if (metadata.templates() != null) {
-                for (ObjectCursor<IndexTemplateMetadata> cursor : metadata.templates().values()) {
-                    if (currentState.metadata().templates().get(cursor.value.name()) == null
-                        && (request.allTemplates() || toRestore.contains(cursor.value.name()))) {
-                        mdBuilder.put(cursor.value);
+        private void restoreTemplates(List<String> templates,
+                                      Metadata.Builder mdBuilder,
+                                      ClusterState currentState) {
+            ImmutableOpenMap<String, IndexTemplateMetadata> templateMetadata = metadata.templates();
+            if (templateMetadata == null) {
+                return;
+            }
+            Map<String, IndexTemplateMetadata> includedTemplates = new HashMap<>();
+            boolean allTemplates = allTemplates(templates);
+            boolean applyRenamePattern = request.hasNonDefaultRenamePatterns();
+            for (var cursor : templateMetadata) {
+                String templateName = cursor.key;
+                IndexTemplateMetadata indexTemplateMetadata = cursor.value;
+                if (allTemplates || templates.contains(templateName)) {
+                    IndexTemplateMetadata previous;
+                    if (applyRenamePattern) {
+                        IndexParts indexParts = new IndexParts(templateName);
+                        String schema = indexParts.getSchema();
+                        String table = indexParts.getTable();
+                        RelationName newName = new RelationName(
+                            schema.replaceAll(request.schemaRenamePattern(), request.schemaRenameReplacement()),
+                            table.replaceAll(request.tableRenamePattern(), request.tableRenameReplacement())
+                        );
+                        IndexTemplateMetadata renamedIndexTemplateMetadata = Templates.copyWithNewName(indexTemplateMetadata, newName).build();
+                        previous = includedTemplates.put(newName.indexNameOrAlias(), renamedIndexTemplateMetadata);
+                    } else {
+                        previous = includedTemplates.put(templateName, indexTemplateMetadata);
+                    }
+                    if (previous != null) {
+                        throw new SnapshotRestoreException(
+                            request.repositoryName,
+                            request.snapshotName,
+                            String.format(
+                                Locale.ENGLISH,
+                                "Rename conflict for partitioned table `%s`. `%s` already exists. Cannot rename `%s` to the same name",
+                                new IndexParts(templateName).toRelationName().fqn(),
+                                templateName,
+                                previous.name()
+                            )
+                        );
                     }
                 }
             }
+            includedTemplates = metadataUpgrader.indexTemplateMetadataUpgraders.apply(includedTemplates);
+            for (var indexTemplateMetadata : includedTemplates.values()) {
+                mdBuilder.put(indexTemplateMetadata);
+            }
         }
 
-        private void validateExistingTemplates() {
-            if (request.indicesOptions().ignoreUnavailable() || request.allTemplates()) {
+        private void validateExistingTemplates(List<String> templates) {
+            if (request.indicesOptions().ignoreUnavailable() || allTemplates(templates)) {
                 return;
             }
-            for (String template : request.templates()) {
+            for (String template : templates) {
                 if (!metadata.templates().containsKey(template)) {
                     throw new ResourceNotFoundException("[{}] template not found", template);
                 }
@@ -910,17 +1096,37 @@ public class RestoreService implements ClusterStateApplier {
         return failedShards;
     }
 
-    private Map<String, String> renamedIndices(RestoreRequest request, List<String> filteredIndices) {
+    private Map<String, String> applyRenameToIndices(RestoreRequest request, List<String> indices) {
+
         Map<String, String> renamedIndices = new HashMap<>();
-        for (String index : filteredIndices) {
-            String renamedIndex = index;
-            if (request.renameReplacement() != null && request.renamePattern() != null) {
-                renamedIndex = index.replaceAll(request.renamePattern(), request.renameReplacement());
+        boolean applyRenamePattern = request.hasNonDefaultRenamePatterns();
+        for (String index : indices) {
+            String renamed = index;
+            // At least one non-default value is provided.
+            if (applyRenamePattern) {
+                IndexParts indexParts = new IndexParts(renamed);
+                String schema = indexParts.getSchema();
+                String table = indexParts.getTable();
+                table = table.replaceAll(request.tableRenamePattern(), request.tableRenameReplacement());
+                schema = schema.replaceAll(request.schemaRenamePattern(), request.schemaRenameReplacement());
+
+                // Use intermediate RelationName to do some validations
+                // and also handle blob/doc schemas for non-partitioned tables
+                RelationName renamedIdent = new RelationName(schema, table);
+                if (indexParts.isPartitioned()) {
+                    renamed = IndexParts.toIndexName(
+                        renamedIdent.schema(),
+                        renamedIdent.name(),
+                        indexParts.getPartitionIdent()
+                    );
+                } else {
+                    renamed = renamedIdent.indexNameOrAlias();
+                }
             }
-            String previousIndex = renamedIndices.put(renamedIndex, index);
-            if (previousIndex != null) {
+            String previous = renamedIndices.put(renamed, index);
+            if (previous != null) {
                 throw new SnapshotRestoreException(request.repositoryName, request.snapshotName,
-                        "indices [" + index + "] and [" + previousIndex + "] are renamed into the same index [" + renamedIndex + "]");
+                    "indices [" + index + "] and [" + previous + "] are renamed into the same index [" + renamed + "]");
             }
         }
         return Collections.unmodifiableMap(renamedIndices);
@@ -997,9 +1203,13 @@ public class RestoreService implements ClusterStateApplier {
 
         private final String[] templates;
 
-        private final String renamePattern;
+        private final String tableRenamePattern;
 
-        private final String renameReplacement;
+        private final String tableRenameReplacement;
+
+        private final String schemaRenamePattern;
+
+        private final String schemaRenameReplacement;
 
         private final IndicesOptions indicesOptions;
 
@@ -1033,8 +1243,8 @@ public class RestoreService implements ClusterStateApplier {
          * @param indices            list of indices to restore
          * @param templates          list of indices to templates
          * @param indicesOptions     indices options
-         * @param renamePattern      pattern to rename indices
-         * @param renameReplacement  replacement for renamed indices
+         * @param tableRenamePattern      pattern to rename indices
+         * @param tableRenameReplacement  replacement for renamed indices
          * @param settings           repository specific restore settings
          * @param masterNodeTimeout  master node timeout
          * @param partial            allow partial restore
@@ -1048,7 +1258,9 @@ public class RestoreService implements ClusterStateApplier {
          * @param globalSettings     global settings to restore
          */
         public RestoreRequest(String repositoryName, String snapshotName, String[] indices, String[] templates, IndicesOptions indicesOptions,
-                              String renamePattern, String renameReplacement, Settings settings,
+                              String tableRenamePattern, String tableRenameReplacement,
+                              String schemaRenamePattern, String schemaRenameReplacement,
+                              Settings settings,
                               TimeValue masterNodeTimeout, boolean partial, boolean includeAliases,
                               Settings indexSettings, String[] ignoreIndexSettings, String cause,
                               boolean includeIndices,
@@ -1060,8 +1272,10 @@ public class RestoreService implements ClusterStateApplier {
             this.snapshotName = Objects.requireNonNull(snapshotName);
             this.indices = indices;
             this.templates = templates;
-            this.renamePattern = renamePattern;
-            this.renameReplacement = renameReplacement;
+            this.tableRenamePattern = tableRenamePattern;
+            this.tableRenameReplacement = tableRenameReplacement;
+            this.schemaRenamePattern = schemaRenamePattern;
+            this.schemaRenameReplacement = schemaRenameReplacement;
             this.indicesOptions = indicesOptions;
             this.settings = settings;
             this.masterNodeTimeout = masterNodeTimeout;
@@ -1117,10 +1331,6 @@ public class RestoreService implements ClusterStateApplier {
             return templates;
         }
 
-        public boolean allTemplates() {
-            return templates.length == 1 && templates[0].equals("_all");
-        }
-
         /**
          * Returns indices option flags
          *
@@ -1130,22 +1340,20 @@ public class RestoreService implements ClusterStateApplier {
             return indicesOptions;
         }
 
-        /**
-         * Returns rename pattern
-         *
-         * @return rename pattern
-         */
-        public String renamePattern() {
-            return renamePattern;
+        public String tableRenamePattern() {
+            return tableRenamePattern;
         }
 
-        /**
-         * Returns replacement pattern
-         *
-         * @return replacement pattern
-         */
-        public String renameReplacement() {
-            return renameReplacement;
+        public String tableRenameReplacement() {
+            return tableRenameReplacement;
+        }
+
+        public String schemaRenamePattern() {
+            return schemaRenamePattern;
+        }
+
+        public String schemaRenameReplacement() {
+            return schemaRenameReplacement;
         }
 
         /**
@@ -1241,5 +1449,11 @@ public class RestoreService implements ClusterStateApplier {
             return masterNodeTimeout;
         }
 
+        public boolean hasNonDefaultRenamePatterns() {
+            return !tableRenamePattern().equals(TABLE_RENAME_PATTERN.getDefault(Settings.EMPTY))
+                || !tableRenameReplacement().equals(TABLE_RENAME_REPLACEMENT.getDefault(Settings.EMPTY))
+                || !schemaRenamePattern().equals(SCHEMA_RENAME_PATTERN.getDefault(Settings.EMPTY))
+                || !schemaRenameReplacement().equals(SCHEMA_RENAME_REPLACEMENT.getDefault(Settings.EMPTY));
+        }
     }
 }

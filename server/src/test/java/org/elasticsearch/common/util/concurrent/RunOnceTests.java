@@ -19,9 +19,7 @@
 
 package org.elasticsearch.common.util.concurrent;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -35,15 +33,15 @@ public class RunOnceTests extends ESTestCase {
     public void testRunOnce() {
         final AtomicInteger counter = new AtomicInteger(0);
         final RunOnce runOnce = new RunOnce(counter::incrementAndGet);
-        assertFalse(runOnce.hasRun());
+        assertThat(runOnce.hasRun()).isFalse();
 
         runOnce.run();
-        assertTrue(runOnce.hasRun());
-        assertEquals(1, counter.get());
+        assertThat(runOnce.hasRun()).isTrue();
+        assertThat(counter.get()).isEqualTo(1);
 
         runOnce.run();
-        assertTrue(runOnce.hasRun());
-        assertEquals(1, counter.get());
+        assertThat(runOnce.hasRun()).isTrue();
+        assertThat(counter.get()).isEqualTo(1);
     }
 
     @Test
@@ -70,8 +68,8 @@ public class RunOnceTests extends ESTestCase {
         for (Thread thread : threads) {
             thread.join();
         }
-        assertTrue(runOnce.hasRun());
-        assertEquals(1, counter.get());
+        assertThat(runOnce.hasRun()).isTrue();
+        assertThat(counter.get()).isEqualTo(1);
     }
 
     @Test
@@ -101,10 +99,10 @@ public class RunOnceTests extends ESTestCase {
         final int iterations = randomIntBetween(1, 10);
         for (int i = 0; i < iterations; i++) {
             runOnce.run();
-            assertEquals(1, onRun.get());
-            assertEquals(1, onFailure.get());
-            assertEquals(1, onAfter.get());
-            assertTrue(runOnce.hasRun());
+            assertThat(onRun.get()).isEqualTo(1);
+            assertThat(onFailure.get()).isEqualTo(1);
+            assertThat(onAfter.get()).isEqualTo(1);
+            assertThat(runOnce.hasRun()).isTrue();
         }
     }
 }

@@ -24,23 +24,21 @@ package io.crate.planner.operators;
 import static io.crate.execution.dsl.phases.ExecutionPhases.executesOnHandler;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedCollection;
 import java.util.Set;
 import java.util.function.Function;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.common.UUIDs;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WindowDefinition;
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.projection.Projection;
@@ -49,7 +47,7 @@ import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.LimitAndOffset;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
+import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
@@ -95,7 +93,7 @@ public class WindowAgg extends ForwardingLogicalPlan {
                 // already provided by the source.
                 // -> Inject `eval` so that the `orderBy` of the window-function will turn into a `InputColumn`
                 Eval eval = new Eval(
-                    lastWindowAgg, Lists2.concatUnique(lastWindowAgg.outputs(), orderBy.orderBySymbols()));
+                    lastWindowAgg, Lists.concatUnique(lastWindowAgg.outputs(), orderBy.orderBySymbols()));
                 lastWindowAgg = new WindowAgg(eval, windowDefinition, functions, eval.outputs());
             }
         }
@@ -107,22 +105,22 @@ public class WindowAgg extends ForwardingLogicalPlan {
                       List<WindowFunction> windowFunctions,
                       List<Symbol> standalone) {
         super(source);
-        this.outputs = Lists2.concat(standalone, windowFunctions);
+        this.outputs = Lists.concat(standalone, windowFunctions);
         this.windowDefinition = windowDefinition;
         this.windowFunctions = windowFunctions;
         this.standalone = standalone;
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
-        HashSet<Symbol> toKeep = new LinkedHashSet<>();
+    public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
+        LinkedHashSet<Symbol> toKeep = new LinkedHashSet<>();
         ArrayList<WindowFunction> newWindowFunctions = new ArrayList<>();
         for (Symbol outputToKeep : outputsToKeep) {
-            SymbolVisitors.intersection(outputToKeep, windowFunctions, newWindowFunctions::add);
-            SymbolVisitors.intersection(outputToKeep, standalone, toKeep::add);
+            Symbols.intersection(outputToKeep, windowFunctions, newWindowFunctions::add);
+            Symbols.intersection(outputToKeep, standalone, toKeep::add);
         }
         for (WindowFunction newWindowFunction : newWindowFunctions) {
-            SymbolVisitors.intersection(newWindowFunction, source.outputs(), toKeep::add);
+            Symbols.intersection(newWindowFunction, source.outputs(), toKeep::add);
         }
         LogicalPlan newSource = source.pruneOutputsExcept(toKeep);
         if (newSource == source) {
@@ -156,7 +154,7 @@ public class WindowAgg extends ForwardingLogicalPlan {
         SubQueryAndParamBinder binder = new SubQueryAndParamBinder(params, subQueryResults);
         Function<Symbol, Symbol> toInputCols = binder.andThen(s -> InputColumns.create(s, sourceSymbols));
 
-        List<WindowFunction> boundWindowFunctions = (List<WindowFunction>)(List<?>) Lists2.map(windowFunctions, toInputCols);
+        List<WindowFunction> boundWindowFunctions = (List<WindowFunction>)(List<?>) Lists.map(windowFunctions, toInputCols);
         List<Projection> projections = new ArrayList<>();
         WindowAggProjection windowAggProjection = new WindowAggProjection(
             windowDefinition.map(toInputCols),
@@ -247,7 +245,7 @@ public class WindowAgg extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new WindowAgg(Lists2.getOnlyElement(sources), windowDefinition, windowFunctions, standalone);
+        return new WindowAgg(Lists.getOnlyElement(sources), windowDefinition, windowFunctions, standalone);
     }
 
     @Override
@@ -255,7 +253,7 @@ public class WindowAgg extends ForwardingLogicalPlan {
         return "WindowAgg{" +
             "source=" + source + ", " +
             "windowDefinition=" + windowDefinition + ", " +
-            "windowFunctions=[" + Lists2.joinOn(", ", windowFunctions, WindowFunction::toString) + "]" +
+            "windowFunctions=[" + Lists.joinOn(", ", windowFunctions, WindowFunction::toString) + "]" +
             "}";
     }
 }

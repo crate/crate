@@ -21,7 +21,7 @@
 
 package io.crate.metadata.blob;
 
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertNotNull;
 
 import java.util.Collections;
@@ -51,18 +51,18 @@ public class BlobTableInfoTest extends ESTestCase {
 
     @Test
     public void testGetColumnInfo() throws Exception {
-        Reference foobar = info.getReference(new ColumnIdent("digest"));
+        Reference foobar = info.getReference(ColumnIdent.of("digest"));
         assertNotNull(foobar);
-        assertEquals(DataTypes.STRING, foobar.valueType());
+        assertThat(foobar.valueType()).isEqualTo(DataTypes.STRING);
     }
 
     @Test
     public void testPrimaryKey() throws Exception {
-        assertEquals(Collections.singletonList(new ColumnIdent("digest")), info.primaryKey());
+        assertThat(info.primaryKey()).isEqualTo(Collections.singletonList(ColumnIdent.of("digest")));
     }
 
     @Test
     public void testClusteredBy() throws Exception {
-        assertEquals(new ColumnIdent("digest"), info.clusteredBy());
+        assertThat(info.clusteredBy()).isEqualTo(ColumnIdent.of("digest"));
     }
 }

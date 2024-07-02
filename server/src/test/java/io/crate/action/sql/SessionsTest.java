@@ -21,13 +21,13 @@
 
 package io.crate.action.sql;
 
+import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
@@ -44,26 +44,24 @@ import io.crate.data.InMemoryBatchIterator;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.transport.CancelRequest;
 import io.crate.execution.jobs.transport.TransportCancelAction;
-import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Planner;
 import io.crate.protocols.postgres.KeyData;
+import io.crate.role.Permission;
+import io.crate.role.Policy;
+import io.crate.role.Privilege;
+import io.crate.role.Role;
+import io.crate.role.Securable;
+import io.crate.role.metadata.RolesHelper;
 import io.crate.sql.tree.Declare.Hold;
-import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.user.Privilege;
-import io.crate.user.Privilege.State;
-import io.crate.user.User;
-import io.crate.user.UserLookup;
 
 public class SessionsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_sessions_broadcasts_cancel_if_no_local_match() throws Exception {
-        Functions functions = new Functions(Map.of());
-        UserLookup userLookup = () -> List.of(User.CRATE_USER);
-        NodeContext nodeCtx = new NodeContext(functions, userLookup);
+        NodeContext nodeCtx = createNodeContext();
         DependencyCarrier dependencies = mock(DependencyCarrier.class);
         ElasticsearchClient client = mock(ElasticsearchClient.class, Answers.RETURNS_MOCKS);
         when(dependencies.client()).thenReturn(client);
@@ -74,8 +72,7 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
             () -> dependencies,
             new JobsLogs(() -> false),
             Settings.EMPTY,
-            clusterService,
-            new TableStats()
+            clusterService
         );
 
         KeyData keyData = new KeyData(10, 20);
@@ -88,41 +85,37 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_super_user_and_al_privileges_can_view_all_cursors() throws Exception {
-        Functions functions = new Functions(Map.of());
-        UserLookup userLookup = () -> List.of(User.CRATE_USER);
-        NodeContext nodeCtx = new NodeContext(functions, userLookup);
+        NodeContext nodeCtx = createNodeContext();
         Sessions sessions = newSessions(nodeCtx);
-        Session session1 = sessions.newSession("doc", User.of("Arthur"));
+        Session session1 = sessions.newSession("doc", RolesHelper.userOf("Arthur"));
         session1.cursors.add("c1", newCursor());
 
-        Session session2 = sessions.newSession("doc", User.of("Trillian"));
+        Session session2 = sessions.newSession("doc", RolesHelper.userOf("Trillian"));
         session2.cursors.add("c2", newCursor());
 
-        assertThat(sessions.getCursors(User.CRATE_USER)).hasSize(2);
+        assertThat(sessions.getCursors(Role.CRATE_USER)).hasSize(2);
 
         var ALprivilege = new Privilege(
-            State.GRANT,
-            Privilege.Type.AL,
-            Privilege.Clazz.CLUSTER,
+            Policy.GRANT,
+            Permission.AL,
+            Securable.CLUSTER,
             null,
             "crate"
         );
-        User admin = User.of("admin", Set.of(ALprivilege), null);
+        Role admin = RolesHelper.userOf("admin", Set.of(ALprivilege), null);
         assertThat(sessions.getCursors(admin)).hasSize(2);
     }
 
     @Test
     public void test_user_can_only_view_their_own_cursors() throws Exception {
-        Functions functions = new Functions(Map.of());
-        UserLookup userLookup = () -> List.of(User.CRATE_USER);
-        NodeContext nodeCtx = new NodeContext(functions, userLookup);
+        NodeContext nodeCtx = createNodeContext();
         Sessions sessions = newSessions(nodeCtx);
 
-        User arthur = User.of("Arthur");
+        Role arthur = RolesHelper.userOf("Arthur");
         Session session1 = sessions.newSession("doc", arthur);
         session1.cursors.add("c1", newCursor());
 
-        User trillian = User.of("Trillian");
+        Role trillian = RolesHelper.userOf("Trillian");
         Session session2 = sessions.newSession("doc", trillian);
         session2.cursors.add("c2", newCursor());
 
@@ -132,9 +125,7 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_uses_global_statement_timeout_as_default_for() throws Exception {
-        Functions functions = new Functions(Map.of());
-        UserLookup userLookup = () -> List.of(User.CRATE_USER);
-        NodeContext nodeCtx = new NodeContext(functions, userLookup);
+        NodeContext nodeCtx = createNodeContext();
         Sessions sessions = new Sessions(
             nodeCtx,
             mock(Analyzer.class),
@@ -144,10 +135,9 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
             Settings.builder()
                 .put("statement_timeout", "30s")
                 .build(),
-            clusterService,
-            new TableStats()
+            clusterService
         );
-        Session session = sessions.newSession("doc", User.CRATE_USER);
+        Session session = sessions.newSession("doc", Role.CRATE_USER);
         assertThat(session.sessionSettings().statementTimeout())
             .isEqualTo(TimeValue.timeValueSeconds(30));
     }
@@ -160,8 +150,7 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
             () -> mock(DependencyCarrier.class),
             new JobsLogs(() -> false),
             Settings.EMPTY,
-            clusterService,
-            new TableStats()
+            clusterService
         );
         return sessions;
     }

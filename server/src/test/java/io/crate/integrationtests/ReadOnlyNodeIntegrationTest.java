@@ -23,14 +23,12 @@ package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
-
-import org.jetbrains.annotations.Nullable;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.IntegTestCase;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -133,7 +131,7 @@ public class ReadOnlyNodeIntegrationTest extends IntegTestCase {
     @Test
     public void testAllowedSelectSys() throws Exception {
         execute("select name from sys.cluster");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
     }
 
     @Test

@@ -25,19 +25,18 @@ import java.io.IOException;
 import java.util.List;
 import java.util.function.BinaryOperator;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.MutableDouble;
 import io.crate.common.MutableFloat;
 import io.crate.common.MutableLong;
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
@@ -48,7 +47,9 @@ import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionProvider.FunctionFactory;
+import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -65,33 +66,34 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
 
     public static final String NAME = "sum";
 
-    public static void register(AggregationImplModule mod) {
+    public static void register(Functions.Builder builder) {
         BinaryOperator<Long> add = Math::addExact;
         BinaryOperator<Long> sub = Math::subtractExact;
 
-        mod.register(
+        builder.add(
             Signature.aggregate(
-                NAME,
-                DataTypes.FLOAT.getTypeSignature(),
-                DataTypes.FLOAT.getTypeSignature()
-            ),
+                    NAME,
+                    DataTypes.FLOAT.getTypeSignature(),
+                    DataTypes.FLOAT.getTypeSignature())
+                .withFeature(Scalar.Feature.DETERMINISTIC),
             getSumAggregationForFloatFactory()
         );
-        mod.register(
+        builder.add(
             Signature.aggregate(
-                NAME,
-                DataTypes.DOUBLE.getTypeSignature(),
-                DataTypes.DOUBLE.getTypeSignature()
-            ),
+                    NAME,
+                    DataTypes.DOUBLE.getTypeSignature(),
+                    DataTypes.DOUBLE.getTypeSignature())
+                .withFeature(Scalar.Feature.DETERMINISTIC),
             getSumAggregationForDoubleFactory()
         );
 
         for (var supportedType : List.of(DataTypes.BYTE, DataTypes.SHORT, DataTypes.INTEGER, DataTypes.LONG)) {
-            mod.register(
+            builder.add(
                 Signature.aggregate(
-                    NAME,
-                    supportedType.getTypeSignature(),
-                    DataTypes.LONG.getTypeSignature()),
+                        NAME,
+                        supportedType.getTypeSignature(),
+                        DataTypes.LONG.getTypeSignature())
+                    .withFeature(Scalar.Feature.DETERMINISTIC),
                 (signature, boundSignature) ->
                     new SumAggregation<>(DataTypes.LONG, add, sub, signature, boundSignature)
             );
@@ -141,7 +143,7 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
     public T iterate(RamAccounting ramAccounting,
                      MemoryManager memoryManager,
                      T state,
-                     Input<?>[] args) throws CircuitBreakingException {
+                     Input<?> ... args) throws CircuitBreakingException {
         return reduce(ramAccounting, state, returnType.sanitizeValue(args[0].value()));
     }
 

@@ -25,10 +25,8 @@ import static io.crate.analyze.OptimizeTableSettings.FLUSH;
 import static io.crate.analyze.OptimizeTableSettings.MAX_NUM_SEGMENTS;
 import static io.crate.analyze.OptimizeTableSettings.ONLY_EXPUNGE_DELETES;
 import static io.crate.analyze.OptimizeTableSettings.UPGRADE_SEGMENTS;
-import static org.hamcrest.CoreMatchers.hasItems;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 
@@ -51,14 +49,13 @@ public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest 
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .addPartitionedTable(
                 TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION,
                 TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS)
-            .addBlobTable("create blob table blobs")
-            .build();
-        plannerContext = e.getPlannerContext(clusterService.state());
+            .addBlobTable("create blob table blobs");
+        plannerContext = e.getPlannerContext();
     }
 
     private OptimizeTablePlan.BoundOptimizeTable analyze(String stmt, Object... arguments) {
@@ -68,76 +65,76 @@ public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest 
             plannerContext.transactionContext(),
             plannerContext.nodeContext(),
             new RowN(arguments),
-            SubQueryResults.EMPTY
+            SubQueryResults.EMPTY,
+            plannerContext.clusterState().metadata()
         );
     }
 
     @Test
     public void testOptimizeSystemTable() throws Exception {
-        expectedException.expect(OperationOnInaccessibleRelationException.class);
-        expectedException.expectMessage("The relation \"sys.shards\" doesn't support or allow OPTIMIZE " +
-                                        "operations, as it is read-only.");
-        analyze("OPTIMIZE TABLE sys.shards");
+        assertThatThrownBy(() -> analyze("OPTIMIZE TABLE sys.shards"))
+            .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
+            .hasMessage("The relation \"sys.shards\" doesn't support or allow OPTIMIZE operations");
     }
 
     @Test
     public void testOptimizeTable() throws Exception {
         OptimizeTablePlan.BoundOptimizeTable analysis = analyze("OPTIMIZE TABLE users");
-        assertThat(analysis.indexNames(), contains("users"));
+        assertThat(analysis.indexNames()).containsExactly("users");
     }
 
     @Test
     public void testOptimizeBlobTable() throws Exception {
         OptimizeTablePlan.BoundOptimizeTable analysis = analyze("OPTIMIZE TABLE blob.blobs");
-        assertThat(analysis.indexNames(), contains(".blob_blobs"));
+        assertThat(analysis.indexNames()).containsExactly(".blob_blobs");
     }
 
     @Test
     public void testOptimizeTableWithParams() throws Exception {
         OptimizeTablePlan.BoundOptimizeTable analysis = analyze(
             "OPTIMIZE TABLE users WITH (max_num_segments=2)");
-        assertThat(analysis.indexNames(), contains("users"));
-        assertThat(MAX_NUM_SEGMENTS.get(analysis.settings()), is(2));
+        assertThat(analysis.indexNames()).containsExactly("users");
+        assertThat(MAX_NUM_SEGMENTS.get(analysis.settings())).isEqualTo(2);
         analysis = analyze("OPTIMIZE TABLE users WITH (only_expunge_deletes=true)");
 
-        assertThat(analysis.indexNames(), contains("users"));
-        assertThat(ONLY_EXPUNGE_DELETES.get(analysis.settings()), is(Boolean.TRUE));
+        assertThat(analysis.indexNames()).containsExactly("users");
+        assertThat(ONLY_EXPUNGE_DELETES.get(analysis.settings())).isEqualTo(Boolean.TRUE);
 
         analysis = analyze("OPTIMIZE TABLE users WITH (flush=false)");
-        assertThat(analysis.indexNames(), contains("users"));
-        assertThat(FLUSH.get(analysis.settings()), is(Boolean.FALSE));
+        assertThat(analysis.indexNames()).containsExactly("users");
+        assertThat(FLUSH.get(analysis.settings())).isEqualTo(Boolean.FALSE);
 
         analysis = analyze("OPTIMIZE TABLE users WITH (upgrade_segments=true)");
-        assertThat(analysis.indexNames(), contains("users"));
-        assertThat(UPGRADE_SEGMENTS.get(analysis.settings()), is(Boolean.TRUE));
+        assertThat(analysis.indexNames()).containsExactly("users");
+        assertThat(UPGRADE_SEGMENTS.get(analysis.settings())).isEqualTo(Boolean.TRUE);
     }
 
     @Test
     public void testOptimizeTableWithInvalidParamName() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Setting 'invalidparam' is not supported");
-        analyze("OPTIMIZE TABLE users WITH (invalidParam=123)");
+        assertThatThrownBy(() -> analyze("OPTIMIZE TABLE users WITH (invalidParam=123)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Setting 'invalidparam' is not supported");
     }
 
     @Test
     public void testOptimizeTableWithUpgradeSegmentsAndOtherParam() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("cannot use other parameters if upgrade_segments is set to true");
-        analyze("OPTIMIZE TABLE users WITH (flush=false, upgrade_segments=true)");
+        assertThatThrownBy(() -> analyze("OPTIMIZE TABLE users WITH (flush=false, upgrade_segments=true)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("cannot use other parameters if upgrade_segments is set to true");
     }
 
     @Test
     public void testOptimizePartition() throws Exception {
         OptimizeTablePlan.BoundOptimizeTable analysis = analyze(
             "OPTIMIZE TABLE parted PARTITION (date=1395874800000)");
-        assertThat(analysis.indexNames(), contains(".partitioned.parted.04732cpp6ks3ed1o60o30c1g"));
+        assertThat(analysis.indexNames()).containsExactly(".partitioned.parted.04732cpp6ks3ed1o60o30c1g");
     }
 
     @Test
     public void testOptimizePartitionedTableNullPartition() throws Exception {
         OptimizeTablePlan.BoundOptimizeTable analysis = analyze(
             "OPTIMIZE TABLE parted PARTITION (date=null)");
-        assertThat(analysis.indexNames(), contains(".partitioned.parted.0400"));
+        assertThat(analysis.indexNames()).containsExactly(".partitioned.parted.0400");
     }
 
     @Test
@@ -145,45 +142,42 @@ public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest 
         OptimizeTablePlan.BoundOptimizeTable analysis = analyze(
             "OPTIMIZE TABLE parted PARTITION (date=1395874800000) " +
             "WITH (only_expunge_deletes=true)");
-        assertThat(analysis.indexNames(), contains(".partitioned.parted.04732cpp6ks3ed1o60o30c1g"));
+        assertThat(analysis.indexNames()).containsExactly(".partitioned.parted.04732cpp6ks3ed1o60o30c1g");
     }
 
     @Test
     public void testOptimizeMultipleTables() throws Exception {
         OptimizeTablePlan.BoundOptimizeTable analysis = analyze("OPTIMIZE TABLE parted, users");
-        assertThat(analysis.indexNames().size(), is(4));
-        assertThat(
-            analysis.indexNames(),
-            hasItems(".partitioned.parted.04732cpp6ks3ed1o60o30c1g", "users")
-        );
+        assertThat(analysis.indexNames()).hasSize(4);
+        assertThat(analysis.indexNames())
+            .contains(".partitioned.parted.04732cpp6ks3ed1o60o30c1g", "users");
     }
 
     @Test
     public void testOptimizeMultipleTablesUnknown() throws Exception {
-        expectedException.expect(RelationUnknown.class);
-        expectedException.expectMessage("Relation 'foo' unknown");
-        analyze("OPTIMIZE TABLE parted, foo, bar");
+        assertThatThrownBy(() -> analyze("OPTIMIZE TABLE parted, foo, bar"))
+            .isExactlyInstanceOf(RelationUnknown.class)
+            .hasMessage("Relation 'foo' unknown");
     }
 
     @Test
     public void testOptimizeInvalidPartitioned() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("\"invalid_column\" is no known partition column");
-        analyze("OPTIMIZE TABLE parted PARTITION (invalid_column='hddsGNJHSGFEFZÜ')");
+        assertThatThrownBy(() -> analyze("OPTIMIZE TABLE parted PARTITION (invalid_column='hddsGNJHSGFEFZÜ')"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("\"invalid_column\" is no known partition column");
     }
 
     @Test
     public void testOptimizeNonPartitioned() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("table 'doc.users' is not partitioned");
-        analyze("OPTIMIZE TABLE users PARTITION (foo='n')");
+        assertThatThrownBy(() -> analyze("OPTIMIZE TABLE users PARTITION (foo='n')"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("table 'doc.users' is not partitioned");
     }
 
     @Test
     public void testOptimizeSysPartitioned() throws Exception {
-        expectedException.expect(OperationOnInaccessibleRelationException.class);
-        expectedException.expectMessage("The relation \"sys.shards\" doesn't support or allow OPTIMIZE " +
-                                        "operations, as it is read-only.");
-        analyze("OPTIMIZE TABLE sys.shards PARTITION (id='n')");
+        assertThatThrownBy(() -> analyze("OPTIMIZE TABLE sys.shards PARTITION (id='n')"))
+            .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
+            .hasMessage("The relation \"sys.shards\" doesn't support or allow OPTIMIZE operations");
     }
 }

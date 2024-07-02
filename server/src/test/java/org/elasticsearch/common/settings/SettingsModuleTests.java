@@ -21,8 +21,9 @@
 
 package org.elasticsearch.common.settings;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
@@ -42,29 +43,32 @@ public class SettingsModuleTests extends ModuleTestCase {
         }
         {
             Settings settings = Settings.builder().put("cluster.routing.allocation.balance.shard", "[2.0]").build();
-            IllegalArgumentException ex = expectThrows(IllegalArgumentException.class,
-                () ->  new SettingsModule(settings));
-            assertEquals("Failed to parse value [[2.0]] for setting [cluster.routing.allocation.balance.shard]", ex.getMessage());
+            assertThatThrownBy(() ->  new SettingsModule(settings))
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Failed to parse value [[2.0]] for setting [cluster.routing.allocation.balance.shard]");
         }
 
         {
             Settings settings = Settings.builder().put("cluster.routing.allocation.balance.shard", "[2.0]")
                 .put("some.foo.bar", 1).build();
-            IllegalArgumentException ex = expectThrows(IllegalArgumentException.class,
-                () -> new SettingsModule(settings));
-            assertEquals("Failed to parse value [[2.0]] for setting [cluster.routing.allocation.balance.shard]", ex.getMessage());
-            assertEquals(1, ex.getSuppressed().length);
-            assertEquals("unknown setting [some.foo.bar] please check that any required plugins are installed, or check the breaking " +
-                "changes documentation for removed settings", ex.getSuppressed()[0].getMessage());
+            assertThatThrownBy(() -> new SettingsModule(settings))
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Failed to parse value [[2.0]] for setting [cluster.routing.allocation.balance.shard]")
+                .satisfies(ex -> {
+                    assertThat(ex.getSuppressed()).hasSize(1);
+                    assertThat(ex.getSuppressed()[0].getMessage()).isEqualTo(
+                        "unknown setting [some.foo.bar] please check that any required plugins are installed, or check the breaking " +
+                        "changes documentation for removed settings"
+                    );
+                });
         }
 
         {
             Settings settings = Settings.builder().put("index.codec", "default")
                 .put("index.foo.bar", 1).build();
-            IllegalArgumentException ex = expectThrows(IllegalArgumentException.class,
-                () -> new SettingsModule(settings));
-            assertEquals("Index settings found. These have been unsupported since CrateDB 2.0 and should've been migrated.",
-                         ex.getMessage());
+            assertThatThrownBy(() -> new SettingsModule(settings))
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Index settings found. These have been unsupported since CrateDB 2.0 and should've been migrated.");
         }
 
         {
@@ -87,7 +91,7 @@ public class SettingsModuleTests extends ModuleTestCase {
                 new SettingsModule(settings, Setting.floatSetting("some.custom.setting", 1.0f, Property.NodeScope));
                 fail();
             } catch (IllegalArgumentException ex) {
-                assertEquals("Failed to parse value [false] for setting [some.custom.setting]", ex.getMessage());
+                assertThat(ex.getMessage()).isEqualTo("Failed to parse value [false] for setting [some.custom.setting]");
             }
         }
     }
@@ -102,8 +106,9 @@ public class SettingsModuleTests extends ModuleTestCase {
 
         {
             Settings settings = Settings.builder().put("logger._root", "BOOM").put("logger.transport", "WOW").build();
-            IllegalArgumentException ex = expectThrows(IllegalArgumentException.class, () -> new SettingsModule(settings));
-            assertEquals("Unknown level constant [BOOM].", ex.getMessage());
+            assertThatThrownBy(() -> new SettingsModule(settings))
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Unknown level constant [BOOM].");
         }
     }
 

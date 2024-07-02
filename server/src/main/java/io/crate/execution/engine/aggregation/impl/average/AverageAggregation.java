@@ -25,28 +25,28 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.util.NumericUtils;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.Streamer;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
-import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
 import io.crate.execution.engine.aggregation.impl.templates.SortedNumericDocValueAggregator;
 import io.crate.execution.engine.aggregation.impl.util.KahanSummationForDouble;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -69,20 +69,21 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
         DataTypes.register(AverageStateType.ID, in -> AverageStateType.INSTANCE);
     }
 
-    static final List<DataType<?>> SUPPORTED_TYPES = Lists2.concat(
+    static final List<DataType<?>> SUPPORTED_TYPES = Lists.concat(
         DataTypes.NUMERIC_PRIMITIVE_TYPES, DataTypes.TIMESTAMPZ);
 
     /**
      * register as "avg" and "mean"
      */
-    public static void register(AggregationImplModule mod) {
+    public static void register(Functions.Builder builder) {
         for (var functionName : NAMES) {
             for (var supportedType : SUPPORTED_TYPES) {
-                mod.register(
+                builder.add(
                     Signature.aggregate(
-                        functionName,
-                        supportedType.getTypeSignature(),
-                        DataTypes.DOUBLE.getTypeSignature()),
+                            functionName,
+                            supportedType.getTypeSignature(),
+                            DataTypes.DOUBLE.getTypeSignature())
+                        .withFeature(Scalar.Feature.DETERMINISTIC),
                     (signature, boundSignature) ->
                         new AverageAggregation(signature, boundSignature,
                             supportedType.id() != DataTypes.FLOAT.id() && supportedType.id() != DataTypes.DOUBLE.id())

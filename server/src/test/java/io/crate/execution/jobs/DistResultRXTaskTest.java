@@ -21,13 +21,9 @@
 
 package io.crate.execution.jobs;
 
-import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -92,13 +88,13 @@ public class DistResultRXTaskTest extends ESTestCase {
         PageResultListener pageResultListener = mock(PageResultListener.class);
         Bucket bucket = new CollectionBucket(Collections.singletonList(new Object[] { "foo" }));
         PageBucketReceiver bucketReceiver = ctx.getBucketReceiver((byte) 0);
-        assertThat(bucketReceiver, notNullValue());
+        assertThat(bucketReceiver).isNotNull();
         bucketReceiver.setBucket(1, bucket, false, pageResultListener);
         bucketReceiver.setBucket(1, bucket, false, pageResultListener);
 
-        expectedException.expect(IllegalStateException.class);
-        expectedException.expectMessage("Same bucket of a page set more than once. node=n1 method=setBucket phaseId=1 bucket=1");
-        batchConsumer.getResult();
+        assertThatThrownBy(() -> batchConsumer.getResult())
+            .isExactlyInstanceOf(IllegalStateException.class)
+            .hasMessage("Same bucket of a page set more than once. node=n1 method=setBucket phaseId=1 bucket=1");
     }
 
     @Test
@@ -109,17 +105,17 @@ public class DistResultRXTaskTest extends ESTestCase {
         final AtomicReference<Throwable> throwable = new AtomicReference<>();
         ctx.completionFuture().whenComplete((r, t) -> {
             if (t != null) {
-                assertTrue(throwable.compareAndSet(null, t));
+                assertThat(throwable.compareAndSet(null, t)).isTrue();
             } else {
                 fail("Expected exception");
             }
         });
 
         ctx.kill(new InterruptedException());
-        assertThat(throwable.get(), instanceOf(CompletionException.class));
+        assertThat(throwable.get()).isExactlyInstanceOf(CompletionException.class);
 
-        expectedException.expect(InterruptedException.class);
-        batchConsumer.getResult();
+        assertThatThrownBy(() -> batchConsumer.getResult())
+            .isExactlyInstanceOf(InterruptedException.class);
     }
 
     @Test
@@ -140,7 +136,7 @@ public class DistResultRXTaskTest extends ESTestCase {
             new Object[]{2},
         });
         PageBucketReceiver bucketReceiver = ctx.getBucketReceiver((byte) 0);
-        assertThat(bucketReceiver, notNullValue());
+        assertThat(bucketReceiver).isNotNull();
         bucketReceiver.setBucket(0, b1, false, needMore -> {
             if (needMore) {
                 bucketReceiver.setBucket(0, b11, true, mock(PageResultListener.class));
@@ -153,12 +149,11 @@ public class DistResultRXTaskTest extends ESTestCase {
 
 
         List<Object[]> result = batchConsumer.getResult();
-        assertThat(TestingHelpers.printedTable(new CollectionBucket(result)),
-            is("1\n" +
+        assertThat(TestingHelpers.printedTable(new CollectionBucket(result))).isEqualTo("1\n" +
                "1\n" +
                "2\n" +
                "2\n" +
-               "4\n"));
+               "4\n");
     }
 
     @Test
@@ -168,7 +163,7 @@ public class DistResultRXTaskTest extends ESTestCase {
 
         PageResultListener listener = mock(PageResultListener.class);
         PageBucketReceiver bucketReceiver = ctx.getBucketReceiver((byte) 0);
-        assertThat(bucketReceiver, notNullValue());
+        assertThat(bucketReceiver).isNotNull();
         bucketReceiver.setBucket(0, Bucket.EMPTY, false, listener);
         bucketReceiver.kill(new Exception("dummy"));
 
@@ -180,7 +175,7 @@ public class DistResultRXTaskTest extends ESTestCase {
         TestingRowConsumer consumer = new TestingRowConsumer();
         DistResultRXTask ctx = getPageDownstreamContext(consumer, PassThroughPagingIterator.oneShot(), 2);
         PageBucketReceiver bucketReceiver = ctx.getBucketReceiver((byte) 0);
-        assertThat(bucketReceiver, notNullValue());
+        assertThat(bucketReceiver).isNotNull();
 
         bucketReceiver.kill(new Exception("dummy"));
         PageResultListener listener = mock(PageResultListener.class);
@@ -194,7 +189,7 @@ public class DistResultRXTaskTest extends ESTestCase {
         TestingRowConsumer consumer = new TestingRowConsumer();
         DistResultRXTask ctx = getPageDownstreamContext(consumer, PassThroughPagingIterator.oneShot(), 2);
         PageBucketReceiver bucketReceiver = ctx.getBucketReceiver((byte) 0);
-        assertThat(bucketReceiver, notNullValue());
+        assertThat(bucketReceiver).isNotNull();
         ctx.kill(new InterruptedException("killed"));
 
         CompletableFuture<Void> listenerReleased = new CompletableFuture<>();
@@ -213,7 +208,7 @@ public class DistResultRXTaskTest extends ESTestCase {
             3
         );
         PageBucketReceiver bucketReceiver = ctx.getBucketReceiver((byte) 0);
-        assertThat(bucketReceiver, notNullValue());
+        assertThat(bucketReceiver).isNotNull();
 
         final PageResultListener mockListener = mock(PageResultListener.class);
 
@@ -226,17 +221,16 @@ public class DistResultRXTaskTest extends ESTestCase {
         Bucket b3 = new CollectionBucket(Collections.singletonList(new Object[] { "universe" }));
         CheckPageResultListener checkPageResultListener = new CheckPageResultListener();
         bucketReceiver.setBucket(42, b3, false, checkPageResultListener);
-        assertThat(checkPageResultListener.needMoreResult, is(true));
+        assertThat(checkPageResultListener.needMoreResult).isTrue();
         bucketReceiver.setBucket(42, b3, true, checkPageResultListener);
-        assertThat(checkPageResultListener.needMoreResult, is(false));
+        assertThat(checkPageResultListener.needMoreResult).isFalse();
 
         List<Object[]> result = batchConsumer.getResult();
-        assertThat(result.toArray(), arrayContainingInAnyOrder(
+        assertThat(result.toArray()).containsExactlyInAnyOrder(
             new Object[] {"foo"},
             new Object[] {"bar"},
             new Object[] {"universe"},
-            new Object[] {"universe"}
-        ));
+            new Object[] {"universe"});
     }
 
     @Test
@@ -245,7 +239,7 @@ public class DistResultRXTaskTest extends ESTestCase {
 
         DistResultRXTask ctx = getPageDownstreamContext(batchConsumer, new FailOnMergePagingIterator<>(2), 2);
         PageBucketReceiver bucketReceiver = ctx.getBucketReceiver((byte) 0);
-        assertThat(bucketReceiver, notNullValue());
+        assertThat(bucketReceiver).isNotNull();
 
         PageResultListener pageResultListener = mock(PageResultListener.class);
         Bucket bucket = new CollectionBucket(Collections.singletonList(new Object[] { "foo" }));
@@ -254,9 +248,9 @@ public class DistResultRXTaskTest extends ESTestCase {
         bucketReceiver.setBucket(0, bucket, true, pageResultListener);
         bucketReceiver.setBucket(1, bucket, true, pageResultListener);
 
-        expectedException.expect(RuntimeException.class);
-        expectedException.expectMessage("raised on merge");
-        batchConsumer.getResult();
+        assertThatThrownBy(() -> batchConsumer.getResult())
+            .isExactlyInstanceOf(RuntimeException.class)
+            .hasMessage("raised on merge");
     }
 
     @Test
@@ -265,15 +259,15 @@ public class DistResultRXTaskTest extends ESTestCase {
 
         DistResultRXTask ctx = getPageDownstreamContext(batchConsumer, new FailOnMergePagingIterator<>(1), 1);
         PageBucketReceiver bucketReceiver = ctx.getBucketReceiver((byte) 0);
-        assertThat(bucketReceiver, notNullValue());
+        assertThat(bucketReceiver).isNotNull();
 
         PageResultListener pageResultListener = mock(PageResultListener.class);
         Bucket bucket = new CollectionBucket(Collections.singletonList(new Object[] { "foo" }));
         bucketReceiver.setBucket(0, bucket, true, pageResultListener);
 
-        expectedException.expect(RuntimeException.class);
-        expectedException.expectMessage("raised on merge");
-        batchConsumer.getResult();
+        assertThatThrownBy(() -> batchConsumer.getResult())
+            .isExactlyInstanceOf(RuntimeException.class)
+            .hasMessage("raised on merge");
     }
 
     private static class CheckPageResultListener implements PageResultListener {
@@ -319,13 +313,10 @@ public class DistResultRXTaskTest extends ESTestCase {
             } else {
                 iterator = concat.iterator();
             }
-
         }
 
         @Override
-        public void finish() {
-
-        }
+        public void finish() {}
 
         @Override
         public TKey exhaustedIterable() {

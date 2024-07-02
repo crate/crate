@@ -28,7 +28,7 @@ import io.crate.metadata.cluster.DDLClusterStateTaskExecutor;
 import io.crate.replication.logical.exceptions.PublicationAlreadyExistsException;
 import io.crate.replication.logical.metadata.Publication;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
-import io.crate.user.UserLookup;
+import io.crate.role.Roles;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
@@ -47,13 +47,13 @@ import java.util.Locale;
 public class TransportCreatePublicationAction extends AbstractDDLTransportAction<CreatePublicationRequest, AcknowledgedResponse> {
 
     public static final String ACTION_NAME = "internal:crate:replication/logical/publication/create";
-    private final UserLookup userLookup;
+    private final Roles roles;
 
     @Inject
     public TransportCreatePublicationAction(TransportService transportService,
                                             ClusterService clusterService,
                                             ThreadPool threadPool,
-                                            UserLookup userLookup) {
+                                            Roles roles) {
         super(ACTION_NAME,
               transportService,
               clusterService,
@@ -62,7 +62,7 @@ public class TransportCreatePublicationAction extends AbstractDDLTransportAction
               AcknowledgedResponse::new,
               AcknowledgedResponse::new,
               "create-publication");
-        this.userLookup = userLookup;
+        this.roles = roles;
     }
 
     @Override
@@ -80,7 +80,7 @@ public class TransportCreatePublicationAction extends AbstractDDLTransportAction
                 }
 
                 // Ensure publication owner exists
-                if (userLookup.findUser(request.owner()) == null) {
+                if (roles.findUser(request.owner()) == null) {
                     throw new IllegalStateException(
                         String.format(
                             Locale.ENGLISH, "Publication '%s' cannot be created as the user '%s' owning the publication has been dropped.",

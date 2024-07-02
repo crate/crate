@@ -21,11 +21,7 @@
 
 package io.crate.integrationtests;
 
-import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
@@ -38,7 +34,7 @@ public class ShardStatsTest extends IntegTestCase {
         execute("create table test (col1 int) clustered into 3 shards with (number_of_replicas=0)");
         ensureGreen();
         execute("select * from sys.shards limit 0");
-        assertEquals(0L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(0L);
     }
 
     @Test
@@ -47,8 +43,8 @@ public class ShardStatsTest extends IntegTestCase {
         ensureGreen();
 
         execute("select count(*) from sys.shards where table_name='test'");
-        assertEquals(1, response.rowCount());
-        assertEquals(3L, response.rows()[0][0]);
+        assertThat(response.rowCount()).isEqualTo(1);
+        assertThat(response.rows()[0][0]).isEqualTo(3L);
     }
 
     @Test
@@ -59,15 +55,13 @@ public class ShardStatsTest extends IntegTestCase {
 
         assertBusy(() -> {
             execute("select state, \"primary\", recovery['stage'] from sys.shards where table_name = 'locations' order by state, \"primary\"");
-            assertThat(
-                printedTable(response.rows()),
-                is("STARTED| false| DONE\n" +
-                   "STARTED| false| DONE\n" +
-                   "STARTED| true| DONE\n" +
-                   "STARTED| true| DONE\n" +
-                   "UNASSIGNED| false| NULL\n" +
-                   "UNASSIGNED| false| NULL\n")
-            );
+            assertThat(response).hasRows(
+                "STARTED| false| DONE",
+                "STARTED| false| DONE",
+                "STARTED| true| DONE",
+                "STARTED| true| DONE",
+                "UNASSIGNED| false| NULL",
+                "UNASSIGNED| false| NULL");
         });
     }
 
@@ -80,11 +74,11 @@ public class ShardStatsTest extends IntegTestCase {
 
         execute("select count(*), state, \"primary\" from sys.shards " +
                 "group by state, \"primary\" order by state desc");
-        assertThat(response.rowCount(), greaterThanOrEqualTo(2L));
-        assertEquals(3, response.cols().length);
-        assertThat((Long) response.rows()[0][0], greaterThanOrEqualTo(5L));
-        assertEquals("UNASSIGNED", response.rows()[0][1]);
-        assertEquals(false, response.rows()[0][2]);
+        assertThat(response.rowCount()).isGreaterThanOrEqualTo(2L);
+        assertThat(response.cols().length).isEqualTo(3);
+        assertThat((Long) response.rows()[0][0]).isGreaterThanOrEqualTo(5L);
+        assertThat(response.rows()[0][1]).isEqualTo("UNASSIGNED");
+        assertThat(response.rows()[0][2]).isEqualTo(false);
     }
 
     @Test
@@ -95,8 +89,8 @@ public class ShardStatsTest extends IntegTestCase {
         ensureYellow();
 
         execute("select count(*) from sys.shards where table_name='locations'");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((Long) response.rows()[0][0], is(15L));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat((Long) response.rows()[0][0]).isEqualTo(15L);
     }
 
     @Test
@@ -105,10 +99,10 @@ public class ShardStatsTest extends IntegTestCase {
         ensureGreen();
 
         execute("select schema_name, table_name from sys.shards where table_name = 'blobs'");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response.rowCount()).isEqualTo(2L);
         for (int i = 0; i < response.rowCount(); i++) {
-            assertThat((String) response.rows()[i][0], is("blob"));
-            assertThat((String) response.rows()[i][1], is("blobs"));
+            assertThat((String) response.rows()[i][0]).isEqualTo("blob");
+            assertThat((String) response.rows()[i][1]).isEqualTo("blobs");
         }
 
         execute("create blob table sbolb clustered into 4 shards " +
@@ -116,15 +110,15 @@ public class ShardStatsTest extends IntegTestCase {
         ensureYellow();
 
         execute("select schema_name, table_name from sys.shards where table_name = 'sbolb'");
-        assertThat(response.rowCount(), is(4L));
+        assertThat(response.rowCount()).isEqualTo(4L);
         for (int i = 0; i < response.rowCount(); i++) {
-            assertThat((String) response.rows()[i][0], is("blob"));
-            assertThat((String) response.rows()[i][1], is("sbolb"));
+            assertThat((String) response.rows()[i][0]).isEqualTo("blob");
+            assertThat((String) response.rows()[i][1]).isEqualTo("sbolb");
         }
         execute("select count(*) from sys.shards " +
                 "where schema_name='blob' and table_name != 'blobs' " +
                 "and table_name != 'sbolb'");
-        assertThat(response.rowCount(), is(1L));
-        assertThat((Long) response.rows()[0][0], is(0L));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat((Long) response.rows()[0][0]).isEqualTo(0L);
     }
 }

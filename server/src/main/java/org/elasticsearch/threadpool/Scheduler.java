@@ -19,9 +19,12 @@
 
 package org.elasticsearch.threadpool;
 
-import io.crate.common.SuppressForbidden;
-import io.crate.common.exceptions.Exceptions;
-import io.crate.common.unit.TimeValue;
+import java.util.concurrent.Delayed;
+import java.util.concurrent.RejectedExecutionHandler;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
@@ -29,12 +32,9 @@ import org.elasticsearch.common.util.concurrent.EsAbortPolicy;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 
-import java.util.concurrent.Delayed;
-import java.util.concurrent.RejectedExecutionHandler;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
+import io.crate.common.SuppressForbidden;
+import io.crate.common.exceptions.Exceptions;
+import io.crate.common.unit.TimeValue;
 
 /**
  * Scheduler that allows to schedule one-shot and periodic commands.
@@ -279,7 +279,7 @@ public interface Scheduler {
             // accept the wrapped exception in the output.
             Throwable error = EsExecutors.rethrowErrors(r);
             if (error != null) {
-                Exceptions.rethrowRuntimeException(error);
+                throw Exceptions.toRuntimeException(error);
             }
         }
     }

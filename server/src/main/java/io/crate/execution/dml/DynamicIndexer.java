@@ -29,13 +29,11 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.execution.dml.Indexer.ColumnConstraint;
-import io.crate.execution.dml.Indexer.Synthetic;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
@@ -57,7 +55,6 @@ import io.crate.types.UndefinedType;
 public final class DynamicIndexer implements ValueIndexer<Object> {
 
     private final ReferenceIdent refIdent;
-    private final Function<String, FieldType> getFieldType;
     private Function<ColumnIdent, Reference> getRef;
     private final int position;
     private DataType<?> type = null;
@@ -67,11 +64,9 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
 
     public DynamicIndexer(ReferenceIdent refIdent,
                           int position,
-                          Function<String, FieldType> getFieldType,
                           Function<ColumnIdent, Reference> getRef,
                           @Nullable String storageIdentPrefixForEmptyArrays) {
         this.refIdent = refIdent;
-        this.getFieldType = getFieldType;
         this.getRef = getRef;
         this.position = position;
         this.storageIdentPrefixForEmptyArrays = storageIdentPrefixForEmptyArrays;
@@ -81,9 +76,10 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
     @SuppressWarnings("unchecked")
     public void collectSchemaUpdates(Object value,
                                      Consumer<? super Reference> onDynamicColumn,
-                                     Map<ColumnIdent, Indexer.Synthetic> synthetics) throws IOException {
+                                     Synthetics synthetics) throws IOException {
         if (type == null) {
             type = guessType(value);
+            DynamicIndexer.throwOnNestedArray(type);
             StorageSupport<?> storageSupport = type.storageSupport();
             if (storageSupport == null) {
                 if (handleEmptyArray(type, value, null, null)) {
@@ -112,7 +108,6 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
             indexer = (ValueIndexer<Object>) storageSupport.valueIndexer(
                 refIdent.tableIdent(),
                 newColumn,
-                getFieldType,
                 getRef
             );
             onDynamicColumn.accept(newColumn);
@@ -126,12 +121,11 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public void indexValue(Object value,
                            String storageIdentLeafName,
                            XContentBuilder xcontentBuilder,
                            Consumer<? super IndexableField> addField,
-                           Map<ColumnIdent, Synthetic> synthetics,
+                           Synthetics synthetics,
                            Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
         if (type == null) {
             // At the second phase of indexing type is not null in almost all cases
@@ -163,7 +157,7 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
     public void indexValue(Object value,
                            XContentBuilder xcontentBuilder,
                            Consumer<? super IndexableField> addField,
-                           Map<ColumnIdent, Synthetic> synthetics,
+                           Synthetics synthetics,
                            Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
         StorageSupport<?> storageSupport = type.storageSupport();
         boolean nullable = true;
@@ -188,7 +182,6 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
             indexer = (ValueIndexer<Object>) storageSupport.valueIndexer(
                 refIdent.tableIdent(),
                 newColumn,
-                getFieldType,
                 getRef
             );
         }
@@ -246,6 +239,19 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
             return ArrayType.makeArray(upcast(innerType), dimensions);
         }
         return upcast(type);
+    }
+
+    /**
+     * We don't support dynamically-created nested arrays as the MapperParser code
+     * used when reading from the translog can't handle them.  So we also check
+     * here that we're not trying to dynamically create one.
+     */
+    public static void throwOnNestedArray(DataType<?> type) {
+        if (type instanceof ArrayType<?> at) {
+            if (at.innerType() instanceof ArrayType<?>) {
+                throw new IllegalArgumentException("Dynamic nested arrays are not supported");
+            }
+        }
     }
 
     private static DataType<?> upcast(DataType<?> type) {

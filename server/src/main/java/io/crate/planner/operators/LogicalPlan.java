@@ -24,14 +24,14 @@ package io.crate.planner.operators;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedCollection;
 import java.util.Set;
 import java.util.function.Consumer;
 
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.relations.AbstractTableRelation;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
@@ -110,7 +110,10 @@ public interface LogicalPlan extends Plan {
         return false;
     }
 
-    List<AbstractTableRelation<?>> baseTables();
+    default boolean supportsDistributedReads() {
+        return false;
+    }
+
 
     List<LogicalPlan> sources();
 
@@ -153,7 +156,7 @@ public interface LogicalPlan extends Plan {
      *                      regarding {@link Union} (which requires the order to be kept), or introduction of
      *                      unnecessary {@link Eval} operators.
      */
-    LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep);
+    LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep);
 
     /**
      * Rewrite an operator and its children to utilize a "query-then-fetch" approach.
@@ -223,16 +226,16 @@ public interface LogicalPlan extends Plan {
      *
      * @return RelationNames of the sources in order from left to right without duplicates
      */
-    List<RelationName> getRelationNames();
+    List<RelationName> relationNames();
 
     default void print(PrintContext printContext) {
         printContext
             .text(getClass().getSimpleName())
             .text("[")
-            .text(Lists2.joinOn(", ", outputs(), Symbol::toString))
+            .text(Lists.joinOn(", ", outputs(), Symbol::toString))
             .text("]");
         printStats(printContext);
-        printContext.nest(Lists2.map(sources(), x -> x::print));
+        printContext.nest(Lists.map(sources(), x -> x::print));
     }
 
     default void printStats(PrintContext printContext) {

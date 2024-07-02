@@ -19,12 +19,8 @@
 
 package org.elasticsearch.test;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.test.XContentTestUtils.insertRandomFields;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -79,12 +75,13 @@ public class XContentTestUtilsTests extends ESTestCase {
             DeprecationHandler.THROW_UNSUPPORTED_OPERATION, BytesReference.bytes(builder), builder.contentType())) {
             parser.nextToken();
             List<String> insertPaths = XContentTestUtils.getInsertPaths(parser, new Stack<>());
-            assertEquals(5, insertPaths.size());
-            assertThat(insertPaths, hasItem(equalTo("")));
-            assertThat(insertPaths, hasItem(equalTo("list1.2")));
-            assertThat(insertPaths, hasItem(equalTo("list1.4")));
-            assertThat(insertPaths, hasItem(equalTo("inner1")));
-            assertThat(insertPaths, hasItem(equalTo("inner1.inn\\.er2")));
+            assertThat(insertPaths).containsExactly(
+                "",
+                "list1.2",
+                "list1.4",
+                "inner1",
+                "inner1.inn\\.er2"
+            );
         }
     }
 
@@ -104,14 +101,14 @@ public class XContentTestUtilsTests extends ESTestCase {
         try (XContentParser parser = XContentHelper.createParser(NamedXContentRegistry.EMPTY,
             DeprecationHandler.THROW_UNSUPPORTED_OPERATION, BytesReference.bytes(builder), builder.contentType())) {
             Map<String, Object> map = parser.map();
-            assertEquals(2, map.size());
-            assertEquals("value1", map.get("field1"));
-            assertThat(map.get("inn.er1"), instanceOf(Map.class));
+            assertThat(map.size()).isEqualTo(2);
+            assertThat(map.get("field1")).isEqualTo("value1");
+            assertThat(map.get("inn.er1")).isInstanceOf(Map.class);
             Map<String, Object> innerMap = (Map<String, Object>) map.get("inn.er1");
-            assertEquals(2, innerMap.size());
-            assertEquals("value2", innerMap.get("field2"));
-            assertThat(innerMap.get("inner2"), instanceOf(Map.class));
-            assertEquals(0, ((Map<String, Object>) innerMap.get("inner2")).size());
+            assertThat(innerMap.size()).isEqualTo(2);
+            assertThat(innerMap.get("field2")).isEqualTo("value2");
+            assertThat(innerMap.get("inner2")).isInstanceOf(Map.class);
+            assertThat(((Map<String, Object>) innerMap.get("inner2")).size()).isEqualTo(0);
         }
     }
 
@@ -154,41 +151,41 @@ public class XContentTestUtilsTests extends ESTestCase {
                 insertRandomFields(builder.contentType(), BytesReference.bytes(builder), null, random()))) {
             resultMap = parser.map();
         }
-        assertEquals(5, resultMap.keySet().size());
-        assertEquals(2, ((Map<String, Object>) resultMap.get("foo")).keySet().size());
+        assertThat(resultMap.keySet().size()).isEqualTo(5);
+        assertThat(((Map<String, Object>) resultMap.get("foo")).keySet().size()).isEqualTo(2);
         Map<String, Object> foo1 = (Map<String, Object>) resultMap.get("foo1");
-        assertEquals(2, foo1.keySet().size());
-        assertEquals(2, ((Map<String, Object>) foo1.get("foo2")).keySet().size());
+        assertThat(foo1.keySet().size()).isEqualTo(2);
+        assertThat(((Map<String, Object>) foo1.get("foo2")).keySet().size()).isEqualTo(2);
         List<Object> foo4List = (List<Object>) resultMap.get("foo4");
-        assertEquals(1, foo4List.size());
-        assertEquals(2, ((Map<String, Object>) foo4List.get(0)).keySet().size());
+        assertThat(foo4List.size()).isEqualTo(1);
+        assertThat(((Map<String, Object>) foo4List.get(0)).keySet().size()).isEqualTo(2);
 
         Predicate<String> pathsToExclude = path -> path.endsWith("foo1");
         try (XContentParser parser = createParser(XContentType.JSON.xContent(),
                 insertRandomFields(builder.contentType(), BytesReference.bytes(builder), pathsToExclude, random()))) {
             resultMap = parser.map();
         }
-        assertEquals(5, resultMap.keySet().size());
-        assertEquals(2, ((Map<String, Object>) resultMap.get("foo")).keySet().size());
+        assertThat(resultMap.keySet().size()).isEqualTo(5);
+        assertThat(((Map<String, Object>) resultMap.get("foo")).keySet().size()).isEqualTo(2);
         foo1 = (Map<String, Object>) resultMap.get("foo1");
-        assertEquals(1, foo1.keySet().size());
-        assertEquals(2, ((Map<String, Object>) foo1.get("foo2")).keySet().size());
+        assertThat(foo1.keySet().size()).isEqualTo(1);
+        assertThat(((Map<String, Object>) foo1.get("foo2")).keySet().size()).isEqualTo(2);
         foo4List = (List<Object>) resultMap.get("foo4");
-        assertEquals(1, foo4List.size());
-        assertEquals(2, ((Map<String, Object>) foo4List.get(0)).keySet().size());
+        assertThat(foo4List.size()).isEqualTo(1);
+        assertThat(((Map<String, Object>) foo4List.get(0)).keySet().size()).isEqualTo(2);
 
         pathsToExclude = path -> path.contains("foo1");
         try (XContentParser parser = createParser(XContentType.JSON.xContent(),
                 insertRandomFields(builder.contentType(), BytesReference.bytes(builder), pathsToExclude, random()))) {
             resultMap = parser.map();
         }
-        assertEquals(5, resultMap.keySet().size());
-        assertEquals(2, ((Map<String, Object>) resultMap.get("foo")).keySet().size());
+        assertThat(resultMap.keySet().size()).isEqualTo(5);
+        assertThat(((Map<String, Object>) resultMap.get("foo")).keySet().size()).isEqualTo(2);
         foo1 = (Map<String, Object>) resultMap.get("foo1");
-        assertEquals(1, foo1.keySet().size());
-        assertEquals(1, ((Map<String, Object>) foo1.get("foo2")).keySet().size());
+        assertThat(foo1.keySet().size()).isEqualTo(1);
+        assertThat(((Map<String, Object>) foo1.get("foo2")).keySet().size()).isEqualTo(1);
         foo4List = (List<Object>) resultMap.get("foo4");
-        assertEquals(1, foo4List.size());
-        assertEquals(2, ((Map<String, Object>) foo4List.get(0)).keySet().size());
+        assertThat(foo4List.size()).isEqualTo(1);
+        assertThat(((Map<String, Object>) foo4List.get(0)).keySet().size()).isEqualTo(2);
     }
 }

@@ -1,0 +1,157 @@
+.. _version_5.6.0:
+
+=============
+Version 5.6.0
+=============
+
+Released on 2024-01-22.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 5.6.0.
+
+    We recommend that you upgrade to the latest 5.5 release before moving to
+    5.6.0.
+
+    A rolling upgrade from 5.5.x to 5.6.0 is supported.
+    Before upgrading, you should `back up your data`_.
+
+.. WARNING::
+
+    Tables that were created before CrateDB 4.x will not function with 5.x
+    and must be recreated before moving to 5.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+.. rubric:: Table of contents
+
+.. contents::
+   :local:
+
+.. _5.6.0_breaking_changes:
+
+Breaking Changes
+================
+
+- When :ref:`restoring a snapshot <sql-restore-snapshot>`, ``USERS`` and
+  ``PRIVILEGES`` keywords, used to restore user management metadata has been
+  replaced by ``USERMANAGEMENT``, which dictates that all users and roles of the
+  database together with their privileges are restored. Restoring ``USERS`` or
+  ``PRIVILEGES`` separately is not possible anymore.
+
+Deprecations
+============
+
+- ``USERS`` and ``PRIVILEGES`` keywords, used when
+  :ref:`restoring a snapshot <sql-restore-snapshot>`, in order to restore users
+  and privileges metadata respectively, have been deprecated. They have been
+  replaced by ``USERMANAGEMENT`` and their behavior has been modified, please
+  see :ref:`Breaking Changes <5.6.0_breaking_changes>` for details.
+
+Changes
+=======
+
+SQL Statements
+--------------
+
+- Added support for explicit :ref:`NULL <null_constraint>` column constraint
+  definitions in ``CREATE TABLE`` statements.
+
+- Added support for named :ref:`PRIMARY KEY constraint declaration
+  <primary_key_constraint>`.
+
+- Extended the :ref:`EXPLAIN <ref-explain>` statement to support the ``VERBOSE``
+  option.
+
+- Added support for
+  :ref:`ALTER TABLE RENAME COLUMN <sql-alter-table-rename-column>` statement.
+
+- Added support for :ref:`CREATE ROLE <ref-create-role>` statement. For details
+  see `Administration and Operations`_.
+
+- Added support for :ref:`ALTER ROLE <ref-alter-role>` statement, which is
+  identical to :ref:`ALTER USER <ref-alter-user>` statement.
+
+- Added support for :ref:`DROP ROLE <ref-drop-role>` statement, which is
+  identical to :ref:`DROP USER <ref-drop-user>` statement.
+
+SQL Standard and PostgreSQL Compatibility
+-----------------------------------------
+
+- Added a ``unknown`` type for serialization via the PostgreSQL wire protocol
+  and to the ``pg_catalog.pg_type`` table. This should resolve compatibility
+  issues with ``npgsql`` >= 8.0.
+
+- Added an empty ``pg_catalog.pg_depend`` table.
+
+- Changed ``pg_catalog.pg_roles`` table to be properly populated, as previously
+  it was always returning ``0`` rows.
+
+- Added support of optional ``ESCAPE`` parameter to
+  :ref:`LIKE and ILIKE <sql_dql_like>` operators.
+
+Data Types
+----------
+
+- Introduced the BKD-tree-based indexing strategy for :ref:`geo_shape <data-types-geo-shape>`.
+
+Scalar and Aggregation Functions
+--------------------------------
+
+- Updated the ``tdigest`` library which results in the ``percentile``
+  aggregation function to behave differently in some cases. For example, the
+  following query used to return ``4.5`` but will now return ``5.0``::
+
+    SELECT percentile(x, 0.5) FROM generate_series(0, 9, 1) AS t (x) ;
+
+
+Performance and Resilience Improvements
+---------------------------------------
+
+- Reduced the amount of disk reads necessary for ``ANALYZE`` operations.
+
+- Improved filter push-down for left/right outer joins when the joins are
+  nested e.g.::
+
+    SELECT * FROM (SELECT * FROM a LEFT JOIN b ON a.a = b.b LEFT JOIN c ON b.b = c.c) t WHERE b > 1;
+
+  Now, the above query will result in the following logical plan ::
+
+    NestedLoopJoin[LEFT | (b = c)] (rows=unknown)
+      ├ HashJoin[(a = b)] (rows=unknown)
+      │  ├ Collect[doc.a | [a] | true] (rows=unknown)
+      │  └ Collect[doc.b | [b] | (b > 1)] (rows=unknown)
+      └ Collect[doc.c | [c] | true] (rows=unknown)
+
+
+Administration and Operations
+-----------------------------
+
+- Added database roles, which can be used to group privileges, and can be
+  granted to users or other roles, thus enabling
+  :ref:`privileges inheritance <roles_inheritance>`.
+
+- Allowed un-indexed columns or columns without doc-values to be queryable.
+
+- Added the new options ``schema_rename_pattern``,
+  ``schema_rename_replacement``, ``table_rename_pattern`` and
+  ``table_rename_replacement`` to :ref:`RESTORE SNAPSHOT<sql-restore-snapshot>`
+  to allow renaming tables during restore.
+
+- Added :ref:`sys.roles<sys-roles>` table which contains all database roles
+  defined in the cluster.
+
+- Added ``granted_roles`` column to :ref:`sys.users<sys-users>` table which
+  lists the roles granted to a user, together with the user that granted each
+  role.
+
+User Interface
+--------------
+
+- Updated to Admin UI 1.24.7, which fixed a minor grammar issue on the Spanish
+  version of the Help page, and optimized images with ``oxipng``.

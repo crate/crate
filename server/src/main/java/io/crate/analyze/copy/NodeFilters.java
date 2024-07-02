@@ -21,20 +21,20 @@
 
 package io.crate.analyze.copy;
 
-import org.elasticsearch.cluster.node.DiscoveryNode;
-
-import org.jetbrains.annotations.Nullable;
 import java.util.Locale;
 import java.util.Map;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
+
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.jetbrains.annotations.Nullable;
 
 public class NodeFilters implements Predicate<DiscoveryNode> {
 
     public static final String NAME = "node_filters";
     private final java.util.function.Predicate<DiscoveryNode> innerPredicate;
 
-    public static NodeFilters fromMap(Map map) {
+    public static NodeFilters fromMap(Map<?, ?> map) {
         String name = stringOrIllegalArgument(map, "name");
         String id = stringOrIllegalArgument(map, "id");
         if (!map.isEmpty()) {
@@ -43,7 +43,7 @@ public class NodeFilters implements Predicate<DiscoveryNode> {
         return new NodeFilters(name, id);
     }
 
-    private static String stringOrIllegalArgument(Map map, String key) {
+    private static String stringOrIllegalArgument(Map<?, ?> map, String key) {
         Object obj = map.remove(key);
         try {
             return (String) obj;

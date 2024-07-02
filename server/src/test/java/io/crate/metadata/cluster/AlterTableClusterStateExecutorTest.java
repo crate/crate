@@ -26,14 +26,10 @@ import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_ROUTING_EXC
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_CREATION_DATE;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
 import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
@@ -76,11 +72,11 @@ public class AlterTableClusterStateExecutorTest {
                                                           relationName,
                                                           settings,
                                                           Collections.emptyMap(),
-                                                          (x, y) -> { },
+                                                          (_, _) -> { },
                                                           indexScopedSettings);
 
         IndexTemplateMetadata template = result.metadata().templates().get(templateName);
-        assertThat(template.settings().keySet(), contains(SETTING_NUMBER_OF_SHARDS));
+        assertThat(template.settings().keySet()).containsExactly(SETTING_NUMBER_OF_SHARDS);
     }
 
     @Test
@@ -88,7 +84,7 @@ public class AlterTableClusterStateExecutorTest {
         Settings.Builder builder = Settings.builder()
             .put(SETTING_NUMBER_OF_SHARDS, 4);
         Settings preparedSettings = AlterTableClusterStateExecutor.markArchivedSettings(builder.build());
-        assertThat(preparedSettings.keySet(), containsInAnyOrder(SETTING_NUMBER_OF_SHARDS, ARCHIVED_SETTINGS_PREFIX + "*"));
+        assertThat(preparedSettings.keySet()).containsExactlyInAnyOrder(SETTING_NUMBER_OF_SHARDS, ARCHIVED_SETTINGS_PREFIX + "*");
     }
 
     @Test
@@ -101,7 +97,7 @@ public class AlterTableClusterStateExecutorTest {
             .supportedSettings()
             .values()
             .stream()
-            .collect(Collectors.toList());
+            .toList();
 
         Settings filteredSettings = AlterTableClusterStateExecutor.filterSettings(settingToFilter, supportedSettings);
         assertThat(filteredSettings.isEmpty()).isFalse();

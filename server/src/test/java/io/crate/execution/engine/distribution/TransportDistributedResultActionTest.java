@@ -21,24 +21,20 @@
 
 package io.crate.execution.engine.distribution;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.transport.TransportService;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.Streamer;
-import io.crate.action.FutureActionListener;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.exceptions.TaskMissing;
@@ -72,27 +68,21 @@ public class TransportDistributedResultActionTest extends CrateDummyClusterServi
             THREAD_POOL,
             mock(TransportService.class),
             clusterService,
-            req -> {
-                FutureActionListener listener = FutureActionListener.newInstance();
-                killJobsAction.doExecute(req, listener);
-                return listener;
-            },
+            killJobsAction::execute,
             BackoffPolicy.exponentialBackoff(TimeValue.ZERO, 0)
         );
 
         StreamBucket.Builder builder = new StreamBucket.Builder(
             new Streamer[0], RamAccounting.NO_ACCOUNTING);
-        try {
+        assertThatThrownBy(() ->
             transportDistributedResultAction.nodeOperation(
                 DistributedResultRequest.of(
                     "dummyNodeId", UUID.randomUUID(), 0, (byte) 0, 0, builder.build(), true
                 ).innerRequest()
-            ).get(5, TimeUnit.SECONDS);
-            fail("nodeOperation call should fail with TaskMissing");
-        } catch (ExecutionException e) {
-            assertThat(e.getCause(), Matchers.instanceOf(TaskMissing.class));
-        }
+            ).get(5, TimeUnit.SECONDS))
+            .as("nodeOperation call should fail with TaskMissing")
+            .hasCauseExactlyInstanceOf(TaskMissing.class);
 
-        assertThat(numBroadcasts.get(), is(1));
+        assertThat(numBroadcasts.get()).isEqualTo(1);
     }
 }

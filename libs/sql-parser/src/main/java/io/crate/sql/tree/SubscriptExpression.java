@@ -36,8 +36,8 @@ package io.crate.sql.tree;
  */
 public class SubscriptExpression extends Expression {
 
-    private Expression base;
-    private Expression index;
+    private final Expression base;
+    private final Expression index;
 
     public SubscriptExpression(Expression base, Expression index) {
         this.base = base;

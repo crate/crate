@@ -21,9 +21,8 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -36,6 +35,7 @@ import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.functions.Signature;
 import io.crate.operation.aggregation.AggregationTestCase;
@@ -53,7 +53,7 @@ public class SumAggregationTest extends AggregationTestCase {
                 SumAggregation.NAME,
                 argumentType.getTypeSignature(),
                 returnType.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.DETERMINISTIC),
             data,
             List.of()
         );
@@ -69,16 +69,16 @@ public class SumAggregationTest extends AggregationTestCase {
     @Test
     public void testReturnType() throws Exception {
         DataType<?> type = DataTypes.DOUBLE;
-        assertThat(getSum(type).boundSignature().returnType().getTypeSignature(), is(type.getTypeSignature()));
+        assertThat(getSum(type).boundSignature().returnType().getTypeSignature()).isEqualTo(type.getTypeSignature());
 
         type = DataTypes.FLOAT;
-        assertThat(getSum(type).boundSignature().returnType().getTypeSignature(), is(type.getTypeSignature()));
+        assertThat(getSum(type).boundSignature().returnType().getTypeSignature()).isEqualTo(type.getTypeSignature());
 
         type = DataTypes.LONG;
-        assertThat(getSum(type).boundSignature().returnType().getTypeSignature(), is(type.getTypeSignature()));
-        assertThat(getSum(DataTypes.INTEGER).boundSignature().returnType().getTypeSignature(), is(type.getTypeSignature()));
-        assertThat(getSum(DataTypes.SHORT).boundSignature().returnType().getTypeSignature(), is(type.getTypeSignature()));
-        assertThat(getSum(DataTypes.BYTE).boundSignature().returnType().getTypeSignature(), is(type.getTypeSignature()));
+        assertThat(getSum(type).boundSignature().returnType().getTypeSignature()).isEqualTo(type.getTypeSignature());
+        assertThat(getSum(DataTypes.INTEGER).boundSignature().returnType().getTypeSignature()).isEqualTo(type.getTypeSignature());
+        assertThat(getSum(DataTypes.SHORT).boundSignature().returnType().getTypeSignature()).isEqualTo(type.getTypeSignature());
+        assertThat(getSum(DataTypes.BYTE).boundSignature().returnType().getTypeSignature()).isEqualTo(type.getTypeSignature());
     }
 
     private FunctionImplementation getSum(DataType<?> type) {
@@ -94,21 +94,21 @@ public class SumAggregationTest extends AggregationTestCase {
     public void testDouble() throws Exception {
         Object result = executeAggregation(DataTypes.DOUBLE, DataTypes.DOUBLE, new Object[][]{{0.7d}, {0.3d}});
 
-        assertEquals(1.0d, result);
+        assertThat(result).isEqualTo(1.0d);
     }
 
     @Test
     public void testDoubleSummationWithoutLosingPrecision() throws Exception {
         Object result = executeAggregation(DataTypes.DOUBLE, DataTypes.DOUBLE, new Object[][]{{0.1d}, {0.3d}, {0.2d}});
 
-        assertEquals(0.6d, result);
+        assertThat(result).isEqualTo(0.6d);
     }
 
     @Test
     public void testFloat() throws Exception {
         Object result = executeAggregation(DataTypes.FLOAT, DataTypes.FLOAT, new Object[][]{{0.7f}, {0.3f}});
 
-        assertEquals(1.0f, result);
+        assertThat(result).isEqualTo(1.0f);
     }
 
     @Test
@@ -118,7 +118,7 @@ public class SumAggregationTest extends AggregationTestCase {
             SumAggregation.NAME,
             DataTypes.FLOAT.getTypeSignature(),
             DataTypes.FLOAT.getTypeSignature()
-        );
+        ).withFeature(Scalar.Feature.DETERMINISTIC);
         Object result = executeAggregation(
             signature,
             signature.getArgumentDataTypes(),
@@ -127,14 +127,14 @@ public class SumAggregationTest extends AggregationTestCase {
             false,
             List.of()
         );
-        assertThat(result, is(1.4f));
+        assertThat(result).isEqualTo(1.4f);
     }
 
     @Test
     public void testLong() throws Exception {
         Object result = executeAggregation(DataTypes.LONG, DataTypes.LONG, new Object[][]{{7L}, {3L}});
 
-        assertEquals(10L, result);
+        assertThat(result).isEqualTo(10L);
     }
 
     @Test(expected = ArithmeticException.class)
@@ -151,33 +151,32 @@ public class SumAggregationTest extends AggregationTestCase {
     public void testInteger() throws Exception {
         Object result = executeAggregation(DataTypes.INTEGER, DataTypes.LONG, new Object[][]{{7}, {3}});
 
-        assertEquals(10L, result);
+        assertThat(result).isEqualTo(10L);
     }
 
     @Test
     public void testShort() throws Exception {
         Object result = executeAggregation(DataTypes.SHORT, DataTypes.LONG, new Object[][]{{(short) 7}, {(short) 3}});
 
-        assertEquals(10L, result);
+        assertThat(result).isEqualTo(10L);
     }
 
     @Test
     public void testByte() throws Exception {
         Object result = executeAggregation(DataTypes.BYTE, DataTypes.LONG, new Object[][]{{(byte) 7}, {(byte) 3}});
 
-        assertEquals(10L, result);
+        assertThat(result).isEqualTo(10L);
     }
 
     @Test
     public void testInterval() {
-        assertEquals(
-            Period.days(8).withHours(19).withMinutes(22).withSeconds(13).withMillis(667),
-            execPartialAggregationWithoutDocValues(
+        assertThat(execPartialAggregationWithoutDocValues(
                 (IntervalSumAggregation) nodeCtx.functions().getQualified(
                     Signature.aggregate(
-                        IntervalSumAggregation.NAME,
-                        DataTypes.INTERVAL.getTypeSignature(),
-                        DataTypes.INTERVAL.getTypeSignature()),
+                            IntervalSumAggregation.NAME,
+                            DataTypes.INTERVAL.getTypeSignature(),
+                            DataTypes.INTERVAL.getTypeSignature())
+                        .withFeature(Scalar.Feature.DETERMINISTIC),
                     List.of(DataTypes.INTERVAL),
                     DataTypes.INTERVAL
                 ),
@@ -188,26 +187,26 @@ public class SumAggregationTest extends AggregationTestCase {
                     {Period.days(2).withHours(4).withMillis(223)}},
                 true,
                 Version.CURRENT
-            ));
+            )).isEqualTo(
+            Period.days(8).withHours(19).withMinutes(22).withSeconds(13).withMillis(667));
     }
 
     @Test
     public void testUnsupportedType() throws Exception {
-        expectedException.expect(UnsupportedFunctionException.class);
-        expectedException.expectMessage(
-            "Unknown function: sum(NULL)," +
-            " no overload found for matching argument types: (geo_point).");
-        getSum(DataTypes.GEO_POINT);
+        assertThatThrownBy(() -> getSum(DataTypes.GEO_POINT))
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessageStartingWith(
+                "Unknown function: sum(NULL)," +
+                " no overload found for matching argument types: (geo_point).");
     }
 
     @Test
     public void test_sum_numeric_on_long_non_doc_values_field() {
-        //noinspection rawtypes
         Version minNodeVersion = randomBoolean()
             ? Version.CURRENT
             : Version.V_4_0_9;
         var result = execPartialAggregationWithoutDocValues(
-            (AggregationFunction) nodeCtx.functions().getQualified(
+            (AggregationFunction<?, ?>) nodeCtx.functions().getQualified(
                 NumericSumAggregation.SIGNATURE,
                 List.of(DataTypes.NUMERIC),
                 DataTypes.NUMERIC
@@ -216,17 +215,16 @@ public class SumAggregationTest extends AggregationTestCase {
             minNodeVersion
 
         );
-        assertThat(result, is(BigDecimal.valueOf(6)));
+        assertThat(result).isEqualTo(BigDecimal.valueOf(6));
     }
 
     @Test
     public void test_sum_numeric_on_long_non_doc_values_field_with_overflow() {
-        //noinspection rawtypes
         Version minNodeVersion = randomBoolean()
             ? Version.CURRENT
             : Version.V_4_0_9;
         var result = execPartialAggregationWithoutDocValues(
-            (AggregationFunction) nodeCtx.functions().getQualified(
+            (AggregationFunction<?, ?>) nodeCtx.functions().getQualified(
                 NumericSumAggregation.SIGNATURE,
                 List.of(DataTypes.NUMERIC),
                 DataTypes.NUMERIC
@@ -234,17 +232,16 @@ public class SumAggregationTest extends AggregationTestCase {
             true,
             minNodeVersion
         );
-        assertThat(result, is(BigDecimal.valueOf(Long.MAX_VALUE).add(BigDecimal.TEN)));
+        assertThat(result).isEqualTo(BigDecimal.valueOf(Long.MAX_VALUE).add(BigDecimal.TEN));
     }
 
     @Test
     public void test_sum_numeric_on_floating_point_non_doc_values_field() {
-        //noinspection rawtypes
         Version minNodeVersion = randomBoolean()
             ? Version.CURRENT
             : Version.V_4_0_9;
         var result = execPartialAggregationWithoutDocValues(
-            (AggregationFunction) nodeCtx.functions().getQualified(
+            (AggregationFunction<?, ?>) nodeCtx.functions().getQualified(
                 NumericSumAggregation.SIGNATURE,
                 List.of(DataTypes.NUMERIC),
                 DataTypes.NUMERIC
@@ -252,21 +249,20 @@ public class SumAggregationTest extends AggregationTestCase {
             true,
             minNodeVersion
         );
-        assertThat(result, is(BigDecimal.valueOf(2.0)));
+        assertThat(result).isEqualTo(BigDecimal.valueOf(2.0));
     }
 
     @Test
     public void test_sum_numeric_with_precision_and_scale_on_double_non_doc_values_field() {
         var type = NumericType.of(16, 2);
         var expected = type.implicitCast(12.4357);
-        assertThat(expected.toString(), is("12.44"));
+        assertThat(expected.toString()).isEqualTo("12.44");
 
-        //noinspection rawtypes
         Version minNodeVersion = randomBoolean()
             ? Version.CURRENT
             : Version.V_4_0_9;
         var result = execPartialAggregationWithoutDocValues(
-            (AggregationFunction) nodeCtx.functions().getQualified(
+            (AggregationFunction<?, ?>) nodeCtx.functions().getQualified(
                 NumericSumAggregation.SIGNATURE,
                 List.of(type),
                 DataTypes.NUMERIC
@@ -275,6 +271,6 @@ public class SumAggregationTest extends AggregationTestCase {
             true,
             minNodeVersion
         );
-        assertThat(result.toString(), is(expected.toString()));
+        assertThat(result.toString()).isEqualTo(expected.toString());
     }
 }

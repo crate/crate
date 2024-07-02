@@ -23,7 +23,6 @@ package io.crate.testing;
 
 import static io.crate.blob.v2.BlobIndex.fullIndexName;
 import static io.crate.testing.DiscoveryNodes.newFakeAddress;
-import static io.crate.testing.TestingHelpers.createNodeContext;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singletonList;
@@ -31,31 +30,27 @@ import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_CLOSED_BLOC
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_CREATION_DATE;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_CREATED;
+import static org.elasticsearch.cluster.routing.ShardRoutingState.INITIALIZING;
 import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.LongSupplier;
-import java.util.stream.Stream;
+import java.util.function.UnaryOperator;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
-import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDeleteRepositoryAction;
-import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepositoryAction;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.ClusterChangedEvent;
@@ -71,6 +66,7 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.RoutingTable;
+import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.routing.allocation.allocator.BalancedShardsAllocator;
 import org.elasticsearch.cluster.routing.allocation.decider.AllocationDeciders;
@@ -99,9 +95,11 @@ import org.elasticsearch.transport.RemoteClusters;
 import org.jetbrains.annotations.Nullable;
 import org.mockito.Answers;
 
+import io.crate.Constants;
 import io.crate.action.sql.Cursors;
 import io.crate.action.sql.Session;
 import io.crate.action.sql.Sessions;
+import io.crate.analyze.Analysis;
 import io.crate.analyze.AnalyzedCreateBlobTable;
 import io.crate.analyze.AnalyzedCreateTable;
 import io.crate.analyze.AnalyzedStatement;
@@ -120,8 +118,11 @@ import io.crate.analyze.relations.FullQualifiedNameFieldProvider;
 import io.crate.analyze.relations.ParentRelations;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.analyze.relations.StatementAnalysisContext;
+import io.crate.common.collections.Lists;
 import io.crate.common.collections.MapBuilder;
 import io.crate.data.Row;
+import io.crate.data.RowN;
+import io.crate.data.testing.TestingRowConsumer;
 import io.crate.execution.ddl.RepositoryService;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.collect.stats.JobsLogs;
@@ -131,29 +132,31 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.udf.UDFLanguage;
 import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.expression.udf.UserDefinedFunctionsMetadata;
+import io.crate.fdw.AddForeignTableTask;
+import io.crate.fdw.AddServerTask;
+import io.crate.fdw.CreateServerRequest;
+import io.crate.fdw.FdwAnalyzer;
+import io.crate.fdw.ForeignDataWrappers;
+import io.crate.lucene.CrateLuceneTestCase;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
+import io.crate.metadata.Functions;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
-import io.crate.metadata.blob.BlobSchemaInfo;
-import io.crate.metadata.blob.BlobTableInfoFactory;
-import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.doc.DocTableInfoFactory;
-import io.crate.metadata.information.InformationSchemaInfo;
-import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
-import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
-import io.crate.metadata.view.ViewInfoFactory;
 import io.crate.metadata.view.ViewsMetadata;
+import io.crate.planner.CreateForeignTablePlan;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
@@ -162,6 +165,7 @@ import io.crate.planner.node.ddl.CreateBlobTablePlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.planner.optimizer.LoadedRules;
+import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.protocols.postgres.TransactionState;
 import io.crate.replication.logical.LogicalReplicationService;
@@ -171,16 +175,17 @@ import io.crate.replication.logical.metadata.Publication;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
 import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
+import io.crate.role.Role;
+import io.crate.role.RoleManager;
+import io.crate.role.StubRoleManager;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.CreateBlobTable;
+import io.crate.sql.tree.CreateForeignTable;
 import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
-import io.crate.user.StubUserManager;
-import io.crate.user.User;
-import io.crate.user.UserManager;
 
 /**
  * Lightweight alternative to {@link SQLTransportExecutor}.
@@ -189,11 +194,9 @@ import io.crate.user.UserManager;
  */
 public class SQLExecutor {
 
-    private static final Logger LOGGER = LogManager.getLogger(SQLExecutor.class);
-
     public final Sessions sqlOperations;
     public final Analyzer analyzer;
-    public final Planner planner;
+    public Planner planner;
     private final RelationAnalyzer relAnalyzer;
     private final CoordinatorSessionSettings sessionSettings;
     private final CoordinatorTxnCtx coordinatorTxnCtx;
@@ -207,10 +210,19 @@ public class SQLExecutor {
     public final DependencyCarrier dependencyMock;
     private final PlanStats planStats;
     private final TableStats tableStats;
+    public final ForeignDataWrappers foreignDataWrappers;
+    private final ClusterService clusterService;
+    private final AllocationService allocationService;
+    private final CreateBlobTableAnalyzer createBlobTableAnalyzer;
+    private final CreateTableStatementAnalyzer createTableAnalyzer;
 
     public TransactionState transactionState = TransactionState.IDLE;
     public boolean jobsLogsEnabled;
 
+    @Nullable
+    private LongSupplier columnOidSupplier;
+    private Role user = Role.CRATE_USER;
+    private String[] searchPath = new String[] { Schemas.DOC_SCHEMA_NAME };
 
 
     /**
@@ -218,533 +230,194 @@ public class SQLExecutor {
      * This can only be used if {@link com.carrotsearch.randomizedtesting.RandomizedContext} is available
      * (e.g. TestCase using {@link com.carrotsearch.randomizedtesting.RandomizedRunner}
      */
-    public PlannerContext getPlannerContext(ClusterState clusterState) {
-        return getPlannerContext(clusterState, Randomness.get());
+    public PlannerContext getPlannerContext() {
+        return getPlannerContext(Randomness.get());
     }
 
-    public PlannerContext getPlannerContext(ClusterState clusterState, Random random) {
-        return new PlannerContext(
-            clusterState,
+    public PlannerContext getPlannerContext(Random random) {
+        return planner.createContext(
             new RoutingProvider(random.nextInt(), emptyList()),
             UUID.randomUUID(),
             new CoordinatorTxnCtx(sessionSettings),
-            nodeCtx,
             -1,
             null,
             cursors,
-            transactionState,
-            planStats
+            transactionState
         );
+    }
+
+    private static void addNodesToClusterState(ClusterService clusterService, int numNodes) {
+        ClusterState prevState = clusterService.state();
+        DiscoveryNodes.Builder builder = DiscoveryNodes.builder(prevState.nodes());
+        for (int i = 1; i <= numNodes; i++) {
+            if (builder.get("n" + i) == null) {
+                builder.add(new DiscoveryNode("n" + i, newFakeAddress(), Version.CURRENT));
+            }
+        }
+        builder.localNodeId("n1");
+        builder.masterNodeId("n1");
+        ClusterServiceUtils.setState(
+            clusterService,
+            ClusterState.builder(prevState).nodes(builder).build());
+    }
+
+    /**
+     * Publish the current {@link ClusterState} so new instances of
+     * {@link org.elasticsearch.cluster.ClusterStateListener} like e.g. {@link Schemas} will consume it and
+     * build current schema/table infos.
+     *
+     * The {@link Metadata#version()} must be increased to trigger a {@link ClusterChangedEvent#metadataChanged()}.
+     */
+    private static void publishInitialClusterState(ClusterService clusterService) {
+        ClusterState currentState = clusterService.state();
+        ClusterState newState = ClusterState.builder(currentState)
+            .metadata(Metadata.builder(currentState.metadata())
+                            .version(currentState.metadata().version() + 1)
+                            .build())
+            .build();
+        ClusterServiceUtils.setState(clusterService, newState);
     }
 
     public static class Builder {
 
         private final ClusterService clusterService;
-        private final NodeContext nodeCtx;
-        private final AnalysisRegistry analysisRegistry;
-        private final CreateTableStatementAnalyzer createTableStatementAnalyzer;
-        private final CreateBlobTableAnalyzer createBlobTableAnalyzer;
-        private final AllocationService allocationService;
-        private final Random random;
-        private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
-        private final UserDefinedFunctionService udfService;
-        private final LogicalReplicationService logicalReplicationService;
-        private String[] searchPath = new String[]{Schemas.DOC_SCHEMA_NAME};
-        private User user = User.CRATE_USER;
-        private UserManager userManager = new StubUserManager();
 
-        private TableStats tableStats = new TableStats();
-        private Schemas schemas;
-        private LoadedRules loadedRules = new LoadedRules();
-        private SessionSettingRegistry sessionSettingRegistry = new SessionSettingRegistry(Set.of(loadedRules));
+        private int numNodes = 1;
         private Planner planner;
+        private RoleManager roleManager = new StubRoleManager();
+        private List<AnalysisPlugin> analysisPlugins = List.of();
 
-        @Nullable
-        private LongSupplier columnOidSupplier;
-
-        private Builder(ClusterService clusterService,
-                        int numNodes,
-                        Random random,
-                        List<AnalysisPlugin> analysisPlugins,
-                        AbstractModule... additionalModules) {
-            if (numNodes < 1) {
-                throw new IllegalArgumentException("Must have at least 1 node");
-            }
-            this.random = random;
+        private Builder(ClusterService clusterService) {
             this.clusterService = clusterService;
-            addNodesToClusterState(numNodes);
-            nodeCtx = createNodeContext(additionalModules);
-            DocTableInfoFactory tableInfoFactory = new DocTableInfoFactory(nodeCtx);
-            udfService = new UserDefinedFunctionService(clusterService, tableInfoFactory, nodeCtx);
-            File homeDir = createTempDir();
-            Environment environment = new Environment(
-                Settings.builder().put(PATH_HOME_SETTING.getKey(), homeDir.getAbsolutePath()).build(),
-                homeDir.toPath().resolve("config")
-            );
-            Map<String, SchemaInfo> schemaInfoByName = new HashMap<>();
-            schemaInfoByName.put("sys", new SysSchemaInfo(clusterService));
-            schemaInfoByName.put("information_schema", new InformationSchemaInfo());
-            schemaInfoByName.put(PgCatalogSchemaInfo.NAME, new PgCatalogSchemaInfo(udfService, tableStats));
-            schemaInfoByName.put(
-                BlobSchemaInfo.NAME,
-                new BlobSchemaInfo(
-                    clusterService,
-                    new BlobTableInfoFactory(clusterService.getSettings(), environment)));
-
-
-            AtomicReference<RelationAnalyzer> relationAnalyzerRef = new AtomicReference<>(null);
-            var viewInfoFactory = new ViewInfoFactory(() -> {
-                var relationAnalyzer = relationAnalyzerRef.get();
-                if (relationAnalyzer == null) {
-                    relationAnalyzer = new RelationAnalyzer(nodeCtx, schemas);
-                    relationAnalyzerRef.set(relationAnalyzer);
-                }
-                return relationAnalyzer;
-            });
-            schemas = new Schemas(
-                schemaInfoByName,
-                clusterService,
-                new DocSchemaInfoFactory(tableInfoFactory, viewInfoFactory, nodeCtx, udfService)
-            );
-            schemas.start();  // start listen to cluster state changes
-            try {
-                analysisRegistry = new AnalysisModule(environment, analysisPlugins).getAnalysisRegistry();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-            fulltextAnalyzerResolver = new FulltextAnalyzerResolver(clusterService, analysisRegistry);
-            createTableStatementAnalyzer = new CreateTableStatementAnalyzer(nodeCtx);
-            createBlobTableAnalyzer = new CreateBlobTableAnalyzer(
-                schemas,
-                nodeCtx
-            );
-            allocationService = new AllocationService(
-                new AllocationDeciders(
-                    Arrays.asList(
-                        new SameShardAllocationDecider(Settings.EMPTY, clusterService.getClusterSettings()),
-                        new ReplicaAfterPrimaryActiveAllocationDecider()
-                    )
-                ),
-                new TestGatewayAllocator(),
-                new BalancedShardsAllocator(Settings.EMPTY),
-                EmptyClusterInfoService.INSTANCE,
-                EmptySnapshotsInfoService.INSTANCE
-            );
-            var threadPool = mock(ThreadPool.class);
-            var logicalReplicationSettings = new LogicalReplicationSettings(Settings.EMPTY, clusterService);
-            logicalReplicationService = new LogicalReplicationService(
-                Settings.EMPTY,
-                IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
-                clusterService,
-                mock(RemoteClusters.class),
-                threadPool,
-                new NodeClient(Settings.EMPTY, threadPool),
-                allocationService,
-                logicalReplicationSettings
-            );
-            logicalReplicationService.repositoriesService(mock(RepositoriesService.class));
-
-            publishInitialClusterState();
         }
 
-        private void addNodesToClusterState(int numNodes) {
-            ClusterState prevState = clusterService.state();
-            DiscoveryNodes.Builder builder = DiscoveryNodes.builder(prevState.nodes());
-            for (int i = 1; i <= numNodes; i++) {
-                if (builder.get("n" + i) == null) {
-                    builder.add(new DiscoveryNode("n" + i, newFakeAddress(), Version.CURRENT));
-                }
-            }
-            builder.localNodeId("n1");
-            builder.masterNodeId("n1");
-            ClusterServiceUtils.setState(
-                clusterService,
-                ClusterState.builder(prevState).nodes(builder).build());
-        }
-
-        /**
-         * Publish the current {@link ClusterState} so new instances of
-         * {@link org.elasticsearch.cluster.ClusterStateListener} like e.g. {@link Schemas} will consume it and
-         * build current schema/table infos.
-         *
-         * The {@link Metadata#version()} must be increased to trigger a {@link ClusterChangedEvent#metadataChanged()}.
-         */
-        private void publishInitialClusterState() {
-            ClusterState currentState = clusterService.state();
-            ClusterState newState = ClusterState.builder(currentState)
-                .metadata(Metadata.builder(currentState.metadata())
-                              .version(currentState.metadata().version() + 1)
-                              .build())
-                .build();
-            ClusterServiceUtils.setState(clusterService, newState);
-        }
-
-        public Builder setSearchPath(String... schemas) {
-            Objects.requireNonNull(schemas, "Search path must not be set to null");
-            this.searchPath = schemas;
+        public Builder setNumNodes(int numNodes) {
+            this.numNodes = numNodes;
             return this;
         }
 
-        public Builder setUser(User user) {
-            this.user = user;
+        public Builder setPlanner(Planner planner) {
+            this.planner = planner;
             return this;
         }
 
-        public Builder setColumnOidSupplier(LongSupplier columnOidSupplier) {
-            this.columnOidSupplier = columnOidSupplier;
+        public Builder setRoleManager(RoleManager roleManager) {
+            this.roleManager = roleManager;
+            return this;
+        }
+
+        public Builder setAnalysisPlugins(List<AnalysisPlugin> analysisPlugins) {
+            this.analysisPlugins = analysisPlugins;
             return this;
         }
 
         public SQLExecutor build() {
-            RelationAnalyzer relationAnalyzer = new RelationAnalyzer(nodeCtx, schemas);
+            if (numNodes < 1) {
+                throw new IllegalArgumentException("Must have at least 1 node");
+            }
+            addNodesToClusterState(clusterService, numNodes);
+            final Settings settings = Settings.EMPTY;
+            var tableStats = new TableStats();
+            var sessionSettingRegistry = new SessionSettingRegistry(Set.of(LoadedRules.INSTANCE));
+            AtomicReference<RelationAnalyzer> relationAnalyzerRef = new AtomicReference<>(null);
+            Path homeDir = CrateLuceneTestCase.createTempDir();
+            Environment environment = new Environment(
+                Settings.builder().put(PATH_HOME_SETTING.getKey(), homeDir.toAbsolutePath()).build(),
+                homeDir.resolve("config")
+            );
+            var nodeCtx = NodeContext.of(
+                environment,
+                clusterService,
+                Functions.load(settings, sessionSettingRegistry),
+                roleManager,
+                tableStats
+            );
+            var udfService = new UserDefinedFunctionService(clusterService, nodeCtx);
+
+            var relationAnalyzer = new RelationAnalyzer(nodeCtx);
+            relationAnalyzerRef.set(relationAnalyzer);
+            AnalysisRegistry analysisRegistry;
+            try {
+                analysisRegistry = new AnalysisModule(environment, analysisPlugins).getAnalysisRegistry();
+            } catch (IOException e) {
+                udfService.close();
+                throw new UncheckedIOException(e);
+            }
+            var fulltextAnalyzerResolver = new FulltextAnalyzerResolver(clusterService, analysisRegistry);
+            var allocationService = new AllocationService(
+                new AllocationDeciders(
+                    Arrays.asList(
+                        new SameShardAllocationDecider(settings, clusterService.getClusterSettings()),
+                        new ReplicaAfterPrimaryActiveAllocationDecider()
+                    )
+                ),
+                new TestGatewayAllocator(),
+                new BalancedShardsAllocator(settings),
+                EmptyClusterInfoService.INSTANCE,
+                EmptySnapshotsInfoService.INSTANCE
+            );
+            var threadPool = mock(ThreadPool.class);
+            var logicalReplicationSettings = new LogicalReplicationSettings(settings, clusterService);
+            var logicalReplicationService = new LogicalReplicationService(
+                settings,
+                IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
+                clusterService,
+                mock(RemoteClusters.class),
+                threadPool,
+                new NodeClient(settings, threadPool),
+                allocationService,
+                logicalReplicationSettings
+            );
+            logicalReplicationService.repositoriesService(mock(RepositoriesService.class));
+            var foreignDataWrappers = new ForeignDataWrappers(settings, clusterService, nodeCtx);
+            var client = new NodeClient(settings, threadPool);
+
+            publishInitialClusterState(clusterService);
             return new SQLExecutor(
                 clusterService,
+                allocationService,
                 nodeCtx,
                 new Analyzer(
-                    schemas,
                     nodeCtx,
                     relationAnalyzer,
                     clusterService,
                     analysisRegistry,
-                    new RepositoryService(
-                        clusterService,
-                        mock(TransportDeleteRepositoryAction.class),
-                        mock(TransportPutRepositoryAction.class)
-                    ),
-                    userManager,
+                    new RepositoryService(clusterService, client),
+                    roleManager,
                     sessionSettingRegistry,
                     logicalReplicationService
                 ),
                 planner != null
                     ? planner
                     : new Planner(
-                        Settings.EMPTY,
+                        settings,
                         clusterService,
                         nodeCtx,
                         tableStats,
                         null,
                         null,
-                        schemas,
-                        userManager,
+                        roleManager,
+                        foreignDataWrappers,
                         sessionSettingRegistry
                     ),
                 relationAnalyzer,
-                new CoordinatorSessionSettings(user, searchPath),
-                schemas,
-                random,
+                new CoordinatorSessionSettings(Role.CRATE_USER, Role.CRATE_USER, LoadedRules.INSTANCE.disabledRules()),
+                nodeCtx.schemas(),
+                Randomness.get(),
                 fulltextAnalyzerResolver,
                 udfService,
-                tableStats
+                tableStats,
+                foreignDataWrappers
             );
-        }
-
-        private static File createTempDir() {
-            int attempt = 0;
-            while (attempt < 3) {
-                try {
-                    attempt++;
-                    File tempDir = File.createTempFile("temp", Long.toString(System.nanoTime()));
-                    tempDir.deleteOnExit();
-                    return tempDir;
-                } catch (IOException e) {
-                    LOGGER.warn("Unable to create temp dir on attempt {} due to {}", attempt, e.getMessage());
-                }
-            }
-            throw new IllegalStateException("Cannot create temp dir");
-        }
-
-        public Builder addPartitionedTable(String createTableStmt, String... partitions) throws IOException {
-            return addPartitionedTable(createTableStmt, Settings.EMPTY, partitions);
-        }
-
-        public Builder addPartitionedTable(String createTableStmt, Settings customSettings, String... partitions) throws IOException {
-            CreateTable<Expression> stmt = (CreateTable<Expression>) SqlParser.createStatement(createTableStmt);
-            CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults());
-            AnalyzedCreateTable analyzedCreateTable = createTableStatementAnalyzer.analyze(
-                stmt, ParamTypeHints.EMPTY, txnCtx);
-
-            BoundCreateTable boundCreateTable = analyzedCreateTable.bind(
-                new NumberOfShards(clusterService),
-                fulltextAnalyzerResolver,
-                nodeCtx,
-                txnCtx,
-                Row.EMPTY,
-                SubQueryResults.EMPTY
-            );
-            if (!boundCreateTable.isPartitioned()) {
-                throw new IllegalArgumentException("use addTable(..) to add non partitioned tables");
-            }
-            ClusterState prevState = clusterService.state();
-            var combinedSettings = Settings.builder()
-                .put(boundCreateTable.tableParameter().settings())
-                .put(customSettings)
-                .build();
-
-            // addPartitionedTable can be called multiple times, create supplier based on existing state.
-            Metadata.Builder mdBuilder = Metadata.builder(prevState.metadata());
-            LongSupplier columnOidSupplier =
-                    this.columnOidSupplier != null ? this.columnOidSupplier : mdBuilder.columnOidSupplier();
-            Map<String, Object> mapping = TestingHelpers.toMapping(columnOidSupplier, boundCreateTable);
-
-            XContentBuilder mappingBuilder = JsonXContent.builder().map(mapping);
-            AliasMetadata alias = new AliasMetadata(boundCreateTable.tableName().indexNameOrAlias());
-            IndexTemplateMetadata.Builder template = IndexTemplateMetadata.builder(boundCreateTable.templateName())
-                .patterns(singletonList(boundCreateTable.templatePrefix()))
-                .putMapping(new CompressedXContent(BytesReference.bytes(mappingBuilder)))
-                .settings(buildSettings(false, combinedSettings, prevState.nodes().getSmallestNonClientNodeVersion()))
-                .putAlias(alias);
-
-            mdBuilder.put(template);
-
-            RoutingTable.Builder routingBuilder = RoutingTable.builder(prevState.routingTable());
-            for (String partition : partitions) {
-                IndexMetadata indexMetadata = getIndexMetadata(
-                    partition,
-                    combinedSettings,
-                    mapping, // Each partition has the same mapping.
-                    prevState.nodes().getSmallestNonClientNodeVersion())
-                    .putAlias(alias)
-                    .build();
-                mdBuilder.put(indexMetadata, true);
-                routingBuilder.addAsNew(indexMetadata);
-            }
-            ClusterState newState = ClusterState.builder(prevState)
-                .metadata(mdBuilder.build())
-                .routingTable(routingBuilder.build())
-                .build();
-
-            ClusterServiceUtils.setState(clusterService, allocationService.reroute(newState, "assign shards"));
-            return this;
-        }
-
-        public Builder addTable(String createTableStmt) throws IOException {
-            return addTable(createTableStmt, Settings.EMPTY);
-        }
-
-        /**
-         * Add a table to the clusterState
-         */
-        public Builder addTable(String createTableStmt, Settings settings) throws IOException {
-            CreateTable<Expression> stmt = (CreateTable<Expression>) SqlParser.createStatement(createTableStmt);
-            CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults());
-            AnalyzedCreateTable analyzedCreateTable = createTableStatementAnalyzer.analyze(
-                stmt, ParamTypeHints.EMPTY, txnCtx);
-            var boundCreateTable = analyzedCreateTable.bind(
-                new NumberOfShards(clusterService),
-                fulltextAnalyzerResolver,
-                nodeCtx,
-                txnCtx,
-                Row.EMPTY,
-                SubQueryResults.EMPTY
-            );
-            if (boundCreateTable.isPartitioned()) {
-                throw new IllegalArgumentException("use addPartitionedTable(..) to add partitioned tables");
-            }
-
-            var combinedSettings = Settings.builder()
-                .put(boundCreateTable.tableParameter().settings())
-                .put(settings)
-                .build();
-
-            ClusterState prevState = clusterService.state();
-
-            // addTable can be called multiple times, create supplier based on existing state.
-            Metadata.Builder mdBuilder = Metadata.builder(prevState.metadata());
-            LongSupplier columnOidSupplier =
-                    this.columnOidSupplier != null ? this.columnOidSupplier : mdBuilder.columnOidSupplier();
-
-            RelationName relationName = boundCreateTable.tableName();
-            IndexMetadata indexMetadata = getIndexMetadata(
-                relationName.indexNameOrAlias(),
-                combinedSettings,
-                TestingHelpers.toMapping(columnOidSupplier, boundCreateTable),
-                prevState.nodes().getSmallestNonClientNodeVersion()
-            ).build();
-
-            ClusterState state = ClusterState.builder(prevState)
-                .metadata(mdBuilder.put(indexMetadata, true))
-                .routingTable(RoutingTable.builder(prevState.routingTable()).addAsNew(indexMetadata).build())
-                .build();
-
-            ClusterServiceUtils.setState(clusterService, allocationService.reroute(state, "assign shards"));
-            return this;
-        }
-
-        public Builder closeTable(String tableName) throws IOException {
-            String indexName = RelationName.of(QualifiedName.of(tableName), Schemas.DOC_SCHEMA_NAME).indexNameOrAlias();
-            ClusterState prevState = clusterService.state();
-            var metadata = prevState.metadata();
-            String[] concreteIndices = IndexNameExpressionResolver
-                .concreteIndexNames(metadata, IndicesOptions.lenientExpandOpen(), indexName);
-
-            Metadata.Builder mdBuilder = Metadata.builder(clusterService.state().metadata());
-            ClusterBlocks.Builder blocksBuilder = ClusterBlocks.builder()
-                .blocks(clusterService.state().blocks());
-
-            for (String index: concreteIndices) {
-                mdBuilder.put(IndexMetadata.builder(metadata.index(index)).state(IndexMetadata.State.CLOSE));
-                blocksBuilder.addIndexBlock(index, INDEX_CLOSED_BLOCK);
-            }
-
-            ClusterState updatedState = ClusterState.builder(prevState).metadata(mdBuilder).blocks(blocksBuilder).build();
-
-            ClusterServiceUtils.setState(clusterService, allocationService.reroute(updatedState, "assign shards"));
-            return this;
-        }
-
-        private static IndexMetadata.Builder getIndexMetadata(String indexName,
-                                                              Settings settings,
-                                                              @Nullable Map<String, Object> mapping,
-                                                              Version smallestNodeVersion) throws IOException {
-            Settings indexSettings = buildSettings(true, settings, smallestNodeVersion);
-            IndexMetadata.Builder metaBuilder = IndexMetadata.builder(indexName)
-                .settings(indexSettings);
-            if (mapping != null) {
-                metaBuilder.putMapping(new MappingMetadata(mapping));
-            }
-
-            return metaBuilder;
-        }
-
-        private static Settings buildSettings(boolean isIndex, Settings settings, Version smallestNodeVersion) {
-            Settings.Builder builder = Settings.builder()
-                .put(settings);
-            if (settings.get(SETTING_VERSION_CREATED) == null) {
-                builder.put(SETTING_VERSION_CREATED, smallestNodeVersion);
-            }
-            if (settings.get(SETTING_CREATION_DATE) == null) {
-                builder.put(SETTING_CREATION_DATE, Instant.now().toEpochMilli());
-            }
-            if (isIndex && settings.get(SETTING_INDEX_UUID) == null) {
-                builder.put(SETTING_INDEX_UUID, UUIDs.randomBase64UUID());
-            }
-
-            return builder.build();
-        }
-
-        /**
-         * Add a view definition to the metadata.
-         * Note that this by-passes the analyzer step and directly operates on the clusterState. So there is no
-         * resolve logic for columns (`*` is not resolved to the column names)
-         */
-        public Builder addView(RelationName name, String query) {
-            ClusterState prevState = clusterService.state();
-            ViewsMetadata newViews = ViewsMetadata.addOrReplace(
-                prevState.metadata().custom(ViewsMetadata.TYPE),
-                name,
-                query,
-                user == null ? null : user.name(),
-                SearchPath.createSearchPathFrom(searchPath)
-            );
-
-            Metadata newMetadata = Metadata.builder(prevState.metadata()).putCustom(ViewsMetadata.TYPE, newViews).build();
-            ClusterState newState = ClusterState.builder(prevState)
-                .metadata(newMetadata)
-                .build();
-
-            ClusterServiceUtils.setState(clusterService, newState);
-            return this;
-        }
-
-        public Builder addPublication(String name, boolean forAllTables, RelationName... tables) {
-            ClusterState prevState = clusterService.state();
-            var publication = new Publication(user.name(), forAllTables, Arrays.asList(tables));
-            var publicationsMetadata = new PublicationsMetadata(Map.of(name, publication));
-
-            Metadata newMetadata = Metadata.builder(prevState.metadata())
-                .putCustom(PublicationsMetadata.TYPE, publicationsMetadata)
-                .build();
-            ClusterState newState = ClusterState.builder(prevState)
-                .metadata(newMetadata)
-                .build();
-
-            ClusterServiceUtils.setState(clusterService, newState);
-            return this;
-        }
-
-        public Builder addSubscription(String name, String publication) {
-            ClusterState prevState = clusterService.state();
-            var subscription = new Subscription(
-                user.name(),
-                ConnectionInfo.fromURL("crate://localhost"),
-                List.of(publication),
-                Settings.EMPTY,
-                Collections.emptyMap()
-            );
-            var subsMetadata = new SubscriptionsMetadata(Map.of(name, subscription));
-
-            Metadata newMetadata = Metadata.builder(prevState.metadata())
-                .putCustom(SubscriptionsMetadata.TYPE, subsMetadata)
-                .build();
-            ClusterState newState = ClusterState.builder(prevState)
-                .metadata(newMetadata)
-                .build();
-
-            ClusterServiceUtils.setState(clusterService, newState);
-            return this;
-        }
-
-        public Builder addBlobTable(String createBlobTableStmt) throws IOException {
-            CreateBlobTable<Expression> stmt = (CreateBlobTable<Expression>) SqlParser.createStatement(createBlobTableStmt);
-            CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults());
-            AnalyzedCreateBlobTable analyzedStmt = createBlobTableAnalyzer.analyze(
-                stmt, ParamTypeHints.EMPTY, txnCtx);
-            Settings settings = CreateBlobTablePlan.buildSettings(
-                analyzedStmt.createBlobTable(),
-                txnCtx,
-                nodeCtx,
-                Row.EMPTY,
-                SubQueryResults.EMPTY,
-                new NumberOfShards(clusterService));
-
-            ClusterState prevState = clusterService.state();
-            IndexMetadata indexMetadata = getIndexMetadata(
-                fullIndexName(analyzedStmt.relationName().name()),
-                settings,
-                Collections.emptyMap(),
-                prevState.nodes().getSmallestNonClientNodeVersion()
-            ).build();
-
-            ClusterState state = ClusterState.builder(prevState)
-                .metadata(Metadata.builder(prevState.metadata()).put(indexMetadata, true))
-                .routingTable(RoutingTable.builder(prevState.routingTable()).addAsNew(indexMetadata).build())
-                .build();
-
-            ClusterServiceUtils.setState(clusterService, allocationService.reroute(state, "assign shards"));
-            return this;
-        }
-
-        public Builder setUserManager(UserManager userManager) {
-            this.userManager = userManager;
-            return this;
-        }
-
-        public Builder addUDFLanguage(UDFLanguage language) {
-            udfService.registerLanguage(language);
-            return this;
-        }
-
-        public Builder addUDF(UserDefinedFunctionMetadata udf) {
-            udfService.updateImplementations(udf.schema(), Stream.of(udf));
-            return this;
-        }
-
-        public Builder overridePlanner(Planner planner) {
-            this.planner = planner;
-            return this;
         }
     }
 
-    public static Builder builder(ClusterService clusterService, AbstractModule... additionalModules) {
-        return new Builder(clusterService, 1, Randomness.get(), List.of(), additionalModules);
+    public static SQLExecutor.Builder builder(ClusterService clusterService) {
+        return new Builder(clusterService);
     }
 
-    public static Builder builder(ClusterService clusterService,
-                                  int numNodes,
-                                  Random random,
-                                  List<AnalysisPlugin> analysisPlugins,
-                                  AbstractModule... additionalModules) {
-        return new Builder(clusterService, numNodes, random, analysisPlugins, additionalModules);
+    public static SQLExecutor of(ClusterService clusterService) {
+        return new Builder(clusterService).build();
     }
 
     /**
@@ -758,8 +431,8 @@ public class SQLExecutor {
     public static DocTableInfo tableInfo(RelationName name, String stmt, ClusterService clusterService) {
         try {
             SQLExecutor executor = builder(clusterService)
-                .addTable(stmt)
-                .build();
+                .build()
+                .addTable(stmt);
             return executor.schemas().getTableInfo(name);
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -772,8 +445,8 @@ public class SQLExecutor {
     public static DocTableInfo partitionedTableInfo(RelationName name, String stmt, ClusterService clusterService) {
         try {
             SQLExecutor executor = builder(clusterService)
-                .addPartitionedTable(stmt)
-                .build();
+                .build()
+                .addPartitionedTable(stmt);
             return executor.schemas().getTableInfo(name);
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -781,6 +454,7 @@ public class SQLExecutor {
     }
 
     private SQLExecutor(ClusterService clusterService,
+                        AllocationService allocationService,
                         NodeContext nodeCtx,
                         Analyzer analyzer,
                         Planner planner,
@@ -790,7 +464,10 @@ public class SQLExecutor {
                         Random random,
                         FulltextAnalyzerResolver fulltextAnalyzerResolver,
                         UserDefinedFunctionService udfService,
-                        TableStats tableStats) {
+                        TableStats tableStats,
+                        ForeignDataWrappers foreignDataWrappers) {
+        this.clusterService = clusterService;
+        this.allocationService = allocationService;
         this.jobsLogsEnabled = false;
         this.jobsLogs = new JobsLogs(() -> SQLExecutor.this.jobsLogsEnabled);
         this.dependencyMock = mock(DependencyCarrier.class, Answers.RETURNS_MOCKS);
@@ -803,9 +480,7 @@ public class SQLExecutor {
             () -> dependencyMock,
             jobsLogs,
             clusterService.getSettings(),
-            clusterService,
-            tableStats
-
+            clusterService
         );
         this.analyzer = analyzer;
         this.planner = planner;
@@ -819,6 +494,9 @@ public class SQLExecutor {
         this.udfService = udfService;
         this.tableStats = tableStats;
         this.planStats = new PlanStats(nodeCtx, coordinatorTxnCtx, tableStats);
+        this.foreignDataWrappers = foreignDataWrappers;
+        this.createTableAnalyzer = new CreateTableStatementAnalyzer(nodeCtx);
+        this.createBlobTableAnalyzer = new CreateBlobTableAnalyzer(schemas, nodeCtx);
     }
 
     public FulltextAnalyzerResolver fulltextAnalyzerResolver() {
@@ -886,24 +564,22 @@ public class SQLExecutor {
         return planInternal(analyzedStatement, jobId, fetchSize, params);
     }
 
+    @SuppressWarnings("unchecked")
     private <T> T planInternal(AnalyzedStatement analyzedStatement, UUID jobId, int fetchSize, Row params) {
         RoutingProvider routingProvider = new RoutingProvider(random.nextInt(), emptyList());
-        PlannerContext plannerContext = new PlannerContext(
-            planner.currentClusterState(),
+        PlannerContext plannerContext = planner.createContext(
             routingProvider,
             jobId,
             coordinatorTxnCtx,
-            nodeCtx,
             fetchSize,
             null,
             cursors,
-            transactionState,
-            planStats
+            transactionState
         );
         Plan plan = planner.plan(analyzedStatement, plannerContext);
-        if (plan instanceof LogicalPlan) {
-            return (T) ((LogicalPlan) plan).build(
-                mock(DependencyCarrier.class),
+        if (plan instanceof LogicalPlan logicalPlan) {
+            return (T) logicalPlan.build(
+                dependencyMock,
                 plannerContext,
                 Set.of(),
                 new ProjectionBuilder(nodeCtx),
@@ -923,13 +599,30 @@ public class SQLExecutor {
         return (T) plan;
     }
 
+    @SuppressWarnings("unchecked")
     public <T extends LogicalPlan> T logicalPlan(String statement) {
         AnalyzedStatement stmt = analyze(statement, ParamTypeHints.EMPTY);
-        return (T) planner.plan(stmt, getPlannerContext(planner.currentClusterState()));
+        return (T) planner.plan(stmt, getPlannerContext());
     }
 
     public <T> T plan(String statement) {
         return plan(statement, UUID.randomUUID(), 0);
+    }
+
+    public TestingRowConsumer execute(String statement, Object ... params) throws Exception {
+        return execute((Plan) plan(statement), params);
+    }
+
+    public TestingRowConsumer execute(Plan plan, Object ... params) throws Exception {
+        var consumer = new TestingRowConsumer();
+        plan.execute(
+            dependencyMock,
+            getPlannerContext(),
+            consumer,
+            new RowN(params),
+            SubQueryResults.EMPTY
+        );
+        return consumer;
     }
 
     public void updateTableStats(Map<RelationName, Stats> stats) {
@@ -952,10 +645,15 @@ public class SQLExecutor {
         return sessionSettings;
     }
 
-    public <T extends TableInfo> T resolveTableInfo(String tableName) {
+    public <T extends RelationInfo> T resolveTableInfo(String tableName) {
         IndexParts indexParts = new IndexParts(tableName);
         QualifiedName qualifiedName = QualifiedName.of(indexParts.getSchema(), indexParts.getTable());
-        return (T) schemas.resolveTableInfo(qualifiedName, Operation.READ, sessionSettings.sessionUser(), sessionSettings.searchPath());
+        return schemas.findRelation(
+            qualifiedName,
+            Operation.READ,
+            sessionSettings.sessionUser(),
+            sessionSettings.searchPath()
+        );
     }
 
     public Session createSession() {
@@ -963,5 +661,360 @@ public class SQLExecutor {
             sessionSettings.currentSchema(),
             sessionSettings.authenticatedUser()
         );
+    }
+
+    private static IndexMetadata.Builder getIndexMetadata(String indexName,
+                                                            Settings settings,
+                                                            @Nullable Map<String, Object> mapping,
+                                                            Version smallestNodeVersion) throws IOException {
+        Settings indexSettings = buildSettings(true, settings, smallestNodeVersion);
+        IndexMetadata.Builder metaBuilder = IndexMetadata.builder(indexName)
+            .settings(indexSettings);
+        if (mapping != null) {
+            metaBuilder.putMapping(new MappingMetadata(mapping));
+        }
+
+        return metaBuilder;
+    }
+
+    private static Settings buildSettings(boolean isIndex, Settings settings, Version smallestNodeVersion) {
+        Settings.Builder builder = Settings.builder()
+            .put(settings);
+        if (settings.get(SETTING_VERSION_CREATED) == null) {
+            builder.put(SETTING_VERSION_CREATED, smallestNodeVersion);
+        }
+        if (settings.get(SETTING_CREATION_DATE) == null) {
+            builder.put(SETTING_CREATION_DATE, Instant.now().toEpochMilli());
+        }
+        if (isIndex && settings.get(SETTING_INDEX_UUID) == null) {
+            builder.put(SETTING_INDEX_UUID, UUIDs.randomBase64UUID());
+        }
+
+        return builder.build();
+    }
+
+    public SQLExecutor addPartitionedTable(String createTableStmt, String... partitions) throws IOException {
+        return addPartitionedTable(createTableStmt, Settings.EMPTY, partitions);
+    }
+
+    @SuppressWarnings("unchecked")
+    public SQLExecutor addPartitionedTable(String createTableStmt, Settings customSettings, String... partitions) throws IOException {
+        CreateTable<Expression> stmt = (CreateTable<Expression>) SqlParser.createStatement(createTableStmt);
+        CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults());
+        AnalyzedCreateTable analyzedCreateTable = createTableAnalyzer.analyze(
+            stmt, ParamTypeHints.EMPTY, txnCtx);
+
+        BoundCreateTable boundCreateTable = analyzedCreateTable.bind(
+            new NumberOfShards(clusterService),
+            fulltextAnalyzerResolver,
+            nodeCtx,
+            txnCtx,
+            Row.EMPTY,
+            SubQueryResults.EMPTY
+        );
+        if (!boundCreateTable.isPartitioned()) {
+            throw new IllegalArgumentException("use addTable(..) to add non partitioned tables");
+        }
+        ClusterState prevState = clusterService.state();
+        var combinedSettings = Settings.builder()
+            .put(boundCreateTable.tableParameter().settings())
+            .put(customSettings)
+            .build();
+
+        // addPartitionedTable can be called multiple times, create supplier based on existing state.
+        Metadata.Builder mdBuilder = Metadata.builder(prevState.metadata());
+        LongSupplier columnOidSupplier =
+                this.columnOidSupplier != null ? this.columnOidSupplier : mdBuilder.columnOidSupplier();
+        Map<String, Object> mapping = TestingHelpers.toMapping(columnOidSupplier, boundCreateTable);
+
+        XContentBuilder mappingBuilder =
+            JsonXContent.builder().map(Map.of(Constants.DEFAULT_MAPPING_TYPE, mapping));
+        AliasMetadata alias = new AliasMetadata(boundCreateTable.tableName().indexNameOrAlias());
+        IndexTemplateMetadata.Builder template = IndexTemplateMetadata.builder(boundCreateTable.templateName())
+            .patterns(singletonList(boundCreateTable.templatePrefix()))
+            .putMapping(new CompressedXContent(BytesReference.bytes(mappingBuilder)))
+            .settings(buildSettings(false, combinedSettings, prevState.nodes().getSmallestNonClientNodeVersion()))
+            .putAlias(alias);
+
+        mdBuilder.put(template);
+
+        RoutingTable.Builder routingBuilder = RoutingTable.builder(prevState.routingTable());
+        for (String partition : partitions) {
+            IndexMetadata indexMetadata = getIndexMetadata(
+                partition,
+                combinedSettings,
+                mapping, // Each partition has the same mapping.
+                prevState.nodes().getSmallestNonClientNodeVersion())
+                .putAlias(alias)
+                .build();
+            mdBuilder.put(indexMetadata, true);
+            routingBuilder.addAsNew(indexMetadata);
+        }
+        ClusterState newState = ClusterState.builder(prevState)
+            .metadata(mdBuilder.build())
+            .routingTable(routingBuilder.build())
+            .build();
+
+        ClusterServiceUtils.setState(clusterService, allocationService.reroute(newState, "assign shards"));
+        return this;
+    }
+
+    public SQLExecutor addTable(String createTableStmt) throws IOException {
+        return addTable(createTableStmt, Settings.EMPTY);
+    }
+
+    /**
+        * Add a table to the clusterState
+        */
+    @SuppressWarnings("unchecked")
+    public SQLExecutor addTable(String createTableStmt, Settings settings) throws IOException {
+        CreateTable<Expression> stmt = (CreateTable<Expression>) SqlParser.createStatement(createTableStmt);
+        CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults());
+        AnalyzedCreateTable analyzedCreateTable = createTableAnalyzer.analyze(
+            stmt, ParamTypeHints.EMPTY, txnCtx);
+        var boundCreateTable = analyzedCreateTable.bind(
+            new NumberOfShards(clusterService),
+            fulltextAnalyzerResolver,
+            nodeCtx,
+            txnCtx,
+            Row.EMPTY,
+            SubQueryResults.EMPTY
+        );
+        if (boundCreateTable.isPartitioned()) {
+            throw new IllegalArgumentException("use addPartitionedTable(..) to add partitioned tables");
+        }
+
+        var combinedSettings = Settings.builder()
+            .put(boundCreateTable.tableParameter().settings())
+            .put(settings)
+            .build();
+
+        ClusterState prevState = clusterService.state();
+
+        // addTable can be called multiple times, create supplier based on existing state.
+        Metadata.Builder mdBuilder = Metadata.builder(prevState.metadata());
+        LongSupplier columnOidSupplier =
+                this.columnOidSupplier != null ? this.columnOidSupplier : mdBuilder.columnOidSupplier();
+
+        RelationName relationName = boundCreateTable.tableName();
+        IndexMetadata indexMetadata = getIndexMetadata(
+            relationName.indexNameOrAlias(),
+            combinedSettings,
+            TestingHelpers.toMapping(columnOidSupplier, boundCreateTable),
+            prevState.nodes().getSmallestNonClientNodeVersion()
+        ).build();
+
+        ClusterState state = ClusterState.builder(prevState)
+            .metadata(mdBuilder.put(indexMetadata, true))
+            .routingTable(RoutingTable.builder(prevState.routingTable()).addAsNew(indexMetadata).build())
+            .build();
+
+        ClusterServiceUtils.setState(clusterService, allocationService.reroute(state, "assign shards"));
+        return this;
+    }
+
+    public SQLExecutor startShards(String... indices) {
+        var clusterState = clusterService.state();
+        for (var index : indices) {
+            var indexName = new IndexParts(index).toRelationName().indexNameOrAlias();
+            final List<ShardRouting> startedShards = clusterState.getRoutingNodes().shardsWithState(indexName, INITIALIZING);
+            clusterState = allocationService.applyStartedShards(clusterState, startedShards);
+        }
+        clusterState = allocationService.reroute(clusterState, "reroute after starting");
+        ClusterServiceUtils.setState(clusterService, clusterState);
+        return this;
+    }
+
+    public SQLExecutor closeTable(String tableName) throws IOException {
+        String indexName = RelationName.of(QualifiedName.of(tableName), Schemas.DOC_SCHEMA_NAME).indexNameOrAlias();
+        ClusterState prevState = clusterService.state();
+        var metadata = prevState.metadata();
+        String[] concreteIndices = IndexNameExpressionResolver
+            .concreteIndexNames(metadata, IndicesOptions.lenientExpandOpen(), indexName);
+
+        Metadata.Builder mdBuilder = Metadata.builder(clusterService.state().metadata());
+        ClusterBlocks.Builder blocksBuilder = ClusterBlocks.builder()
+            .blocks(clusterService.state().blocks());
+
+        for (String index: concreteIndices) {
+            mdBuilder.put(IndexMetadata.builder(metadata.index(index)).state(IndexMetadata.State.CLOSE));
+            blocksBuilder.addIndexBlock(index, INDEX_CLOSED_BLOCK);
+        }
+
+        ClusterState updatedState = ClusterState.builder(prevState).metadata(mdBuilder).blocks(blocksBuilder).build();
+
+        ClusterServiceUtils.setState(clusterService, allocationService.reroute(updatedState, "assign shards"));
+        return this;
+    }
+
+
+    /**
+     * Add a view definition to the metadata.
+     * Note that this by-passes the analyzer step and directly operates on the clusterState. So there is no
+     * resolve logic for columns (`*` is not resolved to the column names)
+     */
+    public SQLExecutor addView(RelationName name, String query) {
+        ClusterState prevState = clusterService.state();
+        ViewsMetadata newViews = ViewsMetadata.addOrReplace(
+            prevState.metadata().custom(ViewsMetadata.TYPE),
+            name,
+            query,
+            user == null ? null : user.name(),
+            SearchPath.createSearchPathFrom(searchPath)
+        );
+
+        Metadata newMetadata = Metadata.builder(prevState.metadata()).putCustom(ViewsMetadata.TYPE, newViews).build();
+        ClusterState newState = ClusterState.builder(prevState)
+            .metadata(newMetadata)
+            .build();
+
+        ClusterServiceUtils.setState(clusterService, newState);
+        return this;
+    }
+
+    public SQLExecutor addPublication(String name, boolean forAllTables, RelationName... tables) {
+        ClusterState prevState = clusterService.state();
+        var publication = new Publication(user.name(), forAllTables, Arrays.asList(tables));
+        var publicationsMetadata = new PublicationsMetadata(Map.of(name, publication));
+
+        Metadata newMetadata = Metadata.builder(prevState.metadata())
+            .putCustom(PublicationsMetadata.TYPE, publicationsMetadata)
+            .build();
+        ClusterState newState = ClusterState.builder(prevState)
+            .metadata(newMetadata)
+            .build();
+
+        ClusterServiceUtils.setState(clusterService, newState);
+        return this;
+    }
+
+    public SQLExecutor addSubscription(String name, String publication) {
+        ClusterState prevState = clusterService.state();
+        var subscription = new Subscription(
+            user.name(),
+            ConnectionInfo.fromURL("crate://localhost"),
+            List.of(publication),
+            Settings.EMPTY,
+            Collections.emptyMap()
+        );
+        var subsMetadata = new SubscriptionsMetadata(Map.of(name, subscription));
+
+        Metadata newMetadata = Metadata.builder(prevState.metadata())
+            .putCustom(SubscriptionsMetadata.TYPE, subsMetadata)
+            .build();
+        ClusterState newState = ClusterState.builder(prevState)
+            .metadata(newMetadata)
+            .build();
+
+        ClusterServiceUtils.setState(clusterService, newState);
+        return this;
+    }
+
+    public SQLExecutor addBlobTable(String createBlobTableStmt) throws IOException {
+        CreateBlobTable<Expression> stmt = (CreateBlobTable<Expression>) SqlParser.createStatement(createBlobTableStmt);
+        CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults());
+        AnalyzedCreateBlobTable analyzedStmt = createBlobTableAnalyzer.analyze(
+            stmt, ParamTypeHints.EMPTY, txnCtx);
+        Settings settings = CreateBlobTablePlan.buildSettings(
+            analyzedStmt.createBlobTable(),
+            txnCtx,
+            nodeCtx,
+            Row.EMPTY,
+            SubQueryResults.EMPTY,
+            new NumberOfShards(clusterService));
+
+        ClusterState prevState = clusterService.state();
+        IndexMetadata indexMetadata = getIndexMetadata(
+            fullIndexName(analyzedStmt.relationName().name()),
+            settings,
+            Collections.emptyMap(),
+            prevState.nodes().getSmallestNonClientNodeVersion()
+        ).build();
+
+        ClusterState state = ClusterState.builder(prevState)
+            .metadata(Metadata.builder(prevState.metadata()).put(indexMetadata, true))
+            .routingTable(RoutingTable.builder(prevState.routingTable()).addAsNew(indexMetadata).build())
+            .build();
+
+        ClusterServiceUtils.setState(clusterService, allocationService.reroute(state, "assign shards"));
+        return this;
+    }
+
+    public SQLExecutor addServer(String serverName,
+                                 String fdw,
+                                 String owner,
+                                 Settings options) throws Exception {
+        CreateServerRequest request = new CreateServerRequest(
+            "pg",
+            "jdbc",
+            "crate",
+            true,
+            options
+        );
+        AddServerTask addServerTask = new AddServerTask(foreignDataWrappers, request);
+        ClusterServiceUtils.setState(clusterService, addServerTask.execute(clusterService.state()));
+        return this;
+    }
+
+    public SQLExecutor addForeignTable(String stmt) throws Exception {
+        CreateForeignTable createTable = (CreateForeignTable) SqlParser.createStatement(stmt);
+        var txnCtx = new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults());
+        Cursors cursors = new Cursors();
+        var analysis = new Analysis(txnCtx, ParamTypeHints.EMPTY, cursors);
+        var analyzedCreateForeignTable = FdwAnalyzer.analyze(analysis, nodeCtx, createTable);
+        RoutingProvider routingProvider = new RoutingProvider(random.nextInt(), emptyList());
+        ClusterState currentState = clusterService.state();
+        PlannerContext plannerContext = planner.createContext(
+            routingProvider,
+            UUIDs.dirtyUUID(),
+            txnCtx,
+            0,
+            null,
+            cursors,
+            TransactionState.IDLE
+        );
+        var request = CreateForeignTablePlan.toRequest(
+            foreignDataWrappers,
+            analyzedCreateForeignTable,
+            plannerContext,
+            Row.EMPTY,
+            SubQueryResults.EMPTY
+        );
+        AddForeignTableTask addForeignTableTask = new AddForeignTableTask(request);
+        ClusterState newState = addForeignTableTask.execute(currentState);
+        ClusterServiceUtils.setState(clusterService, newState);
+        return this;
+    }
+
+    public SQLExecutor setSearchPath(String ... schemas) {
+        searchPath = schemas;
+        sessionSettings.setSearchPath(schemas);
+        return this;
+    }
+
+    public SQLExecutor setUser(Role user) {
+        this.sessionSettings.setSessionUser(user);
+        this.user = user;
+        return this;
+    }
+
+    public SQLExecutor setColumnOidSupplier(LongSupplier oidSupplier) {
+        this.columnOidSupplier = oidSupplier;
+        return this;
+    }
+
+    public SQLExecutor addUDFLanguage(UDFLanguage lang) {
+        udfService.registerLanguage(lang);
+        return this;
+    }
+
+    public SQLExecutor addUDF(UserDefinedFunctionMetadata udf) {
+        UserDefinedFunctionsMetadata udfs = clusterService.state().metadata().custom(UserDefinedFunctionsMetadata.TYPE);
+        udfService.updateImplementations(Lists.concat(udfs == null ? List.of() : udfs.functionsMetadata(), udf));
+        return this;
+    }
+
+    public Rule.Context ruleContext() {
+      return new Rule.Context(planStats, CoordinatorTxnCtx.systemTransactionContext(), nodeCtx, UnaryOperator.identity());
     }
 }

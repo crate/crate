@@ -22,14 +22,12 @@
 package io.crate.planner.operators;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedCollection;
 import java.util.Set;
-
-import org.jetbrains.annotations.Nullable;
 
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.lucene.uid.Versions;
@@ -37,12 +35,12 @@ import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardNotFoundException;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.where.DocKeys;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.PKLookupPhase;
 import io.crate.execution.dsl.projection.EvalProjection;
@@ -50,11 +48,11 @@ import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.LimitAndOffset;
 import io.crate.expression.symbol.InputColumn;
-import io.crate.expression.symbol.RefVisitor;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
@@ -155,13 +153,13 @@ public class Get implements LogicalPlan {
         }
 
         var binder = new SubQueryAndParamBinder(params, subQueryResults);
-        List<Symbol> boundOutputs = Lists2.map(outputs, binder);
+        List<Symbol> boundOutputs = Lists.map(outputs, binder);
         var boundQuery = binder.apply(query);
         var toCollect = boundOutputs;
         ArrayList<Projection> projections = new ArrayList<>();
         if (!queryHasPkSymbolsOnly) {
             var toCollectSet = new LinkedHashSet<>(boundOutputs);
-            RefVisitor.visitRefs(boundQuery, toCollectSet::add);
+            boundQuery.visit(Reference.class, toCollectSet::add);
             toCollect = List.copyOf(toCollectSet);
             var filterProjection = ProjectionBuilder.filterProjection(toCollect, boundQuery);
             filterProjection.requiredGranularity(RowGranularity.SHARD);
@@ -199,12 +197,7 @@ public class Get implements LogicalPlan {
     }
 
     @Override
-    public List<AbstractTableRelation<?>> baseTables() {
-        return List.of(tableRelation);
-    }
-
-    @Override
-    public List<RelationName> getRelationNames() {
+    public List<RelationName> relationNames() {
         return List.of(tableRelation.relationName());
     }
 
@@ -220,7 +213,7 @@ public class Get implements LogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
         ArrayList<Symbol> newOutputs = new ArrayList<>();
         boolean excludedAny = false;
         for (Symbol output : outputs) {
@@ -266,7 +259,7 @@ public class Get implements LogicalPlan {
             .text("Get[")
             .text(tableRelation.tableInfo().ident().toString())
             .text(" | ")
-            .text(Lists2.joinOn(", ", outputs, Symbol::toString))
+            .text(Lists.joinOn(", ", outputs, Symbol::toString))
             .text(" | ")
             .text(docKeys.toString())
             .text(" | ")

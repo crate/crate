@@ -21,8 +21,7 @@
 
 package io.crate.analyze;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -42,7 +41,7 @@ public class DecommissionNodeAnalyzerTest extends CrateDummyClusterServiceUnitTe
     @Before
     public void setup() {
         e = SQLExecutor.builder(clusterService).build();
-        plannerContext = e.getPlannerContext(clusterService.state());
+        plannerContext = e.getPlannerContext();
     }
 
     private String analyze(String stmt, Object... arguments) {
@@ -58,17 +57,11 @@ public class DecommissionNodeAnalyzerTest extends CrateDummyClusterServiceUnitTe
 
     @Test
     public void testDecommissionNodeUsingStringLiteral() {
-        assertThat(
-            analyze("ALTER CLUSTER DECOMMISSION 'aNodeIdOrName'"),
-            is("aNodeIdOrName")
-        );
+        assertThat(analyze("ALTER CLUSTER DECOMMISSION 'aNodeIdOrName'")).isEqualTo("aNodeIdOrName");
     }
 
     @Test
     public void testDecommissionNodeUsingParameter() {
-        assertThat(
-            analyze("ALTER CLUSTER DECOMMISSION ?", "node_name"),
-            is("node_name")
-        );
+        assertThat(analyze("ALTER CLUSTER DECOMMISSION ?", "node_name")).isEqualTo("node_name");
     }
 }

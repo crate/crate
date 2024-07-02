@@ -33,17 +33,19 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.logging.Loggers;
-
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.types.BitStringType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.IntegerLiteralTypeSignature;
+import io.crate.types.FloatVectorType;
 import io.crate.types.ParameterTypeSignature;
 import io.crate.types.TypeSignature;
 import io.crate.types.UndefinedType;
@@ -60,7 +62,7 @@ public class SignatureBinder {
     // 4 is chosen arbitrarily here. This limit is set to avoid having infinite loops in iterative solving.
     private static final int SOLVE_ITERATION_LIMIT = 4;
 
-    private static final Logger LOGGER = Loggers.getLogger(SignatureBinder.class);
+    private static final Logger LOGGER = LogManager.getLogger(SignatureBinder.class);
 
     public static SignatureBinder withPrecedenceOnly(Signature declaredSignature) {
         return new SignatureBinder(declaredSignature, CoercionType.PRECEDENCE_ONLY);
@@ -80,7 +82,8 @@ public class SignatureBinder {
         DataTypes.NUMERIC.getName(),
         DataTypes.STRING.getName(),
         DataTypes.CHARACTER.getName(),
-        BitStringType.NAME
+        BitStringType.NAME,
+        FloatVectorType.NAME
     );
 
     public SignatureBinder(Signature declaredSignature, CoercionType coercionType) {
@@ -122,11 +125,11 @@ public class SignatureBinder {
             }
             argumentSignatures = declaredSignature.getArgumentTypes();
         }
-        List<TypeSignature> boundArgumentSignatures = applyBoundVariables(argumentSignatures, boundVariables);
-        TypeSignature boundReturnTypeSignature = applyBoundVariables(declaredSignature.getReturnType(), boundVariables);
+        List<TypeSignature> boundArgumentSignatures = applyBoundVariables(argumentSignatures, boundVariables, true);
+        TypeSignature boundReturnTypeSignature = applyBoundVariables(declaredSignature.getReturnType(), boundVariables, false);
 
         return new BoundSignature(
-            Lists2.map(boundArgumentSignatures, TypeSignature::createType),
+            Lists.map(boundArgumentSignatures, TypeSignature::createType),
             boundReturnTypeSignature.createType()
         );
     }
@@ -142,30 +145,38 @@ public class SignatureBinder {
     }
 
     private static List<TypeSignature> applyBoundVariables(List<TypeSignature> typeSignatures,
-                                                           BoundVariables boundVariables) {
+                                                           BoundVariables boundVariables,
+                                                           boolean onlyBindGenericTypes) {
         ArrayList<TypeSignature> builder = new ArrayList<>();
         for (TypeSignature typeSignature : typeSignatures) {
-            builder.add(applyBoundVariables(typeSignature, boundVariables));
+            builder.add(applyBoundVariables(typeSignature, boundVariables, onlyBindGenericTypes));
         }
         return Collections.unmodifiableList(builder);
     }
 
-    private static TypeSignature applyBoundVariables(TypeSignature typeSignature, BoundVariables boundVariables) {
+    private static TypeSignature applyBoundVariables(TypeSignature typeSignature, BoundVariables boundVariables, boolean onlyBindGenericTypes) {
+        if (typeSignature instanceof IntegerLiteralTypeSignature) {
+            // Parameter, don't convert it to plain TypeSignature and return as is.
+            return typeSignature;
+        }
         String baseType = typeSignature.getBaseTypeName();
         if (boundVariables.containsTypeVariable(baseType)) {
             if (typeSignature.getParameters().isEmpty() == false) {
                 throw new IllegalStateException("Type parameters cannot have parameters");
             }
             var boundTS = boundVariables.getTypeVariable(baseType).getTypeSignature();
+            if (onlyBindGenericTypes && Objects.equals(boundTS.getBaseTypeName(), baseType)) {
+                return typeSignature;
+            }
             if (typeSignature instanceof ParameterTypeSignature p) {
                 return new ParameterTypeSignature(p.unescapedParameterName(), boundTS);
             }
             return boundTS;
         }
 
-        List<TypeSignature> parameters = Lists2.map(
+        List<TypeSignature> parameters = Lists.map(
             typeSignature.getParameters(),
-            typeSignatureParameter -> applyBoundVariables(typeSignatureParameter, boundVariables));
+            typeSignatureParameter -> applyBoundVariables(typeSignatureParameter, boundVariables, onlyBindGenericTypes));
 
         if (typeSignature instanceof ParameterTypeSignature p) {
             return new ParameterTypeSignature(
@@ -252,6 +263,12 @@ public class SignatureBinder {
         if (formalTypeSignature.getParameters().isEmpty()) {
             TypeVariableConstraint typeVariableConstraint = typeVariableConstraints.get(formalTypeSignature.getBaseTypeName());
             if (typeVariableConstraint == null) {
+                // No generic type parameter, but we may have a type with numeric params on it
+                var actualTypeSignature = actualType.getTypeSignature();
+                if (Objects.equals(formalTypeSignature.getBaseTypeName(), actualTypeSignature.getBaseTypeName())
+                    && actualTypeSignature.hasNumericParameters()) {
+                    resultBuilder.add(new TypeParameterSolver(formalTypeSignature.getBaseTypeName(), actualType));
+                }
                 return true;
             }
             resultBuilder.add(new TypeParameterSolver(formalTypeSignature.getBaseTypeName(), actualType));
@@ -346,7 +363,10 @@ public class SignatureBinder {
     }
 
     private boolean allTypeVariablesBound(BoundVariables boundVariables) {
-        return boundVariables.getTypeVariableNames().equals(typeVariableConstraints.keySet());
+        // This is a 'containsAll' rather than an 'equals' because BoundVariables
+        // may contain parametrized type mappings, eg numeric=>numeric(10) as well
+        // as type variable mappings, eg E=>integer
+        return boundVariables.getTypeVariableNames().containsAll(typeVariableConstraints.keySet());
     }
 
     @Nullable
@@ -564,7 +584,7 @@ public class SignatureBinder {
                 }
             }
 
-            TypeSignature boundSignature = applyBoundVariables(superTypeSignature, bindings.build());
+            TypeSignature boundSignature = applyBoundVariables(superTypeSignature, bindings.build(), false);
             if (satisfiesCoercion(coercionType, actualType, boundSignature)) {
                 return SolverReturnStatus.UNCHANGED_SATISFIED;
             }

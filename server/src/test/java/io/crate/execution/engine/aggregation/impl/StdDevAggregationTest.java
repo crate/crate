@@ -21,12 +21,10 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.junit.Test;
@@ -34,6 +32,7 @@ import org.junit.Test;
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.functions.Signature;
 import io.crate.operation.aggregation.AggregationTestCase;
@@ -48,7 +47,7 @@ public class StdDevAggregationTest extends AggregationTestCase {
                 "stddev",
                 argumentType.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.DETERMINISTIC),
             data,
             List.of()
         );
@@ -58,7 +57,7 @@ public class StdDevAggregationTest extends AggregationTestCase {
     public void test_functions_return_type_is_always_double_for_any_argument_type() {
         for (DataType<?> type : Stream.concat(
             DataTypes.NUMERIC_PRIMITIVE_TYPES.stream(),
-            Stream.of(DataTypes.TIMESTAMPZ)).collect(Collectors.toList())) {
+            Stream.of(DataTypes.TIMESTAMPZ)).toList()) {
 
             FunctionImplementation stddev = nodeCtx.functions().get(
                 null,
@@ -66,64 +65,62 @@ public class StdDevAggregationTest extends AggregationTestCase {
                 List.of(Literal.of(type, null)),
                 SearchPath.pathWithPGCatalogAndDoc()
             );
-            assertThat(stddev.boundSignature().returnType(), is(DataTypes.DOUBLE));
+            assertThat(stddev.boundSignature().returnType()).isEqualTo(DataTypes.DOUBLE);
         }
     }
 
     @Test
     public void withNullArg() throws Exception {
-        assertThat(executeAggregation(DataTypes.DOUBLE, new Object[][]{{null}, {null}}), is(nullValue()));
+        assertThat(executeAggregation(DataTypes.DOUBLE, new Object[][]{{null}, {null}})).isNull();
     }
 
     @Test
     public void withSomeNullArgs() throws Exception {
-        assertThat(
-            executeAggregation(DataTypes.DOUBLE, new Object[][]{{10.7d}, {42.9D}, {0.3d}, {null}}),
-            is(18.13455878212156)
-        );
+        assertThat(executeAggregation(DataTypes.DOUBLE, new Object[][]{{10.7d}, {42.9D}, {0.3d}, {null}}))
+            .isEqualTo(18.13455878212156);
     }
 
     @Test
     public void testDouble() throws Exception {
-        assertThat(
-            executeAggregation(DataTypes.DOUBLE, new Object[][]{{10.7d}, {42.9D}, {0.3d}}),
-            is(18.13455878212156)
-        );
+        assertThat(executeAggregation(DataTypes.DOUBLE, new Object[][]{{10.7d}, {42.9D}, {0.3d}}))
+            .isEqualTo(18.13455878212156);
     }
 
     @Test
     public void testFloat() throws Exception {
-        assertThat(
-            executeAggregation(DataTypes.FLOAT, new Object[][]{{1.5f}, {1.25f}, {1.75f}}),
-            is(0.2041241452319315)
-        );
+        assertThat(executeAggregation(DataTypes.FLOAT, new Object[][]{{1.5f}, {1.25f}, {1.75f}}))
+            .isEqualTo(0.2041241452319315);
     }
 
     @Test
     public void testInteger() throws Exception {
-        assertThat(executeAggregation(DataTypes.INTEGER, new Object[][]{{7}, {3}}), is(2d));
+        assertThat(executeAggregation(DataTypes.INTEGER, new Object[][]{{7}, {3}}))
+            .isEqualTo(2d);
     }
 
     @Test
     public void testLong() throws Exception {
-        assertThat(executeAggregation(DataTypes.LONG, new Object[][]{{7L}, {3L}}), is(2d));
+        assertThat(executeAggregation(DataTypes.LONG, new Object[][]{{7L}, {3L}}))
+            .isEqualTo(2d);
     }
 
     @Test
     public void testShort() throws Exception {
-        assertThat(executeAggregation(DataTypes.SHORT, new Object[][]{{(short) 7}, {(short) 3}}), is(2d));
+        assertThat(executeAggregation(DataTypes.SHORT, new Object[][]{{(short) 7}, {(short) 3}}))
+            .isEqualTo(2d);
     }
 
     @Test
     public void testByte() throws Exception {
-        assertThat(executeAggregation(DataTypes.SHORT, new Object[][]{{(short) 1}, {(short) 1}}), is(0d));
+        assertThat(executeAggregation(DataTypes.SHORT, new Object[][]{{(short) 1}, {(short) 1}}))
+            .isEqualTo(0d);
     }
 
     @Test
-    public void testUnsupportedType() throws Exception {
-        expectedException.expect(UnsupportedFunctionException.class);
-        expectedException.expectMessage("Unknown function: stddev(INPUT(0))," +
-                                        " no overload found for matching argument types: (geo_point).");
-        executeAggregation(DataTypes.GEO_POINT, new Object[][]{});
+    public void testUnsupportedType() {
+        assertThatThrownBy(() -> executeAggregation(DataTypes.GEO_POINT, new Object[][]{}))
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessageStartingWith("Unknown function: stddev(INPUT(0))," +
+                " no overload found for matching argument types: (geo_point).");
     }
 }

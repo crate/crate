@@ -19,23 +19,25 @@
 
 package org.elasticsearch.action.support.replication;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
+
 import org.elasticsearch.action.support.RetryableAction;
 import org.elasticsearch.common.lease.Releasable;
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.index.shard.IndexShardClosedException;
 import org.elasticsearch.index.shard.ReplicationGroup;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Consumer;
+import io.crate.common.collections.Sets;
 
 public class PendingReplicationActions implements Consumer<ReplicationGroup>, Releasable {
 
-    private final Map<String, Set<RetryableAction<?>>> onGoingReplicationActions = ConcurrentCollections.newConcurrentMap();
+    private final Map<String, Set<RetryableAction<?>>> onGoingReplicationActions = new ConcurrentHashMap<>();
     private final ShardId shardId;
     private final ThreadPool threadPool;
     private volatile long replicationGroupVersion = -1;
@@ -86,7 +88,7 @@ public class PendingReplicationActions implements Consumer<ReplicationGroup>, Re
     // Visible for testing
     synchronized void acceptNewTrackedAllocationIds(Set<String> trackedAllocationIds) {
         for (String targetAllocationId : trackedAllocationIds) {
-            onGoingReplicationActions.putIfAbsent(targetAllocationId, ConcurrentCollections.newConcurrentSet());
+            onGoingReplicationActions.putIfAbsent(targetAllocationId, Sets.newConcurrentHashSet());
         }
         ArrayList<Set<RetryableAction<?>>> toCancel = new ArrayList<>();
         for (String allocationId : onGoingReplicationActions.keySet()) {

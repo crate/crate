@@ -23,10 +23,10 @@ package io.crate.testing;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.sun.management.ThreadMXBean;
-
 import java.lang.management.ManagementFactory;
 import java.util.function.Supplier;
+
+import com.sun.management.ThreadMXBean;
 
 public final class MemoryLimits {
 
@@ -36,7 +36,7 @@ public final class MemoryLimits {
      */
     public static <T> T assertMaxBytesAllocated(long bytes, Supplier<T> supplier) {
         ThreadMXBean threadMXBean = ManagementFactory.getPlatformMXBean(ThreadMXBean.class);
-        long threadId = Thread.currentThread().getId();
+        long threadId = Thread.currentThread().threadId();
         long allocatedBytesBegin = threadMXBean.getThreadAllocatedBytes(threadId);
         T t = supplier.get();
         long allocatedBytesAfter = threadMXBean.getThreadAllocatedBytes(threadId);

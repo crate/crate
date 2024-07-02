@@ -18,10 +18,10 @@
  */
 package org.elasticsearch.cluster.routing.allocation.decider;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider.CLUSTER_ROUTING_ALLOCATION_ENABLE_SETTING;
 import static org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider.CLUSTER_ROUTING_REBALANCE_ENABLE_SETTING;
 import static org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider.INDEX_ROUTING_REBALANCE_ENABLE_SETTING;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.junit.Assert.assertThat;
 
@@ -114,7 +114,7 @@ public class EnableAllocationShortCircuitTests extends ESAllocationTestCase {
                 .put(CLUSTER_ROUTING_REBALANCE_ENABLE_SETTING.getKey(), EnableAllocationDecider.Allocation.NONE.name()),
             plugin);
         allocationService.reroute(clusterState, "reroute").routingTable();
-        assertThat(plugin.rebalanceAttempts, equalTo(0));
+        assertThat(plugin.rebalanceAttempts).isEqualTo(0);
     }
 
     @Test
@@ -130,7 +130,7 @@ public class EnableAllocationShortCircuitTests extends ESAllocationTestCase {
                 .put(CLUSTER_ROUTING_REBALANCE_ENABLE_SETTING.getKey(), EnableAllocationDecider.Rebalance.NONE.name()),
             plugin);
         allocationService.reroute(clusterState, "reroute").routingTable();
-        assertThat(plugin.rebalanceAttempts, equalTo(0));
+        assertThat(plugin.rebalanceAttempts).isEqualTo(0);
     }
 
     @Test
@@ -171,7 +171,7 @@ public class EnableAllocationShortCircuitTests extends ESAllocationTestCase {
             .metadata(metadata).routingTable(routingTable).nodes(DiscoveryNodes.builder().add(newNode("node1"))).build();
 
         allocationService.reroute(clusterState, "reroute").routingTable();
-        assertThat(plugin.canAllocateAttempts, equalTo(0));
+        assertThat(plugin.canAllocateAttempts).isEqualTo(0);
     }
 
     private static AllocationService createAllocationService(Settings.Builder settings, ClusterPlugin plugin) {

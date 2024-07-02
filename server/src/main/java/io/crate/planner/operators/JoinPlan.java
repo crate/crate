@@ -21,19 +21,20 @@
 
 package io.crate.planner.operators;
 
-import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.SequencedCollection;
 import java.util.Set;
 
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.OrderBy;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.SymbolVisitors;
+import io.crate.expression.symbol.Symbols;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
@@ -43,23 +44,46 @@ public class JoinPlan extends AbstractJoinPlan {
 
     private final boolean isFiltered;
     private final boolean rewriteFilterOnOuterJoinToInnerJoinDone;
-
-    public JoinPlan(LogicalPlan lhs,
-                    LogicalPlan rhs,
-                    JoinType joinType,
-                    @Nullable Symbol joinCondition) {
-        this(lhs, rhs, joinType, joinCondition, false, false);
-    }
+    private final boolean lookUpJoinRuleApplied;
+    private final boolean moveConstantJoinConditionRuleApplied;
 
     public JoinPlan(LogicalPlan lhs,
                     LogicalPlan rhs,
                     JoinType joinType,
                     @Nullable Symbol joinCondition,
                     boolean isFiltered,
-                    boolean rewriteFilterOnOuterJoinToInnerJoinDone) {
-        super(lhs, rhs, joinCondition, joinType);
+                    boolean rewriteFilterOnOuterJoinToInnerJoinDone,
+                    boolean lookUpJoinRuleApplied,
+                    LookUpJoin lookUpJoin) {
+        this(lhs, rhs, joinType, joinCondition, isFiltered, rewriteFilterOnOuterJoinToInnerJoinDone, lookUpJoinRuleApplied, false, lookUpJoin);
+    }
+
+    @VisibleForTesting
+    public JoinPlan(LogicalPlan lhs,
+                    LogicalPlan rhs,
+                    JoinType joinType,
+                    @Nullable Symbol joinCondition) {
+        this(lhs, rhs, joinType, joinCondition, false, false, false, false, LookUpJoin.NONE);
+    }
+
+    public JoinPlan(LogicalPlan lhs,
+                     LogicalPlan rhs,
+                     JoinType joinType,
+                     @Nullable Symbol joinCondition,
+                     boolean isFiltered,
+                     boolean rewriteFilterOnOuterJoinToInnerJoinDone,
+                     boolean lookUpJoinRuleApplied,
+                     boolean moveConstantJoinConditionRuleApplied,
+                     LookUpJoin lookUpJoin) {
+        super(lhs, rhs, joinCondition, joinType, lookUpJoin);
         this.isFiltered = isFiltered;
         this.rewriteFilterOnOuterJoinToInnerJoinDone = rewriteFilterOnOuterJoinToInnerJoinDone;
+        this.lookUpJoinRuleApplied = lookUpJoinRuleApplied;
+        this.moveConstantJoinConditionRuleApplied = moveConstantJoinConditionRuleApplied;
+    }
+
+    public boolean isLookUpJoinRuleApplied() {
+        return lookUpJoinRuleApplied;
     }
 
     public boolean isFiltered() {
@@ -68,6 +92,24 @@ public class JoinPlan extends AbstractJoinPlan {
 
     public boolean isRewriteFilterOnOuterJoinToInnerJoinDone() {
         return rewriteFilterOnOuterJoinToInnerJoinDone;
+    }
+
+    public boolean moveConstantJoinConditionRuleApplied() {
+        return moveConstantJoinConditionRuleApplied;
+    }
+
+    public JoinPlan withMoveConstantJoinConditionRuleApplied(boolean moveConstantJoinConditionRuleApplied) {
+        return new JoinPlan(
+            lhs,
+            rhs,
+            joinType,
+            joinCondition,
+            isFiltered,
+            rewriteFilterOnOuterJoinToInnerJoinDone,
+            lookUpJoinRuleApplied,
+            moveConstantJoinConditionRuleApplied,
+            lookupJoin
+        );
     }
 
     @Override
@@ -91,16 +133,16 @@ public class JoinPlan extends AbstractJoinPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
         LinkedHashSet<Symbol> lhsToKeep = new LinkedHashSet<>();
         LinkedHashSet<Symbol> rhsToKeep = new LinkedHashSet<>();
         for (Symbol outputToKeep : outputsToKeep) {
-            SymbolVisitors.intersection(outputToKeep, lhs.outputs(), lhsToKeep::add);
-            SymbolVisitors.intersection(outputToKeep, rhs.outputs(), rhsToKeep::add);
+            Symbols.intersection(outputToKeep, lhs.outputs(), lhsToKeep::add);
+            Symbols.intersection(outputToKeep, rhs.outputs(), rhsToKeep::add);
         }
         if (joinCondition != null) {
-            SymbolVisitors.intersection(joinCondition, lhs.outputs(), lhsToKeep::add);
-            SymbolVisitors.intersection(joinCondition, rhs.outputs(), rhsToKeep::add);
+            Symbols.intersection(joinCondition, lhs.outputs(), lhsToKeep::add);
+            Symbols.intersection(joinCondition, rhs.outputs(), rhsToKeep::add);
         }
         LogicalPlan newLhs = lhs.pruneOutputsExcept(lhsToKeep);
         LogicalPlan newRhs = rhs.pruneOutputsExcept(rhsToKeep);
@@ -113,7 +155,10 @@ public class JoinPlan extends AbstractJoinPlan {
             joinType,
             joinCondition,
             isFiltered,
-            rewriteFilterOnOuterJoinToInnerJoinDone
+            rewriteFilterOnOuterJoinToInnerJoinDone,
+            lookUpJoinRuleApplied,
+            moveConstantJoinConditionRuleApplied,
+            lookupJoin
         );
     }
 
@@ -129,7 +174,7 @@ public class JoinPlan extends AbstractJoinPlan {
         }
         printContext.text("]");
         printStats(printContext);
-        printContext.nest(Lists2.map(sources(), x -> x::print));
+        printContext.nest(Lists.map(sources(), x -> x::print));
     }
 
     @Override
@@ -140,7 +185,10 @@ public class JoinPlan extends AbstractJoinPlan {
             joinType,
             joinCondition,
             isFiltered,
-            rewriteFilterOnOuterJoinToInnerJoinDone
+            rewriteFilterOnOuterJoinToInnerJoinDone,
+            lookUpJoinRuleApplied,
+            moveConstantJoinConditionRuleApplied,
+            lookupJoin
         );
     }
 }

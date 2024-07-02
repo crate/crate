@@ -22,17 +22,16 @@
 package io.crate.planner.operators;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedCollection;
 import java.util.Set;
 
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.relations.AbstractTableRelation;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
 import io.crate.execution.dsl.projection.EvalProjection;
@@ -115,12 +114,7 @@ public class Insert implements LogicalPlan {
     }
 
     @Override
-    public List<AbstractTableRelation<?>> baseTables() {
-        return Collections.emptyList();
-    }
-
-    @Override
-    public List<RelationName> getRelationNames() {
+    public List<RelationName> relationNames() {
         return List.of();
     }
 
@@ -131,11 +125,11 @@ public class Insert implements LogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new Insert(Lists2.getOnlyElement(sources), writeToTable, applyCasts);
+        return new Insert(Lists.getOnlyElement(sources), writeToTable, applyCasts);
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
         LogicalPlan newSource = source.pruneOutputsExcept(source.outputs());
         if (newSource == source) {
             return this;

@@ -24,6 +24,7 @@ package io.crate.planner;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isReference;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.HashSet;
@@ -36,7 +37,6 @@ import java.util.stream.Collectors;
 import org.junit.Test;
 
 import com.carrotsearch.hppc.IntIndexedContainer;
-import com.carrotsearch.randomizedtesting.RandomizedTest;
 
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.RowN;
@@ -91,16 +91,17 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testHandlerSideRouting() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService).build();
+        SQLExecutor e = SQLExecutor.of(clusterService);
         // just testing the dispatching here.. making sure it is not a ESSearchNode
         e.plan("select * from sys.cluster");
     }
 
     @Test
     public void testWherePKAndMatchDoesNotResultInESGet() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         ExecutionPlan plan = e.plan("select * from users where id in (1, 2, 3) and match(text, 'Hello')");
         assertThat(plan).isExactlyInstanceOf(Merge.class);
@@ -109,9 +110,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGetPlan() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         LogicalPlan plan = e.logicalPlan("select name from users where id = 1");
         assertThat(plan).isEqualTo(
@@ -120,20 +122,22 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_filter_by_internal_id_result_in_get_plan() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         LogicalPlan plan = e.logicalPlan("select name from users where _id = 1");
         assertThat(plan).isEqualTo(
-            "Get[doc.users | name | DocKeys{1} | (_id = 1)]");
+            "Get[doc.users | name | DocKeys{'1'} | (_id = 1)]");
     }
 
     @Test
     public void testGetWithVersion() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         LogicalPlan plan = e.logicalPlan("select name from users where id = 1 and _version = 1");
         assertThat(plan).isEqualTo(
@@ -142,13 +146,14 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGetPlanStringLiteral() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
             .addTable(
                 "create table doc.bystring (" +
                 "  name text primary key," +
                 "  score double precision" +
-                ")")
-            .build();
+                ")");
 
         LogicalPlan plan = e.logicalPlan("select name from bystring where name = 'one'");
         assertThat(plan).isEqualTo(
@@ -158,13 +163,14 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGetPlanPartitioned() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
             .addPartitionedTable(
                 TableDefinitions.PARTED_PKS_TABLE_DEFINITION,
                 new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395874800000")).asIndexName(),
                 new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395961200000")).asIndexName()
-            )
-            .build();
+            );
 
         LogicalPlan plan = e.logicalPlan("select name, date from parted_pks where id = 1 and date = 0");
         assertThat(plan).isEqualTo(
@@ -174,9 +180,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testMultiGetPlan() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         LogicalPlan plan = e.logicalPlan("select name from users where id in (1, 2)");
         assertThat(plan).isEqualTo(
@@ -186,9 +193,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGlobalAggregationPlan() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         Merge globalAggregate = e.plan("select count(name) from users");
         Collect collect = (Collect) globalAggregate.subPlan();
@@ -208,10 +216,11 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testShardSelectWithOrderBy() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
             // need to have at least one table so there are some shards to have a distributed plan
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         Merge merge = e.plan("select id from sys.shards order by id limit 10");
         Collect collect = (Collect) merge.subPlan();
@@ -229,9 +238,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCollectAndMergePlan() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         QueryThenFetch qtf = e.plan("select name from users where name = 'x' order by id limit 10");
         Merge merge = (Merge) qtf.subPlan();
@@ -248,9 +258,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCollectAndMergePlanNoFetch() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         // testing that a fetch projection is not added if all output symbols are included
         // at the orderBy symbols
@@ -273,9 +284,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCollectAndMergePlanHighLimit() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         QueryThenFetch qtf = e.plan("select name from users limit 100000");
         Merge merge = (Merge) qtf.subPlan();
@@ -305,13 +317,14 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCollectAndMergePlanPartitioned() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
             .addPartitionedTable(
                 TableDefinitions.PARTED_PKS_TABLE_DEFINITION,
                 new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395874800000")).asIndexName(),
                 new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395961200000")).asIndexName()
-            )
-            .build();
+            );
 
         QueryThenFetch qtf = e.plan("select id, name, date from parted_pks where date > 0 and name = 'x' order by id limit 10");
         Merge merge = (Merge) qtf.subPlan();
@@ -337,9 +350,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCollectAndMergePlanFunction() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         QueryThenFetch qtf = e.plan("select format('Hi, my name is %s', name), name from users where name = 'x' order by id limit 10");
         Merge merge = (Merge) qtf.subPlan();
@@ -355,9 +369,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCountDistinctPlan() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         Merge globalAggregate = e.plan("select count(distinct name) from users");
         Collect collect = (Collect) globalAggregate.subPlan();
@@ -387,9 +402,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGlobalAggregationHaving() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         Merge globalAggregate = e.plan(
             "select avg(date) from users having min(date) > '1970-01-01'");
@@ -420,7 +436,9 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCountOnPartitionedTable() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
             .addPartitionedTable(
                 "create table parted (" +
                 "   id int," +
@@ -431,8 +449,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                 new PartitionName(new RelationName("doc", "parted"), singletonList("1395874800000")).asIndexName(),
                 new PartitionName(new RelationName("doc", "parted"), singletonList("1395961200000")).asIndexName(),
                 new PartitionName(new RelationName("doc", "parted"), singletonList(null)).asIndexName()
-            )
-            .build();
+            );
 
         CountPlan plan = e.plan("select count(*) from parted where date = 1395874800000");
         assertThat(
@@ -444,7 +461,9 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test(expected = UnsupportedFunctionException.class)
     public void testSelectPartitionedTableOrderByPartitionedColumnInFunction() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
             .addPartitionedTable(
                 "create table parted (" +
                 "   id int," +
@@ -455,16 +474,14 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                 new PartitionName(new RelationName("doc", "parted"), singletonList("1395874800000")).asIndexName(),
                 new PartitionName(new RelationName("doc", "parted"), singletonList("1395961200000")).asIndexName(),
                 new PartitionName(new RelationName("doc", "parted"), singletonList(null)).asIndexName()
-            )
-            .build();
+            );
 
         e.plan("select name from parted order by year(date)");
     }
 
     @Test(expected = UnsupportedFeatureException.class)
     public void testQueryRequiresScalar() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService);
 
         // only scalar functions are allowed on system tables because we have no lucene queries
         e.plan("select * from sys.shards where match(table_name, 'characters')");
@@ -472,12 +489,13 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSortOnUnknownColumn() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
             .addTable(
                 "create table doc.ignored_nested (" +
                 "  details object(ignored)" +
-                ")")
-            .build();
+                ")");
 
         assertThatThrownBy(() -> e.plan("select details from ignored_nested order by details['unknown_column']"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
@@ -486,9 +504,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSelectAnalyzedReferenceInFunctionAggregation() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         assertThatThrownBy(() -> e.plan("select min(substr(text, 0, 2)) from users"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -497,7 +516,9 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGlobalAggregateWithWhereOnPartitionColumn() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
             .addPartitionedTable(
                 "create table parted (" +
                 "   id int," +
@@ -508,8 +529,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                 new PartitionName(new RelationName("doc", "parted"), singletonList("1395874800000")).asIndexName(),
                 new PartitionName(new RelationName("doc", "parted"), singletonList("1395961200000")).asIndexName(),
                 new PartitionName(new RelationName("doc", "parted"), singletonList(null)).asIndexName()
-            )
-            .build();
+            );
 
         ExecutionPlan plan = e.plan(
             "select min(name) from parted where date >= 1395961200000");
@@ -531,9 +551,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testHasNoResultFromHaving() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         Merge merge = e.plan("select min(name) from users having 1 = 2");
         assertThat(merge.mergePhase().projections().get(1)).isExactlyInstanceOf(FilterProjection.class);
@@ -542,9 +563,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testShardQueueSizeCalculation() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         Merge merge = e.plan("select name from users order by name limit 500");
         Collect collect = (Collect) merge.subPlan();
@@ -555,9 +577,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testQAFPagingIsEnabledOnHighLimit() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         Merge plan = e.plan("select name from users order by name limit 1000000");
         assertThat(plan.mergePhase().nodeIds()).hasSize(1); // mergePhase with executionNode = paging enabled
@@ -568,9 +591,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testQAFPagingIsEnabledOnHighOffset() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         Merge merge = e.plan("select name from users order by name limit 10 offset 1000000");
         Collect collect = (Collect) merge.subPlan();
@@ -580,9 +604,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testQTFPagingIsEnabledOnHighLimit() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         QueryThenFetch qtf = e.plan("select name, date from users order by name limit 1000000");
         Merge merge = (Merge) qtf.subPlan();
@@ -593,7 +618,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSelectFromUnnestResultsInTableFunctionPlan() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
             .build();
 
         Collect collect = e.plan("select * from unnest([1, 2], ['Arthur', 'Trillian'])");
@@ -603,9 +629,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testReferenceToNestedAggregatedField() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable(T3.T1_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable(T3.T1_DEFINITION);
 
         Collect collect = e.plan("select ii, xx from ( " +
                                  "  select i + i as ii, xx from (" +
@@ -628,9 +653,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test3TableJoinQuerySplitting() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         e.updateTableStats(Map.of(new RelationName("doc", "users"), new Stats(20, 20, Map.of())));
 
         Join outerJoin = e.plan("select" +
@@ -648,7 +674,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         Join innerJoin = (Join) outerJoin.right();
 
         assertThat(innerJoin.joinPhase().joinCondition()).isSQL("((INPUT(0) = INPUT(2)) AND (INPUT(1) = INPUT(3)))");
-        assertThat(innerJoin.joinPhase().projections()).hasSize(1);
+        assertThat(innerJoin.joinPhase().projections()).hasSize(2);
         assertThat(innerJoin.joinPhase().projections().get(0)).isExactlyInstanceOf(EvalProjection.class);
 
         assertThat(outerJoin.joinPhase().joinCondition()).isNull();
@@ -660,9 +686,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testOuterJoinToInnerJoinRewrite() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         e.updateTableStats(
             Map.of(new RelationName("doc", "users"), new Stats(20, 20, Map.of())));
@@ -682,10 +709,11 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testShardSelect() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
             // Need to have at least one table to have some shards for a distributed plan
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         Merge merge = e.plan("select id from sys.shards");
         Collect collect = (Collect) merge.subPlan();
@@ -695,9 +723,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGlobalCountPlan() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         CountPlan plan = e.plan("select count(*) from users");
 
@@ -709,9 +738,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testLimitThatIsBiggerThanPageSizeCausesQTFPUshPlan() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         QueryThenFetch qtf = e.plan("select * from users limit 2147483647 ");
         Merge merge = (Merge) qtf.subPlan();
@@ -734,14 +764,16 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testAggregationOnGeneratedColumns() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
             .addTable(
                 "create table doc.gc_table (" +
                 "   revenue integer," +
                 "   cost integer," +
                 "   profit as revenue - cost" +
                 ")"
-            ).build();
+            );
 
         Merge merge = e.plan("select sum(profit) from gc_table");
         Collect collect = (Collect) merge.subPlan();
@@ -757,9 +789,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGlobalAggregationOn3TableJoinWithImplicitJoinConditions() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         Merge plan = e.plan("select count(*) from users t1, users t2, users t3 " +
                             "where t1.id = t2.id and t2.id = t3.id");
@@ -801,9 +834,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test2TableJoinWithNoMatch() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         Join nl = e.plan("select * from users t1, users t2 WHERE 1=2");
         assertThat(nl.left()).isExactlyInstanceOf(Collect.class);
@@ -814,9 +848,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test3TableJoinWithNoMatch() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         Join outer = e.plan("select * from users t1, users t2, users t3 WHERE 1=2");
         assertThat(((RoutedCollectPhase)((Collect)outer.right()).collectPhase()).where()).isSQL("false");
@@ -827,9 +862,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGlobalAggregateOn2TableJoinWithNoMatch() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         Join nl = e.plan("select count(*) from users t1, users t2 WHERE 1=2");
         assertThat(nl.left()).isExactlyInstanceOf(Collect.class);
@@ -840,9 +876,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGlobalAggregateOn3TableJoinWithNoMatch() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         Join outer = e.plan("select count(*) from users t1, users t2, users t3 WHERE 1=2");
         Join inner = (Join) outer.left();
@@ -853,26 +890,28 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testFilterOnPKSubsetResultsInPKLookupPlanIfTheOtherPKPartIsGenerated() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
             .addTable(
                 "create table t_pk_part_generated (" +
                 "   ts timestamp with time zone," +
                 "   p as date_trunc('day', ts)," +
-                "   primary key (ts, p))")
-            .build();
+                "   primary key (ts, p))");
 
         LogicalPlan plan = e.logicalPlan("select 1 from t_pk_part_generated where ts = 0");
         assertThat(plan).isEqualTo(
-            "Get[doc.t_pk_part_generated | 1 | DocKeys{0::bigint, 0::bigint} | ((ts = 0::bigint) AND (p AS date_trunc('day', ts) = 0::bigint))]"
+            "Get[doc.t_pk_part_generated | 1 | DocKeys{0::bigint, 0::bigint} | ((ts = 0::bigint) AND (p = 0::bigint))]"
         );
     }
 
     @Test
     public void testInnerJoinResultsInHashJoinIfHashJoinIsEnabled() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
             .addTable(T3.T1_DEFINITION)
-            .addTable(T3.T2_DEFINITION)
-            .build();
+            .addTable(T3.T2_DEFINITION);
 
         e.getSessionSettings().setHashJoinEnabled(true);
         Merge merge = e.plan("select t2.b, t1.a from t1 inner join t2 on t1.i = t2.i order by 1, 2");
@@ -882,7 +921,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testUnnestInSelectListResultsInPlanWithProjectSetOperator() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
             .build();
 
         LogicalPlan plan = e.logicalPlan("select unnest([1, 2])");
@@ -895,7 +935,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testScalarCanBeUsedAroundTableGeneratingFunctionInSelectList() {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
             .build();
 
         LogicalPlan plan = e.logicalPlan("select unnest([1, 2]) + 1");
@@ -909,7 +950,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testAggregationOnTopOfTableFunctionIsNotPossibleWithoutSeparateSubQuery() {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
             .build();
 
         assertThatThrownBy(() -> e.logicalPlan("select sum(unnest([1, 2]))"))
@@ -919,9 +961,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testTableFunctionIsExecutedAfterAggregation() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         LogicalPlan plan = e.logicalPlan("select count(*), generate_series(1, 2) from users");
         assertThat(plan).isEqualTo(
@@ -935,9 +978,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testAggregationCanBeUsedAsArgumentToTableFunction() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         LogicalPlan plan = e.logicalPlan("select count(name), generate_series(1, count(name)) from users");
         assertThat(plan).isEqualTo(
@@ -952,7 +996,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testOrderByOnTableFunctionMustOrderAfterProjectSet() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
             .build();
 
         LogicalPlan plan = e.logicalPlan("select unnest([1, 2]) from sys.nodes order by 1");
@@ -967,9 +1012,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testWindowFunctionsWithPartitionByAreExecutedDistributed() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         Merge localMerge = e.plan("select sum(ints) OVER (partition by awesome) from users");
         Merge distMerge = (Merge) localMerge.subPlan();
@@ -983,9 +1029,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSeqNoAndPrimaryTermFilteringRequirePrimaryKey() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         assertThatThrownBy(() -> e.plan("select * from users where _seq_no = 2 and _primary_term = 1"))
             .isExactlyInstanceOf(VersioningValidationException.class)
@@ -994,7 +1041,9 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testTablePartitionsAreNarrowedToMatchWhereClauseOfParentQuery() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
             .addPartitionedTable(
                 "create table parted (" +
                 "   id int," +
@@ -1005,8 +1054,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                 new PartitionName(new RelationName("doc", "parted"), singletonList("1395874800000")).asIndexName(),
                 new PartitionName(new RelationName("doc", "parted"), singletonList("1395961200000")).asIndexName(),
                 new PartitionName(new RelationName("doc", "parted"), singletonList(null)).asIndexName()
-            )
-            .build();
+            );
 
         String statement = "select * from (select * from parted) t where date is null";
         LogicalPlan logicalPlan = e.logicalPlan(statement);
@@ -1026,9 +1074,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_match_used_on_table_with_alias_is_resolved_to_a_function() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         Merge merge = e.plan("select name from users as u where match(u.text, 'yalla') order by 1");
         Collect collect = (Collect) merge.subPlan();
@@ -1038,9 +1087,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_distinct_with_limit_is_optimized_to_limitandoffset_distinct() throws Exception {
 
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         e.updateTableStats(Map.of(new RelationName("doc", "users"), new Stats(20, 20, Map.of())));
 
@@ -1053,9 +1103,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_group_by_without_aggregates_and_with_limit_is_optimized_to_limitandoffset_distinct() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         String stmt = "select id, name from users group by id, name limit 1";
         LogicalPlan plan = e.logicalPlan(stmt);
@@ -1066,9 +1117,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_distinct_with_limit_and_offset_keeps_offset() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         String stmt = "select id, name from users group by id, name limit 1 offset 3";
         LogicalPlan plan = e.logicalPlan(stmt);
@@ -1088,9 +1140,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_group_by_on_subscript_on_obj_output_of_sub_relation() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         String stmt = "SELECT address['postcode'] FROM (SELECT address FROM users) AS u GROUP BY 1";
         LogicalPlan plan = e.logicalPlan(stmt);
@@ -1105,9 +1158,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_order_by_on_subscript_on_obj_output_of_sub_relation() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         String stmt = "SELECT address['postcode'] FROM (SELECT address FROM users) AS u ORDER BY 1";
         LogicalPlan plan = e.logicalPlan(stmt);
@@ -1129,7 +1183,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_join_with_no_match_where_clause_pushes_down_no_match() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
             .build();
 
         String stmt = "SELECT n.* " +
@@ -1154,7 +1209,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_window_function_with_function_used_in_order_by_injects_eval_below_window_agg_ordering() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
             .build();
 
         // `WindowProjector.createUpdateProbeValueFunction` doesn't support function evaluation
@@ -1182,7 +1238,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_select_from_table_function_with_filter_on_not_selected_column() {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
             .build();
 
         String stmt =
@@ -1203,9 +1260,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_group_by_on_pk_lookup_uses_shard_projections() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         String stmt = "SELECT name, count(*) FROM users WHERE id in (1, 2, 3, 4, 5) GROUP BY name";
         LogicalPlan logicalPlan = e.logicalPlan(stmt);
@@ -1223,9 +1281,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_order_by_on_aggregation_with_alias_in_select_list() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         String stmt = "SELECT count(id) as cnt FROM users GROUP BY name ORDER BY count(id) DESC";
         LogicalPlan plan = e.logicalPlan(stmt);
@@ -1242,9 +1301,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_equi_join_with_scalar_using_parameter_placeholders() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         String stmt = "SELECT u1.name FROM users u1 JOIN users u2 ON (u1.name || ?) = u2.name";
         LogicalPlan plan = e.logicalPlan(stmt);
@@ -1265,9 +1325,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_non_euqi_join_with_scalar_using_parameter_placeholders() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         String stmt = "SELECT u1.name FROM users u1 JOIN users u2 ON (u1.name || ?) != u2.name";
         LogicalPlan plan = e.logicalPlan(stmt);
@@ -1289,10 +1350,11 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_columns_used_in_hash_join_condition_are_not_duplicated_in_outputs() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
             .addTable(T3.T1_DEFINITION)
-            .addTable(T3.T2_DEFINITION)
-            .build();
+            .addTable(T3.T2_DEFINITION);
 
         String stmt =
             "SELECT * FROM " +
@@ -1316,10 +1378,11 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_columns_used_in_nl_join_condition_are_not_duplicated_in_outputs() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
             .addTable(T3.T1_DEFINITION)
-            .addTable(T3.T2_DEFINITION)
-            .build();
+            .addTable(T3.T2_DEFINITION);
 
         String stmt =
             "SELECT * FROM " +
@@ -1343,15 +1406,16 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_collect_execution_plan_is_narrowed_to_matching_generated_partition_columns() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
             .addPartitionedTable(
                 "create table doc.parted_by_generated (" +
                 "   ts timestamp without time zone, " +
                 "   p as date_trunc('month', ts) " +
                 ") partitioned by (p)",
                 new PartitionName(new RelationName("doc", "parted_by_generated"), singletonList("1577836800000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted_by_generated"), singletonList("1580515200000")).asIndexName())
-            .build();
+                new PartitionName(new RelationName("doc", "parted_by_generated"), singletonList("1580515200000")).asIndexName());
 
         String stmt = "SELECT * FROM parted_by_generated WHERE ts >= '2020-02-01'";
         LogicalPlan plan = e.logicalPlan(stmt);
@@ -1371,9 +1435,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_select_where_id_and_seq_missing_primary_term() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         assertThatThrownBy(() -> e.plan("select id from users where id = 1 and _seq_no = 11"))
             .isExactlyInstanceOf(VersioningValidationException.class)
@@ -1382,9 +1447,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_select_where_seq_and_primary_term_missing_id() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         assertThatThrownBy(() -> e.plan("select id from users where _seq_no = 11 and _primary_term = 1"))
             .isExactlyInstanceOf(VersioningValidationException.class)
@@ -1394,9 +1460,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_filter_and_eval_on_get_operator_use_shard_projections() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         Merge merge = e.plan("""
             SELECT count(*) FROM (
@@ -1421,9 +1488,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_queries_in_count_operator_are_optimized() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (xs array(varchar(1)))")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (xs array(varchar(1)))");
 
         CountPlan plan = e.plan("select count(*) from tbl where 'a' = ANY(xs)");
         assertThat(plan.countPhase().where()).isSQL("('a' = ANY(doc.tbl.xs))");
@@ -1431,9 +1497,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_collect_phase_narrows_shard_selection_based_on_clustered_by_columns() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int, y int) clustered by (x) into 2 shards")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int, y int) clustered by (x) into 2 shards");
 
         Collect collect = e.plan("select * from tbl where x = 1");
         RoutedCollectPhase routedCollectPhase = (RoutedCollectPhase )collect.collectPhase();
@@ -1447,9 +1512,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_filter_on_aliased_subselect_output() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable(T3.T1_DEFINITION)
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable(T3.T1_DEFINITION);
 
         var stmt = "select * from (select i, true as b from t1) it where b";
         Collect collect = e.plan(stmt);
@@ -1460,7 +1524,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_table_function_without_from_can_bind_parameters() {
-        SQLExecutor e = SQLExecutor.builder(clusterService).build();
+        SQLExecutor e = SQLExecutor.of(clusterService);
         String stmt = "SELECT UNNEST(?)";
         Collect collect = e.plan(stmt, UUID.randomUUID(), 0, new RowN(new Object[] {null}));
 
@@ -1472,9 +1536,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_non_recursive_with_is_rewritten_to_nested_subselects() throws Exception {
-        var e = SQLExecutor.builder(clusterService)
-            .addTable("create table t1 (x int)")
-            .build();
+        var e = SQLExecutor.of(clusterService)
+            .addTable("create table t1 (x int)");
         var withPlan = e.logicalPlan(
             "WITH" +
                 " r AS (SELECT x FROM t1)," +
@@ -1489,10 +1552,9 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_non_recursive_nested_with() throws Exception {
-        var e = SQLExecutor.builder(clusterService)
+        var e = SQLExecutor.of(clusterService)
             .addTable("create table t1 (x int)")
-            .addTable("create table t2 (x int)")
-            .build();
+            .addTable("create table t2 (x int)");
         var withPlan = e.logicalPlan(
             "WITH" +
                 " u AS (SELECT * FROM t1)," +
@@ -1509,10 +1571,9 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_filter_on_object_col_is_pushed_down_to_collect_with_view() throws Exception {
-        var e = SQLExecutor.builder(clusterService)
+        var e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (o object as (a text, ts timestamp))")
-            .addView(new RelationName("doc", "v"), "select * from tbl where o['a'] = 'x'")
-            .build();
+            .addView(new RelationName("doc", "v"), "select * from tbl where o['a'] = 'x'");
         LogicalPlan logicalPlan = e.logicalPlan("select * from v where o['ts'] < 1682489868000::timestamp");
         assertThat(logicalPlan).hasOperators(
             "Rename[o] AS doc.v",
@@ -1522,11 +1583,10 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_filter_on_aliased_object_col_in_view_is_pushed_down_to_collect() throws Exception {
-        var e = SQLExecutor.builder(clusterService)
+        var e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (o object as (a text, b text))")
             .addView(new RelationName("doc", "v1"), "select o['b'] as b from tbl where o['a'] = 'x'")
-            .addView(new RelationName("doc", "v2"), "select substr(o['b'], 0, 1) as b from tbl where o['a'] = 'x'")
-            .build();
+            .addView(new RelationName("doc", "v2"), "select substr(o['b'], 0, 1) as b from tbl where o['a'] = 'x'");
         LogicalPlan plan1 = e.logicalPlan("select * from v1 where b = 'y'");
         assertThat(plan1).hasOperators(
             "Rename[b] AS doc.v1",

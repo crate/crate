@@ -21,16 +21,21 @@
 
 package io.crate.types;
 
+import static com.carrotsearch.randomizedtesting.RandomizedTest.assumeFalse;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Map;
 
-import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 
-public class BooleanTypeTest extends ESTestCase {
+public class BooleanTypeTest extends DataTypeTestCase<Boolean> {
+
+    @Override
+    public DataType<Boolean> getType() {
+        return BooleanType.INSTANCE;
+    }
 
     @Test
     public void test_cast_text_to_boolean() {
@@ -89,5 +94,15 @@ public class BooleanTypeTest extends ESTestCase {
         assertThatThrownBy(() -> BooleanType.INSTANCE.implicitCast(Map.of()))
             .isExactlyInstanceOf(ClassCastException.class)
             .hasMessage("Can't cast '{}' to boolean");
+    }
+
+    @Override
+    public void test_reference_resolver_docvalues_off() throws Exception {
+        assumeFalse("BooleanType cannot disable column store", true);
+    }
+
+    @Override
+    public void test_reference_resolver_index_and_docvalues_off() throws Exception {
+        assumeFalse("BooleanType cannot disable column store", true);
     }
 }

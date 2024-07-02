@@ -29,20 +29,9 @@ public class BiArrayRow extends Row {
     private Object[] firstCells;
     private Object[] secondCells;
 
-    public BiArrayRow() {
-    }
-
     public BiArrayRow(Object[] firstCells, Object[] secondCells) {
         this.firstCells = firstCells;
         this.secondCells = secondCells;
-    }
-
-    public void firstCells(Object[] cells) {
-        this.firstCells = cells;
-    }
-
-    public void secondCells(Object[] cells) {
-        this.secondCells = cells;
     }
 
     @Override

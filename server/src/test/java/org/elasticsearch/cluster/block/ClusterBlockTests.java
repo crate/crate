@@ -20,17 +20,8 @@
 package org.elasticsearch.cluster.block;
 
 import static java.util.EnumSet.copyOf;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.test.VersionUtils.randomVersion;
-import static org.hamcrest.CoreMatchers.endsWith;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.Matchers.oneOf;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -43,6 +34,7 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
 
 public class ClusterBlockTests extends ESTestCase {
 
@@ -66,15 +58,15 @@ public class ClusterBlockTests extends ESTestCase {
 
     public void testToStringDanglingComma() {
         final ClusterBlock clusterBlock = randomClusterBlock();
-        assertThat(clusterBlock.toString(), not(endsWith(",")));
+        assertThat(clusterBlock.toString()).doesNotEndWith(",");
     }
 
     public void testGlobalBlocksCheckedIfNoIndicesSpecified() {
         ClusterBlock globalBlock = randomClusterBlock();
         ClusterBlocks clusterBlocks = new ClusterBlocks(Collections.singleton(globalBlock), ImmutableOpenMap.of());
         ClusterBlockException exception = clusterBlocks.indicesBlockedException(randomFrom(globalBlock.levels()), new String[0]);
-        assertNotNull(exception);
-        assertEquals(exception.blocks(), Collections.singleton(globalBlock));
+        assertThat(exception).isNotNull();
+        assertThat(Collections.singleton(globalBlock)).isEqualTo(exception.blocks());
     }
 
     public void testRemoveIndexBlockWithId() {
@@ -92,28 +84,29 @@ public class ClusterBlockTests extends ESTestCase {
                               new ClusterBlock(3, "uuid3", "", true, true, true, RestStatus.OK, copyOf(ClusterBlockLevel.ALL)));
 
         ClusterBlocks clusterBlocks = builder.build();
-        assertThat(clusterBlocks.indices().get("index-1").size(), equalTo(4));
-        assertThat(clusterBlocks.indices().get("index-2").size(), equalTo(1));
+        assertThat(clusterBlocks.indices().get("index-1")).hasSize(4);
+        assertThat(clusterBlocks.indices().get("index-2")).hasSize(1);
 
         builder.removeIndexBlockWithId("index-1", 3);
         clusterBlocks = builder.build();
 
-        assertThat(clusterBlocks.indices().get("index-1").size(), equalTo(2));
-        assertThat(clusterBlocks.hasIndexBlockWithId("index-1", 1), is(true));
-        assertThat(clusterBlocks.hasIndexBlockWithId("index-1", 2), is(true));
-        assertThat(clusterBlocks.indices().get("index-2").size(), equalTo(1));
-        assertThat(clusterBlocks.hasIndexBlockWithId("index-2", 3), is(true));
+        assertThat(clusterBlocks.indices().get("index-1")).hasSize(2);
+        assertThat(clusterBlocks.hasIndexBlockWithId("index-1", 1)).isTrue();
+        assertThat(clusterBlocks.hasIndexBlockWithId("index-1", 2)).isTrue();
+        assertThat(clusterBlocks.indices().get("index-2")).hasSize(1);
+        assertThat(clusterBlocks.hasIndexBlockWithId("index-2", 3)).isTrue();
 
         builder.removeIndexBlockWithId("index-2", 3);
         clusterBlocks = builder.build();
 
-        assertThat(clusterBlocks.indices().get("index-1").size(), equalTo(2));
-        assertThat(clusterBlocks.hasIndexBlockWithId("index-1", 1), is(true));
-        assertThat(clusterBlocks.hasIndexBlockWithId("index-1", 2), is(true));
-        assertThat(clusterBlocks.indices().get("index-2"), nullValue());
-        assertThat(clusterBlocks.hasIndexBlockWithId("index-2", 3), is(false));
+        assertThat(clusterBlocks.indices().get("index-1")).hasSize(2);
+        assertThat(clusterBlocks.hasIndexBlockWithId("index-1", 1)).isTrue();
+        assertThat(clusterBlocks.hasIndexBlockWithId("index-1", 2)).isTrue();
+        assertThat(clusterBlocks.indices().get("index-2")).isNull();
+        assertThat(clusterBlocks.hasIndexBlockWithId("index-2", 3)).isFalse();
     }
 
+    @Test
     public void testGetIndexBlockWithId() {
         final int blockId = randomInt();
         final ClusterBlock[] clusterBlocks = new ClusterBlock[randomIntBetween(1, 5)];
@@ -124,9 +117,9 @@ public class ClusterBlockTests extends ESTestCase {
             builder.addIndexBlock("index", clusterBlocks[i]);
         }
 
-        assertThat(builder.build().indices().get("index").size(), equalTo(clusterBlocks.length));
-        assertThat(builder.build().getIndexBlockWithId("index", blockId), is(oneOf(clusterBlocks)));
-        assertThat(builder.build().getIndexBlockWithId("index", randomValueOtherThan(blockId, ESTestCase::randomInt)), nullValue());
+        assertThat(builder.build().indices().get("index")).hasSize(clusterBlocks.length);
+        assertThat(builder.build().getIndexBlockWithId("index", blockId)).isIn(clusterBlocks);
+        assertThat(builder.build().getIndexBlockWithId("index", randomValueOtherThan(blockId, ESTestCase::randomInt))).isNull();
     }
 
     private ClusterBlock randomClusterBlock() {
@@ -141,13 +134,13 @@ public class ClusterBlockTests extends ESTestCase {
     }
 
     private void assertClusterBlockEquals(final ClusterBlock expected, final ClusterBlock actual) {
-        assertEquals(expected, actual);
-        assertThat(actual.id(), equalTo(expected.id()));
-        assertThat(actual.uuid(), equalTo(expected.uuid()));
-        assertThat(actual.status(), equalTo(expected.status()));
-        assertThat(actual.description(), equalTo(expected.description()));
-        assertThat(actual.retryable(), equalTo(expected.retryable()));
-        assertThat(actual.disableStatePersistence(), equalTo(expected.disableStatePersistence()));
-        assertArrayEquals(actual.levels().toArray(), expected.levels().toArray());
+        assertThat(actual).isEqualTo(expected);
+        assertThat(actual.id()).isEqualTo(expected.id());
+        assertThat(actual.uuid()).isEqualTo(expected.uuid());
+        assertThat(actual.status()).isEqualTo(expected.status());
+        assertThat(actual.description()).isEqualTo(expected.description());
+        assertThat(actual.retryable()).isEqualTo(expected.retryable());
+        assertThat(actual.disableStatePersistence()).isEqualTo(expected.disableStatePersistence());
+        assertThat(actual.levels().toArray()).isEqualTo(expected.levels().toArray());
     }
 }

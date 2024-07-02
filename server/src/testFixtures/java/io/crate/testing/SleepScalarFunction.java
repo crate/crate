@@ -38,10 +38,10 @@ public class SleepScalarFunction extends Scalar<Boolean, Long> {
         NAME,
         DataTypes.LONG.getTypeSignature(),
         DataTypes.BOOLEAN.getTypeSignature()
-    ).withFeatures(NO_FEATURES);
+    );
 
-    public SleepScalarFunction() {
-        super(SIGNATURE, BoundSignature.sameAsUnbound(SIGNATURE));
+    public SleepScalarFunction(Signature signature, BoundSignature boundSignature) {
+        super(signature, boundSignature);
     }
 
     @SafeVarargs

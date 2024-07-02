@@ -53,15 +53,15 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
-import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SystemTable;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.shard.unassigned.UnassignedShard;
+import io.crate.role.Role;
+import io.crate.role.Roles;
+import io.crate.role.Securable;
 import io.crate.types.DataTypes;
-import io.crate.user.Privilege;
-import io.crate.user.User;
 
 public class SysShardsTableInfo {
 
@@ -73,30 +73,30 @@ public class SysShardsTableInfo {
          *  - {@link #unassignedShardsExpressions()}
          */
 
-        public static final ColumnIdent ID = new ColumnIdent("id");
-        static final ColumnIdent SCHEMA_NAME = new ColumnIdent("schema_name");
-        public static final ColumnIdent TABLE_NAME = new ColumnIdent("table_name");
-        public static final ColumnIdent PARTITION_IDENT = new ColumnIdent("partition_ident");
-        static final ColumnIdent NUM_DOCS = new ColumnIdent("num_docs");
-        public static final ColumnIdent PRIMARY = new ColumnIdent("primary");
-        static final ColumnIdent RELOCATING_NODE = new ColumnIdent("relocating_node");
-        public static final ColumnIdent SIZE = new ColumnIdent("size");
-        static final ColumnIdent STATE = new ColumnIdent("state");
-        static final ColumnIdent CLOSED = new ColumnIdent("closed");
-        static final ColumnIdent ROUTING_STATE = new ColumnIdent("routing_state");
-        static final ColumnIdent ORPHAN_PARTITION = new ColumnIdent("orphan_partition");
+        public static final ColumnIdent ID = ColumnIdent.of("id");
+        static final ColumnIdent SCHEMA_NAME = ColumnIdent.of("schema_name");
+        public static final ColumnIdent TABLE_NAME = ColumnIdent.of("table_name");
+        public static final ColumnIdent PARTITION_IDENT = ColumnIdent.of("partition_ident");
+        static final ColumnIdent NUM_DOCS = ColumnIdent.of("num_docs");
+        public static final ColumnIdent PRIMARY = ColumnIdent.of("primary");
+        static final ColumnIdent RELOCATING_NODE = ColumnIdent.of("relocating_node");
+        public static final ColumnIdent SIZE = ColumnIdent.of("size");
+        static final ColumnIdent STATE = ColumnIdent.of("state");
+        static final ColumnIdent CLOSED = ColumnIdent.of("closed");
+        static final ColumnIdent ROUTING_STATE = ColumnIdent.of("routing_state");
+        static final ColumnIdent ORPHAN_PARTITION = ColumnIdent.of("orphan_partition");
 
-        static final ColumnIdent RECOVERY = new ColumnIdent("recovery");
+        static final ColumnIdent RECOVERY = ColumnIdent.of("recovery");
 
-        static final ColumnIdent PATH = new ColumnIdent("path");
-        static final ColumnIdent BLOB_PATH = new ColumnIdent("blob_path");
+        static final ColumnIdent PATH = ColumnIdent.of("path");
+        static final ColumnIdent BLOB_PATH = ColumnIdent.of("blob_path");
 
-        static final ColumnIdent MIN_LUCENE_VERSION = new ColumnIdent("min_lucene_version");
-        static final ColumnIdent NODE = new ColumnIdent("node");
-        static final ColumnIdent SEQ_NO_STATS = new ColumnIdent("seq_no_stats");
-        static final ColumnIdent TRANSLOG_STATS = new ColumnIdent("translog_stats");
-        static final ColumnIdent RETENTION_LEASES = new ColumnIdent("retention_leases");
-        static final ColumnIdent FLUSH_STATS = new ColumnIdent("flush_stats");
+        static final ColumnIdent MIN_LUCENE_VERSION = ColumnIdent.of("min_lucene_version");
+        static final ColumnIdent NODE = ColumnIdent.of("node");
+        static final ColumnIdent SEQ_NO_STATS = ColumnIdent.of("seq_no_stats");
+        static final ColumnIdent TRANSLOG_STATS = ColumnIdent.of("translog_stats");
+        static final ColumnIdent RETENTION_LEASES = ColumnIdent.of("retention_leases");
+        static final ColumnIdent FLUSH_STATS = ColumnIdent.of("flush_stats");
     }
 
     public static Map<ColumnIdent, RowCollectExpressionFactory<UnassignedShard>> unassignedShardsExpressions() {
@@ -125,7 +125,7 @@ public class SysShardsTableInfo {
         );
     }
 
-    public static SystemTable<ShardRowContext> create() {
+    public static SystemTable<ShardRowContext> create(Roles roles) {
         return SystemTable.<ShardRowContext>builder(IDENT, RowGranularity.SHARD)
             .add("schema_name", STRING, r -> r.indexParts().getSchema())
             .add("table_name", STRING, r -> r.indexParts().getTable())
@@ -200,7 +200,8 @@ public class SysShardsTableInfo {
                 Columns.ID,
                 Columns.PARTITION_IDENT
             )
-            .withRouting(SysShardsTableInfo::getRouting)
+            .withRouting((state, routingProvider, sessionSettings) ->
+                getRouting(state, sessionSettings, roles))
             .build();
     }
 
@@ -235,16 +236,18 @@ public class SysShardsTableInfo {
      * This routing contains ALL shards of ALL indices.
      * Any shards that are not yet assigned to a node will have a NEGATIVE shard id (see {@link UnassignedShard}
      */
-    public static Routing getRouting(ClusterState clusterState, RoutingProvider routingProvider, CoordinatorSessionSettings sessionSettings) {
+    public static Routing getRouting(ClusterState clusterState,
+                                     CoordinatorSessionSettings sessionSettings,
+                                     Roles roles) {
         String[] concreteIndices = Arrays.stream(clusterState.metadata().getConcreteAllIndices())
             .filter(index -> !IndexParts.isDangling(index))
             .toArray(String[]::new);
-        User user = sessionSettings != null ? sessionSettings.sessionUser() : null;
+        Role user = sessionSettings != null ? sessionSettings.sessionUser() : null;
         if (user != null) {
             List<String> accessibleTables = new ArrayList<>(concreteIndices.length);
             for (String indexName : concreteIndices) {
                 String tableName = RelationName.fqnFromIndexName(indexName);
-                if (user.hasAnyPrivilege(Privilege.Clazz.TABLE, tableName)) {
+                if (roles.hasAnyPrivilege(user, Securable.TABLE, tableName)) {
                     accessibleTables.add(indexName);
                 }
             }

@@ -21,11 +21,12 @@
 
 package io.crate.expression.reference.sys.job;
 
-import io.crate.user.User;
-import io.crate.planner.operators.StatementClassifier.Classification;
+import java.util.UUID;
 
 import org.jetbrains.annotations.Nullable;
-import java.util.UUID;
+
+import io.crate.planner.operators.StatementClassifier.Classification;
+import io.crate.role.Role;
 
 public class JobContext {
 
@@ -36,7 +37,7 @@ public class JobContext {
     @Nullable
     private final Classification classification;
 
-    public JobContext(UUID id, String stmt, long started, User user, @Nullable Classification classification) {
+    public JobContext(UUID id, String stmt, long started, Role user, @Nullable Classification classification) {
         this.id = id;
         this.stmt = stmt;
         this.started = started;

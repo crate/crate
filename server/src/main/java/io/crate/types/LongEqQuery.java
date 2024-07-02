@@ -21,16 +21,23 @@
 
 package io.crate.types;
 
+import java.util.List;
+
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
-import org.apache.lucene.search.IndexOrDocValuesQuery;
 import org.apache.lucene.search.Query;
 
 public class LongEqQuery implements EqQuery<Long> {
 
     @Override
-    public Query termQuery(String field, Long value) {
-        return LongPoint.newExactQuery(field, value);
+    public Query termQuery(String field, Long value, boolean hasDocValues, boolean isIndexed) {
+        if (isIndexed) {
+            return LongPoint.newExactQuery(field, value);
+        }
+        if (hasDocValues) {
+            return SortedNumericDocValuesField.newSlowExactQuery(field, value);
+        }
+        return null;
     }
 
     @Override
@@ -39,18 +46,31 @@ public class LongEqQuery implements EqQuery<Long> {
                             Long upperTerm,
                             boolean includeLower,
                             boolean includeUpper,
-                            boolean hasDocValues) {
+                            boolean hasDocValues,
+                            boolean isIndexed) {
         long lower = lowerTerm == null
             ? Long.MIN_VALUE
             : (includeLower ? lowerTerm : lowerTerm + 1);
         long upper = upperTerm == null
             ? Long.MAX_VALUE
             : (includeUpper ? upperTerm : upperTerm - 1);
-        Query indexQuery = LongPoint.newRangeQuery(field, lower, upper);
-        if (hasDocValues) {
-            return new IndexOrDocValuesQuery(indexQuery,
-                                             SortedNumericDocValuesField.newSlowRangeQuery(field, lower, upper));
+        if (isIndexed) {
+            return LongPoint.newRangeQuery(field, lower, upper);
         }
-        return indexQuery;
+        if (hasDocValues) {
+            return SortedNumericDocValuesField.newSlowRangeQuery(field, lower, upper);
+        }
+        return null;
+    }
+
+    @Override
+    public Query termsQuery(String field, List<Long> nonNullValues, boolean hasDocValues, boolean isIndexed) {
+        if (isIndexed) {
+            return LongPoint.newSetQuery(field, nonNullValues);
+        }
+        if (hasDocValues) {
+            return SortedNumericDocValuesField.newSlowSetQuery(field, nonNullValues.stream().mapToLong(Long::longValue).toArray());
+        }
+        return null;
     }
 }

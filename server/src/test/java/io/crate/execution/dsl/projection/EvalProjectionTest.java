@@ -21,8 +21,7 @@
 
 package io.crate.execution.dsl.projection;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
@@ -43,7 +42,7 @@ public class EvalProjectionTest extends ESTestCase {
 
         var in = out.bytes().streamInput();
         var inProjection = new EvalProjection(in);
-        assertThat(projection.requiredGranularity(), is(inProjection.requiredGranularity()));
-        assertThat(projection.outputs(), is(inProjection.outputs()));
+        assertThat(projection.requiredGranularity()).isEqualTo(inProjection.requiredGranularity());
+        assertThat(projection.outputs()).isEqualTo(inProjection.outputs());
     }
 }

@@ -56,14 +56,25 @@ and might contain underscores in between.
 
 ``_score``
   This internal system column is available on all documents retrieved by a
-  ``SELECT`` query. It is representing the scoring ratio of the document
-  related to the used query filter and makes most sense on fulltext searches.
+  ``SELECT`` query. It represents the score of the document as returned by
+  the query filter, and makes most sense for full text queries, giving an
+  indication of how well the query expression matches the document.
+  Documents with higher scores match the query more closely, allowing the
+  score to be used for ranking.
 
-  The scoring ratio is always related to the highest score determined by a
-  search, thus scores are not directly comparable across searches.
+  The score is calculated using Lucene's `BM25Similarity implementation`_,
+  based on the widely-used `Okapi BM25`_ algorithm.  This uses a combination
+  of partition-level term statistics and the frequencies of particular terms
+  within a matching row.  Scores produced by different queries are not
+  directly comparable.  Note that, because term statistics are calculated
+  per-partition, identical rows in different partitions may produce slightly
+  different scores for the same query expression.
 
   If the query does not include a fulltext search the value is 1.0f in most
   cases.
+
+.. _BM25Similarity implementation: https://lucene.apache.org/core/9_9_0/core/org/apache/lucene/search/similarities/BM25Similarity.html
+.. _Okapi BM25: https://en.wikipedia.org/wiki/Okapi_BM25
 
 .. _sql_administration_system_column_id:
 

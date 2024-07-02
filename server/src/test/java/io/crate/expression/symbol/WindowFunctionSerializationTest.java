@@ -23,39 +23,37 @@
 package io.crate.expression.symbol;
 
 import static java.util.Collections.singletonList;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.common.inject.ModulesBuilder;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import io.crate.analyze.WindowDefinition;
-import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
 import io.crate.execution.engine.aggregation.impl.SumAggregation;
-import io.crate.expression.operator.OperatorModule;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.types.DataTypes;
 
 public class WindowFunctionSerializationTest {
 
-    private Functions functions = new ModulesBuilder()
-        .add(new AggregationImplModule())
-        .add(new OperatorModule())
-        .createInjector().getInstance(Functions.class);
+    private Functions functions = Functions.load(Settings.EMPTY, new SessionSettingRegistry(Set.of()));
 
     private FunctionImplementation dummyFunction =
         functions.getQualified(
             Signature.aggregate(
-                SumAggregation.NAME,
-                DataTypes.FLOAT.getTypeSignature(),
-                DataTypes.FLOAT.getTypeSignature()),
+                    SumAggregation.NAME,
+                    DataTypes.FLOAT.getTypeSignature(),
+                    DataTypes.FLOAT.getTypeSignature())
+                .withFeature(Scalar.Feature.DETERMINISTIC),
             List.of(DataTypes.FLOAT),
             DataTypes.FLOAT
         );
@@ -90,7 +88,7 @@ public class WindowFunctionSerializationTest {
         in.setVersion(Version.V_4_7_0);
         var actualWindowFunction = new WindowFunction(in);
 
-        assertThat(actualWindowFunction, is(windowFunctionWithIgnoreNullsSetToTrue));
+        assertThat(actualWindowFunction).isEqualTo(windowFunctionWithIgnoreNullsSetToTrue);
     }
 
     @Test
@@ -103,6 +101,6 @@ public class WindowFunctionSerializationTest {
         in.setVersion(Version.V_4_6_0);
         var actualWindowFunction = new WindowFunction(in);
 
-        assertThat(actualWindowFunction, is(windowFunctionWithIgnoreNullsSetToNull));
+        assertThat(actualWindowFunction).isEqualTo(windowFunctionWithIgnoreNullsSetToNull);
     }
 }

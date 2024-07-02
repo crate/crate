@@ -26,11 +26,8 @@ import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_COLUMN;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.util.Locale;
 import java.util.Map;
@@ -57,7 +54,6 @@ public class TableSettingsTest extends IntegTestCase {
                 "\"routing.allocation.exclude.foo\" = 'bar' ," +
                 "\"translog.sync_interval\" = '3600ms', " +
                 "\"translog.flush_threshold_size\" = '1000000b', " +
-                "\"warmer.enabled\" = false, " +
                 "\"store.type\" = 'niofs', " +
                 "\"translog.sync_interval\" = '20s'," +
                 "\"refresh_interval\" = '1000ms'," +
@@ -78,15 +74,14 @@ public class TableSettingsTest extends IntegTestCase {
 
         execute("select settings from information_schema.tables where table_name = 'settings_table'");
         for (Object[] row : response.rows()) {
-            assertTrue(((Map<String, Object>) row[0]).containsKey("blocks"));
-            assertTrue(((Map<String, Object>) row[0]).containsKey("mapping"));
-            assertTrue(((Map<String, Object>) row[0]).containsKey("routing"));
-            assertTrue(((Map<String, Object>) row[0]).containsKey("translog"));
-            assertTrue(((Map<String, Object>) row[0]).containsKey("warmer"));
-            assertTrue(((Map<String, Object>) row[0]).containsKey("refresh_interval"));
-            assertTrue(((Map<String, Object>) row[0]).containsKey("unassigned"));
-            assertTrue(((Map<String, Object>) row[0]).containsKey("write"));
-            assertTrue(((Map<String, Object>) row[0]).containsKey("store"));
+            assertThat(((Map<String, Object>) row[0]).containsKey("blocks")).isTrue();
+            assertThat(((Map<String, Object>) row[0]).containsKey("mapping")).isTrue();
+            assertThat(((Map<String, Object>) row[0]).containsKey("routing")).isTrue();
+            assertThat(((Map<String, Object>) row[0]).containsKey("translog")).isTrue();
+            assertThat(((Map<String, Object>) row[0]).containsKey("refresh_interval")).isTrue();
+            assertThat(((Map<String, Object>) row[0]).containsKey("unassigned")).isTrue();
+            assertThat(((Map<String, Object>) row[0]).containsKey("write")).isTrue();
+            assertThat(((Map<String, Object>) row[0]).containsKey("store")).isTrue();
         }
     }
 
@@ -102,31 +97,31 @@ public class TableSettingsTest extends IntegTestCase {
     public void testFilterOnNull() throws Exception {
         execute("select * from information_schema.tables " +
                 "where settings IS NULL");
-        assertEquals(57L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(67L);
         execute("select * from information_schema.tables " +
-                "where table_name = 'settings_table' and settings['warmer']['enabled'] IS NULL");
-        assertEquals(0, response.rowCount());
+                "where table_name = 'settings_table' and settings['blocks']['read'] IS NULL");
+        assertThat(response.rowCount()).isEqualTo(0);
     }
 
     @Test
     public void testFilterOnTimeValue() throws Exception {
         execute("select * from information_schema.tables " +
                 "where settings['translog']['sync_interval'] <= 1000");
-        assertEquals(0, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(0);
     }
 
     @Test
     public void testFilterOnBoolean() throws Exception {
         execute("select * from information_schema.tables " +
                 "where settings['blocks']['metadata'] = false");
-        assertEquals(1, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1);
     }
 
     @Test
     public void testFilterOnInteger() throws Exception {
         execute("select * from information_schema.tables " +
                 "where settings['routing']['allocation']['total_shards_per_node'] >= 10");
-        assertEquals(1, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1);
     }
 
     @Test
@@ -139,7 +134,7 @@ public class TableSettingsTest extends IntegTestCase {
 
         // One more column exceeds the limit
         var msg = String.format(Locale.ENGLISH,
-            "Limit of total fields [%d] in index [%s.test] has been exceeded", totalFields + 1, sqlExecutor.getCurrentSchema());
+            "Limit of total columns [%d] in table [%s.test] exceeded", totalFields + 1, sqlExecutor.getCurrentSchema());
         Asserts.assertSQLError(() -> execute("alter table test add column new_column2 int"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
@@ -150,36 +145,36 @@ public class TableSettingsTest extends IntegTestCase {
     public void testFilterOnByteSizeValue() throws Exception {
         execute("select * from information_schema.tables " +
                 "where settings['translog']['flush_threshold_size'] < 2000000");
-        assertEquals(1, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1);
     }
 
     @Test
     public void testFilterOnString() throws Exception {
         execute("select * from information_schema.tables " +
                 "where settings['routing']['allocation']['enable'] = 'primaries'");
-        assertEquals(1, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1);
     }
 
     @Test
     public void testDefaultRefreshIntervalSettings() {
         execute("select * from information_schema.tables " +
                 "where settings['refresh_interval'] = 1000");
-        assertEquals(1, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1);
     }
 
     @Test
     public void testDefaultWaitForActiveShardsSettings() {
         execute("select settings['write']['wait_for_active_shards'] from information_schema.tables " +
                 "where table_name = 'settings_table'");
-        assertEquals(1, response.rowCount());
-        assertEquals("1", response.rows()[0][0]);
+        assertThat(response.rowCount()).isEqualTo(1);
+        assertThat(response.rows()[0][0]).isEqualTo("1");
     }
 
     @Test
     public void testSelectDynamicSettingGroup() {
         execute("select settings['routing']['allocation']['exclude'] from information_schema.tables " +
                 "where table_name = 'settings_table'");
-        assertThat(printedTable(response.rows()), is("{foo=bar}\n"));
+        assertThat(printedTable(response.rows())).isEqualTo("{foo=bar}\n");
     }
 
     @Test
@@ -197,7 +192,7 @@ public class TableSettingsTest extends IntegTestCase {
         execute("alter table settings_table set (\"routing.allocation.exclude.foo\" = 'bar2')");
         execute("select settings['routing']['allocation']['exclude'] from information_schema.tables " +
                 "where table_name = 'settings_table'");
-        assertThat(printedTable(response.rows()), is("{foo=bar2}\n"));
+        assertThat(printedTable(response.rows())).isEqualTo("{foo=bar2}\n");
     }
 
     @Test
@@ -213,14 +208,14 @@ public class TableSettingsTest extends IntegTestCase {
         execute("alter table settings_table reset (\"routing.allocation.exclude.foo\")");
         execute("select settings['routing']['allocation']['exclude'] from information_schema.tables " +
                 "where table_name = 'settings_table'");
-        assertThat(printedTable(response.rows()), is("{}\n"));
+        assertThat(printedTable(response.rows())).isEqualTo("{}\n");
 
         execute("alter table settings_table set (" +
                 "\"routing.allocation.exclude.foo\" = 'bar', \"routing.allocation.exclude.foo2\" = 'bar2')");
         execute("alter table settings_table reset (\"routing.allocation.exclude.foo\")");
         execute("select settings['routing']['allocation']['exclude'] from information_schema.tables " +
                 "where table_name = 'settings_table'");
-        assertThat(printedTable(response.rows()), is("{foo2=bar2}\n"));
+        assertThat(printedTable(response.rows())).isEqualTo("{foo2=bar2}\n");
     }
 
     @Test

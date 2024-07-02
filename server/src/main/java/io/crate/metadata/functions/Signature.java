@@ -26,19 +26,18 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
-
-import org.jetbrains.annotations.Nullable;
 
 import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.collections.EnumSets;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
+import io.crate.common.collections.Sets;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Scalar;
@@ -151,7 +150,7 @@ public final class Signature implements Writeable, Accountable {
         private FunctionType kind;
         private List<TypeSignature> argumentTypes = Collections.emptyList();
         private TypeSignature returnType;
-        private Set<Scalar.Feature> features = Scalar.DETERMINISTIC_ONLY;
+        private Set<Scalar.Feature> features = Set.of();
         private List<TypeVariableConstraint> typeVariableConstraints = Collections.emptyList();
         private List<TypeSignature> variableArityGroup = Collections.emptyList();
         private boolean variableArity = false;
@@ -202,8 +201,13 @@ public final class Signature implements Writeable, Accountable {
             return this;
         }
 
+        public Builder feature(Scalar.Feature feature) {
+            this.features = Sets.concat(this.features, feature);
+            return this;
+        }
+
         public Builder features(Set<Scalar.Feature> features) {
-            this.features = features;
+            this.features = Sets.union(this.features, features);
             return this;
         }
 
@@ -354,6 +358,12 @@ public final class Signature implements Writeable, Accountable {
             .build();
     }
 
+    public Signature withFeature(Scalar.Feature feature) {
+        return Signature.builder(this)
+            .feature(feature)
+            .build();
+    }
+
     public Signature withFeatures(Set<Scalar.Feature> features) {
         return Signature.builder(this)
             .features(features)
@@ -373,7 +383,7 @@ public final class Signature implements Writeable, Accountable {
     }
 
     public List<DataType<?>> getArgumentDataTypes() {
-        return Lists2.map(argumentTypes, TypeSignature::createType);
+        return Lists.map(argumentTypes, TypeSignature::createType);
     }
 
     public TypeSignature getReturnType() {
@@ -411,33 +421,31 @@ public final class Signature implements Writeable, Accountable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        Signature signature = (Signature) o;
-        return name.equals(signature.name) &&
-               kind == signature.kind &&
-               argumentTypes.equals(signature.argumentTypes) &&
-               returnType.equals(signature.returnType);
+        return o instanceof Signature signature &&
+            name.equals(signature.name) &&
+            kind == signature.kind &&
+            argumentTypes.equals(signature.argumentTypes) &&
+            returnType.equals(signature.returnType);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(name, kind, argumentTypes, returnType);
+        int result = name.hashCode();
+        result = 31 * result + kind.hashCode();
+        result = 31 * result + argumentTypes.hashCode();
+        result = 31 * result + returnType.hashCode();
+        return result;
     }
 
     @Override
     public String toString() {
         List<String> allConstraints = List.of();
         if (bindingInfo != null) {
-            allConstraints = Lists2.map(bindingInfo.getTypeVariableConstraints(), TypeVariableConstraint::toString);
+            allConstraints = Lists.map(bindingInfo.getTypeVariableConstraints(), TypeVariableConstraint::toString);
         }
 
         return name + (allConstraints.isEmpty() ? "" : "<" + String.join(",", allConstraints) + ">") +
-               "(" + Lists2.joinOn(",", argumentTypes, TypeSignature::toString) + "):" + returnType;
+               "(" + Lists.joinOn(",", argumentTypes, TypeSignature::toString) + "):" + returnType;
     }
 
 

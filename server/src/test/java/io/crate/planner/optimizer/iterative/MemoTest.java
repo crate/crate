@@ -23,21 +23,18 @@ package io.crate.planner.optimizer.iterative;
 
 import static io.crate.common.collections.Iterables.getOnlyElement;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedCollection;
 import java.util.Set;
 import java.util.function.IntSupplier;
 
 import org.jetbrains.annotations.Nullable;
-
 import org.junit.Test;
 
 import io.crate.analyze.OrderBy;
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.SelectSymbol;
@@ -154,7 +151,7 @@ public class MemoTest {
 
         Memo memo = new Memo(x);
 
-        assertEquals(memo.groupCount(), 3);
+        assertThat(3).isEqualTo(memo.groupCount());
         assertThat(memo.groupCount()).isEqualTo(3);
 
         int yGroup = getChildGroup(memo, memo.getRootGroup());
@@ -239,8 +236,8 @@ public class MemoTest {
         memo.addStats(yGroup, yStats);
         memo.addStats(xGroup, xStats);
 
-        assertEquals(memo.stats(yGroup), yStats);
-        assertEquals(memo.stats(xGroup), xStats);
+        assertThat(yStats).isEqualTo(memo.stats(yGroup));
+        assertThat(xStats).isEqualTo(memo.stats(xGroup));
 
         memo.replace(yGroup, plan());
 
@@ -253,7 +250,7 @@ public class MemoTest {
         if (a instanceof TestPlan actual && e instanceof TestPlan expected) {
             assertThat(actual.getClass()).isEqualTo(expected.getClass());
             assertThat(actual.id()).isEqualTo(expected.id());
-            assertEquals(actual.sources().size(), expected.sources().size());
+            assertThat(expected.sources().size()).isEqualTo(actual.sources().size());
             for (int i = 0; i < actual.sources().size(); i++) {
                 assertMatchesStructure(actual.sources().get(i), expected.sources().get(i));
             }
@@ -277,7 +274,7 @@ public class MemoTest {
         return plan(ids.getAsInt(), children);
     }
 
-    static class TestPlan implements LogicalPlan {
+    public static class TestPlan implements LogicalPlan {
         private final List<LogicalPlan> sources;
         private final int id;
 
@@ -310,13 +307,6 @@ public class MemoTest {
             return null;
         }
 
-
-        @Override
-        public List<AbstractTableRelation<?>> baseTables() {
-            return List.of();
-        }
-
-
         @Override
         public LogicalPlan replaceSources(List<LogicalPlan> sources) {
             return new TestPlan(id(), sources);
@@ -327,7 +317,7 @@ public class MemoTest {
         }
 
         @Override
-        public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+        public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
             return null;
         }
 
@@ -342,7 +332,7 @@ public class MemoTest {
         }
 
         @Override
-        public List<RelationName> getRelationNames() {
+        public List<RelationName> relationNames() {
             return List.of();
         }
     }

@@ -22,26 +22,16 @@
 package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 import io.crate.testing.Asserts;
-import io.crate.testing.TestingHelpers;
 
 @IntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class OptimizeTableIntegrationTest extends SQLHttpIntegrationTest {
-
-    @Rule
-    public TemporaryFolder folder = new TemporaryFolder();
 
     @Test
     public void testOptimize() throws Exception {
@@ -49,16 +39,16 @@ public class OptimizeTableIntegrationTest extends SQLHttpIntegrationTest {
         ensureYellow();
         execute("insert into test (id, name) values (0, 'Trillian'), (1, 'Ford'), (2, 'Zaphod')");
         execute("select count(*) from test");
-        assertThat((long) response.rows()[0][0], lessThanOrEqualTo(3L));
+        assertThat((long) response.rows()[0][0]).isLessThanOrEqualTo(3L);
 
         execute("delete from test where id=1");
-        refresh();
+        execute("refresh table test");
         execute("optimize table test");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows().length, is(0));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows().length).isEqualTo(0);
 
         execute("select count(*) from test");
-        assertThat(response.rows()[0][0], is(2L));
+        assertThat(response.rows()[0][0]).isEqualTo(2L);
     }
 
     @Test
@@ -69,19 +59,17 @@ public class OptimizeTableIntegrationTest extends SQLHttpIntegrationTest {
         for (String content : new String[]{"bar", "foo", "buzz", "crateDB"}) {
             upload("blobs", content);
         }
-        refresh();
 
         execute("optimize table blob.blobs");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows().length, is(0));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows().length).isEqualTo(0);
 
         execute("select digest from blob.blobs");
-        assertThat(TestingHelpers.printedTable(response.rows()),
-            allOf(
-                containsString("626f48d2188e903dc1f373f34eebd063b7ca9ff8\n"),
-                containsString("62cdb7020ff920e5aa642c3d4066950dd1f01f4d\n"),
-                containsString("0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33\n"),
-                containsString("6bb2f7cc9eae6a77bcb13cac64098b5fd2b6964b\n")));
+        assertThat(response).hasRowsInAnyOrder(
+            new Object[] {"626f48d2188e903dc1f373f34eebd063b7ca9ff8"},
+            new Object[] {"62cdb7020ff920e5aa642c3d4066950dd1f01f4d"},
+            new Object[] {"0beec7b5ea3f0fdbc95d0dd47f3c5bc275da8a33"},
+            new Object[] {"6bb2f7cc9eae6a77bcb13cac64098b5fd2b6964b"});
 
     }
 
@@ -90,17 +78,18 @@ public class OptimizeTableIntegrationTest extends SQLHttpIntegrationTest {
         execute("create table test (id int primary key, name string)");
         ensureYellow();
         execute("insert into test (id, name) values (0, 'Trillian'), (1, 'Ford'), (2, 'Zaphod')");
+        execute("refresh table test");
         execute("select count(*) from test");
-        assertThat((long) response.rows()[0][0], lessThanOrEqualTo(3L));
+        assertThat((long) response.rows()[0][0]).isEqualTo(3L);
 
         execute("delete from test where id=1");
-        refresh();
+        execute("refresh table test");
         execute("optimize table test with (max_num_segments=1, only_expunge_deletes=true)");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows().length, is(0));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows().length).isEqualTo(0);
 
         execute("select count(*) from test");
-        assertThat(response.rows()[0][0], is(2L));
+        assertThat(response.rows()[0][0]).isEqualTo(2L);
     }
 
     @Test
@@ -134,21 +123,21 @@ public class OptimizeTableIntegrationTest extends SQLHttpIntegrationTest {
                 "(2, 'Groucho', '1970-01-01'), " +
                 "(3, 'Harpo', '1970-01-07'), " +
                 "(4, 'Arthur', '1970-01-07')");
-        assertThat(response.rowCount(), is(4L));
-        refresh();
+        assertThat(response.rowCount()).isEqualTo(4L);
+        execute("refresh table parted");
 
         execute("select count(*) from parted");
-        assertThat(response.rows()[0][0], is(4L));
+        assertThat(response.rows()[0][0]).isEqualTo(4L);
 
         execute("delete from parted where id in (1, 4)");
-        refresh();
+        execute("refresh table parted");
         execute("optimize table parted");
-        assertThat(response.rowCount(), is(2L));
-        assertThat(response.rows().length, is(0));
+        assertThat(response.rowCount()).isEqualTo(2L);
+        assertThat(response.rows().length).isEqualTo(0);
 
         // assert that all data is available after optimize
         execute("select count(*) from parted");
-        assertThat(response.rows()[0][0], is(2L));
+        assertThat(response.rows()[0][0]).isEqualTo(2L);
     }
 
     @Test
@@ -167,31 +156,31 @@ public class OptimizeTableIntegrationTest extends SQLHttpIntegrationTest {
                 "(4, 'Zeppo', '1970-01-05')," +
                 "(5, 'Chico', '1970-01-07')," +
                 "(6, 'Arthur', '1970-01-08')");
-        assertThat(response.rowCount(), is(6L));
-        refresh();
+        assertThat(response.rowCount()).isEqualTo(6L);
+        execute("refresh table parted");
 
         // assert that after refresh all rows are available
         execute("select * from parted");
-        assertThat(response.rowCount(), is(6L));
+        assertThat(response.rowCount()).isEqualTo(6L);
 
         execute("delete from parted where id=3");
-        refresh();
+        execute("refresh table parted");
         execute("optimize table parted PARTITION (date='1970-01-01')");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows().length, is(0));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows().length).isEqualTo(0);
 
         // assert all partition rows are available after optimize
         execute("select * from parted where date='1970-01-01'");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response.rowCount()).isEqualTo(2L);
 
         execute("delete from parted where id=4");
-        refresh();
+        execute("refresh table parted");
         execute("optimize table parted PARTITION (date='1970-01-07')");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
 
         // assert all partition rows are available after optimize
         execute("select * from parted where date='1970-01-07'");
-        assertThat(response.rowCount(), is(1L));
+        assertThat(response.rowCount()).isEqualTo(1L);
     }
 
     @Test
@@ -211,20 +200,20 @@ public class OptimizeTableIntegrationTest extends SQLHttpIntegrationTest {
                 "(2, 'Marvin', 50, '1970-01-07')," +
                 "(3, 'Arthur', 50, '1970-01-07')," +
                 "(4, 'Zaphod', 90, '1970-01-01')");
-        assertThat(response.rowCount(), is(4L));
+        assertThat(response.rowCount()).isEqualTo(4L);
 
-        refresh();
+        execute("refresh table t1");
         execute("select * from t1");
-        assertThat(response.rowCount(), is(4L));
+        assertThat(response.rowCount()).isEqualTo(4L);
 
         execute("delete from t1 where id in (1, 2)");
-        refresh();
+        execute("refresh table t1");
         execute("optimize table t1 partition (age=50, date='1970-01-07')," +
                 "               t1 partition (age=90, date='1970-01-01')");
-        assertThat(response.rowCount(), is(2L));
-        assertThat(response.rows().length, is(0));
+        assertThat(response.rowCount()).isEqualTo(2L);
+        assertThat(response.rows().length).isEqualTo(0);
 
         execute("select * from t1");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response.rowCount()).isEqualTo(2L);
     }
 }

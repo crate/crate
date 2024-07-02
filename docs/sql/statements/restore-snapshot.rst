@@ -32,8 +32,9 @@ where ``data_section``::
 
    {  TABLES |
       VIEWS |
-      USERS |
-      PRIVILEGES |
+      USERS |      -- Deprecated, use USERMANAGEMENT instead
+      PRIVILEGES | -- Deprecated, use USERMANAGEMENT instead
+      USERMANAGEMENT |
       ANALYZERS |
       UDFS }
 
@@ -55,9 +56,9 @@ with a ``table_ident`` and a optional partition reference given the
 It is possible to restore all tables using the ``TABLES`` keyword. This will
 restore all tables but will not restore metadata.
 
-To restore only the metadata (including views, users, privileges, analyzers,
-user-defined-functions, and all cluster settings), instead use the ``METADATA``
-keyword.
+To restore only the metadata (including views, users, roles, privileges,
+analyzers, user-defined-functions, and all cluster settings), instead use the
+``METADATA`` keyword.
 
 A single metadata group can be restored by using the related ``data_section``
 keyword.
@@ -123,15 +124,16 @@ exclusively.
     [ PARTITION ( partition_column = value [, ...] ) ]
 
 :partition_column:
-  One of the column names used for table partitioning
+  Column name used for table partitioning.
 
 :value:
   The respective column value.
 
 All :ref:`partition columns <gloss-partition-column>` (specified by the
 :ref:`sql-create-table-partitioned-by` clause) must be listed inside the
-parentheses along with their respective values using the ``partition_column =
-value`` syntax (separated by commas).
+parentheses in the order matching the ``PARTITION BY`` definition along with
+their respective values using the ``partition_column = value`` syntax (separated
+by commas).
 
 Because each partition corresponds to a unique set of :ref:`partition column
 <gloss-partition-column>` row values, this clause uniquely identifies a single
@@ -167,3 +169,40 @@ is restored to the cluster:
   selected tables from the snapshot are restored or an error occurred.
   In order to monitor the restore operation the * :ref:`sys.shards
   <sys-shards>` table can be queried.
+
+:schema_rename_pattern:
+  (Default ``(.+)``) Regular expression matching schemas of restored tables.
+  Used to restore table into a different schema. Capture groups ``()`` can be
+  used to reuse portions of the table schema and then used in
+  ``schema_rename_replacement``. Default value matches the entire schema name.
+
+:schema_rename_replacement:
+  (Default ``$1``) Replacement pattern used to restore table into a different
+  schema. Can include groups, captured in ``schema_rename_pattern``. By default
+  no replacement is happening and tables are restored into their original
+  schemas.
+
+  Example: ``prefix_$1`` combined with default ``schema_rename_pattern`` adds
+  'prefix' to all restored table schemas.
+
+  Example: ``target`` combined with default ``schema_rename_pattern``
+  restores all tables into the ``target`` schema.
+
+:table_rename_pattern:
+  (Default ``(.+)``) Regular expression matching names of restored tables.
+  Used to rename tables on restoring. Capture groups ``()`` can be used to
+  reuse portions of the table name and then used in
+  ``table_rename_replacement``. Default value matches the entire table name.
+
+:table_rename_replacement:
+  (Default ``$1``) Replacement pattern used to rename tables on restoring.
+  Can include groups, captured in ``table_rename_pattern``. By default no
+  replacement is happening and tables are restored with their original names.
+  Example: ``prefix_$1`` combined with default ``table_rename_pattern`` adds
+  'prefix' to all restored table names.
+
+.. CAUTION::
+
+   Restore will abort with a failure if there is a name collision after
+   evaluating the rename operations, or if a table with the same name as the
+   rename target already exists.

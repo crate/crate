@@ -24,21 +24,22 @@ package io.crate.planner;
 import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_IDENT;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
-
-import com.carrotsearch.randomizedtesting.RandomizedTest;
 
 import io.crate.analyze.TableDefinitions;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
+import io.crate.fdw.ForeignDataWrappers;
 import io.crate.metadata.RelationName;
 import io.crate.planner.node.dql.Collect;
+import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanner;
 import io.crate.planner.operators.Union;
 import io.crate.statistics.Stats;
@@ -53,10 +54,11 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void setUpExecutor() throws Exception {
-        e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
+        e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .addTable(TableDefinitions.TEST_DOC_LOCATIONS_TABLE_DEFINITION)
-            .build();
+            .addTable(TableDefinitions.TEST_DOC_LOCATIONS_TABLE_DEFINITION);
     }
 
     @Test
@@ -227,9 +229,10 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
         rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(1, 0, Map.of()));
         tableStats.updateTableStats(rowCountByTable);
 
-        var context = e.getPlannerContext(clusterService.state());
+        var context = e.getPlannerContext();
         var logicalPlanner = new LogicalPlanner(
             e.nodeCtx,
+            new ForeignDataWrappers(Settings.EMPTY, clusterService, e.nodeCtx),
             () -> clusterService.state().nodes().getMinNodeVersion()
         );
         var plan = logicalPlanner.plan(e.analyze(stmt), context);
@@ -242,4 +245,27 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
         union = (Union) plan.sources().get(0);
         assertThat(e.getStats(union).numDocs()).isEqualTo(-1L);
     }
+
+    // tracks bugs: https://github.com/crate/crate/issues/14807, https://github.com/crate/crate/issues/14805
+    @Test
+    public void test_pruneOutputsExcept_can_handle_duplicates() {
+        LogicalPlan plan = e.logicalPlan(
+            "SELECT * FROM (SELECT x.id, y.id FROM users AS x, users AS y) z UNION SELECT 1, 1;");
+
+        assertThat(plan).isEqualTo(
+            """
+                GroupHashAggregate[id, id]
+                  └ Union[id, id]
+                    ├ Rename[id, id] AS z
+                    │  └ NestedLoopJoin[CROSS]
+                    │    ├ Rename[id] AS x
+                    │    │  └ Collect[doc.users | [id] | true]
+                    │    └ Rename[id] AS y
+                    │      └ Collect[doc.users | [id] | true]
+                    └ Eval[1, 1]
+                      └ TableFunction[empty_row | [] | true]
+                """
+        );
+    }
+
 }

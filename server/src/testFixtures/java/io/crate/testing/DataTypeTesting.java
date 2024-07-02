@@ -83,6 +83,12 @@ public class DataTypeTesting {
         return RandomPicks.randomFrom(RandomizedContext.current().getRandom(), ALL_STORED_TYPES_EXCEPT_ARRAYS);
     }
 
+    public static DataType<?> randomTypeExcluding(Set<DataType<?>> excluding) {
+        Set<DataType<?>> pickFrom = ALL_STORED_TYPES_EXCEPT_ARRAYS
+            .stream().filter(t -> excluding.contains(t) == false).collect(Collectors.toSet());
+        return RandomPicks.randomFrom(RandomizedContext.current().getRandom(), pickFrom);
+    }
+
     @SuppressWarnings("unchecked")
     public static <T> Supplier<T> getDataGenerator(DataType<T> type) {
         Random random = RandomizedContext.current().getRandom();
@@ -93,10 +99,14 @@ public class DataTypeTesting {
                 return () -> (T) (Boolean) random.nextBoolean();
 
             case StringType.ID:
-                return () -> (T) RandomizedTest.randomAsciiLettersOfLength(random.nextInt(10));
+                Integer maxLength = type.characterMaximumLength();
+                return () -> {
+                    int length = maxLength == null ? random.nextInt(10) : random.nextInt(maxLength + 1);
+                    return (T) RandomizedTest.randomAsciiLettersOfLength(length);
+                };
 
             case CharacterType.ID:
-                return () -> (T) RandomizedTest.randomAsciiLettersOfLength(((CharacterType) type).lengthLimit());
+                return () -> (T) RandomizedTest.randomAsciiLettersOfLength(type.characterMaximumLength());
 
             case IpType.ID:
                 return () -> {

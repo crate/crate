@@ -37,6 +37,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
@@ -48,9 +49,12 @@ import io.crate.execution.engine.collect.files.SqlFeatureContext;
 import io.crate.execution.engine.collect.files.SqlFeatures;
 import io.crate.expression.reference.information.ColumnContext;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
+import io.crate.fdw.ForeignTable;
+import io.crate.fdw.ForeignTablesMetadata;
+import io.crate.fdw.ServersMetadata;
+import io.crate.fdw.ServersMetadata.Server;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
-import io.crate.metadata.FunctionProvider;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionInfo;
@@ -63,6 +67,8 @@ import io.crate.metadata.RoutineInfos;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.information.InformationSchemaInfo;
+import io.crate.metadata.information.UserMappingOptionsTableInfo;
+import io.crate.metadata.information.UserMappingsTableInfo.UserMapping;
 import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.pgcatalog.PgClassTable;
@@ -88,7 +94,6 @@ public class InformationSchemaIterables implements ClusterStateListener {
         BlobSchemaInfo.NAME,
         PgCatalogSchemaInfo.NAME);
 
-    private final Schemas schemas;
     private final Iterable<RelationInfo> relations;
     private final Iterable<TableInfo> tables;
     private final Iterable<ViewInfo> views;
@@ -100,26 +105,36 @@ public class InformationSchemaIterables implements ClusterStateListener {
     private final Iterable<Void> referentialConstraints;
     private final Iterable<PgIndexTable.Entry> pgIndices;
     private final Iterable<PgClassTable.Entry> pgClasses;
-    private final Iterable<PgProcTable.Entry> pgBuiltInFunc;
     private final Iterable<PgProcTable.Entry> pgTypeReceiveFunctions;
     private final Iterable<PgProcTable.Entry> pgTypeSendFunctions;
     private final NodeContext nodeCtx;
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
+    private final ClusterService clusterService;
 
     private Iterable<RoutineInfo> routines;
     private boolean initialClusterStateReceived = false;
 
     @Inject
-    public InformationSchemaIterables(final Schemas schemas,
-                                      NodeContext nodeCtx,
+    public InformationSchemaIterables(NodeContext nodeCtx,
                                       FulltextAnalyzerResolver fulltextAnalyzerResolver,
                                       ClusterService clusterService) {
-        this.schemas = schemas;
+        this.clusterService = clusterService;
         this.nodeCtx = nodeCtx;
+        Schemas schemas = nodeCtx.schemas();
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
         views = () -> viewsStream(schemas).iterator();
         tables = () -> tablesStream(schemas).iterator();
-        relations = () -> concat(tablesStream(schemas), viewsStream(schemas)).iterator();
+        relations = () -> {
+            Metadata metadata = clusterService.state().metadata();
+            ForeignTablesMetadata foreignTables = metadata.custom(
+                ForeignTablesMetadata.TYPE,
+                ForeignTablesMetadata.EMPTY
+            );
+            return concat(
+                concat(tablesStream(schemas), viewsStream(schemas)),
+                StreamSupport.stream(foreignTables.spliterator(), false)
+            ).iterator();
+        };
         primaryKeys = () -> sequentialStream(relations)
             .filter(this::isPrimaryKey)
             .iterator();
@@ -131,7 +146,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
         Iterable<ConstraintInfo> primaryKeyConstraints = () -> sequentialStream(primaryKeys)
             .map(t -> new ConstraintInfo(
                 t,
-                t.ident().name() + PK_SUFFIX,
+                t.pkConstraintName() == null ? t.ident().name() + PK_SUFFIX : t.pkConstraintName(),
                 ConstraintInfo.Type.PRIMARY_KEY))
             .iterator();
 
@@ -167,11 +182,6 @@ public class InformationSchemaIterables implements ClusterStateListener {
         pgIndices = () -> tablesStream(schemas).filter(this::isPrimaryKey).map(this::pgIndex).iterator();
         pgClasses = () -> concat(sequentialStream(relations).map(this::relationToPgClassEntry),
                                  sequentialStream(primaryKeys).map(this::primaryKeyToPgClassEntry)).iterator();
-        pgBuiltInFunc = () -> sequentialStream(nodeCtx.functions().functionResolvers().values())
-            .flatMap(List::stream)
-            .map(this::pgProc)
-            .iterator();
-
         pgTypeReceiveFunctions = () ->
             Stream.concat(
                 sequentialStream(PGTypes.pgTypes())
@@ -232,6 +242,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
         return switch (type) {
             case BASE_TABLE -> PgClassTable.Entry.Type.RELATION;
             case VIEW -> PgClassTable.Entry.Type.VIEW;
+            case FOREIGN -> PgClassTable.Entry.Type.FOREIGN;
         };
     }
 
@@ -251,10 +262,6 @@ public class InformationSchemaIterables implements ClusterStateListener {
         );
     }
 
-    private PgProcTable.Entry pgProc(FunctionProvider resolver) {
-        return PgProcTable.Entry.of(resolver.getSignature());
-    }
-
     private static Stream<ViewInfo> viewsStream(Schemas schemas) {
         return sequentialStream(schemas)
             .flatMap(schema -> sequentialStream(schema.getViews()))
@@ -263,9 +270,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
 
     public static Stream<TableInfo> tablesStream(Schemas schemas) {
         return sequentialStream(schemas)
-            .flatMap(s -> sequentialStream(s.getTables()))
-            .filter(i -> !(IndexParts.isPartitioned(i.ident().indexNameOrAlias()) ||
-                           IndexParts.isDangling(i.ident().indexNameOrAlias())));
+            .flatMap(s -> sequentialStream(s.getTables()));
     }
 
     private static <T> Stream<T> sequentialStream(Iterable<T> iterable) {
@@ -273,7 +278,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
     }
 
     public Iterable<SchemaInfo> schemas() {
-        return schemas;
+        return nodeCtx.schemas();
     }
 
     public Iterable<RelationInfo> relations() {
@@ -326,12 +331,8 @@ public class InformationSchemaIterables implements ClusterStateListener {
 
     public Iterable<PgProcTable.Entry> pgProc() {
         return () -> concat(
-            concat(
-                sequentialStream(pgBuiltInFunc),
-                sequentialStream(nodeCtx.functions().udfFunctionResolvers().values())
-                    .flatMap(List::stream)
-                    .map(this::pgProc)
-            ),
+            sequentialStream(nodeCtx.functions().signatures())
+                .map(PgProcTable.Entry::of),
             concat(
                 sequentialStream(pgTypeReceiveFunctions),
                 sequentialStream(pgTypeSendFunctions)
@@ -354,6 +355,43 @@ public class InformationSchemaIterables implements ClusterStateListener {
 
     public Iterable<Void> referentialConstraintsInfos() {
         return referentialConstraints;
+    }
+
+    public Iterable<Server> servers() {
+        Metadata metadata = clusterService.state().metadata();
+        return metadata.custom(ServersMetadata.TYPE, ServersMetadata.EMPTY);
+    }
+
+    public Iterable<Server.Option> serverOptions() {
+        Metadata metadata = clusterService.state().metadata();
+        ServersMetadata servers = metadata.custom(ServersMetadata.TYPE, ServersMetadata.EMPTY);
+        return servers.getOptions();
+    }
+
+    public Iterable<UserMapping> userMappings() {
+        Metadata metadata = clusterService.state().metadata();
+        ServersMetadata servers = metadata.custom(ServersMetadata.TYPE, ServersMetadata.EMPTY);
+        return servers.getUserMappings();
+    }
+
+    public Iterable<UserMappingOptionsTableInfo.UserMappingOptions> userMappingOptions() {
+        Metadata metadata = clusterService.state().metadata();
+        ServersMetadata servers = metadata.custom(ServersMetadata.TYPE, ServersMetadata.EMPTY);
+        return servers.getUserMappingOptions();
+    }
+
+    public Iterable<ForeignTable> foreignTables() {
+        Metadata metadata = clusterService.state().metadata();
+        return metadata.custom(ForeignTablesMetadata.TYPE, ForeignTablesMetadata.EMPTY);
+    }
+
+    public Iterable<ForeignTable.Option> foreignTableOptions() {
+        Metadata metadata = clusterService.state().metadata();
+        ForeignTablesMetadata foreignTables = metadata.custom(
+            ForeignTablesMetadata.TYPE,
+            ForeignTablesMetadata.EMPTY
+        );
+        return foreignTables.tableOptions();
     }
 
     @Override

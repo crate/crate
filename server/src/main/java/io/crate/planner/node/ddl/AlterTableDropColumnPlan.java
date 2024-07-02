@@ -52,7 +52,7 @@ public class AlterTableDropColumnPlan implements Plan {
                               Row params,
                               SubQueryResults subQueryResults) throws Exception {
         var dropColumnRequest = new DropColumnRequest(alterTable.table().ident(), alterTable.columns());
-        dependencies.alterTableOperation().executeAlterTableDropColumn(dropColumnRequest)
+        dependencies.alterTableOperation().dropColumn(dropColumnRequest)
             .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
     }
 }

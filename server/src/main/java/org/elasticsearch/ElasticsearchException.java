@@ -51,8 +51,14 @@ import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.transport.TcpTransport;
 
 import io.crate.common.CheckedFunction;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
+import io.crate.exceptions.RoleUnknownException;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.fdw.ServerAlreadyExistsException;
+import io.crate.fdw.UserMappingAlreadyExists;
+import io.crate.protocols.postgres.PGErrorStatus;
+import io.crate.rest.action.HttpErrorStatus;
 
 /**
  * A base class for all elasticsearch exceptions.
@@ -87,7 +93,6 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
     private static final ParseField SUPPRESSED = new ParseField("suppressed");
     private static final String STACK_TRACE = "stack_trace";
     private static final String HEADER = "header";
-    private static final String ERROR = "error";
     private static final String ROOT_CAUSE = "root_cause";
 
     private static final Map<Integer, CheckedFunction<StreamInput, ? extends ElasticsearchException, IOException>> ID_TO_SUPPLIER;
@@ -157,6 +162,14 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
         this.metadata.put(key, values);
     }
 
+    public PGErrorStatus pgErrorStatus() {
+        return PGErrorStatus.INTERNAL_ERROR;
+    }
+
+    public HttpErrorStatus httpErrorStatus() {
+        return HttpErrorStatus.UNHANDLED_SERVER_ERROR;
+    }
+
     /**
      * Returns a set of all metadata keys on this exception
      */
@@ -215,7 +228,7 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
         if (cause == this) {
             return RestStatus.INTERNAL_SERVER_ERROR;
         } else {
-            return ExceptionsHelper.status(cause);
+            return SQLExceptions.status(cause);
         }
     }
 
@@ -340,7 +353,7 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
         }
 
         if (params.paramAsBoolean(REST_EXCEPTION_SKIP_STACK_TRACE, REST_EXCEPTION_SKIP_STACK_TRACE_DEFAULT) == false) {
-            builder.field(STACK_TRACE, ExceptionsHelper.stackTrace(throwable));
+            builder.field(STACK_TRACE, Exceptions.stackTrace(throwable));
         }
 
         Throwable[] allSuppressed = throwable.getSuppressed();
@@ -836,8 +849,7 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
                 org.elasticsearch.indices.TypeMissingException::new, 137, UNKNOWN_VERSION_ADDED),
         FAILED_TO_COMMIT_CLUSTER_STATE_EXCEPTION(org.elasticsearch.cluster.coordination.FailedToCommitClusterStateException.class,
                 org.elasticsearch.cluster.coordination.FailedToCommitClusterStateException::new, 140, UNKNOWN_VERSION_ADDED),
-        QUERY_SHARD_EXCEPTION(org.elasticsearch.index.query.QueryShardException.class,
-                org.elasticsearch.index.query.QueryShardException::new, 141, UNKNOWN_VERSION_ADDED),
+        // 141 was QueryShardException
         NO_LONGER_PRIMARY_SHARD_EXCEPTION(ShardStateAction.NoLongerPrimaryShardException.class,
                 ShardStateAction.NoLongerPrimaryShardException::new, 142, UNKNOWN_VERSION_ADDED),
         // 143 was ScriptException
@@ -968,7 +980,38 @@ public class ElasticsearchException extends RuntimeException implements ToXConte
             org.elasticsearch.cluster.coordination.NodeHealthCheckFailureException.class,
             org.elasticsearch.cluster.coordination.NodeHealthCheckFailureException::new,
             175,
-            Version.V_5_2_0);
+            Version.V_5_2_0),
+        OPERATION_ON_INACCESSIBLE_RELATION_EXCEPTION(
+            io.crate.exceptions.OperationOnInaccessibleRelationException.class,
+            io.crate.exceptions.OperationOnInaccessibleRelationException::new,
+            176,
+            Version.V_5_6_0),
+        UNAUTHORIZED_EXCEPTION(
+            io.crate.exceptions.UnauthorizedException.class,
+            io.crate.exceptions.UnauthorizedException::new,
+            177,
+            Version.V_5_7_0),
+        SERVER_ALREADY_EXISTS(
+            ServerAlreadyExistsException.class,
+            ServerAlreadyExistsException::new,
+            178,
+            Version.V_5_7_0),
+        USER_MAPPING_ALREADY_EXISTS(
+            UserMappingAlreadyExists.class,
+            UserMappingAlreadyExists::new,
+            179,
+            Version.V_5_7_0),
+        ROLE_ALREADY_EXISTS(
+            io.crate.exceptions.RoleAlreadyExistsException.class,
+            io.crate.exceptions.RoleAlreadyExistsException::new,
+            180,
+            Version.V_5_7_0),
+        ROLE_UNKNOWN(
+            RoleUnknownException.class,
+            RoleUnknownException::new,
+            181,
+            Version.V_5_7_0
+        );
 
         final Class<? extends ElasticsearchException> exceptionClass;
         final CheckedFunction<StreamInput, ? extends ElasticsearchException, IOException> constructor;

@@ -25,6 +25,7 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.FieldComparator;
 import org.apache.lucene.search.FieldComparatorSource;
 import org.apache.lucene.search.LeafFieldComparator;
+import org.apache.lucene.search.Pruning;
 import org.apache.lucene.search.Scorable;
 
 import java.io.IOException;
@@ -67,7 +68,7 @@ class NullFieldComparatorSource extends FieldComparatorSource {
     }
 
     @Override
-    public FieldComparator<?> newComparator(String fieldname, int numHits, boolean enableSkipping, boolean reversed) {
+    public FieldComparator<?> newComparator(String fieldname, int numHits, Pruning pruning, boolean reversed) {
         return new FieldComparator<>() {
             @Override
             public LeafFieldComparator getLeafComparator(LeafReaderContext context) {

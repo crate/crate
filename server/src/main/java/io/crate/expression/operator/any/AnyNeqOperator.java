@@ -24,16 +24,15 @@ package io.crate.expression.operator.any;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
-import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.common.lucene.search.Queries;
-import org.elasticsearch.index.mapper.MappedFieldType;
 
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.predicate.IsNullPredicate;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.lucene.LuceneQueryBuilder.Context;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -58,17 +57,21 @@ public final class AnyNeqOperator extends AnyOperator {
     protected Query refMatchesAnyArrayLiteral(Function any, Reference probe, Literal<?> candidates, Context context) {
         //  col != ANY ([1,2,3]) --> not(col=1 and col=2 and col=3)
         String columnName = probe.storageIdent();
-        MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
-        if (fieldType == null) {
-            return new MatchNoDocsQuery("column does not exist in this index");
-        }
-
         BooleanQuery.Builder andBuilder = new BooleanQuery.Builder();
         for (Object value : (Iterable<?>) candidates.value()) {
             if (value == null) {
                 continue;
             }
-            andBuilder.add(EqOperator.fromPrimitive(probe.valueType(), probe.column().fqn(), value), BooleanClause.Occur.MUST);
+            var fromPrimitive = EqOperator.fromPrimitive(
+                probe.valueType(),
+                columnName,
+                value,
+                probe.hasDocValues(),
+                probe.indexType());
+            if (fromPrimitive == null) {
+                return null;
+            }
+            andBuilder.add(fromPrimitive, BooleanClause.Occur.MUST);
         }
         Query exists = IsNullPredicate.refExistsQuery(probe, context, false);
         return new BooleanQuery.Builder()
@@ -82,11 +85,6 @@ public final class AnyNeqOperator extends AnyOperator {
     protected Query literalMatchesAnyArrayRef(Function any, Literal<?> probe, Reference candidates, Context context) {
         // 1 != any ( col ) -->  gt 1 or lt 1
         String columnName = candidates.storageIdent();
-
-        MappedFieldType fieldType = context.getFieldTypeOrNull(columnName);
-        if (fieldType == null) {
-            return new MatchNoDocsQuery("column does not exist in this index");
-        }
         StorageSupport<?> storageSupport = probe.valueType().storageSupport();
         if (storageSupport == null) {
             return null;
@@ -98,14 +96,28 @@ public final class AnyNeqOperator extends AnyOperator {
         Object value = probe.value();
         BooleanQuery.Builder query = new BooleanQuery.Builder();
         query.setMinimumNumberShouldMatch(1);
-        query.add(
-            eqQuery.rangeQuery(columnName, value, null, false, false, candidates.hasDocValues()),
-            BooleanClause.Occur.SHOULD
-        );
-        query.add(
-            eqQuery.rangeQuery(columnName, null, value, false, false, candidates.hasDocValues()),
-            BooleanClause.Occur.SHOULD
-        );
+        var gt = eqQuery.rangeQuery(
+            columnName,
+            value,
+            null,
+            false,
+            false,
+            candidates.hasDocValues(),
+            candidates.indexType() != IndexType.NONE);
+        var lt = eqQuery.rangeQuery(
+            columnName,
+            null,
+            value,
+            false,
+            false,
+            candidates.hasDocValues(),
+            candidates.indexType() != IndexType.NONE);
+        if (lt == null || gt == null) {
+            assert lt != null || gt == null : "If lt is null, gt must be null";
+            return null;
+        }
+        query.add(gt, BooleanClause.Occur.SHOULD);
+        query.add(lt, BooleanClause.Occur.SHOULD);
         return query.build();
     }
 }

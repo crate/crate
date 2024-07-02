@@ -62,7 +62,6 @@ import java.util.regex.PatternSyntaxException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
@@ -86,22 +85,36 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.http.BindHttpException;
 import org.elasticsearch.http.HttpInfo;
 import org.elasticsearch.http.HttpServerTransport;
-import org.elasticsearch.http.HttpStats;
 import org.elasticsearch.http.netty4.cors.Netty4CorsConfig;
 import org.elasticsearch.http.netty4.cors.Netty4CorsConfigBuilder;
 import org.elasticsearch.http.netty4.cors.Netty4CorsHandler;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.rest.RestUtils;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.BindTransportException;
-import org.elasticsearch.transport.netty4.Netty4OpenChannelsHandler;
+import org.elasticsearch.transport.StatsTracker;
+import org.elasticsearch.transport.netty4.Netty4InboundStatsHandler;
+import org.elasticsearch.transport.netty4.Netty4OutboundStatsHandler;
 import org.elasticsearch.transport.netty4.Netty4Utils;
+import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
 
+import io.crate.action.sql.Sessions;
+import io.crate.auth.Authentication;
+import io.crate.auth.HttpAuthUpstreamHandler;
+import io.crate.auth.Protocol;
+import io.crate.blob.BlobService;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.netty.NettyBootstrap;
-import io.crate.netty.channel.PipelineRegistry;
+import io.crate.protocols.ConnectionStats;
+import io.crate.protocols.http.HttpBlobHandler;
 import io.crate.protocols.http.MainAndStaticFileHandler;
+import io.crate.protocols.ssl.SslContextProvider;
+import io.crate.protocols.ssl.SslSettings;
+import io.crate.rest.action.SqlHttpHandler;
+import io.crate.role.Roles;
 import io.crate.types.DataTypes;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
@@ -110,6 +123,7 @@ import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelOption;
+import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.FixedRecvByteBufAllocator;
 import io.netty.channel.RecvByteBufAllocator;
@@ -120,6 +134,8 @@ import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.stream.ChunkedWriteHandler;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.util.concurrent.Future;
 
@@ -213,31 +229,49 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
 
     protected final List<Channel> serverChannels = new ArrayList<>();
 
-    // package private for testing
-    Netty4OpenChannelsHandler serverOpenChannels;
-
+    private final StatsTracker statsTracker = new StatsTracker();
+    @Nullable
+    private Netty4InboundStatsHandler inboundStatsHandler;
+    @Nullable
+    private Netty4OutboundStatsHandler outboundStatsHandler;
 
     private final Netty4CorsConfig corsConfig;
-
-    private final PipelineRegistry pipelineRegistry;
-
     private final NodeClient nodeClient;
 
+    private final SslContextProvider sslContextProvider;
+
+    private final BlobService blobService;
+    private final Sessions sessions;
+    private final Authentication authentication;
+    private final Roles roles;
+    private final CircuitBreakerService breakerService;
+
     private EventLoopGroup eventLoopGroup;
+
 
     public Netty4HttpServerTransport(Settings settings,
                                      NetworkService networkService,
                                      BigArrays bigArrays,
                                      ThreadPool threadPool,
                                      NamedXContentRegistry xContentRegistry,
-                                     PipelineRegistry pipelineRegistry,
+                                     SslContextProvider sslContextProvider,
+                                     BlobService blobService,
+                                     Sessions sessions,
+                                     Authentication authentication,
+                                     Roles roles,
+                                     CircuitBreakerService breakerService,
                                      NodeClient nodeClient) {
         this.settings = settings;
         this.networkService = networkService;
         this.bigArrays = bigArrays;
         this.threadPool = threadPool;
         this.xContentRegistry = xContentRegistry;
-        this.pipelineRegistry = pipelineRegistry;
+        this.sslContextProvider = sslContextProvider;
+        this.blobService = blobService;
+        this.sessions = sessions;
+        this.authentication = authentication;
+        this.roles = roles;
+        this.breakerService = breakerService;
         this.nodeClient = nodeClient;
 
         this.maxContentLength = SETTING_HTTP_MAX_CONTENT_LENGTH.get(settings);
@@ -280,7 +314,8 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
     protected void doStart() {
         boolean success = false;
         try {
-            this.serverOpenChannels = new Netty4OpenChannelsHandler(logger);
+            inboundStatsHandler = new Netty4InboundStatsHandler(statsTracker, logger);
+            outboundStatsHandler = new Netty4OutboundStatsHandler(statsTracker, logger);
             eventLoopGroup = NettyBootstrap.newEventLoopGroup(settings);
             serverBootstrap = new ServerBootstrap();
             serverBootstrap.group(eventLoopGroup);
@@ -322,14 +357,14 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
 
     private BoundTransportAddress createBoundHttpAddress() {
         // Bind and start to accept incoming connections.
-        InetAddress[] hostAddresses;
+        List<InetAddress> hostAddresses;
         try {
             hostAddresses = networkService.resolveBindHostAddresses(bindHosts);
         } catch (IOException e) {
             throw new BindHttpException("Failed to resolve host [" + Arrays.toString(bindHosts) + "]", e);
         }
 
-        List<TransportAddress> boundAddresses = new ArrayList<>(hostAddresses.length);
+        List<TransportAddress> boundAddresses = new ArrayList<>(hostAddresses.size());
         for (InetAddress address : hostAddresses) {
             boundAddresses.add(bindAddress(address));
         }
@@ -455,9 +490,13 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
             }
         }
 
-        if (serverOpenChannels != null) {
-            serverOpenChannels.close();
-            serverOpenChannels = null;
+        if (inboundStatsHandler != null) {
+            inboundStatsHandler.close();
+            inboundStatsHandler = null;
+        }
+        if (outboundStatsHandler != null) {
+            outboundStatsHandler.close();
+            outboundStatsHandler = null;
         }
         if (eventLoopGroup != null) {
             Future<?> future = eventLoopGroup.shutdownGracefully(0, 5, TimeUnit.SECONDS);
@@ -489,9 +528,8 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
     }
 
     @Override
-    public HttpStats stats() {
-        Netty4OpenChannelsHandler channels = serverOpenChannels;
-        return new HttpStats(channels == null ? 0 : channels.numberOfOpenChannels(), channels == null ? 0 : channels.totalChannels());
+    public ConnectionStats stats() {
+        return statsTracker.stats();
     }
 
     public Netty4CorsConfig getCorsConfig() {
@@ -499,7 +537,17 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
     }
 
     public ChannelHandler configureServerChannelHandler() {
-        return new HttpChannelHandler(this, nodeClient, settings, pipelineRegistry);
+        return new HttpChannelHandler(
+            this,
+            sessions,
+            authentication,
+            roles,
+            breakerService,
+            blobService,
+            nodeClient,
+            settings,
+            sslContextProvider
+        );
     }
 
     public static class HttpChannelHandler extends ChannelInitializer<Channel> {
@@ -508,60 +556,94 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
         private final NodeClient nodeClient;
         private final String nodeName;
         private final Path home;
-        private final PipelineRegistry pipelineRegistry;
+        private BlobService blobService;
+        private final Sessions sessions;
+        private final Authentication authentication;
+        private final Roles roles;
+        private final CircuitBreakerService breakerService;
+        private final Settings settings;
+        private final SslContextProvider sslContextProvider;
 
         protected HttpChannelHandler(Netty4HttpServerTransport transport,
+                                     Sessions sessions,
+                                     Authentication authentication,
+                                     Roles roles,
+                                     CircuitBreakerService breakerService,
+                                     BlobService blobService,
                                      NodeClient nodeClient,
                                      Settings settings,
-                                     PipelineRegistry pipelineRegistry) {
+                                     SslContextProvider sslContextProvider) {
+            this.sessions = sessions;
+            this.authentication = authentication;
+            this.roles = roles;
+            this.breakerService = breakerService;
+            this.blobService = blobService;
             this.transport = transport;
             this.nodeClient = nodeClient;
-            this.pipelineRegistry = pipelineRegistry;
+            this.settings = settings;
+            this.sslContextProvider = sslContextProvider;
             this.nodeName = NODE_NAME_SETTING.get(settings);
             this.home = PathUtils.get(PATH_HOME_SETTING.get(settings)).normalize();
         }
 
         @Override
         public void initChannel(Channel ch) throws Exception {
-            ch.pipeline().addLast("openChannels", transport.serverOpenChannels);
-            ch.pipeline().addLast("read_timeout", new ReadTimeoutHandler(transport.readTimeoutMillis, TimeUnit.MILLISECONDS));
+            ChannelPipeline pipeline = ch.pipeline();
+            if (SslSettings.isHttpsEnabled(settings)) {
+                SslContext sslContext = sslContextProvider.getServerContext(Protocol.HTTP);
+                if (sslContext != null) {
+                    pipeline.addFirst(sslContext.newHandler(ch.alloc()));
+                }
+            }
+            pipeline.addLast("inbound_stats", transport.inboundStatsHandler);
+            pipeline.addLast("outbound_stats", transport.outboundStatsHandler);
+            pipeline.addLast("read_timeout", new ReadTimeoutHandler(transport.readTimeoutMillis, TimeUnit.MILLISECONDS));
             final HttpRequestDecoder decoder = new HttpRequestDecoder(
                 Math.toIntExact(transport.maxInitialLineLength.getBytes()),
                 Math.toIntExact(transport.maxHeaderSize.getBytes()),
                 Math.toIntExact(transport.maxChunkSize.getBytes()));
             decoder.setCumulator(ByteToMessageDecoder.COMPOSITE_CUMULATOR);
-            ch.pipeline().addLast("decoder", decoder);
-            ch.pipeline().addLast("decoder_compress", new HttpContentDecompressor());
-            ch.pipeline().addLast("encoder", new HttpResponseEncoder());
+            pipeline.addLast("decoder", decoder);
+            pipeline.addLast("decoder_compress", new HttpContentDecompressor());
+            pipeline.addLast("encoder", new HttpResponseEncoder());
             final HttpObjectAggregator aggregator = new HttpObjectAggregator(Math.toIntExact(transport.maxContentLength.getBytes()));
             aggregator.setMaxCumulationBufferComponents(transport.maxCompositeBufferComponents);
-            ch.pipeline().addLast("aggregator", aggregator);
+            pipeline.addLast("chunked", new ChunkedWriteHandler());
+            pipeline.addLast("auth_handler", new HttpAuthUpstreamHandler(settings, authentication, roles));
+            pipeline.addLast("blob_handler", new HttpBlobHandler(blobService, transport.getCorsConfig()));
+            pipeline.addLast("aggregator", aggregator);
             if (transport.compression) {
-                ch.pipeline().addLast("encoder_compress", new HttpContentCompressor(transport.compressionLevel));
+                pipeline.addLast("encoder_compress", new HttpContentCompressor(transport.compressionLevel));
             }
-            ch.pipeline().addLast("handler", new MainAndStaticFileHandler(
+            pipeline.addLast("sql_handler", new SqlHttpHandler(
+                settings,
+                sessions,
+                breakerService::getBreaker,
+                roles,
+                transport.getCorsConfig()
+            ));
+            pipeline.addLast("handler", new MainAndStaticFileHandler(
                 nodeName,
                 home,
                 nodeClient,
                 transport.getCorsConfig()
             ));
-            pipelineRegistry.registerItems(ch.pipeline(), transport.getCorsConfig());
             if (SETTING_CORS_ENABLED.get(transport.settings())) {
-                ch.pipeline().addAfter("encoder", "cors", new Netty4CorsHandler(transport.getCorsConfig()));
+                pipeline.addAfter("encoder", "cors", new Netty4CorsHandler(transport.getCorsConfig()));
             }
         }
 
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-            ExceptionsHelper.maybeDieOnAnotherThread(cause);
+            Exceptions.maybeDieOnAnotherThread(cause);
             super.exceptionCaught(ctx, cause);
         }
     }
 
 
     public static InetAddress getRemoteAddress(Channel channel) {
-        if (channel.remoteAddress() instanceof InetSocketAddress) {
-            return ((InetSocketAddress) channel.remoteAddress()).getAddress();
+        if (channel.remoteAddress() instanceof InetSocketAddress isa) {
+            return isa.getAddress();
         }
         // In certain cases the channel is an EmbeddedChannel (e.g. in tests)
         // and this type of channel has an EmbeddedSocketAddress instance as remoteAddress

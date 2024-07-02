@@ -33,7 +33,6 @@ import java.util.List;
 
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.analysis.common.CommonAnalysisPlugin;
-import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
@@ -53,9 +52,10 @@ public class CreateAnalyzerAnalyzerTest extends CrateDummyClusterServiceUnitTest
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService, 1, Randomness.get(), List.of(new CommonAnalysisPlugin()))
+        e = SQLExecutor.builder(clusterService)
+            .setAnalysisPlugins(List.of(new CommonAnalysisPlugin()))
             .build();
-        plannerContext = e.getPlannerContext(clusterService.state());
+        plannerContext = e.getPlannerContext();
     }
 
     private ClusterUpdateSettingsRequest analyze(String stmt, Object... arguments) {

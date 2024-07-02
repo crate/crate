@@ -21,44 +21,47 @@
 
 package io.crate.expression.scalar.string;
 
-import io.crate.common.Hex;
-import io.crate.common.Octal;
-import io.crate.expression.scalar.ScalarFunctionModule;
-import io.crate.expression.scalar.arithmetic.BinaryScalar;
-import io.crate.metadata.functions.Signature;
-import io.crate.types.DataTypes;
-
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Locale;
 import java.util.function.BinaryOperator;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
+
+import io.crate.common.Hex;
+import io.crate.common.Octal;
+import io.crate.expression.scalar.arithmetic.BinaryScalar;
+import io.crate.metadata.Functions;
+import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.Signature;
+import io.crate.types.DataTypes;
 
 public class EncodeDecodeFunction {
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder module) {
+        module.add(
             Signature.scalar(
-                "encode",
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature()
-            ),
+                    "encode",
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature()
+                ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new BinaryScalar<>(
-                        new Encode(),
-                        signature,
-                        boundSignature,
-                        DataTypes.STRING
+                    new Encode(),
+                    signature,
+                    boundSignature,
+                    DataTypes.STRING
                 )
         );
-        module.register(
+        module.add(
             Signature.scalar(
-                "decode",
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature()
-            ),
+                    "decode",
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature()
+                ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new BinaryScalar<>(
                         new Decode(),
@@ -151,10 +154,10 @@ public class EncodeDecodeFunction {
             return Octal.encode(bytea.getBytes(StandardCharsets.UTF_8));
         }, text -> Hex.HEX_FLAG + Hex.encodeHexString(Octal.decode(text)));
 
-        private final Function<String, String> encode;
-        private final Function<String, String> decode;
+        private final UnaryOperator<String> encode;
+        private final UnaryOperator<String> decode;
 
-        Format(Function<String, String> encode, Function<String, String> decode) {
+        Format(UnaryOperator<String> encode, UnaryOperator<String> decode) {
             this.encode = encode;
             this.decode = decode;
         }

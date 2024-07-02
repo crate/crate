@@ -23,7 +23,7 @@ package io.crate.expression.scalar.conditional;
 
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 
-import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.metadata.Functions;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
@@ -33,13 +33,14 @@ public class GreatestFunction extends ConditionalCompareFunction {
 
     private static final String NAME = "greatest";
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder module) {
+        module.add(
             Signature
                 .scalar(
                     NAME,
                     TypeSignature.parse("E"),
                     TypeSignature.parse("E"))
+                .withFeature(Feature.DETERMINISTIC)
                 .withVariableArity()
                 .withTypeVariableConstraints(typeVariable("E")),
             GreatestFunction::new

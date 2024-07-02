@@ -29,17 +29,16 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 
-import io.crate.analyze.NumberOfReplicas;
 import io.crate.blob.v2.BlobIndex;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.settings.NumberOfReplicas;
 
 /**
  * Similar to {@link io.crate.metadata.doc.DocTableInfoFactory} this is a factory to create BlobTableInfos'
@@ -52,7 +51,6 @@ public class BlobTableInfoFactory {
     private final Path[] dataFiles;
     private final Path globalBlobPath;
 
-    @Inject
     public BlobTableInfoFactory(Settings settings, Environment environment) {
         this.dataFiles = environment.dataFiles();
         this.globalBlobPath = BlobIndicesService.getGlobalBlobPath(settings);
@@ -76,7 +74,7 @@ public class BlobTableInfoFactory {
             ident,
             indexMetadata.getIndex().getName(),
             indexMetadata.getNumberOfShards(),
-            NumberOfReplicas.fromSettings(settings),
+            NumberOfReplicas.getVirtualValue(settings),
             settings,
             blobsPath(settings),
             IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(settings),

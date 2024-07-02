@@ -47,8 +47,6 @@ import io.crate.expression.symbol.FunctionCopyVisitor;
 import io.crate.expression.symbol.RefReplacer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
-import io.crate.expression.symbol.SymbolVisitors;
-import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
@@ -133,7 +131,7 @@ public final class GeneratedColumnExpander {
                 Symbol otherSide = null;
                 for (int i = 0; i < function.arguments().size(); i++) {
                     Symbol arg = function.arguments().get(i);
-                    arg = Symbols.unwrapReferenceFromCast(arg);
+                    arg = arg.uncast();
                     if (arg instanceof Reference ref) {
                         reference = ref;
                     } else {
@@ -142,7 +140,7 @@ public final class GeneratedColumnExpander {
                 }
                 if (reference != null
                     && otherSide != null
-                    && !SymbolVisitors.any(Symbols.IS_GENERATED_COLUMN, otherSide)) {
+                    && !otherSide.any(s -> s instanceof GeneratedReference)) {
                     return addComparison(function, reference, otherSide, context);
                 }
             }
@@ -177,7 +175,18 @@ public final class GeneratedColumnExpander {
             if (generatedReference != null &&
                 generatedReference.generatedExpression().symbolType().equals(SymbolType.FUNCTION)) {
 
-                Function generatedFunction = (Function) generatedReference.generatedExpression();
+                // Account for possible implicit cast
+                // which is added when return type of the generation expression doesn't match type of the generated column.
+                Symbol symbol = generatedReference.generatedExpression().uncast();
+                Function generatedFunction;
+                if (symbol instanceof Function fn) {
+                    generatedFunction = fn;
+                } else {
+                    // Generated column can be declared without type: "col1 AS cast(timestamp as TIMESTAMP WITH TIME ZONE)".
+                    // In this case we don't have extra implicit cast, so after unwrapping cast we end up with a Reference.
+                    // In this case we align with pre-5.8.0 behavior and don't apply optimization.
+                    return null;
+                }
 
                 String operatorName = function.name();
                 if (!operatorName.equals(EqOperator.NAME)) {

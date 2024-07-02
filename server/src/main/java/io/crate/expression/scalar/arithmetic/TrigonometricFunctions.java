@@ -21,34 +21,35 @@
 
 package io.crate.expression.scalar.arithmetic;
 
+import static io.crate.metadata.functions.Signature.scalar;
+
+import java.util.function.DoubleUnaryOperator;
+
 import io.crate.expression.scalar.DoubleScalar;
-import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
 
-import java.util.function.DoubleUnaryOperator;
-
-import static io.crate.metadata.functions.Signature.scalar;
-
 public final class TrigonometricFunctions {
 
-    public static void register(ScalarFunctionModule module) {
-        register(module, "sin", Math::sin);
-        register(module, "asin", x -> Math.asin(checkRange(x)));
-        register(module, "cos", Math::cos);
-        register(module, "acos", x -> Math.acos(checkRange(x)));
-        register(module, "tan", Math::tan);
-        register(module, "cot", x -> 1 / Math.tan(x));
-        register(module, "atan", x -> Math.atan(checkRange(x)));
+    public static void register(Functions.Builder builder) {
+        register(builder, "sin", Math::sin);
+        register(builder, "asin", x -> Math.asin(checkRange(x)));
+        register(builder, "cos", Math::cos);
+        register(builder, "acos", x -> Math.acos(checkRange(x)));
+        register(builder, "tan", Math::tan);
+        register(builder, "cot", x -> 1 / Math.tan(x));
+        register(builder, "atan", x -> Math.atan(x));
 
-        module.register(
+        builder.add(
             scalar(
                 "atan2",
                 DataTypes.DOUBLE.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature(),
-                DataTypes.DOUBLE.getTypeSignature()
-            ).withFeatures(Scalar.DETERMINISTIC_ONLY),
+                DataTypes.DOUBLE.getTypeSignature())
+                .withFeatures(Scalar.DETERMINISTIC_ONLY)
+                .withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new BinaryScalar<>(
                     Math::atan2,
@@ -59,13 +60,14 @@ public final class TrigonometricFunctions {
         );
     }
 
-    private static void register(ScalarFunctionModule module, String name, DoubleUnaryOperator func) {
-        module.register(
+    private static void register(Functions.Builder builder, String name, DoubleUnaryOperator func) {
+        builder.add(
             scalar(
                 name,
                 DataTypes.DOUBLE.getTypeSignature(),
                 DataTypes.DOUBLE.getTypeSignature()
-            ),
+            ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new DoubleScalar(signature, boundSignature, func)
         );
@@ -74,7 +76,7 @@ public final class TrigonometricFunctions {
     private static double checkRange(double value) {
         if (value < -1.0 || value > 1.0) {
             throw new IllegalArgumentException("input value " + value + " is out of range. " +
-                                               "Values must be in range of [-1.0, 1.0]");
+                "Values must be in range of [-1.0, 1.0]");
         }
         return value;
     }

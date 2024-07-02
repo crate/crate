@@ -24,8 +24,7 @@ package io.crate.execution.engine.fetch;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Map;
@@ -35,6 +34,7 @@ import org.junit.Test;
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntObjectHashMap;
 
+import io.crate.breaker.CellsSizeEstimator;
 import io.crate.data.ArrayBucket;
 import io.crate.data.Bucket;
 import io.crate.data.RowN;
@@ -52,10 +52,9 @@ public class FetchRowsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_fetch_rows_can_map_inputs_and_buckets_to_outputs() throws Exception {
-        var e = SQLExecutor.builder(clusterService)
+        var e = SQLExecutor.of(clusterService)
             .addTable("create table t1 (x text)")
-            .addTable("create table t2 (y text, z int)")
-            .build();
+            .addTable("create table t2 (y text, z int)");
         var t1 = e.resolveTableInfo("t1");
         var x = (Reference) e.asSymbol("x");
         var fetchSource1 = new FetchSource();
@@ -87,7 +86,7 @@ public class FetchRowsTest extends CrateDummyClusterServiceUnitTest {
         var readerBuckets = new ReaderBuckets(
             fetchRows,
             reader -> reader == 1 ? fetchSource1 : fetchSource2,
-            cells -> 0,
+            CellsSizeEstimator.constant(0),
             RamAccounting.NO_ACCOUNTING
         );
         IntHashSet readerIds = new IntHashSet(2);
@@ -100,11 +99,11 @@ public class FetchRowsTest extends CrateDummyClusterServiceUnitTest {
         results.put(2, new ArrayBucket($$($("Trillian"))));
 
         var it = readerBuckets.getOutputRows(List.of(results));
-        assertThat(it.hasNext(), is(true));
+        assertThat(it.hasNext()).isTrue();
         var outputRow = it.next();
 
-        assertThat(outputRow.get(0), is("Arthur"));
-        assertThat(outputRow.get(1), is("Trillian"));
-        assertThat(outputRow.get(2), is(42));
+        assertThat(outputRow.get(0)).isEqualTo("Arthur");
+        assertThat(outputRow.get(1)).isEqualTo("Trillian");
+        assertThat(outputRow.get(2)).isEqualTo(42);
     }
 }

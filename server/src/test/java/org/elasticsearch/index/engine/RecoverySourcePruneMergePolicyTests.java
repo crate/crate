@@ -19,10 +19,9 @@
 
 package org.elasticsearch.index.engine;
 
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -84,14 +83,14 @@ public class RecoverySourcePruneMergePolicyTests extends ESTestCase {
                 try (DirectoryReader reader = DirectoryReader.open(writer)) {
                     for (int i = 0; i < reader.maxDoc(); i++) {
                         Document document = reader.document(i);
-                        assertEquals(1, document.getFields().size());
-                        assertEquals("source", document.getFields().get(0).name());
+                        assertThat(document.getFields().size()).isEqualTo(1);
+                        assertThat(document.getFields().get(0).name()).isEqualTo("source");
                     }
-                    assertEquals(1, reader.leaves().size());
+                    assertThat(reader.leaves().size()).isEqualTo(1);
                     LeafReader leafReader = reader.leaves().get(0).reader();
                     NumericDocValues extra_source = leafReader.getNumericDocValues("extra_source");
                     if (extra_source != null) {
-                        assertEquals(DocIdSetIterator.NO_MORE_DOCS, extra_source.nextDoc());
+                        assertThat(extra_source.nextDoc()).isEqualTo(DocIdSetIterator.NO_MORE_DOCS);
                     }
                     if (leafReader instanceof CodecReader && reader instanceof StandardDirectoryReader) {
                         CodecReader codecReader = (CodecReader) leafReader;
@@ -150,23 +149,23 @@ public class RecoverySourcePruneMergePolicyTests extends ESTestCase {
                 writer.forceMerge(1);
                 writer.commit();
                 try (DirectoryReader reader = DirectoryReader.open(writer)) {
-                    assertEquals(1, reader.leaves().size());
+                    assertThat(reader.leaves().size()).isEqualTo(1);
                     NumericDocValues extra_source = reader.leaves().get(0).reader().getNumericDocValues("extra_source");
                     assertNotNull(extra_source);
                     for (int i = 0; i < reader.maxDoc(); i++) {
                         Document document = reader.document(i);
                         Set<String> collect = document.getFields().stream().map(IndexableField::name).collect(Collectors.toSet());
-                        assertTrue(collect.contains("source"));
-                        assertTrue(collect.contains("even"));
+                        assertThat(collect.contains("source")).isTrue();
+                        assertThat(collect.contains("even")).isTrue();
                         if (collect.size() == 3) {
-                            assertTrue(collect.contains("extra_source"));
-                            assertEquals("true", document.getField("even").stringValue());
-                            assertEquals(i, extra_source.nextDoc());
+                            assertThat(collect.contains("extra_source")).isTrue();
+                            assertThat(document.getField("even").stringValue()).isEqualTo("true");
+                            assertThat(extra_source.nextDoc()).isEqualTo(i);
                         } else {
-                            assertEquals(2, document.getFields().size());
+                            assertThat(document.getFields().size()).isEqualTo(2);
                         }
                     }
-                    assertEquals(DocIdSetIterator.NO_MORE_DOCS, extra_source.nextDoc());
+                    assertThat(extra_source.nextDoc()).isEqualTo(DocIdSetIterator.NO_MORE_DOCS);
                 }
             }
         }
@@ -191,17 +190,17 @@ public class RecoverySourcePruneMergePolicyTests extends ESTestCase {
                 writer.forceMerge(1);
                 writer.commit();
                 try (DirectoryReader reader = DirectoryReader.open(writer)) {
-                    assertEquals(1, reader.leaves().size());
+                    assertThat(reader.leaves().size()).isEqualTo(1);
                     NumericDocValues extra_source = reader.leaves().get(0).reader().getNumericDocValues("extra_source");
                     assertNotNull(extra_source);
                     for (int i = 0; i < reader.maxDoc(); i++) {
                         Document document = reader.document(i);
                         Set<String> collect = document.getFields().stream().map(IndexableField::name).collect(Collectors.toSet());
-                        assertTrue(collect.contains("source"));
-                        assertTrue(collect.contains("extra_source"));
-                        assertEquals(i, extra_source.nextDoc());
+                        assertThat(collect.contains("source")).isTrue();
+                        assertThat(collect.contains("extra_source")).isTrue();
+                        assertThat(extra_source.nextDoc()).isEqualTo(i);
                     }
-                    assertEquals(DocIdSetIterator.NO_MORE_DOCS, extra_source.nextDoc());
+                    assertThat(extra_source.nextDoc()).isEqualTo(DocIdSetIterator.NO_MORE_DOCS);
                 }
             }
         }

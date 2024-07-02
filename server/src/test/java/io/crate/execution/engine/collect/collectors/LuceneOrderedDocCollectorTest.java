@@ -21,9 +21,7 @@
 
 package io.crate.execution.engine.collect.collectors;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertNull;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -31,16 +29,15 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Function;
+import java.util.function.UnaryOperator;
 import java.util.stream.StreamSupport;
-
-import org.jetbrains.annotations.Nullable;
 
 import org.apache.lucene.analysis.core.KeywordAnalyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
+import org.apache.lucene.document.LongField;
 import org.apache.lucene.document.SortedDocValuesField;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
@@ -65,11 +62,8 @@ import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.common.unit.Fuzziness;
-import org.elasticsearch.index.mapper.KeywordFieldMapper;
-import org.elasticsearch.index.mapper.NumberFieldMapper;
 import org.elasticsearch.index.shard.ShardId;
-import org.hamcrest.Matchers;
-import org.junit.Before;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
@@ -77,6 +71,7 @@ import com.carrotsearch.randomizedtesting.RandomizedTest;
 import io.crate.analyze.OrderBy;
 import io.crate.data.Row;
 import io.crate.data.breaker.RamAccounting;
+import io.crate.execution.dml.StringIndexer;
 import io.crate.execution.engine.distribution.merge.KeyIterable;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
@@ -100,8 +95,6 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         0,
         null
     );
-    private final NumberFieldMapper.NumberType fieldType = NumberFieldMapper.NumberType.LONG;
-    private NumberFieldMapper.NumberFieldType valueFieldType;
 
     private Directory createLuceneIndex() throws IOException {
         Path tmpDir = newTempDir();
@@ -124,7 +117,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
     private void addDocToLucene(IndexWriter w, Long value) throws IOException {
         Document doc = new Document();
         if (value != null) {
-            fieldType.createFields(doc::add, "value", value, true, true, false);
+            doc.add(new LongField("value", value, Field.Store.NO));
         } else {
             // Create a placeholder field
             doc.add(new SortedDocValuesField("null_value", new BytesRef("null")));
@@ -168,10 +161,6 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         return results;
     }
 
-    @Before
-    public void setUp() {
-        valueFieldType = new NumberFieldMapper.NumberFieldType("value", fieldType);
-    }
 
     @Test
     public void testNextPageQueryWithLastCollectedNullValue() {
@@ -195,28 +184,28 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
 
         FieldDoc afterDoc = new FieldDoc(0, 0, new Object[]{2L});
         Long[] result = nextPageQuery(reader, afterDoc, false, false);
-        assertThat(result, is(new Long[]{2L, null, null}));
+        assertThat(result).isEqualTo(new Long[]{2L, null, null});
 
         // reverseOrdering = false, nulls First = false
         // 1  2  null null
         //       ^
         afterDoc = new FieldDoc(0, 0, new Object[]{NullSentinelValues.nullSentinelForScoreDoc(DataTypes.LONG, false, null)});
         result = nextPageQuery(reader, afterDoc, false, false);
-        assertThat(result, is(new Long[]{null, null}));
+        assertThat(result).isEqualTo(new Long[]{null, null});
 
         // reverseOrdering = true, nulls First = false
         // 2  1  null null
         //    ^
         afterDoc = new FieldDoc(0, 0, new Object[]{1L});
         result = nextPageQuery(reader, afterDoc, true, false);
-        assertThat(result, is(new Long[]{1L, null, null}));
+        assertThat(result).isEqualTo(new Long[]{1L, null, null});
 
         // reverseOrdering = true, nulls First = false
         // 2  1  null null
         //       ^
         afterDoc = new FieldDoc(0, 0, new Object[]{NullSentinelValues.nullSentinelForScoreDoc(DataTypes.LONG, true, false)});
         result = nextPageQuery(reader, afterDoc, true, false);
-        assertThat(result, is(new Long[]{null, null}));
+        assertThat(result).isEqualTo(new Long[]{null, null});
 
         reader.close();
     }
@@ -232,28 +221,28 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
 
         FieldDoc afterDoc = new FieldDoc(0, 0, new Object[]{2L});
         Long[] result = nextPageQuery(reader, afterDoc, false, true);
-        assertThat(result, is(new Long[]{2L}));
+        assertThat(result).isEqualTo(new Long[]{2L});
 
         // reverseOrdering = false, nulls First = true
         // null, null, 1, 2
         //       ^
         afterDoc = new FieldDoc(0, 0, new Object[]{NullSentinelValues.nullSentinelForScoreDoc(DataTypes.LONG, false, true)});
         result = nextPageQuery(reader, afterDoc, false, true);
-        assertThat(result, is(new Long[]{null, null, 1L, 2L}));
+        assertThat(result).isEqualTo(new Long[]{null, null, 1L, 2L});
 
         // reverseOrdering = true, nulls First = true
         // null, null, 2, 1
         //                ^
         afterDoc = new FieldDoc(0, 0, new Object[]{1L});
         result = nextPageQuery(reader, afterDoc, true, true);
-        assertThat(result, is(new Long[]{1L}));
+        assertThat(result).isEqualTo(new Long[]{1L});
 
         // reverseOrdering = true, nulls First = true
         // null, null, 2, 1
         //       ^
         afterDoc = new FieldDoc(0, 0, new Object[]{NullSentinelValues.nullSentinelForScoreDoc(DataTypes.LONG, true, true)});
         result = nextPageQuery(reader, afterDoc, true, true);
-        assertThat(result, is(new Long[]{null, null, 2L, 1L}));
+        assertThat(result).isEqualTo(new Long[]{null, null, 2L, 1L});
 
         reader.close();
     }
@@ -278,14 +267,13 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         Query nextPageQuery = queryForSearchAfter.apply(lastCollected);
 
         // returns null which leads to reuse of old query without paging optimization
-        assertNull(nextPageQuery);
+        assertThat(nextPageQuery).isNull();
     }
 
     @Test
     public void testSearchMoreAppliesMinScoreFilter() throws Exception {
         IndexWriter w = new IndexWriter(new ByteBuffersDirectory(), new IndexWriterConfig(new KeywordAnalyzer()));
-        var keywordFieldType = new KeywordFieldMapper.KeywordFieldType("x");
-        var fieldType = KeywordFieldMapper.Defaults.FIELD_TYPE;
+        var fieldType = StringIndexer.FIELD_TYPE;
 
         for (int i = 0; i < 3; i++) {
             addDoc(w, "x", fieldType, "Arthur");
@@ -301,33 +289,32 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         // without minScore filter we get 2 and 2 docs - this is not necessary for the test but is here
         // to make sure the "FuzzyQuery" matches the right documents
         collector = collector(searcher, columnReferences, query, null, true);
-        assertThat(StreamSupport.stream(collector.collect().spliterator(), false).count(), is(2L));
-        assertThat(StreamSupport.stream(collector.collect().spliterator(), false).count(), is(2L));
+        assertThat(StreamSupport.stream(collector.collect().spliterator(), false).count()).isEqualTo(2L);
+        assertThat(StreamSupport.stream(collector.collect().spliterator(), false).count()).isEqualTo(2L);
 
         collector = collector(searcher, columnReferences, query, 0.15f, true);
         int count = 0;
         // initialSearch -> 2 rows
         for (Row row : collector.collect()) {
-            assertThat((float) row.get(0), Matchers.greaterThanOrEqualTo(0.15f));
+            assertThat((float) row.get(0)).isGreaterThanOrEqualTo(0.15f);
             count++;
         }
-        assertThat(count, is(2));
+        assertThat(count).isEqualTo(2);
 
         count = 0;
         // searchMore -> 1 row is below minScore
         for (Row row : collector.collect()) {
-            assertThat((float) row.get(0), Matchers.greaterThanOrEqualTo(0.15f));
+            assertThat((float) row.get(0)).isGreaterThanOrEqualTo(0.15f);
             count++;
         }
-        assertThat(count, is(1));
+        assertThat(count).isEqualTo(1);
     }
 
     @Test
     public void testSearchNoScores() throws Exception {
         IndexWriter w = new IndexWriter(new ByteBuffersDirectory(), new IndexWriterConfig(new KeywordAnalyzer()));
         String name = "x";
-        var keywordFieldType = new KeywordFieldMapper.KeywordFieldType(name);
-        var fieldType = KeywordFieldMapper.Defaults.FIELD_TYPE;
+        var fieldType = StringIndexer.FIELD_TYPE;
 
         for (int i = 0; i < 3; i++) {
             addDoc(w, name, fieldType, "Arthur");
@@ -341,19 +328,19 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         LuceneOrderedDocCollector collector = collector(searcher, columnReferences, query, null, false);
         KeyIterable<ShardId, Row> result = collector.collect();
 
-        assertThat(StreamSupport.stream(result.spliterator(), false).count(), is(2L));
+        assertThat(StreamSupport.stream(result.spliterator(), false).count()).isEqualTo(2L);
 
         Iterator<Row> values = result.iterator();
 
-        assertThat(values.next().get(0), Matchers.is(Float.NaN));
-        assertThat(values.next().get(0), Matchers.is(Float.NaN));
+        assertThat(values.next().get(0)).isEqualTo(Float.NaN);
+        assertThat(values.next().get(0)).isEqualTo(Float.NaN);
     }
 
     @Test
     public void testSearchWithScores() throws Exception {
         IndexWriter w = new IndexWriter(new ByteBuffersDirectory(), new IndexWriterConfig(new KeywordAnalyzer()));
 
-        FieldType fieldType = KeywordFieldMapper.Defaults.FIELD_TYPE;
+        FieldType fieldType = StringIndexer.FIELD_TYPE;
         for (int i = 0; i < 3; i++) {
             addDoc(w, "x", fieldType, "Arthur");
         }
@@ -366,12 +353,12 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
         LuceneOrderedDocCollector collector = collector(searcher, columnReferences, query, null, true);
         KeyIterable<ShardId, Row> result = collector.collect();
 
-        assertThat(StreamSupport.stream(result.spliterator(), false).count(), is(2L));
+        assertThat(StreamSupport.stream(result.spliterator(), false).count()).isEqualTo(2L);
 
         Iterator<Row> values = result.iterator();
 
-        assertThat(values.next().get(0), Matchers.is(1.0F));
-        assertThat(values.next().get(0), Matchers.is(1.0F));
+        assertThat(values.next().get(0)).isEqualTo(1.0F);
+        assertThat(values.next().get(0)).isEqualTo(1.0F);
     }
 
     private static void addDoc(IndexWriter w, String name, FieldType fieldType, String value) throws IOException {
@@ -393,7 +380,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
             doDocScores,
             2,
             RamAccounting.NO_ACCOUNTING,
-            new CollectorContext(Set.of(), Function.identity()),
+            new CollectorContext(Set.of(), UnaryOperator.identity()),
             f -> null,
             new Sort(SortField.FIELD_SCORE),
             columnReferences,

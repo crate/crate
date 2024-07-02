@@ -22,11 +22,12 @@
 package io.crate.planner.operators;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
-import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.OrOperator;
+import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
@@ -57,68 +58,95 @@ public class EquiJoinDetector {
         return isEquiJoin(joinCondition);
     }
 
-    private static boolean isEquiJoin(Symbol joinCondition) {
+    public static boolean isEquiJoin(Symbol joinCondition) {
         assert joinCondition != null : "join condition must not be null on inner joins";
         Context context = new Context();
         joinCondition.accept(VISITOR, context);
         return context.isHashJoinPossible;
     }
 
+    /**
+     * insideEqualOperand is used to mark starting point of the computation of the either sides of equality.
+     *
+     */
     private static class Context {
+        boolean exit = false;
         boolean isHashJoinPossible = false;
-        boolean insideEqOperator = false;
-        Set<RelationName> usedRelationsInsideEqOperatorArgument = new HashSet<>();
+        boolean insideEqualOperand = false;
+        Set<RelationName> relations = new HashSet<>();
     }
 
     private static class Visitor extends SymbolVisitor<Context, Void> {
 
         @Override
         public Void visitFunction(Function function, Context context) {
+            if (context.exit) {
+                return null;
+            }
             String functionName = function.name();
             switch (functionName) {
-                case AndOperator.NAME:
-                    for (Symbol arg : function.arguments()) {
-                        arg.accept(this, context);
-                    }
-                    break;
-                case EqOperator.NAME:
-                    context.isHashJoinPossible = true;
-                    context.insideEqOperator = true;
-                    for (Symbol arg : function.arguments()) {
-                        arg.accept(this, context);
-                        if (context.usedRelationsInsideEqOperatorArgument.size() != 1) {
-                            context.isHashJoinPossible = false;
-                        }
-                        context.usedRelationsInsideEqOperatorArgument = new HashSet<>();
-                    }
-                    break;
-                default:
-                    if (context.insideEqOperator) {
+                case NotPredicate.NAME -> {
+                    if (context.insideEqualOperand) {
+                        // Not a top-level expression but inside EQ operator.
+                        // We need to collect all relations.
                         for (Symbol arg : function.arguments()) {
                             arg.accept(this, context);
                         }
                     } else {
-                        context.isHashJoinPossible = false;
                         return null;
                     }
-                    break;
+                }
+                case OrOperator.NAME -> {
+                    context.isHashJoinPossible = false;
+                    context.exit = true;
+                    return null;
+                }
+                case EqOperator.NAME -> {
+                    List<Symbol> arguments = function.arguments();
+                    var left = arguments.get(0);
+                    var right = arguments.get(1);
+                    if (context.insideEqualOperand) {
+                        // EQ operator inside either side of the top level EQ operator
+                        // We need to re-use the same context to ensure that we keep counting all relations of each JOIN side.
+                        left.accept(this, context);
+                        right.accept(this, context);
+                    } else {
+                        // Top level EQ operator of the JOIN condition.
+                        // There can be nested EQ operators but this is top level equal.
+                        // Start collecting relations for both sides.
+                        var leftContext = new Context();
+                        leftContext.insideEqualOperand = true;
+                        left.accept(this, leftContext);
+
+                        var rightContext = new Context();
+                        rightContext.insideEqualOperand = true;
+                        right.accept(this, rightContext);
+
+                        if (leftContext.relations.size() == 1 &&
+                            rightContext.relations.size() == 1 &&
+                            !leftContext.relations.equals(rightContext.relations)) {
+                            context.isHashJoinPossible = true;
+                        }
+                    }
+                }
+                default -> {
+                    for (Symbol arg : function.arguments()) {
+                        arg.accept(this, context);
+                    }
+                }
             }
             return null;
         }
 
         @Override
         public Void visitField(ScopedSymbol field, Context context) {
-            if (context.insideEqOperator) {
-                context.usedRelationsInsideEqOperatorArgument.add(field.relation());
-            }
+            context.relations.add(field.relation());
             return null;
         }
 
         @Override
         public Void visitReference(Reference ref, Context context) {
-            if (context.insideEqOperator) {
-                context.usedRelationsInsideEqOperatorArgument.add(ref.ident().tableIdent());
-            }
+            context.relations.add(ref.ident().tableIdent());
             return null;
         }
     }

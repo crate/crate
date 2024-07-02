@@ -59,7 +59,7 @@ public class RelationNameTest extends ESTestCase {
     public void testFromIndexNameCreatesCorrectBlobRelationName() {
         RelationName relationName = new RelationName("blob", "foobar");
         String indexName = relationName.indexNameOrAlias();
-        assertThat(BlobIndex.isBlobIndex(indexName)).isEqualTo(true);
+        assertThat(BlobIndex.isBlobIndex(indexName)).isTrue();
         assertThat(RelationName.fromIndexName(indexName)).isEqualTo(relationName);
     }
 
@@ -85,6 +85,16 @@ public class RelationNameTest extends ESTestCase {
         assertThat(RelationName.fqnFromIndexName("my_schema.t1")).isEqualTo("my_schema.t1");
         assertThat(RelationName.fqnFromIndexName(".partitioned.t1.abc")).isEqualTo(Schemas.DOC_SCHEMA_NAME + ".t1");
         assertThat(RelationName.fqnFromIndexName("my_schema..partitioned.t1.abc")).isEqualTo("my_schema.t1");
+    }
+
+    @Test
+    public void test__all_cannot_be_used() throws Exception {
+        // conflicts with `_all` wildcard, causing havoc in some operations ("drop table _all" would delete _all_ tables)
+
+        RelationName relationName = new RelationName("doc", "_all");
+        assertThatThrownBy(() -> relationName.ensureValidForRelationCreation())
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("\"_all\" cannot be used as schema or table name");
     }
 
     @Test

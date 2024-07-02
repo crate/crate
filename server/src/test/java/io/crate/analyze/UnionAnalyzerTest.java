@@ -24,9 +24,8 @@ package io.crate.analyze;
 import static io.crate.testing.Asserts.isField;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.Objects;
@@ -35,6 +34,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.analyze.relations.UnionSelect;
+import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.Asserts;
@@ -48,10 +48,9 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        sqlExecutor = SQLExecutor.builder(clusterService)
+        sqlExecutor = SQLExecutor.of(clusterService)
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .addTable(TableDefinitions.USER_TABLE_MULTI_PK_DEFINITION)
-            .build();
+            .addTable(TableDefinitions.USER_TABLE_MULTI_PK_DEFINITION);
     }
 
     private <T extends AnalyzedStatement> T analyze(String statement) {
@@ -70,11 +69,11 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             .satisfiesExactly(isField("id"), isField("text"));
         Asserts.assertThat(relation.limit()).isLiteral(10L);
         Asserts.assertThat(relation.offset()).isLiteral(20L);
-        assertThat(relation.isDistinct(), is(false));
+        assertThat(relation.isDistinct()).isFalse();
 
         UnionSelect tableUnion = ((UnionSelect) relation.from().get(0));
-        assertThat(tableUnion.left(), instanceOf(QueriedSelectRelation.class));
-        assertThat(tableUnion.right(), instanceOf(QueriedSelectRelation.class));
+        assertThat(tableUnion.left()).isExactlyInstanceOf(QueriedSelectRelation.class);
+        assertThat(tableUnion.right()).isExactlyInstanceOf(QueriedSelectRelation.class);
         Asserts.assertThat(tableUnion.outputs()).satisfiesExactly(isField("id"), isField("text"));
         Asserts.assertThat(tableUnion.left().outputs()).satisfiesExactly(isReference("id"), isReference("text"));
         Asserts.assertThat(tableUnion.right().outputs()).satisfiesExactly(isReference("id"), isReference("name"));
@@ -95,55 +94,55 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             .satisfiesExactly(isField("text"));
         Asserts.assertThat(relation.limit()).isLiteral(10L);
         Asserts.assertThat(relation.offset()).isLiteral(20L);
-        assertThat(relation.isDistinct(), is(false));
+        assertThat(relation.isDistinct()).isFalse();
 
         UnionSelect tableUnion1 = ((UnionSelect) relation.from().get(0));
-        assertThat(tableUnion1.left(), instanceOf(UnionSelect.class));
-        assertThat(tableUnion1.right(), instanceOf(QueriedSelectRelation.class));
+        assertThat(tableUnion1.left()).isExactlyInstanceOf(UnionSelect.class);
+        assertThat(tableUnion1.right()).isExactlyInstanceOf(QueriedSelectRelation.class);
         Asserts.assertThat(tableUnion1.outputs()).satisfiesExactly(isField("id"), isField("text"));
         Asserts.assertThat(tableUnion1.right().outputs()).satisfiesExactly(isReference("id"), isReference("name"));
 
         UnionSelect tableUnion2 = (UnionSelect) tableUnion1.left();
         Asserts.assertThat(tableUnion2.outputs()).satisfiesExactly(isField("id"), isField("text"));
 
-        assertThat(tableUnion2.left(), instanceOf(QueriedSelectRelation.class));
+        assertThat(tableUnion2.left()).isExactlyInstanceOf(QueriedSelectRelation.class);
         Asserts.assertThat(tableUnion2.left().outputs()).satisfiesExactly(isField("id"), isField("text"));
 
-        assertThat(tableUnion2.right(), instanceOf(QueriedSelectRelation.class));
+        assertThat(tableUnion2.right()).isExactlyInstanceOf(QueriedSelectRelation.class);
         Asserts.assertThat(tableUnion2.right().outputs()).satisfiesExactly(isReference("id"), isReference("name"));
     }
 
     @Test
     public void testUnionDistinct() throws Exception {
-        SQLExecutor.builder(clusterService)
-            .addTable(
-                "create table x (a text)"
-            ).build();
+        SQLExecutor.of(clusterService)
+            .addTable("create table x (a text)");
 
         UnionSelect unionSelect = analyze("select a from x union select a from x");
-        assertThat(unionSelect.isDistinct(), is(true));
+        assertThat(unionSelect.isDistinct()).isTrue();
 
         unionSelect = analyze("select a from x union distinct select a from x");
-        assertThat(unionSelect.isDistinct(), is(true));
+        assertThat(unionSelect.isDistinct()).isTrue();
     }
 
     @Test
     public void testUnionDifferentNumberOfOutputs() {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Number of output columns must be the same for all parts of a UNION");
-        analyze("select 1, 2 from users " +
+        assertThatThrownBy(() -> analyze(
+                "select 1, 2 from users " +
                 "union all " +
-                "select 3 from users_multi_pk");
+                "select 3 from users_multi_pk"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Number of output columns must be the same for all parts of a UNION");
     }
 
     @Test
     public void testUnionDifferentTypesOfOutputs() {
-        expectedException.expect(UnsupportedOperationException.class);
-        expectedException.expectMessage("Output columns at position 2 " +
-                                        "must be compatible for all parts of a UNION. Got `integer` and `object_array`");
-        analyze("select 1, 2 from users " +
+        assertThatThrownBy(() -> analyze(
+                "select 1, 2 from users " +
                 "union all " +
-                "select 3, friends from users_multi_pk");
+                "select 3, friends from users_multi_pk"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Output columns at position 2 " +
+                        "must be compatible for all parts of a UNION. Got `integer` and `object_array`");
     }
 
     @Test
@@ -168,33 +167,31 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testUnionOrderByRefersToColumnFromRightTable() {
-        expectedException.expect(ColumnUnknownException.class);
-        expectedException.expectMessage("Column name unknown");
-        analyze("select id, text from users " +
+        assertThatThrownBy(() -> analyze(
+                "select id, text from users " +
                 "union all " +
                 "select id, name from users_multi_pk " +
-                "order by name");
+                "order by name"))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column name unknown");
     }
 
     @Test
     public void testUnionOrderByColumnRefersToOriginalColumn() {
-        expectedException.expect(ColumnUnknownException.class);
-        expectedException.expectMessage("Column id unknown");
-        analyze("select id + 10, text from users " +
+        assertThatThrownBy(() -> analyze(
+                "select id + 10, text from users " +
                 "union all " +
                 "select id, name from users_multi_pk " +
-                "order by id");
+                "order by id"))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column id unknown");
     }
 
     @Test
     public void testUnionObjectTypesWithSubColumnsOfSameNameButDifferentInnerTypes() throws Exception {
-        SQLExecutor.builder(clusterService)
-            .addTable(
-                "create table v1 (obj object as (col int))"
-            )
-            .addTable(
-                "create table v2 (obj object as (col text))"
-            ).build();
+        SQLExecutor.of(clusterService)
+            .addTable("create table v1 (obj object as (col int))")
+            .addTable("create table v2 (obj object as (col text))");
 
         UnionSelect union = analyze("select obj from v1 union all select obj from v2");
         ObjectType expectedType = ObjectType.builder().setInnerType("col", DataTypes.INTEGER).build();
@@ -205,13 +202,9 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_union_merging_sub_columns_for_object_types() throws Exception {
-        SQLExecutor.builder(clusterService)
-            .addTable(
-                "create table v1 (obj object as (col1 int, col2 text))"
-            )
-            .addTable(
-                "create table v2 (obj object as (col1 text, col2 int))"
-            ).build();
+        SQLExecutor.of(clusterService)
+            .addTable("create table v1 (obj object as (col1 int, col2 text))")
+            .addTable("create table v2 (obj object as (col1 text, col2 int))");
 
         UnionSelect union = analyze("select obj from v1 union all select obj from v2");
         ObjectType expectedType = ObjectType.builder()
@@ -225,15 +218,19 @@ public class UnionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testUnionObjectTypesWithSubColumnsOfDifferentNames() throws Exception {
-        SQLExecutor.builder(clusterService)
-            .addTable(
-                "create table v1 (obj object as (obj1 object as (col text)))"
-            )
-            .addTable(
-                "create table v2 (obj object as (obj2 object as (col text)))"
-            ).build();
+        SQLExecutor.of(clusterService)
+            .addTable("create table v1 (obj object as (obj1 object as (col text)))")
+            .addTable("create table v2 (obj object as (obj2 object as (col text)))");
 
         UnionSelect unionSelect = analyze("select obj from v1 union all select obj from v2");
         Asserts.assertThat(unionSelect.outputs().get(0)).isField("obj");
+    }
+
+    @Test
+    public void test_union_containing_duplicates_in_outputs_list_may_throw_AmbiguousColumnException() throws IOException {
+        SQLExecutor.of(clusterService).addTable("create table t (a int, b int)");
+        assertThatThrownBy(() -> analyze("select a from (select a, b as a from t union select 1, 1) t2"))
+            .isExactlyInstanceOf(AmbiguousColumnException.class)
+            .hasMessage("Column \"a\" is ambiguous");
     }
 }

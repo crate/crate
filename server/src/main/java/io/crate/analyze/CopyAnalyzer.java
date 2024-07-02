@@ -27,7 +27,7 @@ import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.analyze.relations.NameFieldProvider;
 import io.crate.analyze.relations.TableRelation;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -35,8 +35,8 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.Operation;
-import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.CopyFrom;
 import io.crate.sql.tree.CopyTo;
 import io.crate.sql.tree.Expression;
@@ -56,13 +56,14 @@ class CopyAnalyzer {
     AnalyzedCopyFrom analyzeCopyFrom(CopyFrom<Expression> node,
                                      ParamTypeHints paramTypeHints,
                                      CoordinatorTxnCtx txnCtx) {
-        DocTableInfo tableInfo = (DocTableInfo) schemas.resolveTableInfo(
+        CoordinatorSessionSettings sessionSettings = txnCtx.sessionSettings();
+        DocTableInfo tableInfo = schemas.findRelation(
             node.table().getName(),
             Operation.INSERT,
-            txnCtx.sessionSettings().sessionUser(),
-            txnCtx.sessionSettings().searchPath());
-
-        var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionSettings());
+            sessionSettings.sessionUser(),
+            sessionSettings.searchPath()
+        );
+        var exprCtx = new ExpressionAnalysisContext(sessionSettings);
 
         var exprAnalyzerWithoutFields = new ExpressionAnalyzer(
             txnCtx, nodeCtx, paramTypeHints, FieldProvider.UNSUPPORTED, null);
@@ -73,7 +74,8 @@ class CopyAnalyzer {
             nodeCtx,
             RowGranularity.CLUSTER,
             null,
-            new TableRelation(tableInfo));
+            new TableRelation(tableInfo),
+            f -> f.signature().isDeterministic());
 
         Table<Symbol> table = node.table().map(t -> exprAnalyzerWithFieldsAsString.convert(t, exprCtx));
         GenericProperties<Symbol> properties = node.properties().map(t -> exprAnalyzerWithoutFields.convert(t,
@@ -104,19 +106,21 @@ class CopyAnalyzer {
             throw new UnsupportedOperationException("Using COPY TO without specifying a DIRECTORY is not supported");
         }
 
-        TableInfo tableInfo = schemas.resolveTableInfo(
+        DocTableInfo tableInfo = schemas.findRelation(
             node.table().getName(),
             Operation.COPY_TO,
             txnCtx.sessionSettings().sessionUser(),
-            txnCtx.sessionSettings().searchPath());
+            txnCtx.sessionSettings().searchPath()
+        );
         Operation.blockedRaiseException(tableInfo, Operation.READ);
-        DocTableRelation tableRelation = new DocTableRelation((DocTableInfo) tableInfo);
+        DocTableRelation tableRelation = new DocTableRelation(tableInfo);
 
         EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
             nodeCtx,
             RowGranularity.CLUSTER,
             null,
-            tableRelation);
+            tableRelation,
+            f -> f.signature().isDeterministic());
 
         var exprCtx = new ExpressionAnalysisContext(txnCtx.sessionSettings());
         var expressionAnalyzer = new ExpressionAnalyzer(
@@ -135,7 +139,7 @@ class CopyAnalyzer {
         var uri = expressionAnalyzer.convert(node.targetUri(), exprCtx);
         var table = node.table().map(x -> exprAnalyzerWithFieldsAsString.convert(x, exprCtx));
         var properties = node.properties().map(x -> expressionAnalyzer.convert(x, exprCtx));
-        var columns = Lists2.map(
+        var columns = Lists.map(
             node.columns(),
             c -> normalizer.normalize(expressionAnalyzer.convert(c, exprCtx), txnCtx));
         var whereClause = node.whereClause().map(

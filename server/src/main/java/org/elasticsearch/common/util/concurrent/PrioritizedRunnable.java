@@ -19,30 +19,18 @@
 
 package org.elasticsearch.common.util.concurrent;
 
-import org.elasticsearch.common.Priority;
-
 import java.util.concurrent.TimeUnit;
-import java.util.function.LongSupplier;
+
+import org.elasticsearch.common.Priority;
 
 public abstract class PrioritizedRunnable implements Runnable, Comparable<PrioritizedRunnable> {
 
     private final Priority priority;
     private final long creationDate;
-    private final LongSupplier relativeTimeProvider;
-
-    public static PrioritizedRunnable wrap(Runnable runnable, Priority priority) {
-        return new Wrapped(runnable, priority);
-    }
 
     protected PrioritizedRunnable(Priority priority) {
-        this(priority, System::nanoTime);
-    }
-
-    // package visible for testing
-    PrioritizedRunnable(Priority priority, LongSupplier relativeTimeProvider) {
         this.priority = priority;
-        this.creationDate = relativeTimeProvider.getAsLong();
-        this.relativeTimeProvider = relativeTimeProvider;
+        this.creationDate = System.nanoTime();
     }
 
     public long getCreationDateInNanos() {
@@ -58,7 +46,7 @@ public abstract class PrioritizedRunnable implements Runnable, Comparable<Priori
      * @return the age in milliseconds calculated
      */
     public long getAgeInMillis() {
-        return TimeUnit.MILLISECONDS.convert(relativeTimeProvider.getAsLong() - creationDate, TimeUnit.NANOSECONDS);
+        return TimeUnit.MILLISECONDS.convert(System.nanoTime() - creationDate, TimeUnit.NANOSECONDS);
     }
 
     @Override
@@ -68,20 +56,5 @@ public abstract class PrioritizedRunnable implements Runnable, Comparable<Priori
 
     public Priority priority() {
         return priority;
-    }
-
-    static class Wrapped extends PrioritizedRunnable {
-
-        private final Runnable runnable;
-
-        private Wrapped(Runnable runnable, Priority priority) {
-            super(priority);
-            this.runnable = runnable;
-        }
-
-        @Override
-        public void run() {
-            runnable.run();
-        }
     }
 }

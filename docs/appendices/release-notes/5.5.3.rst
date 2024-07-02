@@ -1,0 +1,119 @@
+.. _version_5.5.3:
+
+=============
+Version 5.5.3
+=============
+
+Released on 2024-01-17.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 5.5.3.
+
+    We recommend that you upgrade to the latest 5.4 release before moving to
+    5.5.3.
+
+    A rolling upgrade from 5.4.x to 5.5.3 is supported.
+    Before upgrading, you should `back up your data`_.
+
+.. WARNING::
+
+    Tables that were created before CrateDB 4.x will not function with 5.x
+    and must be recreated before moving to 5.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+.. rubric:: Table of contents
+
+.. contents::
+   :local:
+
+
+See the :ref:`version_5.5.0` release notes for a full list of changes in the
+5.5 series.
+
+
+Fixes
+=====
+
+- Fixed an issue, that led to no results being returned when trying to filter on
+  a :ref:`PRIMARY KEY <constraints-primary-key>` column with an implicit cast.
+  For example::
+
+    CREATE TABLE tbl(a string PRIMARY KEY);
+    SELECT * FROM tbl WHERE a = 10;
+
+- Rejected :ref:`renaming <sql-alter-table-rename-to>` of views and tables if
+  the target table or view already exists, and return an error message.
+  Previously, such a rename was allowed which caused the existing view or table
+  to be lost.
+
+- Fixed a regression introduced in 4.2.0 that caused queries with ``UNNEST``
+  with a single nested array as parameter to fail with a
+  ``ClassCastException``. For example::
+
+    SELECT x FROM unnest([[1, 2], [3]]) as t (x);
+
+- Fixed an issue that could cause subscript expressions to raise a
+  ``ColumnUnknownException`` error despite the object having a defined schema.
+  An example case where this happened is::
+
+    CREATE TABLE tbl (obj ARRAY(OBJECT(STRICT) AS (x INT)));
+    INSERT INTO tbl VALUES ([{}]);
+    SELECT unnest(obj)['x'] FROM tbl;
+
+  There were two workarounds for this:
+
+  - Using ``SELECT unnest(obj['x']) FROM tbl``
+  - Disable errors on unknown object keys via ``set error_on_unknown_object_key = false;``
+
+- Fixed a regression introduced in 5.5.0 which caused subscript expressions on
+  object arrays to fail in some cases. For example, the following case failed
+  with a ``ClassCastException``::
+
+    CREATE TABLE tbl (obj ARRAY(OBJECT(STRICT) AS (x BIGINT)));
+    INSERT INTO tbl VALUES ([{x = 1}]);
+    SELECT unnest(obj)['x'] FROM tbl;
+
+- Fixed an issue that caused ``UPDATE`` and ``DELETE`` statements to match
+  records if the ``WHERE`` clause contained an equality condition on all primary
+  keys, and it included an additional clause in an ``AND`` that should have
+  evaluated to ``FALSE``.
+
+- Fixed a regression introduced in 5.3.0 that caused storing an object as
+  ``NULL`` if object had generated sub-columns and the object column wasn't
+  part of the ``INSERT`` targets. An object with generated sub-columns is
+  stored now.
+
+- Fixed a regression introduced in 5.3.0 that caused failure for ``INSERT``
+  statements if a target table had 1 or more replicas, an object column with
+  non-deterministic generated or default sub-column and the object column
+  wasn't part of the ``INSERT`` targets.
+
+- Fixed a performance regression introduced in 5.5.0 for aggregations on columns
+  with the column store disabled.
+
+- Fixed a regression introduced in 5.3.0 that caused replication failure
+  leading to an unstable cluster when ``INSERT... ON CONFLICT... UPDATE SET``
+  was run on a table with non-deterministic column and some of table's columns
+  weren't part of the ``INSERT`` targets.
+  An example case where this happened is::
+
+    CREATE TABLE tbl (
+        id INT PRIMARY KEY,
+        a INT,
+        b TEXT,
+        modification_date TIMESTAMP AS current_timestamp
+    )
+    INSERT INTO tbl (id, a) VALUES (1, 2) ON CONFLICT (id) DO UPDATE SET a = 3;
+
+- Fixed an issue that caused joins with the join conditions that referred to
+  columns from a single table only from returning invalid results. i.e.::
+
+    SELECT * FROM t1 INNER JOIN t2 ON t1.col = t1.col;
+

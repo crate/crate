@@ -31,30 +31,41 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.exceptions.MissingPrivilegeException;
+import io.crate.exceptions.RoleUnknownException;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
+import io.crate.role.Permission;
+import io.crate.role.Policy;
+import io.crate.role.Privilege;
+import io.crate.role.Role;
+import io.crate.role.Securable;
+import io.crate.role.metadata.RolesHelper;
 import io.crate.testing.Asserts;
 import io.crate.testing.SqlExpressions;
-import io.crate.user.Privilege;
-import io.crate.user.User;
 
 public class HasSchemaPrivilegeFunctionTest extends ScalarTestCase {
 
-    private static final User TEST_USER = User.of("test");
-    private static final User TEST_USER_WITH_AL_ON_CLUSTER =
-        User.of("testUserWithClusterAL",
-                Set.of(new Privilege(Privilege.State.GRANT, Privilege.Type.AL, Privilege.Clazz.CLUSTER, "crate", User.CRATE_USER.name())),
-                null);
-    private static final User TEST_USER_WITH_DQL_ON_SYS =
-        User.of("testUserWithSysDQL",
-                Set.of(new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.TABLE, "sys.privileges", User.CRATE_USER.name())),
-                null);
+    private static final Role TEST_USER = RolesHelper.userOf("test");
+    private static final Role TEST_USER_WITH_AL_ON_CLUSTER =
+        RolesHelper.userOf("testUserWithClusterAL", Set.of(
+            new Privilege(Policy.GRANT, Permission.AL, Securable.CLUSTER, "crate", Role.CRATE_USER.name())),
+            null);
+    private static final Role TEST_USER_WITH_DQL_ON_SYS =
+        RolesHelper.userOf("testUserWithSysDQL", Set.of(
+            new Privilege(Policy.GRANT, Permission.DQL, Securable.TABLE, "sys.privileges", Role.CRATE_USER.name())),
+            null);
 
     @Before
     public void prepare() {
         sqlExpressions = new SqlExpressions(
-            tableSources, null, randomFrom(TEST_USER_WITH_AL_ON_CLUSTER, TEST_USER_WITH_DQL_ON_SYS, User.CRATE_USER), List.of(TEST_USER));
+            tableSources, null, randomFrom(TEST_USER_WITH_AL_ON_CLUSTER, TEST_USER_WITH_DQL_ON_SYS, Role.CRATE_USER), List.of(TEST_USER), null);
+    }
+
+    @Test
+    public void test_function_registered_under_pg_catalog() {
+        sqlExpressions = new SqlExpressions(tableSources, null, Role.CRATE_USER);
+        assertEvaluate("pg_catalog.has_schema_privilege('crate', 'sys', 'USAGE')", true);
     }
 
     @Test
@@ -79,8 +90,8 @@ public class HasSchemaPrivilegeFunctionTest extends ScalarTestCase {
     public void test_throws_error_when_user_is_not_found() {
         assertThatThrownBy(
             () -> assertEvaluate("has_schema_privilege('not_existing_user', 'pg_catalog', ' USAGE')", null))
-            .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("User not_existing_user does not exist");
+            .isExactlyInstanceOf(RoleUnknownException.class)
+            .hasMessage("Role 'not_existing_user' does not exist");
     }
 
     @Test
@@ -88,16 +99,16 @@ public class HasSchemaPrivilegeFunctionTest extends ScalarTestCase {
         assertThatThrownBy(
             () -> assertEvaluate("has_schema_privilege('test', 'pg_catalog', ' USAGE, CREATE, SELECT')", null))
             .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Unrecognized privilege type: select");
+            .hasMessage("Unrecognized permission: select");
         assertThatThrownBy(
             () -> assertEvaluate("has_schema_privilege('test', 'pg_catalog', '')", null))
             .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("Unrecognized privilege type: ");
+            .hasMessage("Unrecognized permission: ");
     }
 
     @Test
     public void test_throws_error_when_user_without_related_privileges_is_checking_for_other_user() {
-        sqlExpressions = new SqlExpressions(tableSources, null, TEST_USER, List.of(TEST_USER_WITH_AL_ON_CLUSTER));
+        sqlExpressions = new SqlExpressions(tableSources, null, TEST_USER, List.of(TEST_USER_WITH_AL_ON_CLUSTER), null);
         assertThatThrownBy(
             () -> assertEvaluate("has_schema_privilege('testUserWithClusterAL', 'pg_catalog', ' USAGE, CREATE, SELECT')", null))
             .isExactlyInstanceOf(MissingPrivilegeException.class)
@@ -106,7 +117,7 @@ public class HasSchemaPrivilegeFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_throws_error_when_user_without_related_privileges_is_checking_for_other_user_for_compiled() {
-        sqlExpressions = new SqlExpressions(tableSources, null, TEST_USER, List.of(TEST_USER_WITH_AL_ON_CLUSTER));
+        sqlExpressions = new SqlExpressions(tableSources, null, TEST_USER, List.of(TEST_USER_WITH_AL_ON_CLUSTER), null);
         assertThatThrownBy(
             () -> assertCompile("has_schema_privilege('testUserWithClusterAL', name, 'USAGE')",
                                 TEST_USER, () -> List.of(TEST_USER, TEST_USER_WITH_AL_ON_CLUSTER),
@@ -123,8 +134,8 @@ public class HasSchemaPrivilegeFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_user_with_DQL_permission_has_USAGE_but_not_CREATE_privilege_for_regular_schema() {
-        Privilege usage = new Privilege(Privilege.State.GRANT, Privilege.Type.DQL, Privilege.Clazz.SCHEMA, "doc", "crate");
-        var user = User.of("test", Set.of(usage), null);
+        Privilege usage = new Privilege(Policy.GRANT, Permission.DQL, Securable.SCHEMA, "doc", "crate");
+        var user = RolesHelper.userOf("test", Set.of(usage), null);
         sqlExpressions = new SqlExpressions(tableSources, null, user);
         assertEvaluate("has_schema_privilege('test', 'doc', 'USAGE')", true);
         assertEvaluate("has_schema_privilege('test', 'doc', 'create, USAGE, CREATE')", true); // true if has at least one privilege
@@ -139,8 +150,8 @@ public class HasSchemaPrivilegeFunctionTest extends ScalarTestCase {
     @Test
     public void test_user_with_DDL_permission_has_CREATE_but_not_USAGE_privilege_for_regular_schema() {
         // having CREATE doesn't mean having USAGE - checked in PG13 as well.
-        Privilege create = new Privilege(Privilege.State.GRANT, Privilege.Type.DDL, Privilege.Clazz.SCHEMA, "doc", "crate");
-        var user = User.of("test", Set.of(create), null);
+        Privilege create = new Privilege(Policy.GRANT, Permission.DDL, Securable.SCHEMA, "doc", "crate");
+        var user = RolesHelper.userOf("test", Set.of(create), null);
         sqlExpressions = new SqlExpressions(tableSources, null, user);
         assertEvaluate("has_schema_privilege('test', 'doc', 'USAGE')", false);
         assertEvaluate("has_schema_privilege('test', 'doc', 'USAGE, CREATE')", true); // true if has at least one privilege
@@ -183,5 +194,32 @@ public class HasSchemaPrivilegeFunctionTest extends ScalarTestCase {
         sqlExpressions = new SqlExpressions(tableSources, null, TEST_USER);
         assertEvaluate("has_schema_privilege('doc', 'USAGE')", false);
         assertEvaluate("has_schema_privilege(" + schemaOid + ", 'USAGE')", false);
+    }
+
+    @Test
+    public void test_unknown_schemas_with_different_privilege_classes() {
+        // super user sees true for unknown schemas
+        sqlExpressions = new SqlExpressions(tableSources, null, Role.CRATE_USER);
+        assertEvaluate("has_schema_privilege('unknown_schema', 'USAGE')", true);
+        assertEvaluate("has_schema_privilege(" + -1 + ", 'USAGE')", true);
+
+        // a user with cluster dql sees true for unknown schemas
+        Privilege create = new Privilege(Policy.GRANT, Permission.DQL, Securable.CLUSTER, null, "crate");
+        var user = RolesHelper.userOf("test", Set.of(create), null);
+        sqlExpressions = new SqlExpressions(tableSources, null, user);
+        assertEvaluate("has_schema_privilege('unknown_schema', 'USAGE')", true);
+        assertEvaluate("has_schema_privilege(" + -1 + ", 'USAGE')", true);
+
+        // a user with cluster ddl(NOT dql) sees false for unknown schemas
+        Privilege create2 = new Privilege(Policy.GRANT, Permission.DDL, Securable.CLUSTER, null, "crate");
+        var user2 = RolesHelper.userOf("test", Set.of(create2), null);
+        sqlExpressions = new SqlExpressions(tableSources, null, user2);
+        assertEvaluate("has_schema_privilege('unknown_schema', 'USAGE')", false);
+        assertEvaluate("has_schema_privilege(" + -1 + ", 'USAGE')", false);
+
+        // sees a false otherwise
+        sqlExpressions = new SqlExpressions(tableSources, null, TEST_USER);
+        assertEvaluate("has_schema_privilege('unknown_schema', 'USAGE')", false);
+        assertEvaluate("has_schema_privilege(" + -1 + ", 'USAGE')", false);
     }
 }

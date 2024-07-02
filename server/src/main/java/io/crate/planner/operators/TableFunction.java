@@ -22,9 +22,9 @@
 package io.crate.planner.operators;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.SequencedCollection;
 import java.util.Set;
 
 import org.jetbrains.annotations.Nullable;
@@ -32,9 +32,8 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.WhereClause;
-import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.TableFunctionRelation;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.TableFunctionCollectPhase;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
@@ -108,7 +107,7 @@ public final class TableFunction implements LogicalPlan {
             plannerContext.handlerNode(),
             relation.functionImplementation(),
             functionArguments,
-            Lists2.map(toCollect, binder),
+            Lists.map(toCollect, binder),
             binder.apply(where.queryOrFallback())
         );
         return new Collect(collectPhase, LimitAndOffset.NO_LIMIT, 0, toCollect.size(), LimitAndOffset.NO_LIMIT, null);
@@ -120,12 +119,7 @@ public final class TableFunction implements LogicalPlan {
     }
 
     @Override
-    public List<AbstractTableRelation<?>> baseTables() {
-        return List.of();
-    }
-
-    @Override
-    public List<RelationName> getRelationNames() {
+    public List<RelationName> relationNames() {
         return List.of(relation.relationName());
     }
 
@@ -141,7 +135,7 @@ public final class TableFunction implements LogicalPlan {
     }
 
     @Override
-    public LogicalPlan pruneOutputsExcept(Collection<Symbol> outputsToKeep) {
+    public LogicalPlan pruneOutputsExcept(SequencedCollection<Symbol> outputsToKeep) {
         if (outputsToKeep.containsAll(toCollect)) {
             return this;
         }
@@ -164,7 +158,7 @@ public final class TableFunction implements LogicalPlan {
             .text("TableFunction[")
             .text(relation.function().name())
             .text(" | [")
-            .text(Lists2.joinOn(", ", toCollect, Symbol::toString))
+            .text(Lists.joinOn(", ", toCollect, Symbol::toString))
             .text("] | ")
             .text(where.queryOrFallback().toString())
             .text("]");

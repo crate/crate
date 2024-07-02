@@ -29,10 +29,8 @@ import static org.elasticsearch.cluster.metadata.MetadataCreateIndexService.vali
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ResourceAlreadyExistsException;
@@ -48,7 +46,6 @@ import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.ack.ClusterStateUpdateResponse;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
@@ -59,35 +56,24 @@ import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.common.ValidationException;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.DeprecationHandler;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
-import org.elasticsearch.common.xcontent.XContentParser;
-import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.mapper.DocumentMapper;
-import org.elasticsearch.index.mapper.MapperParsingException;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.ShardLimitValidator;
 import org.elasticsearch.indices.cluster.IndicesClusterStateService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Iterables;
 import io.crate.metadata.PartitionName;
-import io.crate.server.xcontent.XContentHelper;
-
-import org.jetbrains.annotations.Nullable;
 
 
 /**
@@ -106,7 +92,6 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
 
     private final IndicesService indicesService;
     private final AllocationService allocationService;
-    private final NamedXContentRegistry xContentRegistry;
     private final ActiveShardsObserver activeShardsObserver;
     private final ShardLimitValidator shardLimitValidator;
     private final ClusterStateTaskExecutor<CreatePartitionsRequest> executor = (currentState, tasks) -> {
@@ -128,12 +113,10 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
                                            ThreadPool threadPool,
                                            IndicesService indicesService,
                                            AllocationService allocationService,
-                                           NamedXContentRegistry xContentRegistry,
                                            ShardLimitValidator shardLimitValidator) {
         super(CreatePartitionsAction.NAME, transportService, clusterService, threadPool, CreatePartitionsRequest::new);
         this.indicesService = indicesService;
         this.allocationService = allocationService;
-        this.xContentRegistry = xContentRegistry;
         this.activeShardsObserver = new ActiveShardsObserver(clusterService);
         this.shardLimitValidator = shardLimitValidator;
     }
@@ -170,8 +153,8 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
                                          "enough shards to be started. Timeout={}, wait_for_active_shards={}. " +
                                          "Consider decreasing the 'number_of_shards' table setting (currently: {}) or adding nodes to the cluster.",
                                 request.indices(), request.timeout(),
-                                SETTING_WAIT_FOR_ACTIVE_SHARDS.get(templateMetadata.getSettings()),
-                                INDEX_NUMBER_OF_SHARDS_SETTING.get(templateMetadata.getSettings()));
+                                SETTING_WAIT_FOR_ACTIVE_SHARDS.get(templateMetadata.settings()),
+                                INDEX_NUMBER_OF_SHARDS_SETTING.get(templateMetadata.settings()));
                         }
                         listener.onResponse(new AcknowledgedResponse(response.isAcknowledged()));
                     }, listener::onFailure);
@@ -197,20 +180,14 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
                 return currentState;
             }
 
-            Map<String, Object> mapping = new HashMap<>();
-            Map<String, AliasMetadata> templatesAliases = new HashMap<>();
-            List<String> templateNames = new ArrayList<>();
-
-
             // We always have only 1 matching template per pattern/table.
             // All indices in the request are related to a concrete partitioned table and
             // they all match the same template. Thus, we can use any of them to find matching template.
             String firstIndex = indicesToCreate.get(0);
+            String templateName = PartitionName.templateName(firstIndex);
 
-            IndexTemplateMetadata template = currentState.metadata().templates().get(PartitionName.templateName(firstIndex));
-            if (template != null) {
-                applyTemplate(mapping, templatesAliases, templateNames, template);
-            } else {
+            IndexTemplateMetadata template = currentState.metadata().templates().get(templateName);
+            if (template == null) {
                 // Normally should be impossible, as it would mean that we are inserting into a partitioned table without template,
                 // i.e inserting after CREATE TABLE failed
                 throw new IllegalStateException(String.format(Locale.ENGLISH, "Cannot find a template for partitioned table's index %s", firstIndex));
@@ -219,7 +196,17 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
             // Use only first index to validate that index can be created.
             // All indices share same template/settings so no need to repeat validation for each index.
             Settings commonIndexSettings = createCommonIndexSettings(currentState, template);
-            shardLimitValidator.validateShardLimit(commonIndexSettings, currentState);
+
+            final int numberOfShards = INDEX_NUMBER_OF_SHARDS_SETTING.get(commonIndexSettings);
+            final int numberOfReplicas = IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(commonIndexSettings);
+            // Shard limit check has to take to account all new partitions.
+            final int numShardsToCreate = numberOfShards * (1 + numberOfReplicas) * indicesToCreate.size();
+            shardLimitValidator.checkShardLimit(numShardsToCreate, currentState)
+                .ifPresent(err -> {
+                    final ValidationException e = new ValidationException();
+                    e.addValidationError(err);
+                    throw e;
+                });
             int routingNumShards = IndexMetadata.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING.get(commonIndexSettings);
             IndexMetadata.Builder tmpImdBuilder = IndexMetadata.builder(firstIndex)
                 .setRoutingNumShards(routingNumShards);
@@ -238,19 +225,9 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
             IndexService indexService = indicesService.createIndex(tmpImd, Collections.emptyList(), false);
             testIndex = indexService.index();
 
-            // now add the mappings
-            MapperService mapperService = indexService.mapperService();
-            if (!mapping.isEmpty()) {
-                try {
-                    mapperService.merge(mapping, MapperService.MergeReason.MAPPING_UPDATE);
-                } catch (MapperParsingException mpe) {
-                    removalReason = "failed on parsing default mapping on index creation";
-                    throw mpe;
-                }
-            }
-
             // "Probe" creation of the first index passed validation. Now add all indices to the cluster state metadata and update routing.
             Metadata.Builder newMetadataBuilder = Metadata.builder(currentState.metadata());
+            MappingMetadata mappingMetadata = new MappingMetadata(template.mapping());
             for (String index : indicesToCreate) {
                 final IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(index)
                     .setRoutingNumShards(routingNumShards)
@@ -259,13 +236,9 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
                         .put(IndexMetadata.SETTING_INDEX_UUID, UUIDs.randomBase64UUID())
                     );
 
-                DocumentMapper mapper = mapperService.documentMapper();
-                if (mapper != null) {
-                    indexMetadataBuilder.putMapping(new MappingMetadata(mapper));
-                }
-
-                for (AliasMetadata aliasMetadata : templatesAliases.values()) {
-                    indexMetadataBuilder.putAlias(aliasMetadata);
+                indexMetadataBuilder.putMapping(mappingMetadata);
+                for (var aliasCursor : template.aliases().values()) {
+                    indexMetadataBuilder.putAlias(aliasCursor.value);
                 }
                 indexMetadataBuilder.state(IndexMetadata.State.OPEN);
 
@@ -277,8 +250,8 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
                     throw e;
                 }
 
-                logger.info("[{}] creating index, cause [bulk], templates {}, shards [{}]/[{}]",
-                    index, templateNames, indexMetadata.getNumberOfShards(), indexMetadata.getNumberOfReplicas());
+                logger.info("[{}] creating index, cause [bulk], template {}, shards [{}]/[{}]",
+                    index, templateName, indexMetadata.getNumberOfShards(), indexMetadata.getNumberOfReplicas());
 
                 indexService.getIndexEventListener().beforeIndexAddedToCluster(
                     indexMetadata.getIndex(), indexMetadata.getSettings());
@@ -357,29 +330,8 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
         return indexSettingsBuilder.build();
     }
 
-    private void applyTemplate(Map<String, Object> mapping,
-                               Map<String, AliasMetadata> templatesAliases,
-                               List<String> templateNames,
-                               IndexTemplateMetadata template) throws Exception {
-        templateNames.add(template.getName());
-        XContentHelper.mergeDefaults(mapping, parseMapping(template.mapping().string()));
-        for (ObjectObjectCursor<String, AliasMetadata> cursor : template.aliases()) {
-            AliasMetadata aliasMetadata = cursor.value;
-            templatesAliases.put(aliasMetadata.alias(), aliasMetadata);
-        }
-    }
-
-    private Map<String, Object> parseMapping(String mappingSource) throws Exception {
-        try (XContentParser parser = XContentType.JSON.xContent()
-            .createParser(xContentRegistry, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, mappingSource)) {
-            return parser.map();
-        } catch (IOException e) {
-            throw new ElasticsearchException("failed to parse mapping", e);
-        }
-    }
-
     @Override
     protected ClusterBlockException checkBlock(CreatePartitionsRequest request, ClusterState state) {
-        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, Iterables.toArray(request.indices(), String.class));
+        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, request.indices().toArray(String[]::new));
     }
 }

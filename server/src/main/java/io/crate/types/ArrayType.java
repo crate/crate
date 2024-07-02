@@ -32,8 +32,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 
-import org.apache.lucene.document.FieldType;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -46,7 +46,7 @@ import org.jetbrains.annotations.Nullable;
 import org.locationtech.spatial4j.shape.Point;
 
 import io.crate.Streamer;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.exceptions.ConversionException;
 import io.crate.execution.dml.ArrayIndexer;
 import io.crate.execution.dml.ValueIndexer;
@@ -62,6 +62,7 @@ import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.Expression;
+import io.crate.statistics.ColumnStatsSupport;
 
 /**
  * A type which contains a collection of elements of another type.
@@ -96,10 +97,9 @@ public class ArrayType<T> extends DataType<List<T>> {
 
                 @Override
                 public ValueIndexer<T> valueIndexer(RelationName table, Reference ref,
-                                                    Function<String, FieldType> getFieldType,
                                                     Function<ColumnIdent, Reference> getRef) {
                     return new ArrayIndexer<>(
-                        innerStorage.valueIndexer(table, ref, getFieldType, getRef));
+                        innerStorage.valueIndexer(table, ref, getRef));
                 }
             };
         }
@@ -178,7 +178,7 @@ public class ArrayType<T> extends DataType<List<T>> {
         return convert(value, innerType, innerType::sanitizeValue, CoordinatorTxnCtx.systemTransactionContext().sessionSettings());
     }
 
-    public List<String> fromAnyArray(Object[] values) throws IllegalArgumentException {
+    public static List<String> fromAnyArray(Object[] values) throws IllegalArgumentException {
         if (values == null) {
             return null;
         } else {
@@ -190,7 +190,7 @@ public class ArrayType<T> extends DataType<List<T>> {
         }
     }
 
-    public List<String> fromAnyArray(List<?> values) throws IllegalArgumentException {
+    public static List<String> fromAnyArray(List<?> values) throws IllegalArgumentException {
         if (values == null) {
             return null;
         } else {
@@ -203,7 +203,7 @@ public class ArrayType<T> extends DataType<List<T>> {
     }
 
     @SuppressWarnings("unchecked")
-    private String anyValueToString(Object value) {
+    private static String anyValueToString(Object value) {
         if (value == null) {
             return null;
         }
@@ -238,7 +238,7 @@ public class ArrayType<T> extends DataType<List<T>> {
             return null;
         }
         if (value instanceof Collection<?> values) {
-            return Lists2.map(values, convertInner);
+            return Lists.map(values, convertInner);
         } else if (value instanceof String string) {
             try {
                 return (List<T>) PgArrayParser.parse(
@@ -275,7 +275,7 @@ public class ArrayType<T> extends DataType<List<T>> {
             DeprecationHandler.THROW_UNSUPPORTED_OPERATION,
             utf8Bytes
         );
-        return Lists2.map(parser.list(), value -> innerType.explicitCast(value, sessionSettings));
+        return Lists.map(parser.list(), value -> innerType.explicitCast(value, sessionSettings));
     }
 
     private static <T> ArrayList<T> convertObjectArray(Object[] values, Function<Object, T> convertInner) {
@@ -349,6 +349,16 @@ public class ArrayType<T> extends DataType<List<T>> {
             dataType = ((ArrayType<?>) dataType).innerType();
         }
         return dataType;
+    }
+
+    /**
+     * Updates the inner most type of a (nested) array type using an operator.
+     * It preserves the number of dimensions and can be used safely on non-array too.
+     */
+    public static DataType<?> updateLeaf(DataType<?> type, UnaryOperator<DataType<?>> updateLeaf) {
+        int dimensions = ArrayType.dimensions(type);
+        DataType<?> leafType = unnest(type);
+        return makeArray(updateLeaf.apply(leafType), dimensions);
     }
 
     /**
@@ -432,5 +442,10 @@ public class ArrayType<T> extends DataType<List<T>> {
     @Override
     public long ramBytesUsed() {
         return SHALLOW_SIZE + innerType.ramBytesUsed();
+    }
+
+    @Override
+    public ColumnStatsSupport<List<T>> columnStatsSupport() {
+        return ColumnStatsSupport.composite(this);
     }
 }

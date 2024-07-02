@@ -38,7 +38,6 @@ import java.util.Optional;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
 import org.joda.time.Period;
 
 import io.crate.analyze.DataTypeAnalyzer;
@@ -47,7 +46,7 @@ import io.crate.analyze.NegateLiterals;
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.SubscriptContext;
-import io.crate.analyze.SubscriptValidator;
+import io.crate.analyze.SubscriptVisitor;
 import io.crate.analyze.WindowDefinition;
 import io.crate.analyze.WindowFrameDefinition;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -56,7 +55,7 @@ import io.crate.analyze.relations.OrderyByAnalyzer;
 import io.crate.analyze.relations.SelectListFieldProvider;
 import io.crate.analyze.relations.select.SelectAnalysis;
 import io.crate.analyze.validator.SemanticSortValidator;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ConversionException;
 import io.crate.execution.engine.aggregation.impl.CollectSetAggregation;
@@ -100,6 +99,7 @@ import io.crate.metadata.FunctionType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.table.Operation;
@@ -120,6 +120,7 @@ import io.crate.sql.tree.BitString;
 import io.crate.sql.tree.BitwiseExpression;
 import io.crate.sql.tree.BooleanLiteral;
 import io.crate.sql.tree.Cast;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.ComparisonExpression;
 import io.crate.sql.tree.CurrentTime;
 import io.crate.sql.tree.DoubleLiteral;
@@ -615,8 +616,8 @@ public class ExpressionAnalyzer {
              */
             final Expression arrayExpression;
             Expression valueList = node.getValueList();
-            if (valueList instanceof InListExpression) {
-                List<Expression> expressions = ((InListExpression) valueList).getValues();
+            if (valueList instanceof InListExpression inListExpression) {
+                List<Expression> expressions = inListExpression.getValues();
                 arrayExpression = new ArrayLiteral(expressions);
             } else {
                 arrayExpression = node.getValueList();
@@ -659,7 +660,7 @@ public class ExpressionAnalyzer {
             if (fields.size() > 1) {
                 throw new UnsupportedOperationException("Subqueries with more than 1 column are not supported");
             }
-            DataType<?> innerType = fields.get(0).valueType();
+            DataType<?> innerType = fields.getFirst().valueType();
             SelectSymbol selectSymbol = new SelectSymbol(
                 relation,
                 new ArrayType<>(innerType),
@@ -671,63 +672,77 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitSubscriptExpression(SubscriptExpression node, ExpressionAnalysisContext context) {
-            SubscriptContext subscriptContext = new SubscriptContext();
-            SubscriptValidator.validate(node, subscriptContext);
-            QualifiedName qualifiedName = subscriptContext.qualifiedName();
-            List<String> parts = subscriptContext.parts();
+            SubscriptContext subscriptContext = SubscriptVisitor.visit(node);
 
-            if (qualifiedName == null) {
+            if (subscriptContext.hasExpression()) {
+                // The left hand side of the expression isn't a column, it's something like a
+                // static array or a cast, so we recurse into it.
                 Symbol base = node.base().accept(this, context);
                 Symbol index = node.index().accept(this, context);
                 return allocateFunction(SubscriptFunction.NAME, List.of(base, index), context);
-            } else {
-                // Detect and process partial quoted subscript expression
-                var columnName = qualifiedName.getSuffix();
-                var maybeQuotedSubscript = detectAndGenerateSubscriptExpressions(columnName);
-                if (maybeQuotedSubscript != null) {
-                    return visitSubscriptExpression(new SubscriptExpression(maybeQuotedSubscript, node.index()), context);
-                }
+            }
 
-                // Ideally the above base+index + subscriptFunction case would be enough
-                // But:
-                // - We want to avoid subscript functions if possible (we've nested object values in a column store)
-                // - In DDL statement we can't turn a `PRIMARY KEY o['x']` into a subscript either
-                // - In DML statements we can have assignments: obj['x'] = 30
-                // We should come up with a design that addresses those and remove the duct-tape logic below.
+            // Detect and process partial quoted subscript expression
+            QualifiedName qualifiedName = subscriptContext.qualifiedName();
+            var columnName = qualifiedName.getSuffix();
+            var maybeQuotedSubscript = detectAndGenerateSubscriptExpressions(columnName);
+            if (maybeQuotedSubscript != null) {
+                return visitSubscriptExpression(new SubscriptExpression(maybeQuotedSubscript, node.index()), context);
+            }
 
-                Symbol name;
-                try {
-                    name = fieldProvider.resolveField(qualifiedName, parts, operation, context.errorOnUnknownObjectKey());
-                } catch (ColumnUnknownException e) {
-                    if (operation != Operation.READ) {
-                        throw e;
-                    }
-                    try {
-                        Symbol base = fieldProvider.resolveField(qualifiedName,
-                                                                 List.of(),
-                                                                 operation,
-                                                                 context.errorOnUnknownObjectKey());
-                        if (base instanceof Reference) {
-                            throw e;
-                        }
-                        return allocateFunction(
-                            SubscriptFunction.NAME,
-                            List.of(
-                                node.base().accept(this, context),
-                                node.index().accept(this, context)
-                            ),
-                            context
-                        );
-                    } catch (ColumnUnknownException e2) {
-                        throw e;
-                    }
+            // Ideally the above base+index + subscriptFunction case would be enough
+            // But:
+            // - We want to avoid subscript functions if possible (we've nested object values in a column store)
+            // - In DDL statement we can't turn a `PRIMARY KEY o['x']` into a subscript either
+            // - In DML statements we can have assignments: obj['x'] = 30
+            // We should come up with a design that addresses those and remove the duct-tape logic below.
+
+            Symbol ref;
+            try {
+                List<String> parts = subscriptContext.parts();
+                ref = fieldProvider.resolveField(qualifiedName, parts, operation, context.errorOnUnknownObjectKey());
+            } catch (ColumnUnknownException e) {
+                return resolveUnindexedSubscriptExpression(node, context, qualifiedName, e);
+            }
+
+            // If there are any array subscripts, recursively wrap the resolved expression in an
+            // array subscript function for each nested array dereference.
+            for (Expression idx : subscriptContext.index()) {
+                Symbol index = idx.accept(this, context);
+                ref = allocateFunction(SubscriptFunction.NAME, List.of(ref, index), context);
+            }
+            return ref;
+        }
+
+        // If a subscript expression doesn't resolve to an indexed field, try instead
+        // to resolve the base field and use a subscript function to extract the values
+        private Symbol resolveUnindexedSubscriptExpression(
+            SubscriptExpression node,
+            ExpressionAnalysisContext context,
+            QualifiedName qualifiedName,
+            ColumnUnknownException e
+        ) {
+            if (operation != Operation.READ) {
+                throw e;
+            }
+            try {
+                Symbol base = fieldProvider.resolveField(qualifiedName,
+                    List.of(),
+                    operation,
+                    context.errorOnUnknownObjectKey());
+                if (base instanceof Reference ref && ref.columnPolicy() != ColumnPolicy.IGNORED) {
+                    throw e;
                 }
-                Expression idxExpression = subscriptContext.index();
-                if (idxExpression != null) {
-                    Symbol index = idxExpression.accept(this, context);
-                    return allocateFunction(SubscriptFunction.NAME, List.of(name, index), context);
-                }
-                return name;
+                return allocateFunction(
+                    SubscriptFunction.NAME,
+                    List.of(
+                        node.base().accept(this, context),
+                        node.index().accept(this, context)
+                    ),
+                    context
+                );
+            } catch (ColumnUnknownException e2) {
+                throw e;
             }
         }
 
@@ -833,15 +848,23 @@ public class ExpressionAnalyzer {
 
         @Override
         protected Symbol visitLikePredicate(LikePredicate node, ExpressionAnalysisContext context) {
-            if (node.getEscape() != null) {
-                throw new UnsupportedOperationException("ESCAPE is not supported.");
-            }
             Symbol expression = node.getValue().accept(this, context);
             Symbol pattern = node.getPattern().accept(this, context);
-            return allocateFunction(
-                LikeOperators.arrayOperatorName(node.ignoreCase()),
-                List.of(expression, pattern),
-                context);
+            if (node.getEscape() != null) {
+                Symbol escape = node.getEscape().accept(this, context);
+                return allocateFunction(
+                    LikeOperators.likeOperatorName(node.ignoreCase()),
+                    List.of(expression, pattern, escape),
+                    context
+                );
+            } else {
+                return allocateFunction(
+                    LikeOperators.likeOperatorName(node.ignoreCase()),
+                    List.of(expression, pattern),
+                    context
+                );
+            }
+
         }
 
         @Override
@@ -895,14 +918,13 @@ public class ExpressionAnalyzer {
             String field = recordSubscript.field();
             ArrayList<String> reversedPath = new ArrayList<>();
             reversedPath.add(field);
-            while (base instanceof RecordSubscript) {
-                RecordSubscript subscript = (RecordSubscript) base;
+            while (base instanceof RecordSubscript subscript) {
                 base = subscript.base();
                 reversedPath.add(subscript.field());
             }
-            List<String> path = Lists2.reverse(reversedPath);
-            if (base instanceof QualifiedNameReference) {
-                QualifiedName name = ((QualifiedNameReference) base).getName();
+            List<String> path = Lists.reverse(reversedPath);
+            if (base instanceof QualifiedNameReference qnr) {
+                QualifiedName name = qnr.getName();
                 try {
                     return fieldProvider.resolveField(name, path, operation, context.errorOnUnknownObjectKey());
                 } catch (ColumnUnknownException e) {
@@ -933,7 +955,7 @@ public class ExpressionAnalyzer {
         protected Symbol visitQualifiedNameReference(QualifiedNameReference node, ExpressionAnalysisContext context) {
             var qualifiedName = node.getName();
             var parts = qualifiedName.getParts();
-            var columnName = parts.get(parts.size() - 1);
+            var columnName = parts.getLast();
 
             // Detect and process quoted subscript expressions
             var maybeQuotedSubscript = detectAndGenerateSubscriptExpressions(columnName);
@@ -1074,7 +1096,7 @@ public class ExpressionAnalyzer {
 
         @Override
         public Symbol visitMatchPredicate(MatchPredicate node, ExpressionAnalysisContext context) {
-            Map<Symbol, Symbol> identBoostMap = new HashMap<>(node.idents().size());
+            Map<Symbol, Symbol> identBoostMap = HashMap.newHashMap(node.idents().size());
             DataType<?> columnType = null;
             HashSet<RelationName> relationsInColumns = new HashSet<>();
             for (MatchPredicateColumnIdent ident : node.idents()) {
@@ -1087,8 +1109,8 @@ public class ExpressionAnalyzer {
                 }
                 Symbol boost = ident.boost().accept(this, context);
                 identBoostMap.put(column, boost);
-                if (column instanceof ScopedSymbol) {
-                    relationsInColumns.add(((ScopedSymbol) column).relation());
+                if (column instanceof ScopedSymbol scopedSymbol) {
+                    relationsInColumns.add(scopedSymbol.relation());
                 }
             }
             if (relationsInColumns.size() > 1) {
@@ -1101,7 +1123,7 @@ public class ExpressionAnalyzer {
             String matchType = io.crate.expression.predicate.MatchPredicate.getMatchType(node.matchType(), columnType);
 
             List<Symbol> mapArgs = new ArrayList<>(node.properties().size() * 2);
-            for (Map.Entry<String, Expression> e : node.properties().properties().entrySet()) {
+            for (Map.Entry<String, Expression> e : node.properties()) {
                 mapArgs.add(Literal.of(e.getKey()));
                 mapArgs.add(e.getValue().accept(this, context));
             }
@@ -1130,7 +1152,7 @@ public class ExpressionAnalyzer {
              *
              * However, we support a single column RowType through the ArrayType.
              */
-            DataType<?> innerType = fields.get(0).valueType();
+            DataType<?> innerType = fields.getFirst().valueType();
             ArrayType<?> dataType = new ArrayType<>(innerType);
             final SelectSymbol.ResultType resultType;
             if (context.isArrayChild(node)) {
@@ -1163,10 +1185,10 @@ public class ExpressionAnalyzer {
                                           List<Symbol> arguments,
                                           @Nullable Symbol filter,
                                           ExpressionAnalysisContext context,
-                                          CoordinatorTxnCtx coordinatorTxnCtx,
+                                          TransactionContext txnCtx,
                                           NodeContext nodeCtx) {
         return allocateBuiltinOrUdfFunction(
-            null, functionName, arguments, filter, null, context, null, coordinatorTxnCtx, nodeCtx);
+            null, functionName, arguments, filter, null, context, null, txnCtx, nodeCtx);
     }
 
     /**
@@ -1179,7 +1201,7 @@ public class ExpressionAnalyzer {
      * @param filter The filter clause to filter {@link Function}'s input values.
      * @param context Context holding the state for the current translation.
      * @param windowDefinition The definition of the window the allocated function will be executed against.
-     * @param coordinatorTxnCtx {@link CoordinatorTxnCtx} for this transaction.
+     * @param txnCtx {@link TransactionContext} for this transaction.
      * @param nodeCtx The {@link NodeContext} to normalize constant expressions.
      * @return The supplied {@link Function} or a {@link Literal} in case of constant folding.
      */
@@ -1190,13 +1212,13 @@ public class ExpressionAnalyzer {
                                                        @Nullable Boolean ignoreNulls,
                                                        ExpressionAnalysisContext context,
                                                        @Nullable WindowDefinition windowDefinition,
-                                                       CoordinatorTxnCtx coordinatorTxnCtx,
+                                                       TransactionContext txnCtx,
                                                        NodeContext nodeCtx) {
         FunctionImplementation funcImpl = nodeCtx.functions().get(
             schema,
             functionName,
             arguments,
-            coordinatorTxnCtx.sessionSettings().searchPath());
+            txnCtx.sessionSettings().searchPath());
 
         Signature signature = funcImpl.signature();
         BoundSignature boundSignature = funcImpl.boundSignature();
@@ -1262,7 +1284,7 @@ public class ExpressionAnalyzer {
     private static void ensureResultTypesMatch(List<? extends Symbol> results) {
         // Structure is [true, default T, condition1 Boolean, value T, condition2 Boolean, value T ...]
         // Skip first pair [true, default T] and then only validate the values
-        var resultTypes = new HashSet<>(results.size() / 2);
+        var resultTypes = HashSet.newHashSet(results.size() / 2);
         for (int i = 3; i < results.size(); i = i + 2) {
             var type = results.get(i).valueType();
             if (type.id() != DataTypes.UNDEFINED.id()) {

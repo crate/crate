@@ -22,9 +22,8 @@
 package io.crate.auth;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INVALID_AUTHORIZATION_SPECIFICATION;
-import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -123,7 +122,7 @@ public class AuthenticationWithSSLIntegrationTest extends IntegTestCase {
             }
             fail("User was able to use SSL although HBA config had requireSSL=never set.");
         } catch (PSQLException e) {
-            assertThat(e.getMessage(), containsString("FATAL: No valid auth.host_based entry found"));
+            assertThat(e.getMessage()).contains("FATAL: No valid auth.host_based entry found");
         }
 
         properties.setProperty("user", "requiredssluser");
@@ -144,7 +143,10 @@ public class AuthenticationWithSSLIntegrationTest extends IntegTestCase {
             })
             .isExactlyInstanceOf(PSQLException.class)
             .hasPGError(INVALID_AUTHORIZATION_SPECIFICATION)
-            .hasMessageContaining("Client certificate authentication failed for user \"localhost\"");
+            // <=5.7.1 used to fail with different message "authentication failed".
+            // After 5.7.2 we take connection properties into account (client cert, password or token headers) for matching an auth method.
+            // Thus, a connection without client cert doesn't even qualify as matching anymore
+            .hasMessageContaining("No valid auth.host_based entry found for host \"127.0.0.1\", user \"localhost\". Did you enable TLS in your client?");
     }
 
 

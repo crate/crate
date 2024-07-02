@@ -34,8 +34,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.carrotsearch.randomizedtesting.RandomizedTest;
-
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
@@ -58,7 +56,9 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
-        e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
+        e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .addPartitionedTable(
                 "create table parted (" +
@@ -78,22 +78,24 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
                 ") partitioned by (day) ",
                 new PartitionName(new RelationName("doc", "parted_generated"), List.of("1395874800000")).asIndexName(),
                 new PartitionName(new RelationName("doc", "parted_generated"), List.of("1395961200000")).asIndexName()
-            ).build();
+            );
     }
 
     private <T> T plan(String stmt) {
         CopyToPlan plan = e.plan(stmt);
         var boundedCopyTo = CopyToPlan.bind(
             plan.copyTo(),
-            e.getPlannerContext(clusterService.state()).transactionContext(),
-            e.getPlannerContext(clusterService.state()).nodeContext(),
+            e.getPlannerContext().transactionContext(),
+            e.getPlannerContext().nodeContext(),
             Row.EMPTY,
-            SubQueryResults.EMPTY);
+            SubQueryResults.EMPTY,
+            e.getPlannerContext().clusterState().metadata()
+        );
         //noinspection unchecked
         return (T) CopyToPlan.planCopyToExecution(
             mock(DependencyCarrier.class),
             boundedCopyTo,
-            e.getPlannerContext(clusterService.state()),
+            e.getPlannerContext(),
             e.planStats(),
             new ProjectionBuilder(e.nodeCtx),
             Row.EMPTY,
@@ -105,10 +107,10 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
         Merge plan = plan("copy users (name) to directory '/tmp'");
         Collect innerPlan = (Collect) plan.subPlan();
         RoutedCollectPhase node = ((RoutedCollectPhase) innerPlan.collectPhase());
-        Reference nameRef = (Reference) node.toCollect().get(0);
+        Reference nameRef = (Reference) node.toCollect().getFirst();
 
         assertThat(nameRef.column().name()).isEqualTo(DocSysColumns.DOC.name());
-        assertThat(nameRef.column().path().get(0)).isEqualTo("name");
+        assertThat(nameRef.column().path().getFirst()).isEqualTo("name");
     }
 
     @Test
@@ -117,7 +119,7 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
         Merge plan = plan("copy parted_generated to directory '/tmp'");
         Collect innerPlan = (Collect) plan.subPlan();
         RoutedCollectPhase node = ((RoutedCollectPhase) innerPlan.collectPhase());
-        WriterProjection projection = (WriterProjection) node.projections().get(0);
+        WriterProjection projection = (WriterProjection) node.projections().getFirst();
         assertThat(projection.overwrites()).isEmpty();
     }
 
@@ -148,7 +150,7 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testCopyToPlanWithParameters() {
         Merge merge = plan("copy users to directory '/path/to' with (protocol='http', wait_for_completion=false)");
         Collect collect = (Collect) merge.subPlan();
-        WriterProjection writerProjection = (WriterProjection) collect.collectPhase().projections().get(0);
+        WriterProjection writerProjection = (WriterProjection) collect.collectPhase().projections().getFirst();
         assertThat(writerProjection.withClauseOptions().get("protocol")).isEqualTo("http");
         assertThat(writerProjection.withClauseOptions().getAsBoolean(
             "wait_for_completion", true)).isFalse();
@@ -158,8 +160,8 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
             merge = plan(
                 "copy users to directory '/path/to' with (compression=" + compression + ")");
             collect = (Collect) merge.subPlan();
-            writerProjection = (WriterProjection) collect.collectPhase().projections().get(0);
-            assertThat(writerProjection.withClauseOptions().size()).isEqualTo(1);
+            writerProjection = (WriterProjection) collect.collectPhase().projections().getFirst();
+            assertThat(writerProjection.withClauseOptions()).hasSize(1);
             if (compression.equals("''")) {
                 assertThat(writerProjection.withClauseOptions().get("compression")).isEmpty();
             } else {
@@ -170,7 +172,7 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
         // verify defaults:
         merge = plan("copy users to directory '/path/to/'");
         collect = (Collect) merge.subPlan();
-        writerProjection = (WriterProjection) collect.collectPhase().projections().get(0);
+        writerProjection = (WriterProjection) collect.collectPhase().projections().getFirst();
         assertThat(writerProjection.withClauseOptions()).isEqualTo(Settings.EMPTY);
     }
 }

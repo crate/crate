@@ -29,11 +29,10 @@ import java.util.concurrent.CountDownLatch;
 
 import org.junit.jupiter.api.Test;
 
-
-public class BlockingEvictingQueueTest {
+class BlockingEvictingQueueTest {
 
     @Test
-    public void testOffer() throws Exception {
+    void testOffer() throws Exception {
         final BlockingEvictingQueue<String> strings = new BlockingEvictingQueue<>(15_000);
 
         int THREADS = 20;

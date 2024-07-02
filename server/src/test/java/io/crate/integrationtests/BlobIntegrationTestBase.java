@@ -91,7 +91,7 @@ public abstract class BlobIntegrationTestBase extends IntegTestCase {
             }
         }));
 
-        cluster().wipeIndices("_all");
+        cluster().wipeAllTables();
         assertBusy(() -> forEachIndicesMap(i -> assertThat(i.keySet()).isEmpty()));
     }
 

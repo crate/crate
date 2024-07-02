@@ -36,7 +36,6 @@ import org.junit.Test;
 
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedView;
-import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -47,10 +46,9 @@ public class SelectFromViewAnalyzerTest extends CrateDummyClusterServiceUnitTest
 
     @Before
     public void setUpExecutor() throws Exception {
-        e = SQLExecutor.builder(clusterService)
+        e = SQLExecutor.of(clusterService)
             .addTable("create table doc.t1 (name string, x int)")
-            .addView(new RelationName("doc", "v1"), "select name, count(*) from doc.t1 group by name")
-            .build();
+            .addView(new RelationName("doc", "v1"), "select name, count(*) from doc.t1 group by name");
     }
 
     @Test
@@ -71,15 +69,15 @@ public class SelectFromViewAnalyzerTest extends CrateDummyClusterServiceUnitTest
 
         relation = e.analyze("select crate.doc.v1.name from crate.doc.v1");
         Assertions.assertThat(relation.outputs()).hasSize(1);
-        Assertions.assertThat(Symbols.pathFromSymbol(relation.outputs().get(0)).fqn()).isEqualTo("name");
+        Assertions.assertThat(relation.outputs().get(0).toColumn().fqn()).isEqualTo("name");
 
         relation = e.analyze("select crate.doc.v1.name from v1");
         Assertions.assertThat(relation.outputs()).hasSize(1);
-        Assertions.assertThat(Symbols.pathFromSymbol(relation.outputs().get(0)).fqn()).isEqualTo("name");
+        Assertions.assertThat(relation.outputs().get(0).toColumn().fqn()).isEqualTo("name");
 
         relation = e.analyze("select v.name from crate.doc.v1 as v");
         Assertions.assertThat(relation.outputs()).hasSize(1);
-        Assertions.assertThat(Symbols.pathFromSymbol(relation.outputs().get(0)).fqn()).isEqualTo("name");
+        Assertions.assertThat(relation.outputs().get(0).toColumn().fqn()).isEqualTo("name");
     }
 
     @Test
@@ -97,13 +95,10 @@ public class SelectFromViewAnalyzerTest extends CrateDummyClusterServiceUnitTest
 
     @Test
     public void test_anylze_with_changed_search_path() throws Exception {
-        e = SQLExecutor.builder(clusterService)
-            .addTable("create table custom.t1 (name string, x int)")
-            .addTable("create table doc.t1 (name string, x int)")
-            .setSearchPath("custom")
-            .addView(new RelationName("doc", "v1"), "select name, count(*) from t1 group by name")
-            .build();
-        e.getSessionSettings().setSearchPath("foobar");
+        e.addTable("create table custom.t1 (name string, x int)");
+        e.setSearchPath("custom");
+        e.addView(new RelationName("doc", "v1"), "select name, count(*) from t1 group by name");
+        e.setSearchPath("foobar");
         QueriedSelectRelation relation = e.analyze("select * from doc.v1");
         List<AnalyzedRelation> sources = relation.from();
         assertThat(sources).satisfiesExactly(

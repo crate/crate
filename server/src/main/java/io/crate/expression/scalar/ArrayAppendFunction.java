@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import io.crate.data.Input;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -36,18 +37,20 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.TypeSignature;
 
-class ArrayAppendFunction extends Scalar<List<Object>, Object> {
+public class ArrayAppendFunction extends Scalar<List<Object>, Object> {
 
     public static final String NAME = "array_append";
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder builder) {
+        builder.add(
             Signature.scalar(
-                NAME,
-                TypeSignature.parse("array(E)"),
-                TypeSignature.parse("E"),
-                TypeSignature.parse("array(E)")
-            ).withTypeVariableConstraints(typeVariable("E")),
+                    NAME,
+                    TypeSignature.parse("array(E)"),
+                    TypeSignature.parse("E"),
+                    TypeSignature.parse("array(E)")
+                ).withTypeVariableConstraints(typeVariable("E"))
+                .withFeature(Feature.DETERMINISTIC)
+                .withFeature(Feature.NON_NULLABLE),
             ArrayAppendFunction::new
         );
     }

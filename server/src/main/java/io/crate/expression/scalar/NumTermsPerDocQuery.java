@@ -67,20 +67,20 @@ public class NumTermsPerDocQuery extends Query {
     public static NumTermsPerDocQuery forRef(Reference ref, IntPredicate valueCountIsMatch) {
         return new NumTermsPerDocQuery(
             ref.storageIdent(),
-            leafReaderContext -> getNumTermsPerDocFunction(leafReaderContext.reader(), ref.column().fqn(), ref.valueType()),
+            leafReaderContext -> getNumTermsPerDocFunction(leafReaderContext.reader(), ref.storageIdent(), ref.valueType()),
             valueCountIsMatch
         );
     }
 
-    public static NumTermsPerDocQuery forColumn(String fqColumn, DataType<?> type, IntPredicate valueCountIsMatch) {
+    public static NumTermsPerDocQuery forColumn(String column, DataType<?> type, IntPredicate valueCountIsMatch) {
         return new NumTermsPerDocQuery(
-            fqColumn,
-            leafReaderContext -> getNumTermsPerDocFunction(leafReaderContext.reader(), fqColumn, type),
+            column,
+            leafReaderContext -> getNumTermsPerDocFunction(leafReaderContext.reader(), column, type),
             valueCountIsMatch
         );
     }
 
-    private static IntUnaryOperator getNumTermsPerDocFunction(LeafReader reader, String fqColumn, DataType<?> type) {
+    private static IntUnaryOperator getNumTermsPerDocFunction(LeafReader reader, String column, DataType<?> type) {
         DataType<?> elementType = ArrayType.unnest(type);
         switch (elementType.id()) {
             case BooleanType.ID:
@@ -93,23 +93,23 @@ public class NumTermsPerDocQuery extends Query {
             case FloatType.ID:
             case DoubleType.ID:
             case GeoPointType.ID:
-                return numValuesPerDocForSortedNumeric(reader, fqColumn);
+                return numValuesPerDocForSortedNumeric(reader, column);
 
             case StringType.ID:
             case CharacterType.ID:
             case BitStringType.ID:
             case IpType.ID:
-                return numValuesPerDocForString(reader, fqColumn);
+                return numValuesPerDocForString(reader, column);
 
             default:
                 throw new UnsupportedOperationException("NYI: " + elementType);
         }
     }
 
-    private static IntUnaryOperator numValuesPerDocForString(LeafReader reader, String fqColumn) {
+    private static IntUnaryOperator numValuesPerDocForString(LeafReader reader, String column) {
         SortedSetDocValues docValues;
         try {
-            docValues = DocValues.getSortedSet(reader, fqColumn);
+            docValues = DocValues.getSortedSet(reader, column);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -122,10 +122,10 @@ public class NumTermsPerDocQuery extends Query {
         };
     }
 
-    private static IntUnaryOperator numValuesPerDocForSortedNumeric(LeafReader reader, String fqColumn) {
+    private static IntUnaryOperator numValuesPerDocForSortedNumeric(LeafReader reader, String column) {
         final SortedNumericDocValues sortedNumeric;
         try {
-            sortedNumeric = DocValues.getSortedNumeric(reader, fqColumn);
+            sortedNumeric = DocValues.getSortedNumeric(reader, column);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

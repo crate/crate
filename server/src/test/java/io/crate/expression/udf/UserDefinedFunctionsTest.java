@@ -23,6 +23,7 @@ package io.crate.expression.udf;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.stream.Collectors.toList;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -33,30 +34,19 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.analyze.FunctionArgumentDefinition;
-import io.crate.analyze.TableDefinitions;
-import io.crate.analyze.relations.DocTableRelation;
+import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.FunctionProvider;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.testing.SQLExecutor;
-import io.crate.testing.SqlExpressions;
+import io.crate.metadata.Functions;
+import io.crate.metadata.SearchPath;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 public class UserDefinedFunctionsTest extends UdfUnitTest {
 
-    private SqlExpressions sqlExpressions;
-
-    private Map<FunctionName, List<FunctionProvider>> functionImplementations = new HashMap<>();
 
     @Before
     public void prepare() throws Exception {
-        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService)
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
-        DocTableInfo users = sqlExecutor.schemas().getTableInfo(new RelationName("doc", "users"));
-        sqlExpressions = new SqlExpressions(Map.of(users.ident(), new DocTableRelation(users)));
         udfService.registerLanguage(DUMMY_LANG);
     }
 
@@ -64,8 +54,8 @@ public class UserDefinedFunctionsTest extends UdfUnitTest {
         String lang,
         String schema,
         String name,
-        DataType returnType,
-        List<DataType> types,
+        DataType<?> returnType,
+        List<DataType<?>> types,
         String definition) {
 
         var udf = new UserDefinedFunctionMetadata(
@@ -77,12 +67,11 @@ public class UserDefinedFunctionsTest extends UdfUnitTest {
             definition);
 
         var functionName = new FunctionName(udf.schema(), udf.name());
+        Map<FunctionName, List<FunctionProvider>> functionImplementations = new HashMap<>();
         var resolvers = functionImplementations.computeIfAbsent(
             functionName, k -> new ArrayList<>());
         resolvers.add(udfService.buildFunctionResolver(udf));
-        sqlExpressions.nodeCtx.functions().registerUdfFunctionImplementationsForSchema(
-            schema,
-            functionImplementations);
+        sqlExecutor.nodeCtx.functions().setUDFs(functionImplementations);
     }
 
     @Test
@@ -94,7 +83,37 @@ public class UserDefinedFunctionsTest extends UdfUnitTest {
             DataTypes.INTEGER,
             List.of(DataTypes.INTEGER, DataTypes.INTEGER),
             "function subtract(a, b) { return a + b; }");
-        assertThat(sqlExpressions.asSymbol("test.subtract(2::integer, 1::integer)"))
+        assertThat(sqlExecutor.asSymbol("test.subtract(2::integer, 1::integer)"))
             .isLiteral(DummyFunction.RESULT);
+    }
+
+    @Test
+    public void test_cannot_create_invalid_function() throws Exception {
+        UserDefinedFunctionMetadata invalid = new UserDefinedFunctionMetadata(
+            "my_schema",
+            "invalid",
+            List.of(),
+            DataTypes.INTEGER,
+            "burlesque",
+            "this is not valid burlesque code"
+        );
+        UserDefinedFunctionMetadata valid = new UserDefinedFunctionMetadata(
+            "my_schema",
+            "valid",
+            List.of(),
+            DataTypes.INTEGER,
+            DUMMY_LANG.name(),
+            "function valid() { return 42; }"
+        );
+        // if a functionImpl can't be created, it won't be registered
+        udfService.updateImplementations(List.of(invalid, valid));
+
+        Functions functions = sqlExecutor.nodeCtx.functions();
+        SearchPath searchPath = SearchPath.pathWithPGCatalogAndDoc();
+        FunctionImplementation function = functions.get("my_schema", "valid", List.of(), searchPath);
+        assertThat(function).isNotNull();
+
+        assertThatThrownBy(() -> functions.get("my_schema", "invalid", List.of(), searchPath))
+            .hasMessage("Unknown function: my_schema.invalid()");
     }
 }

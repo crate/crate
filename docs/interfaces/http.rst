@@ -282,6 +282,8 @@ IDs of all currently available data types:
      - :ref:`TIMESTAMP WITHOUT TIME ZONE <type-timestamp-without-tz>`
    * - 16
      - Unchecked object
+   * - 17
+     - :ref:`INTERVAL <type-interval>`
    * - 19
      - :ref:`REGPROC <type-regproc>`
    * - 20
@@ -300,6 +302,8 @@ IDs of all currently available data types:
      - :ref:`JSON <data-type-json>`
    * - 27
      - :ref:`CHARACTER <data-type-character>`
+   * - 28
+     - :ref:`FLOAT VECTOR <type-float_vector>`
    * - 100
      - :ref:`ARRAY <type-array>`
 
@@ -316,9 +320,9 @@ A bulk operation can be expressed simply as an SQL statement.
 
 Supported bulk SQL statements are:
 
- - Insert
- - Update
- - Delete
+- Insert
+- Update
+- Delete
 
 Instead of the ``args`` (:ref:`http-param-substitution`) key, use the key
 ``bulk_args``. This allows to specify a list of lists, containing all the
@@ -409,7 +413,10 @@ To get more insight into what exactly went wrong an additional ``error_trace``
     support for CrateDB. Client libraries shouldn't make use of this option and
     not include the stack trace.
 
-Currently the defined error codes are:
+.. _http-error-codes:
+
+Error codes
+-----------
 
 ====== =====================================================================
 Code   Error
@@ -479,6 +486,8 @@ Code   Error
 4098   A user-defined function with the same signature already exists.
 ------ ---------------------------------------------------------------------
 4099   A user with the same name already exists.
+------ ---------------------------------------------------------------------
+4100   An object with the same name already exists.
 ------ ---------------------------------------------------------------------
 5000   Unhandled server error.
 ------ ---------------------------------------------------------------------

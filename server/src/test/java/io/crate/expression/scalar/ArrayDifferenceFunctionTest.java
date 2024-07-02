@@ -26,6 +26,7 @@ import static io.crate.testing.Asserts.isNotSameInstance;
 import static io.crate.testing.Asserts.isNull;
 import static io.crate.testing.Asserts.isSameInstance;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -91,18 +92,18 @@ public class ArrayDifferenceFunctionTest extends ScalarTestCase {
 
     @Test
     public void testZeroArguments() throws Exception {
-        expectedException.expect(UnsupportedFunctionException.class);
-        expectedException.expectMessage("Unknown function: array_difference()." +
-                                        " Possible candidates: array_difference(array(E), array(E)):array(E)");
-        assertNormalize("array_difference()", isNull());
+        assertThatThrownBy(() -> assertNormalize("array_difference()", isNull()))
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessage("Unknown function: array_difference(). " +
+                        "Possible candidates: array_difference(array(E), array(E)):array(E)");
     }
 
     @Test
     public void testOneArgument() {
-        expectedException.expect(UnsupportedFunctionException.class);
-        expectedException.expectMessage("Unknown function: array_difference(_array(1))," +
-                                        " no overload found for matching argument types: (integer_array).");
-        assertNormalize("array_difference([1])", isNull());
+        assertThatThrownBy(() -> assertNormalize("array_difference([1])", isNull()))
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessageStartingWith("Unknown function: array_difference(_array(1)), " +
+                                    "no overload found for matching argument types: (integer_array).");
     }
 
     @Test
@@ -125,8 +126,9 @@ public class ArrayDifferenceFunctionTest extends ScalarTestCase {
 
     @Test
     public void testEmptyArrays() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("One of the arguments of the `array_difference` function can be of undefined inner type, but not both");
-        assertNormalize("array_difference([], [])", isNull());
+        assertThatThrownBy(() -> assertNormalize("array_difference([], [])", isNull()))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage(
+                "One of the arguments of the `array_difference` function can be of undefined inner type, but not both");
     }
 }

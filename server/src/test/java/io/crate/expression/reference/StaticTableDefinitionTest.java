@@ -21,7 +21,7 @@
 
 package io.crate.expression.reference;
 
-import static io.crate.user.User.CRATE_USER;
+import static io.crate.role.Role.CRATE_USER;
 import static java.util.Collections.emptyList;
 import static java.util.concurrent.CompletableFuture.completedFuture;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -37,14 +37,15 @@ import io.crate.expression.reference.sys.job.JobContext;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.settings.SessionSettings;
-import io.crate.user.User;
+import io.crate.role.Role;
+import io.crate.role.metadata.RolesHelper;
 
 public class StaticTableDefinitionTest {
 
     private final TransactionContext dummyTxnCtx = TransactionContext.of(
         new SessionSettings("", SearchPath.createSearchPathFrom("")));
 
-    private final User dummyUser = User.of("dummy");
+    private final Role dummyUser = RolesHelper.userOf("dummy");
 
     @Test
     public void testTableDefinitionWithPredicate() throws ExecutionException, InterruptedException {

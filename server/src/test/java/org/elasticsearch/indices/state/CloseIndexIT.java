@@ -19,9 +19,7 @@
 package org.elasticsearch.indices.state;
 
 import static java.util.Collections.emptySet;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertThat;
 
 import java.util.List;
@@ -29,24 +27,14 @@ import java.util.List;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.ByteSizeUnit;
-import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
-import org.elasticsearch.index.IndexSettings;
+import org.elasticsearch.test.IntegTestCase;
 import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.execution.ddl.tables.TransportCloseTable;
-import org.elasticsearch.test.IntegTestCase;
 
 public class CloseIndexIT extends IntegTestCase {
-
-    @Override
-    public Settings indexSettings() {
-        return Settings.builder().put(super.indexSettings())
-            .put(IndexSettings.INDEX_TRANSLOG_FLUSH_THRESHOLD_SIZE_SETTING.getKey(),
-                 new ByteSizeValue(randomIntBetween(1, 4096), ByteSizeUnit.KB)).build();
-    }
 
     /**
      * Test for https://github.com/elastic/elasticsearch/issues/47276 which checks that the persisted metadata on a data node does not
@@ -80,15 +68,14 @@ public class CloseIndexIT extends IntegTestCase {
         assertThat(availableIndices.keys().toArray(String.class), Matchers.arrayContaining(indices));
         for (String index : indices) {
             final IndexMetadata indexMetadata = availableIndices.get(index);
-            assertThat(indexMetadata.getState(), is(IndexMetadata.State.CLOSE));
+            assertThat(indexMetadata.getState()).isEqualTo(IndexMetadata.State.CLOSE);
             final Settings indexSettings = indexMetadata.getSettings();
-            assertThat(indexSettings.hasValue(IndexMetadata.VERIFIED_BEFORE_CLOSE_SETTING.getKey()), is(true));
-            assertThat(indexSettings.getAsBoolean(IndexMetadata.VERIFIED_BEFORE_CLOSE_SETTING.getKey(), false), is(true));
-            assertThat(clusterState.routingTable().index(index), notNullValue());
-            assertThat(clusterState.blocks().hasIndexBlock(index, IndexMetadata.INDEX_CLOSED_BLOCK), is(true));
-            assertThat("Index " + index + " must have only 1 block with [id=" + TransportCloseTable.INDEX_CLOSED_BLOCK_ID + "]",
-                       clusterState.blocks().indices().getOrDefault(index, emptySet()).stream()
-                           .filter(clusterBlock -> clusterBlock.id() == TransportCloseTable.INDEX_CLOSED_BLOCK_ID).count(), equalTo(1L));
+            assertThat(indexSettings.hasValue(IndexMetadata.VERIFIED_BEFORE_CLOSE_SETTING.getKey())).isTrue();
+            assertThat(indexSettings.getAsBoolean(IndexMetadata.VERIFIED_BEFORE_CLOSE_SETTING.getKey(), false)).isTrue();
+            assertThat(clusterState.routingTable().index(index)).isNotNull();
+            assertThat(clusterState.blocks().hasIndexBlock(index, IndexMetadata.INDEX_CLOSED_BLOCK)).isTrue();
+            assertThat(clusterState.blocks().indices().getOrDefault(index, emptySet()).stream()
+                           .filter(clusterBlock -> clusterBlock.id() == TransportCloseTable.INDEX_CLOSED_BLOCK_ID).count()).as("Index " + index + " must have only 1 block with [id=" + TransportCloseTable.INDEX_CLOSED_BLOCK_ID + "]").isEqualTo(1L);
         }
     }
 }

@@ -24,22 +24,10 @@ package io.crate.window;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.ArrayList;
-import java.util.Collection;
-
-import org.elasticsearch.plugins.Plugin;
+import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
-import org.elasticsearch.test.IntegTestCase;
-
 public class NthValueFunctionIntegrationTest extends IntegTestCase {
-
-    @Override
-    protected Collection<Class<? extends Plugin>> nodePlugins() {
-        ArrayList<Class<? extends Plugin>> plugins = new ArrayList<>(super.nodePlugins());
-        plugins.add(EnterpriseFunctionsProxyTestPlugin.class);
-        return plugins;
-    }
 
     @Test
     public void testGeneralPurposeWindowFunctionsWithStandaloneValues() {

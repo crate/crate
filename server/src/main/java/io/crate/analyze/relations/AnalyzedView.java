@@ -21,21 +21,22 @@
 
 package io.crate.analyze.relations;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.VoidReference;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
-
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Consumer;
+import io.crate.role.Role;
 
 /**
  * A view is a stored SELECT statement.
@@ -46,11 +47,11 @@ import java.util.function.Consumer;
 public final class AnalyzedView implements AnalyzedRelation, FieldResolver {
 
     private final RelationName name;
-    private final String owner;
+    private final Role owner;
     private final AnalyzedRelation relation;
     private final List<Symbol> outputSymbols;
 
-    public AnalyzedView(RelationName name, String owner, AnalyzedRelation relation) {
+    public AnalyzedView(RelationName name, Role owner, AnalyzedRelation relation) {
         this.name = name;
         this.owner = owner;
         this.relation = relation;
@@ -58,13 +59,14 @@ public final class AnalyzedView implements AnalyzedRelation, FieldResolver {
         ArrayList<Symbol> outputs = new ArrayList<>(childOutputs.size());
         for (int i = 0; i < childOutputs.size(); i++) {
             var output = childOutputs.get(i);
-            var column = Symbols.pathFromSymbol(output);
+            var column = output.toColumn();
             outputs.add(new ScopedSymbol(name, column, output.valueType()));
         }
         this.outputSymbols = List.copyOf(outputs);
     }
 
-    public String owner() {
+    @NotNull
+    public Role owner() {
         return owner;
     }
 

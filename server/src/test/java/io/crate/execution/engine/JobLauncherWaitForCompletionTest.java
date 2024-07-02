@@ -21,9 +21,8 @@
 
 package io.crate.execution.engine;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertThrows;
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.List;
@@ -52,7 +51,7 @@ public class JobLauncherWaitForCompletionTest extends CrateDummyClusterServiceUn
     @Before
     public void setupExecutor() throws IOException {
         SQLExecutor e = SQLExecutor.builder(clusterService).build();
-        plannerContext = e.getPlannerContext(clusterService.state());
+        plannerContext = e.getPlannerContext();
         jobLauncher = new JobLauncher(
             UUID.randomUUID(),
             clusterService,
@@ -75,12 +74,13 @@ public class JobLauncherWaitForCompletionTest extends CrateDummyClusterServiceUn
     public void testCopyPlanNoWaitForCompletion() throws Exception {
         TestingRowConsumer consumer = new TestingRowConsumer();
         jobLauncher.execute(consumer, plannerContext.transactionContext(), false);
-        assertThat((Long)consumer.getResult(50).get(0)[0], is(-1L));
+        assertThat((Long) consumer.getResult(50).get(0)[0]).isEqualTo(-1);
     }
 
     public void testCopyPlanWaitForCompletion() throws Exception {
         TestingRowConsumer consumer = new TestingRowConsumer();
         jobLauncher.execute(consumer, plannerContext.transactionContext(), true);
-        assertThrows(TimeoutException.class, () -> consumer.getResult(100));
+        assertThatThrownBy(() -> consumer.getResult(100))
+            .isExactlyInstanceOf(TimeoutException.class);
     }
 }

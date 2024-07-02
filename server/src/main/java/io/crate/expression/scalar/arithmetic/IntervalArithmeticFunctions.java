@@ -27,7 +27,7 @@ import org.joda.time.Period;
 import org.joda.time.PeriodType;
 
 import io.crate.data.Input;
-import io.crate.expression.scalar.ScalarFunctionModule;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -38,43 +38,47 @@ import io.crate.types.IntervalType;
 
 public class IntervalArithmeticFunctions {
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder module) {
+        module.add(
             Signature.scalar(
-                ArithmeticFunctions.Names.ADD,
-                DataTypes.INTERVAL.getTypeSignature(),
-                DataTypes.INTERVAL.getTypeSignature(),
-                DataTypes.INTERVAL.getTypeSignature()
-            ),
+                    ArithmeticFunctions.Names.ADD,
+                    DataTypes.INTERVAL.getTypeSignature(),
+                    DataTypes.INTERVAL.getTypeSignature(),
+                    DataTypes.INTERVAL.getTypeSignature()
+                ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new IntervalIntervalArithmeticScalar(Period::plus, signature, boundSignature)
         );
-        module.register(
+        module.add(
             Signature.scalar(
-                ArithmeticFunctions.Names.SUBTRACT,
-                DataTypes.INTERVAL.getTypeSignature(),
-                DataTypes.INTERVAL.getTypeSignature(),
-                DataTypes.INTERVAL.getTypeSignature()
-            ),
+                    ArithmeticFunctions.Names.SUBTRACT,
+                    DataTypes.INTERVAL.getTypeSignature(),
+                    DataTypes.INTERVAL.getTypeSignature(),
+                    DataTypes.INTERVAL.getTypeSignature()
+                ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE),
             (signature, boundSignature) ->
                 new IntervalIntervalArithmeticScalar(Period::minus, signature, boundSignature)
         );
-        module.register(
+        module.add(
                 Signature.scalar(
-                ArithmeticFunctions.Names.MULTIPLY,
-                DataTypes.INTEGER.getTypeSignature(),
-                DataTypes.INTERVAL.getTypeSignature(),
-                DataTypes.INTERVAL.getTypeSignature()
-            ),
+                        ArithmeticFunctions.Names.MULTIPLY,
+                        DataTypes.INTEGER.getTypeSignature(),
+                        DataTypes.INTERVAL.getTypeSignature(),
+                        DataTypes.INTERVAL.getTypeSignature()
+                    ).withFeature(Scalar.Feature.DETERMINISTIC)
+                    .withFeature(Scalar.Feature.NULLABLE),
             MultiplyIntervalByIntegerScalar::new
         );
-        module.register(
+        module.add(
                 Signature.scalar(
-                ArithmeticFunctions.Names.MULTIPLY,
-                DataTypes.INTERVAL.getTypeSignature(),
-                DataTypes.INTEGER.getTypeSignature(),
-                DataTypes.INTERVAL.getTypeSignature()
-            ),
+                        ArithmeticFunctions.Names.MULTIPLY,
+                        DataTypes.INTERVAL.getTypeSignature(),
+                        DataTypes.INTEGER.getTypeSignature(),
+                        DataTypes.INTERVAL.getTypeSignature()
+                    ).withFeature(Scalar.Feature.DETERMINISTIC)
+                    .withFeature(Scalar.Feature.NULLABLE),
             MultiplyIntervalByIntegerScalar::new
         );
     }

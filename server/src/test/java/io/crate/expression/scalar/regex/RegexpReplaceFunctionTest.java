@@ -23,6 +23,7 @@ package io.crate.expression.scalar.regex;
 
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
 
@@ -76,23 +77,24 @@ public class RegexpReplaceFunctionTest extends ScalarTestCase {
 
     @Test
     public void testNormalizeSymbolWithInvalidFlags() throws Exception {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("The regular expression flag is unknown: n");
-        assertNormalize("regexp_replace('foobar', 'foo', 'bar', 'n')", isLiteral(""));
+        assertThatThrownBy(() ->
+                assertNormalize("regexp_replace('foobar', 'foo', 'bar', 'n')", isLiteral("")))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("The regular expression flag is unknown: n");
     }
 
     @Test
     public void testNormalizeSymbolWithInvalidNumberOfArguments() throws Exception {
-        expectedException.expect(UnsupportedFunctionException.class);
-        assertNormalize("regexp_replace('foobar')", isLiteral(""));
+        assertThatThrownBy(() -> assertNormalize("regexp_replace('foobar')", isLiteral("")))
+            .isExactlyInstanceOf(UnsupportedFunctionException.class);
     }
 
     @Test
     public void testNormalizeSymbolWithInvalidArgumentType() {
-        expectedException.expect(UnsupportedFunctionException.class);
-        expectedException.expectMessage("Unknown function: regexp_replace('foobar', '.*', _array(1, 2))," +
-                                        " no overload found for matching argument types: (text, text, integer_array).");
-
-        assertNormalize("regexp_replace('foobar', '.*', [1,2])", isLiteral(""));
+        assertThatThrownBy(() ->
+                assertNormalize("regexp_replace('foobar', '.*', [1,2])", isLiteral("")))
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessageStartingWith("Unknown function: regexp_replace('foobar', '.*', _array(1, 2)), " +
+                                    "no overload found for matching argument types: (text, text, integer_array).");
     }
 }

@@ -22,7 +22,6 @@
 package io.crate.expression.symbol.format;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -48,6 +47,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
@@ -140,7 +140,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
             "agg",
             DataTypes.INTEGER.getTypeSignature(),
             DataTypes.LONG.getTypeSignature()
-        );
+        ).withFeature(Scalar.Feature.DETERMINISTIC);
         Aggregation a = new Aggregation(
             signature,
             DataTypes.LONG,
@@ -155,7 +155,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
         SimpleReference r = new SimpleReference(
             new ReferenceIdent(
                 new RelationName("sys", "table"),
-                new ColumnIdent("column", Arrays.asList("path", "nested"))),
+                ColumnIdent.of("column", Arrays.asList("path", "nested"))),
             RowGranularity.DOC,
             DataTypes.STRING,
             1,
@@ -169,7 +169,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
         SimpleReference r = new SimpleReference(
             new ReferenceIdent(
                 new RelationName("doc", "table"),
-                new ColumnIdent("column", Arrays.asList("path", "nested"))),
+                ColumnIdent.of("column", Arrays.asList("path", "nested"))),
             RowGranularity.DOC,
             DataTypes.STRING,
             0,
@@ -182,7 +182,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     public void testDynamicReference() {
         Reference r = new DynamicReference(
             new ReferenceIdent(new RelationName("schema", "table"),
-                               new ColumnIdent("column", Arrays.asList("path", "nested"))),
+                               ColumnIdent.of("column", Arrays.asList("path", "nested"))),
             RowGranularity.DOC,
             0);
         assertPrint(r, "schema.\"table\".\"column\"['path']['nested']");
@@ -192,8 +192,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     public void testVoidReference() {
         Reference r = new VoidReference(
             new ReferenceIdent(new RelationName("schema", "table"),
-                               new ColumnIdent("column", Arrays.asList("path", "nested"))),
-            RowGranularity.DOC,
+                               ColumnIdent.of("column", Arrays.asList("path", "nested"))),
             0);
         assertPrint(r, "schema.\"table\".\"column\"['path']['nested']");
     }
@@ -202,7 +201,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     public void testReferenceEscaped() {
         SimpleReference r = new SimpleReference(
             new ReferenceIdent(new RelationName("doc", "table"),
-                               new ColumnIdent("colum\"n")),
+                               ColumnIdent.of("colum\"n")),
             RowGranularity.DOC,
             DataTypes.STRING,
             0,

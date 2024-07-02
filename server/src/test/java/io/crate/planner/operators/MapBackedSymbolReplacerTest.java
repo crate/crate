@@ -21,8 +21,7 @@
 
 package io.crate.planner.operators;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Map;
 
@@ -37,9 +36,8 @@ public class MapBackedSymbolReplacerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void test_convert_symbol_without_traversing() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int)")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int)");
 
         Symbol x = e.asSymbol("x");
         Symbol x_source_lookup = e.asSymbol("_doc['x']");
@@ -52,14 +50,13 @@ public class MapBackedSymbolReplacerTest extends CrateDummyClusterServiceUnitTes
             alias_source_lookup
         );
 
-        assertThat(MapBackedSymbolReplacer.convert(alias, mapping), is(alias_source_lookup));
+        assertThat(MapBackedSymbolReplacer.convert(alias, mapping)).isEqualTo(alias_source_lookup);
     }
 
     @Test
     public void test_convert_symbol_by_traversing() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService)
-            .addTable("create table tbl (x int)")
-            .build();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int)");
 
         Symbol x = e.asSymbol("x");
         Symbol x_source_lookup = e.asSymbol("_doc['x']");
@@ -72,6 +69,6 @@ public class MapBackedSymbolReplacerTest extends CrateDummyClusterServiceUnitTes
             x_source_lookup
         );
 
-        assertThat(MapBackedSymbolReplacer.convert(alias, mapping), is(alias_source_lookup));
+        assertThat(MapBackedSymbolReplacer.convert(alias, mapping)).isEqualTo(alias_source_lookup);
     }
 }

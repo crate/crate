@@ -40,11 +40,9 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FilterDirectory;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.store.IndexInput;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.StepListener;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.routing.RecoverySource;
 import org.elasticsearch.cluster.routing.RecoverySource.SnapshotRecoverySource;
 import org.elasticsearch.common.UUIDs;
@@ -53,7 +51,6 @@ import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.EngineException;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.snapshots.IndexShardRestoreFailedException;
 import org.elasticsearch.index.store.Store;
@@ -62,6 +59,7 @@ import org.elasticsearch.indices.recovery.RecoveryState;
 import org.elasticsearch.repositories.IndexId;
 import org.elasticsearch.repositories.Repository;
 
+import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 
 /**
@@ -72,10 +70,12 @@ final class StoreRecovery {
 
     private final Logger logger;
     private final ShardId shardId;
+    private final Consumer<IndexMetadata> validateSchema;
 
-    StoreRecovery(ShardId shardId, Logger logger) {
+    StoreRecovery(ShardId shardId, Logger logger, Consumer<IndexMetadata> validateSchema) {
         this.logger = logger;
         this.shardId = shardId;
+        this.validateSchema = validateSchema;
     }
 
     /**
@@ -104,8 +104,7 @@ final class StoreRecovery {
         }
     }
 
-    void recoverFromLocalShards(Consumer<MappingMetadata> mappingUpdateConsumer,
-                                IndexShard indexShard,
+    void recoverFromLocalShards(IndexShard indexShard,
                                 List<LocalShardSnapshot> shards,
                                 ActionListener<Boolean> listener) {
         if (canRecover(indexShard)) {
@@ -121,11 +120,8 @@ final class StoreRecovery {
                 throw new IllegalArgumentException("can't add shards from more than one index");
             }
             IndexMetadata sourceMetadata = shards.get(0).getIndexMetadata();
-            if (sourceMetadata.mapping() != null) {
-                mappingUpdateConsumer.accept(sourceMetadata.mapping());
-            }
-            indexShard.mapperService().merge(sourceMetadata, MapperService.MergeReason.MAPPING_RECOVERY);
-            // now that the mapping is merged we can validate the index sort configuration.
+            validateSchema.accept(sourceMetadata);
+
             final boolean isSplit = sourceMetadata.getNumberOfShards() < indexShard.indexSettings().getNumberOfShards();
             ActionListener.completeWith(recoveryListener(indexShard, listener), () -> {
                 logger.debug("starting recovery from local shards {}", shards);
@@ -398,7 +394,7 @@ final class StoreRecovery {
                     try {
                         files = Arrays.toString(store.directory().listAll());
                     } catch (Exception inner) {
-                        files += " (failure=" + ExceptionsHelper.stackTrace(inner) + ")";
+                        files += " (failure=" + Exceptions.stackTrace(inner) + ")";
                     }
                     if (indexShouldExists) {
                         throw new IndexShardRecoveryException(shardId,

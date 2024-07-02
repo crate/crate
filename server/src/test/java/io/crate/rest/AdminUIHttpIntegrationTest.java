@@ -21,66 +21,49 @@
 
 package io.crate.rest;
 
-import static org.elasticsearch.common.network.NetworkModule.HTTP_DEFAULT_TYPE_SETTING;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpClient.Redirect;
+import java.net.http.HttpRequest;
+import java.net.http.HttpRequest.BodyPublishers;
+import java.net.http.HttpRequest.Builder;
+import java.net.http.HttpResponse;
+import java.net.http.HttpResponse.BodyHandlers;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.Collection;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 
-import org.apache.http.Header;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpUriRequest;
-import org.apache.http.client.protocol.HttpClientContext;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.message.BasicHeader;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.http.HttpServerTransport;
-import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.IntegTestCase;
-import org.elasticsearch.transport.Netty4Plugin;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.junit.After;
 import org.junit.Before;
 
 public abstract class AdminUIHttpIntegrationTest extends IntegTestCase {
 
     protected InetSocketAddress address;
-    protected CloseableHttpClient httpClient = HttpClients.createDefault();
+    protected HttpClient httpClient;
 
     @Override
     protected boolean addMockHttpTransport() {
         return false;
     }
 
-    @Override
-    protected Settings nodeSettings(int nodeOrdinal) {
-        return Settings.builder()
-            .put(super.nodeSettings(nodeOrdinal))
-            .put(HTTP_DEFAULT_TYPE_SETTING.getKey(), "netty4")
-            .build();
-    }
-
-    @SuppressWarnings("unchecked")
-    @Override
-    protected Collection<Class<? extends Plugin>> nodePlugins() {
-        return Arrays.asList(Netty4Plugin.class);
-    }
-
     @Before
-    public void setup() throws IOException {
+    public void setup() throws Exception {
+        httpClient = HttpClient.newBuilder()
+            .followRedirects(Redirect.NORMAL)
+            .executor(cluster().getInstance(ThreadPool.class).generic())
+            .build();
         Iterable<HttpServerTransport> transports = cluster().getInstances(HttpServerTransport.class);
         Iterator<HttpServerTransport> httpTransports = transports.iterator();
         address = httpTransports.next().boundAddress().publishAddress().address();
@@ -91,56 +74,58 @@ public abstract class AdminUIHttpIntegrationTest extends IntegTestCase {
         Files.write(indexFile, Collections.singletonList("<h1>Crate Admin</h1>"), Charset.forName("UTF-8"));
     }
 
-    private CloseableHttpResponse executeAndDefaultAssertions(HttpUriRequest request) throws IOException {
-        CloseableHttpResponse resp = httpClient.execute(request);
-        assertThat(resp.containsHeader("Connection"), is(false));
+    @After
+    public void closeClient() {
+        httpClient.close();
+    }
+
+    private HttpResponse<String> executeAndDefaultAssertions(HttpRequest request) throws Exception {
+        var resp = httpClient.send(request, BodyHandlers.ofString());
+        assertThat(resp.headers().firstValue("Connection")).isNotPresent();
         return resp;
     }
 
-    CloseableHttpResponse get(String uri) throws IOException {
-        return get(uri, null);
-    }
-
-    CloseableHttpResponse get(String uri, Header[] headers) throws IOException {
-        HttpGet httpGet = new HttpGet(String.format(Locale.ENGLISH, "http://%s:%s/%s", address.getHostName(), address.getPort(), uri));
-        if (headers != null) {
-            httpGet.setHeaders(headers);
+    HttpResponse<String> get(String path, String[] ... headers) throws Exception {
+        URI uri = URI.create(String.format(Locale.ENGLISH, "http://%s:%s%s", address.getHostName(), address.getPort(), path));
+        Builder builder = HttpRequest.newBuilder(uri);
+        for (String[] header : headers) {
+            builder.header(header[0], header[1]);
         }
-        return executeAndDefaultAssertions(httpGet);
+        return executeAndDefaultAssertions(builder.build());
     }
 
-    CloseableHttpResponse browserGet(String uri) throws IOException {
-        Header[] headers = {
-            browserHeader()
+    HttpResponse<String> browserGet(String uri) throws Exception {
+        return get(uri, browserHeader());
+    }
+
+    HttpResponse<String> post(String path) throws Exception {
+        URI uri = URI.create(String.format(Locale.ENGLISH, "http://%s:%s%s", address.getHostName(), address.getPort(), path));
+        HttpRequest request = HttpRequest.newBuilder(uri)
+            .POST(BodyPublishers.noBody())
+            .build();
+        return executeAndDefaultAssertions(request);
+    }
+
+    List<String> getAllRedirectLocations(String path, String[] ... headers) throws Exception {
+        URI uri = URI.create(String.format(Locale.ENGLISH, "http://%s:%s%s", address.getHostName(), address.getPort(), path));
+        Builder builder = HttpRequest.newBuilder(uri);
+        for (String[] header : headers) {
+            builder.header(header[0], header[1]);
+        }
+        var response = httpClient.send(builder.build(), BodyHandlers.discarding());
+        response = response.previousResponse().orElse(null);
+        List<String> redirects = new ArrayList<>();
+        while (response != null) {
+            redirects.addAll(response.headers().allValues("location"));
+            response = response.previousResponse().orElse(null);
+        }
+        return redirects;
+    }
+
+    static String[] browserHeader() {
+        return new String[] {
+            "User-Agent",
+            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.106 Safari/537.36"
         };
-        return get(uri, headers);
-    }
-
-    CloseableHttpResponse post(String uri) throws IOException {
-        HttpPost httpPost = new HttpPost(String.format(Locale.ENGLISH, "http://%s:%s/%s", address.getHostName(), address.getPort(), uri));
-        return executeAndDefaultAssertions(httpPost);
-    }
-
-    List<URI> getAllRedirectLocations(String uri, Header[] headers) throws IOException {
-        CloseableHttpResponse response = null;
-        try {
-            HttpClientContext context = HttpClientContext.create();
-            HttpGet httpGet = new HttpGet(String.format(Locale.ENGLISH, "http://%s:%s/%s", address.getHostName(), address.getPort(), uri));
-            if (headers != null) {
-                httpGet.setHeaders(headers);
-            }
-            response = httpClient.execute(httpGet, context);
-
-            // get all redirection locations
-            return context.getRedirectLocations();
-        } finally {
-            if (response != null) {
-                response.close();
-            }
-        }
-    }
-
-    static BasicHeader browserHeader() {
-        return new BasicHeader("User-Agent", "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/51.0.2704.106 Safari/537.36");
     }
 }

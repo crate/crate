@@ -24,8 +24,6 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
 import java.util.Collections;
 import java.util.List;
@@ -60,11 +58,13 @@ public class InformationSchemaTest extends IntegTestCase {
     @Test
     public void testDefaultTables() {
         execute("select * from information_schema.tables order by table_schema, table_name");
-        assertThat(response.rowCount()).isEqualTo(57L);
-
         assertThat(response).hasRows(
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| character_sets| information_schema| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| columns| information_schema| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| foreign_server_options| information_schema| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| foreign_servers| information_schema| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| foreign_table_options| information_schema| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| foreign_tables| information_schema| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| key_column_usage| information_schema| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| referential_constraints| information_schema| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| routines| information_schema| BASE TABLE| NULL",
@@ -73,6 +73,8 @@ public class InformationSchemaTest extends IntegTestCase {
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| table_constraints| information_schema| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| table_partitions| information_schema| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| tables| information_schema| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| user_mapping_options| information_schema| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| user_mappings| information_schema| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| views| information_schema| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_am| pg_catalog| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_attrdef| pg_catalog| BASE TABLE| NULL",
@@ -81,11 +83,14 @@ public class InformationSchemaTest extends IntegTestCase {
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_constraint| pg_catalog| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_cursors| pg_catalog| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_database| pg_catalog| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_depend| pg_catalog| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_description| pg_catalog| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_enum| pg_catalog| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_event_trigger| pg_catalog| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_index| pg_catalog| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_indexes| pg_catalog| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_locks| pg_catalog| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_matviews| pg_catalog| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_namespace| pg_catalog| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_proc| pg_catalog| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_publication| pg_catalog| BASE TABLE| NULL",
@@ -114,6 +119,7 @@ public class InformationSchemaTest extends IntegTestCase {
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| operations_log| sys| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| privileges| sys| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| repositories| sys| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| roles| sys| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| segments| sys| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| shards| sys| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| snapshot_restore| sys| BASE TABLE| NULL",
@@ -201,13 +207,13 @@ public class InformationSchemaTest extends IntegTestCase {
     @Test
     public void testSearchInformationSchemaTablesRefresh() {
         execute("select * from information_schema.tables");
-        assertThat(response.rowCount()).isEqualTo(57L);
+        assertThat(response.rowCount()).isEqualTo(67L);
 
         execute("create table t4 (col1 integer, col2 string) with(number_of_replicas=0)");
         ensureYellow(getFqn("t4"));
 
         execute("select * from information_schema.tables");
-        assertThat(response.rowCount()).isEqualTo(58L);
+        assertThat(response.rowCount()).isEqualTo(68L);
     }
 
     @Test
@@ -419,6 +425,7 @@ public class InformationSchemaTest extends IntegTestCase {
             "nodes_pk| PRIMARY KEY| nodes| sys",
             "privileges_pk| PRIMARY KEY| privileges| sys",
             "repositories_pk| PRIMARY KEY| repositories| sys",
+            "roles_pk| PRIMARY KEY| roles| sys",
             "shards_pk| PRIMARY KEY| shards| sys",
             "snapshot_restore_pk| PRIMARY KEY| snapshot_restore| sys",
             "snapshots_pk| PRIMARY KEY| snapshots| sys",
@@ -562,7 +569,7 @@ public class InformationSchemaTest extends IntegTestCase {
     @Test
     public void testDefaultColumns() {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertThat(response.rowCount()).isEqualTo(960);
+        assertThat(response.rowCount()).isEqualTo(1005L);
     }
 
     @Test
@@ -821,7 +828,7 @@ public class InformationSchemaTest extends IntegTestCase {
         execute("select max(ordinal_position) from information_schema.columns");
         assertThat(response.rowCount()).isEqualTo(1);
 
-        assertThat(response.rows()[0][0]).isEqualTo(120);
+        assertThat(response.rows()[0][0]).isEqualTo(122);
 
         execute("create table t1 (id integer, col1 string)");
         execute("select max(ordinal_position) from information_schema.columns where table_schema = ?",
@@ -883,7 +890,7 @@ public class InformationSchemaTest extends IntegTestCase {
         execute("create table t3 (id integer, col1 string) clustered into 3 shards with(number_of_replicas=0)");
         execute("select count(*) from information_schema.tables");
         assertThat(response.rowCount()).isEqualTo(1);
-        assertThat(response.rows()[0][0]).isEqualTo(60L);
+        assertThat(response.rows()[0][0]).isEqualTo(70L);
     }
 
     @Test
@@ -915,7 +922,6 @@ public class InformationSchemaTest extends IntegTestCase {
                 "last_name", "Adams")});
         execute("refresh table t4");
 
-        waitForMappingUpdateOnAll("t4", "stuff.first_name", "stuff.middle_name", "stuff.last_name");
         execute("select column_name, ordinal_position from information_schema.columns where table_name='t4'");
         assertThat(response.rowCount()).isEqualTo(5);
     }
@@ -985,9 +991,9 @@ public class InformationSchemaTest extends IntegTestCase {
         Object[] row2 = new Object[]{"my_table", sqlExecutor.getCurrentSchema(), "04134", Map.of("par", 2), "2", 5, "0-1", "1"};
         Object[] row3 = new Object[]{"my_table", sqlExecutor.getCurrentSchema(), "04136", Map.of("par", 3), "3", 5, "0-1", "1"};
 
-        assertArrayEquals(row1, response.rows()[0]);
-        assertArrayEquals(row2, response.rows()[1]);
-        assertArrayEquals(row3, response.rows()[2]);
+        assertThat(response.rows()[0]).containsExactly(row1);
+        assertThat(response.rows()[1]).containsExactly(row2);
+        assertThat(response.rows()[2]).containsExactly(row3);
     }
 
     @Test
@@ -1035,7 +1041,7 @@ public class InformationSchemaTest extends IntegTestCase {
             "parted| 04136| {par=3}| 2| 0");
 
         execute("update parted set new=true where par=1");
-        refresh();
+        execute("refresh table parted");
         waitNoPendingTasksOnAll();
 
         // ensure newer index metadata does not override settings in template
@@ -1076,7 +1082,7 @@ public class InformationSchemaTest extends IntegTestCase {
         execute("insert into my_table (par, par_str, content) values (2, 'foo', 'content3')");
         execute("insert into my_table (par, par_str, content) values (2, 'bar', 'content4')");
         ensureGreen();
-        refresh();
+        execute("refresh table my_table");
         execute("alter table my_table set (number_of_shards=4)");
         waitNoPendingTasksOnAll();
         execute("insert into my_table (par, par_str, content) values (2, 'asdf', 'content5')");
@@ -1092,11 +1098,11 @@ public class InformationSchemaTest extends IntegTestCase {
         Object[] row4 = new Object[]{"my_table", sqlExecutor.getCurrentSchema(), "08134136dtng", Map.of("par", 2, "par_str", "foo"), 5, "0-1"};
         Object[] row5 = new Object[]{"my_table", sqlExecutor.getCurrentSchema(), "081341b1edi6c", Map.of("par", 2, "par_str", "asdf"), 4, "0-1"};
 
-        assertArrayEquals(row1, response.rows()[0]);
-        assertArrayEquals(row2, response.rows()[1]);
-        assertArrayEquals(row3, response.rows()[2]);
-        assertArrayEquals(row4, response.rows()[3]);
-        assertArrayEquals(row5, response.rows()[4]);
+        assertThat(response.rows()[0]).containsExactly(row1);
+        assertThat(response.rows()[1]).containsExactly(row2);
+        assertThat(response.rows()[2]).containsExactly(row3);
+        assertThat(response.rows()[3]).containsExactly(row4);
+        assertThat(response.rows()[4]).containsExactly(row5);
     }
 
     @Test
@@ -1113,7 +1119,7 @@ public class InformationSchemaTest extends IntegTestCase {
                 1, Map.of("date", "1970-01-01"),
                 2, Map.of("date", "2014-05-28")
             });
-        refresh();
+        execute("refresh table my_table");
 
         execute("select table_name, partition_ident, values from information_schema.table_partitions order by table_name, partition_ident");
         assertThat(response.rowCount()).isEqualTo(2);
@@ -1156,8 +1162,7 @@ public class InformationSchemaTest extends IntegTestCase {
         };
         execute(stmtInsert, argsInsert);
         assertThat(response.rowCount()).isEqualTo(1L);
-        waitForMappingUpdateOnAll("data_points", "data.somestringroute");
-        refresh();
+        execute("refresh table data_points");
 
         String stmtIsColumns = "select table_name, column_name, data_type " +
                                "from information_schema.columns " +
@@ -1363,5 +1368,33 @@ public class InformationSchemaTest extends IntegTestCase {
         assertThat(response).hasRows(
             "col1| NULL",
             "col2| 1");
+    }
+
+    @Test
+    public void test_dropped_columns_are_not_shown_in_information_schema() {
+        execute("create table t(a integer, o object AS(oo object AS(a int)))");
+
+        execute("alter table t drop column a");
+        execute("alter table t drop column o['oo']"); // Implicitly drops children.
+
+        // Only object column's root is left.
+        execute("""
+            select column_name, ordinal_position
+            from information_schema.columns
+            where table_name = 't'
+            order by ordinal_position"""
+        );
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("o| 2\n");
+    }
+
+    @Test
+    public void test_primary_key_constraint_names_are_visible() {
+        execute("create table t (a int constraint c_1 primary key, b int constraint c_1 primary key)");
+        execute("""
+            select distinct constraint_name
+            from information_schema.table_constraints
+            where table_name = 't' and constraint_type = 'PRIMARY KEY'
+            """);
+        assertThat(response).hasRows("c_1");
     }
 }

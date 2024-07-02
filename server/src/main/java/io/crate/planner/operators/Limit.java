@@ -25,6 +25,7 @@ import static io.crate.analyze.SymbolEvaluator.evaluate;
 import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_LIMIT;
 import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_OFFSET;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -33,7 +34,7 @@ import java.util.Set;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.ExecutionPhases;
 import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
@@ -134,7 +135,19 @@ public class Limit extends ForwardingLogicalPlan {
 
     @Override
     public LogicalPlan replaceSources(List<LogicalPlan> sources) {
-        return new Limit(Lists2.getOnlyElement(sources), limit, offset);
+        return new Limit(Lists.getOnlyElement(sources), limit, offset);
+    }
+
+    @Override
+    public @Nullable FetchRewrite rewriteToFetch(Collection<Symbol> usedColumns) {
+        FetchRewrite fetchRewrite = source.rewriteToFetch(usedColumns);
+        if (fetchRewrite == null) {
+            return null;
+        }
+        return new FetchRewrite(
+            fetchRewrite.replacedOutputs(),
+            new Limit(fetchRewrite.newPlan(), this.limit, this.offset)
+        );
     }
 
     @Override

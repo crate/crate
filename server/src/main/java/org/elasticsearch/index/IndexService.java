@@ -40,8 +40,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Function;
-
-import org.jetbrains.annotations.Nullable;
+import java.util.function.Supplier;
 
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.search.QueryCache;
@@ -56,16 +55,13 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.concurrent.AbstractAsyncTask;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.env.ShardLock;
-import org.elasticsearch.env.ShardLockObtainFailedException;
 import org.elasticsearch.gateway.MetadataStateFormat;
 import org.elasticsearch.gateway.WriteStateException;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
+import org.elasticsearch.index.analysis.IndexAnalyzers;
 import org.elasticsearch.index.engine.EngineFactory;
-import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.query.QueryShardContext;
 import org.elasticsearch.index.seqno.RetentionLeaseSyncer;
 import org.elasticsearch.index.shard.IndexEventListener;
 import org.elasticsearch.index.shard.IndexShard;
@@ -78,12 +74,15 @@ import org.elasticsearch.index.store.Store;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.indices.cluster.IndicesClusterStateService;
-import org.elasticsearch.indices.mapper.MapperRegistry;
 import org.elasticsearch.plugins.IndexStorePlugin;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.doc.DocTableInfoFactory;
+import io.crate.metadata.table.TableInfo;
 
 public class IndexService extends AbstractIndexComponent implements IndicesClusterStateService.AllocatedIndex<IndexShard> {
 
@@ -92,7 +91,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
     private final ShardStoreDeleter shardStoreDeleter;
     private final QueryCache queryCache;
     private final IndexStorePlugin.DirectoryFactory directoryFactory;
-    private final MapperService mapperService;
+    private final Supplier<TableInfo> getTable;
     private final Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders;
     private volatile Map<Integer, IndexShard> shards = emptyMap();
     private final AtomicBoolean closed = new AtomicBoolean(false);
@@ -111,12 +110,15 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
     private final ThreadPool threadPool;
     private final BigArrays bigArrays;
     private final CircuitBreakerService circuitBreakerService;
+    private final IndexAnalyzers indexAnalyzers;
+    private final NodeContext nodeContext;
+    private final DocTableInfoFactory tableFactory;
 
     public IndexService(
+            NodeContext nodeContext,
             IndexSettings indexSettings,
             IndexCreationContext indexCreationContext,
             NodeEnvironment nodeEnv,
-            NamedXContentRegistry xContentRegistry,
             ShardStoreDeleter shardStoreDeleter,
             AnalysisRegistry registry,
             Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders,
@@ -126,24 +128,22 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
             QueryCache queryCache,
             IndexStorePlugin.DirectoryFactory directoryFactory,
             IndexEventListener eventListener,
-            MapperRegistry mapperRegistry,
+            Supplier<TableInfo> getTableInfo,
             List<IndexingOperationListener> indexingOperationListeners) throws IOException {
         super(indexSettings);
+        this.nodeContext = nodeContext;
+        this.tableFactory = new DocTableInfoFactory(nodeContext);
         this.indexSettings = indexSettings;
         this.circuitBreakerService = circuitBreakerService;
         if (indexSettings.getIndexMetadata().getState() == IndexMetadata.State.CLOSE &&
                 indexCreationContext == IndexCreationContext.CREATE_INDEX) { // metadata verification needs a mapper service
-            this.mapperService = null;
+            this.indexAnalyzers = null;
             this.queryCache = null;
         } else {
-            this.mapperService = new MapperService(
-                indexSettings,
-                registry.build(indexSettings),
-                xContentRegistry,
-                mapperRegistry
-            );
+            this.indexAnalyzers = registry.build(indexSettings);
             this.queryCache = queryCache;
         }
+        this.getTable = getTableInfo;
         this.shardStoreDeleter = shardStoreDeleter;
         this.bigArrays = bigArrays;
         this.threadPool = threadPool;
@@ -207,8 +207,8 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         return queryCache;
     }
 
-    public MapperService mapperService() {
-        return mapperService;
+    public IndexAnalyzers indexAnalyzers() {
+        return indexAnalyzers;
     }
 
     public synchronized void close(final String reason, boolean delete) throws IOException {
@@ -225,7 +225,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
                 }
             } finally {
                 IOUtils.close(
-                    mapperService,
                     refreshTask,
                     fsyncTask,
                     trimTranslogTask,
@@ -300,7 +299,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         IndexShard indexShard = null;
         ShardLock lock = null;
         try {
-            lock = nodeEnv.shardLock(shardId, "starting shard", TimeUnit.SECONDS.toMillis(5));
+            lock = nodeEnv.shardLock(shardId, "starting shard");
             eventListener.beforeIndexShardCreated(shardId, indexSettings);
             ShardPath path;
             try {
@@ -353,28 +352,27 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
             );
             eventListener.onStoreCreated(shardId);
             indexShard = new IndexShard(
+                nodeContext,
                 routing,
                 this.indexSettings,
                 path,
                 store,
                 queryCache,
-                mapperService,
+                indexAnalyzers,
+                getTable,
                 engineFactoryProviders,
                 eventListener,
                 threadPool,
                 bigArrays,
                 indexingOperationListeners,
                 () -> globalCheckpointSyncer.accept(shardId),
-                retentionLeaseSyncer,
-                circuitBreakerService
+                retentionLeaseSyncer, circuitBreakerService
             );
             eventListener.indexShardStateChanged(indexShard, null, indexShard.state(), "shard created");
             eventListener.afterIndexShardCreated(indexShard);
             shards = newMapBuilder(shards).put(shardId.id(), indexShard).immutableMap();
             success = true;
             return indexShard;
-        } catch (ShardLockObtainFailedException e) {
-            throw new IOException("failed to obtain in-memory shard lock", e);
         } finally {
             if (success == false) {
                 if (lock != null) {
@@ -464,19 +462,9 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         return indexSettings;
     }
 
-    /**
-     * Creates a new QueryShardContext
-     */
-    public QueryShardContext newQueryShardContext() {
-        return new QueryShardContext(indexSettings, mapperService());
-    }
-
     @Override
-    public boolean updateMapping(final IndexMetadata currentIndexMetadata, final IndexMetadata newIndexMetadata) throws IOException {
-        if (mapperService == null) {
-            return false;
-        }
-        return mapperService.updateMapping(currentIndexMetadata, newIndexMetadata);
+    public void validateMapping(final IndexMetadata newIndexMetadata) throws IOException {
+        tableFactory.validateSchema(newIndexMetadata);
     }
 
     private class StoreCloseListener implements Store.OnClose {

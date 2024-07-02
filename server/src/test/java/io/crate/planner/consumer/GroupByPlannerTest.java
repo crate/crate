@@ -21,25 +21,14 @@
 
 package io.crate.planner.consumer;
 
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isReference;
 import static java.util.Collections.singletonList;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.List;
 
-import org.hamcrest.Matchers;
-import org.hamcrest.core.Is;
 import org.junit.Test;
-
-import com.carrotsearch.randomizedtesting.RandomizedTest;
 
 import io.crate.analyze.TableDefinitions;
 import io.crate.execution.dsl.phases.CollectPhase;
@@ -58,7 +47,6 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
-import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -70,30 +58,31 @@ import io.crate.planner.node.dql.Collect;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLExecutor;
-import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGroupByWithAggregationStringLiteralArguments() throws IOException {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
 
         Merge distributedGroupByMerge = e.plan("select count('foo'), name from users group by name");
         RoutedCollectPhase collectPhase =
             ((RoutedCollectPhase) ((Collect) ((Merge) distributedGroupByMerge.subPlan()).subPlan()).collectPhase());
         Asserts.assertThat(collectPhase.toCollect()).satisfiesExactly(isReference("name"));
-        GroupProjection groupProjection = (GroupProjection) collectPhase.projections().get(0);
-        Asserts.assertThat(groupProjection.values().get(0)).isAggregation("count");
+        GroupProjection groupProjection = (GroupProjection) collectPhase.projections().getFirst();
+        Asserts.assertThat(groupProjection.values().getFirst()).isAggregation("count");
     }
 
     @Test
     public void testGroupByWithAggregationPlan() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         Merge distributedGroupByMerge = e.plan(
             "select count(*), name from users group by name");
 
@@ -101,48 +90,49 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         // distributed collect
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) ((Collect) reducerMerge.subPlan()).collectPhase());
-        assertThat(collectPhase.maxRowGranularity(), is(RowGranularity.DOC));
-        assertThat(collectPhase.nodeIds().size(), is(2));
-        assertThat(collectPhase.toCollect().size(), is(1));
-        assertThat(collectPhase.projections().size(), is(1));
-        assertThat(collectPhase.projections().get(0), instanceOf(GroupProjection.class));
-        assertThat(collectPhase.outputTypes().size(), is(2));
-        assertEquals(DataTypes.STRING, collectPhase.outputTypes().get(0));
-        assertEquals(CountAggregation.LongStateType.INSTANCE, collectPhase.outputTypes().get(1));
+        assertThat(collectPhase.maxRowGranularity()).isEqualTo(RowGranularity.DOC);
+        assertThat(collectPhase.nodeIds()).hasSize(2);
+        assertThat(collectPhase.toCollect()).hasSize(1);
+        assertThat(collectPhase.projections()).hasSize(1);
+        assertThat(collectPhase.projections().getFirst()).isExactlyInstanceOf(GroupProjection.class);
+        assertThat(collectPhase.outputTypes()).hasSize(2);
+        assertThat(collectPhase.outputTypes().get(0)).isEqualTo(DataTypes.STRING);
+        assertThat(collectPhase.outputTypes().get(1)).isEqualTo(CountAggregation.LongStateType.INSTANCE);
 
         MergePhase mergePhase = reducerMerge.mergePhase();
 
-        assertThat(mergePhase.numUpstreams(), is(2));
-        assertThat(mergePhase.nodeIds().size(), is(2));
-        assertEquals(mergePhase.inputTypes(), collectPhase.outputTypes());
+        assertThat(mergePhase.numUpstreams()).isEqualTo(2);
+        assertThat(mergePhase.nodeIds()).hasSize(2);
+        assertThat(collectPhase.outputTypes()).isEqualTo(mergePhase.inputTypes());
         // for function evaluation and column-reordering there is always a EvalProjection
-        assertThat(mergePhase.projections().size(), is(2));
-        assertThat(mergePhase.projections().get(1), instanceOf(EvalProjection.class));
+        assertThat(mergePhase.projections()).hasSize(2);
+        assertThat(mergePhase.projections().get(1)).isExactlyInstanceOf(EvalProjection.class);
 
-        assertThat(mergePhase.projections().get(0), instanceOf(GroupProjection.class));
+        assertThat(mergePhase.projections().get(0)).isExactlyInstanceOf(GroupProjection.class);
         GroupProjection groupProjection = (GroupProjection) mergePhase.projections().get(0);
-        InputColumn inputColumn = (InputColumn) groupProjection.values().get(0).inputs().get(0);
-        assertThat(inputColumn.index(), is(1));
+        InputColumn inputColumn = (InputColumn) groupProjection.values().getFirst().inputs().getFirst();
+        assertThat(inputColumn.index()).isEqualTo(1);
 
-        assertThat(mergePhase.outputTypes().size(), is(2));
-        assertEquals(DataTypes.LONG, mergePhase.outputTypes().get(0));
-        assertEquals(DataTypes.STRING, mergePhase.outputTypes().get(1));
+        assertThat(mergePhase.outputTypes()).hasSize(2);
+        assertThat(mergePhase.outputTypes().get(0)).isEqualTo(DataTypes.LONG);
+        assertThat(mergePhase.outputTypes().get(1)).isEqualTo(DataTypes.STRING);
 
         MergePhase localMerge = distributedGroupByMerge.mergePhase();
 
-        assertThat(localMerge.numUpstreams(), is(2));
-        assertThat(localMerge.nodeIds().size(), is(1));
-        assertThat(localMerge.nodeIds().iterator().next(), is(NODE_ID));
-        assertEquals(mergePhase.outputTypes(), localMerge.inputTypes());
+        assertThat(localMerge.numUpstreams()).isEqualTo(2);
+        assertThat(localMerge.nodeIds()).hasSize(1);
+        assertThat(localMerge.nodeIds().iterator().next()).isEqualTo(NODE_ID);
+        assertThat(localMerge.inputTypes()).isEqualTo(mergePhase.outputTypes());
 
-        assertThat(localMerge.projections(), empty());
+        assertThat(localMerge.projections()).isEmpty();
     }
 
     @Test
     public void testGroupByWithAggregationAndLimit() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         Merge distributedGroupByMerge = e.plan(
             "select count(*), name from users group by name limit 1 offset 1");
 
@@ -150,284 +140,298 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         // distributed merge
         MergePhase distributedMergePhase = reducerMerge.mergePhase();
-        assertThat(distributedMergePhase.projections().get(0), instanceOf(GroupProjection.class));
-        assertThat(distributedMergePhase.projections().get(1), instanceOf(LimitAndOffsetProjection.class));
+        assertThat(distributedMergePhase.projections().get(0)).isExactlyInstanceOf(GroupProjection.class);
+        assertThat(distributedMergePhase.projections().get(1)).isExactlyInstanceOf(LimitAndOffsetProjection.class);
 
         // limit must include offset because the real limit can only be applied on the handler
         // after all rows have been gathered.
         LimitAndOffsetProjection projection = (LimitAndOffsetProjection) distributedMergePhase.projections().get(1);
-        assertThat(projection.limit(), is(2));
-        assertThat(projection.offset(), is(0));
+        assertThat(projection.limit()).isEqualTo(2);
+        assertThat(projection.offset()).isEqualTo(0);
 
         // local merge
         MergePhase localMergePhase = distributedGroupByMerge.mergePhase();
-        assertThat(localMergePhase.projections().get(0), instanceOf(LimitAndOffsetProjection.class));
-        projection = (LimitAndOffsetProjection) localMergePhase.projections().get(0);
-        assertThat(projection.limit(), is(1));
-        assertThat(projection.offset(), is(1));
-        assertThat(projection.outputs().get(0), instanceOf(InputColumn.class));
-        assertThat(((InputColumn) projection.outputs().get(0)).index(), is(0));
-        assertThat(projection.outputs().get(1), instanceOf(InputColumn.class));
-        assertThat(((InputColumn) projection.outputs().get(1)).index(), is(1));
+        assertThat(localMergePhase.projections().getFirst()).isExactlyInstanceOf(LimitAndOffsetProjection.class);
+        projection = (LimitAndOffsetProjection) localMergePhase.projections().getFirst();
+        assertThat(projection.limit()).isEqualTo(1);
+        assertThat(projection.offset()).isEqualTo(1);
+        assertThat(projection.outputs().get(0)).isExactlyInstanceOf(InputColumn.class);
+        assertThat(((InputColumn) projection.outputs().get(0)).index()).isEqualTo(0);
+        assertThat(projection.outputs().get(1)).isExactlyInstanceOf(InputColumn.class);
+        assertThat(((InputColumn) projection.outputs().get(1)).index()).isEqualTo(1);
     }
 
     @Test
     public void testGroupByOnNodeLevel() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of()).build();
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build();
         Collect collect = e.plan(
             "select count(*), name from sys.nodes group by name");
 
-        assertThat("number of nodeIds must be 1, otherwise there must be a merge",
-            collect.resultDescription().nodeIds().size(), is(1));
+        assertThat(collect.resultDescription().nodeIds())
+            .as("number of nodeIds must be 1, otherwise there must be a merge")
+            .hasSize(1);
 
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
-        assertThat(collectPhase.projections(), contains(
-            instanceOf(GroupProjection.class),
-            instanceOf(EvalProjection.class)));
+        assertThat(collectPhase.projections()).satisfiesExactly(
+            x -> assertThat(x).isExactlyInstanceOf(GroupProjection.class),
+            x -> assertThat(x).isExactlyInstanceOf(EvalProjection.class));
 
         GroupProjection groupProjection = (GroupProjection) collectPhase.projections().get(0);
 
-        assertThat(Symbols.typeView(groupProjection.outputs()), contains(
-            is(DataTypes.STRING),
-            is(DataTypes.LONG)));
+        assertThat(groupProjection.outputs()).satisfiesExactly(
+            x -> assertThat(x).hasDataType(DataTypes.STRING),
+            x -> assertThat(x).hasDataType(DataTypes.LONG)
+        );
 
-        assertThat(Symbols.typeView(collectPhase.projections().get(1).outputs()), contains(
-            is(DataTypes.LONG),
-            is(DataTypes.STRING)));
-    }
-
-    @Test
-    public void testNonDistributedGroupByOnClusteredColumn() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
-        Merge merge = e.plan(
-            "select count(*), id from users group by id limit 20");
-        Collect collect = ((Collect) merge.subPlan());
-        RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
-        assertThat(collectPhase.projections(), contains(
-            instanceOf(GroupProjection.class),
-            instanceOf(LimitAndOffsetProjection.class),
-            instanceOf(EvalProjection.class) // swaps id, count(*) output from group by to count(*), id
-        ));
-        assertThat(collectPhase.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
-        MergePhase mergePhase = merge.mergePhase();
-        assertThat(mergePhase.projections(), contains(
-            instanceOf(LimitAndOffsetProjection.class))
+        assertThat(collectPhase.projections().get(1).outputs()).satisfiesExactly(
+            x -> assertThat(x).hasDataType(DataTypes.LONG),
+            x -> assertThat(x).hasDataType(DataTypes.STRING)
         );
     }
 
     @Test
+    public void testNonDistributedGroupByOnClusteredColumn() throws Exception {
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
+        Merge merge = e.plan(
+            "select count(*), id from users group by id limit 20");
+        Collect collect = ((Collect) merge.subPlan());
+        RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
+        assertThat(collectPhase.projections()).satisfiesExactly(
+            x -> assertThat(x).isExactlyInstanceOf(GroupProjection.class),
+            x -> assertThat(x).isExactlyInstanceOf(LimitAndOffsetProjection.class),
+            x -> assertThat(x).isExactlyInstanceOf(EvalProjection.class) // swaps id, count(*) output from group by to count(*), id
+        );
+        assertThat(collectPhase.projections().getFirst().requiredGranularity()).isEqualTo(RowGranularity.SHARD);
+        MergePhase mergePhase = merge.mergePhase();
+        assertThat(mergePhase.projections()).satisfiesExactly(
+            p -> assertThat(p).isExactlyInstanceOf(LimitAndOffsetProjection.class));
+    }
+
+    @Test
     public void testNonDistributedGroupByOnClusteredColumnSorted() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         Merge merge = e.plan(
             "select count(*), id from users group by id order by 1 desc nulls last limit 20");
         Collect collect = ((Collect) merge.subPlan());
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
         List<Projection> collectProjections = collectPhase.projections();
-        assertThat(collectProjections, contains(
-            instanceOf(GroupProjection.class),
-            instanceOf(OrderedLimitAndOffsetProjection.class),
-            instanceOf(EvalProjection.class) // swap id, count(*) -> count(*), id
-        ));
-        assertThat(collectProjections.get(1), instanceOf(OrderedLimitAndOffsetProjection.class));
-        assertThat(((OrderedLimitAndOffsetProjection) collectProjections.get(1)).orderBy().size(), is(1));
+        assertThat(collectProjections).satisfiesExactly(
+            x -> assertThat(x).isExactlyInstanceOf(GroupProjection.class),
+            x -> assertThat(x).isExactlyInstanceOf(OrderedLimitAndOffsetProjection.class),
+            x -> assertThat(x).isExactlyInstanceOf(EvalProjection.class) // swap id, count(*) -> count(*), id
+        );
+        assertThat(collectProjections.get(1)).isExactlyInstanceOf(OrderedLimitAndOffsetProjection.class);
+        assertThat(((OrderedLimitAndOffsetProjection) collectProjections.get(1)).orderBy()).hasSize(1);
 
-        assertThat(collectProjections.get(0).requiredGranularity(), is(RowGranularity.SHARD));
+        assertThat(collectProjections.get(0).requiredGranularity()).isEqualTo(RowGranularity.SHARD);
         MergePhase mergePhase = merge.mergePhase();
-        assertThat(mergePhase.projections(), contains(
-            instanceOf(LimitAndOffsetProjection.class)
-        ));
+        assertThat(mergePhase.projections()).satisfiesExactly(
+            x -> assertThat(x).isExactlyInstanceOf(LimitAndOffsetProjection.class)
+        );
 
         PositionalOrderBy positionalOrderBy = mergePhase.orderByPositions();
-        assertThat(positionalOrderBy, notNullValue());
-        assertThat(positionalOrderBy.indices().length, is(1));
-        assertThat(positionalOrderBy.indices()[0], is(0));
-        assertThat(positionalOrderBy.reverseFlags()[0], is(true));
-        assertThat(positionalOrderBy.nullsFirst()[0], is(false));
+        assertThat(positionalOrderBy).isNotNull();
+        assertThat(positionalOrderBy.indices().length).isEqualTo(1);
+        assertThat(positionalOrderBy.indices()[0]).isEqualTo(0);
+        assertThat(positionalOrderBy.reverseFlags()[0]).isTrue();
+        assertThat(positionalOrderBy.nullsFirst()[0]).isFalse();
     }
 
     @Test
     public void testNonDistributedGroupByOnClusteredColumnSortedScalar() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         Merge merge = e.plan(
             "select count(*) + 1, id from users group by id order by count(*) + 1 limit 20");
         Collect collect = (Collect) merge.subPlan();
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
-        assertThat(collectPhase.projections(), contains(
-            instanceOf(GroupProjection.class),
-            instanceOf(OrderedLimitAndOffsetProjection.class),
-            instanceOf(EvalProjection.class)
-        ));
-        assertThat(((OrderedLimitAndOffsetProjection) collectPhase.projections().get(1)).orderBy().size(), is(1));
+        assertThat(collectPhase.projections()).satisfiesExactly(
+            x -> assertThat(x).isExactlyInstanceOf(GroupProjection.class),
+            x -> assertThat(x).isExactlyInstanceOf(OrderedLimitAndOffsetProjection.class),
+            x -> assertThat(x).isExactlyInstanceOf(EvalProjection.class)
+        );
+        assertThat(((OrderedLimitAndOffsetProjection) collectPhase.projections().get(1)).orderBy()).hasSize(1);
 
-        assertThat(collectPhase.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
+        assertThat(collectPhase.projections().get(0).requiredGranularity()).isEqualTo(RowGranularity.SHARD);
         MergePhase mergePhase = merge.mergePhase();
-        assertThat(mergePhase.projections(), contains(
-            instanceOf(LimitAndOffsetProjection.class)
-        ));
+        assertThat(mergePhase.projections()).satisfiesExactly(
+            x -> assertThat(x).isExactlyInstanceOf(LimitAndOffsetProjection.class)
+        );
 
         PositionalOrderBy positionalOrderBy = mergePhase.orderByPositions();
-        assertThat(positionalOrderBy, notNullValue());
-        assertThat(positionalOrderBy.indices().length, is(1));
-        assertThat(positionalOrderBy.indices()[0], is(0));
-        assertThat(positionalOrderBy.reverseFlags()[0], is(false));
-        assertThat(positionalOrderBy.nullsFirst()[0], is(false));
+        assertThat(positionalOrderBy).isNotNull();
+        assertThat(positionalOrderBy.indices().length).isEqualTo(1);
+        assertThat(positionalOrderBy.indices()[0]).isEqualTo(0);
+        assertThat(positionalOrderBy.reverseFlags()[0]).isFalse();
+        assertThat(positionalOrderBy.nullsFirst()[0]).isFalse();
     }
 
     @Test
     public void testGroupByWithOrderOnAggregate() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         Merge merge = e.plan(
             "select count(*), name from users group by name order by count(*)");
 
-        assertThat(merge.mergePhase().orderByPositions(), notNullValue());
+        assertThat(merge.mergePhase().orderByPositions()).isNotNull();
 
         Merge reducerMerge = (Merge) merge.subPlan();
         MergePhase mergePhase = reducerMerge.mergePhase();
 
-        assertThat(mergePhase.projections(), contains(
-            instanceOf(GroupProjection.class),
-            instanceOf(OrderedLimitAndOffsetProjection.class),
-            instanceOf(EvalProjection.class)
-        ));
+        assertThat(mergePhase.projections()).satisfiesExactly(
+            x -> assertThat(x).isExactlyInstanceOf(GroupProjection.class),
+            x -> assertThat(x).isExactlyInstanceOf(OrderedLimitAndOffsetProjection.class),
+            x -> assertThat(x).isExactlyInstanceOf(EvalProjection.class)
+        );
         OrderedLimitAndOffsetProjection projection = (OrderedLimitAndOffsetProjection) mergePhase.projections().get(1);
-        Symbol orderBy = projection.orderBy().get(0);
-        assertThat(orderBy, instanceOf(InputColumn.class));
+        Symbol orderBy = projection.orderBy().getFirst();
+        assertThat(orderBy).isExactlyInstanceOf(InputColumn.class);
 
-        assertThat(orderBy.valueType(), Is.is(DataTypes.LONG));
+        assertThat(orderBy.valueType()).isEqualTo(DataTypes.LONG);
     }
 
     @Test
     public void testHandlerSideRoutingGroupBy() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of()).build();
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build();
         Collect collect = e.plan(
             "select count(*) from sys.cluster group by name");
         // just testing the dispatching here.. making sure it is not a ESSearchNode
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
-        assertThat(collectPhase.toCollect().get(0), instanceOf(Reference.class));
-        assertThat(collectPhase.toCollect().size(), is(1));
+        assertThat(collectPhase.toCollect().getFirst()).isInstanceOf(Reference.class);
+        assertThat(collectPhase.toCollect()).hasSize(1);
 
-        assertThat(collectPhase.projections(), contains(
-            instanceOf(GroupProjection.class),
-            instanceOf(EvalProjection.class)
-        ));
+        assertThat(collectPhase.projections()).satisfiesExactly(
+            x -> assertThat(x).isExactlyInstanceOf(GroupProjection.class),
+            x -> assertThat(x).isExactlyInstanceOf(EvalProjection.class)
+        );
     }
 
     @Test
     public void testCountDistinctWithGroupBy() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         Merge distributedGroupByMerge = e.plan(
             "select count(distinct id), name from users group by name order by count(distinct id)");
         Merge reducerMerge = (Merge) distributedGroupByMerge.subPlan();
         CollectPhase collectPhase = ((Collect) reducerMerge.subPlan()).collectPhase();
 
         // collect
-        assertThat(collectPhase.toCollect().get(0), instanceOf(Reference.class));
-        assertThat(collectPhase.toCollect().size(), is(2));
-        assertThat(((Reference) collectPhase.toCollect().get(0)).column().name(), is("id"));
-        assertThat(((Reference) collectPhase.toCollect().get(1)).column().name(), is("name"));
-        Projection projection = collectPhase.projections().get(0);
-        assertThat(projection, instanceOf(GroupProjection.class));
+        assertThat(collectPhase.toCollect().getFirst()).isInstanceOf(Reference.class);
+        assertThat(collectPhase.toCollect()).hasSize(2);
+        assertThat(((Reference) collectPhase.toCollect().get(0)).column().name()).isEqualTo("id");
+        assertThat(((Reference) collectPhase.toCollect().get(1)).column().name()).isEqualTo("name");
+        Projection projection = collectPhase.projections().getFirst();
+        assertThat(projection).isExactlyInstanceOf(GroupProjection.class);
         GroupProjection groupProjection = (GroupProjection) projection;
-        Symbol groupKey = groupProjection.keys().get(0);
-        assertThat(groupKey, instanceOf(InputColumn.class));
-        assertThat(((InputColumn) groupKey).index(), is(1));
-        assertThat(groupProjection.values().size(), is(1));
-        assertThat(groupProjection.mode(), is(AggregateMode.ITER_PARTIAL));
+        Symbol groupKey = groupProjection.keys().getFirst();
+        assertThat(groupKey).isExactlyInstanceOf(InputColumn.class);
+        assertThat(((InputColumn) groupKey).index()).isEqualTo(1);
+        assertThat(groupProjection.values()).hasSize(1);
+        assertThat(groupProjection.mode()).isEqualTo(AggregateMode.ITER_PARTIAL);
 
-        Aggregation aggregation = groupProjection.values().get(0);
-        Symbol aggregationInput = aggregation.inputs().get(0);
-        assertThat(aggregationInput.symbolType(), is(SymbolType.INPUT_COLUMN));
+        Aggregation aggregation = groupProjection.values().getFirst();
+        Symbol aggregationInput = aggregation.inputs().getFirst();
+        assertThat(aggregationInput.symbolType()).isEqualTo(SymbolType.INPUT_COLUMN);
 
 
         // reducer
         MergePhase mergePhase = reducerMerge.mergePhase();
-        assertThat(mergePhase.projections(), contains(
-            instanceOf(GroupProjection.class),
-            instanceOf(OrderedLimitAndOffsetProjection.class),
-            instanceOf(EvalProjection.class))
-        );
-        Projection groupProjection1 = mergePhase.projections().get(0);
+        assertThat(mergePhase.projections()).satisfiesExactly(
+            p -> assertThat(p).isExactlyInstanceOf(GroupProjection.class),
+            p -> assertThat(p).isExactlyInstanceOf(OrderedLimitAndOffsetProjection.class),
+            p -> assertThat(p).isExactlyInstanceOf(EvalProjection.class));
+
+        Projection groupProjection1 = mergePhase.projections().getFirst();
         groupProjection = (GroupProjection) groupProjection1;
-        assertThat(groupProjection.keys().get(0), instanceOf(InputColumn.class));
-        assertThat(((InputColumn) groupProjection.keys().get(0)).index(), is(0));
-        assertThat(groupProjection.mode(), is(AggregateMode.PARTIAL_FINAL));
-        assertThat(groupProjection.values().get(0), instanceOf(Aggregation.class));
+        assertThat(groupProjection.keys().getFirst()).isExactlyInstanceOf(InputColumn.class);
+        assertThat(((InputColumn) groupProjection.keys().getFirst()).index()).isEqualTo(0);
+        assertThat(groupProjection.mode()).isEqualTo(AggregateMode.PARTIAL_FINAL);
+        assertThat(groupProjection.values().getFirst()).isExactlyInstanceOf(Aggregation.class);
 
         OrderedLimitAndOffsetProjection limitAndOffsetProjection =
             (OrderedLimitAndOffsetProjection) mergePhase.projections().get(1);
-        Symbol collection_count = limitAndOffsetProjection.outputs().get(0);
+        Symbol collection_count = limitAndOffsetProjection.outputs().getFirst();
         Asserts.assertThat(collection_count).isInputColumn(0);
 
         // handler
         MergePhase localMergeNode = distributedGroupByMerge.mergePhase();
-        assertThat(localMergeNode.projections(), Matchers.emptyIterable());
+        assertThat(localMergeNode.projections()).isEmpty();
     }
 
     @Test
     public void testGroupByHavingNonDistributed() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         Merge merge = e.plan(
             "select id from users group by id having id > 0");
         Collect collect = (Collect) merge.subPlan();
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
         Asserts.assertThat(collectPhase.where()).isSQL("(doc.users.id > 0::bigint)");
-        assertThat(collectPhase.projections(), contains(
-            instanceOf(GroupProjection.class)
-        ));
+        assertThat(collectPhase.projections()).satisfiesExactly(
+            x -> assertThat(x).isExactlyInstanceOf(GroupProjection.class)
+        );
 
         MergePhase localMergeNode = merge.mergePhase();
-        assertThat(localMergeNode.projections(), empty());
+        assertThat(localMergeNode.projections()).isEmpty();
     }
 
     @Test
     public void testGroupByWithHavingAndLimit() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         Merge planNode = e.plan(
             "select count(*), name from users group by name having count(*) > 1 limit 100");
         Merge reducerMerge = (Merge) planNode.subPlan();
         MergePhase mergePhase = reducerMerge.mergePhase(); // reducer
 
         Projection projection = mergePhase.projections().get(1);
-        assertThat(projection, instanceOf(FilterProjection.class));
+        assertThat(projection).isExactlyInstanceOf(FilterProjection.class);
         FilterProjection filterProjection = (FilterProjection) projection;
 
-        Symbol countArgument = ((Function) filterProjection.query()).arguments().get(0);
-        assertThat(countArgument, instanceOf(InputColumn.class));
-        assertThat(((InputColumn) countArgument).index(), is(1));  // pointing to second output from group projection
+        Symbol countArgument = ((Function) filterProjection.query()).arguments().getFirst();
+        assertThat(countArgument).isExactlyInstanceOf(InputColumn.class);
+        assertThat(((InputColumn) countArgument).index()).isEqualTo(1);  // pointing to second output from group projection
 
         // outputs: name, count(*)
         LimitAndOffsetProjection limitAndOffsetProjection = (LimitAndOffsetProjection) mergePhase.projections().get(2);
-        assertThat(limitAndOffsetProjection.outputs().get(0).valueType(), Is.is(DataTypes.STRING));
-        assertThat(limitAndOffsetProjection.outputs().get(1).valueType(), Is.is(DataTypes.LONG));
+        assertThat(limitAndOffsetProjection.outputs().get(0).valueType()).isEqualTo(DataTypes.STRING);
+        assertThat(limitAndOffsetProjection.outputs().get(1).valueType()).isEqualTo(DataTypes.LONG);
 
 
         MergePhase localMerge = planNode.mergePhase();
         // limitAndOffset projection
         //      outputs: count(*), name
-        limitAndOffsetProjection = (LimitAndOffsetProjection) localMerge.projections().get(0);
-        assertThat(limitAndOffsetProjection.outputs().get(0).valueType(), Is.is(DataTypes.LONG));
-        assertThat(limitAndOffsetProjection.outputs().get(1).valueType(), Is.is(DataTypes.STRING));
+        limitAndOffsetProjection = (LimitAndOffsetProjection) localMerge.projections().getFirst();
+        assertThat(limitAndOffsetProjection.outputs().get(0).valueType()).isEqualTo(DataTypes.LONG);
+        assertThat(limitAndOffsetProjection.outputs().get(1).valueType()).isEqualTo(DataTypes.STRING);
     }
 
     @Test
     public void testGroupByWithHavingAndNoLimit() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         Merge planNode = e.plan(
             "select count(*), name from users group by name having count(*) > 1");
         Merge reducerMerge = (Merge) planNode.subPlan();
@@ -437,27 +441,28 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         //      outputs: name, count(*)
 
         Projection projection = mergePhase.projections().get(1);
-        assertThat(projection, instanceOf(FilterProjection.class));
+        assertThat(projection).isExactlyInstanceOf(FilterProjection.class);
         FilterProjection filterProjection = (FilterProjection) projection;
 
-        Symbol countArgument = ((Function) filterProjection.query()).arguments().get(0);
-        assertThat(countArgument, instanceOf(InputColumn.class));
-        assertThat(((InputColumn) countArgument).index(), is(1));  // pointing to second output from group projection
+        Symbol countArgument = ((Function) filterProjection.query()).arguments().getFirst();
+        assertThat(countArgument).isExactlyInstanceOf(InputColumn.class);
+        assertThat(((InputColumn) countArgument).index()).isEqualTo(1);  // pointing to second output from group projection
 
-        assertThat(mergePhase.outputTypes().get(0), equalTo(DataTypes.LONG));
-        assertThat(mergePhase.outputTypes().get(1), equalTo(DataTypes.STRING));
+        assertThat(mergePhase.outputTypes().get(0)).isEqualTo(DataTypes.LONG);
+        assertThat(mergePhase.outputTypes().get(1)).isEqualTo(DataTypes.STRING);
 
         mergePhase = planNode.mergePhase();
 
-        assertThat(mergePhase.outputTypes().get(0), equalTo(DataTypes.LONG));
-        assertThat(mergePhase.outputTypes().get(1), equalTo(DataTypes.STRING));
+        assertThat(mergePhase.outputTypes().get(0)).isEqualTo(DataTypes.LONG);
+        assertThat(mergePhase.outputTypes().get(1)).isEqualTo(DataTypes.STRING);
     }
 
     @Test
     public void testGroupByWithHavingAndNoSelectListReordering() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         Merge planNode = e.plan(
             "select name, count(*) from users group by name having count(*) > 1");
         Merge reducerMerge = (Merge) planNode.subPlan();
@@ -469,31 +474,32 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         // filter projection
         //      outputs: name, count(*)
 
-        assertThat(reduceMergePhase.projections(), contains(
-            instanceOf(GroupProjection.class),
-            instanceOf(FilterProjection.class)
-        ));
+        assertThat(reduceMergePhase.projections()).satisfiesExactly(
+            x -> assertThat(x).isExactlyInstanceOf(GroupProjection.class),
+            x -> assertThat(x).isExactlyInstanceOf(FilterProjection.class)
+        );
         Projection projection = reduceMergePhase.projections().get(1);
-        assertThat(projection, instanceOf(FilterProjection.class));
+        assertThat(projection).isExactlyInstanceOf(FilterProjection.class);
         FilterProjection filterProjection = (FilterProjection) projection;
 
-        Symbol countArgument = ((Function) filterProjection.query()).arguments().get(0);
-        assertThat(countArgument, instanceOf(InputColumn.class));
-        assertThat(((InputColumn) countArgument).index(), is(1));  // pointing to second output from group projection
+        Symbol countArgument = ((Function) filterProjection.query()).arguments().getFirst();
+        assertThat(countArgument).isExactlyInstanceOf(InputColumn.class);
+        assertThat(((InputColumn) countArgument).index()).isEqualTo(1);  // pointing to second output from group projection
 
         // outputs: name, count(*)
-        assertThat(((InputColumn) filterProjection.outputs().get(0)).index(), is(0));
-        assertThat(((InputColumn) filterProjection.outputs().get(1)).index(), is(1));
+        assertThat(((InputColumn) filterProjection.outputs().get(0)).index()).isEqualTo(0);
+        assertThat(((InputColumn) filterProjection.outputs().get(1)).index()).isEqualTo(1);
 
         MergePhase localMerge = planNode.mergePhase();
-        assertThat(localMerge.projections(), empty());
+        assertThat(localMerge.projections()).isEmpty();
     }
 
     @Test
     public void testGroupByHavingAndNoSelectListReOrderingWithLimit() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         Merge planNode = e.plan(
             "select name, count(*) from users group by name having count(*) > 1 limit 100");
         Merge reducerMerge = (Merge) planNode.subPlan();
@@ -508,157 +514,169 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         //      outputs: name, count(*)
 
         Projection projection = reducePhase.projections().get(1);
-        assertThat(projection, instanceOf(FilterProjection.class));
+        assertThat(projection).isExactlyInstanceOf(FilterProjection.class);
         FilterProjection filterProjection = (FilterProjection) projection;
 
-        Symbol countArgument = ((Function) filterProjection.query()).arguments().get(0);
-        assertThat(countArgument, instanceOf(InputColumn.class));
-        assertThat(((InputColumn) countArgument).index(), is(1));  // pointing to second output from group projection
+        Symbol countArgument = ((Function) filterProjection.query()).arguments().getFirst();
+        assertThat(countArgument).isExactlyInstanceOf(InputColumn.class);
+        assertThat(((InputColumn) countArgument).index()).isEqualTo(1);  // pointing to second output from group projection
 
         // outputs: name, count(*)
-        assertThat(((InputColumn) filterProjection.outputs().get(0)).index(), is(0));
-        assertThat(((InputColumn) filterProjection.outputs().get(1)).index(), is(1));
+        assertThat(((InputColumn) filterProjection.outputs().get(0)).index()).isEqualTo(0);
+        assertThat(((InputColumn) filterProjection.outputs().get(1)).index()).isEqualTo(1);
 
         // outputs: name, count(*)
         LimitAndOffsetProjection limitAndOffsetProjection = (LimitAndOffsetProjection) reducePhase.projections().get(2);
-        assertThat(((InputColumn) limitAndOffsetProjection.outputs().get(0)).index(), is(0));
-        assertThat(((InputColumn) limitAndOffsetProjection.outputs().get(1)).index(), is(1));
+        assertThat(((InputColumn) limitAndOffsetProjection.outputs().get(0)).index()).isEqualTo(0);
+        assertThat(((InputColumn) limitAndOffsetProjection.outputs().get(1)).index()).isEqualTo(1);
 
 
         MergePhase localMerge = planNode.mergePhase();
 
         // limitAndOffset projection
         //      outputs: name, count(*)
-        limitAndOffsetProjection = (LimitAndOffsetProjection) localMerge.projections().get(0);
-        assertThat(((InputColumn) limitAndOffsetProjection.outputs().get(0)).index(), is(0));
-        assertThat(((InputColumn) limitAndOffsetProjection.outputs().get(1)).index(), is(1));
+        limitAndOffsetProjection = (LimitAndOffsetProjection) localMerge.projections().getFirst();
+        assertThat(((InputColumn) limitAndOffsetProjection.outputs().get(0)).index()).isEqualTo(0);
+        assertThat(((InputColumn) limitAndOffsetProjection.outputs().get(1)).index()).isEqualTo(1);
     }
 
     @Test
     public void testDistributedGroupByProjectionHasShardLevelGranularity() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         Merge distributedGroupByMerge = e.plan("select count(*) from users group by name");
         Merge reduceMerge = (Merge) distributedGroupByMerge.subPlan();
         CollectPhase collectPhase = ((Collect) reduceMerge.subPlan()).collectPhase();
-        assertThat(collectPhase.projections().size(), is(1));
-        assertThat(collectPhase.projections().get(0), instanceOf(GroupProjection.class));
-        assertThat(collectPhase.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
+        assertThat(collectPhase.projections()).hasSize(1);
+        assertThat(collectPhase.projections().getFirst()).isExactlyInstanceOf(GroupProjection.class);
+        assertThat(collectPhase.projections().getFirst().requiredGranularity()).isEqualTo(RowGranularity.SHARD);
     }
 
     @Test
     public void testNonDistributedGroupByProjectionHasShardLevelGranularity() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         Merge distributedGroupByMerge = e.plan("select count(distinct id), name from users" +
                                                " group by name order by count(distinct id)");
         Merge reduceMerge = (Merge) distributedGroupByMerge.subPlan();
         CollectPhase collectPhase = ((Collect) reduceMerge.subPlan()).collectPhase();
-        assertThat(collectPhase.projections().size(), is(1));
-        assertThat(collectPhase.projections().get(0), instanceOf(GroupProjection.class));
-        assertThat(collectPhase.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
+        assertThat(collectPhase.projections()).hasSize(1);
+        assertThat(collectPhase.projections().getFirst()).isExactlyInstanceOf(GroupProjection.class);
+        assertThat(collectPhase.projections().getFirst().requiredGranularity()).isEqualTo(RowGranularity.SHARD);
     }
 
     @Test
     public void testNoDistributedGroupByOnAllPrimaryKeys() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
             .addPartitionedTable(
                 "create table doc.empty_parted (" +
                 "   id integer primary key," +
                 "   date timestamp with time zone primary key" +
                 ") clustered by (id) partitioned by (date)"
-            ).build();
+            );
         Collect collect = e.plan(
             "select count(*), id, date from empty_parted group by id, date limit 20");
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
-        assertThat(collectPhase.projections().size(), is(3));
-        assertThat(collectPhase.projections().get(0), instanceOf(GroupProjection.class));
-        assertThat(collectPhase.projections().get(0).requiredGranularity(), is(RowGranularity.SHARD));
-        assertThat(collectPhase.projections().get(1), instanceOf(LimitAndOffsetProjection.class));
-        assertThat(collectPhase.projections().get(2), instanceOf(EvalProjection.class));
+        assertThat(collectPhase.projections()).hasSize(3);
+        assertThat(collectPhase.projections().get(0)).isExactlyInstanceOf(GroupProjection.class);
+        assertThat(collectPhase.projections().get(0).requiredGranularity()).isEqualTo(RowGranularity.SHARD);
+        assertThat(collectPhase.projections().get(1)).isExactlyInstanceOf(LimitAndOffsetProjection.class);
+        assertThat(collectPhase.projections().get(2)).isExactlyInstanceOf(EvalProjection.class);
     }
 
     @Test
     public void testNonDistributedGroupByAggregationsWrappedInScalar() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
             .addPartitionedTable(
                 "create table doc.empty_parted (" +
                 "   id integer primary key," +
                 "   date timestamp with time zone primary key" +
                 ") clustered by (id) partitioned by (date)"
-            ).build();
+            );
         Collect collect = e.plan(
             "select (count(*) + 1), id from empty_parted group by id");
 
         CollectPhase collectPhase = collect.collectPhase();
-        assertThat(collectPhase.projections(), contains(
-            instanceOf(GroupProjection.class), // shard level
-            instanceOf(GroupProjection.class), // node level
-            instanceOf(EvalProjection.class) // count(*) + 1
-        ));
+        assertThat(collectPhase.projections()).satisfiesExactly(
+            x -> assertThat(x).isExactlyInstanceOf(GroupProjection.class), // shard level
+            x -> assertThat(x).isExactlyInstanceOf(GroupProjection.class), // node level
+            x -> assertThat(x).isExactlyInstanceOf(EvalProjection.class) // count(*) + 1
+        );
     }
 
     @Test
     public void testGroupByHaving() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
-            .addTable(TableDefinitions.USER_TABLE_DEFINITION)
-            .build();
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
+            .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         Merge distributedGroupByMerge = e.plan(
             "select avg(date), name from users group by name having min(date) > '1970-01-01'");
         Merge reduceMerge = (Merge) distributedGroupByMerge.subPlan();
         CollectPhase collectPhase = ((Collect) reduceMerge.subPlan()).collectPhase();
-        assertThat(collectPhase.projections().size(), is(1));
-        assertThat(collectPhase.projections().get(0), instanceOf(GroupProjection.class));
+        assertThat(collectPhase.projections()).hasSize(1);
+        assertThat(collectPhase.projections().getFirst()).isExactlyInstanceOf(GroupProjection.class);
 
         MergePhase reducePhase = reduceMerge.mergePhase();
 
-        assertThat(reducePhase.projections().size(), is(3));
+        assertThat(reducePhase.projections()).hasSize(3);
 
         // grouping
-        assertThat(reducePhase.projections().get(0), instanceOf(GroupProjection.class));
+        assertThat(reducePhase.projections().getFirst()).isExactlyInstanceOf(GroupProjection.class);
         GroupProjection groupProjection = (GroupProjection) reducePhase.projections().get(0);
-        assertThat(groupProjection.values().size(), is(2));
+        assertThat(groupProjection.values()).hasSize(2);
 
         // filter the having clause
-        assertThat(reducePhase.projections().get(1), instanceOf(FilterProjection.class));
-        FilterProjection filterProjection = (FilterProjection) reducePhase.projections().get(1);
+        assertThat(reducePhase.projections().get(1)).isExactlyInstanceOf(FilterProjection.class);
 
-        assertThat(reducePhase.projections().get(2), instanceOf(EvalProjection.class));
+        assertThat(reducePhase.projections().get(2)).isExactlyInstanceOf(EvalProjection.class);
         EvalProjection eval = (EvalProjection) reducePhase.projections().get(2);
-        assertThat(eval.outputs().get(0).valueType(), Is.<DataType>is(DataTypes.DOUBLE));
-        assertThat(eval.outputs().get(1).valueType(), Is.<DataType>is(DataTypes.STRING));
+        assertThat(eval.outputs().get(0).valueType()).isEqualTo(DataTypes.DOUBLE);
+        assertThat(eval.outputs().get(1).valueType()).isEqualTo(DataTypes.STRING);
     }
 
     @Test
     public void testNestedGroupByAggregation() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of()).build();
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build();
         Collect collect = e.plan("select count(*) from (" +
                                  "  select max(load['1']) as maxLoad, hostname " +
                                  "  from sys.nodes " +
                                  "  group by hostname having max(load['1']) > 50) as nodes " +
                                  "group by hostname");
-        assertThat("would require merge if more than 1 nodeIds", collect.nodeIds().size(), is(1));
+        assertThat(collect.nodeIds())
+            .as("would require merge if more than 1 nodeIds")
+            .hasSize(1);
 
         CollectPhase collectPhase = collect.collectPhase();
-        assertThat(collectPhase.projections(), contains(
-            instanceOf(GroupProjection.class),
-            instanceOf(FilterProjection.class),
-            instanceOf(EvalProjection.class),
-            instanceOf(GroupProjection.class),
-            instanceOf(EvalProjection.class)
-        ));
+        assertThat(collectPhase.projections()).satisfiesExactly(
+            x -> assertThat(x).isExactlyInstanceOf(GroupProjection.class),
+            x -> assertThat(x).isExactlyInstanceOf(FilterProjection.class),
+            x -> assertThat(x).isExactlyInstanceOf(EvalProjection.class),
+            x -> assertThat(x).isExactlyInstanceOf(GroupProjection.class),
+            x -> assertThat(x).isExactlyInstanceOf(EvalProjection.class)
+        );
         Projection firstGroupProjection = collectPhase.projections().get(0);
-        assertThat(((GroupProjection) firstGroupProjection).mode(), is(AggregateMode.ITER_FINAL));
+        assertThat(((GroupProjection) firstGroupProjection).mode()).isEqualTo(AggregateMode.ITER_FINAL);
 
         Projection secondGroupProjection = collectPhase.projections().get(3);
-        assertThat(((GroupProjection) secondGroupProjection).mode(), is(AggregateMode.ITER_FINAL));
+        assertThat(((GroupProjection) secondGroupProjection).mode()).isEqualTo(AggregateMode.ITER_FINAL);
     }
 
     @Test
     public void testGroupByOnClusteredByColumnPartitionedOnePartition() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
             .addPartitionedTable(
                 "create table doc.clustered_parted (" +
                 "   id integer," +
@@ -667,28 +685,30 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
                 ") clustered by (city) partitioned by (date) ",
                 new PartitionName(new RelationName("doc", "clustered_parted"), singletonList("1395874800000")).asIndexName(),
                 new PartitionName(new RelationName("doc", "clustered_parted"), singletonList("1395961200000")).asIndexName()
-            ).build();
+            );
 
         // only one partition hit
         Merge optimizedPlan = e.plan("select count(*), city from clustered_parted where date=1395874800000 group by city");
         Collect collect = (Collect) optimizedPlan.subPlan();
 
-        assertThat(collect.collectPhase().projections(), contains(
-            instanceOf(GroupProjection.class),
-            instanceOf(EvalProjection.class)));
-        assertThat(collect.collectPhase().projections().get(0), instanceOf(GroupProjection.class));
+        assertThat(collect.collectPhase().projections()).satisfiesExactly(
+            x -> assertThat(x).isExactlyInstanceOf(GroupProjection.class),
+            x -> assertThat(x).isExactlyInstanceOf(EvalProjection.class));
+        assertThat(collect.collectPhase().projections().getFirst()).isExactlyInstanceOf(GroupProjection.class);
 
-        assertThat(optimizedPlan.mergePhase().projections().size(), is(0));
+        assertThat(optimizedPlan.mergePhase().projections()).hasSize(0);
 
         // > 1 partition hit
         ExecutionPlan executionPlan = e.plan("select count(*), city from clustered_parted where date=1395874800000 or date=1395961200000 group by city");
-        assertThat(executionPlan, instanceOf(Merge.class));
-        assertThat(((Merge) executionPlan).subPlan(), instanceOf(Merge.class));
+        assertThat(executionPlan).isExactlyInstanceOf(Merge.class);
+        assertThat(((Merge) executionPlan).subPlan()).isExactlyInstanceOf(Merge.class);
     }
 
     @Test
     public void testGroupByOrderByPartitionedClolumn() throws Exception {
-        var e = SQLExecutor.builder(clusterService, 2, RandomizedTest.getRandom(), List.of())
+        var e = SQLExecutor.builder(clusterService)
+            .setNumNodes(2)
+            .build()
             .addPartitionedTable(
                 "create table doc.clustered_parted (" +
                 "   id integer," +
@@ -697,14 +717,14 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
                 ") clustered by (city) partitioned by (date) ",
                 new PartitionName(new RelationName("doc", "clustered_parted"), singletonList("1395874800000")).asIndexName(),
                 new PartitionName(new RelationName("doc", "clustered_parted"), singletonList("1395961200000")).asIndexName()
-            ).build();
+            );
         Merge plan = e.plan("select date from clustered_parted group by date order by date");
         Merge reduceMerge = (Merge) plan.subPlan();
         OrderedLimitAndOffsetProjection limitAndOffsetProjection =
             (OrderedLimitAndOffsetProjection)reduceMerge.mergePhase().projections().get(1);
 
-        Symbol orderBy = limitAndOffsetProjection.orderBy().get(0);
-        assertThat(orderBy, instanceOf(InputColumn.class));
-        assertThat(orderBy.valueType(), is(DataTypes.TIMESTAMPZ));
+        Symbol orderBy = limitAndOffsetProjection.orderBy().getFirst();
+        assertThat(orderBy).isExactlyInstanceOf(InputColumn.class);
+        assertThat(orderBy.valueType()).isEqualTo(DataTypes.TIMESTAMPZ);
     }
 }

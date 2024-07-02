@@ -26,9 +26,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.action.support.replication.ClusterStateCreationUtils.state;
 import static org.elasticsearch.test.ClusterServiceUtils.createClusterService;
 import static org.elasticsearch.test.ClusterServiceUtils.setState;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
@@ -318,17 +316,17 @@ public class TransportVerifyShardBeforeCloseActionTests extends ESTestCase {
             if (actionName.startsWith(ShardStateAction.SHARD_FAILED_ACTION_NAME)) {
                 assertThat(capturedRequest.request).isExactlyInstanceOf(ShardStateAction.FailedShardEntry.class);
                 String allocationId = ((ShardStateAction.FailedShardEntry) capturedRequest.request).getAllocationId();
-                assertTrue(unavailableShards.stream()
-                               .anyMatch(shardRouting -> shardRouting.allocationId().getId().equals(allocationId)));
+                assertThat(unavailableShards.stream()
+                               .anyMatch(shardRouting -> shardRouting.allocationId().getId().equals(allocationId))).isTrue();
                 transport.handleResponse(capturedRequest.requestId, TransportResponse.Empty.INSTANCE);
 
             } else if (actionName.startsWith(TransportVerifyShardBeforeCloseAction.NAME)) {
                 assertThat(capturedRequest.request).isInstanceOf(ConcreteShardRequest.class);
                 String allocationId = ((ConcreteShardRequest<?>) capturedRequest.request).getTargetAllocationID();
-                assertFalse(unavailableShards.stream()
-                                .anyMatch(shardRouting -> shardRouting.allocationId().getId().equals(allocationId)));
-                assertTrue(inSyncAllocationIds.stream()
-                               .anyMatch(inSyncAllocationId -> inSyncAllocationId.equals(allocationId)));
+                assertThat(unavailableShards.stream()
+                                .anyMatch(shardRouting -> shardRouting.allocationId().getId().equals(allocationId))).isFalse();
+                assertThat(inSyncAllocationIds.stream()
+                               .anyMatch(inSyncAllocationId -> inSyncAllocationId.equals(allocationId))).isTrue();
                 transport.handleResponse(
                     capturedRequest.requestId,
                     new TransportReplicationAction.ReplicaResponse(0L, 0L));

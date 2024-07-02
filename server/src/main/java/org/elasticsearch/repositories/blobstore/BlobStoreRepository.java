@@ -45,6 +45,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
@@ -63,7 +64,6 @@ import org.apache.lucene.store.IndexOutput;
 import org.apache.lucene.store.RateLimiter;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.SetOnce;
-import org.elasticsearch.ExceptionsHelper;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRunnable;
@@ -101,13 +101,11 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.concurrent.AbstractRunnable;
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.engine.Engine.DeleteResult;
-import org.elasticsearch.index.mapper.MapperService;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.snapshots.IndexShardRestoreFailedException;
 import org.elasticsearch.index.snapshots.IndexShardSnapshotFailedException;
@@ -624,7 +622,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                     builder.put(newGen.indexId, newGen.shardId, newGen.newGeneration);
                 }
                 final RepositoryData updatedRepoData = repositoryData.removeSnapshots(snapshotIds, builder.build());
-                writeIndexGen(updatedRepoData, repositoryStateId, repoMetaVersion, Function.identity(),
+                writeIndexGen(updatedRepoData, repositoryStateId, repoMetaVersion, UnaryOperator.identity(),
                     ActionListener.wrap(writeUpdatedRepoDataStep::onResponse, listener::onFailure));
             }, listener::onFailure);
             // Once we have updated the repository, run the clean-ups
@@ -639,7 +637,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
         } else {
             // Write the new repository data first (with the removed snapshot), using no shard generations
             final RepositoryData updatedRepoData = repositoryData.removeSnapshots(snapshotIds, ShardGenerations.EMPTY);
-            writeIndexGen(updatedRepoData, repositoryStateId, repoMetaVersion, Function.identity(), ActionListener.wrap(newRepoData -> {
+            writeIndexGen(updatedRepoData, repositoryStateId, repoMetaVersion, UnaryOperator.identity(), ActionListener.wrap(newRepoData -> {
                 // Run unreferenced blobs cleanup in parallel to shard-level snapshot deletion
                 final ActionListener<Void> afterCleanupsListener =
                     new GroupedActionListener<>(ActionListener.wrap(() -> listener.onResponse(newRepoData)), 2);
@@ -934,7 +932,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                                  final Metadata clusterMetadata,
                                  SnapshotInfo snapshotInfo,
                                  Version repositoryMetaVersion,
-                                 Function<ClusterState, ClusterState> stateTransformer,
+                                 UnaryOperator<ClusterState> stateTransformer,
                                  final ActionListener<RepositoryData> listener) {
         assert repositoryStateId > RepositoryData.UNKNOWN_REPO_GEN :
             "Must finalize based on a valid repository generation but received [" + repositoryStateId + "]";
@@ -959,8 +957,8 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
             final Map<IndexId, String> indexMetas;
             final Map<String, String> indexMetaIdentifiers;
             if (writeIndexGens) {
-                indexMetaIdentifiers = ConcurrentCollections.newConcurrentMap();
-                indexMetas = ConcurrentCollections.newConcurrentMap();
+                indexMetaIdentifiers = new ConcurrentHashMap<>();
+                indexMetas = new ConcurrentHashMap<>();
             } else {
                 indexMetas = null;
                 indexMetaIdentifiers = null;
@@ -1192,7 +1190,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
         if (latestKnownRepoGen.get() == RepositoryData.CORRUPTED_REPO_GEN) {
             return CompletableFuture.failedFuture(corruptedStateException(null));
         }
-        FutureActionListener<RepositoryData, RepositoryData> listener = FutureActionListener.newInstance();
+        FutureActionListener<RepositoryData> listener = new FutureActionListener<>();
         threadPool.generic().execute(ActionRunnable.run(listener, () -> doGetRepositoryData(listener)));
         return listener;
     }
@@ -1235,7 +1233,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                         "] because a concurrent operation moved the current generation to [" + latestKnownRepoGen.get() + "]", e);
                     continue;
                 }
-                if (bestEffortConsistency == false && ExceptionsHelper.unwrap(e, NoSuchFileException.class) != null) {
+                if (bestEffortConsistency == false && Exceptions.firstCause(e, NoSuchFileException.class) != null) {
                     // We did not find the expected index-N even though the cluster state continues to point at the missing value
                     // of N so we mark this repository as corrupted.
                     markRepoCorrupted(genToLoad, e,
@@ -1292,7 +1290,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                 @Override
                 public void onFailure(String source, Exception e) {
                     listener.onFailure(new RepositoryException(metadata.name(), "Failed marking repository state as corrupted",
-                        ExceptionsHelper.useOrSuppress(e, originalException)));
+                        Exceptions.useOrSuppress(e, originalException)));
                 }
 
                 @Override
@@ -1352,7 +1350,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
      * @param listener       completion listener
      */
     protected void writeIndexGen(RepositoryData repositoryData, long expectedGen, Version version,
-                                 Function<ClusterState, ClusterState> stateFilter, ActionListener<RepositoryData> listener) {
+                                 UnaryOperator<ClusterState> stateFilter, ActionListener<RepositoryData> listener) {
         assert isReadOnly() == false; // can not write to a read only repository
         final long currentGen = repositoryData.getGenId();
         if (currentGen != expectedGen) {
@@ -1685,7 +1683,6 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
 
     @Override
     public void snapshotShard(Store store,
-                              MapperService mapperService,
                               SnapshotId snapshotId,
                               IndexId indexId,
                               IndexCommit snapshotIndexCommit,

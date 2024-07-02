@@ -21,9 +21,7 @@
 
 package io.crate.execution.engine.join;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.is;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.util.Arrays;
@@ -72,19 +70,19 @@ public class HashInnerJoinBatchIteratorBehaviouralTest {
                 row -> Objects.equals(row.get(0), row.get(1)),
                 row -> Objects.hash(row.get(0)),
                 row -> Objects.hash(row.get(0)),
-                () -> 2
+                ignored -> 2
             );
 
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(batchIterator, null);
         List<Object[]> result = consumer.getResult();
-        assertThat(result, contains(new Object[]{2, 2}, new Object[]{4, 4}));
+        assertThat(result).containsExactly(new Object[]{2, 2}, new Object[]{4, 4});
 
         // as the blocksize is defined of 2 but the left batch size 1, normally it would call left loadNextBatch until
         // the blocksize is reached. we don't want that as parallel running hash iterators must call loadNextBatch always
         // on the same side synchronously as the upstreams will only send new data after all downstreams responded.
         // to validate this, the right must be repeated 3 times
-        assertThat(rightIterator.getMovetoStartCalls(), is(2));
+        assertThat(rightIterator.getMovetoStartCalls()).isEqualTo(2);
     }
 
     @Test
@@ -102,12 +100,12 @@ public class HashInnerJoinBatchIteratorBehaviouralTest {
             row -> Objects.equals(row.get(0), row.get(1)),
             row -> Objects.hash(row.get(0)),
             row -> Objects.hash(row.get(0)),
-            () -> 500000
+            ignored -> 500000
         );
 
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(batchIterator, null);
         List<Object[]> result = consumer.getResult();
-        assertThat(result, contains(new Object[]{2, 2}, new Object[]{4, 4}));
+        assertThat(result).containsExactly(new Object[]{2, 2}, new Object[]{4, 4});
     }
 }

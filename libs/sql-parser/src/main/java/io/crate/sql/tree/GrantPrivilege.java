@@ -24,14 +24,17 @@ package io.crate.sql.tree;
 import java.util.List;
 
 
-public class GrantPrivilege extends PrivilegeStatement {
+public final class GrantPrivilege extends PrivilegeStatement {
 
-    public GrantPrivilege(List<String> userNames, String clazz, List<QualifiedName> tableOrSchemaNames) {
-        super(userNames, clazz, tableOrSchemaNames);
+    public GrantPrivilege(List<String> userNames, String securable, List<QualifiedName> tableOrSchemaNames) {
+        super(userNames, securable, tableOrSchemaNames);
     }
 
-    public GrantPrivilege(List<String> userNames, List<String> privilegeTypes, String clazz, List<QualifiedName> tableOrSchemaNames) {
-        super(userNames, privilegeTypes, clazz, tableOrSchemaNames);
+    public GrantPrivilege(List<String> userNames,
+                          List<String> permissions,
+                          String securable,
+                          List<QualifiedName> tableOrSchemaNames) {
+        super(userNames, permissions, securable, tableOrSchemaNames);
     }
 
 
@@ -44,7 +47,7 @@ public class GrantPrivilege extends PrivilegeStatement {
     public String toString() {
         return "GrantPrivilege{" +
                "allPrivileges=" + all +
-               "privilegeTypes=" + privilegeTypes +
+               "permissions=" + permissions +
                ", userNames=" + userNames +
                '}';
     }

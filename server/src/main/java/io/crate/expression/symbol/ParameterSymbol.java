@@ -21,6 +21,7 @@
 
 package io.crate.expression.symbol;
 
+import io.crate.data.Row;
 import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.symbol.format.Style;
 import io.crate.types.DataType;
@@ -31,6 +32,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import java.io.IOException;
+import java.util.Locale;
 
 public class ParameterSymbol implements Symbol {
 
@@ -110,5 +112,18 @@ public class ParameterSymbol implements Symbol {
     @Override
     public long ramBytesUsed() {
         return IntegerType.INTEGER_SIZE + internalType.ramBytesUsed();
+    }
+
+    public Object bind(Row params) throws IllegalArgumentException {
+        try {
+            return params.get(index);
+        } catch (IndexOutOfBoundsException e) {
+            throw new IllegalArgumentException(String.format(
+                Locale.ENGLISH,
+                "The query contains a parameter placeholder $%d, but there are only %d parameter values",
+                (index() + 1),
+                params.numColumns()
+            ));
+        }
     }
 }

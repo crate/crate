@@ -19,16 +19,13 @@
 
 package org.elasticsearch.common.geo.builders;
 
-import org.elasticsearch.common.geo.GeoShapeType;
-import org.elasticsearch.common.geo.XShapeCollection;
-import org.elasticsearch.common.geo.parsers.ShapeParser;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.spatial4j.shape.Point;
-
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.elasticsearch.common.geo.GeoShapeType;
+import org.elasticsearch.common.geo.XShapeCollection;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.spatial4j.shape.Point;
 
 public class MultiPointBuilder extends ShapeBuilder<XShapeCollection<Point>, MultiPointBuilder> {
 
@@ -43,22 +40,12 @@ public class MultiPointBuilder extends ShapeBuilder<XShapeCollection<Point>, Mul
     }
 
     @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject();
-        builder.field(ShapeParser.FIELD_TYPE.getPreferredName(), TYPE.shapeName());
-        builder.field(ShapeParser.FIELD_COORDINATES.getPreferredName());
-        super.coordinatesToXcontent(builder, false);
-        builder.endObject();
-        return builder;
-    }
-
-    @Override
-    public XShapeCollection<Point> build() {
+    public XShapeCollection<Point> buildS4J() {
         //Could wrap JtsGeometry but probably slower due to conversions to/from JTS in relate()
         //MultiPoint geometry = FACTORY.createMultiPoint(points.toArray(new Coordinate[points.size()]));
         List<Point> shapes = new ArrayList<>(coordinates.size());
         for (Coordinate coord : coordinates) {
-            shapes.add(SPATIAL_CONTEXT.makePoint(coord.x, coord.y));
+            shapes.add(SHAPE_FACTORY.pointXY(coord.x, coord.y));
         }
         XShapeCollection<Point> multiPoints = new XShapeCollection<>(shapes, SPATIAL_CONTEXT);
         multiPoints.setPointsOnly(true);
@@ -66,8 +53,13 @@ public class MultiPointBuilder extends ShapeBuilder<XShapeCollection<Point>, Mul
     }
 
     @Override
-    public GeoShapeType type() {
-        return TYPE;
+    public org.apache.lucene.geo.Point[] buildLucene() {
+        org.apache.lucene.geo.Point[] points = new org.apache.lucene.geo.Point[coordinates.size()];
+        for (int i = 0; i < coordinates.size(); ++i) {
+            Coordinate coord = coordinates.get(i);
+            points[i] = new org.apache.lucene.geo.Point(coord.y, coord.x);
+        }
+        return points;
     }
 
     @Override

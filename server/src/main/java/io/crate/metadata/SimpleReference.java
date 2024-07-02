@@ -27,20 +27,20 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.IntSupplier;
 import java.util.function.LongSupplier;
 
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.index.mapper.TypeParsers;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.format.Style;
+import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -94,7 +94,7 @@ public class SimpleReference implements Reference {
         hasDocValues = !in.readBoolean();
         final boolean hasDefaultExpression = in.readBoolean();
         defaultExpression = hasDefaultExpression
-            ? Symbols.fromStream(in)
+            ? Symbol.fromStream(in)
             : null;
     }
 
@@ -135,9 +135,17 @@ public class SimpleReference implements Reference {
         this.indexType = indexType;
         this.nullable = nullable;
         this.hasDocValues = hasDocValues;
-        this.defaultExpression = defaultExpression != null ? defaultExpression.cast(type) : null;
         this.oid = oid;
         this.isDropped = isDropped;
+        if (defaultExpression == null) {
+            this.defaultExpression = null;
+        } else {
+            if (defaultExpression.hasFunctionType(FunctionType.TABLE)) {
+                throw new UnsupportedOperationException(
+                    "Cannot use table function in default expression of column `" + ident.columnIdent().fqn() + "`");
+            }
+            this.defaultExpression = defaultExpression.cast(type);
+        }
     }
 
     /**
@@ -161,22 +169,24 @@ public class SimpleReference implements Reference {
     }
 
     @Override
-    public Reference withColumnOid(LongSupplier oidSupplier) {
-        if (oid != COLUMN_OID_UNASSIGNED) {
+    public Reference withOidAndPosition(LongSupplier acquireOid, IntSupplier acquirePosition) {
+        long newOid = oid == COLUMN_OID_UNASSIGNED ? acquireOid.getAsLong() : oid;
+        int newPosition = position < 0 ? acquirePosition.getAsInt() : position;
+        if (newOid == oid && newPosition == position) {
             return this;
         }
         return new SimpleReference(
-                ident,
-                granularity,
-                type,
-                columnPolicy,
-                indexType,
-                nullable,
-                hasDocValues,
-                position,
-                oidSupplier.getAsLong(),
-                isDropped,
-                defaultExpression
+            ident,
+            granularity,
+            type,
+            columnPolicy,
+            indexType,
+            nullable,
+            hasDocValues,
+            newPosition,
+            newOid,
+            isDropped,
+            defaultExpression
         );
     }
 
@@ -193,6 +203,23 @@ public class SimpleReference implements Reference {
             position,
             oid,
             dropped,
+            defaultExpression
+        );
+    }
+
+    @Override
+    public Reference withValueType(DataType<?> newType) {
+        return new SimpleReference(
+            ident,
+            granularity,
+            newType,
+            columnPolicy,
+            indexType,
+            nullable,
+            hasDocValues,
+            position,
+            oid,
+            isDropped,
             defaultExpression
         );
     }
@@ -305,7 +332,7 @@ public class SimpleReference implements Reference {
         if (storageSupport != null) {
             boolean docValuesDefault = storageSupport.getComputedDocValuesDefault(indexType);
             if (docValuesDefault != hasDocValues) {
-                mapping.put(TypeParsers.DOC_VALUES, Boolean.toString(hasDocValues));
+                mapping.put(DocTableInfoFactory.MappingKeys.DOC_VALUES, Boolean.toString(hasDocValues));
             }
         }
         if (defaultExpression != null) {
@@ -393,11 +420,7 @@ public class SimpleReference implements Reference {
         out.writeBoolean(nullable);
         // property was "columnStoreDisabled" so need to reverse the value.
         out.writeBoolean(!hasDocValues);
-        final boolean hasDefaultExpression = defaultExpression != null;
-        out.writeBoolean(hasDefaultExpression);
-        if (hasDefaultExpression) {
-            Symbols.toStream(defaultExpression, out);
-        }
+        Symbol.nullableToStream(defaultExpression, out);
     }
 
     @Override

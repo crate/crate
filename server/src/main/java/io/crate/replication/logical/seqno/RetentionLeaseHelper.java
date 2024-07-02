@@ -21,22 +21,23 @@
 
 package io.crate.replication.logical.seqno;
 
-import io.crate.common.exceptions.Exceptions;
-import io.crate.exceptions.SQLExceptions;
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.seqno.RetentionLeaseActions;
 import org.elasticsearch.index.seqno.RetentionLeaseAlreadyExistsException;
 import org.elasticsearch.index.shard.ShardId;
+
+import io.crate.common.exceptions.Exceptions;
+import io.crate.exceptions.SQLExceptions;
 
 /*
  * Derived from org.opensearch.replication.seqno.RemoteClusterRetentionLeaseHelper
  */
 public class RetentionLeaseHelper {
 
-    private static final Logger LOGGER = Loggers.getLogger(RetentionLeaseHelper.class);
+    private static final Logger LOGGER = LogManager.getLogger(RetentionLeaseHelper.class);
 
     private static String retentionLeaseSource(String subscriberClusterName) {
         return "logical_replication:" + subscriberClusterName;

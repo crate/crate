@@ -24,8 +24,8 @@ package io.crate.execution.engine.aggregation;
 import static io.crate.data.SentinelRow.SENTINEL;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -46,7 +46,7 @@ import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.store.ByteBuffersDirectory;
 import org.elasticsearch.Version;
-import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.common.settings.Settings;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Fork;
@@ -64,7 +64,6 @@ import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.breaker.RamAccounting;
-import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
 import io.crate.execution.engine.aggregation.impl.SumAggregation;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.RowCollectExpression;
@@ -73,7 +72,9 @@ import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
 import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.Functions;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.types.DataTypes;
 import io.netty.util.collection.LongObjectHashMap;
 
@@ -85,50 +86,51 @@ import io.netty.util.collection.LongObjectHashMap;
 @Warmup(iterations = 2)
 public class GroupingLongCollectorBenchmark {
 
-    private GroupingCollector groupBySumCollector;
+    private GroupingCollector<?> groupBySumCollector;
     private List<Row> rows;
     private long[] numbers;
     private IndexSearcher searcher;
 
     @Setup
     public void createGroupingCollector() throws Exception {
-        IndexWriter iw = new IndexWriter(new ByteBuffersDirectory(), new IndexWriterConfig(new StandardAnalyzer()));
-        Functions functions = new ModulesBuilder()
-            .add(new AggregationImplModule())
-            .createInjector()
-            .getInstance(Functions.class);
-        SumAggregation<?> sumAgg = (SumAggregation<?>) functions.getQualified(
-            Signature.aggregate(
-                SumAggregation.NAME,
-                DataTypes.INTEGER.getTypeSignature(),
-                DataTypes.LONG.getTypeSignature()
-            ),
-            List.of(DataTypes.INTEGER),
-            DataTypes.INTEGER
-        );
-        var memoryManager = new OnHeapMemoryManager(bytes -> {});
-        groupBySumCollector = createGroupBySumCollector(sumAgg, memoryManager);
+        try (IndexWriter iw =
+                 new IndexWriter(new ByteBuffersDirectory(), new IndexWriterConfig(new StandardAnalyzer()))) {
+            Functions functions = Functions.load(Settings.EMPTY, new SessionSettingRegistry(Set.of()));
+            SumAggregation<?> sumAgg = (SumAggregation<?>) functions.getQualified(
+                Signature.aggregate(
+                        SumAggregation.NAME,
+                        DataTypes.INTEGER.getTypeSignature(),
+                        DataTypes.LONG.getTypeSignature())
+                    .withFeature(Scalar.Feature.DETERMINISTIC),
+                List.of(DataTypes.INTEGER),
+                DataTypes.INTEGER
+            );
+            var memoryManager = new OnHeapMemoryManager(bytes -> {
+            });
+            groupBySumCollector = createGroupBySumCollector(sumAgg, memoryManager);
 
-        int size = 20_000_000;
-        rows = new ArrayList<>(size);
-        numbers = new long[size];
-        for (int i = 0; i < size; i++) {
-            long value = (long) i % 200;
-            rows.add(new Row1(value));
-            numbers[i] = value;
-            var doc = new Document();
-            doc.add(new NumericDocValuesField("x", value));
-            doc.add(new SortedNumericDocValuesField("y", value));
-            iw.addDocument(doc);
+            int size = 20_000_000;
+            rows = new ArrayList<>(size);
+            numbers = new long[size];
+            for (int i = 0; i < size; i++) {
+                long value = (long) i % 200;
+                rows.add(new Row1(value));
+                numbers[i] = value;
+                var doc = new Document();
+                doc.add(new NumericDocValuesField("x", value));
+                doc.add(new SortedNumericDocValuesField("y", value));
+                iw.addDocument(doc);
+            }
+            iw.commit();
+            iw.forceMerge(1, true);
+            searcher = new IndexSearcher(DirectoryReader.open(iw));
         }
-        iw.commit();
-        iw.forceMerge(1, true);
-        searcher = new IndexSearcher(DirectoryReader.open(iw));
     }
 
-    private static GroupingCollector createGroupBySumCollector(AggregationFunction sumAgg, MemoryManager memoryManager) {
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private static GroupingCollector<?> createGroupBySumCollector(AggregationFunction<?, ?> sumAgg, MemoryManager memoryManager) {
         RowCollectExpression keyInput = new RowCollectExpression(0);
-        List<Input<?>> keyInputs = Arrays.<Input<?>>asList(keyInput);
+        List<Input<?>> keyInputs = List.of(keyInput);
         CollectExpression[] collectExpressions = new CollectExpression[]{keyInput};
 
         return GroupingCollector.singleKey(
@@ -140,7 +142,7 @@ public class GroupingLongCollectorBenchmark {
             RamAccounting.NO_ACCOUNTING,
             memoryManager,
             Version.CURRENT,
-            keyInputs.get(0),
+            keyInputs.getFirst(),
             DataTypes.LONG,
             Version.CURRENT
         );
@@ -155,7 +157,7 @@ public class GroupingLongCollectorBenchmark {
     @Benchmark
     public LongObjectHashMap<Long> measureGroupingOnNumericDocValues() throws Exception {
         Weight weight = searcher.createWeight(new MatchAllDocsQuery(), ScoreMode.COMPLETE_NO_SCORES, 1.0f);
-        LeafReaderContext leaf = searcher.getTopReaderContext().leaves().get(0);
+        LeafReaderContext leaf = searcher.getTopReaderContext().leaves().getFirst();
         Scorer scorer = weight.scorer(leaf);
         NumericDocValues docValues = DocValues.getNumeric(leaf.reader(), "x");
         DocIdSetIterator docIt = scorer.iterator();
@@ -178,7 +180,7 @@ public class GroupingLongCollectorBenchmark {
     @Benchmark
     public LongObjectHashMap<Long> measureGroupingOnSortedNumericDocValues() throws Exception {
         var weight = searcher.createWeight(new MatchAllDocsQuery(), ScoreMode.COMPLETE_NO_SCORES, 1.0f);
-        var leaf = searcher.getTopReaderContext().leaves().get(0);
+        var leaf = searcher.getTopReaderContext().leaves().getFirst();
         var scorer = weight.scorer(leaf);
         var docValues = DocValues.getSortedNumeric(leaf.reader(), "y");
         var docIt = scorer.iterator();

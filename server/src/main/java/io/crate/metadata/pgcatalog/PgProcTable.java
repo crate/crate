@@ -21,7 +21,22 @@
 
 package io.crate.metadata.pgcatalog;
 
-import io.crate.common.collections.Lists2;
+import static io.crate.metadata.FunctionType.AGGREGATE;
+import static io.crate.metadata.FunctionType.WINDOW;
+import static io.crate.metadata.pgcatalog.PgProcTable.Entry.pgTypeIdFrom;
+import static io.crate.types.DataTypes.BOOLEAN;
+import static io.crate.types.DataTypes.FLOAT;
+import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.INTEGER_ARRAY;
+import static io.crate.types.DataTypes.REGPROC;
+import static io.crate.types.DataTypes.SHORT;
+import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.STRING_ARRAY;
+
+import java.util.ArrayList;
+import java.util.Set;
+
+import io.crate.common.collections.Lists;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
@@ -35,84 +50,67 @@ import io.crate.types.Regproc;
 import io.crate.types.RowType;
 import io.crate.types.TypeSignature;
 
-import java.util.ArrayList;
-import java.util.Set;
-
-import static io.crate.metadata.FunctionType.AGGREGATE;
-import static io.crate.metadata.FunctionType.WINDOW;
-import static io.crate.metadata.pgcatalog.PgProcTable.Entry.pgTypeIdFrom;
-import static io.crate.types.DataTypes.BOOLEAN;
-import static io.crate.types.DataTypes.FLOAT;
-import static io.crate.types.DataTypes.INTEGER;
-import static io.crate.types.DataTypes.INTEGER_ARRAY;
-import static io.crate.types.DataTypes.REGPROC;
-import static io.crate.types.DataTypes.SHORT;
-import static io.crate.types.DataTypes.STRING;
-import static io.crate.types.DataTypes.STRING_ARRAY;
-
 public final class PgProcTable {
 
     public static final RelationName IDENT = new RelationName(PgCatalogSchemaInfo.NAME, "pg_proc");
 
     private PgProcTable() {}
 
-    public static SystemTable<Entry> create() {
-        return SystemTable.<Entry>builder(IDENT)
-            .add("oid", INTEGER, x -> OidHash.functionOid(x.signature))
-            .add("proname", STRING, x -> x.signature.getName().name())
-            .add("pronamespace", INTEGER, x -> OidHash.schemaOid(x.functionName.schema()))
-            .add("proowner", INTEGER, x -> null)
-            .add("prolang", INTEGER, x -> null)
-            .add("procost", FLOAT, x -> null)
-            .add("prorows", FLOAT, x -> !x.returnSetType ? 0f : 1000f)
-            .add("provariadic", INTEGER, x -> {
-                if (x.signature.getBindingInfo().isVariableArity()) {
-                    var args = x.signature.getArgumentTypes();
-                    return pgTypeIdFrom(args.get(args.size() - 1));
-                } else {
-                    return 0;
+    public static SystemTable<Entry> INSTANCE = SystemTable.<Entry>builder(IDENT)
+        .add("oid", INTEGER, x -> OidHash.functionOid(x.signature))
+        .add("proname", STRING, x -> x.signature.getName().name())
+        .add("pronamespace", INTEGER, x -> OidHash.schemaOid(x.functionName.schema()))
+        .add("proowner", INTEGER, x -> null)
+        .add("prolang", INTEGER, x -> null)
+        .add("procost", FLOAT, x -> null)
+        .add("prorows", FLOAT, x -> !x.returnSetType ? 0f : 1000f)
+        .add("provariadic", INTEGER, x -> {
+            if (x.signature.getBindingInfo().isVariableArity()) {
+                var args = x.signature.getArgumentTypes();
+                return pgTypeIdFrom(args.get(args.size() - 1));
+            } else {
+                return 0;
+            }
+        })
+        .add("prosupport", REGPROC, x -> Regproc.REGPROC_ZERO)
+        .add("prokind", STRING, x -> prokind(x.signature))
+        .add("prosecdef", BOOLEAN, x -> null)
+        .add("proleakproof", BOOLEAN, x -> null)
+        .add("proisstrict", BOOLEAN, x -> null)
+        .add("proretset", BOOLEAN, x -> x.returnSetType)
+        .add("provolatile", STRING, x -> null)
+        .add("proparallel", STRING, x -> null)
+        .add("pronargs", SHORT, x -> (short) x.signature.getArgumentTypes().size())
+        .add("pronargdefaults", SHORT, x -> null)
+        .add("prorettype", INTEGER, x -> x.returnTypeId)
+        .add("proargtypes", DataTypes.OIDVECTOR, x ->
+            Lists.map(x.signature.getArgumentTypes(), Entry::pgTypeIdFrom))
+        .add("proallargtypes", INTEGER_ARRAY, x -> null)
+        .add("proargmodes", STRING_ARRAY, x -> {
+            if (!x.signature.getBindingInfo().isVariableArity()) {
+                // return null because all arguments have in mode
+                return null;
+            } else {
+                int numOfArgs = x.signature.getArgumentTypes().size();
+                var modes = new ArrayList<String>(numOfArgs);
+                for (int i = 0; i < numOfArgs - 1; i++) {
+                    modes.add("i");
                 }
-            })
-            .add("prosupport", REGPROC, x -> Regproc.REGPROC_ZERO)
-            .add("prokind", STRING, x -> prokind(x.signature))
-            .add("prosecdef", BOOLEAN, x -> null)
-            .add("proleakproof", BOOLEAN, x -> null)
-            .add("proisstrict", BOOLEAN, x -> null)
-            .add("proretset", BOOLEAN, x -> x.returnSetType)
-            .add("provolatile", STRING, x -> null)
-            .add("proparallel", STRING, x -> null)
-            .add("pronargs", SHORT, x -> (short) x.signature.getArgumentTypes().size())
-            .add("pronargdefaults", SHORT, x -> null)
-            .add("prorettype", INTEGER, x -> x.returnTypeId)
-            .add("proargtypes", DataTypes.OIDVECTOR, x ->
-                Lists2.map(x.signature.getArgumentTypes(), Entry::pgTypeIdFrom))
-            .add("proallargtypes", INTEGER_ARRAY, x -> null)
-            .add("proargmodes", STRING_ARRAY, x -> {
-                if (!x.signature.getBindingInfo().isVariableArity()) {
-                    // return null because all arguments have in mode
-                    return null;
-                } else {
-                    int numOfArgs = x.signature.getArgumentTypes().size();
-                    var modes = new ArrayList<String>(numOfArgs);
-                    for (int i = 0; i < numOfArgs - 1; i++) {
-                        modes.add("i");
-                    }
-                    modes.add("v");
-                    return modes;
-                }
-            })
-            .add("proargnames", STRING_ARRAY, x -> null)
-            .add("proargdefaults", STRING, x -> null)
-            .add("protrftypes", INTEGER_ARRAY, x -> null)
-            .add("prosrc", STRING, x -> x.functionName.name())
-            .add("probin", STRING, x -> null)
-            .add("prosqlbody", STRING, x -> null)
-            .add("proconfig", STRING_ARRAY, x -> null)
-            // should be `aclitem[]` but we lack `aclitem`, so going with same choice that Cockroach made:
-            // https://github.com/cockroachdb/cockroach/blob/45deb66abbca3aae56bd27910a36d90a6a8bcafe/pkg/sql/vtable/pg_catalog.go#L608
-            .add("proacl", STRING_ARRAY, x -> null)
-            .build();
-    }
+                modes.add("v");
+                return modes;
+            }
+        })
+        .add("proargnames", STRING_ARRAY, x -> null)
+        .add("proargdefaults", STRING, x -> null)
+        .add("protrftypes", INTEGER_ARRAY, x -> null)
+        .add("prosrc", STRING, x -> x.functionName.name())
+        .add("probin", STRING, x -> null)
+        .add("prosqlbody", STRING, x -> null)
+        .add("proconfig", STRING_ARRAY, x -> null)
+        // should be `aclitem[]` but we lack `aclitem`, so going with same choice that Cockroach made:
+        // https://github.com/cockroachdb/cockroach/blob/45deb66abbca3aae56bd27910a36d90a6a8bcafe/pkg/sql/vtable/pg_catalog.go#L608
+        .add("proacl", STRING_ARRAY, x -> null)
+        .build();
 
     public static final class Entry {
 

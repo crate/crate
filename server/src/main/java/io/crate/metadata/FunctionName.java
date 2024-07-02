@@ -22,53 +22,27 @@
 package io.crate.metadata;
 
 import java.io.IOException;
-import java.util.Objects;
-
-import org.jetbrains.annotations.Nullable;
-
-import io.crate.metadata.information.InformationSchemaInfo;
-import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
-import io.crate.sql.Identifiers;
 
 import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
+import org.jetbrains.annotations.Nullable;
 
-public final class FunctionName implements Writeable, Accountable {
+import io.crate.metadata.information.InformationSchemaInfo;
+import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
+import io.crate.sql.Identifiers;
 
-    @Nullable
-    private final String schema;
-    private final String name;
-
-    public FunctionName(@Nullable String schema, String name) {
-        this.schema = schema;
-        this.name = name;
-    }
+public final record FunctionName(@Nullable String schema, String name)
+        implements Writeable, Accountable {
 
     public FunctionName(String name) {
         this(null, name);
     }
 
     public FunctionName(StreamInput in) throws IOException {
-        schema = in.readOptionalString();
-        name = in.readString();
-    }
-
-    @Override
-    public long ramBytesUsed() {
-        return (schema == null ? 0 : RamUsageEstimator.sizeOf(schema))
-            + RamUsageEstimator.sizeOf(name);
-    }
-
-    @Nullable
-    public String schema() {
-        return schema;
-    }
-
-    public String name() {
-        return name;
+        this(in.readOptionalString(), in.readString());
     }
 
     @Override
@@ -78,17 +52,9 @@ public final class FunctionName implements Writeable, Accountable {
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        FunctionName that = (FunctionName) o;
-        return Objects.equals(schema, that.schema) &&
-               Objects.equals(name, that.name);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(schema, name);
+    public long ramBytesUsed() {
+        return (schema == null ? 0 : RamUsageEstimator.sizeOf(schema))
+            + RamUsageEstimator.sizeOf(name);
     }
 
     @Override

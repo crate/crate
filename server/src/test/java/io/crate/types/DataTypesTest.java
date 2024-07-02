@@ -176,26 +176,26 @@ public class DataTypesTest extends ESTestCase {
 
     @Test
     public void test_is_same_type_on_primitive_types() {
-        assertThat(DataTypes.isCompatibleType(DataTypes.STRING, DataTypes.STRING)).isEqualTo(true);
-        assertThat(DataTypes.isCompatibleType(DataTypes.INTEGER, DataTypes.DOUBLE)).isEqualTo(false);
+        assertThat(DataTypes.isCompatibleType(DataTypes.STRING, DataTypes.STRING)).isTrue();
+        assertThat(DataTypes.isCompatibleType(DataTypes.INTEGER, DataTypes.DOUBLE)).isFalse();
     }
 
     @Test
     public void test_is_same_type_on_complex_types() {
-        assertThat(DataTypes.isCompatibleType(DataTypes.UNTYPED_OBJECT, DataTypes.BIGINT_ARRAY)).isEqualTo(false);
-        assertThat(DataTypes.isCompatibleType(DataTypes.UNTYPED_OBJECT, DataTypes.GEO_POINT)).isEqualTo(false);
+        assertThat(DataTypes.isCompatibleType(DataTypes.UNTYPED_OBJECT, DataTypes.BIGINT_ARRAY)).isFalse();
+        assertThat(DataTypes.isCompatibleType(DataTypes.UNTYPED_OBJECT, DataTypes.GEO_POINT)).isFalse();
     }
 
     @Test
     public void test_is_same_type_on_primitive_and_complex_types() {
-        assertThat(DataTypes.isCompatibleType(DataTypes.STRING_ARRAY, DataTypes.STRING)).isEqualTo(false);
-        assertThat(DataTypes.isCompatibleType(DataTypes.UNTYPED_OBJECT, DataTypes.DOUBLE)).isEqualTo(false);
+        assertThat(DataTypes.isCompatibleType(DataTypes.STRING_ARRAY, DataTypes.STRING)).isFalse();
+        assertThat(DataTypes.isCompatibleType(DataTypes.UNTYPED_OBJECT, DataTypes.DOUBLE)).isFalse();
     }
 
     @Test
     public void test_is_same_type_on_array_types_of_the_same_dimension() {
-        assertThat(DataTypes.isCompatibleType(DataTypes.STRING_ARRAY, DataTypes.STRING_ARRAY)).isEqualTo(true);
-        assertThat(DataTypes.isCompatibleType(DataTypes.STRING_ARRAY, DataTypes.BIGINT_ARRAY)).isEqualTo(false);
+        assertThat(DataTypes.isCompatibleType(DataTypes.STRING_ARRAY, DataTypes.STRING_ARRAY)).isTrue();
+        assertThat(DataTypes.isCompatibleType(DataTypes.STRING_ARRAY, DataTypes.BIGINT_ARRAY)).isFalse();
     }
 
     @Test

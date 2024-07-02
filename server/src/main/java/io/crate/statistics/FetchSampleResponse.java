@@ -24,12 +24,11 @@ package io.crate.statistics;
 import java.io.IOException;
 import java.util.List;
 
-import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportResponse;
 
-import io.crate.Streamer;
+import io.crate.metadata.Reference;
 
 public final class FetchSampleResponse extends TransportResponse {
 
@@ -39,9 +38,8 @@ public final class FetchSampleResponse extends TransportResponse {
         this.samples = samples;
     }
 
-    @SuppressWarnings("rawtypes")
-    public FetchSampleResponse(List<Streamer> streamers, StreamInput in) throws IOException {
-        this.samples = new Samples(streamers, in);
+    public FetchSampleResponse(List<Reference> references, StreamInput in) throws IOException {
+        this.samples = new Samples(references, in);
     }
 
     Samples samples() {
@@ -53,7 +51,7 @@ public final class FetchSampleResponse extends TransportResponse {
         samples.writeTo(out);
     }
 
-    public static FetchSampleResponse merge(int maxSampleSize, FetchSampleResponse s1, FetchSampleResponse s2) {
-        return new FetchSampleResponse(Samples.merge(maxSampleSize, s1.samples(), s2.samples(), Randomness.get()));
+    public static FetchSampleResponse merge(FetchSampleResponse s1, FetchSampleResponse s2) {
+        return new FetchSampleResponse(Samples.merge(s1.samples(), s2.samples()));
     }
 }

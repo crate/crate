@@ -37,6 +37,7 @@ import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.CorrelatedJoin;
 import io.crate.planner.operators.Count;
 import io.crate.planner.operators.Filter;
+import io.crate.planner.operators.ForeignCollect;
 import io.crate.planner.operators.Get;
 import io.crate.planner.operators.GroupHashAggregate;
 import io.crate.planner.operators.HashAggregate;
@@ -269,13 +270,18 @@ public class PlanStats {
         }
 
         @Override
+        public Stats visitForeignCollect(ForeignCollect foreignCollect, Void context) {
+            return Stats.EMPTY;
+        }
+
+        @Override
         public Stats visitPlan(LogicalPlan logicalPlan, Void context) {
             // This covers all sub-classes of LogicalForwardPlan
             List<LogicalPlan> sources = logicalPlan.sources();
             if (sources.size() == 1) {
                 return sources.get(0).accept(this, context);
             }
-            throw new UnsupportedOperationException("Plan stats not available for " + logicalPlan.getClass().getSimpleName());
+            return Stats.EMPTY;
         }
     }
 }

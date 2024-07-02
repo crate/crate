@@ -36,8 +36,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterModule;
@@ -67,13 +65,14 @@ import org.elasticsearch.transport.TransportRequestOptions;
 import org.elasticsearch.transport.TransportService;
 import org.elasticsearch.transport.TransportSettings;
 import org.elasticsearch.transport.netty4.Netty4Transport;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.auth.AlwaysOKAuthentication;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.ssl.SslContextProvider;
-import io.crate.user.User;
+import io.crate.role.Role;
 
 /**
  * A mock delegate service that allows to simulate different network topology failures.
@@ -122,7 +121,7 @@ public final class MockTransportService extends TransportService {
             namedWriteableRegistry,
             new NoneCircuitBreakerService(),
             nettyBootstrap,
-            new AlwaysOKAuthentication(() -> List.of(User.CRATE_USER)),
+            new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
             new SslContextProvider(allSettings)
         );
         return new MockTransportService(

@@ -21,12 +21,11 @@
 
 package io.crate.planner;
 
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 import java.util.List;
 
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.analyze.OrderBy;
@@ -52,9 +51,9 @@ public class PositionalOrderByTest {
         PositionalOrderBy newOrderBy = positionalOrderBy.tryMapToNewOutputs(oldOutputs, newOutputs);
 
         PositionalOrderBy expected = PositionalOrderBy.of(orderBy, newOutputs);
-        assertThat(newOrderBy.indices(), Matchers.is(expected.indices()));
-        assertThat(newOrderBy.reverseFlags(), Matchers.is(expected.reverseFlags()));
-        assertThat(newOrderBy.nullsFirst(), Matchers.is(expected.nullsFirst()));
+        assertThat(newOrderBy.indices()).isEqualTo(expected.indices());
+        assertThat(newOrderBy.reverseFlags()).isEqualTo(expected.reverseFlags());
+        assertThat(newOrderBy.nullsFirst()).isEqualTo(expected.nullsFirst());
     }
 
     private static Reference ref(String name) {

@@ -21,9 +21,8 @@
 
 package io.crate.execution.engine.fetch;
 
-import static io.crate.testing.TestingHelpers.isRow;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.apache.logging.log4j.LogManager;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
@@ -43,6 +42,7 @@ import com.carrotsearch.hppc.IntObjectMap;
 
 import io.crate.Streamer;
 import io.crate.breaker.ConcurrentRamAccounting;
+import io.crate.data.Row1;
 import io.crate.data.RowN;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.distribution.StreamBucket;
@@ -50,7 +50,7 @@ import io.crate.types.DataTypes;
 
 public class NodeFetchResponseTest extends ESTestCase {
 
-    private IntObjectMap<Streamer[]> streamers;
+    private IntObjectMap<Streamer<?>[]> streamers;
     private IntObjectMap<StreamBucket> fetched;
 
     @Before
@@ -79,8 +79,8 @@ public class NodeFetchResponseTest extends ESTestCase {
         // receiving side is required to set the streamers
         NodeFetchResponse streamed = new NodeFetchResponse(in, streamers, RamAccounting.NO_ACCOUNTING);
 
-        assertThat(streamed.fetched().get(1).size(), is(1));
-        assertThat(streamed.fetched().get(1).iterator().next(), isRow(true));
+        assertThat(streamed.fetched().get(1)).hasSize(1);
+        assertThat(streamed.fetched().get(1).iterator().next()).isEqualTo(new Row1(true));
     }
 
     @Test
@@ -90,19 +90,16 @@ public class NodeFetchResponseTest extends ESTestCase {
         orig.writeTo(out);
         StreamInput in = out.bytes().streamInput();
 
-        expectedException.expect(CircuitBreakingException.class);
-        new NodeFetchResponse(
-            in,
-            streamers,
-            ConcurrentRamAccounting.forCircuitBreaker(
-                "test",
-                new MemoryCircuitBreaker(
-                    new ByteSizeValue(2, ByteSizeUnit.BYTES),
-                    1.0,
-                    LogManager.getLogger(NodeFetchResponseTest.class)),
-                0
-            )
-        );
-
+        assertThatThrownBy(() -> new NodeFetchResponse(
+                in,
+                streamers,
+                ConcurrentRamAccounting.forCircuitBreaker(
+                    "test",
+                    new MemoryCircuitBreaker(
+                        new ByteSizeValue(2, ByteSizeUnit.BYTES),
+                        1.0,
+                        LogManager.getLogger(NodeFetchResponseTest.class)),
+ 0)))
+            .isExactlyInstanceOf(CircuitBreakingException.class);
     }
 }

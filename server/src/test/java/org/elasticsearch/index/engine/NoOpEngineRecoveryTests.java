@@ -18,8 +18,8 @@
  */
 package org.elasticsearch.index.engine;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.routing.ShardRoutingHelper.initWithSameId;
-import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 import java.util.List;
@@ -48,13 +48,13 @@ public class NoOpEngineRecoveryTests extends IndexShardTestCase {
         IndexShard primary = reinitShard(indexShard, initWithSameId(shardRouting, ExistingStoreRecoverySource.INSTANCE),
             indexShard.indexSettings().getIndexMetadata(), List.of(idxSettings -> Optional.of(NoOpEngine::new)));
         recoverShardFromStore(primary);
-        assertEquals(primary.seqNoStats().getMaxSeqNo(), primary.getMaxSeqNoOfUpdatesOrDeletes());
-        assertEquals(nbDocs, primary.docStats().getCount());
+        assertThat(primary.getMaxSeqNoOfUpdatesOrDeletes()).isEqualTo(primary.seqNoStats().getMaxSeqNo());
+        assertThat(primary.docStats().getCount()).isEqualTo(nbDocs);
 
         IndexShard replica = newShard(false, Settings.EMPTY, List.of(idxSettings -> Optional.of(NoOpEngine::new)));
         recoverReplica(replica, primary, true);
-        assertEquals(replica.seqNoStats().getMaxSeqNo(), replica.getMaxSeqNoOfUpdatesOrDeletes());
-        assertEquals(nbDocs, replica.docStats().getCount());
+        assertThat(replica.getMaxSeqNoOfUpdatesOrDeletes()).isEqualTo(replica.seqNoStats().getMaxSeqNo());
+        assertThat(replica.docStats().getCount()).isEqualTo(nbDocs);
         closeShards(primary, replica);
     }
 }

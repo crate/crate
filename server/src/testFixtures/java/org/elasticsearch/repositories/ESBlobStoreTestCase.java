@@ -18,10 +18,8 @@
  */
 package org.elasticsearch.repositories;
 
-import static org.hamcrest.CoreMatchers.equalTo;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -52,8 +50,8 @@ public abstract class ESBlobStoreTestCase extends ESTestCase {
             assertArrayEquals(readBlobFully(containerFoo, "test", data1.length), data1);
             assertArrayEquals(readBlobFully(containerBar, "test", data2.length), data2);
 
-            assertTrue(BlobStoreTestUtil.blobExists(containerFoo, "test"));
-            assertTrue(BlobStoreTestUtil.blobExists(containerBar, "test"));
+            assertThat(BlobStoreTestUtil.blobExists(containerFoo, "test")).isTrue();
+            assertThat(BlobStoreTestUtil.blobExists(containerBar, "test")).isTrue();
         }
     }
 
@@ -66,8 +64,8 @@ public abstract class ESBlobStoreTestCase extends ESTestCase {
     public static byte[] readBlobFully(BlobContainer container, String name, int length) throws IOException {
         byte[] data = new byte[length];
         try (InputStream inputStream = container.readBlob(name)) {
-            assertThat(inputStream.read(data), equalTo(length));
-            assertThat(inputStream.read(), equalTo(-1));
+            assertThat(inputStream.read(data)).isEqualTo(length);
+            assertThat(inputStream.read()).isEqualTo(-1);
         }
         return data;
     }

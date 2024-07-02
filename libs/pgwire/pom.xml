@@ -6,7 +6,7 @@
   <parent>
     <groupId>io.crate</groupId>
     <artifactId>crate</artifactId>
-    <version>5.5.0</version>
+    <version>5.8.0</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
 
@@ -18,7 +18,7 @@
       <plugin>
         <groupId>org.antlr</groupId>
         <artifactId>antlr4-maven-plugin</artifactId>
-        <version>4.13.1</version>
+        <version>${versions.plugin.antlr}</version>
         <configuration>
           <sourceDirectory>${basedir}/src/main/antlr</sourceDirectory>
           <visitor>true</visitor>
@@ -43,11 +43,6 @@
       <version>${versions.antlr}</version>
     </dependency>
     <dependency>
-      <groupId>com.carrotsearch</groupId>
-      <artifactId>hppc</artifactId>
-      <version>${versions.hppc}</version>
-    </dependency>
-    <dependency>
       <groupId>org.assertj</groupId>
       <artifactId>assertj-core</artifactId>
       <version>${versions.assertj}</version>
@@ -55,13 +50,7 @@
     </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
-      <artifactId>junit-jupiter</artifactId>
-      <version>${versions.junit5}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.junit.vintage</groupId>
-      <artifactId>junit-vintage-engine</artifactId>
+      <artifactId>junit-jupiter-api</artifactId>
       <version>${versions.junit5}</version>
       <scope>test</scope>
     </dependency>

@@ -43,7 +43,6 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -72,20 +71,21 @@ import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.PageCacheRecycler;
-import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.common.util.concurrent.CountDown;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.monitor.jvm.JvmInfo;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
 
-import io.crate.common.annotations.VisibleForTesting;
+import io.crate.common.collections.Sets;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
+import io.crate.protocols.ConnectionStats;
 import io.netty.channel.ChannelFuture;
 
 public abstract class TcpTransport extends AbstractLifecycleComponent implements Transport {
@@ -109,7 +109,7 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
     private final CircuitBreakerService circuitBreakerService;
 
     private final List<CloseableChannel> serverChannels = new ArrayList<>();
-    private final Set<CloseableChannel> acceptedChannels = ConcurrentCollections.newConcurrentSet();
+    private final Set<CloseableChannel> acceptedChannels = Sets.newConcurrentHashSet();
 
     // this lock is here to make sure we close this transport and disconnect all the client nodes
     // connections while no connect operations is going on
@@ -349,12 +349,12 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
                     .limit(LIMIT_LOCAL_PORTS_COUNT)
                     .mapToObj(port -> address + ":" + port)
             )
-            .collect(Collectors.toList());
+            .toList();
     }
 
     protected void bindServer(Settings settings) {
         // Bind and start to accept incoming connections.
-        InetAddress[] hostAddresses;
+        List<InetAddress> hostAddresses;
         List<String> transportBindHosts = TransportSettings.BIND_HOST.get(settings);
         List<String> bindHosts = transportBindHosts.isEmpty()
             ? NetworkService.GLOBAL_NETWORK_BIND_HOST_SETTING.get(settings)
@@ -365,14 +365,14 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
             throw new BindTransportException("Failed to resolve host " + bindHosts, e);
         }
         if (logger.isDebugEnabled()) {
-            String[] addresses = new String[hostAddresses.length];
-            for (int i = 0; i < hostAddresses.length; i++) {
-                addresses[i] = NetworkAddress.format(hostAddresses[i]);
+            String[] addresses = new String[hostAddresses.size()];
+            for (int i = 0; i < hostAddresses.size(); i++) {
+                addresses[i] = NetworkAddress.format(hostAddresses.get(i));
             }
             logger.debug("binding server bootstrap to: {}", (Object) addresses);
         }
 
-        assert hostAddresses.length > 0;
+        assert hostAddresses.size() > 0;
 
         List<InetSocketAddress> boundAddresses = new ArrayList<>();
         for (InetAddress hostAddress : hostAddresses) {
@@ -631,11 +631,15 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
     }
 
     protected void serverAcceptedChannel(CloseableChannel channel) {
+        statsTracker.incrementOpenChannels();
         boolean addedOnThisCall = acceptedChannels.add(channel);
         assert addedOnThisCall : "Channel should only be added to accepted channel set once";
         // Mark the channel init time
         channel.markAccessed(threadPool.relativeTimeInMillis());
-        channel.addCloseListener(ActionListener.wrap(() -> acceptedChannels.remove(channel)));
+        channel.addCloseListener(ActionListener.wrap(() -> {
+            acceptedChannels.remove(channel);
+            statsTracker.decrementOpenChannels();
+        }));
         logger.trace(() -> new ParameterizedMessage("Tcp transport channel accepted: {}", channel));
     }
 
@@ -817,18 +821,8 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
     }
 
     @Override
-    public final TransportStats getStats() {
-        final long bytesWritten = statsTracker.getBytesWritten();
-        final long messagesSent = statsTracker.getMessagesSent();
-        final long messagesReceived = statsTracker.getMessagesReceived();
-        final long bytesRead = statsTracker.getBytesRead();
-        return new TransportStats(
-            acceptedChannels.size(),
-            messagesReceived,
-            bytesRead,
-            messagesSent,
-            bytesWritten
-        );
+    public final ConnectionStats getStats() {
+        return statsTracker.stats();
     }
 
     @Override

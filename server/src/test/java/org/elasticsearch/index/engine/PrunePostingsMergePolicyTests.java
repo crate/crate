@@ -19,10 +19,8 @@
 
 package org.elasticsearch.index.engine;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 
@@ -92,28 +90,28 @@ public class PrunePostingsMergePolicyTests extends ESTestCase {
                 writer.forceMerge(1);
                 try (DirectoryReader reader = DirectoryReader.open(writer)) {
                     LeafReader leafReader = reader.leaves().get(0).reader();
-                    assertEquals(numDocs, leafReader.maxDoc());
+                    assertThat(leafReader.maxDoc()).isEqualTo(numDocs);
                     Terms id = leafReader.terms("id");
                     TermsEnum iterator = id.iterator();
                     for (int i = 0; i < numUniqueDocs; i++) {
-                        assertTrue(iterator.seekExact(new BytesRef("" + i)));
-                        assertEquals(1, iterator.docFreq());
+                        assertThat(iterator.seekExact(new BytesRef("" + i))).isTrue();
+                        assertThat(iterator.docFreq()).isEqualTo(1);
                     }
                     iterator = leafReader.terms("text").iterator();
-                    assertTrue(iterator.seekExact(new BytesRef("quick")));
-                    assertEquals(leafReader.maxDoc(), iterator.docFreq());
+                    assertThat(iterator.seekExact(new BytesRef("quick"))).isTrue();
+                    assertThat(iterator.docFreq()).isEqualTo(leafReader.maxDoc());
                     int numValues = 0;
                     NumericDocValues sort = leafReader.getNumericDocValues("sort");
                     while (sort.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
                         if (sorted) {
-                            assertEquals(sort.docID(), sort.longValue());
+                            assertThat(sort.longValue()).isEqualTo(sort.docID());
                         } else {
-                            assertTrue(sort.longValue() >= 0);
-                            assertTrue(sort.longValue() < numDocs);
+                            assertThat(sort.longValue() >= 0).isTrue();
+                            assertThat(sort.longValue() < numDocs).isTrue();
                         }
                         numValues++;
                     }
-                    assertEquals(numValues, numDocs);
+                    assertThat(numDocs).isEqualTo(numValues);
                 }
                 {
                     // prune away a single ID
@@ -128,18 +126,18 @@ public class PrunePostingsMergePolicyTests extends ESTestCase {
 
                     try (DirectoryReader reader = DirectoryReader.open(writer)) {
                         LeafReader leafReader = reader.leaves().get(0).reader();
-                        assertEquals(numDocs, leafReader.maxDoc());
+                        assertThat(leafReader.maxDoc()).isEqualTo(numDocs);
                         Terms id = leafReader.terms("id");
                         TermsEnum iterator = id.iterator();
-                        assertEquals(numUniqueDocs, id.size());
+                        assertThat(id.size()).isEqualTo(numUniqueDocs);
                         for (int i = 0; i < numUniqueDocs; i++) {
-                            assertTrue(iterator.seekExact(new BytesRef("" + i)));
-                            assertEquals(1, iterator.docFreq());
+                            assertThat(iterator.seekExact(new BytesRef("" + i))).isTrue();
+                            assertThat(iterator.docFreq()).isEqualTo(1);
                         }
-                        assertFalse(iterator.seekExact(new BytesRef("test")));
+                        assertThat(iterator.seekExact(new BytesRef("test"))).isFalse();
                         iterator = leafReader.terms("text").iterator();
-                        assertTrue(iterator.seekExact(new BytesRef("quick")));
-                        assertEquals(leafReader.maxDoc(), iterator.docFreq());
+                        assertThat(iterator.seekExact(new BytesRef("quick"))).isTrue();
+                        assertThat(iterator.docFreq()).isEqualTo(leafReader.maxDoc());
                     }
                 }
 
@@ -159,12 +157,12 @@ public class PrunePostingsMergePolicyTests extends ESTestCase {
 
                     try (DirectoryReader reader = DirectoryReader.open(writer)) {
                         LeafReader leafReader = reader.leaves().get(0).reader();
-                        assertEquals(numDocs+1, leafReader.maxDoc());
-                        assertEquals(0, leafReader.numDocs());
+                        assertThat(leafReader.maxDoc()).isEqualTo(numDocs+1);
+                        assertThat(leafReader.numDocs()).isEqualTo(0);
                         assertNull(leafReader.terms("id"));
                         TermsEnum iterator = leafReader.terms("text").iterator();
-                        assertTrue(iterator.seekExact(new BytesRef("quick")));
-                        assertEquals(leafReader.maxDoc(), iterator.docFreq());
+                        assertThat(iterator.seekExact(new BytesRef("quick"))).isTrue();
+                        assertThat(iterator.docFreq()).isEqualTo(leafReader.maxDoc());
                     }
                 }
             }

@@ -31,42 +31,44 @@ import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.index.mapper.FieldNamesFieldMapper;
 
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 
 public class FulltextIndexer implements ValueIndexer<String> {
 
-    private final Reference ref;
-    private final FieldType fieldType;
+    public static final FieldType FIELD_TYPE = new FieldType();
 
-    public FulltextIndexer(Reference ref, FieldType fieldType) {
+    static {
+        FIELD_TYPE.setTokenized(true);
+        FIELD_TYPE.setStored(false);
+        FIELD_TYPE.setStoreTermVectors(false);
+        FIELD_TYPE.setOmitNorms(false);
+        FIELD_TYPE.setIndexOptions(IndexOptions.DOCS_AND_FREQS_AND_POSITIONS);
+        FIELD_TYPE.freeze();
+    }
+
+    private final Reference ref;
+
+    public FulltextIndexer(Reference ref) {
         this.ref = ref;
-        this.fieldType = fieldType;
     }
 
     @Override
     public void indexValue(String value,
                            XContentBuilder xcontentBuilder,
                            Consumer<? super IndexableField> addField,
-                           Map<ColumnIdent, Indexer.Synthetic> synthetics,
+                           Synthetics synthetics,
                            Map<ColumnIdent, Indexer.ColumnConstraint> toValidate) throws IOException {
         xcontentBuilder.value(value);
         if (value == null) {
             return;
         }
         String name = ref.storageIdent();
-        if (fieldType.indexOptions() != IndexOptions.NONE || fieldType.stored()) {
-            Field field = new Field(name, value, fieldType);
+        if (ref.indexType() != IndexType.NONE) {
+            Field field = new Field(name, value, FIELD_TYPE);
             addField.accept(field);
-
-            if (fieldType.omitNorms()) {
-                addField.accept(new Field(
-                    FieldNamesFieldMapper.NAME,
-                    name,
-                    FieldNamesFieldMapper.Defaults.FIELD_TYPE));
-            }
         }
     }
 }

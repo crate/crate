@@ -22,7 +22,6 @@
 package io.crate.metadata.blob;
 
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -30,11 +29,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.TableParameters;
 import io.crate.analyze.WhereClause;
@@ -69,7 +68,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
     private final boolean closed;
 
     private final Map<ColumnIdent, Reference> infos = new LinkedHashMap<>();
-    private static final List<ColumnIdent> PRIMARY_KEY = List.of(new ColumnIdent("digest"));
+    private static final List<ColumnIdent> PRIMARY_KEY = List.of(ColumnIdent.of("digest"));
 
     public BlobTableInfo(RelationName ident,
                          String index,
@@ -123,7 +122,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
                               WhereClause whereClause,
                               RoutingProvider.ShardSelection shardSelection,
                               CoordinatorSessionSettings sessionSettings) {
-        return routingProvider.forIndices(state, new String[] { index }, Collections.emptyMap(), false, shardSelection);
+        return routingProvider.forIndices(state, new String[] { index }, Set.of(), false, shardSelection);
     }
 
     @Override
@@ -192,7 +191,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     @Override
-    public String[] concreteIndices() {
+    public String[] concreteIndices(Metadata metadata) {
         return new String[] { index };
     }
 

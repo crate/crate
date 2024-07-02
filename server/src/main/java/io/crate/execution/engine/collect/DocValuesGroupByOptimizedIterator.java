@@ -44,13 +44,13 @@ import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.Bits;
 import org.elasticsearch.Version;
-import org.elasticsearch.index.query.QueryShardContext;
+import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
@@ -72,7 +72,6 @@ import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
-import io.crate.lucene.FieldTypeLookup;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.DocReferences;
@@ -90,12 +89,11 @@ final class DocValuesGroupByOptimizedIterator {
                                           IndexShard indexShard,
                                           DocTableInfo table,
                                           LuceneQueryBuilder luceneQueryBuilder,
-                                          FieldTypeLookup fieldTypeLookup,
                                           DocInputFactory docInputFactory,
                                           RoutedCollectPhase collectPhase,
                                           CollectTask collectTask) {
-        if (Symbols.containsColumn(collectPhase.toCollect(), DocSysColumns.SCORE)
-            || Symbols.containsColumn(collectPhase.where(), DocSysColumns.SCORE)) {
+        if (Symbols.hasColumn(collectPhase.toCollect(), DocSysColumns.SCORE)
+            || collectPhase.where().hasColumn(DocSysColumns.SCORE)) {
             return null;
         }
 
@@ -112,8 +110,7 @@ final class DocValuesGroupByOptimizedIterator {
                 return null; // group by on non-reference
             }
             var columnKeyRef = (Reference) DocReferences.inverseSourceLookup(docKeyRef);
-            var keyFieldType = fieldTypeLookup.get(columnKeyRef.column().fqn());
-            if (keyFieldType == null || !keyFieldType.hasDocValues()) {
+            if (!columnKeyRef.hasDocValues()) {
                 return null;
             } else {
                 columnKeyRefs.add(columnKeyRef);
@@ -135,7 +132,7 @@ final class DocValuesGroupByOptimizedIterator {
         SharedShardContext sharedShardContext = collectTask.sharedShardContexts().getOrCreateContext(shardId);
         var searcher = sharedShardContext.acquireSearcher("group-by-doc-value-aggregates: " + formatSource(collectPhase));
         collectTask.addSearcher(sharedShardContext.readerId(), searcher);
-        QueryShardContext queryShardContext = sharedShardContext.indexService().newQueryShardContext();
+        IndexService indexService = sharedShardContext.indexService();
 
         InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx
             = docInputFactory.getCtx(collectTask.txnCtx());
@@ -146,11 +143,10 @@ final class DocValuesGroupByOptimizedIterator {
         LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(
             collectPhase.where(),
             collectTask.txnCtx(),
-            indexShard.mapperService(),
             indexShard.shardId().getIndexName(),
-            queryShardContext,
+            indexService.indexAnalyzers(),
             table,
-            sharedShardContext.indexService().cache()
+            indexService.cache()
         );
 
         if (columnKeyRefs.size() == 1) {
@@ -232,7 +228,7 @@ final class DocValuesGroupByOptimizedIterator {
                 minNodeVersion,
                 GroupByMaps.accountForNewEntry(
                     ramAccounting,
-                    Lists2.map(keyColumnRefs, Reference::valueType)
+                    Lists.map(keyColumnRefs, Reference::valueType)
                 ),
                 (expressions) -> {
                     ArrayList<Object> key = new ArrayList<>(keyColumnRefs.size());

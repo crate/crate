@@ -21,9 +21,9 @@
 
 package io.crate.execution.jobs.transport;
 
-import static io.crate.testing.Asserts.assertThat;
-import static io.crate.testing.Asserts.assertThatThrownBy;
 import static io.crate.testing.DiscoveryNodes.newNode;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 import java.util.Arrays;
@@ -40,7 +40,6 @@ import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
 
-import io.crate.action.FutureActionListener;
 import io.crate.exceptions.TaskMissing;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.DummyTask;
@@ -114,9 +113,7 @@ public class NodeDisconnectJobMonitorServiceTest extends CrateDummyClusterServic
             new NodeLimits(new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS)),
             mock(TransportService.class),
             req -> {
-                FutureActionListener listener = FutureActionListener.newInstance();
-                killAction.doExecute(req, listener);
-                return listener;
+                return killAction.execute(req);
             });
 
         monitorService.onNodeDisconnected(dataNode, mock(Transport.Connection.class));

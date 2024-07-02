@@ -22,9 +22,10 @@
 package io.crate.integrationtests;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
-import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertSQLError;
+import static io.crate.testing.Asserts.assertThat;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -34,7 +35,7 @@ import org.junit.Test;
 public class ResizeShardsITest extends IntegTestCase {
 
     private String getADataNodeName(ClusterState state) {
-        assertThat(state.nodes().getDataNodes().isEmpty(), is(false));
+        assertThat(state.nodes().getDataNodes()).isNotEmpty();
         return state.nodes().getDataNodes().valuesIt().next().getName();
     }
 
@@ -68,16 +69,16 @@ public class ResizeShardsITest extends IntegTestCase {
                 "and node['name'] = ?",
                 new Object[] { resizeNodeName }
             );
-            assertThat(response.rows()[0][0], is(3L));
+            assertThat(response).hasRows(new Object[] { 3L });
         });
 
         execute("alter table quotes set (number_of_shards=?)", $(1));
         ensureYellow();
 
         execute("select number_of_shards from information_schema.tables where table_name = 'quotes'");
-        assertThat(printedTable(response.rows()), is("1\n"));
+        assertThat(response).hasRows("1");
         execute("select id from quotes");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response).hasRowCount(2L);
     }
 
     @Test
@@ -93,7 +94,7 @@ public class ResizeShardsITest extends IntegTestCase {
         createIndex(resizeIndex);
 
         ClusterService clusterService = cluster().getInstance(ClusterService.class);
-        assertThat(clusterService.state().metadata().hasIndex(resizeIndex), is(true));
+        assertThat(clusterService.state().metadata().hasIndex(resizeIndex)).isTrue();
 
         final String resizeNodeName = getADataNodeName(clusterService.state());
 
@@ -107,15 +108,15 @@ public class ResizeShardsITest extends IntegTestCase {
                 "and node['name'] = ?",
                 new Object[] { resizeNodeName }
             );
-            assertThat(response.rows()[0][0], is(3L));
+            assertThat(response).hasRows(new Object[] { 3L });
         });
 
         execute("alter table quotes set (number_of_shards=?)", $(1));
 
         execute("select number_of_shards from information_schema.tables where table_name = 'quotes'");
-        assertThat(printedTable(response.rows()), is("1\n"));
+        assertThat(response).hasRows("1");
 
-        assertThat(clusterService.state().metadata().hasIndex(resizeIndex), is(false));
+        assertThat(clusterService.state().metadata().hasIndex(resizeIndex)).isFalse();
     }
 
     @Test
@@ -144,7 +145,7 @@ public class ResizeShardsITest extends IntegTestCase {
                 "and node['name'] = ?",
                 new Object[] { resizeNodeName }
             );
-            assertThat(response.rows()[0][0], is(3L));
+            assertThat(response).hasRows(new Object[] { 3L });
         });
         execute("alter table quotes partition (date=1395874800000) set (number_of_shards=?)",
             $(1));
@@ -153,9 +154,9 @@ public class ResizeShardsITest extends IntegTestCase {
         execute("select number_of_shards from information_schema.table_partitions " +
                 "where table_name = 'quotes' " +
                 "and values = '{\"date\": 1395874800000}'");
-        assertThat(printedTable(response.rows()), is("1\n"));
+        assertThat(response).hasRows("1");
         execute("select id from quotes");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response).hasRowCount(2L);
     }
 
     @Test
@@ -170,9 +171,59 @@ public class ResizeShardsITest extends IntegTestCase {
         ensureYellow();
 
         execute("select number_of_shards from information_schema.tables where table_name = 't1'");
-        assertThat(printedTable(response.rows()), is("2\n"));
+        assertThat(response).hasRows("2");
         execute("select x from t1");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response).hasRowCount(2L);
+    }
+
+    @Test
+    public void test_number_of_shards_of_a_table_can_be_increased_without_explicitly_setting_number_of_routing_shards() {
+        execute("create table t1 (x int, p int) clustered into 3 shards " +
+            "with (number_of_replicas = 1)");
+        execute("insert into t1 (x, p) select g, g from generate_series(1, 12, 1) as g");
+        execute("refresh table t1");
+
+        execute("alter table t1 set (\"blocks.write\" = true)");
+
+        execute("alter table t1 set (number_of_shards = 12)");
+        ensureYellow();
+
+        execute("select number_of_shards from information_schema.tables where table_name = 't1'");
+        assertThat(response).hasRows("12");
+        execute("select x from t1");
+        assertThat(response).hasRowCount(12L);
+    }
+
+    @Test
+    public void test_number_of_shards_on_a_one_sharded_table_can_be_increased_without_explicitly_setting_number_of_routing_shards() {
+        execute("create table t1 (x int, p int) clustered into 1 shards " +
+            "with (number_of_replicas = 1)");
+        execute("insert into t1 (x, p) select g, g from generate_series(1, 12, 1) as g");
+        execute("refresh table t1");
+
+        execute("alter table t1 set (\"blocks.write\" = true)");
+
+        execute("alter table t1 set (number_of_shards = 3)");
+        ensureYellow();
+
+        execute("select number_of_shards from information_schema.tables where table_name = 't1'");
+        assertThat(response).hasRows("3");
+        execute("select x from t1");
+        assertThat(response).hasRowCount(12L);
+
+        // number_of_routing_shards is calculated based on 3 shards (after the first increase) and set implicitly
+        assertSQLError(() -> execute("alter table t1 set (number_of_shards = 8)"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining("the number of source shards [3] must be a must be a factor of [8]");
+
+        execute("alter table t1 set (number_of_shards = 12)");
+        ensureYellow();
+
+        execute("select number_of_shards from information_schema.tables where table_name = 't1'");
+        assertThat(response).hasRows("12");
+        execute("select x from t1");
+        assertThat(response).hasRowCount(12L);
     }
 
     @Test
@@ -186,8 +237,8 @@ public class ResizeShardsITest extends IntegTestCase {
         ensureYellow();
 
         execute("select number_of_shards from information_schema.table_partitions where table_name = 't1'");
-        assertThat(printedTable(response.rows()), is("2\n"));
+        assertThat(response).hasRows("2");
         execute("select x from t1");
-        assertThat(response.rowCount(), is(2L));
+        assertThat(response).hasRowCount(2L);
     }
 }

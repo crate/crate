@@ -23,8 +23,9 @@ package io.crate.expression.scalar.arithmetic;
 
 import java.math.BigDecimal;
 
-import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.scalar.UnaryScalar;
+import io.crate.metadata.Functions;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
@@ -33,63 +34,69 @@ public final class NegateFunctions {
 
     public static final String NAME = "_negate";
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder builder) {
+        builder.add(
             Signature.scalar(
-                NAME,
-                TypeSignature.parse("double precision"),
-                TypeSignature.parse("double precision")
-            )
+                    NAME,
+                    TypeSignature.parse("double precision"),
+                    TypeSignature.parse("double precision")
+                ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE)
                 .withForbiddenCoercion(),
             (signature, boundSignature) ->
                 new UnaryScalar<>(signature, boundSignature, DataTypes.DOUBLE, x -> x * -1)
         );
-        module.register(
+        builder.add(
             Signature.scalar(
-                NAME,
-                DataTypes.FLOAT.getTypeSignature(),
-                DataTypes.FLOAT.getTypeSignature()
-            )
+                    NAME,
+                    DataTypes.FLOAT.getTypeSignature(),
+                    DataTypes.FLOAT.getTypeSignature()
+                ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE)
                 .withForbiddenCoercion(),
             (signature, boundSignature) ->
                 new UnaryScalar<>(signature, boundSignature, DataTypes.FLOAT, x -> x * -1)
         );
-        module.register(
+        builder.add(
             Signature.scalar(
-                NAME,
-                TypeSignature.parse("integer"),
-                TypeSignature.parse("integer")
-            )
+                    NAME,
+                    TypeSignature.parse("integer"),
+                    TypeSignature.parse("integer")
+                ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE)
                 .withForbiddenCoercion(),
             (signature, boundSignature) ->
                 new UnaryScalar<>(signature, boundSignature, DataTypes.INTEGER, x -> x * -1)
         );
-        module.register(
+        builder.add(
             Signature.scalar(
-                NAME,
-                TypeSignature.parse("bigint"),
-                TypeSignature.parse("bigint")
-            )
+                    NAME,
+                    TypeSignature.parse("bigint"),
+                    TypeSignature.parse("bigint")
+                ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE)
                 .withForbiddenCoercion(),
             (signature, boundSignature) ->
                 new UnaryScalar<>(signature, boundSignature, DataTypes.LONG, x -> x * -1)
         );
-        module.register(
+        builder.add(
             Signature.scalar(
-                NAME,
-                TypeSignature.parse("smallint"),
-                TypeSignature.parse("smallint")
-            )
+                    NAME,
+                    TypeSignature.parse("smallint"),
+                    TypeSignature.parse("smallint")
+                ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE)
                 .withForbiddenCoercion(),
             (signature, boundSignature) ->
                 new UnaryScalar<>(signature, boundSignature, DataTypes.SHORT, x -> (short) (x * -1))
         );
-        module.register(
+        builder.add(
             Signature.scalar(
-                NAME,
-                DataTypes.NUMERIC.getTypeSignature(),
-                DataTypes.NUMERIC.getTypeSignature()
-            )
+                    NAME,
+                    DataTypes.NUMERIC.getTypeSignature(),
+                    DataTypes.NUMERIC.getTypeSignature()
+                ).withFeature(Scalar.Feature.DETERMINISTIC)
+                .withFeature(Scalar.Feature.NULLABLE)
                 .withForbiddenCoercion(),
             (signature, boundSignature) ->
                 new UnaryScalar<>(signature, boundSignature, DataTypes.NUMERIC, BigDecimal::negate)

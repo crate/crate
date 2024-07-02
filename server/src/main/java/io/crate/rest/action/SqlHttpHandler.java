@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -45,6 +46,7 @@ import org.elasticsearch.http.netty4.cors.Netty4CorsHandler;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.elasticsearch.transport.netty4.Netty4Utils;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.action.sql.DescribeResult;
 import io.crate.action.sql.ResultReceiver;
@@ -54,17 +56,17 @@ import io.crate.action.sql.parser.SQLRequestParseContext;
 import io.crate.action.sql.parser.SQLRequestParser;
 import io.crate.auth.AccessControl;
 import io.crate.auth.AuthSettings;
-import io.crate.breaker.RowAccountingWithEstimators;
-import io.crate.common.annotations.VisibleForTesting;
+import io.crate.auth.Credentials;
+import io.crate.auth.HttpAuthUpstreamHandler;
+import io.crate.breaker.TypedRowAccounting;
 import io.crate.data.breaker.BlockBasedRamAccounting;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.protocols.http.Headers;
-import io.crate.user.User;
-import io.crate.user.UserLookup;
+import io.crate.role.Role;
+import io.crate.role.Roles;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
@@ -83,26 +85,23 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     private static final String REQUEST_HEADER_SCHEMA = "Default-Schema";
 
     private final Settings settings;
-    private final Sessions sqlOperations;
+    private final Sessions sessions;
     private final Function<String, CircuitBreaker> circuitBreakerProvider;
-    private final UserLookup userLookup;
-    private final Function<CoordinatorSessionSettings, AccessControl> getAccessControl;
+    private final Roles roles;
     private final Netty4CorsConfig corsConfig;
 
     private Session session;
 
-    SqlHttpHandler(Settings settings,
-                   Sessions sqlOperations,
-                   Function<String, CircuitBreaker> circuitBreakerProvider,
-                   UserLookup userLookup,
-                   Function<CoordinatorSessionSettings, AccessControl> getAccessControl,
-                   Netty4CorsConfig corsConfig) {
+    public SqlHttpHandler(Settings settings,
+                          Sessions sessions,
+                          Function<String, CircuitBreaker> circuitBreakerProvider,
+                          Roles roles,
+                          Netty4CorsConfig corsConfig) {
         super(false);
         this.settings = settings;
-        this.sqlOperations = sqlOperations;
+        this.sessions = sessions;
         this.circuitBreakerProvider = circuitBreakerProvider;
-        this.userLookup = userLookup;
-        this.getAccessControl = getAccessControl;
+        this.roles = roles;
         this.corsConfig = corsConfig;
     }
 
@@ -159,7 +158,8 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             resp = new DefaultFullHttpResponse(httpVersion, HttpResponseStatus.OK, content);
             resp.headers().add(HttpHeaderNames.CONTENT_TYPE, result.contentType().mediaType());
         } else {
-            var throwable = SQLExceptions.prepareForClientTransmission(getAccessControl.apply(session.sessionSettings()), t);
+            AccessControl accessControl = roles.getAccessControl(session.sessionSettings());
+            var throwable = SQLExceptions.prepareForClientTransmission(accessControl, t);
             HttpError httpError = HttpError.fromThrowable(throwable);
             String mediaType;
             boolean includeErrorTrace = paramContainFlag(parameters, "error_trace");
@@ -215,13 +215,13 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     @VisibleForTesting
     Session ensureSession(FullHttpRequest request) {
         String defaultSchema = request.headers().get(REQUEST_HEADER_SCHEMA);
-        User authenticatedUser = userFromAuthHeader(request.headers().get(HttpHeaderNames.AUTHORIZATION));
+        Role authenticatedUser = userFromAuthHeader(request.headers().get(HttpHeaderNames.AUTHORIZATION));
         Session session = this.session;
         if (session == null) {
-            session = sqlOperations.newSession(defaultSchema, authenticatedUser);
+            session = sessions.newSession(defaultSchema, authenticatedUser);
         } else if (session.sessionSettings().authenticatedUser().equals(authenticatedUser) == false) {
             session.close();
-            session = sqlOperations.newSession(defaultSchema, authenticatedUser);
+            session = sessions.newSession(defaultSchema, authenticatedUser);
         }
         this.session = session;
         return session;
@@ -248,7 +248,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
                 JsonXContent.builder(),
                 resultFields,
                 startTimeInNs,
-                new RowAccountingWithEstimators(
+                new TypedRowAccounting(
                     Symbols.typeView(resultFields),
                     ramAccounting
                 ),
@@ -293,13 +293,28 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             });
     }
 
-    User userFromAuthHeader(@Nullable String authHeaderValue) {
-        String username = Headers.extractCredentialsFromHttpBasicAuthHeader(authHeaderValue).v1();
-        // Fallback to trusted user from configuration
-        if (username == null || username.isEmpty()) {
-            username = AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.get(settings);
+    /**
+     * Doesn't do authentication as it's already done
+     * in {@link HttpAuthUpstreamHandler} which is registered before this handler
+     * Checks user existence and if not possible to resolve from header (basic or jwt),
+     * returns trusted user from configuration.
+     */
+    Role userFromAuthHeader(@Nullable String authHeaderValue) {
+        try (Credentials credentials = Headers.extractCredentialsFromHttpAuthHeader(authHeaderValue)) {
+            Predicate<Role> rolePredicate = credentials.jwtPropertyMatch();
+            if (rolePredicate != null) {
+                Role role = roles.findUser(rolePredicate);
+                if (role != null) {
+                    credentials.setUsername(role.name());
+                }
+            }
+            String username = credentials.username();
+            // Fallback to trusted user from configuration
+            if (username == null || username.isEmpty()) {
+                username = AuthSettings.AUTH_TRUST_HTTP_DEFAULT_HEADER.get(settings);
+            }
+            return roles.findUser(username);
         }
-        return userLookup.findUser(username);
     }
 
     private static boolean bothProvided(@Nullable List<Object> args, @Nullable List<List<Object>> bulkArgs) {

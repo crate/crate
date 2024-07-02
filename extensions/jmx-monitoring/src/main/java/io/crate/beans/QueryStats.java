@@ -21,17 +21,17 @@
 
 package io.crate.beans;
 
+import java.util.EnumMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
+
 import io.crate.common.Suppliers;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.metadata.sys.MetricsView;
 import io.crate.planner.Plan.StatementType;
 import io.crate.planner.operators.StatementClassifier;
-
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 
 public class QueryStats implements QueryStatsMBean {
 
@@ -89,7 +89,7 @@ public class QueryStats implements QueryStatsMBean {
     }
 
     static Map<StatementType, Metric> createMetricsMap(Iterable<MetricsView> metrics) {
-        Map<StatementType, Metric> metricsByStmtType = new HashMap<>();
+        Map<StatementType, Metric> metricsByStmtType = new EnumMap<>(StatementType.class);
         for (MetricsView classifiedMetrics : metrics) {
             long sumOfDurations = classifiedMetrics.sumOfDurations();
             long failedCount = classifiedMetrics.failedCount();

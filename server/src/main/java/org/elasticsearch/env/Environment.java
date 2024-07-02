@@ -58,7 +58,6 @@ public class Environment {
     public static final Setting<List<String>> PATH_REPO_SETTING =
         Setting.listSetting("path.repo", Collections.emptyList(), Function.identity(), STRING_ARRAY, Property.NodeScope);
     public static final Setting<String> PATH_SHARED_DATA_SETTING = Setting.simpleString("path.shared_data", Property.NodeScope);
-    public static final Setting<String> PIDFILE_SETTING = Setting.simpleString("pidfile", Property.NodeScope);
 
     private final Settings settings;
 
@@ -70,8 +69,6 @@ public class Environment {
 
     private final Path pluginsFile;
 
-    private final Path modulesFile;
-
     private final Path sharedDataFile;
 
     /** location of bin/, used by plugin manager */
@@ -81,9 +78,6 @@ public class Environment {
     private final Path libFile;
 
     private final Path logsFile;
-
-    /** Path to the PID file (can be null if no PID file is configured) **/
-    private final Path pidFile;
 
     /** Path to the temporary file directory used by the JDK */
     private final Path tmpFile;
@@ -151,15 +145,8 @@ public class Environment {
             logsFile = homeFile.resolve("logs");
         }
 
-        if (PIDFILE_SETTING.exists(settings)) {
-            pidFile = PathUtils.get(PIDFILE_SETTING.get(settings)).normalize();
-        } else {
-            pidFile = null;
-        }
-
         binFile = homeFile.resolve("bin");
         libFile = homeFile.resolve("lib");
-        modulesFile = homeFile.resolve("modules");
 
         Settings.Builder finalSettings = Settings.builder().put(settings);
         finalSettings.put(PATH_HOME_SETTING.getKey(), homeFile);
@@ -273,19 +260,8 @@ public class Environment {
         return libFile;
     }
 
-    public Path modulesFile() {
-        return modulesFile;
-    }
-
     public Path logsFile() {
         return logsFile;
-    }
-
-    /**
-     * The PID file location (can be null if no PID file is configured)
-     */
-    public Path pidFile() {
-        return pidFile;
     }
 
     /** Path to the default temp directory used by the JDK */
@@ -307,9 +283,7 @@ public class Environment {
         assertEquals(actual.pluginsFile(), expected.pluginsFile(), "pluginsFile");
         assertEquals(actual.binFile(), expected.binFile(), "binFile");
         assertEquals(actual.libFile(), expected.libFile(), "libFile");
-        assertEquals(actual.modulesFile(), expected.modulesFile(), "modulesFile");
         assertEquals(actual.logsFile(), expected.logsFile(), "logsFile");
-        assertEquals(actual.pidFile(), expected.pidFile(), "pidFile");
         assertEquals(actual.tmpFile(), expected.tmpFile(), "tmpFile");
     }
 

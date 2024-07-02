@@ -21,12 +21,11 @@
 
 package io.crate.metadata;
 
-import static org.hamcrest.Matchers.hasEntry;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -67,7 +66,7 @@ public class PartitionInfosTest extends CrateDummyClusterServiceUnitTest {
         addIndexMetadataToClusterState(
             IndexMetadata.builder("test1").settings(defaultSettings()).numberOfShards(10).numberOfReplicas(4));
         Iterable<PartitionInfo> partitioninfos = new PartitionInfos(clusterService);
-        assertThat(partitioninfos.iterator().hasNext(), is(false));
+        assertThat(partitioninfos.iterator().hasNext()).isFalse();
     }
 
     @Test
@@ -77,7 +76,7 @@ public class PartitionInfosTest extends CrateDummyClusterServiceUnitTest {
         addIndexMetadataToClusterState(IndexMetadata.builder(partitionName.asIndexName())
             .settings(defaultSettings()).numberOfShards(10).numberOfReplicas(4));
         Iterable<PartitionInfo> partitioninfos = new PartitionInfos(clusterService);
-        assertThat(partitioninfos.iterator().hasNext(), is(false));
+        assertThat(partitioninfos.iterator().hasNext()).isFalse();
     }
 
     @Test
@@ -94,11 +93,11 @@ public class PartitionInfosTest extends CrateDummyClusterServiceUnitTest {
         Iterable<PartitionInfo> partitioninfos = new PartitionInfos(clusterService);
         Iterator<PartitionInfo> iter = partitioninfos.iterator();
         PartitionInfo partitioninfo = iter.next();
-        assertThat(partitioninfo.name().asIndexName(), is(partitionName.asIndexName()));
-        assertThat(partitioninfo.numberOfShards(), is(10));
-        assertThat(partitioninfo.numberOfReplicas(), is("4"));
-        assertThat(partitioninfo.values(), hasEntry("col", "foo"));
-        assertThat(iter.hasNext(), is(false));
+        assertThat(partitioninfo.name().asIndexName()).isEqualTo(partitionName.asIndexName());
+        assertThat(partitioninfo.numberOfShards()).isEqualTo(10);
+        assertThat(partitioninfo.numberOfReplicas()).isEqualTo("4");
+        assertThat(partitioninfo.values()).containsOnly(Map.entry("col", "foo"));
+        assertThat(iter.hasNext()).isFalse();
     }
 
     @Test
@@ -115,11 +114,12 @@ public class PartitionInfosTest extends CrateDummyClusterServiceUnitTest {
         Iterable<PartitionInfo> partitioninfos = new PartitionInfos(clusterService);
         Iterator<PartitionInfo> iter = partitioninfos.iterator();
         PartitionInfo partitioninfo = iter.next();
-        assertThat(partitioninfo.name().asIndexName(), is(partitionName.asIndexName()));
-        assertThat(partitioninfo.numberOfShards(), is(10));
-        assertThat(partitioninfo.numberOfReplicas(), is("4"));
-        assertThat(partitioninfo.values(), hasEntry("col", "foo"));
-        assertThat(partitioninfo.values(), hasEntry("col2", 1));
-        assertThat(iter.hasNext(), is(false));
+        assertThat(partitioninfo.name().asIndexName()).isEqualTo(partitionName.asIndexName());
+        assertThat(partitioninfo.numberOfShards()).isEqualTo(10);
+        assertThat(partitioninfo.numberOfReplicas()).isEqualTo("4");
+        assertThat(partitioninfo.values()).containsExactlyInAnyOrderEntriesOf(Map.of(
+            "col", "foo",
+            "col2", 1));
+        assertThat(iter.hasNext()).isFalse();
     }
 }

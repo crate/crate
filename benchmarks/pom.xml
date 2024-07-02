@@ -6,7 +6,7 @@
   <parent>
     <groupId>io.crate</groupId>
     <artifactId>crate</artifactId>
-    <version>5.5.0</version>
+    <version>5.8.0</version>
   </parent>
 
   <artifactId>crate-benchmarks</artifactId>
@@ -21,7 +21,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
-        <version>3.5.1</version>
+        <version>${versions.plugin.shade}</version>
         <executions>
           <execution>
             <phase>package</phase>
@@ -49,6 +49,7 @@
                   </excludes>
                 </filter>
               </filters>
+              <createDependencyReducedPom>false</createDependencyReducedPom>
             </configuration>
           </execution>
         </executions>

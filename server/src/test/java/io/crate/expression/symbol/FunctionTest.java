@@ -23,10 +23,7 @@ package io.crate.expression.symbol;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
 import static io.crate.testing.TestingHelpers.createReference;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.EnumSet;
 import java.util.List;
@@ -49,10 +46,11 @@ public class FunctionTest extends ESTestCase {
     private DataType<?> returnType = TestingHelpers.randomPrimitiveType();
 
     private Signature signature = Signature.scalar(
-        randomAsciiLettersOfLength(10),
-        DataTypes.BOOLEAN.getTypeSignature(),
-        returnType.getTypeSignature()
-    ).withFeatures(randomFeatures());
+            randomAsciiLettersOfLength(10),
+            DataTypes.BOOLEAN.getTypeSignature(),
+            returnType.getTypeSignature()
+        ).withFeature(Scalar.Feature.DETERMINISTIC)
+        .withFeatures(randomFeatures());
 
 
     @Test
@@ -64,12 +62,12 @@ public class FunctionTest extends ESTestCase {
         );
 
         BytesStreamOutput output = new BytesStreamOutput();
-        Symbols.toStream(fn, output);
+        Symbol.toStream(fn, output);
 
         StreamInput input = output.bytes().streamInput();
-        Function fn2 = (Function) Symbols.fromStream(input);
+        Function fn2 = (Function) Symbol.fromStream(input);
 
-        assertThat(fn, is(fn2));
+        assertThat(fn).isEqualTo(fn2);
     }
 
     @Test
@@ -82,13 +80,13 @@ public class FunctionTest extends ESTestCase {
         );
 
         BytesStreamOutput output = new BytesStreamOutput();
-        Symbols.toStream(fn, output);
+        Symbol.toStream(fn, output);
 
         StreamInput input = output.bytes().streamInput();
-        Function fn2 = (Function) Symbols.fromStream(input);
+        Function fn2 = (Function) Symbol.fromStream(input);
 
-        assertThat(fn2.filter(), not(nullValue()));
-        assertThat(fn, is(fn2));
+        assertThat(fn2.filter()).isNotNull();
+        assertThat(fn).isEqualTo(fn2);
     }
 
     @Test
@@ -101,14 +99,14 @@ public class FunctionTest extends ESTestCase {
 
         var output = new BytesStreamOutput();
         output.setVersion(Version.V_4_0_0);
-        Symbols.toStream(fn, output);
+        Symbol.toStream(fn, output);
 
         var input = output.bytes().streamInput();
         input.setVersion(Version.V_4_0_0);
-        Function fn2 = (Function) Symbols.fromStream(input);
+        Function fn2 = (Function) Symbol.fromStream(input);
 
-        assertThat(fn2.filter(), is(nullValue()));
-        assertThat(fn, is(fn2));
+        assertThat(fn2.filter()).isNull();
+        assertThat(fn).isEqualTo(fn2);
     }
 
     private static Set<Scalar.Feature> randomFeatures() {

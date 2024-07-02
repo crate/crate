@@ -27,7 +27,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.HashMap;
 import java.util.List;
@@ -82,7 +82,6 @@ public class ObjectColumnTest extends IntegTestCase {
                 authorMap
             });
         refresh();
-        waitForMappingUpdateOnAll("ot", "author.dead");
         execute("select title, author, author['dead'] from ot order by title");
         assertThat(response.rowCount()).isEqualTo(2);
         assertThat(response.rows()[0][0]).isEqualTo("Life, the Universe and Everything");
@@ -163,19 +162,15 @@ public class ObjectColumnTest extends IntegTestCase {
         execute("update ot set author['job']='Writer' " +
                 "where author['name']['first_name']='Douglas' and author['name']['last_name']='Adams'");
         refresh();
-        waitForMappingUpdateOnAll("ot", "author.job");
         execute("select author, author['job'] from ot " +
                 "where author['name']['first_name']='Douglas' and author['name']['last_name']='Adams'");
         assertThat(response.rowCount()).isEqualTo(1);
-        assertEquals(
-            Map.of(
-                "name", Map.of(
-                    "first_name", "Douglas",
-                    "last_name", "Adams"),
-                "age", 49,
-                "job", "Writer"),
-            response.rows()[0][0]
-        );
+        assertThat(response.rows()[0][0]).isEqualTo(Map.of(
+            "name", Map.of(
+                "first_name", "Douglas",
+                "last_name", "Adams"),
+            "age", 49,
+            "job", "Writer"));
         assertThat(response.rows()[0][1]).isEqualTo("Writer");
     }
 
@@ -221,7 +216,6 @@ public class ObjectColumnTest extends IntegTestCase {
                 authorMap
             });
         refresh();
-        waitForMappingUpdateOnAll("ot", "author.dead");
         execute("select author from ot where author['dead']=true");
         assertThat(response.rowCount()).isEqualTo(1);
         assertThat(response.rows()[0][0]).isEqualTo(authorMap);
@@ -276,7 +270,6 @@ public class ObjectColumnTest extends IntegTestCase {
             }
         );
         refresh();
-        waitForMappingUpdateOnAll("ot", "author.dead");
         execute("select title, author['dead'] from ot order by author['dead'] desc");
         assertThat(response.rowCount()).isEqualTo(3);
         assertThat(response.rows()[0][0]).isEqualTo("The Hitchhiker's Guide to the Galaxy");
@@ -296,7 +289,6 @@ public class ObjectColumnTest extends IntegTestCase {
                 "('I''m addicted to kite', {name='Youri', addresses=[{city='Dirksland', country='NL'}]})");
         execute("refresh table test");
 
-        waitForMappingUpdateOnAll("test", "person.name");
         execute("select message, person['name'], person['addresses']['city'] from test " +
                 "where person['name'] = 'Youri'");
 
@@ -353,21 +345,49 @@ public class ObjectColumnTest extends IntegTestCase {
             create table tbl (
                 id int,
                 o object as (
-                    key text default 'd'
+                    key text default 'synth'
                 ),
                 os array(object as (
-                    x text default 'd',
+                    x text default 'synth',
                     y text
                 )),
                 complex object as (
                     os array(object as (
-                        key text default 'd'
+                        key text default 'synth'
                     )),
-                    x text default 'd'
+                    x text default 'synth'
                 )
             )
             """
         );
+        execute_inserts_into_table_with_synthetic_sub_cols_skip_roots_in_targets();
+    }
+
+    @Test
+    public void test_generated_columns_in_object_result_in_object_creation_if_missing_from_insert() throws Exception {
+        execute("""
+            create table tbl (
+                id int,
+                o object as (
+                    key text as 'synth'
+                ),
+                os array(object as (
+                    x text as 'synth',
+                    y text
+                )),
+                complex object as (
+                    os array(object as (
+                        key text as 'synth'
+                    )),
+                    x text as 'synth'
+                )
+            )
+            """
+        );
+        execute_inserts_into_table_with_synthetic_sub_cols_skip_roots_in_targets();
+    }
+
+    private void execute_inserts_into_table_with_synthetic_sub_cols_skip_roots_in_targets() {
         execute("insert into tbl (id) values (1)");
         assertThat(response).hasRowCount(1);
 
@@ -379,9 +399,9 @@ public class ObjectColumnTest extends IntegTestCase {
 
         execute("refresh table tbl");
         assertThat(execute("select id, o, os, complex from tbl order by 1 asc")).hasRows(
-            "1| {key=d}| NULL| {x=d}",
-            "2| {key=d}| [{x=d}, null, {x=d, y=10}, {x=1, y=2}]| {x=d}",
-            "3| {key=d}| NULL| {os=[{key=d}, null], x=d}"
+            "1| {key=synth}| NULL| {x=synth}",
+            "2| {key=synth}| [{x=synth}, null, {x=synth, y=10}, {x=1, y=2}]| {x=synth}",
+            "3| {key=synth}| NULL| {os=[{key=synth}, null], x=synth}"
         );
     }
 

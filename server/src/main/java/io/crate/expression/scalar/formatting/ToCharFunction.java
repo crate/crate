@@ -31,32 +31,32 @@ import org.jetbrains.annotations.Nullable;
 import org.joda.time.Period;
 
 import io.crate.data.Input;
-import io.crate.expression.scalar.ScalarFunctionModule;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.role.Roles;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.user.UserLookup;
 
 
 public class ToCharFunction extends Scalar<String, Object> {
 
     public static final String NAME = "to_char";
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(Functions.Builder module) {
         List.of(DataTypes.TIMESTAMP, DataTypes.TIMESTAMPZ).stream()
             .forEach(type -> {
-                module.register(
+                module.add(
                     Signature.scalar(
                         NAME,
                         type.getTypeSignature(),
                         DataTypes.STRING.getTypeSignature(),
                         DataTypes.STRING.getTypeSignature()
-                    ),
+                    ).withFeature(Feature.DETERMINISTIC),
                     (signature, boundSignature) ->
                         new ToCharFunction(
                             signature,
@@ -66,13 +66,13 @@ public class ToCharFunction extends Scalar<String, Object> {
                 );
             });
 
-        module.register(
+        module.add(
             Signature.scalar(
                 NAME,
                 DataTypes.INTERVAL.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature()
-            ),
+            ).withFeature(Feature.DETERMINISTIC),
             (signature, boundSignature) ->
                 new ToCharFunction(
                     signature,
@@ -149,7 +149,7 @@ public class ToCharFunction extends Scalar<String, Object> {
     }
 
     @Override
-    public Scalar<String, Object> compile(List<Symbol> arguments, String currentUser, UserLookup userLookup) {
+    public Scalar<String, Object> compile(List<Symbol> arguments, String currentUser, Roles roles) {
         assert arguments.size() == 2 : "Invalid number of arguments";
 
         if (!arguments.get(1).symbolType().isValueSymbol()) {

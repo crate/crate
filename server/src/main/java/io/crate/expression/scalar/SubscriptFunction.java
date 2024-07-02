@@ -30,10 +30,8 @@ import java.util.Map;
 
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
-import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
-import org.elasticsearch.common.TriFunction;
-import org.elasticsearch.index.mapper.MappedFieldType;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
 import io.crate.exceptions.ColumnUnknownException;
@@ -47,6 +45,8 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.lucene.LuceneQueryBuilder.Context;
+import io.crate.metadata.Functions;
+import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
@@ -70,22 +70,23 @@ import io.crate.types.TypeSignature;
  *     <li>obj_array['x']</li>
  * </ul>
  **/
-public class SubscriptFunction extends Scalar<Object, Object[]> {
+public class SubscriptFunction extends Scalar<Object, Object> {
 
     public static final String NAME = "subscript";
 
-    public static void register(ScalarFunctionModule module) {
+    public static void register(Functions.Builder module) {
         // All signatures but `array[int]` must forbid coercion.
         // Otherwise they would also match for non-int numeric indices like e.g. `array[long]`
 
         // subscript(array(object)), text) -> array(undefined)
-        module.register(
+        module.add(
             Signature.scalar(
-                NAME,
-                TypeSignature.parse("array(object)"),
-                DataTypes.STRING.getTypeSignature(),
-                TypeSignature.parse("array(undefined)")
-            ).withForbiddenCoercion(),
+                    NAME,
+                    TypeSignature.parse("array(object)"),
+                    DataTypes.STRING.getTypeSignature(),
+                    TypeSignature.parse("array(undefined)")
+                ).withFeature(Feature.DETERMINISTIC)
+                .withForbiddenCoercion(),
             (signature, boundSignature) ->
                 new SubscriptFunction(
                     signature,
@@ -94,13 +95,14 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
                 )
         );
         // subscript(array(any)), integer) -> any
-        module.register(
+        module.add(
             Signature
                 .scalar(
                     NAME,
                     TypeSignature.parse("array(E)"),
                     DataTypes.INTEGER.getTypeSignature(),
                     TypeSignature.parse("E"))
+                .withFeature(Feature.DETERMINISTIC)
                 .withTypeVariableConstraints(typeVariable("E")),
             (signature, boundSignature) ->
                 new SubscriptFunction(
@@ -110,13 +112,14 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
                 )
         );
         // subscript(object(text, element), text) -> undefined
-        module.register(
+        module.add(
             Signature.scalar(
-                NAME,
-                DataTypes.UNTYPED_OBJECT.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.UNDEFINED.getTypeSignature()
-            ).withForbiddenCoercion(),
+                    NAME,
+                    DataTypes.UNTYPED_OBJECT.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.UNDEFINED.getTypeSignature()
+                ).withFeature(Feature.DETERMINISTIC)
+                .withForbiddenCoercion(),
             (signature, boundSignature) ->
                 new SubscriptFunction(
                     signature,
@@ -131,13 +134,14 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
         // The first subscript function cannot infer the return type and always
         // returns the undefined type. Therefore, the second subscript function
         // must be resolved for the `subscript(undefined, text)` signature.
-        module.register(
+        module.add(
             Signature.scalar(
-                NAME,
-                DataTypes.UNDEFINED.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.UNDEFINED.getTypeSignature()
-            ).withForbiddenCoercion(),
+                    NAME,
+                    DataTypes.UNDEFINED.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.UNDEFINED.getTypeSignature()
+                ).withFeature(Feature.DETERMINISTIC)
+                .withForbiddenCoercion(),
             (signature, boundSignature) ->
                 new SubscriptFunction(
                     signature,
@@ -147,11 +151,15 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
         );
     }
 
-    private final TriFunction<Object, Object, Boolean, Object> lookup;
+    private interface Lookup {
 
-    private SubscriptFunction(Signature signature,
-                              BoundSignature boundSignature,
-                              TriFunction<Object, Object, Boolean, Object> lookup) {
+        @Nullable
+        Object apply(List<DataType<?>> argTypes, Object element, Object index, boolean errorOnUnknownKey);
+    }
+
+    private final Lookup lookup;
+
+    private SubscriptFunction(Signature signature, BoundSignature boundSignature, Lookup lookup) {
         super(signature, boundSignature);
         this.lookup = lookup;
     }
@@ -169,18 +177,18 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
     }
 
     @Override
-    @SuppressWarnings("rawtypes")
-    public Object evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input[] args) {
+    @SafeVarargs
+    public final Object evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>... args) {
         assert args.length == 2 : "invalid number of arguments";
         Object element = args[0].value();
         Object index = args[1].value();
         if (element == null || index == null) {
             return null;
         }
-        return lookup.apply(element, index, txnCtx.sessionSettings().errorOnUnknownObjectKey());
+        return lookup.apply(boundSignature.argTypes(), element, index, txnCtx.sessionSettings().errorOnUnknownObjectKey());
     }
 
-    static Object lookupIntoListObjectsByName(Object base, Object name, boolean errorOnUnknownObjectKey) {
+    static Object lookupIntoListObjectsByName(List<DataType<?>> argTypes, Object base, Object name, boolean errorOnUnknownObjectKey) {
         List<?> values = (List<?>) base;
         List<Object> result = new ArrayList<>(values.size());
         for (int i = 0; i < values.size(); i++) {
@@ -190,7 +198,7 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
         return result;
     }
 
-    static Object lookupByNumericIndex(Object base, Object index, boolean errorOnUnknownObjectKey) {
+    static Object lookupByNumericIndex(List<DataType<?>> argTypes, Object base, Object index, boolean errorOnUnknownObjectKey) {
         List<?> values = (List<?>) base;
         int idx = ((Number) index).intValue();
         try {
@@ -200,30 +208,38 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
         }
     }
 
-    static Object lookupByName(Object base, Object name, boolean errorOnUnknownObjectKey) {
+    static Object lookupByName(List<DataType<?>> argTypes, Object base, Object name, boolean errorOnUnknownObjectKey) {
         if (!(base instanceof Map<?, ?> map)) {
             throw new IllegalArgumentException("Base argument to subscript must be an object, not " + base);
         }
         if (errorOnUnknownObjectKey && !map.containsKey(name)) {
+            DataType<?> objectArgType = argTypes.get(0);
+            // Type could also be "undefined"
+            if (objectArgType instanceof ObjectType objType) {
+                if (objType.innerTypes().containsKey(name)) {
+                    return null;
+                }
+            }
             throw ColumnUnknownException.ofUnknownRelation("The object `" + base + "` does not contain the key `" + name + "`");
         }
         return map.get(name);
     }
 
     private interface PreFilterQueryBuilder {
-        Query buildQuery(String field, EqQuery<Object> eqQuery, Object value, boolean hasDocValues);
+        Query buildQuery(String field, EqQuery<Object> eqQuery, Object value, boolean hasDocValues, boolean isIndexed);
     }
 
     private static final Map<String, PreFilterQueryBuilder> PRE_FILTER_QUERY_BUILDER_BY_OP = Map.of(
-        EqOperator.NAME, (field, eqQuery, value, haDocValues) -> eqQuery.termQuery(field, value),
-        GteOperator.NAME, (field, eqQuery, value, hasDocValues) ->
-                eqQuery.rangeQuery(field, value, null, true, false, hasDocValues),
-        GtOperator.NAME, (field, eqQuery, value, hasDocValues) ->
-                eqQuery.rangeQuery(field, value, null, false, false, hasDocValues),
-        LteOperator.NAME, (field, eqQuery, value, hasDocValues) ->
-                eqQuery.rangeQuery(field, null, value, false, true, hasDocValues),
-        LtOperator.NAME, (field, eqQuery, value, hasDocValues) ->
-                eqQuery.rangeQuery(field, null, value, false, false, hasDocValues)
+        EqOperator.NAME, (field, eqQuery, value, haDocValues, isIndexed) ->
+            eqQuery.termQuery(field, value, haDocValues, isIndexed),
+        GteOperator.NAME, (field, eqQuery, value, hasDocValues, isIndexed) ->
+                eqQuery.rangeQuery(field, value, null, true, false, hasDocValues, isIndexed),
+        GtOperator.NAME, (field, eqQuery, value, hasDocValues, isIndexed) ->
+                eqQuery.rangeQuery(field, value, null, false, false, hasDocValues, isIndexed),
+        LteOperator.NAME, (field, eqQuery, value, hasDocValues, isIndexed) ->
+                eqQuery.rangeQuery(field, null, value, false, true, hasDocValues, isIndexed),
+        LtOperator.NAME, (field, eqQuery, value, hasDocValues, isIndexed) ->
+                eqQuery.rangeQuery(field, null, value, false, false, hasDocValues, isIndexed)
     );
 
     @Override
@@ -242,14 +258,7 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
             if (preFilterQueryBuilder == null) {
                 return null;
             }
-            MappedFieldType fieldType = context.getFieldTypeOrNull(ref.storageIdent());
             DataType<?> innerType = ArrayType.unnest(ref.valueType());
-            if (fieldType == null) {
-                if (innerType.id() == ObjectType.ID) {
-                    return null; // fallback to generic query to enable objects[1] = {x=10}
-                }
-                return new MatchNoDocsQuery("column doesn't exist in this index");
-            }
             StorageSupport<?> storageSupport = innerType.storageSupport();
             //noinspection unchecked
             EqQuery<Object> eqQuery = storageSupport == null ? null : (EqQuery<Object>) storageSupport.eqQuery();
@@ -257,9 +266,12 @@ public class SubscriptFunction extends Scalar<Object, Object[]> {
                 return null;
             }
             BooleanQuery.Builder builder = new BooleanQuery.Builder();
-            builder.add(
-                preFilterQueryBuilder.buildQuery(ref.storageIdent(), eqQuery, cmpLiteral.value(), ref.hasDocValues()),
-                BooleanClause.Occur.MUST);
+            var preFilterQuery = preFilterQueryBuilder.buildQuery(
+                ref.storageIdent(), eqQuery, cmpLiteral.value(), ref.hasDocValues(), ref.indexType() != IndexType.NONE);
+            if (preFilterQuery == null) {
+                return null;
+            }
+            builder.add(preFilterQuery, BooleanClause.Occur.MUST);
             builder.add(LuceneQueryBuilder.genericFunctionFilter(parent, context), BooleanClause.Occur.FILTER);
             return builder.build();
         }

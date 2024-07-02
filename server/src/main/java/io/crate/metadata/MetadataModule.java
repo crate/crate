@@ -22,26 +22,28 @@
 package io.crate.metadata;
 
 
+import static org.elasticsearch.cluster.AbstractNamedDiffable.readDiffFrom;
+
 import java.util.ArrayList;
 import java.util.List;
 
 import org.elasticsearch.cluster.NamedDiff;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.inject.AbstractModule;
-import org.elasticsearch.common.inject.multibindings.MapBinder;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.ParseField;
 
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
+import io.crate.fdw.ForeignTablesMetadata;
+import io.crate.fdw.ServersMetadata;
 import io.crate.license.License;
-import io.crate.metadata.cluster.DDLClusterStateService;
-import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.view.ViewsMetadata;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
-import io.crate.user.metadata.UsersMetadata;
-import io.crate.user.metadata.UsersPrivilegesMetadata;
+import io.crate.role.metadata.RolesMetadata;
+import io.crate.role.metadata.UsersMetadata;
+import io.crate.role.metadata.UsersPrivilegesMetadata;
 
 public class MetadataModule extends AbstractModule {
 
@@ -60,12 +62,12 @@ public class MetadataModule extends AbstractModule {
         entries.add(new NamedWriteableRegistry.Entry(
             NamedDiff.class,
             UserDefinedFunctionsMetadata.TYPE,
-            in -> UserDefinedFunctionsMetadata.readDiffFrom(Metadata.Custom.class, UserDefinedFunctionsMetadata.TYPE, in)
+            in -> readDiffFrom(Metadata.Custom.class, UserDefinedFunctionsMetadata.TYPE, in)
         ));
         entries.add(new NamedWriteableRegistry.Entry(
             NamedDiff.class,
             ViewsMetadata.TYPE,
-            in -> ViewsMetadata.readDiffFrom(Metadata.Custom.class, ViewsMetadata.TYPE, in)
+            in -> readDiffFrom(Metadata.Custom.class, ViewsMetadata.TYPE, in)
         ));
         entries.add(new NamedWriteableRegistry.Entry(
             Metadata.Custom.class,
@@ -75,7 +77,17 @@ public class MetadataModule extends AbstractModule {
         entries.add(new NamedWriteableRegistry.Entry(
             NamedDiff.class,
             UsersMetadata.TYPE,
-            in -> UsersMetadata.readDiffFrom(Metadata.Custom.class, UsersMetadata.TYPE, in)
+            in -> readDiffFrom(Metadata.Custom.class, UsersMetadata.TYPE, in)
+        ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            Metadata.Custom.class,
+            RolesMetadata.TYPE,
+            RolesMetadata::new
+        ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            NamedDiff.class,
+            RolesMetadata.TYPE,
+            in -> readDiffFrom(Metadata.Custom.class, RolesMetadata.TYPE, in)
         ));
 
         entries.add(new NamedWriteableRegistry.Entry(
@@ -86,7 +98,7 @@ public class MetadataModule extends AbstractModule {
         entries.add(new NamedWriteableRegistry.Entry(
             NamedDiff.class,
             UsersPrivilegesMetadata.TYPE,
-            in -> UsersPrivilegesMetadata.readDiffFrom(Metadata.Custom.class, UsersPrivilegesMetadata.TYPE, in)
+            in -> readDiffFrom(Metadata.Custom.class, UsersPrivilegesMetadata.TYPE, in)
         ));
         entries.add(new NamedWriteableRegistry.Entry(
             Metadata.Custom.class,
@@ -96,7 +108,7 @@ public class MetadataModule extends AbstractModule {
         entries.add(new NamedWriteableRegistry.Entry(
             NamedDiff.class,
             PublicationsMetadata.TYPE,
-            in -> PublicationsMetadata.readDiffFrom(Metadata.Custom.class, PublicationsMetadata.TYPE, in)
+            in -> readDiffFrom(Metadata.Custom.class, PublicationsMetadata.TYPE, in)
         ));
         entries.add(new NamedWriteableRegistry.Entry(
             Metadata.Custom.class,
@@ -106,15 +118,38 @@ public class MetadataModule extends AbstractModule {
         entries.add(new NamedWriteableRegistry.Entry(
             NamedDiff.class,
             SubscriptionsMetadata.TYPE,
-            in -> SubscriptionsMetadata.readDiffFrom(Metadata.Custom.class, SubscriptionsMetadata.TYPE, in)
+            in -> readDiffFrom(Metadata.Custom.class, SubscriptionsMetadata.TYPE, in)
         ));
+
+
+        entries.add(new NamedWriteableRegistry.Entry(
+            Metadata.Custom.class,
+            ServersMetadata.TYPE,
+            ServersMetadata::new
+        ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            NamedDiff.class,
+            ServersMetadata.TYPE,
+            in -> readDiffFrom(Metadata.Custom.class, ServersMetadata.TYPE, in)
+        ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            Metadata.Custom.class,
+            ForeignTablesMetadata.TYPE,
+            ForeignTablesMetadata::new
+        ));
+        entries.add(new NamedWriteableRegistry.Entry(
+            NamedDiff.class,
+            ForeignTablesMetadata.TYPE,
+            in -> readDiffFrom(Metadata.Custom.class, ForeignTablesMetadata.TYPE, in)
+        ));
+
 
         //Only kept for bwc reasons to make sure we can read from a CrateDB < 4.5 node
         entries.addAll(License.getNamedWriteables());
         return entries;
     }
 
-    public static List<NamedXContentRegistry.Entry> getNamedXContents() {
+    public static List<NamedXContentRegistry.Entry> getNamedXContents(NodeContext nodeCtx) {
         List<NamedXContentRegistry.Entry> entries = new ArrayList<>();
         entries.add(new NamedXContentRegistry.Entry(
             Metadata.Custom.class,
@@ -133,6 +168,11 @@ public class MetadataModule extends AbstractModule {
         ));
         entries.add(new NamedXContentRegistry.Entry(
             Metadata.Custom.class,
+            new ParseField(RolesMetadata.TYPE),
+            RolesMetadata::fromXContent
+        ));
+        entries.add(new NamedXContentRegistry.Entry(
+            Metadata.Custom.class,
             new ParseField(UsersPrivilegesMetadata.TYPE),
             UsersPrivilegesMetadata::fromXContent
         ));
@@ -147,6 +187,18 @@ public class MetadataModule extends AbstractModule {
             SubscriptionsMetadata::fromXContent
         ));
 
+        entries.add(new NamedXContentRegistry.Entry(
+            Metadata.Custom.class,
+            new ParseField(ServersMetadata.TYPE),
+            ServersMetadata::fromXContent
+        ));
+        entries.add(new NamedXContentRegistry.Entry(
+            Metadata.Custom.class,
+            new ParseField(ForeignTablesMetadata.TYPE),
+            parser -> ForeignTablesMetadata.fromXContent(nodeCtx, parser)
+        ));
+
+
         //Only kept for bwc reasons to make sure we can read from a CrateDB < 4.5 node
         entries.addAll(License.getNamedXContent());
         return entries;
@@ -155,17 +207,5 @@ public class MetadataModule extends AbstractModule {
 
     @Override
     protected void configure() {
-        bindFunctions();
-        bindSchemas();
-        bind(DDLClusterStateService.class).asEagerSingleton();
-    }
-
-    private void bindFunctions() {
-        bind(Functions.class).asEagerSingleton();
-    }
-
-    private void bindSchemas() {
-        MapBinder.newMapBinder(binder(), String.class, SchemaInfo.class);
-        bind(Schemas.class).asEagerSingleton();
     }
 }

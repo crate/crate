@@ -21,12 +21,19 @@
 
 package io.crate.execution.engine.collect.sources;
 
-import com.carrotsearch.hppc.IntIndexedContainer;
-import io.crate.common.collections.Iterables;
+import static java.util.Objects.requireNonNull;
 
-import io.crate.user.User;
-import io.crate.user.UserLookup;
-import io.crate.user.UserManager;
+import java.util.ArrayList;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
+
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.inject.Inject;
+
+import com.carrotsearch.hppc.IntIndexedContainer;
+
+import io.crate.common.collections.Iterables;
 import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Row;
@@ -51,16 +58,8 @@ import io.crate.metadata.pgcatalog.PgCatalogTableDefinitions;
 import io.crate.metadata.sys.SysNodeChecksTableInfo;
 import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.sys.SysTableDefinitions;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
-
-import static java.util.Objects.requireNonNull;
-
-import java.util.ArrayList;
+import io.crate.role.Role;
+import io.crate.role.Roles;
 
 /**
  * this collect service can be used to retrieve a collector for system tables (which don't contain shards)
@@ -73,7 +72,7 @@ public class SystemCollectSource implements CollectSource {
     private final ClusterService clusterService;
     private final InputFactory inputFactory;
 
-    private final UserLookup userLookup;
+    private final Roles roles;
     private final InformationSchemaTableDefinitions informationSchemaTables;
     private final SysTableDefinitions sysTables;
     private final PgCatalogTableDefinitions pgCatalogTables;
@@ -81,14 +80,14 @@ public class SystemCollectSource implements CollectSource {
     @Inject
     public SystemCollectSource(ClusterService clusterService,
                                NodeContext nodeCtx,
-                               UserManager userManager,
+                               Roles roles,
                                InformationSchemaTableDefinitions informationSchemaTables,
                                SysTableDefinitions sysTableDefinitions,
                                SysNodeChecks sysNodeChecks,
                                PgCatalogTableDefinitions pgCatalogTables) {
         this.clusterService = clusterService;
         inputFactory = new InputFactory(nodeCtx);
-        this.userLookup = userManager;
+        this.roles = roles;
         this.informationSchemaTables = informationSchemaTables;
         this.sysTables = sysTableDefinitions;
         this.pgCatalogTables = pgCatalogTables;
@@ -96,10 +95,11 @@ public class SystemCollectSource implements CollectSource {
         rowUpdaters = Map.of(SysNodeChecksTableInfo.IDENT, sysNodeChecks);
     }
 
-    Function<Iterable, Iterable<? extends Row>> toRowsIterableTransformation(RoutedCollectPhase collectPhase,
-                                                                             TransactionContext txnCtx,
-                                                                             ReferenceResolver<?> referenceResolver,
-                                                                             boolean requiresRepeat) {
+    Function<Iterable<?>, Iterable<? extends Row>> toRowsIterableTransformation(
+            RoutedCollectPhase collectPhase,
+            TransactionContext txnCtx,
+            ReferenceResolver<?> referenceResolver,
+            boolean requiresRepeat) {
         return objects -> recordsToRows(collectPhase, txnCtx, referenceResolver, requiresRepeat, objects);
     }
 
@@ -109,7 +109,7 @@ public class SystemCollectSource implements CollectSource {
                                                   boolean requiresRepeat,
                                                   Iterable<?> data) {
         if (requiresRepeat) {
-            var copy = new ArrayList<Object>();
+            var copy = new ArrayList<>();
             for (var record : data) {
                 copy.add(record);
             }
@@ -134,7 +134,7 @@ public class SystemCollectSource implements CollectSource {
         String table = Iterables.getOnlyElement(locations.get(clusterService.localNode().getId()).keySet());
         RelationName relationName = RelationName.fromIndexName(table);
         StaticTableDefinition<?> tableDefinition = tableDefinition(relationName);
-        User user = requireNonNull(userLookup.findUser(txnCtx.sessionSettings().userName()), "User who invoked a statement must exist");
+        Role user = requireNonNull(roles.findUser(txnCtx.sessionSettings().userName()), "User who invoked a statement must exist");
 
         return CompletableFuture.completedFuture(CollectingBatchIterator.newInstance(
             () -> {},

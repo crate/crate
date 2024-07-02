@@ -21,10 +21,7 @@
 
 package io.crate.integrationtests;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.fail;
 
 import java.sql.Connection;
@@ -69,8 +66,8 @@ public class PostgresJobsLogsITest extends IntegTestCase {
         properties.setProperty("user", "crate");
         try (Connection conn = DriverManager.getConnection(sqlExecutor.jdbcUrl(), properties)) {
             ResultSet rs = conn.createStatement().executeQuery("select stmt from sys.jobs");
-            assertTrue("sys.jobs must contain statement", rs.next());
-            assertEquals(rs.getString(1), "select stmt from sys.jobs");
+            assertThat(rs.next()).as("sys.jobs must contain statement").isTrue();
+            assertThat("select stmt from sys.jobs").isEqualTo(rs.getString(1));
         }
     }
 
@@ -90,8 +87,8 @@ public class PostgresJobsLogsITest extends IntegTestCase {
                 // this is expected
             }
             ResultSet result = conn.createStatement().executeQuery("select count(*) from sys.jobs");
-            assertThat(result.next(), is(true));
-            assertThat(result.getLong(1), is(1L));
+            assertThat(result.next()).isTrue();
+            assertThat(result.getLong(1)).isEqualTo(1L);
         }
     }
 
@@ -124,7 +121,7 @@ public class PostgresJobsLogsITest extends IntegTestCase {
             statement.addBatch(stmtStr1);
             statement.addBatch(stmtStr2);
             int[] results = statement.executeBatch();
-            assertThat(results, is(new int[]{1, 1}));
+            assertThat(results).isEqualTo(new int[]{1, 1});
             assertJobLogContains(conn, new String[]{stmtStr1, stmtStr2}, false);
         }
     }
@@ -169,10 +166,12 @@ public class PostgresJobsLogsITest extends IntegTestCase {
             statement.addBatch(insert3);
             try {
                 int[] result = statement.executeBatch();
-                assertThat("One result must be 0 because it failed due to NOT NULL",
-                    IntStream.of(result).filter(i -> i == 0).count(), is(1L));
-                assertThat("Two inserts must have succeeded",
-                    IntStream.of(result).filter(i -> i == 1).count(), is(2L));
+                assertThat(IntStream.of(result).filter(i -> i == 0))
+                    .as("One result must be 0 because it failed due to NOT NULL")
+                    .hasSize(1);
+                assertThat(IntStream.of(result).filter(i -> i == 1))
+                    .as("Two inserts must have succeeded")
+                    .hasSize(2);
             } catch (Exception e) {
                 assertJobLogContains(conn, new String[]{insert1, insert3}, false);
                 assertJobLogContains(conn, new String[]{insertNull}, true);
@@ -189,11 +188,12 @@ public class PostgresJobsLogsITest extends IntegTestCase {
                 for (String stmtStr : statements) {
                     pStmt.setString(1, stmtStr);
                     ResultSet resultSet = pStmt.executeQuery();
-                    assertThat(
-                        "sys.jobs_log must have an entry WHERE stmt=" + stmtStr, resultSet.next(), is(true));
-                    assertThat(resultSet.getString(1), is(stmtStr));
+                    assertThat(resultSet.next())
+                        .as("sys.jobs_log must have an entry WHERE stmt=" + stmtStr)
+                        .isTrue();
+                    assertThat(resultSet.getString(1)).isEqualTo(stmtStr);
                     if (checkForError) {
-                        assertThat(resultSet.getString(2), is("\"a\" must not be null"));
+                        assertThat(resultSet.getString(2)).isEqualTo("\"a\" must not be null");
                     }
                 }
             } catch (Exception e) {

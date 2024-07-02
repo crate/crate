@@ -21,9 +21,8 @@
 
 package io.crate.execution.engine.distribution;
 
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.Streamer;
@@ -43,7 +42,7 @@ public class BroadcastingBucketBuilderTest {
         builder.build(buckets);
 
         final Bucket rows = buckets[0];
-        assertThat(rows, Matchers.sameInstance(buckets[1]));
-        assertThat(rows, Matchers.sameInstance(buckets[2]));
+        assertThat(rows).isSameAs(buckets[1]);
+        assertThat(rows).isSameAs(buckets[2]);
     }
 }

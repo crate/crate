@@ -21,9 +21,7 @@
 
 package org.elasticsearch.common.settings;
 
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.fail;
 
 import java.util.LinkedHashMap;
@@ -41,10 +39,10 @@ public class PropertyPlaceholderTests extends ESTestCase {
         map.put("foo1", "bar1");
         map.put("foo2", "bar2");
         PropertyPlaceholder.PlaceholderResolver placeholderResolver = new SimplePlaceholderResolver(map, false, true);
-        assertEquals("bar1", propertyPlaceholder.replacePlaceholders("{foo1}", placeholderResolver));
-        assertEquals("a bar1b", propertyPlaceholder.replacePlaceholders("a {foo1}b", placeholderResolver));
-        assertEquals("bar1bar2", propertyPlaceholder.replacePlaceholders("{foo1}{foo2}", placeholderResolver));
-        assertEquals("a bar1 b bar2 c", propertyPlaceholder.replacePlaceholders("a {foo1} b {foo2} c", placeholderResolver));
+        assertThat(propertyPlaceholder.replacePlaceholders("{foo1}", placeholderResolver)).isEqualTo("bar1");
+        assertThat(propertyPlaceholder.replacePlaceholders("a {foo1}b", placeholderResolver)).isEqualTo("a bar1b");
+        assertThat(propertyPlaceholder.replacePlaceholders("{foo1}{foo2}", placeholderResolver)).isEqualTo("bar1bar2");
+        assertThat(propertyPlaceholder.replacePlaceholders("a {foo1} b {foo2} c", placeholderResolver)).isEqualTo("a bar1 b bar2 c");
     }
 
     @Test
@@ -56,9 +54,9 @@ public class PropertyPlaceholderTests extends ESTestCase {
         Map<String, String> map = new LinkedHashMap<>();
         map.put("foo", "bar");
         PropertyPlaceholder.PlaceholderResolver placeholderResolver = new SimplePlaceholderResolver(map, false, true);
-        assertEquals("bar", ppEqualsPrefix.replacePlaceholders("{foo}", placeholderResolver));
-        assertEquals("bar", ppLongerPrefix.replacePlaceholders("${foo}", placeholderResolver));
-        assertEquals("bar", ppShorterPrefix.replacePlaceholders("{foo}}", placeholderResolver));
+        assertThat(ppEqualsPrefix.replacePlaceholders("{foo}", placeholderResolver)).isEqualTo("bar");
+        assertThat(ppLongerPrefix.replacePlaceholders("${foo}", placeholderResolver)).isEqualTo("bar");
+        assertThat(ppShorterPrefix.replacePlaceholders("{foo}}", placeholderResolver)).isEqualTo("bar");
     }
 
     @Test
@@ -66,8 +64,8 @@ public class PropertyPlaceholderTests extends ESTestCase {
         PropertyPlaceholder propertyPlaceholder = new PropertyPlaceholder("${", "}", false);
         Map<String, String> map = new LinkedHashMap<>();
         PropertyPlaceholder.PlaceholderResolver placeholderResolver = new SimplePlaceholderResolver(map, false, true);
-        assertEquals("bar", propertyPlaceholder.replacePlaceholders("${foo:bar}", placeholderResolver));
-        assertEquals("", propertyPlaceholder.replacePlaceholders("${foo:}", placeholderResolver));
+        assertThat(propertyPlaceholder.replacePlaceholders("${foo:bar}", placeholderResolver)).isEqualTo("bar");
+        assertThat(propertyPlaceholder.replacePlaceholders("${foo:}", placeholderResolver)).isEqualTo("");
     }
 
     @Test
@@ -75,7 +73,7 @@ public class PropertyPlaceholderTests extends ESTestCase {
         PropertyPlaceholder propertyPlaceholder = new PropertyPlaceholder("${", "}", true);
         Map<String, String> map = new LinkedHashMap<>();
         PropertyPlaceholder.PlaceholderResolver placeholderResolver = new SimplePlaceholderResolver(map, false, true);
-        assertEquals("${foo}", propertyPlaceholder.replacePlaceholders("${foo}", placeholderResolver));
+        assertThat(propertyPlaceholder.replacePlaceholders("${foo}", placeholderResolver)).isEqualTo("${foo}");
     }
 
     @Test
@@ -87,7 +85,7 @@ public class PropertyPlaceholderTests extends ESTestCase {
             propertyPlaceholder.replacePlaceholders("${foo}", placeholderResolver);
             fail("Expected IllegalArgumentException");
         } catch (IllegalArgumentException e) {
-            assertThat(e.getMessage(), is("Could not resolve placeholder 'foo'"));
+            assertThat(e.getMessage()).isEqualTo("Could not resolve placeholder 'foo'");
         }
     }
 
@@ -96,7 +94,7 @@ public class PropertyPlaceholderTests extends ESTestCase {
         PropertyPlaceholder propertyPlaceholder = new PropertyPlaceholder("${", "}", false);
         Map<String, String> map = new LinkedHashMap<>();
         PropertyPlaceholder.PlaceholderResolver placeholderResolver = new SimplePlaceholderResolver(map, true, true);
-        assertEquals("bar", propertyPlaceholder.replacePlaceholders("bar${foo}", placeholderResolver));
+        assertThat(propertyPlaceholder.replacePlaceholders("bar${foo}", placeholderResolver)).isEqualTo("bar");
     }
 
     @Test
@@ -107,8 +105,8 @@ public class PropertyPlaceholderTests extends ESTestCase {
         map.put("foo1", "${foo2}");
         map.put("foo2", "bar");
         PropertyPlaceholder.PlaceholderResolver placeholderResolver = new SimplePlaceholderResolver(map, false, true);
-        assertEquals("bar", propertyPlaceholder.replacePlaceholders("${foo}", placeholderResolver));
-        assertEquals("abarb", propertyPlaceholder.replacePlaceholders("a${foo}b", placeholderResolver));
+        assertThat(propertyPlaceholder.replacePlaceholders("${foo}", placeholderResolver)).isEqualTo("bar");
+        assertThat(propertyPlaceholder.replacePlaceholders("a${foo}b", placeholderResolver)).isEqualTo("abarb");
     }
 
     @Test
@@ -120,7 +118,7 @@ public class PropertyPlaceholderTests extends ESTestCase {
         map.put("foo2", "bar");
         map.put("barbar", "baz");
         PropertyPlaceholder.PlaceholderResolver placeholderResolver = new SimplePlaceholderResolver(map, false, true);
-        assertEquals("baz", propertyPlaceholder.replacePlaceholders("${bar${foo}}", placeholderResolver));
+        assertThat(propertyPlaceholder.replacePlaceholders("${bar${foo}}", placeholderResolver)).isEqualTo("baz");
     }
 
     @Test
@@ -132,7 +130,7 @@ public class PropertyPlaceholderTests extends ESTestCase {
         map.put("foo2", "bar");
         map.put("barbar", "baz");
         PropertyPlaceholder.PlaceholderResolver placeholderResolver = new SimplePlaceholderResolver(map, false, true);
-        assertEquals("baz", propertyPlaceholder.replacePlaceholders("{bar{foo}}", placeholderResolver));
+        assertThat(propertyPlaceholder.replacePlaceholders("{bar{foo}}", placeholderResolver)).isEqualTo("baz");
     }
 
     @Test
@@ -144,7 +142,7 @@ public class PropertyPlaceholderTests extends ESTestCase {
         map.put("foo2", "bar");
         map.put("barbar", "baz");
         PropertyPlaceholder.PlaceholderResolver placeholderResolver = new SimplePlaceholderResolver(map, false, true);
-        assertEquals("baz", propertyPlaceholder.replacePlaceholders("{bar{foo}}}}", placeholderResolver));
+        assertThat(propertyPlaceholder.replacePlaceholders("{bar{foo}}}}", placeholderResolver)).isEqualTo("baz");
     }
 
     @Test
@@ -158,7 +156,7 @@ public class PropertyPlaceholderTests extends ESTestCase {
             propertyPlaceholder.replacePlaceholders("${foo}", placeholderResolver);
             fail("Expected IllegalArgumentException");
         } catch (IllegalArgumentException e) {
-            assertThat(e.getMessage(), is("Circular placeholder reference 'foo' in property definitions"));
+            assertThat(e.getMessage()).isEqualTo("Circular placeholder reference 'foo' in property definitions");
         }
     }
 
@@ -167,7 +165,7 @@ public class PropertyPlaceholderTests extends ESTestCase {
         PropertyPlaceholder propertyPlaceholder = new PropertyPlaceholder("${", "}", false);
         Map<String, String> map = new LinkedHashMap<>();
         PropertyPlaceholder.PlaceholderResolver placeholderResolver = new SimplePlaceholderResolver(map, true, false);
-        assertEquals("bar${foo}", propertyPlaceholder.replacePlaceholders("bar${foo}", placeholderResolver));
+        assertThat(propertyPlaceholder.replacePlaceholders("bar${foo}", placeholderResolver)).isEqualTo("bar${foo}");
     }
 
     private class SimplePlaceholderResolver implements PropertyPlaceholder.PlaceholderResolver {

@@ -18,8 +18,7 @@
  */
 package org.elasticsearch.index.snapshots.blobstore;
 
-import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
-import org.elasticsearch.test.ESTestCase;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -28,7 +27,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Random;
 
-import static io.crate.testing.Asserts.assertThat;
+import org.elasticsearch.test.ESTestCase;
+
+import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
 
 public class SlicedInputStreamTests extends ESTestCase {
     public void testReadRandom() throws IOException {

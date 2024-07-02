@@ -21,8 +21,7 @@
 
 package io.crate.execution.engine.distribution;
 
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -52,10 +51,10 @@ public class MultiBucketBuilderTest {
             builder.add(new Row1(42));
 
             builder.build(buckets);
-            assertThat(buckets[0].size(), is(1));
+            assertThat(buckets[0]).hasSize(1);
 
             builder.build(buckets);
-            assertThat(buckets[0].size(), is(0));
+            assertThat(buckets[0]).hasSize(0);
         }
     }
 
@@ -66,11 +65,11 @@ public class MultiBucketBuilderTest {
         for (MultiBucketBuilder builder : builders) {
             builder.add(new Row1(42));
             builder.add(new Row1(42));
-            assertThat(builder.size(), is(2));
+            assertThat(builder.size()).isEqualTo(2);
 
             builder.build(buckets);
-            assertThat(buckets[0].size(), is(2));
-            assertThat(builder.size(), is(0));
+            assertThat(buckets[0]).hasSize(2);
+            assertThat(builder.size()).isEqualTo(0);
         }
     }
 }

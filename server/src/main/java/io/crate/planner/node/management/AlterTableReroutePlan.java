@@ -21,16 +21,31 @@
 
 package io.crate.planner.node.management;
 
+import static io.crate.planner.NodeSelection.resolveNodeId;
+
+import java.util.List;
+import java.util.Locale;
+import java.util.function.Function;
+
+import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteAction;
+import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequest;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.cluster.routing.allocation.command.AllocateReplicaAllocationCommand;
+import org.elasticsearch.cluster.routing.allocation.command.AllocateStalePrimaryAllocationCommand;
+import org.elasticsearch.cluster.routing.allocation.command.AllocationCommand;
+import org.elasticsearch.cluster.routing.allocation.command.CancelAllocationCommand;
+import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationCommand;
+import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.analyze.AnalyzedPromoteReplica;
 import io.crate.analyze.AnalyzedRerouteAllocateReplicaShard;
 import io.crate.analyze.AnalyzedRerouteCancelShard;
 import io.crate.analyze.AnalyzedRerouteMoveShard;
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
-import io.crate.analyze.PartitionPropertiesAnalyzer;
 import io.crate.analyze.SymbolEvaluator;
-import io.crate.common.annotations.VisibleForTesting;
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
@@ -48,21 +63,6 @@ import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.types.DataTypes;
-
-import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteAction;
-import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequest;
-import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.cluster.routing.allocation.command.AllocateReplicaAllocationCommand;
-import org.elasticsearch.cluster.routing.allocation.command.AllocateStalePrimaryAllocationCommand;
-import org.elasticsearch.cluster.routing.allocation.command.AllocationCommand;
-import org.elasticsearch.cluster.routing.allocation.command.CancelAllocationCommand;
-import org.elasticsearch.cluster.routing.allocation.command.MoveAllocationCommand;
-
-import java.util.List;
-import java.util.Locale;
-import java.util.function.Function;
-
-import static io.crate.planner.NodeSelection.resolveNodeId;
 
 public class AlterTableReroutePlan implements Plan {
 
@@ -90,7 +90,9 @@ public class AlterTableReroutePlan implements Plan {
             dependencies.nodeContext(),
             params,
             subQueryResults,
-            dependencies.clusterService().state().nodes());
+            dependencies.clusterService().state().nodes(),
+            plannerContext.clusterState().metadata()
+        );
 
         dependencies.client().execute(ClusterRerouteAction.INSTANCE, new ClusterRerouteRequest().add(rerouteCommand))
             .whenComplete(new OneRowActionListener<>(consumer, r -> new Row1(r == null ? -1L : 1L)));
@@ -102,7 +104,8 @@ public class AlterTableReroutePlan implements Plan {
                                                          NodeContext nodeCtx,
                                                          Row parameters,
                                                          SubQueryResults subQueryResults,
-                                                         DiscoveryNodes nodes) {
+                                                         DiscoveryNodes nodes,
+                                                         Metadata metadata) {
         Function<? super Symbol, Object> eval = x -> SymbolEvaluator.evaluate(
             txnCtx,
             nodeCtx,
@@ -113,18 +116,21 @@ public class AlterTableReroutePlan implements Plan {
 
         return reroute.accept(
             REROUTE_STATEMENTS_VISITOR,
-            new Context(nodes, eval));
+            new Context(nodes, eval, metadata));
     }
 
     private static class Context {
 
         private final DiscoveryNodes nodes;
         private final Function<? super Symbol, Object> eval;
+        private final Metadata metadata;
 
         Context(DiscoveryNodes nodes,
-                Function<? super Symbol, Object> eval) {
+                Function<? super Symbol, Object> eval,
+                Metadata metadata) {
             this.nodes = nodes;
             this.eval = eval;
+            this.metadata = metadata;
         }
     }
 
@@ -144,7 +150,7 @@ public class AlterTableReroutePlan implements Plan {
 
             String index = getRerouteIndex(
                 statement.shardedTable(),
-                Lists2.map(statement.partitionProperties(), x -> x.map(context.eval)));
+                Lists.map(statement.partitionProperties(), x -> x.map(context.eval)), context.metadata);
             String toNodeId = resolveNodeId(
                 context.nodes,
                 DataTypes.STRING.sanitizeValue(boundedPromoteReplica.node()));
@@ -166,7 +172,8 @@ public class AlterTableReroutePlan implements Plan {
 
             String index = getRerouteIndex(
                 statement.shardedTable(),
-                Lists2.map(statement.partitionProperties(), x -> x.map(context.eval)));
+                Lists.map(statement.partitionProperties(), x -> x.map(context.eval)),
+                context.metadata);
             String toNodeId = resolveNodeId(
                 context.nodes,
                 DataTypes.STRING.sanitizeValue(boundedMoveShard.toNodeIdOrName()));
@@ -189,7 +196,8 @@ public class AlterTableReroutePlan implements Plan {
 
             String index = getRerouteIndex(
                 statement.shardedTable(),
-                Lists2.map(statement.partitionProperties(), x -> x.map(context.eval)));
+                Lists.map(statement.partitionProperties(), x -> x.map(context.eval)),
+                context.metadata);
             String toNodeId = resolveNodeId(
                 context.nodes,
                 DataTypes.STRING.sanitizeValue(boundedRerouteAllocateReplicaShard.nodeIdOrName()));
@@ -214,7 +222,8 @@ public class AlterTableReroutePlan implements Plan {
 
             String index = getRerouteIndex(
                 statement.shardedTable(),
-                Lists2.map(statement.partitionProperties(), x -> x.map(context.eval)));
+                Lists.map(statement.partitionProperties(), x -> x.map(context.eval)),
+                context.metadata);
             String nodeId = resolveNodeId(
                 context.nodes,
                 DataTypes.STRING.sanitizeValue(boundedRerouteCancelShard.nodeIdOrName()));
@@ -228,26 +237,20 @@ public class AlterTableReroutePlan implements Plan {
         }
 
         private static String getRerouteIndex(ShardedTable shardedTable,
-                                              List<Assignment<Object>> partitionsProperties) {
-            if (shardedTable instanceof DocTableInfo) {
-                DocTableInfo docTableInfo = (DocTableInfo) shardedTable;
-
-                String indexName = docTableInfo.ident().indexNameOrAlias();
-                PartitionName partitionName = PartitionPropertiesAnalyzer
-                    .createPartitionName(partitionsProperties, docTableInfo);
-                if (partitionName != null) {
-                    indexName = partitionName.asIndexName();
-                } else if (docTableInfo.isPartitioned()) {
-                    throw new IllegalArgumentException(
-                        "table is partitioned however no partition clause has been specified");
+                                              List<Assignment<Object>> partitionsProperties,
+                                              Metadata metadata) {
+            if (shardedTable instanceof DocTableInfo docTableInfo) {
+                if (docTableInfo.isPartitioned()) {
+                    var partitionName = PartitionName.ofAssignments(docTableInfo, partitionsProperties, metadata);
+                    return partitionName.asIndexName();
+                } else {
+                    return docTableInfo.ident().indexNameOrAlias();
                 }
-
-                return indexName;
             }
 
             // Table is a blob table
-            assert shardedTable.concreteIndices().length == 1 : "table has to contain only 1 index name";
-            return shardedTable.concreteIndices()[0];
+            assert shardedTable.concreteIndices(metadata).length == 1 : "table has to contain only 1 index name";
+            return shardedTable.concreteIndices(metadata)[0];
         }
 
         private static boolean validateCancelRerouteProperty(String propertyKey,

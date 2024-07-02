@@ -31,7 +31,7 @@ import java.util.List;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import io.crate.common.collections.Lists2;
+import io.crate.common.collections.Lists;
 import io.crate.data.ArrayBucket;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
@@ -155,6 +155,6 @@ public class SortedPagingIteratorTest extends ESTestCase {
     }
 
     private Iterable<? extends KeyIterable<Void, Row>> numberedBuckets(List<Bucket> buckets) {
-        return Lists2.mapLazy(buckets, bucket -> new KeyIterable<>(null, bucket));
+        return Lists.mapLazy(buckets, bucket -> new KeyIterable<>(null, bucket));
     }
 }

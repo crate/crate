@@ -23,66 +23,57 @@ package io.crate.expression.scalar;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Locale;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import org.elasticsearch.common.TriFunction;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
 import io.crate.exceptions.MissingPrivilegeException;
+import io.crate.exceptions.RoleUnknownException;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
-import io.crate.user.Privilege;
-import io.crate.user.User;
-import io.crate.user.UserLookup;
+import io.crate.role.Permission;
+import io.crate.role.Role;
+import io.crate.role.Roles;
+import io.crate.role.Securable;
 
-public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
+public class HasPrivilegeFunction extends Scalar<Boolean, Object> {
 
-    private final BiFunction<UserLookup, Object, User> getUser;
+    public static Role userByName(Roles roles, Object userName) {
+        return roles.getUser((String) userName);
+    }
 
-    private final TriFunction<User, Object, Collection<Privilege.Type>, Boolean> checkPrivilege;
-
-    protected static final BiFunction<UserLookup, Object, User> USER_BY_NAME = (userLookup, userName) -> {
-        var user = userLookup.findUser((String) userName);
+    public static Role userByOid(Roles roles, Object userOid) {
+        int oid = (int) userOid;
+        var user = roles.findUser(oid);
         if (user == null) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "User %s does not exist", userName));
+            throw new RoleUnknownException(oid);
         }
         return user;
-    };
+    }
 
-    protected static final BiFunction<UserLookup, Object, User> USER_BY_OID = (userLookup, userOid) -> {
-        var user = userLookup.findUser((Integer) userOid);
-        if (user == null) {
-            throw new IllegalArgumentException(String.format(Locale.ENGLISH, "User with OID %d does not exist", userOid));
-        }
-        return user;
-    };
+    private final ParsePermissions parsePermissions;
 
-    /**
-     * @param privilege is a comma separated list.
-     * Valid privileges are 'CREATE' and 'USAGE' which map to DDL and DQL correspondingly.
-     * Case of the privilege string is not significant, and extra whitespace is allowed between privilege names.
-     * Repetition of the valid argument is allowed.
-     *
-     * @throws IllegalArgumentException if privilege contains invalid privilege.
-     * @return collection of privileges parsed
-     */
-    @Nullable
-    protected abstract Collection<Privilege.Type> parsePrivileges(String privilege);
+    private final BiFunction<Roles, Object, Role> getUser;
 
-    protected HasPrivilegeFunction(Signature signature,
-                                   BoundSignature boundSignature,
-                                   BiFunction<UserLookup, Object, User> getUser,
-                                   TriFunction<User, Object, Collection<Privilege.Type>, Boolean> checkPrivilege) {
+    private final CheckPrivilege checkPrivilege;
+
+    public HasPrivilegeFunction(Signature signature,
+                                BoundSignature boundSignature,
+                                BiFunction<Roles, Object, Role> getUser,
+                                CheckPrivilege checkPrivilege,
+                                ParsePermissions parsePermissions) {
         super(signature, boundSignature);
+        assert signature().hasFeature(Feature.NULLABLE) : "HasPrivilegeFunctions are nullable";
         this.getUser = getUser;
         this.checkPrivilege = checkPrivilege;
+        this.parsePermissions = parsePermissions;
     }
 
     @Override
@@ -91,23 +82,23 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
     }
 
     @Override
-    public Scalar<Boolean, Object> compile(List<Symbol> arguments, String currentUser, UserLookup userLookup) {
+    public Scalar<Boolean, Object> compile(List<Symbol> arguments, String currentUser, Roles roles) {
         // When possible, user is looked up only once.
-        // Privilege string normalization/mapping into CrateDB Privilege.Type is also done once if possible
+        // Permission string normalization/mapping into CrateDB Permission is also done once if possible
         Object userValue = null;
-        Symbol privileges = null;
+        Symbol permissions = null;
         if (arguments.size() == 2) {
             userValue = currentUser;
-            privileges = arguments.get(1);
+            permissions = arguments.get(1);
         }
         if (arguments.size() == 3) {
             if (arguments.get(0) instanceof Input<?> input) {
                 userValue = input.value();
             }
-            privileges = arguments.get(2);
+            permissions = arguments.get(2);
         }
 
-        Collection<Privilege.Type> compiledPrivileges = normalizePrivilegeIfLiteral(privileges);
+        Collection<Permission> compiledPermissions = normalizePermissionIfLiteral(permissions);
         if (userValue == null) {
             // Fall to non-compiled version which returns null.
             return this;
@@ -117,24 +108,24 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
         // can mean that privilege string is not null but not Literal either.
         // When we pass NULL to the compiled version, it treats last argument like regular evaluate:
         // does null check and parses privileges string.
-        var sessionUser = USER_BY_NAME.apply(userLookup, currentUser);
-        User user = getUser.apply(userLookup, userValue);
-        validateCallPrivileges(sessionUser, user);
-        return new CompiledHasPrivilege(signature, boundSignature, sessionUser, user, compiledPrivileges);
+        var sessionUser = userByName(roles, currentUser);
+        Role user = getUser.apply(roles, userValue);
+        validateCallPrivileges(roles, sessionUser, user);
+        return new CompiledHasPrivilege(roles, signature, boundSignature, sessionUser, user, compiledPermissions);
     }
 
 
     /**
-     * @return List of Privilege.Type compiled from inout or NULL if cannot be compiled.
+     * @return List of {@link Permission} compiled from inout or NULL if cannot be compiled.
      */
     @Nullable
-    private Collection<Privilege.Type> normalizePrivilegeIfLiteral(Symbol symbol) {
+    private Collection<Permission> normalizePermissionIfLiteral(Symbol symbol) {
         if (symbol instanceof Input<?> input) {
             var value = input.value();
             if (value == null) {
                 return null;
             }
-            return parsePrivileges((String) value);
+            return parsePermissions.parse((String) value);
         }
         return null;
     }
@@ -142,9 +133,10 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
     @Override
     public final Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>[] args) {
         Object userNameOrOid, schemaNameOrOid, privileges;
+        Roles roles = nodeCtx.roles();
 
-        var sessionUser = USER_BY_NAME.apply(nodeCtx.userLookup(), txnCtx.sessionSettings().userName());
-        User user;
+        var sessionUser = userByName(nodeCtx.roles(), txnCtx.sessionSettings().userName());
+        Role user;
         if (args.length == 2) {
             schemaNameOrOid = args[0].value();
             privileges = args[1].value();
@@ -154,8 +146,8 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
             if (userNameOrOid == null) {
                 return null;
             }
-            user = getUser.apply(nodeCtx.userLookup(), userNameOrOid);
-            validateCallPrivileges(sessionUser, user);
+            user = getUser.apply(roles, userNameOrOid);
+            validateCallPrivileges(roles, sessionUser, user);
             schemaNameOrOid = args[1].value();
             privileges = args[2].value();
         }
@@ -163,30 +155,33 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
         if (schemaNameOrOid == null || privileges == null) {
             return null;
         }
-        return checkPrivilege.apply(user, schemaNameOrOid, parsePrivileges((String) privileges));
+        return checkPrivilege.check(roles, user, schemaNameOrOid, parsePermissions.parse((String) privileges), nodeCtx.schemas());
     }
 
     private class CompiledHasPrivilege extends Scalar<Boolean, Object> {
 
-        private final User sessionUser;
-        private final User user;
+        private final Roles roles;
+        private final Role sessionUser;
+        private final Role user;
 
         // We don't use String to avoid unnecessary cast of the ignored argument
         // when function provides pre-computed results
-        private final Function<Object, Collection<Privilege.Type>> getPrivileges;
+        private final Function<Object, Collection<Permission>> getPermissions;
 
-        private CompiledHasPrivilege(Signature signature,
+        private CompiledHasPrivilege(Roles roles,
+                                     Signature signature,
                                      BoundSignature boundSignature,
-                                     User sessionUser,
-                                     User user,
-                                     @Nullable Collection<Privilege.Type> compiledPrivileges) {
+                                     Role sessionUser,
+                                     Role user,
+                                     @Nullable Collection<Permission> compiledPermissions) {
             super(signature, boundSignature);
+            this.roles = roles;
             this.sessionUser = sessionUser;
             this.user = user;
-            if (compiledPrivileges != null) {
-                getPrivileges = s -> compiledPrivileges;
+            if (compiledPermissions != null) {
+                getPermissions = s -> compiledPermissions;
             } else {
-                getPrivileges = s -> parsePrivileges((String) s);
+                getPermissions = s -> parsePermissions.parse((String) s);
             }
         }
 
@@ -200,23 +195,40 @@ public abstract class HasPrivilegeFunction extends Scalar<Boolean, Object> {
                 privilege = args[1].value();
             } else {
                 // args[0] is resolved to a user
-                validateCallPrivileges(sessionUser, user);
+                validateCallPrivileges(roles, sessionUser, user);
                 schema = args[1].value();
                 privilege = args[2].value();
             }
             if (schema == null || privilege == null) {
                 return null;
             }
-            return checkPrivilege.apply(user, schema, getPrivileges.apply(privilege));
+            return checkPrivilege.check(roles, user, schema, getPermissions.apply(privilege), nodeContext.schemas());
         }
     }
 
-    protected static void validateCallPrivileges(User sessionUser, User user) {
+    protected static void validateCallPrivileges(Roles roles, Role sessionUser, Role user) {
         // Only superusers can call this function for other users
         if (user.name().equals(sessionUser.name()) == false
-            && sessionUser.hasPrivilege(Privilege.Type.DQL, Privilege.Clazz.TABLE, "sys.privileges", null) == false
-            && sessionUser.hasPrivilege(Privilege.Type.AL, Privilege.Clazz.CLUSTER, "crate", null) == false) {
+            && roles.hasPrivilege(sessionUser, Permission.DQL, Securable.TABLE, "sys.privileges") == false
+            && roles.hasPrivilege(sessionUser, Permission.AL, Securable.CLUSTER, "crate") == false) {
             throw new MissingPrivilegeException(sessionUser.name());
         }
+    }
+
+    public interface CheckPrivilege {
+        Boolean check(Roles roles, Role user, Object object, Collection<Permission> permissions, Schemas schemas);
+    }
+
+    public interface ParsePermissions {
+
+        /**
+         * @param permissionNames is a comma separated list that will be mapped to a collection of {@link Permission}.
+         * Refer to the concrete implementations for exact mappings.
+         * Extra whitespaces between privilege names and repetition of a valid argument are allowed.
+         *
+         * @throws IllegalArgumentException if privilege contains invalid permission.
+         * @return collection of permissions parsed
+         */
+        Collection<Permission> parse(String permissionNames);
     }
 }

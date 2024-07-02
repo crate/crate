@@ -19,8 +19,7 @@
 
 package org.elasticsearch.common.compress;
 
-import org.apache.lucene.tests.util.LineFileDocs;
-import org.elasticsearch.test.ESTestCase;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -31,7 +30,8 @@ import java.nio.charset.StandardCharsets;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import org.apache.lucene.tests.util.LineFileDocs;
+import org.elasticsearch.test.ESTestCase;
 
 /**
  * Test streaming compression (e.g. used for recovery)

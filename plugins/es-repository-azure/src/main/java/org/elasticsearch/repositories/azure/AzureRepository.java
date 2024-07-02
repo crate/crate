@@ -46,7 +46,7 @@ import org.elasticsearch.repositories.blobstore.BlobStoreRepository;
 import com.microsoft.azure.storage.LocationMode;
 import com.microsoft.azure.storage.RetryPolicy;
 
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.unit.TimeValue;
 import io.crate.types.DataTypes;
 

@@ -19,8 +19,8 @@
 
 package org.elasticsearch.test;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertToXContentEquivalent;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 
@@ -98,8 +98,8 @@ public abstract class AbstractXContentTestCase<T extends ToXContent> extends EST
         private Predicate<String> randomFieldsExcludeFilter = field -> false;
         private BiConsumer<T, T> assertEqualsConsumer = (expectedInstance, newInstance) -> {
             assertNotSame(newInstance, expectedInstance);
-            assertEquals(expectedInstance, newInstance);
-            assertEquals(expectedInstance.hashCode(), newInstance.hashCode());
+            assertThat(newInstance).isEqualTo(expectedInstance);
+            assertThat(newInstance.hashCode()).isEqualTo(expectedInstance.hashCode());
         };
         private boolean assertToXContentEquivalence = true;
 
@@ -215,8 +215,8 @@ public abstract class AbstractXContentTestCase<T extends ToXContent> extends EST
 
     protected void assertEqualInstances(T expectedInstance, T newInstance) {
         assertNotSame(newInstance, expectedInstance);
-        assertEquals(expectedInstance, newInstance);
-        assertEquals(expectedInstance.hashCode(), newInstance.hashCode());
+        assertThat(newInstance).isEqualTo(expectedInstance);
+        assertThat(newInstance.hashCode()).isEqualTo(expectedInstance.hashCode());
     }
 
     protected boolean assertToXContentEquivalence() {

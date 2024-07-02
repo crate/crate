@@ -28,10 +28,11 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.common.inject.ModulesBuilder;
+import org.elasticsearch.common.settings.Settings;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
 import org.openjdk.jmh.annotations.Mode;
@@ -47,7 +48,6 @@ import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.breaker.RamAccounting;
-import io.crate.execution.engine.aggregation.impl.AggregationImplModule;
 import io.crate.execution.engine.aggregation.impl.MinimumAggregation;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.RowCollectExpression;
@@ -55,7 +55,9 @@ import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.Functions;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.types.DataTypes;
 
 @BenchmarkMode(Mode.AverageTime)
@@ -63,15 +65,14 @@ import io.crate.types.DataTypes;
 @State(Scope.Benchmark)
 public class GroupingStringCollectorBenchmark {
 
-    private GroupingCollector groupByMinCollector;
+    private GroupingCollector<?> groupByMinCollector;
     private BatchIterator<Row> rowsIterator;
     private List<Row> rows;
     private OnHeapMemoryManager memoryManager;
 
     @Setup
     public void createGroupingCollector() {
-        Functions functions = new ModulesBuilder().add(new AggregationImplModule())
-            .createInjector().getInstance(Functions.class);
+        Functions functions = Functions.load(Settings.EMPTY, new SessionSettingRegistry(Set.of()));
 
         groupByMinCollector = createGroupByMinBytesRefCollector(functions);
         memoryManager = new OnHeapMemoryManager(bytes -> {});
@@ -85,17 +86,18 @@ public class GroupingStringCollectorBenchmark {
         }
     }
 
-    private GroupingCollector createGroupByMinBytesRefCollector(Functions functions) {
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private GroupingCollector<?> createGroupByMinBytesRefCollector(Functions functions) {
         RowCollectExpression keyInput = new RowCollectExpression(0);
         List<Input<?>> keyInputs = Collections.singletonList(keyInput);
         CollectExpression[] collectExpressions = new CollectExpression[]{keyInput};
 
         MinimumAggregation minAgg = (MinimumAggregation) functions.getQualified(
             Signature.aggregate(
-                MinimumAggregation.NAME,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature()
-            ),
+                    MinimumAggregation.NAME,
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature())
+                .withFeature(Scalar.Feature.DETERMINISTIC),
             List.of(DataTypes.STRING),
             DataTypes.STRING
         );

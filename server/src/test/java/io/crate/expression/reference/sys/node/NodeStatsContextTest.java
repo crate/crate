@@ -21,13 +21,11 @@
 
 package io.crate.expression.reference.sys.node;
 
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.Build;
@@ -35,7 +33,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.InputStreamStreamInput;
 import org.elasticsearch.common.io.stream.OutputStreamStreamOutput;
-import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.monitor.fs.FsInfo;
 import org.elasticsearch.monitor.jvm.JvmStats;
 import org.elasticsearch.monitor.os.DummyOsInfo;
 import org.elasticsearch.monitor.os.OsProbe;
@@ -48,6 +46,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.monitor.ExtendedNodeInfo;
+import io.crate.protocols.ConnectionStats;
 
 public class NodeStatsContextTest extends ESTestCase {
 
@@ -68,51 +67,45 @@ public class NodeStatsContextTest extends ESTestCase {
 
     @Test
     public void testStreamContext() throws Exception {
-        NodeStatsContext ctx1 = new NodeStatsContext(true);
-        ctx1.id("93c7ff92-52fa-11e6-aad8-3c15c2d3ad18");
-        ctx1.name("crate1");
-        ctx1.hostname("crate1.example.com");
-        ctx1.timestamp(100L);
-        ctx1.version(Version.CURRENT);
-        ctx1.build(Build.CURRENT);
-        ctx1.httpPort(4200);
-        ctx1.transportPort(4300);
-        ctx1.restUrl("10.0.0.1:4200");
-        ctx1.jvmStats(JvmStats.jvmStats());
-        ctx1.osInfo(DummyOsInfo.INSTANCE);
-        ProcessProbe processProbe = ProcessProbe.getInstance();
-        ctx1.processStats(processProbe.processStats());
-        OsProbe osProbe = OsProbe.getInstance();
-        ctx1.osStats(osProbe.osStats());
-        ctx1.extendedOsStats(extendedNodeInfo.osStats());
-        ctx1.threadPools(threadPool.stats());
-        ctx1.clusterStateVersion(10L);
+        var ctx1 = generateNodeStatsContext();
 
-        ByteArrayOutputStream outBuffer = new ByteArrayOutputStream();
-        StreamOutput out = new OutputStreamStreamOutput(outBuffer);
+        var outBuffer = new ByteArrayOutputStream();
+        var out = new OutputStreamStreamOutput(outBuffer);
         ctx1.writeTo(out);
 
-        ByteArrayInputStream inBuffer = new ByteArrayInputStream(outBuffer.toByteArray());
-        InputStreamStreamInput in = new InputStreamStreamInput(inBuffer);
-        NodeStatsContext ctx2 = new NodeStatsContext(in, true);
+        var inBuffer = new ByteArrayInputStream(outBuffer.toByteArray());
+        var in = new InputStreamStreamInput(inBuffer);
+        var ctx2 = new NodeStatsContext(in, true);
 
-        assertThat(ctx1.id(), is(ctx2.id()));
-        assertThat(ctx1.name(), is(ctx2.name()));
-        assertThat(ctx1.hostname(), is(ctx2.hostname()));
-        assertThat(ctx1.timestamp(), is(100L));
-        assertThat(ctx1.version(), is(ctx2.version()));
-        assertThat(ctx1.build().hash(), is(ctx2.build().hash()));
-        assertThat(ctx1.restUrl(), is(ctx2.restUrl()));
-        assertThat(ctx1.httpPort(), is(ctx2.httpPort()));
-        assertThat(ctx1.transportPort(), is(ctx2.transportPort()));
-        assertThat(ctx1.pgPort(), is(ctx2.pgPort()));
-        assertThat(ctx1.jvmStats().getTimestamp(), is(ctx2.jvmStats().getTimestamp()));
-        assertThat(ctx1.osInfo().getArch(), is(ctx2.osInfo().getArch()));
-        assertThat(ctx1.processStats().getTimestamp(), is(ctx2.processStats().getTimestamp()));
-        assertThat(ctx1.osStats().getTimestamp(), is(ctx2.osStats().getTimestamp()));
-        assertThat(ctx1.extendedOsStats().uptime(), is(ctx2.extendedOsStats().uptime()));
-        assertThat(ctx1.threadPools().iterator().next().getActive(), is(ctx2.threadPools().iterator().next().getActive()));
-        assertThat(ctx1.clusterStateVersion(), is(ctx2.clusterStateVersion()));
+        assertThat(ctx2.id()).isEqualTo(ctx1.id());
+        assertThat(ctx2.name()).isEqualTo(ctx1.name());
+        assertThat(ctx2.hostname()).isEqualTo(ctx1.hostname());
+        assertThat(ctx2.timestamp()).isEqualTo(100L);
+        assertThat(ctx2.version()).isEqualTo(ctx1.version());
+        assertThat(ctx2.build().hash()).isEqualTo(ctx1.build().hash());
+        assertThat(ctx2.restUrl()).isEqualTo(ctx1.restUrl());
+        assertThat(ctx2.attributes()).isEqualTo(ctx1.attributes());
+        assertThat(ctx2.pgPort()).isEqualTo(ctx1.pgPort());
+        assertThat(ctx2.httpPort()).isEqualTo(ctx1.httpPort());
+        assertThat(ctx2.transportPort()).isEqualTo(ctx1.transportPort());
+        assertThat(ctx2.jvmStats().getTimestamp()).isEqualTo(ctx1.jvmStats().getTimestamp());
+        assertThat(ctx2.osInfo().getArch()).isEqualTo(ctx1.osInfo().getArch());
+        assertThat(ctx2.processStats().getTimestamp()).isEqualTo(ctx1.processStats().getTimestamp());
+        assertThat(ctx2.osStats().getTimestamp()).isEqualTo(ctx1.osStats().getTimestamp());
+        assertThat(ctx2.fsInfo().getIoStats().getTotalOperations()).isEqualTo(ctx1.fsInfo().getIoStats().getTotalOperations());
+        assertThat(ctx2.extendedOsStats().uptime()).isEqualTo(ctx1.extendedOsStats().uptime());
+        assertThat(ctx2.threadPools().getFirst().getActive()).isEqualTo(ctx1.threadPools().getFirst().getActive());
+        assertThat(ctx2.httpStats().total()).isEqualTo(ctx1.httpStats().total());
+        assertThat(ctx2.psqlStats().receivedBytes()).isEqualTo(ctx1.psqlStats().receivedBytes());
+        assertThat(ctx2.transportStats().sentMsgs()).isEqualTo(ctx1.transportStats().sentMsgs());
+        assertThat(ctx2.clusterStateVersion()).isEqualTo(ctx1.clusterStateVersion());
+        assertThat(ctx2.osName()).isEqualTo(ctx1.osName());
+        assertThat(ctx2.osArch()).isEqualTo(ctx1.osArch());
+        assertThat(ctx2.osVersion()).isEqualTo(ctx1.osVersion());
+        assertThat(ctx2.javaVersion()).isEqualTo(ctx1.javaVersion());
+        assertThat(ctx2.jvmVersion()).isEqualTo(ctx1.jvmVersion());
+        assertThat(ctx2.jvmName()).isEqualTo(ctx1.jvmName());
+        assertThat(ctx2.jvmVendor()).isEqualTo(ctx1.jvmVendor());
     }
 
     @Test
@@ -124,33 +117,101 @@ public class NodeStatsContextTest extends ESTestCase {
         var in = out.bytes().streamInput();
         NodeStatsContext ctx2 = new NodeStatsContext(in, false);
 
-        assertNull(ctx2.id());
-        assertNull(ctx2.name());
-        assertNull(ctx2.hostname());
-        assertNull(ctx2.restUrl());
-        assertNull(ctx2.httpPort());
-        assertNull(ctx2.transportPort());
-        assertNull(ctx2.pgPort());
-        assertNull(ctx2.jvmStats());
-        assertNull(ctx2.osInfo());
-        assertNull(ctx2.processStats());
-        assertNull(ctx2.osStats());
-        assertNull(ctx2.extendedOsStats());
-        assertNull(ctx2.threadPools());
+        assertThat(ctx2.id()).isNull();
+        assertThat(ctx2.name()).isNull();
+        assertThat(ctx2.hostname()).isNull();
+        assertThat(ctx2.timestamp()).isZero();
+        assertThat(ctx2.version()).isNull();
+        assertThat(ctx2.build()).isNull();
+        assertThat(ctx2.restUrl()).isNull();
+        assertThat(ctx2.attributes()).isNull();
+        assertThat(ctx2.pgPort()).isNull();
+        assertThat(ctx2.httpPort()).isNull();
+        assertThat(ctx2.transportPort()).isNull();
+        assertThat(ctx2.jvmStats()).isNull();
+        assertThat(ctx2.osInfo()).isNull();
+        assertThat(ctx2.processStats()).isNull();
+        assertThat(ctx2.osStats()).isNull();
+        assertThat(ctx2.fsInfo()).isNull();
+        assertThat(ctx2.extendedOsStats()).isNull();
+        assertThat(ctx2.threadPools()).isNull();
+        assertThat(ctx2.httpStats()).isNull();
+        assertThat(ctx2.psqlStats()).isNull();
+        assertThat(ctx2.transportStats()).isNull();
+        assertThat(ctx2.clusterStateVersion()).isZero();
+        assertThat(ctx2.osName()).isNull();
+        assertThat(ctx2.osArch()).isNull();
+        assertThat(ctx2.osVersion()).isNull();
+        assertThat(ctx2.javaVersion()).isNull();
+        assertThat(ctx2.jvmVersion()).isNull();
+        assertThat(ctx2.jvmName()).isNull();
+        assertThat(ctx2.jvmVendor()).isNull();
     }
 
     @Test
-    public void testStreamContextWithNullPorts() throws Exception {
-        NodeStatsContext ctx1 = new NodeStatsContext(false);
-        ctx1.transportPort(4300);
-        ctx1.httpPort(null);
-        var out = new BytesStreamOutput();
+    public void test_streaming_network_stats_bwc() throws Exception {
+        var ctx1 = generateNodeStatsContext();
+        var outBuffer = new ByteArrayOutputStream();
+        var out = new OutputStreamStreamOutput(outBuffer);
+        out.setVersion(Version.V_5_7_0);
         ctx1.writeTo(out);
 
-        var in = out.bytes().streamInput();
-        NodeStatsContext ctx2 = new NodeStatsContext(in, false);
+        var inBuffer = new ByteArrayInputStream(outBuffer.toByteArray());
+        var in = new InputStreamStreamInput(inBuffer);
+        in.setVersion(Version.V_5_7_0);
+        var ctx2 = new NodeStatsContext(in, true);
+        assertThat(ctx2.httpStats().open()).isEqualTo(ctx1.httpStats().open());
+        assertThat(ctx2.httpStats().total()).isEqualTo(ctx1.httpStats().total());
+        assertThat(ctx2.httpStats().receivedBytes()).isEqualTo(-1);
+        assertThat(ctx2.httpStats().receivedMsgs()).isEqualTo(-1);
+        assertThat(ctx2.httpStats().sentBytes()).isEqualTo(-1);
+        assertThat(ctx2.httpStats().sentMsgs()).isEqualTo(-1);
 
-        assertThat(ctx2.httpPort(), nullValue());
-        assertThat(ctx2.transportPort(), is(4300));
+        assertThat(ctx2.psqlStats().open()).isEqualTo(ctx1.psqlStats().open());
+        assertThat(ctx2.psqlStats().total()).isEqualTo(ctx1.psqlStats().total());
+        assertThat(ctx2.psqlStats().receivedBytes()).isEqualTo(-1);
+        assertThat(ctx2.psqlStats().receivedMsgs()).isEqualTo(-1);
+        assertThat(ctx2.psqlStats().sentBytes()).isEqualTo(-1);
+        assertThat(ctx2.psqlStats().sentMsgs()).isEqualTo(-1);
+
+        assertThat(ctx2.transportStats().open()).isEqualTo(ctx1.transportStats().open());
+        assertThat(ctx2.transportStats().total()).isEqualTo(-1);
+        assertThat(ctx2.transportStats().receivedBytes()).isEqualTo(-1);
+        assertThat(ctx2.transportStats().receivedMsgs()).isEqualTo(-1);
+        assertThat(ctx2.transportStats().sentBytes()).isEqualTo(-1);
+        assertThat(ctx2.transportStats().sentMsgs()).isEqualTo(-1);
+    }
+
+    private NodeStatsContext generateNodeStatsContext() {
+        var ctx = new NodeStatsContext(true); // sets os/java/jvm automatically
+        ctx.id("93c7ff92-52fa-11e6-aad8-3c15c2d3ad18");
+        ctx.name("crate1");
+        ctx.hostname("crate1.example.com");
+        ctx.timestamp(100L);
+        ctx.version(Version.CURRENT);
+        ctx.build(Build.CURRENT);
+        ctx.restUrl("10.0.0.1:4200");
+        ctx.attributes(Map.of("k1", "v1", "k2", "v2"));
+        ctx.pgPort(5432);
+        ctx.httpPort(4200);
+        ctx.transportPort(4300);
+        ctx.jvmStats(JvmStats.jvmStats());
+        ctx.osInfo(DummyOsInfo.INSTANCE);
+        ProcessProbe processProbe = ProcessProbe.getInstance();
+        ctx.processStats(processProbe.processStats());
+        OsProbe osProbe = OsProbe.getInstance();
+        ctx.osStats(osProbe.osStats());
+        ctx.fsInfo(new FsInfo(
+            123456789,
+            new FsInfo.IoStats(new FsInfo.DeviceStats[]{ new FsInfo.DeviceStats(1,2,"foo", 3, 4, 5, 6, null)}),
+            new FsInfo.Path[] {new FsInfo.Path("foo", "bar", 1, 2, 3)}));
+        ctx.extendedOsStats(extendedNodeInfo.osStats());
+        ctx.threadPools(threadPool.stats());
+        ctx.httpStats(new ConnectionStats(1, 2, 3, 4, 5, 6));
+        ctx.psqlStats(new ConnectionStats(11, 22, 33, 44, 55, 66));
+        ctx.transportStats(new ConnectionStats(111, 222, 333, 444, 555, 666));
+        ctx.clusterStateVersion(10L);
+
+        return ctx;
     }
 }

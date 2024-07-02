@@ -21,12 +21,7 @@
 
 package io.crate.execution.engine.distribution.merge;
 
-import com.carrotsearch.hppc.IntArrayList;
-
-import io.crate.common.collections.AbstractIterator;
-import io.crate.common.collections.Iterables;
-import io.crate.common.collections.PeekingIterator;
-import org.elasticsearch.common.util.CollectionUtils;
+import static io.crate.common.collections.Iterators.peekingIterator;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -37,7 +32,12 @@ import java.util.NoSuchElementException;
 import java.util.PriorityQueue;
 import java.util.Queue;
 
-import static io.crate.common.collections.Iterators.peekingIterator;
+import com.carrotsearch.hppc.IntArrayList;
+
+import io.crate.common.collections.AbstractIterator;
+import io.crate.common.collections.Iterables;
+import io.crate.common.collections.Lists;
+import io.crate.common.collections.PeekingIterator;
 
 
 /**
@@ -135,7 +135,7 @@ final class RecordingSortedMergeIterator<TKey, TRow> implements PagingIterator<T
 
         ReplayingIterator(int[] sorting, Iterable<? extends Iterator<T>> iterators) {
             this.sorting = sorting;
-            this.iters = CollectionUtils.iterableAsArrayList(iterators);
+            this.iters = Lists.of(iterators);
             this.itersSize = this.iters.size();
         }
 

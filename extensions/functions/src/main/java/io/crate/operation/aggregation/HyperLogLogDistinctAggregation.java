@@ -45,7 +45,7 @@ import org.jetbrains.annotations.Nullable;
 import com.carrotsearch.hppc.BitMixer;
 
 import io.crate.Streamer;
-import io.crate.common.annotations.VisibleForTesting;
+import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
@@ -55,11 +55,12 @@ import io.crate.execution.engine.aggregation.impl.templates.SortedNumericDocValu
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
+import io.crate.metadata.Scalar;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
-import io.crate.module.ExtraFunctionsModule;
 import io.crate.types.BooleanType;
 import io.crate.types.ByteType;
 import io.crate.types.CharacterType;
@@ -82,23 +83,24 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
         DataTypes.register(HllStateType.ID, in -> HllStateType.INSTANCE);
     }
 
-    public static void register(ExtraFunctionsModule mod) {
+    public static void register(Functions.Builder builder) {
         for (var supportedType : DataTypes.PRIMITIVE_TYPES) {
-            mod.register(
+            builder.add(
                 Signature.aggregate(
                     NAME,
                     supportedType.getTypeSignature(),
-                    DataTypes.LONG.getTypeSignature()),
+                    DataTypes.LONG.getTypeSignature())
+                    .withFeature(Scalar.Feature.DETERMINISTIC),
                 (signature, boundSignature) ->
                     new HyperLogLogDistinctAggregation(signature, boundSignature, supportedType)
             );
-            mod.register(
+            builder.add(
                 Signature.aggregate(
                     NAME,
                     supportedType.getTypeSignature(),
                     DataTypes.INTEGER.getTypeSignature(),
-                    DataTypes.LONG.getTypeSignature()
-                ),
+                    DataTypes.LONG.getTypeSignature())
+                    .withFeature(Scalar.Feature.DETERMINISTIC),
                 (signature, boundSignature) ->
                     new HyperLogLogDistinctAggregation(signature, boundSignature, supportedType)
             );
@@ -130,7 +132,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
     public HllState iterate(RamAccounting ramAccounting,
                             MemoryManager memoryManager,
                             HllState state,
-                            Input... args) throws CircuitBreakingException {
+                            Input<?> ... args) throws CircuitBreakingException {
         if (state.isInitialized() == false) {
             int precision = HyperLogLogPlusPlus.DEFAULT_PRECISION;
             if (args.length > 1) {

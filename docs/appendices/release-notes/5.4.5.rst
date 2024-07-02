@@ -1,0 +1,95 @@
+.. _version_5.4.5:
+
+=============
+Version 5.4.5
+=============
+
+Released on 2023-10-26.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 5.4.5.
+
+    We recommend that you upgrade to the latest 5.3 release before moving to
+    5.4.5.
+
+    A rolling upgrade from 5.3.x to 5.4.5 is supported.
+    Before upgrading, you should `back up your data`_.
+
+.. WARNING::
+
+    Tables that were created before CrateDB 4.x will not function with 5.x
+    and must be recreated before moving to 5.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+.. rubric:: Table of Contents
+
+.. contents::
+   :local:
+
+See the :ref:`version_5.4.0` release notes for a full list of changes in the
+5.4 series.
+
+
+Fixes
+=====
+
+- Fixed an issue that led to ``Received resultset tuples, but no field structure
+  for them`` errors in clients using the PostgreSQL wire protocol, if a query
+  was triggered after another query was suspended and left unconsumed.
+
+- Fixed an issue that led to ``Couldn't create execution plan from logical plan
+  ..`` errors when trying to use a correlated join in the ``WHERE`` clause of a
+  query with a join. For example::
+
+    SELECT
+        n.nspname AS schema,
+        t.typname AS typename,
+        t.oid::int4 AS typeid
+    FROM
+        pg_type t
+        LEFT JOIN pg_catalog.pg_namespace n ON n.oid = t.typnamespace
+    WHERE
+        EXISTS (
+            SELECT 1 FROM pg_catalog.pg_type el WHERE el.oid = t.typelem);
+
+- Fixed an issue that prevented namespaces from showing up in
+  ``pg_catalog.pg_namespace`` if a user had privileges on a table within a
+  schema, but no privileges on the schema itself.
+
+- Fixed an issue that caused ``UNION`` to throw ``SQLParseExceptions`` instead
+  of ``AmbiguousColumnExceptions``, when 2 or more columns are assigned the
+  same name. e.g.::
+
+    SELECT a FROM (SELECT a, b AS a FROM t UNION SELECT 1, 1) t2;
+    -- selecting 'a' from 't2' is ambiguous since there are 'a' and 'b AS a'
+
+- Fixed a regression introduced with CrateDB :ref:`version_5.3.0` that may
+  cause ``INSERT INTO ... ON CONFLICT ..`` queries to fail with unexpected
+  errors or even updating wrong sub-columns when using a sub-column expression
+  in the ``ON CONFLICT`` clause.
+
+- Fixed an issue that caused ``UNION`` to return wrong results or throw
+  ``SQLParseException`` when the output columns had identical names which were
+  from tables that were aliased. e.g.::
+
+    SELECT * FROM (SELECT t1.a, t2.a FROM t AS t1, t AS t2) t3 UNION SELECT 1, 1;
+
+  where ``t1.a`` and ``t2.a`` are from aliased tables that also have identical
+  names, ``a``.
+
+- Fixed a regression, introduced in :ref:`version_4.2.0` which caused wrong
+  :ref:`HTTP error code <http-error-codes>` to be returned, when some internal
+  issue occurred during the creation of execution plan for a query, e.g.: shards
+  of a table involved in the query become unavailable.
+
+- Fixed an issue that caused the properties of a ``INDEX using`` clause within
+  a type definition for ``ARRAY(GEO_SHAPE)`` in a ``CREATE TABLE`` statement to
+  be ignored.
+

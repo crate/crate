@@ -21,28 +21,26 @@
 
 package io.crate.expression.predicate;
 
-import static io.crate.expression.predicate.IsNullPredicate.isNullFuncToQuery;
-
 import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.common.lucene.search.Queries;
 
 import io.crate.data.Input;
-import io.crate.expression.operator.LikeOperators;
-import io.crate.expression.operator.any.AnyEqOperator;
-import io.crate.expression.operator.any.AnyNeqOperator;
-import io.crate.expression.operator.any.AnyRangeOperator;
 import io.crate.expression.scalar.Ignore3vlFunction;
-import io.crate.expression.scalar.conditional.CoalesceFunction;
+import io.crate.expression.scalar.cast.ExplicitCastFunction;
+import io.crate.expression.scalar.cast.ImplicitCastFunction;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.lucene.LuceneQueryBuilder;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
@@ -56,15 +54,14 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
 
     public static final String NAME = "op_not";
     public static final Signature SIGNATURE = Signature.scalar(
-        NAME,
-        DataTypes.BOOLEAN.getTypeSignature(),
-        DataTypes.BOOLEAN.getTypeSignature());
+            NAME,
+            DataTypes.BOOLEAN.getTypeSignature(),
+            DataTypes.BOOLEAN.getTypeSignature())
+        .withFeature(Feature.DETERMINISTIC)
+        .withFeature(Feature.NULLABLE);
 
-    public static void register(PredicateModule module) {
-        module.register(
-            SIGNATURE,
-            NotPredicate::new
-        );
+    public static void register(Functions.Builder builder) {
+        builder.add(SIGNATURE, NotPredicate::new);
     }
 
     private NotPredicate(Signature signature, BoundSignature boundSignature) {
@@ -98,61 +95,82 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
     }
 
 
-    private final SymbolToNotNullRangeQueryArgs INNER_VISITOR = new SymbolToNotNullRangeQueryArgs();
+    private final NullabilityVisitor INNER_VISITOR = new NullabilityVisitor();
 
-    private static class SymbolToNotNullContext {
-        private final HashSet<Reference> references = new HashSet<>();
-        boolean hasStrictThreeValuedLogicFunction = false;
+    private static class NullabilityContext {
+        private final HashSet<Reference> nullableReferences = new HashSet<>();
+        private boolean isNullable = true;
+        private boolean enforceThreeValuedLogic = false;
 
-        void add(Reference symbol) {
-            references.add(symbol);
+        void collectNullableReferences(Reference symbol) {
+            nullableReferences.add(symbol);
         }
 
-        Set<Reference> references() {
-            return references;
+        Set<Reference> nullableReferences() {
+            return nullableReferences;
+        }
+
+        boolean enforceThreeValuedLogic() {
+            return enforceThreeValuedLogic;
         }
     }
 
-    private static class SymbolToNotNullRangeQueryArgs extends SymbolVisitor<SymbolToNotNullContext, Void> {
+    private static class NullabilityVisitor extends SymbolVisitor<NullabilityContext, Void> {
 
-        /**
-        * Three valued logic systems are defined in logic as systems in which there are 3 truth values: true,
-        * false and an indeterminate third value (in our case null is the third value).
-        * <p>
-        * This is a set of functions for which inputs evaluating to null needs to be explicitly included or
-        * excluded (in the case of 'not ...') in the boolean queries
-        */
-        private final Set<String> STRICT_3VL_FUNCTIONS =
-            Set.of(
-                AnyEqOperator.NAME,
-                AnyNeqOperator.NAME,
-                AnyRangeOperator.Comparison.GT.opName(),
-                AnyRangeOperator.Comparison.GTE.opName(),
-                AnyRangeOperator.Comparison.LT.opName(),
-                AnyRangeOperator.Comparison.LTE.opName(),
-                LikeOperators.ANY_LIKE,
-                LikeOperators.ANY_NOT_LIKE,
-                CoalesceFunction.NAME
-            );
+        private final Set<String> CAST_FUNCTIONS = Set.of(ImplicitCastFunction.NAME, ExplicitCastFunction.NAME);
 
         @Override
-        public Void visitReference(Reference symbol, SymbolToNotNullContext context) {
-            context.add(symbol);
+        public Void visitReference(Reference symbol, NullabilityContext context) {
+            // if ref is nullable and all its parents are nullable
+            if (symbol.isNullable() && context.isNullable) {
+                context.collectNullableReferences(symbol);
+            }
             return null;
         }
 
         @Override
-        public Void visitFunction(Function function, SymbolToNotNullContext context) {
-            String functionName = function.name();
-            if (Ignore3vlFunction.NAME.equals(functionName)) {
-                return null;
+        public Void visitLiteral(Literal<?> symbol, NullabilityContext context) {
+            // if an arg is a null literal and all its parents are nullable
+            // then we need to enforce 3vl logic, ex) `<ref> % null != 1`, it is equivalent to a `null`.
+            if (symbol.symbolType().isValueSymbol() && symbol.value() == null && context.isNullable) {
+                context.enforceThreeValuedLogic = true;
             }
-            if (!STRICT_3VL_FUNCTIONS.contains(functionName)) {
-                for (Symbol arg : function.arguments()) {
-                    arg.accept(this, context);
+            return null;
+        }
+
+        @Override
+        public Void visitFunction(Function function, NullabilityContext context) {
+            String functionName = function.name();
+            if (CAST_FUNCTIONS.contains(functionName)) {
+                // Cast functions should be ignored except for the case where the incoming
+                // datatype is an object. There we need to exclude null values to not match
+                // empty objects on the query
+                var a = function.arguments().get(0);
+                var b = function.arguments().get(1);
+                if (a instanceof Reference ref && b instanceof Literal<?>) {
+                    if (ref.valueType().id() == DataTypes.UNTYPED_OBJECT.id()) {
+                        return null;
+                    }
                 }
+            } else if (Ignore3vlFunction.NAME.equals(functionName)) {
+                context.isNullable = false;
+                return null;
             } else {
-                context.hasStrictThreeValuedLogicFunction = true;
+                var signature = function.signature();
+                if (signature.hasFeature(Feature.NON_NULLABLE)) {
+                    context.isNullable = false;
+                } else if (!signature.hasFeature(Feature.NULLABLE)) {
+                    // default case
+                    context.enforceThreeValuedLogic = true;
+                    return null;
+                }
+            }
+            // saves and restores isNullable of the current context
+            // such that any non-nullables observed from the left arg is not transferred to the right arg.
+            boolean isNullable = context.isNullable;
+            for (Symbol arg : function.arguments()) {
+                arg.accept(this, context);
+                context.isNullable = isNullable;
             }
             return null;
         }
@@ -179,6 +197,9 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
                 if (ref.columnPolicy() == ColumnPolicy.IGNORED) {
                     return null;
                 }
+                if (!ref.isNullable()) {
+                    return new MatchAllDocsQuery();
+                }
                 return IsNullPredicate.refExistsQuery(ref, context, true);
             }
         }
@@ -186,26 +207,28 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
         Query innerQuery = arg.accept(context.visitor(), context);
         Query notX = Queries.not(innerQuery);
 
-        // not x =  not x & x is not null
-        BooleanQuery.Builder builder = new BooleanQuery.Builder();
-        builder.add(notX, BooleanClause.Occur.MUST);
-        SymbolToNotNullContext ctx = new SymbolToNotNullContext();
+        NullabilityContext ctx = new NullabilityContext();
         arg.accept(INNER_VISITOR, ctx);
-        for (Reference reference : ctx.references()) {
-            if (reference.isNullable()) {
-                var refExistsQuery = IsNullPredicate.refExistsQuery(reference, context, false);
+
+        if (ctx.enforceThreeValuedLogic()) {
+            // we require strict 3vl logic, therefore we need to add the function as generic function filter
+            // which is less efficient
+            return new BooleanQuery.Builder()
+                .add(notX, Occur.MUST)
+                .add(LuceneQueryBuilder.genericFunctionFilter(input, context), Occur.FILTER)
+                .build();
+        } else {
+            BooleanQuery.Builder builder = new BooleanQuery.Builder();
+            builder.add(notX, BooleanClause.Occur.MUST);
+            for (Reference nullableRef : ctx.nullableReferences()) {
+                // we can optimize with a field exist query and filter out all null values which will reduce the
+                // result set of the query
+                var refExistsQuery = IsNullPredicate.refExistsQuery(nullableRef, context, false);
                 if (refExistsQuery != null) {
-                    // we don't count empty arrays here as we count them below explicitly if 3Vl logic is needed.
                     builder.add(refExistsQuery, BooleanClause.Occur.MUST);
                 }
             }
+            return builder.build();
         }
-        if (ctx.hasStrictThreeValuedLogicFunction) {
-            builder.add(
-                Queries.not(isNullFuncToQuery(arg, context)),
-                BooleanClause.Occur.MUST
-            );
-        }
-        return builder.build();
     }
 }

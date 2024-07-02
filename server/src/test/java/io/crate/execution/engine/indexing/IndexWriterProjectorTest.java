@@ -22,10 +22,8 @@
 package io.crate.execution.engine.indexing;
 
 import static io.crate.data.SentinelRow.SENTINEL;
-import static io.crate.testing.TestingHelpers.isRow;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.collection.IsIterableContainingInOrder.contains;
-import static org.junit.Assert.assertThat;
+import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collections;
 import java.util.List;
@@ -42,11 +40,11 @@ import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
 
-import io.crate.analyze.NumberOfReplicas;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
+import io.crate.data.Row1;
 import io.crate.data.RowN;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.data.testing.TestingRowConsumer;
@@ -58,18 +56,17 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Functions;
-import io.crate.metadata.NodeContext;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.settings.NumberOfReplicas;
 import io.crate.types.DataTypes;
 
 public class IndexWriterProjectorTest extends IntegTestCase {
 
-    private static final ColumnIdent ID_IDENT = new ColumnIdent("id");
+    private static final ColumnIdent ID_IDENT = ColumnIdent.of("id");
 
 
     @Test
@@ -92,10 +89,10 @@ public class IndexWriterProjectorTest extends IntegTestCase {
             threadPool.scheduler(),
             threadPool.executor(ThreadPool.Names.SEARCH),
             CoordinatorTxnCtx.systemTransactionContext(),
-            new NodeContext(cluster().getInstance(Functions.class), null),
+            createNodeContext(),
             Settings.EMPTY,
             IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.get(tableSettings),
-            NumberOfReplicas.fromSettings(tableSettings, state.nodes().getSize()),
+            NumberOfReplicas.effectiveNumReplicas(tableSettings, state.nodes()),
             cluster().client(),
             IndexNameResolver.forTable(bulkImportIdent),
             new SimpleReference(new ReferenceIdent(bulkImportIdent, DocSysColumns.RAW),
@@ -126,11 +123,11 @@ public class IndexWriterProjectorTest extends IntegTestCase {
         consumer.accept(writerProjector.apply(rowsIterator), null);
         Bucket objects = consumer.getBucket();
 
-        assertThat(objects, contains(isRow(100L)));
+        assertThat(objects).containsExactly(new Row1(100L));
 
         execute("refresh table bulk_import");
         execute("select count(*) from bulk_import");
-        assertThat(response.rowCount(), is(1L));
-        assertThat(response.rows()[0][0], is(100L));
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response.rows()[0][0]).isEqualTo(100L);
     }
 }

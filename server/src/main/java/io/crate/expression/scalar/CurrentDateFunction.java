@@ -21,7 +21,10 @@
 
 package io.crate.expression.scalar;
 
+import java.util.EnumSet;
+
 import io.crate.data.Input;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -33,12 +36,12 @@ public final class CurrentDateFunction extends Scalar<Long, String> {
 
     public static final String NAME = "curdate";
 
-    public static void register(ScalarFunctionModule module) {
-        module.register(
+    public static void register(Functions.Builder module) {
+        module.add(
             Signature.scalar(
-                NAME,
-                DataTypes.DATE.getTypeSignature()
-            ).withFeatures(NO_FEATURES),
+                    NAME,
+                    DataTypes.DATE.getTypeSignature()
+                ).withFeatures(EnumSet.of(Feature.NON_NULLABLE)),
             CurrentDateFunction::new
         );
     }

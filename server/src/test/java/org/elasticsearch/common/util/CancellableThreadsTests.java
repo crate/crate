@@ -20,8 +20,9 @@
  */
 package org.elasticsearch.common.util;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 
@@ -75,7 +76,7 @@ public class CancellableThreadsTests extends ESTestCase {
 
         @Override
         public void run() throws InterruptedException {
-            assertFalse("interrupt thread should have been clear", Thread.currentThread().isInterrupted());
+            assertThat(Thread.currentThread().isInterrupted()).as("interrupt thread should have been clear").isFalse();
             if (plan.exceptBeforeCancel) {
                 throw new CustomException("thread [" + plan.id + "] pre-cancel exception");
             } else if (plan.exitBeforeCancel) {
@@ -144,7 +145,7 @@ public class CancellableThreadsTests extends ESTestCase {
         cancellableThreads.cancel("test");
         for (Thread thread : threads) {
             thread.join(20000);
-            assertFalse(thread.isAlive());
+            assertThat(thread.isAlive()).isFalse();
         }
         for (int i = 0; i < threads.length; i++) {
             TestPlan plan = plans[i];
@@ -169,7 +170,7 @@ public class CancellableThreadsTests extends ESTestCase {
                     assertThat(exceptions[i].getSuppressed(), Matchers.emptyArray());
                 }
             }
-            assertThat(interrupted[plan.id], equalTo(plan.presetInterrupt));
+            assertThat(interrupted[plan.id]).isEqualTo(plan.presetInterrupt);
         }
         assertThat(
             invokeTimes.longValue(),
@@ -179,9 +180,11 @@ public class CancellableThreadsTests extends ESTestCase {
                     .count())
         );
         if (throwInOnCancel) {
-            expectThrows(ThrowOnCancelException.class, cancellableThreads::checkForCancel);
+            assertThatThrownBy(cancellableThreads::checkForCancel)
+                .isExactlyInstanceOf(ThrowOnCancelException.class);
         } else {
-            expectThrows(ExecutionCancelledException.class, cancellableThreads::checkForCancel);
+            assertThatThrownBy(cancellableThreads::checkForCancel)
+                .isExactlyInstanceOf(ExecutionCancelledException.class);
         }
         assertThat(
             invokeTimes.longValue(),

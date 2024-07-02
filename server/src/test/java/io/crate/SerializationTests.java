@@ -21,7 +21,7 @@
 
 package io.crate;
 
-import static org.junit.Assert.assertEquals;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.util.UUID;
 
@@ -57,10 +57,10 @@ public class SerializationTests extends ESTestCase {
 
         PutChunkReplicaRequest requestIn = new PutChunkReplicaRequest(inputStream);
 
-        assertEquals(requestOut.currentPos, requestIn.currentPos);
-        assertEquals(requestOut.isLast, requestIn.isLast);
-        assertEquals(requestOut.content, requestIn.content);
-        assertEquals(requestOut.transferId, requestIn.transferId);
-        assertEquals(requestOut.index(), requestIn.index());
+        assertThat(requestOut.currentPos).isEqualTo(requestIn.currentPos);
+        assertThat(requestOut.isLast).isEqualTo(requestIn.isLast);
+        assertThat(requestOut.content).isEqualTo(requestIn.content);
+        assertThat(requestOut.transferId).isEqualTo(requestIn.transferId);
+        assertThat(requestOut.index()).isEqualTo(requestIn.index());
     }
 }

@@ -23,9 +23,7 @@ package io.crate.execution.engine.collect.collectors;
 
 import static io.crate.testing.DiscoveryNodes.newNode;
 import static io.crate.testing.TestingHelpers.createNodeContext;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
-import static org.mockito.ArgumentMatchers.any;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -40,17 +38,17 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 
-import io.crate.action.FutureActionListener;
 import io.crate.analyze.OrderBy;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.testing.BatchIteratorTester;
+import io.crate.data.testing.BatchIteratorTester.ResultOrder;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.engine.collect.stats.NodeStatsRequest;
 import io.crate.execution.engine.collect.stats.NodeStatsResponse;
@@ -84,12 +82,8 @@ public class NodeStatsTest extends ESTestCase {
 
     @Before
     public void prepare() {
-        nodeStatsAction = mock(TransportNodeStatsAction.class);
-        nodeStatesExecutor = req -> {
-            FutureActionListener listener = FutureActionListener.newInstance();
-            nodeStatsAction.doExecute(req, listener);
-            return listener;
-        };
+        nodeStatsAction = mock(TransportNodeStatsAction.class, Answers.RETURNS_MOCKS);
+        nodeStatesExecutor = req -> nodeStatsAction.execute(req);
 
         idRef = new SimpleReference(
             new ReferenceIdent(SysNodesTableInfo.IDENT, SysNodesTableInfo.Columns.ID),
@@ -177,16 +171,17 @@ public class NodeStatsTest extends ESTestCase {
 
         ArgumentCaptor<NodeStatsRequest> req = ArgumentCaptor.forClass(NodeStatsRequest.class);
         // Hostnames needs to be collected so requests need to be performed
-        verify(nodeStatsAction, times(2)).doExecute(req.capture(), any(ActionListener.class));
+        //noinspection unchecked
+        verify(nodeStatsAction, times(2)).execute(req.capture());
         var capturedReq1 = req.getAllValues().get(0);
         var capturedReq2 = req.getAllValues().get(1);
 
         assertThat(req.getAllValues().stream()
                        .map(NodeStatsRequest::nodeId)
                        .sorted()
-                       .collect(Collectors.toList()), is(List.of("nodeOne", "nodeTwo")));
-        assertThat(capturedReq1.timeout(), is(TimeValue.timeValueMillis(3000L)));
-        assertThat(capturedReq2.timeout(), is(TimeValue.timeValueMillis(3000L)));
+                       .collect(Collectors.toList())).containsExactly("nodeOne", "nodeTwo");
+        assertThat(capturedReq1.timeout()).isEqualTo(TimeValue.timeValueMillis(3000L));
+        assertThat(capturedReq2.timeout()).isEqualTo(TimeValue.timeValueMillis(3000L));
 
         verifyNoMoreInteractions(nodeStatsAction);
     }
@@ -209,7 +204,7 @@ public class NodeStatsTest extends ESTestCase {
             nodes,
             txnCtx,
             new InputFactory(nodeCtx)
-        ));
+        ), ResultOrder.EXACT);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
 }

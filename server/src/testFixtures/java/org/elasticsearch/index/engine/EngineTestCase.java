@@ -28,12 +28,8 @@ import static org.elasticsearch.index.engine.Engine.Operation.Origin.PRIMARY;
 import static org.elasticsearch.index.engine.Engine.Operation.Origin.REPLICA;
 import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
 import static org.elasticsearch.index.translog.TranslogDeletionPolicies.createTranslogDeletionPolicy;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -56,8 +52,6 @@ import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import java.util.function.ToLongBiFunction;
 import java.util.stream.Collectors;
-
-import org.jetbrains.annotations.Nullable;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.analysis.Analyzer;
@@ -83,13 +77,11 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ReferenceManager;
 import org.apache.lucene.search.TermQuery;
-import org.apache.lucene.search.TotalHitCountCollector;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
-import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.AllocationId;
 import org.elasticsearch.common.Randomness;
@@ -99,20 +91,13 @@ import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.index.MapperTestUtils;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.codec.CodecService;
 import org.elasticsearch.index.fieldvisitor.IDVisitor;
-import org.elasticsearch.index.mapper.IdFieldMapper;
-import org.elasticsearch.index.mapper.KeywordFieldMapper;
-import org.elasticsearch.index.mapper.MapperService;
-import org.elasticsearch.index.mapper.Mapping;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.SequenceIDFields;
-import org.elasticsearch.index.mapper.SourceFieldMapper;
 import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.seqno.LocalCheckpointTracker;
 import org.elasticsearch.index.seqno.ReplicationTracker;
@@ -128,11 +113,13 @@ import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.IndexSettingsModule;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
+import io.crate.execution.dml.StringIndexer;
 import io.crate.metadata.doc.DocSysColumns;
 
 public abstract class EngineTestCase extends ESTestCase {
@@ -176,7 +163,7 @@ public abstract class EngineTestCase extends ESTestCase {
     public void setUp() throws Exception {
         super.setUp();
         primaryTerm.set(randomLongBetween(1, Long.MAX_VALUE));
-        CodecService codecService = new CodecService(null, logger);
+        CodecService codecService = new CodecService();
         String name = Codec.getDefault().getName();
         if (Arrays.asList(codecService.availableCodecs()).contains(name)) {
             // some codecs are read only so we only take the ones that we have in the service and randomly
@@ -196,8 +183,8 @@ public abstract class EngineTestCase extends ESTestCase {
         engine = createEngine(store, primaryTranslogDir);
         LiveIndexWriterConfig currentIndexWriterConfig = engine.getCurrentIndexWriterConfig();
 
-        assertEquals(engine.config().getCodec().getName(), codecService.codec(codecName).getName());
-        assertEquals(currentIndexWriterConfig.getCodec().getName(), codecService.codec(codecName).getName());
+        assertThat(codecService.codec(codecName).getName()).isEqualTo(engine.config().getCodec().getName());
+        assertThat(codecService.codec(codecName).getName()).isEqualTo(currentIndexWriterConfig.getCodec().getName());
         if (randomBoolean()) {
             engine.config().setEnableGcDeletes(false);
         }
@@ -205,8 +192,8 @@ public abstract class EngineTestCase extends ESTestCase {
         replicaEngine = createEngine(storeReplica, replicaTranslogDir);
         currentIndexWriterConfig = replicaEngine.getCurrentIndexWriterConfig();
 
-        assertEquals(replicaEngine.config().getCodec().getName(), codecService.codec(codecName).getName());
-        assertEquals(currentIndexWriterConfig.getCodec().getName(), codecService.codec(codecName).getName());
+        assertThat(codecService.codec(codecName).getName()).isEqualTo(replicaEngine.config().getCodec().getName());
+        assertThat(codecService.codec(codecName).getName()).isEqualTo(currentIndexWriterConfig.getCodec().getName());
         if (randomBoolean()) {
             engine.config().setEnableGcDeletes(false);
         }
@@ -220,7 +207,7 @@ public abstract class EngineTestCase extends ESTestCase {
             config.getStore(),
             config.getMergePolicy(),
             config.getAnalyzer(),
-            new CodecService(null, logger),
+            new CodecService(),
             config.getEventListener(),
             config.getQueryCache(),
             config.getQueryCachingPolicy(),
@@ -244,7 +231,7 @@ public abstract class EngineTestCase extends ESTestCase {
             config.getStore(),
             config.getMergePolicy(),
             analyzer,
-            new CodecService(null, logger),
+            new CodecService(),
             config.getEventListener(),
             config.getQueryCache(),
             config.getQueryCachingPolicy(),
@@ -267,7 +254,7 @@ public abstract class EngineTestCase extends ESTestCase {
             config.getStore(),
             mergePolicy,
             config.getAnalyzer(),
-            new CodecService(null, logger),
+            new CodecService(),
             config.getEventListener(),
             config.getQueryCache(),
             config.getQueryCachingPolicy(),
@@ -290,14 +277,14 @@ public abstract class EngineTestCase extends ESTestCase {
         try {
             if (engine != null && engine.isClosed.get() == false) {
                 engine.getTranslog().getDeletionPolicy().assertNoOpenTranslogRefs();
-                assertConsistentHistoryBetweenTranslogAndLuceneIndex(engine, createMapperService("test"));
+                assertConsistentHistoryBetweenTranslogAndLuceneIndex(engine);
                 assertNoInFlightDocuments(engine);
                 assertMaxSeqNoInCommitUserData(engine);
                 assertAtMostOneLuceneDocumentPerSequenceNumber(engine);
             }
             if (replicaEngine != null && replicaEngine.isClosed.get() == false) {
                 replicaEngine.getTranslog().getDeletionPolicy().assertNoOpenTranslogRefs();
-                assertConsistentHistoryBetweenTranslogAndLuceneIndex(replicaEngine, createMapperService("test"));
+                assertConsistentHistoryBetweenTranslogAndLuceneIndex(replicaEngine);
                 assertNoInFlightDocuments(replicaEngine);
                 assertMaxSeqNoInCommitUserData(replicaEngine);
                 assertAtMostOneLuceneDocumentPerSequenceNumber(replicaEngine);
@@ -321,7 +308,7 @@ public abstract class EngineTestCase extends ESTestCase {
     protected static Document testDocumentWithKeywordField(String value) {
         Document document = testDocument();
         var binaryValue = new BytesRef(value);
-        document.add(new Field("value", binaryValue, KeywordFieldMapper.Defaults.FIELD_TYPE));
+        document.add(new Field("value", binaryValue, StringIndexer.FIELD_TYPE));
         document.add(new SortedSetDocValuesField("value", binaryValue));
         return document;
     }
@@ -331,22 +318,22 @@ public abstract class EngineTestCase extends ESTestCase {
     }
 
     public static ParsedDocument createParsedDoc(String id) {
-        return testParsedDocument(id, testDocumentWithKeywordField("test"), new BytesArray("{ \"value\" : \"test\" }"), null);
+        return testParsedDocument(id, testDocumentWithKeywordField("test"), new BytesArray("{ \"value\" : \"test\" }"));
     }
 
     public static ParsedDocument createParsedDoc(String id, boolean recoverySource) {
-        return testParsedDocument(id, testDocumentWithTextField(), new BytesArray("{ \"value\" : \"test\" }"), null,
+        return testParsedDocument(id, testDocumentWithTextField(), new BytesArray("{ \"value\" : \"test\" }"),
             recoverySource);
     }
 
     protected static ParsedDocument testParsedDocument(
-        String id, Document document, BytesReference source, Mapping mappingUpdate) {
-        return testParsedDocument(id, document, source, mappingUpdate, false);
+        String id, Document document, BytesReference source) {
+        return testParsedDocument(id, document, source, false);
     }
 
-    protected static ParsedDocument testParsedDocument(String id, Document document, BytesReference source, Mapping mappingUpdate,
-        boolean recoverySource) {
-        Field uidField = new Field("_id", Uid.encodeId(id), IdFieldMapper.Defaults.FIELD_TYPE);
+    protected static ParsedDocument testParsedDocument(String id, Document document, BytesReference source,
+                                                       boolean recoverySource) {
+        Field uidField = new Field("_id", Uid.encodeId(id), DocSysColumns.ID.FIELD_TYPE);
         Field versionField = new NumericDocValuesField("_version", 0);
         SequenceIDFields seqID = SequenceIDFields.emptySeqID();
         document.add(uidField);
@@ -356,12 +343,12 @@ public abstract class EngineTestCase extends ESTestCase {
         document.add(seqID.primaryTerm);
         BytesRef ref = source.toBytesRef();
         if (recoverySource) {
-            document.add(new StoredField(SourceFieldMapper.RECOVERY_SOURCE_NAME, ref.bytes, ref.offset, ref.length));
-            document.add(new NumericDocValuesField(SourceFieldMapper.RECOVERY_SOURCE_NAME, 1));
+            document.add(new StoredField(DocSysColumns.Source.RECOVERY_NAME, ref.bytes, ref.offset, ref.length));
+            document.add(new NumericDocValuesField(DocSysColumns.Source.RECOVERY_NAME, 1));
         } else {
-            document.add(new StoredField(SourceFieldMapper.NAME, ref.bytes, ref.offset, ref.length));
+            document.add(new StoredField(DocSysColumns.Source.NAME, ref.bytes, ref.offset, ref.length));
         }
-        return new ParsedDocument(versionField, seqID, id, document, source, mappingUpdate);
+        return new ParsedDocument(versionField, seqID, id, document, source);
     }
 
     /**
@@ -372,7 +359,7 @@ public abstract class EngineTestCase extends ESTestCase {
             @Override
             public ParsedDocument newDeleteTombstoneDoc(String id) {
                 final Document doc = new Document();
-                Field uidField = new Field(IdFieldMapper.NAME, Uid.encodeId(id), IdFieldMapper.Defaults.FIELD_TYPE);
+                Field uidField = new Field(DocSysColumns.Names.ID, Uid.encodeId(id), DocSysColumns.ID.FIELD_TYPE);
                 doc.add(uidField);
                 Field versionField = new NumericDocValuesField(DocSysColumns.VERSION.name(), 0);
                 doc.add(versionField);
@@ -383,7 +370,7 @@ public abstract class EngineTestCase extends ESTestCase {
                 seqID.tombstoneField.setLongValue(1);
                 doc.add(seqID.tombstoneField);
                 return new ParsedDocument(
-                    versionField, seqID, id, doc, new BytesArray("{}"), null);
+                    versionField, seqID, id, doc, new BytesArray("{}"));
             }
 
             @Override
@@ -398,9 +385,9 @@ public abstract class EngineTestCase extends ESTestCase {
                 Field versionField = new NumericDocValuesField(DocSysColumns.VERSION.name(), 0);
                 doc.add(versionField);
                 BytesRef byteRef = new BytesRef(reason);
-                doc.add(new StoredField(SourceFieldMapper.NAME, byteRef.bytes, byteRef.offset, byteRef.length));
+                doc.add(new StoredField(DocSysColumns.Source.NAME, byteRef.bytes, byteRef.offset, byteRef.length));
                 return new ParsedDocument(
-                    versionField, seqID, null, doc, null, null);
+                    versionField, seqID, null, doc, null);
             }
         };
     }
@@ -430,7 +417,7 @@ public abstract class EngineTestCase extends ESTestCase {
     }
 
     protected TranslogHandler createTranslogHandler(IndexSettings indexSettings) {
-        return new TranslogHandler(xContentRegistry(), indexSettings);
+        return new TranslogHandler(indexSettings);
     }
 
     protected InternalEngine createEngine(Store store, Path translogPath) throws IOException {
@@ -704,7 +691,7 @@ public abstract class EngineTestCase extends ESTestCase {
             store,
             mergePolicy,
             iwc.getAnalyzer(),
-            new CodecService(null, logger),
+            new CodecService(),
             eventListener,
             IndexSearcher.getDefaultQueryCache(),
             IndexSearcher.getDefaultQueryCachingPolicy(),
@@ -739,7 +726,7 @@ public abstract class EngineTestCase extends ESTestCase {
             store,
             config.getMergePolicy(),
             config.getAnalyzer(),
-            new CodecService(null, logger),
+            new CodecService(),
             config.getEventListener(),
             config.getQueryCache(),
             config.getQueryCachingPolicy(),
@@ -844,9 +831,8 @@ public abstract class EngineTestCase extends ESTestCase {
             engine.refresh("test");
         }
         try (Engine.Searcher searcher = engine.acquireSearcher("test")) {
-            final TotalHitCountCollector collector = new TotalHitCountCollector();
-            searcher.search(new MatchAllDocsQuery(), collector);
-            assertThat(collector.getTotalHits(), equalTo(numDocs));
+            int totalHits = searcher.count(new MatchAllDocsQuery());
+            assertThat(totalHits).isEqualTo(numDocs);
         }
     }
 
@@ -881,7 +867,7 @@ public abstract class EngineTestCase extends ESTestCase {
             if (randomBoolean()) {
                 op = new Engine.Index(
                     id,
-                    testParsedDocument(docId, testDocumentWithTextField(valuePrefix + i), SOURCE, null),
+                    testParsedDocument(docId, testDocumentWithTextField(valuePrefix + i), SOURCE),
                     forReplica && i >= startWithSeqNo ? i * 2 : UNASSIGNED_SEQ_NO,
                     forReplica && i >= startWithSeqNo && incrementTermWhenIntroducingSeqNo ? primaryTerm + 1 : primaryTerm,
                     version,
@@ -1008,9 +994,9 @@ public abstract class EngineTestCase extends ESTestCase {
                 // a delete state and return false for the created flag in favor of code simplicity
                 // as deleted or not. This check is just signal regression so a decision can be made if it's
                 // intentional
-                assertThat(result.isCreated(), equalTo(firstOp));
-                assertThat(result.getVersion(), equalTo(op.version()));
-                assertThat(result.getResultType(), equalTo(Engine.Result.Type.SUCCESS));
+                assertThat(result.isCreated()).isEqualTo(firstOp);
+                assertThat(result.getVersion()).isEqualTo(op.version());
+                assertThat(result.getResultType()).isEqualTo(Engine.Result.Type.SUCCESS);
 
             } else {
                 Engine.DeleteResult result = replicaEngine.delete((Engine.Delete) op);
@@ -1019,9 +1005,9 @@ public abstract class EngineTestCase extends ESTestCase {
                 // a delete state and return true for the found flag in favor of code simplicity
                 // his check is just signal regression so a decision can be made if it's
                 // intentional
-                assertThat(result.isFound(), equalTo(firstOp == false));
-                assertThat(result.getVersion(), equalTo(op.version()));
-                assertThat(result.getResultType(), equalTo(Engine.Result.Type.SUCCESS));
+                assertThat(result.isFound()).isEqualTo(firstOp == false);
+                assertThat(result.getVersion()).isEqualTo(op.version());
+                assertThat(result.getResultType()).isEqualTo(Engine.Result.Type.SUCCESS);
             }
             if (randomBoolean()) {
                 replicaEngine.refresh("test");
@@ -1036,9 +1022,8 @@ public abstract class EngineTestCase extends ESTestCase {
         assertVisibleCount(replicaEngine, lastFieldValue == null ? 0 : 1);
         if (lastFieldValue != null) {
             try (Engine.Searcher searcher = replicaEngine.acquireSearcher("test")) {
-                final TotalHitCountCollector collector = new TotalHitCountCollector();
-                searcher.search(new TermQuery(new Term("value", lastFieldValue)), collector);
-                assertThat(collector.getTotalHits(), equalTo(1));
+                int totalHits = searcher.count(new TermQuery(new Term("value", lastFieldValue)));
+                assertThat(totalHits).isEqualTo(1);
             }
         }
     }
@@ -1136,10 +1121,10 @@ public abstract class EngineTestCase extends ESTestCase {
                             continue;
                         }
                         final long primaryTerm = primaryTermDocValues.longValue();
-                        Document doc = reader.document(i, Set.of(IdFieldMapper.NAME, SourceFieldMapper.NAME));
-                        BytesRef binaryID = doc.getBinaryValue(IdFieldMapper.NAME);
+                        Document doc = reader.document(i, Set.of(DocSysColumns.Names.ID, DocSysColumns.Source.NAME));
+                        BytesRef binaryID = doc.getBinaryValue(DocSysColumns.Names.ID);
                         String id = Uid.decodeId(Arrays.copyOfRange(binaryID.bytes, binaryID.offset, binaryID.offset + binaryID.length));
-                        final BytesRef source = doc.getBinaryValue(SourceFieldMapper.NAME);
+                        final BytesRef source = doc.getBinaryValue(DocSysColumns.Source.NAME);
                         if (seqNoDocValues.advanceExact(i) == false) {
                             throw new AssertionError("seqNoDocValues not found for doc[" + i + "] id[" + id + "]");
                         }
@@ -1163,10 +1148,10 @@ public abstract class EngineTestCase extends ESTestCase {
      * Reads all engine operations that have been processed by the engine from Lucene index.
      * The returned operations are sorted and de-duplicated, thus each sequence number will be have at most one operation.
      */
-    public static List<Translog.Operation> readAllOperationsInLucene(Engine engine, MapperService mapper) throws IOException {
+    public static List<Translog.Operation> readAllOperationsInLucene(Engine engine) throws IOException {
         final List<Translog.Operation> operations = new ArrayList<>();
         long maxSeqNo = Math.max(0, ((InternalEngine) engine).getLocalCheckpointTracker().getMaxSeqNo());
-        try (Translog.Snapshot snapshot = engine.newChangesSnapshot("test", mapper, 0, maxSeqNo, false)) {
+        try (Translog.Snapshot snapshot = engine.newChangesSnapshot("test", 0, maxSeqNo, false)) {
             Translog.Operation op;
             while ((op = snapshot.next()) != null) {
                 operations.add(op);
@@ -1178,7 +1163,7 @@ public abstract class EngineTestCase extends ESTestCase {
     /**
      * Asserts the provided engine has a consistent document history between translog and Lucene index.
      */
-    public static void assertConsistentHistoryBetweenTranslogAndLuceneIndex(Engine engine, MapperService mapper) throws IOException {
+    public static void assertConsistentHistoryBetweenTranslogAndLuceneIndex(Engine engine) throws IOException {
         if (engine.config().getIndexSettings().isSoftDeleteEnabled() == false || (engine instanceof InternalEngine) == false) {
             return;
         }
@@ -1193,7 +1178,7 @@ public abstract class EngineTestCase extends ESTestCase {
                 translogOps.put(op.seqNo(), op);
             }
         }
-        final Map<Long, Translog.Operation> luceneOps = readAllOperationsInLucene(engine, mapper).stream()
+        final Map<Long, Translog.Operation> luceneOps = readAllOperationsInLucene(engine).stream()
             .collect(Collectors.toMap(Translog.Operation::seqNo, Function.identity()));
         final long globalCheckpoint = EngineTestCase.getTranslog(engine).getLastSyncedGlobalCheckpoint();
         final long retainedOps = engine.config().getIndexSettings().getSoftDeleteRetentionOperations();
@@ -1215,11 +1200,11 @@ public abstract class EngineTestCase extends ESTestCase {
                     continue;
                 }
             }
-            assertThat(luceneOp, notNullValue());
-            assertThat(luceneOp.toString(), luceneOp.primaryTerm(), equalTo(translogOp.primaryTerm()));
-            assertThat(luceneOp.opType(), equalTo(translogOp.opType()));
+            assertThat(luceneOp).isNotNull();
+            assertThat(luceneOp.primaryTerm()).as(luceneOp.toString()).isEqualTo(translogOp.primaryTerm());
+            assertThat(luceneOp.opType()).isEqualTo(translogOp.opType());
             if (luceneOp.opType() == Translog.Operation.Type.INDEX) {
-                assertThat(luceneOp.getSource(), equalTo(translogOp.getSource()));
+                assertThat(luceneOp.getSource()).isEqualTo(translogOp.getSource());
             }
         }
     }
@@ -1259,31 +1244,18 @@ public abstract class EngineTestCase extends ESTestCase {
             NumericDocValues seqNoDocValues = leaf.reader().getNumericDocValues(DocSysColumns.Names.SEQ_NO);
             int docId;
             while ((docId = seqNoDocValues.nextDoc()) != DocIdSetIterator.NO_MORE_DOCS) {
-                assertTrue(seqNoDocValues.advanceExact(docId));
+                assertThat(seqNoDocValues.advanceExact(docId)).isTrue();
                 long seqNo = seqNoDocValues.longValue();
                 assertThat(seqNo, greaterThanOrEqualTo(0L));
                 if (primaryTermDocValues.advanceExact(docId)) {
                     if (seqNos.add(seqNo) == false) {
-                        IDVisitor idFieldVisitor = new IDVisitor(IdFieldMapper.NAME);
+                        IDVisitor idFieldVisitor = new IDVisitor(DocSysColumns.Names.ID);
                         leaf.reader().document(docId, idFieldVisitor);
                         throw new AssertionError("found multiple documents for seq=" + seqNo + " id=" + idFieldVisitor.getId());
                     }
                 }
             }
         }
-    }
-
-    public static MapperService createMapperService(String type) throws IOException {
-        IndexMetadata indexMetadata = IndexMetadata.builder("test")
-            .settings(Settings.builder()
-                .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
-                .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1).put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 1))
-            .putMapping("{\"properties\": {}}")
-            .build();
-        MapperService mapperService = MapperTestUtils.newMapperService(new NamedXContentRegistry(ClusterModule.getNamedXWriteables()),
-            createTempDir(), Settings.EMPTY, "test");
-        mapperService.merge(indexMetadata, MapperService.MergeReason.MAPPING_UPDATE);
-        return mapperService;
     }
 
     /**

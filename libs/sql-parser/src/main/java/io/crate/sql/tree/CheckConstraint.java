@@ -21,9 +21,9 @@
 
 package io.crate.sql.tree;
 
-import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -31,22 +31,13 @@ public class CheckConstraint<T> extends TableElement<T> {
 
     @Nullable
     private final String name;
-    @Nullable
-    private final String columnName;
     private final T expression;
     private final String expressionStr;
-    private final List<Short> positions;
 
-    public CheckConstraint(@Nullable String name, @Nullable String columnName, T expression, String expressionStr) {
-        this(name, columnName, expression, expressionStr, List.of());
-    }
-
-    public CheckConstraint(@Nullable String name, @Nullable String columnName, T expression, String expressionStr, List<Short> positions) {
+    public CheckConstraint(@Nullable String name, T expression, String expressionStr) {
         this.name = name;
-        this.columnName = columnName;
         this.expression = expression;
         this.expressionStr = expressionStr;
-        this.positions = positions;
     }
 
     @Nullable
@@ -54,26 +45,22 @@ public class CheckConstraint<T> extends TableElement<T> {
         return name;
     }
 
-    @Nullable
-    public String columnName() {
-        return columnName;
-    }
 
     public T expression() {
         return expression;
+    }
+
+    public <U> CheckConstraint<U> map(Function<? super T, ? extends U> mapper) {
+        return new CheckConstraint<U>(name, mapper.apply(expression), expressionStr);
     }
 
     public String expressionStr() {
         return expressionStr;
     }
 
-    public List<Short> positions() {
-        return positions;
-    }
-
     @Override
     public int hashCode() {
-        return Objects.hash(name, columnName, expression);
+        return Objects.hash(name, expression);
     }
 
     @Override
@@ -81,13 +68,12 @@ public class CheckConstraint<T> extends TableElement<T> {
         if (this == o) {
             return true;
         }
-        if (o == null || false == o instanceof CheckConstraint) {
+        if (o instanceof CheckConstraint == false) {
             return false;
         }
         CheckConstraint<?> that = (CheckConstraint<?>) o;
         return Objects.equals(expression, that.expression) &&
-               Objects.equals(name, that.name) &&
-               Objects.equals(columnName, that.columnName);
+               Objects.equals(name, that.name);
     }
 
     @Override
@@ -104,7 +90,6 @@ public class CheckConstraint<T> extends TableElement<T> {
     public String toString() {
         return "CheckConstraint{" +
                "name='" + name + '\'' +
-               ", columnName='" + columnName + '\'' +
                ", expression=" + expression +
                '}';
     }

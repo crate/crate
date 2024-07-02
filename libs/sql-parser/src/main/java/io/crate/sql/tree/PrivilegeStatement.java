@@ -25,32 +25,33 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-public abstract class PrivilegeStatement extends Statement {
+public abstract sealed class PrivilegeStatement extends Statement
+    permits GrantPrivilege, RevokePrivilege, DenyPrivilege {
 
     protected final List<String> userNames;
-    protected final List<String> privilegeTypes;
+    protected final List<String> permissions;
     private final List<QualifiedName> tableOrSchemaNames;
-    private final String clazz;
+    private final String securable;
     protected final boolean all;
 
-    public PrivilegeStatement(List<String> userNames, String clazz, List<QualifiedName> tableOrSchemaNames) {
+    protected PrivilegeStatement(List<String> userNames, String securable, List<QualifiedName> tableOrSchemaNames) {
         this.userNames = userNames;
-        privilegeTypes = Collections.emptyList();
+        permissions = Collections.emptyList();
         all = true;
-        this.clazz = clazz;
+        this.securable = securable;
         this.tableOrSchemaNames = tableOrSchemaNames;
     }
 
-    public PrivilegeStatement(List<String> userNames, List<String> privilegeTypes, String clazz, List<QualifiedName> tableOrSchemaNames) {
+    protected PrivilegeStatement(List<String> userNames, List<String> permissions, String securable, List<QualifiedName> tableOrSchemaNames) {
         this.userNames = userNames;
-        this.privilegeTypes = privilegeTypes;
+        this.permissions = permissions;
         this.all = false;
-        this.clazz = clazz;
+        this.securable = securable;
         this.tableOrSchemaNames = tableOrSchemaNames;
     }
 
     public List<String> privileges() {
-        return privilegeTypes;
+        return permissions;
     }
 
     public List<String> userNames() {
@@ -65,8 +66,8 @@ public abstract class PrivilegeStatement extends Statement {
         return tableOrSchemaNames;
     }
 
-    public String clazz() {
-        return clazz;
+    public String securable() {
+        return securable;
     }
 
     @Override
@@ -76,12 +77,12 @@ public abstract class PrivilegeStatement extends Statement {
         PrivilegeStatement that = (PrivilegeStatement) o;
         return all == that.all &&
                Objects.equals(userNames, that.userNames) &&
-               Objects.equals(privilegeTypes, that.privilegeTypes);
+               Objects.equals(permissions, that.permissions);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(userNames, privilegeTypes, all);
+        return Objects.hash(userNames, permissions, all);
     }
 
 }
