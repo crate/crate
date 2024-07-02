@@ -34,7 +34,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
-import io.crate.planner.optimizer.symbol.FunctionSymbolResolver;
+import io.crate.planner.optimizer.symbol.FunctionLookup;
 import io.crate.planner.optimizer.symbol.Rule;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -44,10 +44,8 @@ public class MoveReferenceCastToLiteralCastOnAnyOperatorsWhenLeftIsReference imp
 
     private final Capture<Function> castCapture;
     private final Pattern<Function> pattern;
-    private final FunctionSymbolResolver functionResolver;
 
-    public MoveReferenceCastToLiteralCastOnAnyOperatorsWhenLeftIsReference(FunctionSymbolResolver functionResolver) {
-        this.functionResolver = functionResolver;
+    public MoveReferenceCastToLiteralCastOnAnyOperatorsWhenLeftIsReference() {
         this.castCapture = new Capture<>();
         this.pattern = typeOf(Function.class)
             .with(f -> AnyOperator.OPERATOR_NAMES.contains(f.name()))
@@ -67,13 +65,14 @@ public class MoveReferenceCastToLiteralCastOnAnyOperatorsWhenLeftIsReference imp
     public Symbol apply(Function operator,
                         Captures captures,
                         NodeContext nodeCtx,
+                        FunctionLookup functionLookup,
                         Symbol parentNode) {
         var literalOrParam = operator.arguments().get(1);
         var castFunction = captures.get(castCapture);
         var reference = castFunction.arguments().get(0);
         DataType<?> targetType = new ArrayType<>(reference.valueType());
 
-        return functionResolver.apply(
+        return functionLookup.get(
             operator.name(),
             List.of(reference, literalOrParam.cast(targetType))
         );
