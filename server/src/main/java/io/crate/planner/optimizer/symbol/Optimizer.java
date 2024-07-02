@@ -24,13 +24,11 @@ package io.crate.planner.optimizer.symbol;
 import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
-import java.util.function.Function;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import io.crate.analyze.expressions.ExpressionAnalyzer;
-import io.crate.common.collections.Lists;
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.AliasResolver;
 import io.crate.expression.symbol.FunctionCopyVisitor;
@@ -50,52 +48,44 @@ import io.crate.planner.optimizer.symbol.rule.SwapCastsInLikeOperators;
 
 public class Optimizer {
 
+    private static final Logger LOGGER = LogManager.getLogger(Optimizer.class);
+    private static final List<Rule<?>> RULES = List.of(
+        new SwapCastsInComparisonOperators(),
+        new SwapCastsInLikeOperators(),
+        new MoveReferenceCastToLiteralCastOnAnyOperatorsWhenRightIsReference(),
+        new MoveReferenceCastToLiteralCastOnAnyOperatorsWhenLeftIsReference(),
+        new MoveSubscriptOnReferenceCastToLiteralCastInsideOperators(),
+        new MoveArrayLengthOnReferenceCastToLiteralCastInsideOperators(),
+        new SimplifyEqualsOperationOnIdenticalReferences()
+    );
 
     public static Symbol optimizeCasts(Symbol query, PlannerContext plannerCtx) {
         return optimizeCasts(query, plannerCtx.transactionContext(), plannerCtx.nodeContext());
     }
 
     public static Symbol optimizeCasts(Symbol query, TransactionContext txnCtx, NodeContext nodeCtx) {
-        Optimizer optimizer = new Optimizer(
-            txnCtx,
-            nodeCtx,
-            List.of(
-                SwapCastsInComparisonOperators::new,
-                SwapCastsInLikeOperators::new,
-                MoveReferenceCastToLiteralCastOnAnyOperatorsWhenRightIsReference::new,
-                MoveReferenceCastToLiteralCastOnAnyOperatorsWhenLeftIsReference::new,
-                MoveSubscriptOnReferenceCastToLiteralCastInsideOperators::new,
-                MoveArrayLengthOnReferenceCastToLiteralCastInsideOperators::new,
-                SimplifyEqualsOperationOnIdenticalReferences::new
-            )
-        );
+        Optimizer optimizer = new Optimizer(txnCtx, nodeCtx);
         return optimizer.optimize(query);
     }
 
-    private static final Logger LOGGER = LogManager.getLogger(Optimizer.class);
-
-    private final List<Rule<?>> rules;
     private final NodeContext nodeCtx;
     private final Visitor visitor = new Visitor();
+    private FunctionLookup functionLookup;
 
-    public Optimizer(TransactionContext txnCtx,
-                     NodeContext nodeCtx,
-                     List<Function<FunctionSymbolResolver, Rule<?>>> rules) {
-        FunctionSymbolResolver functionResolver =
-            (f, args) -> {
-                try {
-                    return ExpressionAnalyzer.allocateFunction(
-                        f,
-                        args,
-                        null,
-                        null,
-                        txnCtx,
-                        nodeCtx);
-                } catch (ConversionException e) {
-                    return null;
-                }
-            };
-        this.rules = Lists.map(rules, r -> r.apply(functionResolver));
+    public Optimizer(TransactionContext txnCtx, NodeContext nodeCtx) {
+        functionLookup = (f, args) -> {
+            try {
+                return ExpressionAnalyzer.allocateFunction(
+                    f,
+                    args,
+                    null,
+                    null,
+                    txnCtx,
+                    nodeCtx);
+            } catch (ConversionException e) {
+                return null;
+            }
+        };
         this.nodeCtx = nodeCtx;
     }
 
@@ -111,7 +101,7 @@ public class Optimizer {
         int numIterations = 0;
         while (!done && numIterations < 10_000) {
             done = true;
-            for (Rule<?> rule : rules) {
+            for (Rule<?> rule : RULES) {
                 Symbol transformed = tryMatchAndApply(rule, node, nodeCtx);
                 if (transformed != null) {
                     if (isTraceEnabled) {
@@ -134,7 +124,7 @@ public class Optimizer {
             if (LOGGER.isTraceEnabled()) {
                 LOGGER.trace("Rule '{}' matched", rule.getClass().getSimpleName());
             }
-            return rule.apply(match.value(), match.captures(), nodeCtx, visitor.getParentFunction());
+            return rule.apply(match.value(), match.captures(), nodeCtx, functionLookup, visitor.getParentFunction());
         }
         return null;
     }
@@ -166,5 +156,4 @@ public class Optimizer {
             return parent;
         }
     }
-
 }

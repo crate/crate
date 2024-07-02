@@ -37,7 +37,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
-import io.crate.planner.optimizer.symbol.FunctionSymbolResolver;
+import io.crate.planner.optimizer.symbol.FunctionLookup;
 import io.crate.planner.optimizer.symbol.Rule;
 import io.crate.types.DataType;
 
@@ -47,7 +47,7 @@ public class SwapCastsInComparisonOperators implements Rule<Function> {
     private final Capture<Function> castCapture;
     private final Pattern<Function> pattern;
 
-    public SwapCastsInComparisonOperators(FunctionSymbolResolver functionResolver) {
+    public SwapCastsInComparisonOperators() {
         this.castCapture = new Capture<>();
         this.pattern = typeOf(Function.class)
             .with(f -> COMPARISON_OPERATORS.contains(f.name()))
@@ -68,6 +68,7 @@ public class SwapCastsInComparisonOperators implements Rule<Function> {
     public Symbol apply(Function operator,
                         Captures captures,
                         NodeContext nodeCtx,
+                        FunctionLookup functionLookup,
                         Symbol parentNode) {
         var literalOrParam = operator.arguments().get(1);
         var castFunction = captures.get(castCapture);

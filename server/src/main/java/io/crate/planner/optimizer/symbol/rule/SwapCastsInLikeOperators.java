@@ -36,7 +36,7 @@ import io.crate.metadata.Reference;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
-import io.crate.planner.optimizer.symbol.FunctionSymbolResolver;
+import io.crate.planner.optimizer.symbol.FunctionLookup;
 import io.crate.planner.optimizer.symbol.Rule;
 import io.crate.types.StringType;
 
@@ -47,7 +47,7 @@ public class SwapCastsInLikeOperators implements Rule<Function> {
     private final Capture<Function> castCapture;
     private final Pattern<Function> pattern;
 
-    public SwapCastsInLikeOperators(FunctionSymbolResolver functionResolver) {
+    public SwapCastsInLikeOperators() {
         this.castCapture = new Capture<>();
         this.pattern = typeOf(Function.class)
             .with(f -> LIKE_OPERATORS.contains(f.name()))
@@ -64,7 +64,7 @@ public class SwapCastsInLikeOperators implements Rule<Function> {
     }
 
     @Override
-    public Symbol apply(Function likeFunction, Captures captures, NodeContext nodeCtx, Symbol parentNode) {
+    public Symbol apply(Function likeFunction, Captures captures, NodeContext nodeCtx, FunctionLookup functionLookup, Symbol parentNode) {
         var literalOrParam = likeFunction.arguments().get(1);
         var castFunction = captures.get(castCapture);
         var reference = castFunction.arguments().get(0);
