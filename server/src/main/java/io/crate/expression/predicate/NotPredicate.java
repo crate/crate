@@ -223,7 +223,7 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
             for (Reference nullableRef : ctx.nullableReferences()) {
                 // we can optimize with a field exist query and filter out all null values which will reduce the
                 // result set of the query
-                var refExistsQuery = IsNullPredicate.refExistsQuery(nullableRef, context, false);
+                var refExistsQuery = IsNullPredicate.refExistsQuery(nullableRef, context, true);
                 if (refExistsQuery != null) {
                     builder.add(refExistsQuery, BooleanClause.Occur.MUST);
                 }
