@@ -25,7 +25,6 @@ import static io.crate.expression.operator.Operators.COMPARISON_OPERATORS;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 
 import java.util.List;
-import java.util.Optional;
 
 import io.crate.expression.scalar.ArrayUpperFunction;
 import io.crate.expression.symbol.Function;
@@ -50,9 +49,9 @@ public class MoveArrayLengthOnReferenceCastToLiteralCastInsideOperators implemen
         this.pattern = typeOf(Function.class)
             .with(f -> COMPARISON_OPERATORS.contains(f.name()))
             .with(f -> f.arguments().get(1).symbolType().isValueOrParameterSymbol())
-            .with(f -> Optional.of(f.arguments().get(0)), typeOf(Function.class).capturedAs(castCapture)
+            .with(f -> f.arguments().get(0), typeOf(Function.class).capturedAs(castCapture)
                 .with(f -> f.isCast())
-                .with(f -> Optional.of(f.arguments().get(0)), typeOf(Function.class)
+                .with(f -> f.arguments().get(0), typeOf(Function.class)
                     .with(f -> f.name().equals(ArrayUpperFunction.ARRAY_LENGTH)
                                || f.name().equals(ArrayUpperFunction.ARRAY_UPPER))
                     .with(f -> f.arguments().get(0).symbolType() == SymbolType.REFERENCE)

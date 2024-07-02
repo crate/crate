@@ -21,7 +21,6 @@
 
 package io.crate.planner.optimizer.matcher;
 
-import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
@@ -34,7 +33,7 @@ public abstract class Pattern<T> {
         return new TypeOfPattern<>(expectedClass);
     }
 
-    public <U, V> Pattern<T> with(Function<? super T, Optional<U>> getProperty, Pattern<V> propertyPattern) {
+    public <U, V> Pattern<T> with(Function<? super T, U> getProperty, Pattern<V> propertyPattern) {
         return new WithPattern<>(this, getProperty, propertyPattern);
     }
 
