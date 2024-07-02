@@ -30,8 +30,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsAction;
-import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsRequest;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
@@ -205,10 +203,7 @@ public class BlobStoreIncrementalityIT extends AbstractSnapshotIntegTestCase {
 
         logger.info("--> asserting that the two snapshots refer to different files in the repository");
         final RepositoriesService repositoriesService = cluster().getInstance(RepositoriesService.class);
-        final SnapshotInfo snapshotInfo2 = client().admin().cluster()
-            .execute(GetSnapshotsAction.INSTANCE, new GetSnapshotsRequest(repo, new String[] { snapshot2 }))
-            .get()
-            .getSnapshots().get(0);
+        final SnapshotInfo snapshotInfo2 = snapshotInfo(repo, snapshot2);
 
         assertBusy(() -> {
             Map<ShardId, IndexShardSnapshotStatus> snapshotShards = getIndexShardSnapShotStates(
@@ -241,10 +236,7 @@ public class BlobStoreIncrementalityIT extends AbstractSnapshotIntegTestCase {
             "--> asserting that snapshots [{}] and [{}] are referring to the same files in the repository", snapshot1, snapshot2);
 
         final RepositoriesService repositoriesService = cluster().getInstance(RepositoriesService.class, dataNode);
-        final SnapshotInfo snapshotInfo1 = client().admin().cluster()
-            .execute(GetSnapshotsAction.INSTANCE, new GetSnapshotsRequest(repo, new String[] { snapshot1 }))
-            .get()
-            .getSnapshots().get(0);
+        final SnapshotInfo snapshotInfo1 = snapshotInfo(repo, snapshot1);
         final int[] fileCount = new int[1];
 
         assertBusy(() -> {
@@ -265,10 +257,7 @@ public class BlobStoreIncrementalityIT extends AbstractSnapshotIntegTestCase {
             assertThat(statusSnap.getIncrementalFileCount()).isEqualTo(statusSnap.getTotalFileCount());
         }, 30L, TimeUnit.SECONDS);
 
-        final SnapshotInfo snapshotInfo2 = client().admin().cluster()
-            .execute(GetSnapshotsAction.INSTANCE, new GetSnapshotsRequest(repo, new String[] { snapshot2 }))
-            .get()
-            .getSnapshots().get(0);
+        final SnapshotInfo snapshotInfo2 = snapshotInfo(repo, snapshot2);
 
         assertBusy(() -> {
             Map<ShardId, IndexShardSnapshotStatus> snapshotShards = getIndexShardSnapShotStates(
