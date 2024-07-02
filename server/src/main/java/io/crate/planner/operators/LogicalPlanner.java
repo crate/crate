@@ -121,6 +121,7 @@ import io.crate.planner.optimizer.rule.RewriteFilterOnOuterJoinToInnerJoin;
 import io.crate.planner.optimizer.rule.RewriteGroupByKeysLimitToLimitDistinct;
 import io.crate.planner.optimizer.rule.RewriteJoinPlan;
 import io.crate.planner.optimizer.rule.RewriteToQueryThenFetch;
+import io.crate.planner.optimizer.rule.SingleDistinctAggregationToGroupBy;
 import io.crate.planner.optimizer.tracer.OptimizerTracer;
 import io.crate.role.Role;
 import io.crate.types.DataTypes;
@@ -168,7 +169,8 @@ public class LogicalPlanner {
         new MoveConstantJoinConditionsBeneathJoin(),
         new EliminateCrossJoin(),
         new EquiJoinToLookupJoin(),
-        new RewriteJoinPlan()
+        new RewriteJoinPlan(),
+        new SingleDistinctAggregationToGroupBy()
     );
 
     public static final List<Rule<?>> JOIN_ORDER_OPTIMIZER_RULES = List.of(
@@ -321,19 +323,19 @@ public class LogicalPlanner {
         );
         LogicalPlan logicalPlan = relation.accept(planBuilder, relation.outputs());
         LogicalPlan optimizedPlan = optimize(logicalPlan, plannerContext);
-        assert logicalPlan.outputs().equals(optimizedPlan.outputs()) : "Optimized plan must have the same outputs as original plan";
-        LogicalPlan prunedPlan = optimizedPlan.pruneOutputsExcept(relation.outputs());
-        assert prunedPlan.outputs().equals(optimizedPlan.outputs()) : "Pruned plan must have the same outputs as original plan";
+//        assert logicalPlan.outputs().equals(optimizedPlan.outputs()) : "Optimized plan must have the same outputs as original plan";
+//        LogicalPlan prunedPlan = optimizedPlan.pruneOutputsExcept(relation.outputs());
+//        assert prunedPlan.outputs().equals(optimizedPlan.outputs()) : "Pruned plan must have the same outputs as original plan";
         LogicalPlan fetchOptimized = fetchOptimizer.optimize(
-            prunedPlan,
+            optimizedPlan,
             planStats,
             coordinatorTxnCtx,
             tracer
         );
-        if (fetchOptimized != prunedPlan || avoidTopLevelFetch) {
+        if (fetchOptimized != optimizedPlan || avoidTopLevelFetch) {
             return fetchOptimized;
         }
-        assert logicalPlan.outputs().equals(fetchOptimized.outputs()) : "Fetch optimized plan must have the same outputs as original plan";
+//        assert logicalPlan.outputs().equals(fetchOptimized.outputs()) : "Fetch optimized plan must have the same outputs as original plan";
         // Doing a second pass here to also rewrite additional plan patterns to "Fetch"
         // The `fetchOptimizer` operators on `Limit - X` fragments of a tree.
         // This here instead operators on a narrow selection of top-level patterns

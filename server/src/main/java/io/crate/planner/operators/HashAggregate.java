@@ -61,7 +61,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
     private static final String MERGE_PHASE_NAME = "mergeOnHandler";
     final List<Function> aggregates;
 
-    HashAggregate(LogicalPlan source, List<Function> aggregates) {
+    public HashAggregate(LogicalPlan source, List<Function> aggregates) {
         super(source);
         this.aggregates = aggregates;
     }
