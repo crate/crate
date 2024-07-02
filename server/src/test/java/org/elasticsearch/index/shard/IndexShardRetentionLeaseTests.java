@@ -21,8 +21,6 @@ package org.elasticsearch.index.shard;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.hasItem;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -385,7 +383,7 @@ public class IndexShardRetentionLeaseTests extends IndexShardTestCase {
 
         assertThat(idToRetentionLease.entrySet()).hasSize(size);
         for (int i = 0; i < size; i++) {
-            assertThat(idToRetentionLease.keySet(), hasItem(Integer.toString(i)));
+            assertThat(idToRetentionLease).containsKey(Integer.toString(i));
             final RetentionLease retentionLease = idToRetentionLease.get(Integer.toString(i));
             assertThat(retentionLease.retainingSequenceNumber()).isEqualTo(minimumRetainingSequenceNumbers[i]);
             assertThat(retentionLease.source()).isEqualTo("test-" + i);

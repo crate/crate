@@ -28,8 +28,6 @@ import static org.elasticsearch.index.engine.Engine.Operation.Origin.PRIMARY;
 import static org.elasticsearch.index.engine.Engine.Operation.Origin.REPLICA;
 import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
 import static org.elasticsearch.index.translog.TranslogDeletionPolicies.createTranslogDeletionPolicy;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -1216,8 +1214,8 @@ public abstract class EngineTestCase extends ESTestCase {
         List<IndexCommit> commits = DirectoryReader.listCommits(engine.store.directory());
         for (IndexCommit commit : commits) {
             try (DirectoryReader reader = DirectoryReader.open(commit)) {
-                assertThat(Long.parseLong(commit.getUserData().get(SequenceNumbers.MAX_SEQ_NO)),
-                    greaterThanOrEqualTo(maxSeqNosInReader(reader)));
+                assertThat(Long.parseLong(commit.getUserData().get(SequenceNumbers.MAX_SEQ_NO)))
+                    .isGreaterThanOrEqualTo(maxSeqNosInReader(reader));
             }
         }
     }
@@ -1246,7 +1244,7 @@ public abstract class EngineTestCase extends ESTestCase {
             while ((docId = seqNoDocValues.nextDoc()) != DocIdSetIterator.NO_MORE_DOCS) {
                 assertThat(seqNoDocValues.advanceExact(docId)).isTrue();
                 long seqNo = seqNoDocValues.longValue();
-                assertThat(seqNo, greaterThanOrEqualTo(0L));
+                assertThat(seqNo).isGreaterThanOrEqualTo(0L);
                 if (primaryTermDocValues.advanceExact(docId)) {
                     if (seqNos.add(seqNo) == false) {
                         IDVisitor idFieldVisitor = new IDVisitor(DocSysColumns.Names.ID);

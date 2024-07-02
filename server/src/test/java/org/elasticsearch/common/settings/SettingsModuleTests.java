@@ -23,9 +23,7 @@ package org.elasticsearch.common.settings;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.fail;
 
 import org.elasticsearch.common.settings.Setting.Property;
 import org.junit.Test;
@@ -74,7 +72,7 @@ public class SettingsModuleTests extends ModuleTestCase {
         {
             Settings settings = Settings.builder().put("index.codec", "default").build();
             SettingsModule module = new SettingsModule(settings);
-            assertInstanceBinding(module, Settings.class, (s) -> s == settings);
+            assertInstanceBinding(module, Settings.class, s -> s == settings);
         }
     }
 
@@ -83,7 +81,7 @@ public class SettingsModuleTests extends ModuleTestCase {
         {
             Settings settings = Settings.builder().put("some.custom.setting", "2.0").build();
             SettingsModule module = new SettingsModule(settings, Setting.floatSetting("some.custom.setting", 1.0f, Property.NodeScope));
-            assertInstanceBinding(module, Settings.class, (s) -> s == settings);
+            assertInstanceBinding(module, Settings.class, s -> s == settings);
         }
         {
             Settings settings = Settings.builder().put("some.custom.setting", "false").build();
@@ -101,7 +99,7 @@ public class SettingsModuleTests extends ModuleTestCase {
         {
             Settings settings = Settings.builder().put("logger._root", "TRACE").put("logger.transport", "INFO").build();
             SettingsModule module = new SettingsModule(settings);
-            assertInstanceBinding(module, Settings.class, (s) -> s == settings);
+            assertInstanceBinding(module, Settings.class, s -> s == settings);
         }
 
         {
@@ -122,7 +120,7 @@ public class SettingsModuleTests extends ModuleTestCase {
             new SettingsModule(Settings.EMPTY, Setting.simpleString("foo.bar"));
             fail("No scope should fail");
         } catch (IllegalArgumentException e) {
-            assertThat(e.getMessage(), containsString("No scope found for setting"));
+            assertThat(e.getMessage()).contains("No scope found for setting");
         }
         // Some settings have both scopes - that's fine too if they have per-node defaults
         try {
@@ -131,7 +129,7 @@ public class SettingsModuleTests extends ModuleTestCase {
                 Setting.simpleString("foo.bar", Property.NodeScope));
             fail("already registered");
         } catch (IllegalArgumentException e) {
-            assertThat(e.getMessage(), containsString("Cannot register setting [foo.bar] twice"));
+            assertThat(e.getMessage()).contains("Cannot register setting [foo.bar] twice");
         }
 
         try {
@@ -140,7 +138,7 @@ public class SettingsModuleTests extends ModuleTestCase {
                 Setting.simpleString("foo.bar", Property.IndexScope));
             fail("already registered");
         } catch (IllegalArgumentException e) {
-            assertThat(e.getMessage(), containsString("Cannot register setting [foo.bar] twice"));
+            assertThat(e.getMessage()).contains("Cannot register setting [foo.bar] twice");
         }
     }
 }

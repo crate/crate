@@ -19,9 +19,6 @@
 package org.elasticsearch.common.bytes;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -32,7 +29,6 @@ import org.apache.lucene.util.BytesRefBuilder;
 import org.apache.lucene.util.BytesRefIterator;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.ReleasableBytesStreamOutput;
-import org.hamcrest.Matchers;
 
 public class CompositeBytesReferenceTests extends AbstractBytesReferenceTestCase {
 
@@ -77,13 +73,13 @@ public class CompositeBytesReferenceTests extends AbstractBytesReferenceTestCase
             BytesRef scratch;
             while ((scratch = innerIter.next()) != null) {
                 BytesRef next = iterator.next();
-                assertNotNull(next);
+                assertThat(next).isNotNull();
                 assertThat(scratch).isEqualTo(next);
                 builder.append(next);
             }
 
         }
-        assertNull(iterator.next());
+        assertThat(iterator.next()).isNull();
 
         int offset = 0;
         for (BytesReference reference : referenceList) {
@@ -127,10 +123,10 @@ public class CompositeBytesReferenceTests extends AbstractBytesReferenceTestCase
                 new BytesArray(new byte[13]));
 
         // Slices that cross boundaries are composite too
-        assertThat(bytesRef.slice(5, 8), Matchers.instanceOf(CompositeBytesReference.class));
+        assertThat(bytesRef.slice(5, 8)).isExactlyInstanceOf(CompositeBytesReference.class);
 
         // But not slices that cover a single sub reference
-        assertThat(bytesRef.slice(13, 10), Matchers.not(Matchers.instanceOf(CompositeBytesReference.class))); // strictly within sub
-        assertThat(bytesRef.slice(12, 15), Matchers.not(Matchers.instanceOf(CompositeBytesReference.class))); // equal to sub
+        assertThat(bytesRef.slice(13, 10)).isNotExactlyInstanceOf(CompositeBytesReference.class); // strictly within sub
+        assertThat(bytesRef.slice(12, 15)).isNotExactlyInstanceOf(CompositeBytesReference.class); // equal to sub
     }
 }

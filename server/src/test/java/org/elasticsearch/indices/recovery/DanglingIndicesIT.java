@@ -22,9 +22,6 @@ package org.elasticsearch.indices.recovery;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.metadata.IndexGraveyard.SETTING_MAX_TOMBSTONES;
 import static org.elasticsearch.gateway.DanglingIndicesState.AUTO_IMPORT_DANGLING_INDICES_SETTING;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 import java.util.concurrent.TimeUnit;
 
@@ -60,13 +57,13 @@ public class DanglingIndicesIT extends IntegTestCase {
         execute("create table doc.test(id integer) clustered into 2 shards with(number_of_replicas = 2)");
         ensureGreen("test");
         assertBusy(() -> cluster().getInstances(IndicesService.class).forEach(
-            indicesService -> assertTrue(indicesService.allPendingDanglingIndicesWritten())));
+            indicesService -> assertThat(indicesService.allPendingDanglingIndicesWritten()).isTrue()));
 
         boolean refreshIntervalChanged = randomBoolean();
         if (refreshIntervalChanged) {
             execute("alter table doc.test set (refresh_interval = '42s')");
             assertBusy(() -> cluster().getInstances(IndicesService.class).forEach(
-                indicesService -> assertTrue(indicesService.allPendingDanglingIndicesWritten())));
+                indicesService -> assertThat(indicesService.allPendingDanglingIndicesWritten()).isTrue()));
         }
 
         // Restart node, deleting the index in its absence, so that there is a dangling index to recover
@@ -80,9 +77,10 @@ public class DanglingIndicesIT extends IntegTestCase {
             }
         });
 
-        assertBusy(() -> assertThat("Expected dangling index test to be recovered",
-                                    execute("select 1 from information_schema.tables where table_name='test'").rowCount(),
-                                    is((1L))));
+        assertBusy(() ->
+            assertThat(execute("select 1 from information_schema.tables where table_name='test'").rowCount())
+                .as("Expected dangling index test to be recovered")
+                .isEqualTo((1L)));
         ensureGreen("test");
         final IndexMetadata indexMetadata = clusterService().state().metadata().index("test");
         assertThat(indexMetadata.getSettings().get(IndexMetadata.SETTING_HISTORY_UUID)).isNotNull();
@@ -99,7 +97,7 @@ public class DanglingIndicesIT extends IntegTestCase {
         ensureGreen("test");
 
         assertBusy(() -> cluster().getInstances(IndicesService.class).forEach(
-            indicesService -> assertTrue(indicesService.allPendingDanglingIndicesWritten())));
+            indicesService -> assertThat(indicesService.allPendingDanglingIndicesWritten()).isTrue()));
 
         // Restart node, deleting the index in its absence, so that there is a dangling index to recover
         cluster().restartRandomDataNode(new TestCluster.RestartCallback() {
@@ -114,8 +112,9 @@ public class DanglingIndicesIT extends IntegTestCase {
 
         // Since index recovery is async, we can't prove index recovery will never occur, just that it doesn't occur within some reasonable
         // amount of time
-        assertBusy(() -> assertThat("Did not expect dangling index test to be recovered",
-                                    execute("select 1 from information_schema.tables where table_name='test'").rowCount(),
-                                    is(0L)), 1, TimeUnit.SECONDS);
+        assertBusy(() -> assertThat(
+            execute("select 1 from information_schema.tables where table_name='test'").rowCount())
+                .as("Did not expect dangling index test to be recovered")
+                .isEqualTo(0L), 1, TimeUnit.SECONDS);
     }
 }

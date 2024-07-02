@@ -22,16 +22,7 @@ package org.elasticsearch.common.settings;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasToString;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -167,7 +158,7 @@ public class SettingTests extends ESTestCase {
         ClusterSettings.SettingUpdater<Boolean> settingUpdater = booleanSetting.newUpdater(atomicBoolean::set, logger);
         Settings build = Settings.builder().put("foo.bar", false).build();
         settingUpdater.apply(build, Settings.EMPTY);
-        assertNull(atomicBoolean.get());
+        assertThat(atomicBoolean.get()).isNull();
         build = Settings.builder().put("foo.bar", true).build();
         settingUpdater.apply(build, Settings.EMPTY);
         assertThat(atomicBoolean.get()).isTrue();
@@ -178,13 +169,12 @@ public class SettingTests extends ESTestCase {
             settingUpdater.apply(build, Settings.EMPTY);
             fail("not a boolean");
         } catch (IllegalArgumentException ex) {
-            assertThat(ex, hasToString(containsString("illegal value can't update [foo.bar] from [false] to [I am not a boolean]")));
-            assertNotNull(ex.getCause());
+            assertThat(ex).hasMessageContaining("illegal value can't update [foo.bar] from [false] to [I am not a boolean]");
+            assertThat(ex.getCause()).isNotNull();
             assertThat(ex.getCause()).isExactlyInstanceOf(IllegalArgumentException.class);
             final IllegalArgumentException cause = (IllegalArgumentException) ex.getCause();
-            assertThat(
-                    cause,
-                    hasToString(containsString("Failed to parse value [I am not a boolean] as only [true] or [false] are allowed.")));
+            assertThat(cause)
+                .hasMessageContaining("Failed to parse value [I am not a boolean] as only [true] or [false] are allowed.");
         }
     }
 
@@ -270,7 +260,7 @@ public class SettingTests extends ESTestCase {
         ClusterSettings.SettingUpdater<Boolean> settingUpdater = booleanSetting.newUpdater(ab1::set, logger);
         settingUpdater.apply(Settings.builder().put("foo.bar", true).build(), Settings.EMPTY);
         assertThat(ab1.get()).isTrue();
-        assertNull(ab2.get());
+        assertThat(ab2.get()).isNull();
     }
 
     @Test
@@ -318,17 +308,17 @@ public class SettingTests extends ESTestCase {
         ComplexType type = ref.get();
         ClusterSettings.SettingUpdater<ComplexType> settingUpdater = setting.newUpdater(ref::set, logger);
         assertThat(settingUpdater.apply(Settings.EMPTY, Settings.EMPTY)).isFalse();
-        assertSame("no update - type has not changed", type, ref.get());
+        assertThat(ref.get()).as("no update - type has not changed").isSameAs(type);
 
         // change from default
         assertThat(settingUpdater.apply(Settings.builder().put("foo.bar", "2").build(), Settings.EMPTY)).isTrue();
-        assertNotSame("update - type has changed", type, ref.get());
+        assertThat(ref.get()).as("update - type has changed").isNotSameAs(type);
         assertThat(ref.get().foo).isEqualTo("2");
 
 
         // change back to default...
         assertThat(settingUpdater.apply(Settings.EMPTY, Settings.builder().put("foo.bar", "2").build())).isTrue();
-        assertNotSame("update - type has changed", type, ref.get());
+        assertThat(ref.get()).as("update - type has changed").isNotSameAs(type);
         assertThat(ref.get().foo).isEqualTo("");
     }
 
@@ -355,7 +345,7 @@ public class SettingTests extends ESTestCase {
                 .put("foo.bar.3.value", "3").build();
         Settings previousInput = Settings.EMPTY;
         assertThat(settingUpdater.apply(currentInput, previousInput)).isTrue();
-        assertNotNull(ref.get());
+        assertThat(ref.get()).isNotNull();
         Settings settings = ref.get();
         Map<String, Settings> asMap = settings.getAsGroups();
         assertThat(asMap.size()).isEqualTo(3);
@@ -367,13 +357,13 @@ public class SettingTests extends ESTestCase {
         currentInput = Settings.builder().put("foo.bar.1.value", "1").put("foo.bar.2.value", "2").put("foo.bar.3.value", "3").build();
         Settings current = ref.get();
         assertThat(settingUpdater.apply(currentInput, previousInput)).isFalse();
-        assertSame(current, ref.get());
+        assertThat(ref.get()).isSameAs(current);
 
         previousInput = currentInput;
         currentInput = Settings.builder().put("foo.bar.1.value", "1").put("foo.bar.2.value", "2").build();
         // now update and check that we got it
         assertThat(settingUpdater.apply(currentInput, previousInput)).isTrue();
-        assertNotSame(current, ref.get());
+        assertThat(ref.get()).isNotSameAs(current);
 
         asMap = ref.get().getAsGroups();
         assertThat(asMap.size()).isEqualTo(2);
@@ -384,7 +374,7 @@ public class SettingTests extends ESTestCase {
         currentInput = Settings.builder().put("foo.bar.1.value", "1").put("foo.bar.2.value", "4").build();
         // now update and check that we got it
         assertThat(settingUpdater.apply(currentInput, previousInput)).isTrue();
-        assertNotSame(current, ref.get());
+        assertThat(ref.get()).isNotSameAs(current);
 
         asMap = ref.get().getAsGroups();
         assertThat(asMap.size()).isEqualTo(2);
@@ -394,7 +384,7 @@ public class SettingTests extends ESTestCase {
         assertThat(setting.match("foo.bar.baz")).isTrue();
         assertThat(setting.match("foo.baz.bar")).isFalse();
 
-        ClusterSettings.SettingUpdater<Settings> predicateSettingUpdater = setting.newUpdater(ref::set, logger,(s) -> assertFalse(true));
+        ClusterSettings.SettingUpdater<Settings> predicateSettingUpdater = setting.newUpdater(ref::set, logger, s -> fail("FAIL"));
         try {
             predicateSettingUpdater.apply(Settings.builder().put("foo.bar.1.value", "1").put("foo.bar.2.value", "2").build(),
                     Settings.EMPTY);
@@ -438,8 +428,8 @@ public class SettingTests extends ESTestCase {
         Setting<Integer> b = Setting.intSetting("foo.int.bar.b", 1, Property.Dynamic, Property.NodeScope);
         ClusterSettings.SettingUpdater<Tuple<Integer, Integer>> settingUpdater = Setting.compoundUpdater(c::set, c::validate, a, b, logger);
         assertThat(settingUpdater.apply(Settings.EMPTY, Settings.EMPTY)).isFalse();
-        assertNull(c.a);
-        assertNull(c.b);
+        assertThat(c.a).isNull();
+        assertThat(c.b).isNull();
 
         Settings build = Settings.builder().put("foo.int.bar.a", 2).build();
         assertThat(settingUpdater.apply(build, Settings.EMPTY)).isTrue();
@@ -448,7 +438,7 @@ public class SettingTests extends ESTestCase {
 
         Integer aValue = c.a;
         assertThat(settingUpdater.apply(build, build)).isFalse();
-        assertSame(aValue, c.a);
+        assertThat(aValue).isSameAs(c.a);
         Settings previous = build;
         build = Settings.builder().put("foo.int.bar.a", 2).put("foo.int.bar.b", 5).build();
         assertThat(settingUpdater.apply(build, previous)).isTrue();
@@ -459,7 +449,6 @@ public class SettingTests extends ESTestCase {
         assertThat(settingUpdater.apply(Settings.EMPTY, build)).isTrue();
         assertThat(c.a.intValue()).isEqualTo(1);
         assertThat(c.b.intValue()).isEqualTo(1);
-
     }
 
     @Test
@@ -469,8 +458,8 @@ public class SettingTests extends ESTestCase {
         Setting<Integer> b = Setting.intSetting("foo.int.bar.b", 1, Property.Dynamic, Property.NodeScope);
         ClusterSettings.SettingUpdater<Tuple<Integer, Integer>> settingUpdater = Setting.compoundUpdater(c::set, c::validate, a, b, logger);
         assertThat(settingUpdater.apply(Settings.EMPTY, Settings.EMPTY)).isFalse();
-        assertNull(c.a);
-        assertNull(c.b);
+        assertThat(c.a).isNull();
+        assertThat(c.b).isNull();
 
         Settings build = Settings.builder().put("foo.int.bar.a", 2).build();
         assertThat(settingUpdater.apply(build, Settings.EMPTY)).isTrue();
@@ -479,7 +468,7 @@ public class SettingTests extends ESTestCase {
 
         Integer aValue = c.a;
         assertThat(settingUpdater.apply(build, build)).isFalse();
-        assertSame(aValue, c.a);
+        assertThat(c.a).isSameAs(aValue);
         Settings previous = build;
         build = Settings.builder().put("foo.int.bar.a", 2).put("foo.int.bar.b", 5).build();
         assertThat(settingUpdater.apply(build, previous)).isTrue();
@@ -534,7 +523,7 @@ public class SettingTests extends ESTestCase {
         assertThat(listSetting.exists(builder.build())).isTrue();
         value = listSetting.get(builder.build());
         assertThat(value.size()).isEqualTo(input.size());
-        assertArrayEquals(value.toArray(new String[0]), input.toArray(new String[0]));
+        assertThat(value.toArray(new String[0])).isEqualTo(input.toArray(new String[0]));
 
         // try to parse this really annoying format
         builder = Settings.builder();
@@ -543,7 +532,7 @@ public class SettingTests extends ESTestCase {
         }
         value = listSetting.get(builder.build());
         assertThat(value.size()).isEqualTo(input.size());
-        assertArrayEquals(value.toArray(new String[0]), input.toArray(new String[0]));
+        assertThat(value.toArray(new String[0])).isEqualTo(input.toArray(new String[0]));
         assertThat(listSetting.exists(builder.build())).isTrue();
 
         AtomicReference<List<String>> ref = new AtomicReference<>();
@@ -551,15 +540,15 @@ public class SettingTests extends ESTestCase {
         assertThat(settingUpdater.hasChanged(builder.build(), Settings.EMPTY)).isTrue();
         settingUpdater.apply(builder.build(), Settings.EMPTY);
         assertThat(ref.get().size()).isEqualTo(input.size());
-        assertArrayEquals(ref.get().toArray(new String[0]), input.toArray(new String[0]));
+        assertThat(ref.get().toArray(new String[0])).isEqualTo(input.toArray(new String[0]));
 
         settingUpdater.apply(Settings.builder().putList("foo.bar", "123").build(), builder.build());
         assertThat(ref.get().size()).isEqualTo(1);
-        assertArrayEquals(ref.get().toArray(new String[0]), new String[] {"123"});
+        assertThat(ref.get().toArray(new String[0])).isEqualTo(new String[] {"123"});
 
         settingUpdater.apply(Settings.builder().put("foo.bar", "1,2,3").build(), Settings.builder().putList("foo.bar", "123").build());
         assertThat(ref.get().size()).isEqualTo(3);
-        assertArrayEquals(ref.get().toArray(new String[0]), new String[] {"1", "2", "3"});
+        assertThat(ref.get().toArray(new String[0])).isEqualTo(new String[] {"1", "2", "3"});
 
         settingUpdater.apply(Settings.EMPTY, Settings.builder().put("foo.bar", "1,2,3").build());
         assertThat(ref.get().size()).isEqualTo(1);
@@ -1017,7 +1006,7 @@ public class SettingTests extends ESTestCase {
 
         // THEN changes are expected when defaults aren't omitted
         final Map<String, String> updatedSettings = updater.getValue(current, previous);
-        assertNotNull(updatedSettings);
+        assertThat(updatedSettings).isNotNull();
         assertThat(updatedSettings.size()).isEqualTo(1);
 
         // THEN changes are reported when defaults aren't omitted

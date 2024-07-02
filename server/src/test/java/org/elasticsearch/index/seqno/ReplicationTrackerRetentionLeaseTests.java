@@ -22,9 +22,6 @@ package org.elasticsearch.index.seqno;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.hasItem;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -53,7 +50,6 @@ import org.elasticsearch.gateway.WriteStateException;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.test.IndexSettingsModule;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.common.collections.Tuple;
@@ -549,11 +545,10 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
         }
         assertThat(replicationTracker.getRetentionLeases().version()).isEqualTo(version);
         if (expectedLeases.isEmpty()) {
-            assertThat(replicationTracker.getRetentionLeases().leases(), empty());
+            assertThat(replicationTracker.getRetentionLeases().leases()).isEmpty();
         } else {
-            assertThat(
-                replicationTracker.getRetentionLeases().leases(),
-                Matchers.contains(expectedLeases.toArray(new RetentionLease[0])));
+            assertThat(replicationTracker.getRetentionLeases().leases()).containsExactly(
+                expectedLeases.toArray(new RetentionLease[0]));
         }
     }
 
@@ -773,11 +768,10 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
 
         assertThat(idToRetentionLease.entrySet()).hasSize(size);
         for (int i = 0; i < size; i++) {
-            assertThat(idToRetentionLease.keySet(), hasItem(Integer.toString(i)));
+            assertThat(idToRetentionLease).containsKey(Integer.toString(i));
             final RetentionLease retentionLease = idToRetentionLease.get(Integer.toString(i));
             assertThat(retentionLease.retainingSequenceNumber()).isEqualTo(minimumRetainingSequenceNumbers[i]);
             assertThat(retentionLease.source()).isEqualTo("test-" + i);
         }
     }
-
 }

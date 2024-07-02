@@ -20,10 +20,6 @@
 package org.elasticsearch.gateway;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -55,7 +51,6 @@ import org.elasticsearch.test.InternalSettingsPlugin;
 import org.elasticsearch.test.TestCluster;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.transport.TransportService;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -131,7 +126,7 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
                 with ("number_of_replicas" = 1, "write.wait_for_active_shards" = 0)
             """);
             ensureGreen(indexName);
-            assertThat(cluster().nodesInclude(indexName), hasItem(nodeWithReplica));
+            assertThat(cluster().nodesInclude(indexName)).contains(nodeWithReplica);
             assertNoOpRecoveries(indexName);
             blockRecovery.countDown();
         } finally {
@@ -143,6 +138,7 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
      * Ensure that we fetch the latest shard store from the primary when a new node joins so we won't cancel the current recovery
      * for the copy on the newly joined node unless we can perform a noop recovery with that node.
      */
+    @SuppressWarnings("unchecked")
     @Test
     public void testRecentPrimaryInformation() throws Exception {
         String indexName = "test";
@@ -227,11 +223,11 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
             );
             blockRecovery.countDown();
             ensureGreen(indexName);
-            assertThat(cluster().nodesInclude(indexName), hasItem(newNode));
+            assertThat(cluster().nodesInclude(indexName)).contains(newNode);
 
             execute("select recovery['files'] from sys.shards where table_name = 'test'");
             for (var row : response.rows()) {
-                assertThat((Map<String, Object>) row[0], not(Matchers.anEmptyMap()));
+                assertThat((Map<String, Object>) row[0]).isNotEmpty();
             }
         } finally {
             transportServiceOnPrimary.clearAllRules();
@@ -253,7 +249,7 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
                 "global_checkpoint_sync.interval" = '100ms',
                 "soft_deletes.retention_lease.sync_interval" = '100ms'
             )
-                """, new Object[] {numOfReplicas, randomIntBetween(10, 100) + "kb",  });
+            """, new Object[] {numOfReplicas, randomIntBetween(10, 100) + "kb",  });
 
         ensureGreen(indexName);
 
@@ -294,7 +290,7 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
             clustered into 1 shards with (
                 number_of_replicas = 0
             )
-                """, new Object[] {});
+            """, new Object[] {});
 
         ensureGreen(indexName);
 
@@ -344,7 +340,7 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
                 "global_checkpoint_sync.interval" = '100ms',
                 "soft_deletes.retention_lease.sync_interval" = '100ms'
             )
-                """);
+            """);
 
         ensureGreen(indexName);
         execute("insert into doc.test (x) values (?)", new Object[]{randomIntBetween(200, 500)});
@@ -373,6 +369,7 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
         transportService.clearAllRules();
     }
 
+    @SuppressWarnings("unchecked")
     private void ensureActivePeerRecoveryRetentionLeasesAdvanced(String indexName) throws Exception {
         assertBusy(() -> {
             Set<String> activeRetentionLeaseIds = clusterService().state().routingTable().index(indexName).shard(0).shards().stream()
@@ -388,9 +385,8 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
             assertThat(rentetionLease).hasSize(activeRetentionLeaseIds.size());
             for (var activeRetentionLease : rentetionLease) {
                 assertThat(
-                    DataTypes.LONG.explicitCast(activeRetentionLease.get("retaining_seq_no"), CoordinatorTxnCtx.systemTransactionContext().sessionSettings()),
-                    is(globalCheckPoint + 1L)
-                );
+                    DataTypes.LONG.explicitCast(activeRetentionLease.get("retaining_seq_no"), CoordinatorTxnCtx.systemTransactionContext().sessionSettings()))
+                    .isEqualTo(globalCheckPoint + 1L);
             }
         });
     }
@@ -398,7 +394,7 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
     private void assertNoOpRecoveries(String indexName) {
         execute("select recovery['files'] from sys.shards where table_name = ?", new Object[]{indexName});
         for (var row : response.rows()) {
-            assertThat((Map<String, Object>) row[0], not(Matchers.anEmptyMap()));
+            assertThat((Map<String, Object>) row[0]).isNotEmpty();
         }
     }
 }

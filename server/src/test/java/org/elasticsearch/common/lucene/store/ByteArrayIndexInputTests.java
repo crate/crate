@@ -20,10 +20,7 @@
 package org.elasticsearch.common.lucene.store;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -36,7 +33,7 @@ public class ByteArrayIndexInputTests extends ESIndexInputTestCase {
             assertThat(indexInput.length()).isEqualTo(input.length);
             assertThat(indexInput.getFilePointer()).isEqualTo(0);
             byte[] output = randomReadAndSlice(indexInput, input.length);
-            assertArrayEquals(input, output);
+            assertThat(output).isEqualTo(input);
         }
     }
 
@@ -53,7 +50,7 @@ public class ByteArrayIndexInputTests extends ESIndexInputTestCase {
                 indexInput.readBytes(new byte[secondReadLen], 0, secondReadLen);
                 fail();
             } catch (IOException ex) {
-                assertThat(ex.getMessage(), containsString("EOF"));
+                assertThat(ex.getMessage()).contains("EOF");
             }
         }
     }
@@ -81,12 +78,11 @@ public class ByteArrayIndexInputTests extends ESIndexInputTestCase {
                 }
                 fail();
             } catch (IOException ex) {
-                assertThat(ex.getMessage(), containsString("EOF"));
+                assertThat(ex.getMessage()).contains("EOF");
             } catch (IllegalArgumentException ex) {
-                assertThat(ex.getMessage(), containsString("negative position"));
+                assertThat(ex.getMessage()).contains("negative position");
             }
         }
     }
-
 }
 

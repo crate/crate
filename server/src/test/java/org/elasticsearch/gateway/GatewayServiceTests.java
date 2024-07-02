@@ -21,12 +21,6 @@ package org.elasticsearch.gateway;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.gateway.GatewayService.STATE_NOT_RECOVERED_BLOCK;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.Matchers.hasItem;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -82,7 +76,7 @@ public class GatewayServiceTests extends ESTestCase {
     public void testDefaultRecoverAfterTime() {
         // check that the default is not set
         GatewayService service = createService(Settings.builder());
-        assertNull(service.recoverAfterTime());
+        assertThat(service.recoverAfterTime()).isNull();
 
         // ensure default is set when setting expected_data_nodes
         service = createService(Settings.builder().put("gateway.expected_data_nodes", 1));
@@ -98,18 +92,18 @@ public class GatewayServiceTests extends ESTestCase {
 
     @Test
     public void testDeprecatedSettings() {
-        GatewayService service = createService(Settings.builder());
+        createService(Settings.builder());
 
-        service = createService(Settings.builder().put("gateway.expected_nodes", 1));
+        createService(Settings.builder().put("gateway.expected_nodes", 1));
         assertSettingDeprecationsAndWarnings(new Setting<?>[] {GatewayService.EXPECTED_NODES_SETTING });
 
-        service = createService(Settings.builder().put("gateway.expected_master_nodes", 1));
+        createService(Settings.builder().put("gateway.expected_master_nodes", 1));
         assertSettingDeprecationsAndWarnings(new Setting<?>[] {GatewayService.EXPECTED_MASTER_NODES_SETTING });
 
-        service = createService(Settings.builder().put("gateway.recover_after_nodes", 1));
+        createService(Settings.builder().put("gateway.recover_after_nodes", 1));
         assertSettingDeprecationsAndWarnings(new Setting<?>[] {GatewayService.RECOVER_AFTER_NODES_SETTING });
 
-        service = createService(Settings.builder().put("gateway.recover_after_master_nodes", 1));
+        createService(Settings.builder().put("gateway.recover_after_master_nodes", 1));
         assertSettingDeprecationsAndWarnings(new Setting<?>[] {GatewayService.RECOVER_AFTER_MASTER_NODES_SETTING });
     }
 
@@ -125,11 +119,11 @@ public class GatewayServiceTests extends ESTestCase {
                 blocks(ClusterBlocks.builder().addGlobalBlock(STATE_NOT_RECOVERED_BLOCK).build()).build();
 
         ClusterState recoveredState = clusterStateUpdateTask.execute(stateWithBlock);
-        assertNotEquals(recoveredState, stateWithBlock);
-        assertThat(recoveredState.blocks().global(ClusterBlockLevel.METADATA_WRITE), not(hasItem(STATE_NOT_RECOVERED_BLOCK)));
+        assertThat(recoveredState).isNotEqualTo(stateWithBlock);
+        assertThat(recoveredState.blocks().global(ClusterBlockLevel.METADATA_WRITE))
+            .doesNotContain(STATE_NOT_RECOVERED_BLOCK);
 
         ClusterState clusterState = clusterStateUpdateTask.execute(recoveredState);
-        assertSame(recoveredState, clusterState);
+        assertThat(clusterState).isSameAs(recoveredState);
     }
-
 }

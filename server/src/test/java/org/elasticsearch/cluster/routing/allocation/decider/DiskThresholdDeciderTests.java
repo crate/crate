@@ -26,8 +26,6 @@ import static org.elasticsearch.cluster.routing.ShardRoutingState.INITIALIZING;
 import static org.elasticsearch.cluster.routing.ShardRoutingState.RELOCATING;
 import static org.elasticsearch.cluster.routing.ShardRoutingState.STARTED;
 import static org.elasticsearch.cluster.routing.ShardRoutingState.UNASSIGNED;
-import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -780,13 +778,13 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
         decision = diskThresholdDecider.canAllocate(fooRouting, firstRoutingNode, routingAllocation);
         assertThat(decision.type()).isEqualTo(Decision.Type.NO);
         if (fooRouting.recoverySource().getType() == RecoverySource.Type.EMPTY_STORE) {
-            assertThat(decision.getExplanation(), containsString(
+            assertThat(decision.getExplanation()).contains(
                 "the node is above the high watermark cluster setting [cluster.routing.allocation.disk.watermark.high=70%], using " +
-                "more disk space than the maximum allowed [70.0%], actual free: [20.0%]"));
+                "more disk space than the maximum allowed [70.0%], actual free: [20.0%]");
         } else {
-            assertThat(decision.getExplanation(), containsString(
+            assertThat(decision.getExplanation()).contains(
                 "the node is above the low watermark cluster setting [cluster.routing.allocation.disk.watermark.low=60%], using more " +
-                "disk space than the maximum allowed [60.0%], actual free: [20.0%]"));
+                "disk space than the maximum allowed [60.0%], actual free: [20.0%]");
         }
 
         // Creating AllocationService instance and the services it depends on...
