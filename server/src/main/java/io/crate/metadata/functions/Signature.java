@@ -336,34 +336,53 @@ public final class Signature implements Writeable, Accountable {
             + returnType.ramBytesUsed();
     }
 
+    /**
+     * @deprecated use {@link Builder#typeVariableConstraints}
+     */
+    @Deprecated
     public Signature withTypeVariableConstraints(TypeVariableConstraint... typeVariableConstraints) {
         return Signature.builder(this)
             .typeVariableConstraints(typeVariableConstraints)
             .build();
     }
 
+    /**
+     * @deprecated use {@link Builder#typeVariableConstraints}
+     */
+    @Deprecated
     public Signature withVariableArity() {
         return Signature.builder(this)
             .setVariableArity(true)
             .build();
     }
 
-    /*
+    /**
      * Forbid coercion of argument types.
      * This prevents e.g. matching a numeric_only function with convertible argument (text).
+     *
+     * @deprecated use {@link Builder#forbidCoercion()}
      */
+    @Deprecated
     public Signature withForbiddenCoercion() {
         return Signature.builder(this)
             .forbidCoercion()
             .build();
     }
 
+    /**
+     * @deprecated use {@link Builder#features(Set)}
+     */
+    @Deprecated
     public Signature withFeature(Scalar.Feature feature) {
         return Signature.builder(this)
             .feature(feature)
             .build();
     }
 
+    /**
+     * @deprecated use {@link Builder#features(Set)}
+     */
+    @Deprecated
     public Signature withFeatures(Set<Scalar.Feature> features) {
         return Signature.builder(this)
             .features(features)
