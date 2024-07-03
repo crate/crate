@@ -44,6 +44,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder.Context;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
@@ -64,13 +65,12 @@ import io.crate.types.TypeSignature;
 public class IsNullPredicate<T> extends Scalar<Boolean, T> {
 
     public static final String NAME = "op_isnull";
-    public static final Signature SIGNATURE = Signature.scalar(
-            NAME,
-            TypeSignature.parse("E"),
-            DataTypes.BOOLEAN.getTypeSignature()
-        ).withFeature(Feature.DETERMINISTIC)
-        .withFeature(Feature.NON_NULLABLE)
-        .withTypeVariableConstraints(typeVariable("E"));
+    public static final Signature SIGNATURE = Signature.builder(NAME, FunctionType.SCALAR)
+        .argumentTypes(TypeSignature.parse("E"))
+        .returnType(DataTypes.BOOLEAN.getTypeSignature())
+        .features(Feature.DETERMINISTIC, Feature.NON_NULLABLE)
+        .typeVariableConstraints(typeVariable("E"))
+        .build();
 
     public static void register(Functions.Builder builder) {
         builder.add(

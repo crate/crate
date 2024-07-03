@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Set;
 
 import io.crate.data.Input;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -47,24 +48,21 @@ public class ArrayUniqueFunction extends Scalar<List<Object>, List<Object>> {
 
     public static void register(Functions.Builder module) {
         module.add(
-            Signature.scalar(
-                    NAME,
-                    TypeSignature.parse("array(E)"),
-                    TypeSignature.parse("array(E)")
-                ).withTypeVariableConstraints(typeVariable("E"))
-                .withFeature(Feature.DETERMINISTIC)
-                .withFeature(Feature.NON_NULLABLE),
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(TypeSignature.parse("array(E)"))
+                .returnType(TypeSignature.parse("array(E)"))
+                .typeVariableConstraints(typeVariable("E"))
+                .features(Feature.DETERMINISTIC, Feature.NON_NULLABLE)
+                .build(),
             ArrayUniqueFunction::new
         );
         module.add(
-            Signature.scalar(
-                    NAME,
-                    TypeSignature.parse("array(E)"),
-                    TypeSignature.parse("array(E)"),
-                    TypeSignature.parse("array(E)")
-                ).withTypeVariableConstraints(typeVariable("E"))
-                .withFeature(Feature.DETERMINISTIC)
-                .withFeature(Feature.NON_NULLABLE),
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(TypeSignature.parse("array(E)"), TypeSignature.parse("array(E)"))
+                .returnType(TypeSignature.parse("array(E)"))
+                .typeVariableConstraints(typeVariable("E"))
+                .features(Feature.DETERMINISTIC, Feature.NON_NULLABLE)
+                .build(),
             ArrayUniqueFunction::new
         );
     }

@@ -36,6 +36,7 @@ import java.util.Map;
 import org.elasticsearch.common.Strings;
 
 import io.crate.data.Input;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -50,12 +51,11 @@ public final class ParseURLFunction extends Scalar<Object, String> {
 
     public static void register(Functions.Builder module) {
         module.add(
-            Signature.scalar(
-                    NAME,
-                    DataTypes.STRING.getTypeSignature(),
-                    DataTypes.UNTYPED_OBJECT.getTypeSignature()
-                ).withFeature(Feature.DETERMINISTIC)
-                .withFeature(Scalar.Feature.NULLABLE),
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.STRING.getTypeSignature())
+                .returnType(DataTypes.UNTYPED_OBJECT.getTypeSignature())
+                .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+                .build(),
             ParseURLFunction::new
         );
     }

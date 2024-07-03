@@ -29,6 +29,7 @@ import java.util.List;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -44,14 +45,13 @@ class ArrayLowerFunction extends Scalar<Integer, Object> {
 
     public static void register(Functions.Builder module) {
         module.add(
-            Signature.scalar(
-                    NAME,
-                    TypeSignature.parse("array(E)"),
-                    DataTypes.INTEGER.getTypeSignature(),
-                    DataTypes.INTEGER.getTypeSignature()
-                ).withFeature(Feature.DETERMINISTIC)
-                .withTypeVariableConstraints(typeVariable("E"))
-                .withFeature(Feature.NULLABLE),
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(TypeSignature.parse("array(E)"),
+                    DataTypes.INTEGER.getTypeSignature())
+                .returnType(DataTypes.INTEGER.getTypeSignature())
+                .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+                .typeVariableConstraints(typeVariable("E"))
+                .build(),
             ArrayLowerFunction::new
         );
     }

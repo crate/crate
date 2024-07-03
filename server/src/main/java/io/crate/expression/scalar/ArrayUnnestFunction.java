@@ -29,6 +29,7 @@ import java.util.List;
 import io.crate.data.Input;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -47,13 +48,12 @@ import io.crate.types.TypeSignature;
 public class ArrayUnnestFunction extends Scalar<List<Object>, List<List<Object>>> {
 
     public static final String NAME = "array_unnest";
-    public static final Signature SIGNATURE = Signature.scalar(
-            NAME,
-            TypeSignature.parse("array(array(E))"),
-            TypeSignature.parse("array(E)")
-        ).withTypeVariableConstraints(typeVariable("E"))
-        .withFeature(Feature.DETERMINISTIC)
-        .withFeature(Feature.NULLABLE);
+    public static final Signature SIGNATURE = Signature.builder(NAME, FunctionType.SCALAR)
+            .argumentTypes(TypeSignature.parse("array(array(E))"))
+            .returnType(TypeSignature.parse("array(E)"))
+            .typeVariableConstraints(typeVariable("E"))
+            .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+            .build();
 
     public static void register(Functions.Builder module) {
         module.add(SIGNATURE, ArrayUnnestFunction::new);

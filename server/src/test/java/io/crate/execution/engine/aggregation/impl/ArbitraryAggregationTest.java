@@ -29,6 +29,7 @@ import java.util.Map;
 import org.junit.Test;
 
 import io.crate.expression.symbol.Literal;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.functions.Signature;
@@ -40,13 +41,13 @@ public class ArbitraryAggregationTest extends AggregationTestCase {
 
     private Object executeAggregation(DataType<?> argumentType, Object[][] data) throws Exception {
         return executeAggregation(
-            Signature.aggregate(
-                    ArbitraryAggregation.NAME,
-                    argumentType.getTypeSignature(),
-                    argumentType.getTypeSignature())
-                .withFeature(Scalar.Feature.DETERMINISTIC),
-            data,
-            List.of()
+                Signature.builder(ArbitraryAggregation.NAME, FunctionType.AGGREGATE)
+                        .argumentTypes(argumentType.getTypeSignature())
+                        .returnType(argumentType.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .build(),
+                data,
+                List.of()
         );
     }
 
@@ -137,11 +138,11 @@ public class ArbitraryAggregationTest extends AggregationTestCase {
 
     @Test
     public void test_can_use_any_value_as_name() throws Exception {
-        Signature aggregate = Signature.aggregate(
-            "any_value",
-            DataTypes.INTEGER.getTypeSignature(),
-            DataTypes.INTEGER.getTypeSignature()
-        ).withFeature(Scalar.Feature.DETERMINISTIC);
+        Signature aggregate = Signature.builder("any_value", FunctionType.AGGREGATE)
+                .argumentTypes(DataTypes.INTEGER.getTypeSignature())
+                .returnType(DataTypes.INTEGER.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build();
         Object result = executeAggregation(aggregate, new Object[][] { new Object[] { 1 } }, List.of());
         assertThat(result).isEqualTo(1);
     }

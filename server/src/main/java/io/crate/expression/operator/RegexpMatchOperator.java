@@ -36,6 +36,7 @@ import io.crate.data.Input;
 import io.crate.expression.RegexpFlags;
 import io.crate.expression.symbol.Literal;
 import io.crate.lucene.match.CrateRegexQuery;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
@@ -51,12 +52,12 @@ public class RegexpMatchOperator extends Operator<String> {
 
     public static void register(Functions.Builder builder) {
         builder.add(
-            Signature.scalar(
-                NAME,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature(),
-                Operator.RETURN_TYPE.getTypeSignature()
-            ).withFeature(Feature.DETERMINISTIC),
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature())
+                .returnType(Operator.RETURN_TYPE.getTypeSignature())
+                .features(Feature.DETERMINISTIC)
+                .build(),
             RegexpMatchOperator::new
         );
     }

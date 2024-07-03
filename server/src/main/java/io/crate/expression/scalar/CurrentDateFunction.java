@@ -24,6 +24,7 @@ package io.crate.expression.scalar;
 import java.util.EnumSet;
 
 import io.crate.data.Input;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -38,11 +39,12 @@ public final class CurrentDateFunction extends Scalar<Long, String> {
 
     public static void register(Functions.Builder module) {
         module.add(
-            Signature.scalar(
-                    NAME,
-                    DataTypes.DATE.getTypeSignature()
-                ).withFeatures(EnumSet.of(Feature.NON_NULLABLE)),
-            CurrentDateFunction::new
+                Signature.builder(NAME, FunctionType.SCALAR)
+                        .argumentTypes()
+                        .returnType(DataTypes.DATE.getTypeSignature())
+                        .features(EnumSet.of(Feature.NON_NULLABLE))
+                        .build(),
+                CurrentDateFunction::new
         );
     }
 

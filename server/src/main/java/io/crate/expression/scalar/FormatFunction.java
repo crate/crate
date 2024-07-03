@@ -26,6 +26,7 @@ import static io.crate.metadata.functions.TypeVariableConstraint.typeVariableOfA
 import java.util.Locale;
 
 import io.crate.data.Input;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -39,17 +40,13 @@ public class FormatFunction extends Scalar<String, Object> {
 
     public static final String NAME = "format";
 
-    public static final Signature SIGNATURE =
-        Signature.scalar(
-                NAME,
-                DataTypes.STRING.getTypeSignature(),
-                TypeSignature.parse("E"),
-                DataTypes.STRING.getTypeSignature()
-            )
-            .withFeature(Feature.DETERMINISTIC)
-            .withFeature(Feature.NON_NULLABLE)
-            .withTypeVariableConstraints(typeVariableOfAnyType("E"))
-            .withVariableArity();
+    public static final Signature SIGNATURE = Signature.builder(NAME, FunctionType.SCALAR)
+        .argumentTypes(DataTypes.STRING.getTypeSignature(), TypeSignature.parse("E"))
+        .returnType(DataTypes.STRING.getTypeSignature())
+        .features(Feature.DETERMINISTIC, Feature.NON_NULLABLE)
+        .typeVariableConstraints(typeVariableOfAnyType("E"))
+        .setVariableArity(true)
+        .build();
 
 
     public static void register(Functions.Builder module) {

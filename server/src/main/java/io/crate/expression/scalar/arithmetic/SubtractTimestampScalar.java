@@ -27,6 +27,7 @@ import org.joda.time.Period;
 import org.joda.time.PeriodType;
 
 import io.crate.data.Input;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -40,12 +41,12 @@ public class SubtractTimestampScalar extends Scalar<Period, Object> {
     public static void register(Functions.Builder module) {
         for (var timestampType : List.of(DataTypes.TIMESTAMP, DataTypes.TIMESTAMPZ)) {
             module.add(
-                Signature.scalar(
-                    ArithmeticFunctions.Names.SUBTRACT,
-                    timestampType.getTypeSignature(),
-                    timestampType.getTypeSignature(),
-                    DataTypes.INTERVAL.getTypeSignature()
-                ).withFeature(Feature.DETERMINISTIC),
+                Signature.builder(ArithmeticFunctions.Names.SUBTRACT, FunctionType.SCALAR)
+                    .argumentTypes(timestampType.getTypeSignature(),
+                        timestampType.getTypeSignature())
+                    .returnType(DataTypes.INTERVAL.getTypeSignature())
+                    .features(Feature.DETERMINISTIC)
+                    .build(),
                 SubtractTimestampScalar::new
             );
         }

@@ -29,6 +29,7 @@ import java.util.StringJoiner;
 
 import io.crate.data.Input;
 import io.crate.metadata.FunctionName;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -45,26 +46,24 @@ class ArrayToStringFunction extends Scalar<String, Object> {
 
     public static void register(Functions.Builder module) {
         module.add(
-            Signature.scalar(
-                    FQN,
-                    TypeSignature.parse("array(E)"),
-                    DataTypes.STRING.getTypeSignature(),
-                    DataTypes.STRING.getTypeSignature()
-                ).withTypeVariableConstraints(typeVariable("E"))
-                .withFeature(Feature.DETERMINISTIC)
-                .withFeature(Feature.NULLABLE),
+            Signature.builder(FQN, FunctionType.SCALAR)
+                .argumentTypes(TypeSignature.parse("array(E)"),
+                    DataTypes.STRING.getTypeSignature())
+                .returnType(DataTypes.STRING.getTypeSignature())
+                .typeVariableConstraints(typeVariable("E"))
+                .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+                .build(),
             ArrayToStringFunction::new
         );
         module.add(
-            Signature.scalar(
-                    FQN,
-                    TypeSignature.parse("array(E)"),
+            Signature.builder(FQN, FunctionType.SCALAR)
+                .argumentTypes(TypeSignature.parse("array(E)"),
                     DataTypes.STRING.getTypeSignature(),
-                    DataTypes.STRING.getTypeSignature(),
-                    DataTypes.STRING.getTypeSignature()
-                ).withTypeVariableConstraints(typeVariable("E"))
-                .withFeature(Feature.DETERMINISTIC)
-                .withFeature(Feature.NULLABLE),
+                    DataTypes.STRING.getTypeSignature())
+                .returnType(DataTypes.STRING.getTypeSignature())
+                .typeVariableConstraints(typeVariable("E"))
+                .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+                .build(),
             ArrayToStringFunction::new
         );
     }

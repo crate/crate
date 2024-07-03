@@ -24,6 +24,7 @@ package io.crate.expression.scalar.object;
 import java.util.ArrayList;
 
 import io.crate.expression.scalar.UnaryScalar;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
@@ -33,19 +34,18 @@ public final class ObjectKeysFunction {
 
     public static void register(Functions.Builder module) {
         module.add(
-            Signature.scalar(
-                "object_keys",
-                DataTypes.UNTYPED_OBJECT.getTypeSignature(),
-                DataTypes.STRING_ARRAY.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withFeature(Scalar.Feature.NULLABLE),
+            Signature.builder("object_keys", FunctionType.SCALAR)
+                .argumentTypes(DataTypes.UNTYPED_OBJECT.getTypeSignature())
+                .returnType(DataTypes.STRING_ARRAY.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .build(),
             (signature, boundSignature) ->
-            new UnaryScalar<>(
-                signature,
-                boundSignature,
-                DataTypes.UNTYPED_OBJECT,
-                obj -> new ArrayList<>(obj.keySet())
-            )
+                new UnaryScalar<>(
+                    signature,
+                    boundSignature,
+                    DataTypes.UNTYPED_OBJECT,
+                    obj -> new ArrayList<>(obj.keySet())
+                )
         );
     }
 }

@@ -48,6 +48,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.geo.GeoJSONUtils;
 import io.crate.lucene.LuceneQueryBuilder.Context;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
@@ -63,12 +64,12 @@ public class WithinFunction extends Scalar<Boolean, Object> {
 
     public static void register(Functions.Builder module) {
         module.add(
-            Signature.scalar(
-                NAME,
-                DataTypes.GEO_SHAPE.getTypeSignature(),
-                DataTypes.GEO_SHAPE.getTypeSignature(),
-                DataTypes.BOOLEAN.getTypeSignature()
-            ).withFeature(Feature.DETERMINISTIC),
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.GEO_SHAPE.getTypeSignature(),
+                    DataTypes.GEO_SHAPE.getTypeSignature())
+                .returnType(DataTypes.BOOLEAN.getTypeSignature())
+                .features(Feature.DETERMINISTIC)
+                .build(),
             WithinFunction::new
         );
         // Needed to avoid casts on references of `geo_point` and thus to avoid generic function filter on lucene.
@@ -76,13 +77,13 @@ public class WithinFunction extends Scalar<Boolean, Object> {
         // the other signature
         for (var type : List.of(DataTypes.GEO_SHAPE, DataTypes.STRING, DataTypes.UNTYPED_OBJECT, DataTypes.UNDEFINED)) {
             module.add(
-                Signature.scalar(
-                    NAME,
-                    DataTypes.GEO_POINT.getTypeSignature(),
-                    type.getTypeSignature(),
-                    DataTypes.BOOLEAN.getTypeSignature()
-                ).withFeature(Feature.DETERMINISTIC)
-                    .withForbiddenCoercion(),
+                Signature.builder(NAME, FunctionType.SCALAR)
+                    .argumentTypes(DataTypes.GEO_POINT.getTypeSignature(),
+                        type.getTypeSignature())
+                    .returnType(DataTypes.BOOLEAN.getTypeSignature())
+                    .features(Feature.DETERMINISTIC)
+                    .forbidCoercion()
+                    .build(),
                 WithinFunction::new
             );
         }

@@ -21,9 +21,8 @@
 
 package io.crate.expression.scalar.string;
 
-import java.util.EnumSet;
-
 import io.crate.data.Input;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -36,12 +35,11 @@ public final class StringPositionFunction extends Scalar<Integer , String> {
 
     public static void register(Functions.Builder module) {
         module.add(
-            Signature.scalar(
-                "strpos",
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.INTEGER.getTypeSignature()
-            ).withFeatures(EnumSet.of(Feature.DETERMINISTIC, Feature.NULLABLE)),
+            Signature.builder("strpos", FunctionType.SCALAR)
+                .argumentTypes(DataTypes.STRING.getTypeSignature(), DataTypes.STRING.getTypeSignature())
+                .returnType(DataTypes.INTEGER.getTypeSignature())
+                .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+                .build(),
             StringPositionFunction::new
         );
     }

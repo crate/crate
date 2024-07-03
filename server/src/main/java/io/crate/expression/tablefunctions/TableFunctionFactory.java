@@ -24,11 +24,11 @@ package io.crate.expression.tablefunctions;
 import java.util.List;
 import java.util.Locale;
 
-import io.crate.common.collections.Lists;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -36,7 +36,6 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.RowType;
-import io.crate.types.TypeSignature;
 
 public class TableFunctionFactory {
 
@@ -76,17 +75,15 @@ public class TableFunctionFactory {
 
         private ScalarTableFunctionImplementation(Scalar<?, T> functionImplementation) {
             super(
-                Signature.table(
-                    functionImplementation.signature().getName(),
-                    Lists.concat(
-                        functionImplementation.signature().getArgumentTypes(),
-                        functionImplementation.signature().getReturnType()
-                    ).toArray(new TypeSignature[0])
-                ).withFeature(Feature.DETERMINISTIC),
-                new BoundSignature(
-                    functionImplementation.boundSignature().argTypes(),
-                    functionImplementation.boundSignature().returnType()
-                )
+                    Signature.builder(functionImplementation.signature().getName(), FunctionType.TABLE)
+                            .argumentTypes(functionImplementation.signature().getArgumentTypes())
+                            .returnType(functionImplementation.signature().getReturnType())
+                            .features(Feature.DETERMINISTIC)
+                            .build(),
+                    new BoundSignature(
+                            functionImplementation.boundSignature().argTypes(),
+                            functionImplementation.boundSignature().returnType()
+                    )
             );
             this.functionImplementation = functionImplementation;
             var boundReturnType = functionImplementation.boundSignature().returnType();

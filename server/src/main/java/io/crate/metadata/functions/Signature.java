@@ -23,8 +23,8 @@ package io.crate.metadata.functions;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 
@@ -49,96 +49,16 @@ public final class Signature implements Writeable, Accountable {
 
     private static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(Signature.class);
 
-    /**
-     * See {@link #aggregate(FunctionName, TypeSignature...)}
-     */
-    public static Signature aggregate(String name, TypeSignature... types) {
-        return aggregate(new FunctionName(null, name), types);
-    }
-
-    /**
-     * Shortcut for creating a signature of type {@link FunctionType#AGGREGATE}.
-     * The last element of the given types is handled as the return type.
-     *
-     * @param name      The fqn function name.
-     * @param types     The argument and return (last element) types
-     * @return          The created signature
-     */
-    public static Signature aggregate(FunctionName name, TypeSignature... types) {
-        return signatureBuilder(name, FunctionType.AGGREGATE, types).build();
-    }
-
-    /**
-     * See {@link #scalar(FunctionName, TypeSignature...)}
-     */
-    public static Signature scalar(String name, TypeSignature... types) {
-        return scalar(new FunctionName(null, name), types);
-    }
-
-    /**
-     * Shortcut for creating a signature of type {@link FunctionType#TABLE}.
-     * The last element of the given types is handled as the return type.
-     *
-     * @param name      The fqn function name.
-     * @param types     The argument and return (last element) types
-     * @return          The created signature
-     */
-    public static Signature table(FunctionName name, TypeSignature... types) {
-        return signatureBuilder(name, FunctionType.TABLE, types).build();
-    }
-
-    /**
-     * See {@link #table(FunctionName, TypeSignature...)}
-     */
-    public static Signature table(String name, TypeSignature... types) {
-        return table(new FunctionName(null, name), types);
-    }
-
-    /**
-     * Shortcut for creating a signature of type {@link FunctionType#WINDOW}.
-     * The last element of the given types is handled as the return type.
-     *
-     * @param name      The fqn function name.
-     * @param types     The argument and return (last element) types
-     * @return          The created signature
-     */
-    public static Signature window(FunctionName name, TypeSignature... types) {
-        return signatureBuilder(name, FunctionType.WINDOW, types).build();
-    }
-
-    /**
-     * See {@link #window(FunctionName, TypeSignature...)}
-     */
-    public static Signature window(String name, TypeSignature... types) {
-        return window(new FunctionName(null, name), types);
-    }
-
-    /**
-     * Shortcut for creating a signature of type {@link FunctionType#SCALAR}.
-     * The last element of the given types is handled as the return type.
-     *
-     * @param name      The fqn function name.
-     * @param types     The argument and return (last element) types
-     * @return          The created signature
-     */
-    public static Signature scalar(FunctionName name, TypeSignature... types) {
-        return signatureBuilder(name, FunctionType.SCALAR, types).build();
-    }
-
-    private static Signature.Builder signatureBuilder(FunctionName name, FunctionType type, TypeSignature... types) {
-        assert types.length > 0 : "Types must contain at least the return type (last element), 0 types given";
-        Builder builder = Signature.builder()
+    public static Builder builder(FunctionName name, FunctionType type) {
+        return new Builder()
             .name(name)
-            .kind(type)
-            .returnType(types[types.length - 1]);
-        if (types.length > 1) {
-            builder.argumentTypes(Arrays.copyOf(types, types.length - 1));
-        }
-        return builder;
+            .kind(type);
     }
 
-    public static Builder builder() {
-        return new Builder();
+    public static Builder builder(String name, FunctionType type) {
+        return new Builder()
+            .name(name)
+            .kind(type);
     }
 
     public static Builder builder(Signature signature) {
@@ -211,6 +131,11 @@ public final class Signature implements Writeable, Accountable {
             return this;
         }
 
+        public Builder features(Scalar.Feature feature, Scalar.Feature ... rest) {
+            this.features = EnumSet.of(feature, rest);
+            return this;
+        }
+
         public Builder typeVariableConstraints(TypeVariableConstraint... typeVariableConstraints) {
             return typeVariableConstraints(List.of(typeVariableConstraints));
         }
@@ -273,9 +198,7 @@ public final class Signature implements Writeable, Accountable {
         int enumElements = in.readVInt();
         var features = Collections.unmodifiableSet(EnumSets.unpackFromInt(enumElements, Scalar.Feature.class));
 
-        return Signature.builder()
-            .name(functionName)
-            .kind(type)
+        return Signature.builder(functionName, type)
             .argumentTypes(argumentTypeSignatures)
             .returnType(returnType.getTypeSignature())
             .features(features)
@@ -334,40 +257,6 @@ public final class Signature implements Writeable, Accountable {
             + name.ramBytesUsed()
             + argumentTypes.stream().mapToLong(TypeSignature::ramBytesUsed).sum()
             + returnType.ramBytesUsed();
-    }
-
-    public Signature withTypeVariableConstraints(TypeVariableConstraint... typeVariableConstraints) {
-        return Signature.builder(this)
-            .typeVariableConstraints(typeVariableConstraints)
-            .build();
-    }
-
-    public Signature withVariableArity() {
-        return Signature.builder(this)
-            .setVariableArity(true)
-            .build();
-    }
-
-    /*
-     * Forbid coercion of argument types.
-     * This prevents e.g. matching a numeric_only function with convertible argument (text).
-     */
-    public Signature withForbiddenCoercion() {
-        return Signature.builder(this)
-            .forbidCoercion()
-            .build();
-    }
-
-    public Signature withFeature(Scalar.Feature feature) {
-        return Signature.builder(this)
-            .feature(feature)
-            .build();
-    }
-
-    public Signature withFeatures(Set<Scalar.Feature> features) {
-        return Signature.builder(this)
-            .features(features)
-            .build();
     }
 
     public FunctionName getName() {

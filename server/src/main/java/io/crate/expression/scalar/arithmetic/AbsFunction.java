@@ -21,11 +21,11 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import static io.crate.metadata.functions.Signature.scalar;
-
 import io.crate.expression.scalar.UnaryScalar;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -37,9 +37,11 @@ public final class AbsFunction {
         for (var type : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             var typeSignature = type.getTypeSignature();
             builder.add(
-                scalar(NAME, typeSignature, typeSignature)
-                    .withFeature(Scalar.Feature.DETERMINISTIC)
-                    .withFeature(Scalar.Feature.NULLABLE),
+                Signature.builder(NAME, FunctionType.SCALAR)
+                    .argumentTypes(typeSignature)
+                    .returnType(typeSignature)
+                    .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                    .build(),
                 (signature, boundSignature) -> {
                     DataType<?> argType = boundSignature.argTypes().get(0);
                     return new UnaryScalar<>(

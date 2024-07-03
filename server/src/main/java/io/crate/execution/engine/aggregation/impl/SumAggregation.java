@@ -47,6 +47,7 @@ import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionProvider.FunctionFactory;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
@@ -71,31 +72,31 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
         BinaryOperator<Long> sub = Math::subtractExact;
 
         builder.add(
-            Signature.aggregate(
-                    NAME,
-                    DataTypes.FLOAT.getTypeSignature(),
-                    DataTypes.FLOAT.getTypeSignature())
-                .withFeature(Scalar.Feature.DETERMINISTIC),
-            getSumAggregationForFloatFactory()
+                Signature.builder(NAME, FunctionType.AGGREGATE)
+                        .argumentTypes(DataTypes.FLOAT.getTypeSignature())
+                        .returnType(DataTypes.FLOAT.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .build(),
+                getSumAggregationForFloatFactory()
         );
         builder.add(
-            Signature.aggregate(
-                    NAME,
-                    DataTypes.DOUBLE.getTypeSignature(),
-                    DataTypes.DOUBLE.getTypeSignature())
-                .withFeature(Scalar.Feature.DETERMINISTIC),
-            getSumAggregationForDoubleFactory()
+                Signature.builder(NAME, FunctionType.AGGREGATE)
+                        .argumentTypes(DataTypes.DOUBLE.getTypeSignature())
+                        .returnType(DataTypes.DOUBLE.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .build(),
+                getSumAggregationForDoubleFactory()
         );
 
         for (var supportedType : List.of(DataTypes.BYTE, DataTypes.SHORT, DataTypes.INTEGER, DataTypes.LONG)) {
             builder.add(
-                Signature.aggregate(
-                        NAME,
-                        supportedType.getTypeSignature(),
-                        DataTypes.LONG.getTypeSignature())
-                    .withFeature(Scalar.Feature.DETERMINISTIC),
-                (signature, boundSignature) ->
-                    new SumAggregation<>(DataTypes.LONG, add, sub, signature, boundSignature)
+                    Signature.builder(NAME, FunctionType.AGGREGATE)
+                            .argumentTypes(supportedType.getTypeSignature())
+                            .returnType(DataTypes.LONG.getTypeSignature())
+                            .features(Scalar.Feature.DETERMINISTIC)
+                            .build(),
+                    (signature, boundSignature) ->
+                            new SumAggregation<>(DataTypes.LONG, add, sub, signature, boundSignature)
             );
         }
     }

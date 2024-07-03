@@ -31,6 +31,7 @@ import org.elasticsearch.common.network.InetAddresses;
 
 import io.crate.data.Input;
 import io.crate.expression.symbol.Literal;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
@@ -50,13 +51,12 @@ public final class CIDROperator {
 
     public static void register(Functions.Builder builder) {
         builder.add(
-            Signature.scalar(
-                    CONTAINED_WITHIN,
-                    DataTypes.IP.getTypeSignature(),
-                    DataTypes.STRING.getTypeSignature(),
-                    Operator.RETURN_TYPE.getTypeSignature())
-                .withFeature(Scalar.Feature.DETERMINISTIC)
-                .withFeature(Scalar.Feature.NULLABLE),
+            Signature.builder(CONTAINED_WITHIN, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.IP.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature())
+                .returnType(Operator.RETURN_TYPE.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .build(),
             ContainedWithinOperator::new
         );
     }

@@ -37,6 +37,7 @@ import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
@@ -52,12 +53,12 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
 
     private static final String NAME = "string_agg";
     public static final Signature SIGNATURE =
-        Signature.aggregate(
-                NAME,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature())
-            .withFeature(Scalar.Feature.DETERMINISTIC);
+            Signature.builder(NAME, FunctionType.AGGREGATE)
+                    .argumentTypes(DataTypes.STRING.getTypeSignature(),
+                            DataTypes.STRING.getTypeSignature())
+                    .returnType(DataTypes.STRING.getTypeSignature())
+                    .features(Scalar.Feature.DETERMINISTIC)
+                    .build();
 
 
     private static final int LIST_ENTRY_OVERHEAD = 32;

@@ -33,6 +33,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder.Context;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
@@ -48,13 +49,11 @@ public class KnnMatch extends Scalar<Boolean, Object> {
 
     public static void register(Functions.Builder module) {
         module.add(
-            Signature.scalar(
-                "knn_match",
-                TypeSignature.parse(FloatVectorType.NAME),
-                TypeSignature.parse(FloatVectorType.NAME),
-                DataTypes.INTEGER.getTypeSignature(),
-                DataTypes.BOOLEAN.getTypeSignature()
-            ).withFeature(Feature.DETERMINISTIC),
+            Signature.builder("knn_match", FunctionType.SCALAR)
+                .argumentTypes(TypeSignature.parse(FloatVectorType.NAME), TypeSignature.parse(FloatVectorType.NAME), DataTypes.INTEGER.getTypeSignature())
+                .returnType(DataTypes.BOOLEAN.getTypeSignature())
+                .features(Feature.DETERMINISTIC)
+                .build(),
             KnnMatch::new
         );
     }

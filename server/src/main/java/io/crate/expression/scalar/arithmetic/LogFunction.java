@@ -21,9 +21,8 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import static io.crate.metadata.functions.Signature.scalar;
-
 import io.crate.data.Input;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -67,13 +66,12 @@ public abstract class LogFunction extends Scalar<Number, Number> {
         static void registerLogBaseFunctions(Functions.Builder builder) {
             // log(valueType, baseType) : double
             builder.add(
-                scalar(
-                    NAME,
-                    DataTypes.DOUBLE.getTypeSignature(),
-                    DataTypes.DOUBLE.getTypeSignature(),
-                    TypeSignature.parse("double precision"))
-                    .withFeature(Feature.DETERMINISTIC)
-                    .withFeature(Feature.NULLABLE),
+                Signature.builder(NAME, FunctionType.SCALAR)
+                    .argumentTypes(DataTypes.DOUBLE.getTypeSignature(),
+                        DataTypes.DOUBLE.getTypeSignature())
+                    .returnType(TypeSignature.parse("double precision"))
+                    .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+                    .build(),
                 LogBaseFunction::new
             );
         }
@@ -107,12 +105,11 @@ public abstract class LogFunction extends Scalar<Number, Number> {
         static void registerLog10Functions(Functions.Builder builder) {
             // log(double) : double
             builder.add(
-                scalar(
-                    NAME,
-                    DataTypes.DOUBLE.getTypeSignature(),
-                    DataTypes.DOUBLE.getTypeSignature())
-                    .withFeature(Feature.DETERMINISTIC)
-                    .withFeature(Feature.NULLABLE),
+                Signature.builder(NAME, FunctionType.SCALAR)
+                    .argumentTypes(DataTypes.DOUBLE.getTypeSignature())
+                    .returnType(DataTypes.DOUBLE.getTypeSignature())
+                    .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+                    .build(),
                 Log10Function::new
             );
         }
@@ -142,12 +139,11 @@ public abstract class LogFunction extends Scalar<Number, Number> {
         static void registerLnFunctions(Functions.Builder builder) {
             // ln(double) : double
             builder.add(
-                scalar(
-                    LnFunction.NAME,
-                    DataTypes.DOUBLE.getTypeSignature(),
-                    DataTypes.DOUBLE.getTypeSignature())
-                    .withFeature(Feature.DETERMINISTIC)
-                    .withFeature(Feature.NULLABLE),
+                Signature.builder(LnFunction.NAME, FunctionType.SCALAR)
+                    .argumentTypes(DataTypes.DOUBLE.getTypeSignature())
+                    .returnType(DataTypes.DOUBLE.getTypeSignature())
+                    .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+                    .build(),
                 LnFunction::new
             );
         }

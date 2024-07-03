@@ -245,16 +245,14 @@ public interface Symbol extends Writeable, Accountable {
                 ? TryCastFunction.NAME
                 : ExplicitCastFunction.NAME;
             return new Function(
-                Signature
-                    .scalar(
-                        name,
-                        TypeSignature.parse("E"),
-                        TypeSignature.parse("V"),
-                        TypeSignature.parse("V")
-                    ).withTypeVariableConstraints(
-                        TypeVariableConstraint.typeVariable("E"),
+                Signature.builder(name, FunctionType.SCALAR)
+                    .argumentTypes(TypeSignature.parse("E"),
+                        TypeSignature.parse("V"))
+                    .returnType(TypeSignature.parse("V"))
+                    .features(Scalar.Feature.DETERMINISTIC)
+                    .typeVariableConstraints(TypeVariableConstraint.typeVariable("E"),
                         TypeVariableConstraint.typeVariable("V"))
-                    .withFeature(Scalar.Feature.DETERMINISTIC),
+                    .build(),
                 // a literal with a NULL value is passed as an argument
                 // to match the method signature
                 List.of(sourceSymbol, Literal.of(targetType, null)),
@@ -262,14 +260,13 @@ public interface Symbol extends Writeable, Accountable {
             );
         } else {
             return new Function(
-                Signature
-                    .scalar(
-                        ImplicitCastFunction.NAME,
-                        TypeSignature.parse("E"),
-                        DataTypes.STRING.getTypeSignature(),
-                        DataTypes.UNDEFINED.getTypeSignature())
-                    .withFeature(Scalar.Feature.DETERMINISTIC)
-                    .withTypeVariableConstraints(TypeVariableConstraint.typeVariable("E")),
+                Signature.builder(ImplicitCastFunction.NAME, FunctionType.SCALAR)
+                    .argumentTypes(TypeSignature.parse("E"),
+                        DataTypes.STRING.getTypeSignature())
+                    .returnType(DataTypes.UNDEFINED.getTypeSignature())
+                    .features(Scalar.Feature.DETERMINISTIC)
+                    .typeVariableConstraints(TypeVariableConstraint.typeVariable("E"))
+                    .build(),
                 List.of(
                     sourceSymbol,
                     Literal.of(targetType.getTypeSignature().toString())

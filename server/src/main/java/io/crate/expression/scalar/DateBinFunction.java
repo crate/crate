@@ -28,6 +28,7 @@ import org.joda.time.Period;
 
 import io.crate.data.Input;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -43,24 +44,24 @@ public class DateBinFunction extends Scalar<Long, Object> {
 
     public static void register(Functions.Builder module) {
         module.add(
-            Signature.scalar(
-                NAME,
-                DataTypes.INTERVAL.getTypeSignature(),
-                DataTypes.TIMESTAMPZ.getTypeSignature(), // source
-                DataTypes.TIMESTAMPZ.getTypeSignature(), // origin
-                DataTypes.TIMESTAMPZ.getTypeSignature()
-            ).withFeatures(EnumSet.of(Feature.DETERMINISTIC, Feature.COMPARISON_REPLACEMENT, Feature.NULLABLE)),
-            DateBinFunction::new);
+                Signature.builder(NAME, FunctionType.SCALAR)
+                        .argumentTypes(DataTypes.INTERVAL.getTypeSignature(),
+                                DataTypes.TIMESTAMPZ.getTypeSignature(), // source
+                                DataTypes.TIMESTAMPZ.getTypeSignature())
+                        .returnType(DataTypes.TIMESTAMPZ.getTypeSignature())
+                        .features(EnumSet.of(Feature.DETERMINISTIC, Feature.COMPARISON_REPLACEMENT, Feature.NULLABLE))
+                        .build(),
+                DateBinFunction::new);
 
         module.add(
-            Signature.scalar(
-                NAME,
-                DataTypes.INTERVAL.getTypeSignature(),
-                DataTypes.TIMESTAMP.getTypeSignature(), // source
-                DataTypes.TIMESTAMP.getTypeSignature(), // origin
-                DataTypes.TIMESTAMP.getTypeSignature()
-            ).withFeatures(EnumSet.of(Feature.DETERMINISTIC, Feature.COMPARISON_REPLACEMENT, Feature.NULLABLE)),
-            DateBinFunction::new);
+                Signature.builder(NAME, FunctionType.SCALAR)
+                        .argumentTypes(DataTypes.INTERVAL.getTypeSignature(),
+                                DataTypes.TIMESTAMP.getTypeSignature(), // source
+                                DataTypes.TIMESTAMP.getTypeSignature())
+                        .returnType(DataTypes.TIMESTAMP.getTypeSignature())
+                        .features(EnumSet.of(Feature.DETERMINISTIC, Feature.COMPARISON_REPLACEMENT, Feature.NULLABLE))
+                        .build(),
+                DateBinFunction::new);
     }
 
     private DateBinFunction(Signature signature, BoundSignature boundSignature) {

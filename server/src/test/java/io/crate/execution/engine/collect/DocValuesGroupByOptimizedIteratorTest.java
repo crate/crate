@@ -70,6 +70,7 @@ import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.lucene.LuceneQueryBuilder;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
@@ -116,11 +117,10 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
     @Test
     public void test_group_by_doc_values_optimized_iterator_for_single_numeric_key() throws Exception {
         SumAggregation<?> sumAggregation = (SumAggregation<?>) functions.getQualified(
-            Signature.aggregate(
-                SumAggregation.NAME,
-                DataTypes.LONG.getTypeSignature(),
-                DataTypes.LONG.getTypeSignature()
-            ),
+            Signature.builder(SumAggregation.NAME, FunctionType.AGGREGATE)
+                .argumentTypes(DataTypes.LONG.getTypeSignature())
+                .returnType(DataTypes.LONG.getTypeSignature())
+                .build(),
             List.of(DataTypes.LONG),
             DataTypes.LONG
         );
@@ -177,11 +177,10 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
     @Test
     public void test_group_by_doc_values_optimized_iterator_for_many_keys() throws Exception {
         SumAggregation<?> sumAggregation = (SumAggregation<?>) functions.getQualified(
-            Signature.aggregate(
-                SumAggregation.NAME,
-                DataTypes.LONG.getTypeSignature(),
-                DataTypes.LONG.getTypeSignature()
-            ),
+            Signature.builder(SumAggregation.NAME, FunctionType.AGGREGATE)
+                .argumentTypes(DataTypes.LONG.getTypeSignature())
+                .returnType(DataTypes.LONG.getTypeSignature())
+                .build(),
             List.of(DataTypes.LONG),
             DataTypes.LONG
         );

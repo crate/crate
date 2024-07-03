@@ -26,10 +26,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.jetbrains.annotations.NotNull;
-
 import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.data.Input;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -50,15 +51,27 @@ public class SubstrFunction extends Scalar<String, Object> {
         TypeSignature intType = DataTypes.INTEGER.getTypeSignature();
         for (var name : List.of(NAME, ALIAS)) {
             builder.add(
-                Signature.scalar(name, stringType, intType, stringType).withFeature(Feature.DETERMINISTIC),
+                Signature.builder(name, FunctionType.SCALAR)
+                    .argumentTypes(stringType, intType)
+                    .returnType(stringType)
+                    .features(Feature.DETERMINISTIC)
+                    .build(),
                 SubstrFunction::new
             );
             builder.add(
-                Signature.scalar(name, stringType, intType, intType, stringType).withFeature(Feature.DETERMINISTIC),
+                Signature.builder(name, FunctionType.SCALAR)
+                    .argumentTypes(stringType, intType, intType)
+                    .returnType(stringType)
+                    .features(Feature.DETERMINISTIC)
+                    .build(),
                 SubstrFunction::new
             );
             builder.add(
-                Signature.scalar(name, stringType, stringType, stringType).withFeature(Feature.DETERMINISTIC),
+                Signature.builder(name, FunctionType.SCALAR)
+                    .argumentTypes(stringType, stringType)
+                    .returnType(stringType)
+                    .features(Feature.DETERMINISTIC)
+                    .build(),
                 SubstrExtractFunction::new
             );
         }

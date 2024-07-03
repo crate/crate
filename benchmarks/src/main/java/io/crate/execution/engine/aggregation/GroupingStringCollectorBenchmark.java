@@ -54,6 +54,7 @@ import io.crate.execution.engine.collect.RowCollectExpression;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.OnHeapMemoryManager;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
@@ -93,13 +94,13 @@ public class GroupingStringCollectorBenchmark {
         CollectExpression[] collectExpressions = new CollectExpression[]{keyInput};
 
         MinimumAggregation minAgg = (MinimumAggregation) functions.getQualified(
-            Signature.aggregate(
-                    MinimumAggregation.NAME,
-                    DataTypes.STRING.getTypeSignature(),
-                    DataTypes.STRING.getTypeSignature())
-                .withFeature(Scalar.Feature.DETERMINISTIC),
-            List.of(DataTypes.STRING),
-            DataTypes.STRING
+                Signature.builder(MinimumAggregation.NAME, FunctionType.AGGREGATE)
+                        .argumentTypes(DataTypes.STRING.getTypeSignature())
+                        .returnType(DataTypes.STRING.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .build(),
+                List.of(DataTypes.STRING),
+                DataTypes.STRING
         );
 
         return GroupingCollector.singleKey(

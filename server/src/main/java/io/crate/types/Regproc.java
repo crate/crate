@@ -21,12 +21,14 @@
 
 package io.crate.types;
 
+import java.util.Objects;
+
+import org.jetbrains.annotations.NotNull;
+
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.OidHash;
-
-import org.jetbrains.annotations.NotNull;
-import java.util.Objects;
 
 public class Regproc {
 
@@ -37,7 +39,11 @@ public class Regproc {
 
     public static Regproc of(@NotNull String name) {
         return new Regproc(
-            OidHash.functionOid(Signature.scalar(name, DataTypes.UNDEFINED.getTypeSignature()).withFeature(Scalar.Feature.DETERMINISTIC)),
+            OidHash.functionOid(Signature.builder(name, FunctionType.SCALAR)
+                    .argumentTypes()
+                    .returnType(DataTypes.UNDEFINED.getTypeSignature())
+                    .features(Scalar.Feature.DETERMINISTIC)
+                    .build()),
             name
         );
     }
@@ -57,7 +63,11 @@ public class Regproc {
     }
 
     public Signature asDummySignature() {
-        return Signature.scalar(name, DataTypes.UNDEFINED.getTypeSignature()).withFeature(Scalar.Feature.DETERMINISTIC);
+        return Signature.builder(name, FunctionType.SCALAR)
+                .argumentTypes()
+                .returnType(DataTypes.UNDEFINED.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build();
     }
 
     public int oid() {

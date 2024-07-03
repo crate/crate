@@ -266,9 +266,7 @@ public class UserDefinedFunctionsIntegrationTest extends IntegTestCase {
     @Test
     public void test_pg_function_is_visible() throws Exception {
         Signature signature = Signature
-            .builder()
-            .kind(FunctionType.SCALAR)
-            .name(new FunctionName(Schemas.DOC_SCHEMA_NAME, "my_func"))
+            .builder(new FunctionName(Schemas.DOC_SCHEMA_NAME, "my_func"), FunctionType.SCALAR)
             .argumentTypes(
                 TypeSignature.parse("array(array(integer))"),
                 TypeSignature.parse("integer"),
@@ -294,10 +292,7 @@ public class UserDefinedFunctionsIntegrationTest extends IntegTestCase {
     public void test_pg_get_function_result() throws Exception {
         TypeSignature returnTypeSig = TypeSignature.parse("array(array(integer))");
         String returnType = returnTypeSig.toString();
-        Signature signature = Signature
-            .builder()
-            .kind(FunctionType.SCALAR)
-            .name(new FunctionName(Schemas.DOC_SCHEMA_NAME, "make_2d_array"))
+        Signature signature = Signature.builder(new FunctionName(Schemas.DOC_SCHEMA_NAME, "make_2d_array"), FunctionType.SCALAR)
             .argumentTypes(DataTypes.INTEGER.getTypeSignature())
             .returnType(returnTypeSig)
             .build();
@@ -318,11 +313,7 @@ public class UserDefinedFunctionsIntegrationTest extends IntegTestCase {
 
     @Test
     public void test_pg_function_is_visible_when_oid_is_retrieved_from_column() throws Exception {
-        Signature signature = Signature
-            .builder()
-            .kind(FunctionType.SCALAR)
-            .name(new FunctionName(null, CurrentTimeFunction.NAME))
-            .argumentTypes()
+        Signature signature = Signature.builder(new FunctionName(null, CurrentTimeFunction.NAME), FunctionType.SCALAR)
             .returnType(DataTypes.TIMETZ.getTypeSignature())
             .build();
         int functionOid = OidHash.functionOid(signature);

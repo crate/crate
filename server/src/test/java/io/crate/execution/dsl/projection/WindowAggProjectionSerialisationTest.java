@@ -40,6 +40,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
@@ -132,13 +133,13 @@ public class WindowAggProjectionSerialisationTest {
 
     private FunctionImplementation getSumFunction() {
         return functions.getQualified(
-            Signature.aggregate(
-                    SumAggregation.NAME,
-                    DataTypes.LONG.getTypeSignature(),
-                    DataTypes.LONG.getTypeSignature())
-                .withFeature(Scalar.Feature.DETERMINISTIC),
-            List.of(DataTypes.LONG),
-            DataTypes.LONG
+                Signature.builder(SumAggregation.NAME, FunctionType.AGGREGATE)
+                        .argumentTypes(DataTypes.LONG.getTypeSignature())
+                        .returnType(DataTypes.LONG.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .build(),
+                List.of(DataTypes.LONG),
+                DataTypes.LONG
         );
     }
 }

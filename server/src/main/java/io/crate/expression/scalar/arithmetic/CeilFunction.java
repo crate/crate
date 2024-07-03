@@ -21,13 +21,13 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import static io.crate.metadata.functions.Signature.scalar;
-
 import java.util.List;
 
 import io.crate.expression.scalar.UnaryScalar;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -43,9 +43,11 @@ public final class CeilFunction {
             assert returnType != null : "Could not get integral type of " + type;
             for (var name : List.of(CEIL, CEILING)) {
                 module.add(
-                    scalar(name, typeSignature, returnType.getTypeSignature())
-                        .withFeature(Scalar.Feature.DETERMINISTIC)
-                        .withFeature(Scalar.Feature.NULLABLE),
+                    Signature.builder(name, FunctionType.SCALAR)
+                        .argumentTypes(typeSignature)
+                        .returnType(returnType.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                        .build(),
                     (signature, boundSignature) ->
                         new UnaryScalar<>(
                             signature,

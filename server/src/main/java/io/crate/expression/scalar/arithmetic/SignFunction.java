@@ -21,14 +21,14 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import static io.crate.metadata.functions.Signature.scalar;
-
 import java.math.BigDecimal;
 
 import io.crate.expression.scalar.DoubleScalar;
 import io.crate.expression.scalar.UnaryScalar;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -38,9 +38,11 @@ public class SignFunction {
 
     public static void register(Functions.Builder builder) {
         builder.add(
-            scalar(NAME, DataTypes.NUMERIC.getTypeSignature(), DataTypes.NUMERIC.getTypeSignature())
-                .withFeature(Scalar.Feature.DETERMINISTIC)
-                .withFeature(Scalar.Feature.NULLABLE),
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.NUMERIC.getTypeSignature())
+                .returnType(DataTypes.NUMERIC.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .build(),
             (signature, boundSignature) -> {
                 DataType<?> argType = boundSignature.argTypes().getFirst();
                 return new UnaryScalar<>(
@@ -54,9 +56,11 @@ public class SignFunction {
 
 
         builder.add(
-            scalar(NAME, DataTypes.DOUBLE.getTypeSignature(), DataTypes.DOUBLE.getTypeSignature())
-                .withFeature(Scalar.Feature.DETERMINISTIC)
-                .withFeature(Scalar.Feature.NULLABLE),
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.DOUBLE.getTypeSignature())
+                .returnType(DataTypes.DOUBLE.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .build(),
             (signature, boundSignature) ->
                 new DoubleScalar(signature, boundSignature, Math::signum)
         );

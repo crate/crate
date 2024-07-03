@@ -42,6 +42,7 @@ import io.crate.Streamer;
 import io.crate.execution.engine.aggregation.impl.HyperLogLogPlusPlus;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.functions.Signature;
@@ -58,26 +59,26 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTestCase {
 
     private Object executeAggregation(DataType<?> argumentType, Object[][] data) throws Exception {
         return executeAggregation(
-            Signature.aggregate(
-                    HyperLogLogDistinctAggregation.NAME,
-                    argumentType.getTypeSignature(),
-                    DataTypes.LONG.getTypeSignature())
-                .withFeature(Scalar.Feature.DETERMINISTIC),
-            data,
-            List.of()
+                Signature.builder(HyperLogLogDistinctAggregation.NAME, FunctionType.AGGREGATE)
+                        .argumentTypes(argumentType.getTypeSignature())
+                        .returnType(DataTypes.LONG.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .build(),
+                data,
+                List.of()
         );
     }
 
     private Object executeAggregationWithPrecision(DataType<?> argumentType, Object[][] data, List<Literal<?>> optionalParams) throws Exception {
         return executeAggregation(
-            Signature.aggregate(
-                    HyperLogLogDistinctAggregation.NAME,
-                    argumentType.getTypeSignature(),
-                    DataTypes.INTEGER.getTypeSignature(),
-                    DataTypes.LONG.getTypeSignature())
-                .withFeature(Scalar.Feature.DETERMINISTIC),
-            data,
-            optionalParams
+                Signature.builder(HyperLogLogDistinctAggregation.NAME, FunctionType.AGGREGATE)
+                        .argumentTypes(argumentType.getTypeSignature(),
+                                DataTypes.INTEGER.getTypeSignature())
+                        .returnType(DataTypes.LONG.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .build(),
+                data,
+                optionalParams
         );
     }
 

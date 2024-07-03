@@ -21,8 +21,6 @@
 
 package io.crate.expression.scalar.geo;
 
-import static io.crate.metadata.functions.Signature.scalar;
-
 import java.util.Arrays;
 import java.util.List;
 
@@ -46,6 +44,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.lucene.LuceneQueryBuilder.Context;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
@@ -61,13 +60,12 @@ public class DistanceFunction extends Scalar<Double, Point> {
 
     public static void register(Functions.Builder module) {
         module.add(
-            scalar(
-                NAME,
-                DataTypes.GEO_POINT.getTypeSignature(),
-                DataTypes.GEO_POINT.getTypeSignature(),
-                DataTypes.DOUBLE.getTypeSignature()
-            ).withFeature(Feature.DETERMINISTIC)
-                .withFeature(Feature.NULLABLE),
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.GEO_POINT.getTypeSignature(),
+                    DataTypes.GEO_POINT.getTypeSignature())
+                .returnType(DataTypes.DOUBLE.getTypeSignature())
+                .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+                .build(),
             DistanceFunction::new
         );
     }

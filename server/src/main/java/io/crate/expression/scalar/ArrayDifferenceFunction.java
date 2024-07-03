@@ -35,6 +35,7 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -52,14 +53,13 @@ class ArrayDifferenceFunction extends Scalar<List<Object>, List<Object>> {
 
     public static void register(Functions.Builder module) {
         module.add(
-            Signature.scalar(
-                    NAME,
-                    TypeSignature.parse("array(E)"),
-                    TypeSignature.parse("array(E)"),
-                    TypeSignature.parse("array(E)")
-                ).withFeature(Feature.DETERMINISTIC)
-                .withTypeVariableConstraints(typeVariable("E"))
-                .withFeature(Feature.NULLABLE),
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(TypeSignature.parse("array(E)"),
+                    TypeSignature.parse("array(E)"))
+                .returnType(TypeSignature.parse("array(E)"))
+                .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+                .typeVariableConstraints(typeVariable("E"))
+                .build(),
             (signature, boundSignature) ->
                 new ArrayDifferenceFunction(
                     signature,

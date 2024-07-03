@@ -31,6 +31,7 @@ import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
@@ -44,12 +45,12 @@ public class IntervalSumAggregation extends AggregationFunction<Period, Period> 
 
     public static void register(Functions.Builder builder) {
         builder.add(
-            Signature.aggregate(
-                    NAME,
-                    DataTypes.INTERVAL.getTypeSignature(),
-                    DataTypes.INTERVAL.getTypeSignature())
-                .withFeature(Scalar.Feature.DETERMINISTIC),
-            IntervalSumAggregation::new
+                Signature.builder(NAME, FunctionType.AGGREGATE)
+                        .argumentTypes(DataTypes.INTERVAL.getTypeSignature())
+                        .returnType(DataTypes.INTERVAL.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .build(),
+                IntervalSumAggregation::new
         );
     }
 

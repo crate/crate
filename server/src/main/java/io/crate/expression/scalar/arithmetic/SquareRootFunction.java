@@ -21,11 +21,11 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import static io.crate.metadata.functions.Signature.scalar;
-
 import io.crate.expression.scalar.DoubleScalar;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
 public final class SquareRootFunction {
@@ -36,9 +36,11 @@ public final class SquareRootFunction {
         for (var type : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             var typeSignature = type.getTypeSignature();
             module.add(
-                scalar(NAME, typeSignature, DataTypes.DOUBLE.getTypeSignature())
-                    .withFeature(Scalar.Feature.DETERMINISTIC)
-                    .withFeature(Scalar.Feature.NULLABLE),
+                Signature.builder(NAME, FunctionType.SCALAR)
+                    .argumentTypes(typeSignature)
+                    .returnType(DataTypes.DOUBLE.getTypeSignature())
+                    .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                    .build(),
                 (signature, boundSignature) ->
                     new DoubleScalar(signature, boundSignature, SquareRootFunction::sqrt)
             );

@@ -21,13 +21,14 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import static io.crate.metadata.functions.Signature.scalar;
-
 import java.util.function.DoubleUnaryOperator;
 
 import io.crate.expression.scalar.DoubleScalar;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.Scalar.Feature;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
 
@@ -43,13 +44,12 @@ public final class TrigonometricFunctions {
         register(builder, "atan", x -> Math.atan(x));
 
         builder.add(
-            scalar(
-                "atan2",
-                DataTypes.DOUBLE.getTypeSignature(),
-                DataTypes.DOUBLE.getTypeSignature(),
-                DataTypes.DOUBLE.getTypeSignature())
-                .withFeatures(Scalar.DETERMINISTIC_ONLY)
-                .withFeature(Scalar.Feature.NULLABLE),
+            Signature.builder("atan2", FunctionType.SCALAR)
+                .argumentTypes(DataTypes.DOUBLE.getTypeSignature(),
+                    DataTypes.DOUBLE.getTypeSignature())
+                .returnType(DataTypes.DOUBLE.getTypeSignature())
+                .features(Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .build(),
             (signature, boundSignature) ->
                 new BinaryScalar<>(
                     Math::atan2,
@@ -62,12 +62,11 @@ public final class TrigonometricFunctions {
 
     private static void register(Functions.Builder builder, String name, DoubleUnaryOperator func) {
         builder.add(
-            scalar(
-                name,
-                DataTypes.DOUBLE.getTypeSignature(),
-                DataTypes.DOUBLE.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withFeature(Scalar.Feature.NULLABLE),
+            Signature.builder(name, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.DOUBLE.getTypeSignature())
+                .returnType(DataTypes.DOUBLE.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .build(),
             (signature, boundSignature) ->
                 new DoubleScalar(signature, boundSignature, func)
         );

@@ -45,6 +45,7 @@ import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
@@ -76,15 +77,21 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
     public static void register(Functions.Builder builder) {
         TypeSignature T = TypeSignature.parse("T");
         builder.add(
-            Signature.aggregate(NAME, T, T)
-                .withFeature(Scalar.Feature.DETERMINISTIC)
-                .withTypeVariableConstraints(TypeVariableConstraint.typeVariableOfAnyType("T")),
+                Signature.builder(NAME, FunctionType.AGGREGATE)
+                        .argumentTypes(T)
+                        .returnType(T)
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .typeVariableConstraints(TypeVariableConstraint.typeVariableOfAnyType("T"))
+                        .build(),
             ArbitraryAggregation::new
         );
         builder.add(
-            Signature.aggregate(ALIAS, T, T)
-                .withFeature(Scalar.Feature.DETERMINISTIC)
-                .withTypeVariableConstraints(TypeVariableConstraint.typeVariableOfAnyType("T")),
+                Signature.builder(ALIAS, FunctionType.AGGREGATE)
+                        .argumentTypes(T)
+                        .returnType(T)
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .typeVariableConstraints(TypeVariableConstraint.typeVariableOfAnyType("T"))
+                        .build(),
             ArbitraryAggregation::new
         );
     }

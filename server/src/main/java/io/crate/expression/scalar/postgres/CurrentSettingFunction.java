@@ -21,10 +21,10 @@
 
 package io.crate.expression.scalar.postgres;
 
-import static io.crate.metadata.functions.Signature.scalar;
 
 import io.crate.data.Input;
 import io.crate.metadata.FunctionName;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -43,11 +43,11 @@ public class CurrentSettingFunction extends Scalar<String, Object> {
 
     public static void register(Functions.Builder builder, SessionSettingRegistry sessionSettingRegistry) {
         builder.add(
-            scalar(
-                FQN,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature()
-            ).withFeature(Feature.DETERMINISTIC),
+            Signature.builder(FQN, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.STRING.getTypeSignature())
+                .returnType(DataTypes.STRING.getTypeSignature())
+                .features(Feature.DETERMINISTIC)
+                .build(),
             (signature, boundSignature) ->
                 new CurrentSettingFunction(
                     signature,
@@ -57,12 +57,12 @@ public class CurrentSettingFunction extends Scalar<String, Object> {
         );
 
         builder.add(
-            scalar(
-                FQN,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.BOOLEAN.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature()
-            ).withFeature(Feature.DETERMINISTIC),
+            Signature.builder(FQN, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.STRING.getTypeSignature(),
+                    DataTypes.BOOLEAN.getTypeSignature())
+                .returnType(DataTypes.STRING.getTypeSignature())
+                .features(Feature.DETERMINISTIC)
+                .build(),
             (signature, boundSignature) ->
                 new CurrentSettingFunction(
                     signature,

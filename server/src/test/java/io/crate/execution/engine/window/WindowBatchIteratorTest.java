@@ -53,6 +53,7 @@ import io.crate.data.testing.TestingBatchIterators;
 import io.crate.data.testing.TestingRowConsumer;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.sort.OrderingByPosition;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -400,7 +401,11 @@ public class WindowBatchIteratorTest {
 
             @Override
             public Signature signature() {
-                return Signature.window("first_cell_value", DataTypes.INTEGER.getTypeSignature()).withFeature(Scalar.Feature.DETERMINISTIC);
+                return Signature.builder("first_cell_value", FunctionType.WINDOW)
+                        .argumentTypes()
+                        .returnType(DataTypes.INTEGER.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .build();
             }
 
             @Override
@@ -424,7 +429,11 @@ public class WindowBatchIteratorTest {
 
             @Override
             public Signature signature() {
-                return Signature.window("a_frame_bounded_window_function", DataTypes.INTEGER.getTypeSignature()).withFeature(Scalar.Feature.DETERMINISTIC);
+                return Signature.builder("a_frame_bounded_window_function", FunctionType.WINDOW)
+                        .argumentTypes()
+                        .returnType(DataTypes.INTEGER.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .build();
             }
 
             @Override
@@ -449,7 +458,11 @@ public class WindowBatchIteratorTest {
 
             @Override
             public Signature signature() {
-                return Signature.window("row_number", DataTypes.INTEGER.getTypeSignature()).withFeature(Scalar.Feature.DETERMINISTIC);
+                return Signature.builder("row_number", FunctionType.WINDOW)
+                        .argumentTypes()
+                        .returnType(DataTypes.INTEGER.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .build();
             }
 
             @Override

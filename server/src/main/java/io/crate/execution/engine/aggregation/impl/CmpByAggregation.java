@@ -44,6 +44,7 @@ import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
@@ -108,29 +109,23 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
         var variableConstraintA = TypeVariableConstraint.typeVariableOfAnyType("A");
         var variableConstraintB = TypeVariableConstraint.typeVariableOfAnyType("B");
         builder.add(
-            Signature.aggregate(
-                    MAX_BY,
-                    returnValueType,
-                    cmpType,
-                    returnValueType)
-                .withFeature(Scalar.Feature.DETERMINISTIC)
-                .withTypeVariableConstraints(
-                    variableConstraintA,
-                    variableConstraintB
-                ),
+            Signature.builder(MAX_BY, FunctionType.AGGREGATE)
+                .argumentTypes(returnValueType,
+                        cmpType)
+                .returnType(returnValueType)
+                .features(Scalar.Feature.DETERMINISTIC)
+                .typeVariableConstraints(variableConstraintA, variableConstraintB)
+                .build(),
             (signature, boundSignature) -> new CmpByAggregation(1, signature, boundSignature)
         );
         builder.add(
-            Signature.aggregate(
-                MIN_BY,
-                returnValueType,
-                    cmpType,
-                    returnValueType)
-                .withFeature(Scalar.Feature.DETERMINISTIC)
-                .withTypeVariableConstraints(
-                    variableConstraintA,
-                    variableConstraintB
-                ),
+            Signature.builder(MIN_BY, FunctionType.AGGREGATE)
+                .argumentTypes(returnValueType,
+                        cmpType)
+                .returnType(returnValueType)
+                .features(Scalar.Feature.DETERMINISTIC)
+                .typeVariableConstraints(variableConstraintA, variableConstraintB)
+                .build(),
             (signature, boundSignature) -> new CmpByAggregation(-1, signature, boundSignature)
         );
     }

@@ -28,6 +28,7 @@ import java.time.ZonedDateTime;
 import java.util.Locale;
 
 import io.crate.data.Input;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -45,30 +46,30 @@ public class TimezoneFunction extends Scalar<Long, Object> {
 
     public static void register(Functions.Builder module) {
         module.add(
-            Signature.scalar(
-                NAME,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.TIMESTAMPZ.getTypeSignature(),
-                DataTypes.TIMESTAMP.getTypeSignature()
-            ).withFeature(Feature.DETERMINISTIC),
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.STRING.getTypeSignature(),
+                    DataTypes.TIMESTAMPZ.getTypeSignature())
+                .returnType(DataTypes.TIMESTAMP.getTypeSignature())
+                .features(Feature.DETERMINISTIC)
+                .build(),
             TimezoneFunction::new
         );
         module.add(
-            Signature.scalar(
-                NAME,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.TIMESTAMP.getTypeSignature(),
-                DataTypes.TIMESTAMPZ.getTypeSignature()
-            ).withFeature(Feature.DETERMINISTIC),
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.STRING.getTypeSignature(),
+                    DataTypes.TIMESTAMP.getTypeSignature())
+                .returnType(DataTypes.TIMESTAMPZ.getTypeSignature())
+                .features(Feature.DETERMINISTIC)
+                .build(),
             TimezoneFunction::new
         );
         module.add(
-            Signature.scalar(
-                NAME,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.LONG.getTypeSignature(),
-                DataTypes.TIMESTAMPZ.getTypeSignature()
-            ).withFeature(Feature.DETERMINISTIC),
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.STRING.getTypeSignature(),
+                    DataTypes.LONG.getTypeSignature())
+                .returnType(DataTypes.TIMESTAMPZ.getTypeSignature())
+                .features(Feature.DETERMINISTIC)
+                .build(),
             TimezoneFunction::new
         );
     }

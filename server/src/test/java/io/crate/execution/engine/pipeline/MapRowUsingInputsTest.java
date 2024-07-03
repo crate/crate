@@ -41,7 +41,9 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.Scalar.Feature;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
@@ -57,14 +59,12 @@ public class MapRowUsingInputsTest extends ESTestCase {
         InputFactory inputFactory = new InputFactory(createNodeContext());
         InputFactory.Context<CollectExpression<Row, ?>> ctx = inputFactory.ctxForInputColumns(txnCtx);
         var addFunction = new Function(
-            Signature.scalar(
-                    ArithmeticFunctions.Names.ADD,
-                    DataTypes.LONG.getTypeSignature(),
-                    DataTypes.LONG.getTypeSignature(),
-                    DataTypes.LONG.getTypeSignature()
-                )
-                .withFeatures(Scalar.DETERMINISTIC_AND_COMPARISON_REPLACEMENT)
-                .withFeature(Scalar.Feature.NULLABLE),
+            Signature.builder(ArithmeticFunctions.Names.ADD, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.LONG.getTypeSignature(),
+                    DataTypes.LONG.getTypeSignature())
+                .returnType(DataTypes.LONG.getTypeSignature())
+                .features(Feature.DETERMINISTIC, Feature.COMPARISON_REPLACEMENT, Scalar.Feature.NULLABLE)
+                .build(),
             List.of(new InputColumn(0, DataTypes.LONG), Literal.of(2L)),
             DataTypes.LONG
         );

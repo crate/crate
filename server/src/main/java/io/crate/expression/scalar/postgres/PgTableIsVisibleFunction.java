@@ -27,6 +27,7 @@ import io.crate.data.Input;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.expression.scalar.HasTablePrivilegeFunction;
 import io.crate.metadata.FunctionName;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
@@ -50,12 +51,11 @@ public class PgTableIsVisibleFunction extends Scalar<Boolean, Integer> {
 
     public static void register(Functions.Builder module) {
         module.add(
-            Signature.scalar(
-                    NAME,
-                    DataTypes.INTEGER.getTypeSignature(),
-                    DataTypes.BOOLEAN.getTypeSignature()
-                ).withFeature(Feature.DETERMINISTIC)
-                .withFeature(Feature.NULLABLE),
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.INTEGER.getTypeSignature())
+                .returnType(DataTypes.BOOLEAN.getTypeSignature())
+                .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+                .build(),
             PgTableIsVisibleFunction::new);
     }
 

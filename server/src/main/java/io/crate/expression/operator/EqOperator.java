@@ -50,6 +50,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder.Context;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
@@ -71,14 +72,13 @@ public final class EqOperator extends Operator<Object> {
 
     public static final String NAME = "op_=";
 
-    public static final Signature SIGNATURE = Signature.scalar(
-            NAME,
-            TypeSignature.parse("E"),
-            TypeSignature.parse("E"),
-            Operator.RETURN_TYPE.getTypeSignature())
-        .withFeature(Feature.DETERMINISTIC)
-        .withFeature(Feature.NULLABLE)
-        .withTypeVariableConstraints(typeVariable("E"));
+    public static final Signature SIGNATURE = Signature.builder(NAME, FunctionType.SCALAR)
+        .argumentTypes(TypeSignature.parse("E"),
+            TypeSignature.parse("E"))
+        .returnType(Operator.RETURN_TYPE.getTypeSignature())
+        .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+        .typeVariableConstraints(typeVariable("E"))
+        .build();
 
     public static void register(Functions.Builder builder) {
         builder.add(SIGNATURE, EqOperator::new);

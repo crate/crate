@@ -47,8 +47,10 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.Scalar.Feature;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -62,16 +64,14 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
     private InputFactory factory;
     private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
     private Function add = new Function(
-        Signature.scalar(
-                ArithmeticFunctions.Names.ADD,
-                DataTypes.INTEGER.getTypeSignature(),
-                DataTypes.INTEGER.getTypeSignature(),
-                DataTypes.INTEGER.getTypeSignature()
-            )
-            .withFeatures(Scalar.DETERMINISTIC_AND_COMPARISON_REPLACEMENT)
-            .withFeature(Scalar.Feature.NULLABLE),
-        List.of(new InputColumn(1, DataTypes.INTEGER), Literal.of(10)),
-        DataTypes.INTEGER
+            Signature.builder(ArithmeticFunctions.Names.ADD, FunctionType.SCALAR)
+                    .argumentTypes(DataTypes.INTEGER.getTypeSignature(),
+                            DataTypes.INTEGER.getTypeSignature())
+                    .returnType(DataTypes.INTEGER.getTypeSignature())
+                    .features(Feature.DETERMINISTIC, Feature.COMPARISON_REPLACEMENT, Scalar.Feature.NULLABLE)
+                    .build(),
+            List.of(new InputColumn(1, DataTypes.INTEGER), Literal.of(10)),
+            DataTypes.INTEGER
     );
 
     @Before

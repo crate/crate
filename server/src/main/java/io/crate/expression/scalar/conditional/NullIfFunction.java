@@ -24,6 +24,7 @@ package io.crate.expression.scalar.conditional;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 
 import io.crate.data.Input;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -36,13 +37,13 @@ public class NullIfFunction extends Scalar<Object, Object> {
 
     public static void register(Functions.Builder module) {
         module.add(
-            Signature.scalar(
-                    NAME,
-                    TypeSignature.parse("E"),
-                    TypeSignature.parse("E"),
-                    TypeSignature.parse("E")
-                ).withFeature(Feature.DETERMINISTIC)
-                .withTypeVariableConstraints(typeVariable("E")),
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(TypeSignature.parse("E"),
+                    TypeSignature.parse("E"))
+                .returnType(TypeSignature.parse("E"))
+                .features(Feature.DETERMINISTIC)
+                .typeVariableConstraints(typeVariable("E"))
+                .build(),
             NullIfFunction::new
         );
     }

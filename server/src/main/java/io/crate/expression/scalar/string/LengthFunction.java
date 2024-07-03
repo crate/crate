@@ -25,6 +25,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.function.Function;
 
 import io.crate.expression.scalar.UnaryScalar;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
@@ -41,12 +42,11 @@ public final class LengthFunction {
 
     private static void register(Functions.Builder builder, String name, Function<String, Integer> func) {
         builder.add(
-            Signature.scalar(
-                    name,
-                    DataTypes.STRING.getTypeSignature(),
-                    DataTypes.INTEGER.getTypeSignature()
-                ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withFeature(Scalar.Feature.NULLABLE),
+            Signature.builder(name, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.STRING.getTypeSignature())
+                .returnType(DataTypes.INTEGER.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .build(),
             (signature, boundSignature) -> new UnaryScalar<>(signature, boundSignature, DataTypes.STRING, func)
         );
     }

@@ -26,6 +26,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.Locale;
 
 import io.crate.data.Input;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -42,20 +43,19 @@ public class CurrentTimeFunction extends Scalar<TimeTZ, Integer> {
 
     public static void register(Functions.Builder module) {
         module.add(
-            Signature.scalar(
-                    NAME,
-                    DataTypes.INTEGER.getTypeSignature(),
-                    DataTypes.TIMETZ.getTypeSignature()
-                ).withFeature(Feature.DETERMINISTIC)
-                .withFeature(Feature.NON_NULLABLE),
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.INTEGER.getTypeSignature())
+                .returnType(DataTypes.TIMETZ.getTypeSignature())
+                .features(Feature.DETERMINISTIC, Feature.NON_NULLABLE)
+                .build(),
             CurrentTimeFunction::new
         );
         module.add(
-            Signature.scalar(
-                    NAME,
-                    DataTypes.TIMETZ.getTypeSignature()
-                ).withFeature(Feature.DETERMINISTIC)
-                .withFeature(Feature.NON_NULLABLE),
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes()
+                .returnType(DataTypes.TIMETZ.getTypeSignature())
+                .features(Feature.DETERMINISTIC, Feature.NON_NULLABLE)
+                .build(),
             CurrentTimeFunction::new
         );
     }

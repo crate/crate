@@ -43,6 +43,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.VoidReference;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
@@ -136,11 +137,11 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testFormatAggregation() {
-        Signature signature = Signature.aggregate(
-            "agg",
-            DataTypes.INTEGER.getTypeSignature(),
-            DataTypes.LONG.getTypeSignature()
-        ).withFeature(Scalar.Feature.DETERMINISTIC);
+        Signature signature = Signature.builder("agg", FunctionType.AGGREGATE)
+                .argumentTypes(DataTypes.INTEGER.getTypeSignature())
+                .returnType(DataTypes.LONG.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build();
         Aggregation a = new Aggregation(
             signature,
             DataTypes.LONG,

@@ -82,11 +82,11 @@ public class FunctionsTest extends ESTestCase {
     @Test
     public void test_signature_matches_exact() {
         functionsBuilder.add(
-            Signature.scalar(
-                "foo",
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC),
+            Signature.builder("foo", FunctionType.SCALAR)
+                .argumentTypes(DataTypes.STRING.getTypeSignature())
+                .returnType(DataTypes.STRING.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build(),
             (signature, args) -> new DummyFunction(signature));
         var impl = resolve("foo", List.of(Literal.of("hoschi")));
         assertThat(impl.boundSignature().argTypes()).containsExactly(DataTypes.STRING);
@@ -95,11 +95,11 @@ public class FunctionsTest extends ESTestCase {
     @Test
     public void test_signature_matches_with_coercion() {
         functionsBuilder.add(
-            Signature.scalar(
-                "foo",
-                DataTypes.INTEGER.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC),
+            Signature.builder("foo", FunctionType.SCALAR)
+                .argumentTypes(DataTypes.INTEGER.getTypeSignature())
+                .returnType(DataTypes.STRING.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build(),
             (signature, args) -> new DummyFunction(signature));
         var impl = resolve("foo", List.of(Literal.of(1L)));
         assertThat(impl.boundSignature().argTypes()).containsExactly(DataTypes.INTEGER);
@@ -108,18 +108,18 @@ public class FunctionsTest extends ESTestCase {
     @Test
     public void test_signature_matches_with_coercion_and_precedence() {
         functionsBuilder.add(
-            Signature.scalar(
-                "foo",
-                DataTypes.DOUBLE.getTypeSignature(),
-                DataTypes.DOUBLE.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC),
+            Signature.builder("foo", FunctionType.SCALAR)
+                .argumentTypes(DataTypes.DOUBLE.getTypeSignature())
+                .returnType(DataTypes.DOUBLE.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build(),
             (signature, args) -> new DummyFunction(signature));
         functionsBuilder.add(
-            Signature.scalar(
-                "foo",
-                DataTypes.FLOAT.getTypeSignature(),
-                DataTypes.FLOAT.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC),
+            Signature.builder("foo", FunctionType.SCALAR)
+                .argumentTypes(DataTypes.FLOAT.getTypeSignature())
+                .returnType(DataTypes.FLOAT.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build(),
             (signature, args) -> new DummyFunction(signature));
 
         var impl = resolve("foo", List.of(Literal.of(1L)));
@@ -131,19 +131,19 @@ public class FunctionsTest extends ESTestCase {
     @Test
     public void test_multiple_signature_matches_with_same_return_type_results_in_first_selected() {
         functionsBuilder.add(
-            Signature.scalar(
-                "foo",
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.INTEGER.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC),
+            Signature.builder("foo", FunctionType.SCALAR)
+                .argumentTypes(DataTypes.STRING.getTypeSignature())
+                .returnType(DataTypes.INTEGER.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build(),
             (signature, args) -> new DummyFunction(signature));
         functionsBuilder.add(
-            Signature.scalar(
-                    "foo",
-                    TypeSignature.parse("array(E)"),
-                    DataTypes.INTEGER.getTypeSignature()
-                ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withTypeVariableConstraints(typeVariable("E")),
+            Signature.builder("foo", FunctionType.SCALAR)
+                .argumentTypes(TypeSignature.parse("array(E)"))
+                .returnType(DataTypes.INTEGER.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC)
+                .typeVariableConstraints(typeVariable("E"))
+                .build(),
             (signature, args) -> new DummyFunction(signature));
 
         var impl = resolve("foo", List.of(Literal.of(DataTypes.UNDEFINED, null)));
@@ -153,18 +153,18 @@ public class FunctionsTest extends ESTestCase {
     @Test
     public void test_checks_built_in_and_udf_per_search_path_schema() throws Exception {
         functionsBuilder.add(
-            Signature.scalar(
-                new FunctionName("schema1", "foo"),
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.INTEGER.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC),
+            Signature.builder(new FunctionName("schema1", "foo"), FunctionType.SCALAR)
+                .argumentTypes(DataTypes.STRING.getTypeSignature())
+                .returnType(DataTypes.INTEGER.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build(),
             (signature, args) -> new DummyFunction(signature));
         Functions functions = functionsBuilder.build();
-        Signature signature = Signature.scalar(
-            new FunctionName("schema2", "foo"),
-            DataTypes.STRING.getTypeSignature(),
-            DataTypes.INTEGER.getTypeSignature()
-        ).withFeature(Scalar.Feature.DETERMINISTIC);
+        Signature signature = Signature.builder(new FunctionName("schema2", "foo"), FunctionType.SCALAR)
+            .argumentTypes(DataTypes.STRING.getTypeSignature())
+            .returnType(DataTypes.INTEGER.getTypeSignature())
+            .features(Scalar.Feature.DETERMINISTIC)
+            .build();
         functions.setUDFs(
             Map.of(
                 new FunctionName("schema2", "foo"),
@@ -180,19 +180,19 @@ public class FunctionsTest extends ESTestCase {
     @Test
     public void test_multiple_signature_matches_with_undefined_arguments_only_result_in_first_selected() {
         functionsBuilder.add(
-            Signature.scalar(
-                "foo",
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.INTEGER.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC),
+            Signature.builder("foo", FunctionType.SCALAR)
+                .argumentTypes(DataTypes.STRING.getTypeSignature())
+                .returnType(DataTypes.INTEGER.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build(),
             (signature, args) -> new DummyFunction(signature));
         functionsBuilder.add(
-            Signature.scalar(
-                    "foo",
-                    TypeSignature.parse("array(E)"),
-                    TypeSignature.parse("array(E)")
-                ).withTypeVariableConstraints(typeVariable("E"))
-                .withFeature(Scalar.Feature.DETERMINISTIC),
+            Signature.builder("foo", FunctionType.SCALAR)
+                .argumentTypes(TypeSignature.parse("array(E)"))
+                .returnType(TypeSignature.parse("array(E)"))
+                .features(Scalar.Feature.DETERMINISTIC)
+                .typeVariableConstraints(typeVariable("E"))
+                .build(),
             (signature, args) -> new DummyFunction(signature));
 
         var impl = resolve("foo", List.of(Literal.of(DataTypes.UNDEFINED, null)));
@@ -204,28 +204,28 @@ public class FunctionsTest extends ESTestCase {
         // We had a regression where this worked for 2 signatures (1 matching, 1 not matching)
         // but not with multiple not matching signatures. So lets use at least 2 not matching.
         functionsBuilder.add(
-            Signature.scalar(
-                "foo",
-                DataTypes.BOOLEAN.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.INTEGER.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC),
+            Signature.builder("foo", FunctionType.SCALAR)
+                .argumentTypes(DataTypes.BOOLEAN.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature())
+                .returnType(DataTypes.INTEGER.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build(),
             (signature, args) -> new DummyFunction(signature));
         functionsBuilder.add(
-            Signature.scalar(
-                "foo",
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.SHORT.getTypeSignature(),
-                DataTypes.INTEGER.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC),
+            Signature.builder("foo", FunctionType.SCALAR)
+                .argumentTypes(DataTypes.STRING.getTypeSignature(),
+                    DataTypes.SHORT.getTypeSignature())
+                .returnType(DataTypes.INTEGER.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build(),
             (signature, args) -> new DummyFunction(signature));
         functionsBuilder.add(
-            Signature.scalar(
-                "foo",
-                DataTypes.INTEGER.getTypeSignature(),
-                DataTypes.INTEGER.getTypeSignature(),
-                DataTypes.INTEGER.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC),
+            Signature.builder("foo", FunctionType.SCALAR)
+                .argumentTypes(DataTypes.INTEGER.getTypeSignature(),
+                    DataTypes.INTEGER.getTypeSignature())
+                .returnType(DataTypes.INTEGER.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build(),
             (signature, args) -> new DummyFunction(signature));
 
         var impl = resolve("foo", List.of(Literal.of(1), Literal.of(1L)));
@@ -234,11 +234,11 @@ public class FunctionsTest extends ESTestCase {
 
     @Test
     public void test_bwc_get_qualified_function_without_signature() {
-        var signature = Signature.scalar(
-            "foo",
-            DataTypes.STRING.getTypeSignature(),
-            DataTypes.INTEGER.getTypeSignature()
-        ).withFeature(Scalar.Feature.DETERMINISTIC);
+        var signature = Signature.builder("foo", FunctionType.SCALAR)
+            .argumentTypes(DataTypes.STRING.getTypeSignature())
+            .returnType(DataTypes.INTEGER.getTypeSignature())
+            .features(Scalar.Feature.DETERMINISTIC)
+            .build();
         var dummyFunction = new DummyFunction(signature);
 
         functionsBuilder.add(signature, (s, args) -> dummyFunction);
@@ -251,11 +251,11 @@ public class FunctionsTest extends ESTestCase {
 
     @Test
     public void test_bwc_get_qualified_aggregation_without_signature() {
-        var signature = Signature.scalar(
-            "foo",
-            DataTypes.STRING.getTypeSignature(),
-            DataTypes.INTEGER.getTypeSignature()
-        ).withFeature(Scalar.Feature.DETERMINISTIC);
+        var signature = Signature.builder("foo", FunctionType.SCALAR)
+            .argumentTypes(DataTypes.STRING.getTypeSignature())
+            .returnType(DataTypes.INTEGER.getTypeSignature())
+            .features(Scalar.Feature.DETERMINISTIC)
+            .build();
         var dummyFunction = new DummyFunction(signature);
 
         functionsBuilder.add(signature, (s, args) -> dummyFunction);
@@ -288,17 +288,19 @@ public class FunctionsTest extends ESTestCase {
                 List.of(),
                 List.of(
                     new FunctionProvider(
-                        Signature.scalar(new FunctionName("foo", "bar"),
-                                        DataTypes.STRING.getTypeSignature(),
-                                        DataTypes.STRING.getTypeSignature())
-                            .withFeature(Scalar.Feature.DETERMINISTIC),
+                        Signature.builder(new FunctionName("foo", "bar"), FunctionType.SCALAR)
+                            .argumentTypes(DataTypes.STRING.getTypeSignature())
+                            .returnType(DataTypes.STRING.getTypeSignature())
+                            .features(Scalar.Feature.DETERMINISTIC)
+                            .build(),
                         ((signature, dataTypes) -> null)
                     ),
                     new FunctionProvider(
-                        Signature.scalar(new FunctionName("foo", "bar"),
-                                        DataTypes.DOUBLE.getTypeSignature(),
-                                        DataTypes.DOUBLE.getTypeSignature())
-                            .withFeature(Scalar.Feature.DETERMINISTIC),
+                        Signature.builder(new FunctionName("foo", "bar"), FunctionType.SCALAR)
+                            .argumentTypes(DataTypes.DOUBLE.getTypeSignature())
+                            .returnType(DataTypes.DOUBLE.getTypeSignature())
+                            .features(Scalar.Feature.DETERMINISTIC)
+                            .build(),
                         ((signature, dataTypes) -> null)
                     )
                 )
@@ -317,17 +319,19 @@ public class FunctionsTest extends ESTestCase {
                 List.of(Literal.of(1), Literal.of(2)),
                 List.of(
                     new FunctionProvider(
-                        Signature.scalar(new FunctionName("foo", "bar"),
-                                        DataTypes.STRING.getTypeSignature(),
-                                        DataTypes.STRING.getTypeSignature())
-                            .withFeature(Scalar.Feature.DETERMINISTIC),
+                        Signature.builder(new FunctionName("foo", "bar"), FunctionType.SCALAR)
+                            .argumentTypes(DataTypes.STRING.getTypeSignature())
+                            .returnType(DataTypes.STRING.getTypeSignature())
+                            .features(Scalar.Feature.DETERMINISTIC)
+                            .build(),
                         ((signature, dataTypes) -> null)
                     ),
                     new FunctionProvider(
-                        Signature.scalar(new FunctionName("foo", "bar"),
-                                        DataTypes.DOUBLE.getTypeSignature(),
-                                        DataTypes.DOUBLE.getTypeSignature())
-                            .withFeature(Scalar.Feature.DETERMINISTIC),
+                        Signature.builder(new FunctionName("foo", "bar"), FunctionType.SCALAR)
+                            .argumentTypes(DataTypes.DOUBLE.getTypeSignature())
+                            .returnType(DataTypes.DOUBLE.getTypeSignature())
+                            .features(Scalar.Feature.DETERMINISTIC)
+                            .build(),
                         ((signature, dataTypes) -> null)
                     )
                 )

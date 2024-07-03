@@ -31,8 +31,10 @@ import java.util.function.BinaryOperator;
 
 import io.crate.common.TriConsumer;
 import io.crate.expression.scalar.arithmetic.BinaryScalar;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.Scalar.Feature;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.BitString;
 import io.crate.types.BitStringType;
@@ -52,14 +54,12 @@ public class BitwiseFunctions {
                                      DataType<T> type,
                                      BinaryOperator<T> operator) {
         TypeSignature typeSignature = type.getTypeSignature();
-        Signature scalar = Signature.scalar(
-                name.toLowerCase(Locale.ENGLISH),
-                typeSignature,
-                typeSignature,
-                typeSignature
-            ).withFeature(Scalar.Feature.DETERMINISTIC)
-            .withFeatures(Scalar.DETERMINISTIC_ONLY)
-            .withFeature(Scalar.Feature.NULLABLE);
+        Signature scalar = Signature.builder(name.toLowerCase(Locale.ENGLISH), FunctionType.SCALAR)
+            .argumentTypes(typeSignature,
+                typeSignature)
+            .returnType(typeSignature)
+            .features(Scalar.Feature.DETERMINISTIC, Feature.NULLABLE)
+            .build();
         module.add(scalar, (signature, boundSignature) -> new BinaryScalar<>(operator, signature, boundSignature, type));
     }
 

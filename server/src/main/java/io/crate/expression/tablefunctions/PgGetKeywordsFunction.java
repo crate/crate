@@ -31,6 +31,7 @@ import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
 import io.crate.metadata.FunctionName;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
@@ -53,11 +54,11 @@ public final class PgGetKeywordsFunction extends TableFunctionImplementation<Lis
     public static void register(Functions.Builder builder) {
 
         builder.add(
-            Signature.table(
-                    FUNCTION_NAME,
-                    RETURN_TYPE.getTypeSignature()
-                ).withFeature(Feature.DETERMINISTIC)
-                .withFeature(Feature.NON_NULLABLE),
+            Signature.builder(FUNCTION_NAME, FunctionType.TABLE)
+                .argumentTypes()
+                .returnType(RETURN_TYPE.getTypeSignature())
+                .features(Feature.DETERMINISTIC, Feature.NON_NULLABLE)
+                .build(),
             PgGetKeywordsFunction::new
         );
     }

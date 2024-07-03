@@ -45,6 +45,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.lucene.LuceneQueryBuilder.Context;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
@@ -80,13 +81,13 @@ public class SubscriptFunction extends Scalar<Object, Object> {
 
         // subscript(array(object)), text) -> array(undefined)
         module.add(
-            Signature.scalar(
-                    NAME,
-                    TypeSignature.parse("array(object)"),
-                    DataTypes.STRING.getTypeSignature(),
-                    TypeSignature.parse("array(undefined)")
-                ).withFeature(Feature.DETERMINISTIC)
-                .withForbiddenCoercion(),
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(TypeSignature.parse("array(object)"),
+                    DataTypes.STRING.getTypeSignature())
+                .returnType(TypeSignature.parse("array(undefined)"))
+                .features(Feature.DETERMINISTIC)
+                .forbidCoercion()
+                .build(),
             (signature, boundSignature) ->
                 new SubscriptFunction(
                     signature,
@@ -96,14 +97,13 @@ public class SubscriptFunction extends Scalar<Object, Object> {
         );
         // subscript(array(any)), integer) -> any
         module.add(
-            Signature
-                .scalar(
-                    NAME,
-                    TypeSignature.parse("array(E)"),
-                    DataTypes.INTEGER.getTypeSignature(),
-                    TypeSignature.parse("E"))
-                .withFeature(Feature.DETERMINISTIC)
-                .withTypeVariableConstraints(typeVariable("E")),
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(TypeSignature.parse("array(E)"),
+                    DataTypes.INTEGER.getTypeSignature())
+                .returnType(TypeSignature.parse("E"))
+                .features(Feature.DETERMINISTIC)
+                .typeVariableConstraints(typeVariable("E"))
+                .build(),
             (signature, boundSignature) ->
                 new SubscriptFunction(
                     signature,
@@ -113,13 +113,13 @@ public class SubscriptFunction extends Scalar<Object, Object> {
         );
         // subscript(object(text, element), text) -> undefined
         module.add(
-            Signature.scalar(
-                    NAME,
-                    DataTypes.UNTYPED_OBJECT.getTypeSignature(),
-                    DataTypes.STRING.getTypeSignature(),
-                    DataTypes.UNDEFINED.getTypeSignature()
-                ).withFeature(Feature.DETERMINISTIC)
-                .withForbiddenCoercion(),
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.UNTYPED_OBJECT.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature())
+                .returnType(DataTypes.UNDEFINED.getTypeSignature())
+                .features(Feature.DETERMINISTIC)
+                .forbidCoercion()
+                .build(),
             (signature, boundSignature) ->
                 new SubscriptFunction(
                     signature,
@@ -135,13 +135,13 @@ public class SubscriptFunction extends Scalar<Object, Object> {
         // returns the undefined type. Therefore, the second subscript function
         // must be resolved for the `subscript(undefined, text)` signature.
         module.add(
-            Signature.scalar(
-                    NAME,
-                    DataTypes.UNDEFINED.getTypeSignature(),
-                    DataTypes.STRING.getTypeSignature(),
-                    DataTypes.UNDEFINED.getTypeSignature()
-                ).withFeature(Feature.DETERMINISTIC)
-                .withForbiddenCoercion(),
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.UNDEFINED.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature())
+                .returnType(DataTypes.UNDEFINED.getTypeSignature())
+                .features(Feature.DETERMINISTIC)
+                .forbidCoercion()
+                .build(),
             (signature, boundSignature) ->
                 new SubscriptFunction(
                     signature,

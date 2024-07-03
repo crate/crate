@@ -24,6 +24,7 @@ package io.crate.expression.operator;
 import java.util.List;
 
 import io.crate.data.Input;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
@@ -37,13 +38,12 @@ public class ExistsOperator extends Operator<List<Object>> {
     public static final String NAME = "_exists";
 
     public static void register(Functions.Builder builder) {
-        Signature signature = Signature.scalar(
-                NAME,
-                TypeSignature.parse("array(E)"),
-                Operator.RETURN_TYPE.getTypeSignature()
-            ).withTypeVariableConstraints(TypeVariableConstraint.typeVariable("E"))
-            .withFeature(Feature.DETERMINISTIC)
-            .withFeature(Feature.NULLABLE);
+        Signature signature = Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(TypeSignature.parse("array(E)"))
+                .returnType(Operator.RETURN_TYPE.getTypeSignature())
+                .typeVariableConstraints(TypeVariableConstraint.typeVariable("E"))
+                .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+                .build();
         builder.add(signature, ExistsOperator::new);
     }
 

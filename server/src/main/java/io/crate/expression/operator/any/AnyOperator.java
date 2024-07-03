@@ -36,6 +36,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder.Context;
 import io.crate.metadata.FunctionProvider.FunctionFactory;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
@@ -94,13 +95,13 @@ public abstract sealed class AnyOperator extends Operator<Object>
 
     private static void reg(Functions.Builder builder, String name, FunctionFactory operatorFactory) {
         builder.add(
-            Signature.scalar(
-                    name,
-                    TypeSignature.parse("E"),
-                    TypeSignature.parse("array(E)"),
-                    Operator.RETURN_TYPE.getTypeSignature()
-                ).withTypeVariableConstraints(TypeVariableConstraint.typeVariable("E"))
-                .withFeature(Feature.DETERMINISTIC),
+            Signature.builder(name, FunctionType.SCALAR)
+                .argumentTypes(TypeSignature.parse("E"),
+                    TypeSignature.parse("array(E)"))
+                .returnType(Operator.RETURN_TYPE.getTypeSignature())
+                .features(Feature.DETERMINISTIC)
+                .typeVariableConstraints(TypeVariableConstraint.typeVariable("E"))
+                .build(),
             operatorFactory
         );
     }
