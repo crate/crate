@@ -39,6 +39,7 @@ import io.crate.execution.engine.aggregation.impl.average.AverageAggregation;
 import io.crate.execution.engine.aggregation.impl.average.numeric.NumericAverageState;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.functions.Signature;
@@ -49,33 +50,33 @@ import io.crate.types.NumericType;
 
 public class AverageAggregationTest extends AggregationTestCase {
 
-    private static final Signature NUMERIC_AVG_SIGNATURE = Signature.aggregate(
-        AverageAggregation.NAME,
-        DataTypes.NUMERIC.getTypeSignature(),
-        DataTypes.NUMERIC.getTypeSignature()
-    ).withFeature(Scalar.Feature.DETERMINISTIC);
+    private static final Signature NUMERIC_AVG_SIGNATURE = Signature.builder(AverageAggregation.NAME, FunctionType.AGGREGATE)
+            .argumentTypes(DataTypes.NUMERIC.getTypeSignature())
+            .returnType(DataTypes.NUMERIC.getTypeSignature())
+            .features(Scalar.Feature.DETERMINISTIC)
+            .build();
 
     private Object executeAvgAgg(DataType<?> argumentType, Object[][] data) throws Exception {
         return executeAggregation(
-            Signature.aggregate(
-                AverageAggregation.NAME,
-                argumentType.getTypeSignature(),
-                DataTypes.DOUBLE.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC),
-            data,
-            List.of()
+                Signature.builder(AverageAggregation.NAME, FunctionType.AGGREGATE)
+                        .argumentTypes(argumentType.getTypeSignature())
+                        .returnType(DataTypes.DOUBLE.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .build(),
+                data,
+                List.of()
         );
     }
 
     private Object executeIntervalAvgAgg(Object[][] data) throws Exception {
         return executeAggregation(
-            Signature.aggregate(
-                AverageAggregation.NAME,
-                DataTypes.INTERVAL.getTypeSignature(),
-                DataTypes.INTERVAL.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC),
-            data,
-            List.of()
+                Signature.builder(AverageAggregation.NAME, FunctionType.AGGREGATE)
+                        .argumentTypes(DataTypes.INTERVAL.getTypeSignature())
+                        .returnType(DataTypes.INTERVAL.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .build(),
+                data,
+                List.of()
         );
     }
 

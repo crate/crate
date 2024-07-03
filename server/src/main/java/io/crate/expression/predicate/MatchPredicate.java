@@ -68,6 +68,7 @@ import io.crate.lucene.LuceneQueryBuilder.Context;
 import io.crate.lucene.match.OptionParser;
 import io.crate.lucene.match.ParsedOptions;
 import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.GeoReference;
 import io.crate.metadata.Reference;
@@ -95,25 +96,23 @@ public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
      * 3. match_type - string (nullable)
      * 4. match_type options - object mapping option name to value (Object) (nullable)
      */
-    public static final Signature TEXT_MATCH = Signature.scalar(
-            NAME,
-            DataTypes.UNTYPED_OBJECT.getTypeSignature(),
+    public static final Signature TEXT_MATCH = Signature.builder(NAME, FunctionType.SCALAR)
+        .argumentTypes(DataTypes.UNTYPED_OBJECT.getTypeSignature(),
             DataTypes.STRING.getTypeSignature(),
             DataTypes.STRING.getTypeSignature(),
-            DataTypes.UNTYPED_OBJECT.getTypeSignature(),
-            DataTypes.BOOLEAN.getTypeSignature()
-        ).withFeature(Scalar.Feature.DETERMINISTIC)
-        .withFeature(Scalar.Feature.NON_NULLABLE);
+            DataTypes.UNTYPED_OBJECT.getTypeSignature())
+        .returnType(DataTypes.BOOLEAN.getTypeSignature())
+        .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NON_NULLABLE)
+        .build();
 
-    public static final Signature GEO_MATCH = Signature.scalar(
-            NAME,
-            DataTypes.UNTYPED_OBJECT.getTypeSignature(),
+    public static final Signature GEO_MATCH = Signature.builder(NAME, FunctionType.SCALAR)
+        .argumentTypes(DataTypes.UNTYPED_OBJECT.getTypeSignature(),
             DataTypes.GEO_SHAPE.getTypeSignature(),
             DataTypes.STRING.getTypeSignature(),
-            DataTypes.UNTYPED_OBJECT.getTypeSignature(),
-            DataTypes.BOOLEAN.getTypeSignature()
-        ).withFeature(Scalar.Feature.DETERMINISTIC)
-        .withFeature(Scalar.Feature.NON_NULLABLE);
+            DataTypes.UNTYPED_OBJECT.getTypeSignature())
+        .returnType(DataTypes.BOOLEAN.getTypeSignature())
+        .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NON_NULLABLE)
+        .build();
 
 
     public static void register(Functions.Builder builder) {

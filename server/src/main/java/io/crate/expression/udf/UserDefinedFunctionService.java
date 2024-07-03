@@ -224,10 +224,8 @@ public class UserDefinedFunctionService extends AbstractLifecycleComponent imple
     @Nullable
     public FunctionProvider buildFunctionResolver(UserDefinedFunctionMetadata udf) {
         var functionName = new FunctionName(udf.schema(), udf.name());
-        var signature = Signature.builder()
-            .name(functionName)
-            .kind(FunctionType.SCALAR)
-            .argumentTypes(
+        var signature = Signature.builder(functionName, FunctionType.SCALAR)
+                .argumentTypes(
                 Lists.map(
                     udf.argumentTypes(),
                     DataType::getTypeSignature))

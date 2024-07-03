@@ -30,6 +30,7 @@ import java.util.Objects;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.expression.scalar.array.ArraySummationFunctions;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
@@ -87,12 +88,11 @@ public class ArrayAvgFunction {
         // https://www.postgresql.org/docs/13/functions-aggregate.html
 
         builder.add(
-            Signature.scalar(
-                    NAME,
-                    new ArrayType<>(DataTypes.NUMERIC).getTypeSignature(),
-                    DataTypes.NUMERIC.getTypeSignature()
-                ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withFeature(Scalar.Feature.NULLABLE),
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(new ArrayType<>(DataTypes.NUMERIC).getTypeSignature())
+                .returnType(DataTypes.NUMERIC.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .build(),
             (signature, boundSignature) -> new UnaryScalar<>(
                 signature,
                 boundSignature,
@@ -102,12 +102,11 @@ public class ArrayAvgFunction {
         );
 
         builder.add(
-            Signature.scalar(
-                    NAME,
-                    new ArrayType<>(DataTypes.FLOAT).getTypeSignature(),
-                    DataTypes.FLOAT.getTypeSignature()
-                ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withFeature(Scalar.Feature.NULLABLE),
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(new ArrayType<>(DataTypes.FLOAT).getTypeSignature())
+                .returnType(DataTypes.FLOAT.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .build(),
             (signature, boundSignature) -> new UnaryScalar<>(
                 signature,
                 boundSignature,
@@ -117,12 +116,11 @@ public class ArrayAvgFunction {
         );
 
         builder.add(
-            Signature.scalar(
-                    NAME,
-                    new ArrayType<>(DataTypes.DOUBLE).getTypeSignature(),
-                    DataTypes.DOUBLE.getTypeSignature()
-                ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withFeature(Scalar.Feature.NULLABLE),
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(new ArrayType<>(DataTypes.DOUBLE).getTypeSignature())
+                .returnType(DataTypes.DOUBLE.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .build(),
             (signature, boundSignature) -> new UnaryScalar<>(
                 signature,
                 boundSignature,
@@ -135,12 +133,11 @@ public class ArrayAvgFunction {
         for (var supportedType : DataTypes.NUMERIC_PRIMITIVE_TYPES) {
             if (supportedType != DataTypes.FLOAT && supportedType != DataTypes.DOUBLE) {
                 builder.add(
-                    Signature.scalar(
-                            NAME,
-                            new ArrayType<>(supportedType).getTypeSignature(),
-                            DataTypes.NUMERIC.getTypeSignature()
-                        ).withFeature(Scalar.Feature.DETERMINISTIC)
-                        .withFeature(Scalar.Feature.NULLABLE),
+                    Signature.builder(NAME, FunctionType.SCALAR)
+                        .argumentTypes(new ArrayType<>(supportedType).getTypeSignature())
+                        .returnType(DataTypes.NUMERIC.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                        .build(),
                     (signature, boundSignature) -> new UnaryScalar<>(
                         signature,
                         boundSignature,

@@ -41,6 +41,7 @@ import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -119,13 +120,13 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
             functions,
             mock(LuceneReferenceResolver.class),
             List.of(new Aggregation(
-                Signature.aggregate(
-                    SumAggregation.NAME,
-                    DataTypes.LONG.getTypeSignature(),
-                    DataTypes.LONG.getTypeSignature()
-                ).withFeature(Scalar.Feature.DETERMINISTIC),
-                DataTypes.LONG,
-                List.of(Literal.of(1L)))
+                    Signature.builder(SumAggregation.NAME, FunctionType.AGGREGATE)
+                            .argumentTypes(DataTypes.LONG.getTypeSignature())
+                            .returnType(DataTypes.LONG.getTypeSignature())
+                            .features(Scalar.Feature.DETERMINISTIC)
+                            .build(),
+                    DataTypes.LONG,
+                    List.of(Literal.of(1L)))
             ),
             Collections.emptyList(),
             table
@@ -214,13 +215,13 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
 
     private static Aggregation longSumAggregation(int inputCol) {
         return new Aggregation(
-            Signature.aggregate(
-                SumAggregation.NAME,
-                DataTypes.LONG.getTypeSignature(),
-                DataTypes.LONG.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC),
-            DataTypes.LONG,
-            List.of(new InputColumn(inputCol, DataTypes.LONG))
+                Signature.builder(SumAggregation.NAME, FunctionType.AGGREGATE)
+                        .argumentTypes(DataTypes.LONG.getTypeSignature())
+                        .returnType(DataTypes.LONG.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .build(),
+                DataTypes.LONG,
+                List.of(new InputColumn(inputCol, DataTypes.LONG))
         );
     }
 }

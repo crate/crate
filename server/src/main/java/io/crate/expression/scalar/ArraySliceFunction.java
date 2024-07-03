@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import io.crate.data.Input;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -43,16 +44,15 @@ public class ArraySliceFunction extends Scalar<List<Object>, Object> {
 
     public static void register(Functions.Builder module) {
         module.add(
-            Signature.scalar(
-                    NAME,
-                    TypeSignature.parse("array(E)"),
-                    DataTypes.INTEGER.getTypeSignature(),
-                    DataTypes.INTEGER.getTypeSignature(),
-                    TypeSignature.parse("array(E)")
-                ).withTypeVariableConstraints(typeVariable("E"))
-                .withFeature(Feature.DETERMINISTIC)
-                .withFeature(Feature.NON_NULLABLE),
-            ArraySliceFunction::new
+                Signature.builder(NAME, FunctionType.SCALAR)
+                        .argumentTypes(TypeSignature.parse("array(E)"),
+                                DataTypes.INTEGER.getTypeSignature(),
+                                DataTypes.INTEGER.getTypeSignature())
+                        .returnType(TypeSignature.parse("array(E)"))
+                        .typeVariableConstraints(typeVariable("E"))
+                        .features(Feature.DETERMINISTIC, Feature.NON_NULLABLE)
+                        .build(),
+                ArraySliceFunction::new
         );
     }
 

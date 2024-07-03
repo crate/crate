@@ -37,6 +37,7 @@ import org.junit.Test;
 import io.crate.analyze.WindowDefinition;
 import io.crate.execution.engine.aggregation.impl.SumAggregation;
 import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
@@ -49,13 +50,13 @@ public class WindowFunctionSerializationTest {
 
     private FunctionImplementation dummyFunction =
         functions.getQualified(
-            Signature.aggregate(
-                    SumAggregation.NAME,
-                    DataTypes.FLOAT.getTypeSignature(),
-                    DataTypes.FLOAT.getTypeSignature())
-                .withFeature(Scalar.Feature.DETERMINISTIC),
-            List.of(DataTypes.FLOAT),
-            DataTypes.FLOAT
+                Signature.builder(SumAggregation.NAME, FunctionType.AGGREGATE)
+                        .argumentTypes(DataTypes.FLOAT.getTypeSignature())
+                        .returnType(DataTypes.FLOAT.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .build(),
+                List.of(DataTypes.FLOAT),
+                DataTypes.FLOAT
         );
 
     private WindowFunction windowFunctionWithIgnoreNullsSetToTrue =

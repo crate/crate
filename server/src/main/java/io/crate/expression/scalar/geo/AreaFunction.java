@@ -21,8 +21,6 @@
 
 package io.crate.expression.scalar.geo;
 
-import static io.crate.metadata.functions.Signature.scalar;
-
 import java.util.Map;
 
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
@@ -31,8 +29,10 @@ import org.locationtech.spatial4j.shape.Shape;
 import io.crate.expression.scalar.ScalarFunctions;
 import io.crate.expression.scalar.UnaryScalar;
 import io.crate.geo.GeoJSONUtils;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 import io.crate.types.GeoShapeType;
 
@@ -58,12 +58,11 @@ public final class AreaFunction {
      */
     public static void register(Functions.Builder builder) {
         builder.add(
-            scalar(
-                FUNCTION_NAME,
-                DataTypes.GEO_SHAPE.getTypeSignature(),
-                DataTypes.DOUBLE.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withFeature(Scalar.Feature.NULLABLE),
+            Signature.builder(FUNCTION_NAME, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.GEO_SHAPE.getTypeSignature())
+                .returnType(DataTypes.DOUBLE.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .build(),
             (signature, boundSignature) ->
                 new UnaryScalar<>(
                     signature,

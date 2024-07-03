@@ -22,7 +22,6 @@
 
 package io.crate.expression.scalar;
 
-import static io.crate.metadata.functions.Signature.scalar;
 
 import java.util.EnumSet;
 
@@ -33,6 +32,7 @@ import org.joda.time.PeriodType;
 
 import io.crate.data.Input;
 import io.crate.metadata.FunctionName;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -48,21 +48,21 @@ public class AgeFunction extends Scalar<Period, Object> {
 
     public static void register(Functions.Builder builder) {
         builder.add(
-            scalar(
-                NAME,
-                DataTypes.TIMESTAMP.getTypeSignature(),
-                DataTypes.INTERVAL.getTypeSignature()
-            ).withFeatures(EnumSet.of(Feature.NULLABLE)),
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.TIMESTAMP.getTypeSignature())
+                .returnType(DataTypes.INTERVAL.getTypeSignature())
+                .features(EnumSet.of(Feature.NULLABLE))
+                .build(),
             AgeFunction::new
         );
 
         builder.add(
-            scalar(
-                NAME,
-                DataTypes.TIMESTAMP.getTypeSignature(),
-                DataTypes.TIMESTAMP.getTypeSignature(),
-                DataTypes.INTERVAL.getTypeSignature()
-            ).withFeatures(EnumSet.of(Feature.NULLABLE)),
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.TIMESTAMP.getTypeSignature(),
+                    DataTypes.TIMESTAMP.getTypeSignature())
+                .returnType(DataTypes.INTERVAL.getTypeSignature())
+                .features(EnumSet.of(Feature.NULLABLE))
+                .build(),
             AgeFunction::new
         );
     }

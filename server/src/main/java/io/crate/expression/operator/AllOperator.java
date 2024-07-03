@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.function.IntPredicate;
 
 import io.crate.data.Input;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
@@ -60,14 +61,13 @@ public final class AllOperator extends Operator<Object> {
     public static void register(Functions.Builder builder) {
         for (var type : Type.values()) {
             builder.add(
-                Signature.scalar(
-                        type.fullQualifiedName,
-                        TypeSignature.parse("E"),
-                        TypeSignature.parse("array(E)"),
-                        Operator.RETURN_TYPE.getTypeSignature()
-                    ).withTypeVariableConstraints(typeVariable("E"))
-                    .withFeature(Feature.DETERMINISTIC)
-                    .withFeature(Feature.NULLABLE),
+                Signature.builder(type.fullQualifiedName, FunctionType.SCALAR)
+                    .argumentTypes(TypeSignature.parse("E"),
+                        TypeSignature.parse("array(E)"))
+                    .returnType(Operator.RETURN_TYPE.getTypeSignature())
+                    .typeVariableConstraints(typeVariable("E"))
+                    .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+                    .build(),
                 (signature, boundSignature) ->
                     new AllOperator(
                         signature,

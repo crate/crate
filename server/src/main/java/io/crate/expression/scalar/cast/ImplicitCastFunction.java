@@ -31,6 +31,7 @@ import io.crate.data.Input;
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -48,13 +49,13 @@ public class ImplicitCastFunction extends Scalar<Object, Object> {
 
     public static void register(Functions.Builder module) {
         module.add(
-            Signature.scalar(
-                    NAME,
-                    TypeSignature.parse("E"),
-                    DataTypes.STRING.getTypeSignature(),
-                    DataTypes.UNDEFINED.getTypeSignature()
-                ).withFeature(Feature.DETERMINISTIC)
-                .withTypeVariableConstraints(typeVariable("E")),
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(TypeSignature.parse("E"),
+                    DataTypes.STRING.getTypeSignature())
+                .returnType(DataTypes.UNDEFINED.getTypeSignature())
+                .features(Feature.DETERMINISTIC)
+                .typeVariableConstraints(typeVariable("E"))
+                .build(),
             ImplicitCastFunction::new
         );
     }

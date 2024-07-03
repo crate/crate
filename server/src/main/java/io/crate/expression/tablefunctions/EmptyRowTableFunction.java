@@ -25,6 +25,7 @@ import java.util.List;
 
 import io.crate.data.Input;
 import io.crate.data.Row;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -43,9 +44,11 @@ public class EmptyRowTableFunction {
 
     public static void register(Functions.Builder builder) {
         builder.add(
-            Signature.table(NAME, RowType.EMPTY.getTypeSignature())
-                .withFeature(Scalar.Feature.NON_NULLABLE)
-                .withFeature(Scalar.Feature.DETERMINISTIC),
+            Signature.builder(NAME, FunctionType.TABLE)
+                .argumentTypes()
+                .returnType(RowType.EMPTY.getTypeSignature())
+                .features(Scalar.Feature.NON_NULLABLE, Scalar.Feature.DETERMINISTIC)
+                .build(),
             EmptyRowTableFunctionImplementation::new
         );
     }

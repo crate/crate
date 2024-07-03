@@ -337,11 +337,9 @@ public class Functions {
                                      List<FunctionProvider> candidates) {
         List<DataType<?>> argumentTypes = Symbols.typeView(arguments);
         var function = new io.crate.expression.symbol.Function(
-            Signature.builder()
-                .name(new FunctionName(suppliedSchema, name))
+            Signature.builder(new FunctionName(suppliedSchema, name), FunctionType.SCALAR)
                 .argumentTypes(Lists.map(argumentTypes, DataType::getTypeSignature))
                 .returnType(DataTypes.UNDEFINED.getTypeSignature())
-                .kind(FunctionType.SCALAR)
                 .build(),
             arguments,
             DataTypes.UNDEFINED

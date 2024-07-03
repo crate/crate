@@ -43,10 +43,8 @@ public class SignatureTest {
             .setInnerType("x", DataTypes.INTEGER)
             .build();
 
-        var signature = Signature.builder()
-            .name("foo")
-            .kind(FunctionType.SCALAR)
-            .argumentTypes(
+        var signature = Signature.builder("foo", FunctionType.SCALAR)
+                .argumentTypes(
                 TypeSignature.parse("E"),
                 DataTypes.INTEGER.getTypeSignature(),
                 objectType.getTypeSignature()

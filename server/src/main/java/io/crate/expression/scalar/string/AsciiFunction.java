@@ -22,6 +22,7 @@
 package io.crate.expression.scalar.string;
 
 import io.crate.expression.scalar.UnaryScalar;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
@@ -31,12 +32,11 @@ public final class AsciiFunction {
 
     public static void register(Functions.Builder module) {
         module.add(
-            Signature.scalar(
-                    "ascii",
-                    DataTypes.STRING.getTypeSignature(),
-                    DataTypes.INTEGER.getTypeSignature()
-                ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withFeature(Scalar.Feature.NULLABLE),
+            Signature.builder("ascii", FunctionType.SCALAR)
+                .argumentTypes(DataTypes.STRING.getTypeSignature())
+                .returnType(DataTypes.INTEGER.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .build(),
             (signature, boundSignature) ->
                 new UnaryScalar<>(signature, boundSignature, DataTypes.STRING, AsciiFunction::ascii)
         );

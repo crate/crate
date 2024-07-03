@@ -30,6 +30,7 @@ import java.util.Locale;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.metadata.FunctionName;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
@@ -49,26 +50,24 @@ public final class GenerateSubscripts<T> extends TableFunctionImplementation<T> 
 
     public static void register(Functions.Builder builder) {
         builder.add(
-            Signature.table(
-                    NAME,
-                    TypeSignature.parse("array(E)"),
-                    DataTypes.INTEGER.getTypeSignature(),
-                    DataTypes.INTEGER.getTypeSignature()
-                ).withTypeVariableConstraints(typeVariable("E"))
-                .withFeature(Feature.DETERMINISTIC)
-                .withFeature(Feature.NON_NULLABLE),
+            Signature.builder(NAME, FunctionType.TABLE)
+                .argumentTypes(TypeSignature.parse("array(E)"),
+                    INTEGER.getTypeSignature())
+                .returnType(INTEGER.getTypeSignature())
+                .features(Feature.DETERMINISTIC, Feature.NON_NULLABLE)
+                .typeVariableConstraints(typeVariable("E"))
+                .build(),
             GenerateSubscripts::new
         );
         builder.add(
-            Signature.table(
-                    NAME,
-                    TypeSignature.parse("array(E)"),
-                    DataTypes.INTEGER.getTypeSignature(),
-                    DataTypes.BOOLEAN.getTypeSignature(),
-                    DataTypes.INTEGER.getTypeSignature()
-                ).withTypeVariableConstraints(typeVariable("E"))
-                .withFeature(Feature.DETERMINISTIC)
-                .withFeature(Feature.NON_NULLABLE),
+            Signature.builder(NAME, FunctionType.TABLE)
+                .argumentTypes(TypeSignature.parse("array(E)"),
+                    INTEGER.getTypeSignature(),
+                    DataTypes.BOOLEAN.getTypeSignature())
+                .returnType(INTEGER.getTypeSignature())
+                .features(Feature.DETERMINISTIC, Feature.NON_NULLABLE)
+                .typeVariableConstraints(typeVariable("E"))
+                .build(),
             GenerateSubscripts::new
         );
     }

@@ -56,6 +56,7 @@ import io.crate.execution.engine.collect.RowCollectExpression;
 import io.crate.execution.engine.join.HashInnerJoinBatchIterator;
 import io.crate.execution.engine.window.WindowFunction;
 import io.crate.execution.engine.window.WindowFunctionBatchIterator;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
@@ -86,12 +87,12 @@ public class RowsBatchIteratorBenchmark {
             .toList();
         Functions functions = Functions.load(Settings.EMPTY, new SessionSettingRegistry(Set.of()));
         lastValueIntFunction = (WindowFunction) functions.getQualified(
-            Signature.window(
-                    LAST_VALUE_NAME,
-                    TypeSignature.parse("E"),
-                    TypeSignature.parse("E")
-                ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withTypeVariableConstraints(typeVariable("E")),
+            Signature.builder(LAST_VALUE_NAME, FunctionType.WINDOW)
+                .argumentTypes(TypeSignature.parse("E"))
+                .returnType(TypeSignature.parse("E"))
+                .features(Scalar.Feature.DETERMINISTIC)
+                .typeVariableConstraints(typeVariable("E"))
+                .build(),
             List.of(DataTypes.INTEGER),
             DataTypes.INTEGER
         );

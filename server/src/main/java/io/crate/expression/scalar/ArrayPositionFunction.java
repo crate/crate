@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Objects;
 
 import io.crate.data.Input;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -48,25 +49,25 @@ public class ArrayPositionFunction extends Scalar<Integer, List<Object>> {
 
     public static void register(Functions.Builder builder) {
         builder.add(
-            Signature.scalar(NAME,
-                    TypeSignature.parse("array(T)"),
-                    TypeSignature.parse("T"),
-                    DataTypes.INTEGER.getTypeSignature()
-                ).withTypeVariableConstraints(typeVariable("T"))
-                .withFeature(Feature.DETERMINISTIC)
-                .withFeature(Feature.NULLABLE),
-            ArrayPositionFunction::new);
+                Signature.builder(NAME, FunctionType.SCALAR)
+                        .argumentTypes(TypeSignature.parse("array(T)"),
+                                TypeSignature.parse("T"))
+                        .returnType(DataTypes.INTEGER.getTypeSignature())
+                        .typeVariableConstraints(typeVariable("T"))
+                        .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+                        .build(),
+                ArrayPositionFunction::new);
 
         builder.add(
-            Signature.scalar(NAME,
-                    TypeSignature.parse("array(T)"),
-                    TypeSignature.parse("T"),
-                    DataTypes.INTEGER.getTypeSignature(),
-                    DataTypes.INTEGER.getTypeSignature()
-                ).withTypeVariableConstraints(typeVariable("T"))
-                .withFeature(Feature.DETERMINISTIC)
-                .withFeature(Feature.NULLABLE),
-            ArrayPositionFunction::new);
+                Signature.builder(NAME, FunctionType.SCALAR)
+                        .argumentTypes(TypeSignature.parse("array(T)"),
+                                TypeSignature.parse("T"),
+                                DataTypes.INTEGER.getTypeSignature())
+                        .returnType(DataTypes.INTEGER.getTypeSignature())
+                        .typeVariableConstraints(typeVariable("T"))
+                        .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+                        .build(),
+                ArrayPositionFunction::new);
     }
 
     @Override

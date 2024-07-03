@@ -27,6 +27,7 @@ import java.util.EnumSet;
 import java.util.Locale;
 
 import io.crate.data.Input;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -42,18 +43,19 @@ public class CurrentTimestampFunction extends Scalar<Long, Integer> {
 
     public static void register(Functions.Builder module) {
         module.add(
-            Signature.scalar(
-                    NAME,
-                    DataTypes.TIMESTAMPZ.getTypeSignature()
-                ).withFeatures(EnumSet.of(Feature.NON_NULLABLE)),
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes()
+                .returnType(DataTypes.TIMESTAMPZ.getTypeSignature())
+                .features(EnumSet.of(Feature.NON_NULLABLE))
+                .build(),
             CurrentTimestampFunction::new
         );
         module.add(
-            Signature.scalar(
-                    NAME,
-                    DataTypes.INTEGER.getTypeSignature(),
-                    DataTypes.TIMESTAMPZ.getTypeSignature()
-                ).withFeatures(EnumSet.of(Feature.NON_NULLABLE)),
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.INTEGER.getTypeSignature())
+                .returnType(DataTypes.TIMESTAMPZ.getTypeSignature())
+                .features(EnumSet.of(Feature.NON_NULLABLE))
+                .build(),
             CurrentTimestampFunction::new
         );
     }

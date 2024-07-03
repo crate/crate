@@ -25,6 +25,7 @@ import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 
 import io.crate.data.Input;
 import io.crate.metadata.FunctionName;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -41,13 +42,12 @@ public final class PgTypeofFunction extends Scalar<String, Object> {
 
     public static void register(Functions.Builder module) {
         module.add(
-            Signature.scalar(
-                    FQNAME,
-                    TypeSignature.parse("E"),
-                    DataTypes.STRING.getTypeSignature()
-                ).withFeature(Feature.DETERMINISTIC)
-                .withTypeVariableConstraints(typeVariable("E"))
-                .withFeature(Feature.NON_NULLABLE),
+            Signature.builder(FQNAME, FunctionType.SCALAR)
+                .argumentTypes(TypeSignature.parse("E"))
+                .returnType(DataTypes.STRING.getTypeSignature())
+                .features(Feature.DETERMINISTIC, Feature.NON_NULLABLE)
+                .typeVariableConstraints(typeVariable("E"))
+                .build(),
             PgTypeofFunction::new
         );
 

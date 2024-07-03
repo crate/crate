@@ -21,18 +21,18 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import static io.crate.metadata.Scalar.DETERMINISTIC_ONLY;
-import static io.crate.metadata.Scalar.Feature.NULLABLE;
-
 import java.math.BigDecimal;
 import java.math.MathContext;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.function.BinaryOperator;
 
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.Scalar.Feature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
@@ -50,7 +50,7 @@ public class ArithmeticFunctions {
 
     private enum Operations {
         ADD(
-            Scalar.DETERMINISTIC_AND_COMPARISON_REPLACEMENT,
+            EnumSet.of(Feature.DETERMINISTIC, Feature.COMPARISON_REPLACEMENT, Feature.NULLABLE),
             Math::addExact,
             Double::sum,
             Math::addExact,
@@ -58,7 +58,7 @@ public class ArithmeticFunctions {
             BigDecimal::add
         ),
         SUBTRACT(
-            DETERMINISTIC_ONLY,
+            EnumSet.of(Feature.DETERMINISTIC, Feature.NULLABLE),
             Math::subtractExact,
                 (arg0, arg1) -> arg0 - arg1,
             Math::subtractExact,
@@ -66,7 +66,7 @@ public class ArithmeticFunctions {
             BigDecimal::subtract
         ),
         MULTIPLY(
-            DETERMINISTIC_ONLY,
+            EnumSet.of(Feature.DETERMINISTIC, Feature.NULLABLE),
             Math::multiplyExact,
                 (arg0, arg1) -> arg0 * arg1,
             Math::multiplyExact,
@@ -74,7 +74,7 @@ public class ArithmeticFunctions {
             BigDecimal::multiply
         ),
         DIVIDE(
-            DETERMINISTIC_ONLY,
+            EnumSet.of(Feature.DETERMINISTIC, Feature.NULLABLE),
                 (arg0, arg1) -> arg0 / arg1,
                 (arg0, arg1) -> arg0 / arg1,
                 (arg0, arg1) -> arg0 / arg1,
@@ -82,7 +82,7 @@ public class ArithmeticFunctions {
                 (arg0, arg1) -> arg0.divide(arg1, MathContext.DECIMAL64)
         ),
         MODULUS(
-            DETERMINISTIC_ONLY,
+            EnumSet.of(Feature.DETERMINISTIC, Feature.NULLABLE),
                 (arg0, arg1) -> arg0 % arg1,
                 (arg0, arg1) -> arg0 % arg1,
                 (arg0, arg1) -> arg0 % arg1,
@@ -90,7 +90,7 @@ public class ArithmeticFunctions {
             BigDecimal::remainder
         ),
         MOD(
-            DETERMINISTIC_ONLY,
+            EnumSet.of(Feature.DETERMINISTIC, Feature.NULLABLE),
                 (arg0, arg1) -> arg0 % arg1,
                 (arg0, arg1) -> arg0 % arg1,
                 (arg0, arg1) -> arg0 % arg1,
@@ -129,92 +129,71 @@ public class ArithmeticFunctions {
     public static void register(Functions.Builder builder) {
         for (var op : Operations.values()) {
             builder.add(
-                Signature.scalar(
-                        op.toString(),
-                        DataTypes.INTEGER.getTypeSignature(),
-                        DataTypes.INTEGER.getTypeSignature(),
-                        DataTypes.INTEGER.getTypeSignature()
-                    )
-                    .withFeatures(op.features)
-                    .withFeature(NULLABLE),
+                Signature.builder(op.toString(), FunctionType.SCALAR)
+                    .argumentTypes(DataTypes.INTEGER.getTypeSignature(), DataTypes.INTEGER.getTypeSignature())
+                    .returnType(DataTypes.INTEGER.getTypeSignature())
+                    .features(op.features)
+                    .build(),
                 (signature, boundSignature) ->
                     new BinaryScalar<>(op.integerFunction, signature, boundSignature, DataTypes.INTEGER)
             );
             builder.add(
-                Signature.scalar(
-                        op.toString(),
-                        DataTypes.LONG.getTypeSignature(),
-                        DataTypes.LONG.getTypeSignature(),
-                        DataTypes.LONG.getTypeSignature()
-                    )
-                    .withFeatures(op.features)
-                    .withFeature(NULLABLE),
+                Signature.builder(op.toString(), FunctionType.SCALAR)
+                    .argumentTypes(DataTypes.LONG.getTypeSignature(), DataTypes.LONG.getTypeSignature())
+                    .returnType(DataTypes.LONG.getTypeSignature())
+                    .features(op.features)
+                    .build(),
                 (signature, boundSignature) ->
                     new BinaryScalar<>(op.longFunction, signature, boundSignature, DataTypes.LONG)
             );
             if (op != Operations.SUBTRACT) {
                 for (var type : List.of(DataTypes.TIMESTAMP, DataTypes.TIMESTAMPZ)) {
                     builder.add(
-                        Signature.scalar(
-                                op.toString(),
-                                type.getTypeSignature(),
-                                type.getTypeSignature(),
-                                type.getTypeSignature()
-                            )
-                            .withFeatures(op.features)
-                            .withFeature(NULLABLE),
+                        Signature.builder(op.toString(), FunctionType.SCALAR)
+                            .argumentTypes(type.getTypeSignature(), type.getTypeSignature())
+                            .returnType(type.getTypeSignature())
+                            .features(op.features)
+                            .build(),
                         (signature, boundSignature) ->
                             new BinaryScalar<>(op.longFunction, signature, boundSignature, type)
                     );
                 }
             }
             builder.add(
-                Signature.scalar(
-                        op.toString(),
-                        DataTypes.FLOAT.getTypeSignature(),
-                        DataTypes.FLOAT.getTypeSignature(),
-                        DataTypes.FLOAT.getTypeSignature()
-                    )
-                    .withFeatures(op.features)
-                    .withFeature(NULLABLE),
+                Signature.builder(op.toString(), FunctionType.SCALAR)
+                    .argumentTypes(DataTypes.FLOAT.getTypeSignature(), DataTypes.FLOAT.getTypeSignature())
+                    .returnType(DataTypes.FLOAT.getTypeSignature())
+                    .features(op.features)
+                    .build(),
                 (signature, boundSignature) ->
                     new BinaryScalar<>(op.floatFunction, signature, boundSignature, DataTypes.FLOAT)
             );
             builder.add(
-                Signature.scalar(
-                        op.toString(),
-                        DataTypes.DOUBLE.getTypeSignature(),
-                        DataTypes.DOUBLE.getTypeSignature(),
-                        DataTypes.DOUBLE.getTypeSignature()
-                    )
-                    .withFeatures(op.features)
-                    .withFeature(NULLABLE),
+                Signature.builder(op.toString(), FunctionType.SCALAR)
+                    .argumentTypes(DataTypes.DOUBLE.getTypeSignature(), DataTypes.DOUBLE.getTypeSignature())
+                    .returnType(DataTypes.DOUBLE.getTypeSignature())
+                    .features(op.features)
+                    .build(),
                 (signature, boundSignature) ->
                     new BinaryScalar<>(op.doubleFunction, signature, boundSignature, DataTypes.DOUBLE)
             );
             builder.add(
-                Signature.scalar(
-                        op.toString(),
-                        DataTypes.NUMERIC.getTypeSignature(),
-                        DataTypes.NUMERIC.getTypeSignature(),
-                        DataTypes.NUMERIC.getTypeSignature()
-                    )
-                    .withFeatures(op.features)
-                    .withFeature(NULLABLE),
+                Signature.builder(op.toString(), FunctionType.SCALAR)
+                    .argumentTypes(DataTypes.NUMERIC.getTypeSignature(), DataTypes.NUMERIC.getTypeSignature())
+                    .returnType(DataTypes.NUMERIC.getTypeSignature())
+                    .features(op.features)
+                    .build(),
                 (signature, boundSignature) ->
                     new BinaryScalar<>(op.bdFunction, signature, boundSignature, DataTypes.NUMERIC)
             );
         }
 
         builder.add(
-            Signature.scalar(
-                    Names.POWER,
-                    DataTypes.DOUBLE.getTypeSignature(),
-                    DataTypes.DOUBLE.getTypeSignature(),
-                    DataTypes.DOUBLE.getTypeSignature()
-                )
-                .withFeatures(DETERMINISTIC_ONLY)
-                .withFeature(NULLABLE),
+            Signature.builder(Names.POWER, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.DOUBLE.getTypeSignature(), DataTypes.DOUBLE.getTypeSignature())
+                .returnType(DataTypes.DOUBLE.getTypeSignature())
+                .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+                .build(),
             (signature, boundSignature) ->
                 new BinaryScalar<>(Math::pow, signature, boundSignature, DataTypes.DOUBLE)
         );

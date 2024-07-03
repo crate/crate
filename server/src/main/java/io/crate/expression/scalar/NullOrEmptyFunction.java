@@ -35,6 +35,7 @@ import io.crate.expression.predicate.IsNullPredicate;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder.Context;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
@@ -53,22 +54,20 @@ public final class NullOrEmptyFunction extends Scalar<Boolean, Object> {
 
     public static void register(Functions.Builder module) {
         module.add(
-            Signature.scalar(
-                    "null_or_empty",
-                    DataTypes.UNTYPED_OBJECT.getTypeSignature(),
-                    DataTypes.BOOLEAN.getTypeSignature())
-                .withFeature(Feature.DETERMINISTIC)
-                .withFeature(Feature.NON_NULLABLE),
+            Signature.builder("null_or_empty", FunctionType.SCALAR)
+                .argumentTypes(DataTypes.UNTYPED_OBJECT.getTypeSignature())
+                .returnType(DataTypes.BOOLEAN.getTypeSignature())
+                .features(Feature.DETERMINISTIC, Feature.NON_NULLABLE)
+                .build(),
             NullOrEmptyFunction::new
         );
         module.add(
-            Signature.scalar(
-                    "null_or_empty",
-                    TypeSignature.parse("array(E)"),
-                    DataTypes.BOOLEAN.getTypeSignature()
-                ).withTypeVariableConstraints(TypeVariableConstraint.typeVariableOfAnyType("E"))
-                .withFeature(Feature.DETERMINISTIC)
-                .withFeature(Feature.NON_NULLABLE),
+            Signature.builder("null_or_empty", FunctionType.SCALAR)
+                .argumentTypes(TypeSignature.parse("array(E)"))
+                .returnType(DataTypes.BOOLEAN.getTypeSignature())
+                .typeVariableConstraints(TypeVariableConstraint.typeVariableOfAnyType("E"))
+                .features(Feature.DETERMINISTIC, Feature.NON_NULLABLE)
+                .build(),
             NullOrEmptyFunction::new
         );
     }

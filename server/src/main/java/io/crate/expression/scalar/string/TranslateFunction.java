@@ -27,6 +27,7 @@ import java.util.Map;
 
 import io.crate.data.Input;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -42,13 +43,11 @@ public class TranslateFunction extends Scalar<String, String> {
 
     public static void register(Functions.Builder module) {
         module.add(
-            Signature.scalar(
-                    "translate",
-                    DataTypes.STRING.getTypeSignature(),
-                    DataTypes.STRING.getTypeSignature(),
-                    DataTypes.STRING.getTypeSignature(),
-                    DataTypes.STRING.getTypeSignature())
-                .withFeature(Feature.DETERMINISTIC),
+            Signature.builder("translate", FunctionType.SCALAR)
+                .argumentTypes(DataTypes.STRING.getTypeSignature(), DataTypes.STRING.getTypeSignature(), DataTypes.STRING.getTypeSignature())
+                .returnType(DataTypes.STRING.getTypeSignature())
+                .features(Feature.DETERMINISTIC)
+                .build(),
             TranslateFunction::new
         );
     }

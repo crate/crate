@@ -22,14 +22,13 @@
 package io.crate.expression.scalar.arithmetic;
 
 
-import static io.crate.metadata.functions.Signature.scalar;
-
 import java.util.EnumSet;
 import java.util.Random;
 
 import io.crate.data.Input;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -44,10 +43,11 @@ public class RandomFunction extends Scalar<Double, Void> {
 
     public static void register(Functions.Builder module) {
         module.add(
-            scalar(
-                NAME,
-                DataTypes.DOUBLE.getTypeSignature()
-            ).withFeatures(EnumSet.of(Feature.NON_NULLABLE)),
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes()
+                .returnType(DataTypes.DOUBLE.getTypeSignature())
+                .features(EnumSet.of(Feature.NON_NULLABLE))
+                .build(),
             RandomFunction::new
         );
     }

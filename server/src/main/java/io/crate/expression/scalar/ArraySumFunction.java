@@ -29,6 +29,7 @@ import java.util.function.Function;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.array.ArraySummationFunctions;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -46,12 +47,11 @@ public class ArraySumFunction<T extends Number, R extends Number> extends Scalar
     private final Function<List<T>, R> sum;
 
     private static <T, U> Signature signature(DataType<T> elementType, DataType<U> returnType) {
-        return Signature.scalar(
-                NAME,
-                new ArrayType<>(elementType).getTypeSignature(),
-                returnType.getTypeSignature()
-            ).withFeature(Feature.DETERMINISTIC)
-            .withFeature(Feature.NULLABLE);
+        return Signature.builder(NAME, FunctionType.SCALAR)
+            .argumentTypes(new ArrayType<>(elementType).getTypeSignature())
+            .returnType(returnType.getTypeSignature())
+            .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+            .build();
     }
 
     public static void register(Functions.Builder builder) {

@@ -35,6 +35,7 @@ import io.crate.data.RowN;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.window.WindowFrameState;
 import io.crate.execution.engine.window.WindowFunction;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
@@ -162,12 +163,12 @@ public class NthValueFunctions implements WindowFunction {
 
     public static void register(Functions.Builder builder) {
         builder.add(
-            Signature.window(
-                    FIRST_VALUE_NAME,
-                    TypeSignature.parse("E"),
-                    TypeSignature.parse("E")
-                ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withTypeVariableConstraints(typeVariable("E")),
+            Signature.builder(FIRST_VALUE_NAME, FunctionType.WINDOW)
+                .argumentTypes(TypeSignature.parse("E"))
+                .returnType(TypeSignature.parse("E"))
+                .features(Scalar.Feature.DETERMINISTIC)
+                .typeVariableConstraints(typeVariable("E"))
+                .build(),
             (signature, boundSignature) ->
                 new NthValueFunctions(
                     signature,
@@ -177,12 +178,12 @@ public class NthValueFunctions implements WindowFunction {
         );
 
         builder.add(
-            Signature.window(
-                    LAST_VALUE_NAME,
-                    TypeSignature.parse("E"),
-                    TypeSignature.parse("E")
-                ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withTypeVariableConstraints(typeVariable("E")),
+            Signature.builder(LAST_VALUE_NAME, FunctionType.WINDOW)
+                .argumentTypes(TypeSignature.parse("E"))
+                .returnType(TypeSignature.parse("E"))
+                .features(Scalar.Feature.DETERMINISTIC)
+                .typeVariableConstraints(typeVariable("E"))
+                .build(),
             (signature, boundSignature) ->
                 new NthValueFunctions(
                     signature,
@@ -192,13 +193,13 @@ public class NthValueFunctions implements WindowFunction {
         );
 
         builder.add(
-            Signature.window(
-                    NTH_VALUE_NAME,
-                    TypeSignature.parse("E"),
-                    DataTypes.INTEGER.getTypeSignature(),
-                    TypeSignature.parse("E")
-                ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withTypeVariableConstraints(typeVariable("E")),
+            Signature.builder(NTH_VALUE_NAME, FunctionType.WINDOW)
+                .argumentTypes(TypeSignature.parse("E"),
+                    DataTypes.INTEGER.getTypeSignature())
+                .returnType(TypeSignature.parse("E"))
+                .features(Scalar.Feature.DETERMINISTIC)
+                .typeVariableConstraints(typeVariable("E"))
+                .build(),
             (signature, boundSignature) ->
                 new NthValueFunctions(
                     signature,

@@ -30,6 +30,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder.Context;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
@@ -41,12 +42,12 @@ public class OrOperator extends Operator<Boolean> {
 
     public static final String NAME = "op_or";
 
-    public static final Signature SIGNATURE = Signature.scalar(
-        NAME,
-        DataTypes.BOOLEAN.getTypeSignature(),
-        DataTypes.BOOLEAN.getTypeSignature(),
-        DataTypes.BOOLEAN.getTypeSignature()
-    ).withFeature(Feature.DETERMINISTIC);
+    public static final Signature SIGNATURE = Signature.builder(NAME, FunctionType.SCALAR)
+        .argumentTypes(DataTypes.BOOLEAN.getTypeSignature(),
+            DataTypes.BOOLEAN.getTypeSignature())
+        .returnType(DataTypes.BOOLEAN.getTypeSignature())
+        .features(Feature.DETERMINISTIC)
+        .build();
 
 
     public static void register(Functions.Builder builder) {

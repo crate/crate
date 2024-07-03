@@ -21,33 +21,31 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import static io.crate.metadata.functions.Signature.scalar;
-
 import io.crate.expression.scalar.UnaryScalar;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
 public class RadiansDegreesFunctions {
 
     public static void register(Functions.Builder module) {
         module.add(
-            scalar(
-                "radians",
-                DataTypes.DOUBLE.getTypeSignature(),
-                DataTypes.DOUBLE.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withFeature(Scalar.Feature.NULLABLE),
+            Signature.builder("radians", FunctionType.SCALAR)
+                .argumentTypes(DataTypes.DOUBLE.getTypeSignature())
+                .returnType(DataTypes.DOUBLE.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .build(),
             (signature, boundSignature) ->
                 new UnaryScalar<>(signature, boundSignature, DataTypes.DOUBLE, Math::toRadians));
 
         module.add(
-            scalar(
-                "degrees",
-                DataTypes.DOUBLE.getTypeSignature(),
-                DataTypes.DOUBLE.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withFeature(Scalar.Feature.NULLABLE),
+            Signature.builder("degrees", FunctionType.SCALAR)
+                .argumentTypes(DataTypes.DOUBLE.getTypeSignature())
+                .returnType(DataTypes.DOUBLE.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .build(),
             (signature, boundSignature) ->
                 new UnaryScalar<>(signature, boundSignature, DataTypes.DOUBLE, Math::toDegrees));
     }

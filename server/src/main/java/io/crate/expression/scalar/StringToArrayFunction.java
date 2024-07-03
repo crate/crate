@@ -30,6 +30,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -44,22 +45,20 @@ public class StringToArrayFunction extends Scalar<List<String>, String> {
 
     public static void register(Functions.Builder module) {
         module.add(
-            Signature.scalar(
-                NAME,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING_ARRAY.getTypeSignature()
-            ).withFeature(Feature.DETERMINISTIC),
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature())
+                .returnType(DataTypes.STRING_ARRAY.getTypeSignature())
+                .features(Feature.DETERMINISTIC)
+                .build(),
             StringToArrayFunction::new
         );
         module.add(
-            Signature.scalar(
-                NAME,
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING_ARRAY.getTypeSignature()
-            ).withFeature(Feature.DETERMINISTIC),
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.STRING.getTypeSignature(), DataTypes.STRING.getTypeSignature(), DataTypes.STRING.getTypeSignature())
+                .returnType(DataTypes.STRING_ARRAY.getTypeSignature())
+                .features(Feature.DETERMINISTIC)
+                .build(),
             StringToArrayFunction::new
         );
     }

@@ -29,6 +29,7 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
@@ -41,11 +42,12 @@ public class RowNumberWindowFunction implements WindowFunction {
 
     public static void register(Functions.Builder builder) {
         builder.add(
-            Signature.window(
-                NAME,
-                DataTypes.INTEGER.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC),
-            RowNumberWindowFunction::new
+                Signature.builder(NAME, FunctionType.WINDOW)
+                        .argumentTypes()
+                        .returnType(DataTypes.INTEGER.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .build(),
+                RowNumberWindowFunction::new
         );
     }
 

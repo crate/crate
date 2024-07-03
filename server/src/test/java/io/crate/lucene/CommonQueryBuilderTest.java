@@ -56,18 +56,19 @@ import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.lucene.match.CrateRegexQuery;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
+import io.crate.role.Role;
 import io.crate.testing.QueryTester;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
-import io.crate.role.Role;
 
 public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
 
@@ -619,12 +620,12 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         // Testing expression: f(col as alias) = 'foo'
         AliasSymbol alias = new AliasSymbol("aliased", createReference("arr", DataTypes.INTEGER_ARRAY));
         var innerFunction = new Function(
-            Signature.scalar(
-                "array_length",
-                TypeSignature.parse("array(E)"),
-                DataTypes.INTEGER.getTypeSignature(),
-                DataTypes.INTEGER.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC),
+            Signature.builder("array_length", FunctionType.SCALAR)
+                .argumentTypes(TypeSignature.parse("array(E)"),
+                    DataTypes.INTEGER.getTypeSignature())
+                .returnType(DataTypes.INTEGER.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build(),
             List.of(alias, Literal.of(1)), // 1 is a dummy argument for dimension.
             DataTypes.INTEGER
         );

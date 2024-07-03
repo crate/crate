@@ -33,6 +33,7 @@ import org.junit.Test;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbols;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
@@ -42,12 +43,12 @@ public class SymbolFormatterTest extends ESTestCase {
     @Test
     public void testFormat() throws Exception {
         Function f = new Function(
-            Signature.scalar(
-                "foo",
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.UNDEFINED.getTypeSignature(),
-                DataTypes.DOUBLE.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC),
+            Signature.builder("foo", FunctionType.SCALAR)
+                .argumentTypes(DataTypes.STRING.getTypeSignature(),
+                    DataTypes.UNDEFINED.getTypeSignature())
+                .returnType(DataTypes.DOUBLE.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build(),
             List.of(Literal.of("bar"), Literal.of(3.4)),
             DataTypes.DOUBLE
         );

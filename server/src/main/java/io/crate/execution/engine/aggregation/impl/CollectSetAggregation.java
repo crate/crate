@@ -35,6 +35,7 @@ import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
@@ -58,12 +59,12 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
         for (DataType<?> supportedType : DataTypes.PRIMITIVE_TYPES) {
             var returnType = new ArrayType<>(supportedType);
             builder.add(
-                Signature.aggregate(
-                        NAME,
-                        supportedType.getTypeSignature(),
-                        returnType.getTypeSignature())
-                    .withFeature(Scalar.Feature.DETERMINISTIC),
-                CollectSetAggregation::new
+                    Signature.builder(NAME, FunctionType.AGGREGATE)
+                            .argumentTypes(supportedType.getTypeSignature())
+                            .returnType(returnType.getTypeSignature())
+                            .features(Scalar.Feature.DETERMINISTIC)
+                            .build(),
+                    CollectSetAggregation::new
             );
         }
     }

@@ -24,8 +24,10 @@ package io.crate.expression.scalar.string;
 import static io.crate.sql.Identifiers.isKeyWord;
 
 import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.expression.scalar.UnaryScalar;
 import io.crate.metadata.FunctionName;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
@@ -40,12 +42,11 @@ public final class QuoteIdentFunction {
 
     public static void register(Functions.Builder module) {
         module.add(
-            Signature.scalar(
-                    FQNAME,
-                    DataTypes.STRING.getTypeSignature(),
-                    DataTypes.STRING.getTypeSignature()
-                ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withFeature(Scalar.Feature.NULLABLE),
+            Signature.builder(FQNAME, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.STRING.getTypeSignature())
+                .returnType(DataTypes.STRING.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .build(),
             (signature, boundSignature) ->
                 new UnaryScalar<>(
                     signature,

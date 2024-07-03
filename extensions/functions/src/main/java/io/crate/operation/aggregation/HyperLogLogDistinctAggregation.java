@@ -55,6 +55,7 @@ import io.crate.execution.engine.aggregation.impl.templates.SortedNumericDocValu
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
@@ -86,21 +87,21 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
     public static void register(Functions.Builder builder) {
         for (var supportedType : DataTypes.PRIMITIVE_TYPES) {
             builder.add(
-                Signature.aggregate(
-                    NAME,
-                    supportedType.getTypeSignature(),
-                    DataTypes.LONG.getTypeSignature())
-                    .withFeature(Scalar.Feature.DETERMINISTIC),
+                Signature.builder(NAME, FunctionType.AGGREGATE)
+                    .argumentTypes(supportedType.getTypeSignature())
+                    .returnType(DataTypes.LONG.getTypeSignature())
+                    .features(Scalar.Feature.DETERMINISTIC)
+                    .build(),
                 (signature, boundSignature) ->
                     new HyperLogLogDistinctAggregation(signature, boundSignature, supportedType)
             );
             builder.add(
-                Signature.aggregate(
-                    NAME,
-                    supportedType.getTypeSignature(),
-                    DataTypes.INTEGER.getTypeSignature(),
-                    DataTypes.LONG.getTypeSignature())
-                    .withFeature(Scalar.Feature.DETERMINISTIC),
+                Signature.builder(NAME, FunctionType.AGGREGATE)
+                    .argumentTypes(supportedType.getTypeSignature(),
+                        DataTypes.INTEGER.getTypeSignature())
+                    .returnType(DataTypes.LONG.getTypeSignature())
+                    .features(Scalar.Feature.DETERMINISTIC)
+                    .build(),
                 (signature, boundSignature) ->
                     new HyperLogLogDistinctAggregation(signature, boundSignature, supportedType)
             );

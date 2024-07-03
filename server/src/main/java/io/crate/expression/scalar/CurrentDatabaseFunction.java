@@ -24,6 +24,7 @@ package io.crate.expression.scalar;
 import io.crate.Constants;
 import io.crate.data.Input;
 import io.crate.metadata.FunctionName;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -39,11 +40,11 @@ final class CurrentDatabaseFunction extends Scalar<String, Void> {
 
     public static void register(Functions.Builder module) {
         module.add(
-            Signature.scalar(
-                    FQN,
-                    DataTypes.STRING.getTypeSignature()
-                ).withFeature(Feature.DETERMINISTIC)
-                .withFeature(Feature.NON_NULLABLE),
+            Signature.builder(FQN, FunctionType.SCALAR)
+                .argumentTypes()
+                .returnType(DataTypes.STRING.getTypeSignature())
+                .features(Feature.DETERMINISTIC, Feature.NON_NULLABLE)
+                .build(),
             CurrentDatabaseFunction::new
         );
     }

@@ -33,6 +33,7 @@ import io.crate.data.Input;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.functions.Signature;
@@ -45,13 +46,13 @@ public class CollectSetAggregationTest extends AggregationTestCase {
 
     private Object executeAggregation(DataType<?> argumentType, Object[][] data) throws Exception {
         return executeAggregation(
-            Signature.aggregate(
-                "collect_set",
-                argumentType.getTypeSignature(),
-                new ArrayType<>(argumentType).getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC),
-            data,
-            List.of()
+                Signature.builder("collect_set", FunctionType.AGGREGATE)
+                        .argumentTypes(argumentType.getTypeSignature())
+                        .returnType(new ArrayType<>(argumentType).getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .build(),
+                data,
+                List.of()
         );
     }
 

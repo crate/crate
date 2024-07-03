@@ -35,6 +35,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.testing.TestingHelpers;
@@ -45,12 +46,11 @@ public class FunctionTest extends ESTestCase {
 
     private DataType<?> returnType = TestingHelpers.randomPrimitiveType();
 
-    private Signature signature = Signature.scalar(
-            randomAsciiLettersOfLength(10),
-            DataTypes.BOOLEAN.getTypeSignature(),
-            returnType.getTypeSignature()
-        ).withFeature(Scalar.Feature.DETERMINISTIC)
-        .withFeatures(randomFeatures());
+    private Signature signature = Signature.builder(randomAsciiLettersOfLength(10), FunctionType.SCALAR)
+        .argumentTypes(DataTypes.BOOLEAN.getTypeSignature())
+        .returnType(returnType.getTypeSignature())
+        .features(EnumSet.of(Scalar.Feature.DETERMINISTIC, randomFeatures().toArray(Scalar.Feature[]::new)))
+        .build();
 
 
     @Test

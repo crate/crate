@@ -21,11 +21,11 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import static io.crate.metadata.functions.Signature.scalar;
-
 import io.crate.expression.scalar.UnaryScalar;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
 public class ExpFunction {
@@ -36,9 +36,11 @@ public class ExpFunction {
         var type = DataTypes.DOUBLE;
         var signature = type.getTypeSignature();
         module.add(
-            scalar(NAME, signature, signature)
-                .withFeature(Scalar.Feature.DETERMINISTIC)
-                .withFeature(Scalar.Feature.NULLABLE),
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(signature)
+                .returnType(signature)
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .build(),
             (declaredSignature, boundSignature) ->
                 new UnaryScalar<>(
                     declaredSignature,

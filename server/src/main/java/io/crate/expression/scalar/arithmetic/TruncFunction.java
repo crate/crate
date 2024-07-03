@@ -21,14 +21,13 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import static io.crate.metadata.functions.Signature.scalar;
-
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.function.UnaryOperator;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.UnaryScalar;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -50,13 +49,12 @@ public final class TruncFunction {
 
             // trunc(number)
             module.add(
-                Signature.scalar(
-                        NAME,
-                        type.getTypeSignature(),
-                        returnType.getTypeSignature()
-                    ).withFeature(Scalar.Feature.DETERMINISTIC)
-                    .withForbiddenCoercion()
-                    .withFeature(Scalar.Feature.NULLABLE),
+                Signature.builder(NAME, FunctionType.SCALAR)
+                    .argumentTypes(type.getTypeSignature())
+                    .returnType(returnType.getTypeSignature())
+                    .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                    .forbidCoercion()
+                    .build(),
                 (signature, boundSignature) ->
                     new UnaryScalar<>(
                         signature,
@@ -73,13 +71,12 @@ public final class TruncFunction {
         }
         // trunc(number, mode)
         module.add(
-            scalar(
-                NAME,
-                DataTypes.DOUBLE.getTypeSignature(),
-                DataTypes.INTEGER.getTypeSignature(),
-                DataTypes.DOUBLE.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withFeature(Scalar.Feature.NULLABLE),
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.DOUBLE.getTypeSignature(),
+                    DataTypes.INTEGER.getTypeSignature())
+                .returnType(DataTypes.DOUBLE.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .build(),
             TruncFunction::createTruncWithMode
         );
     }

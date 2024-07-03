@@ -77,6 +77,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Scalar;
@@ -114,11 +115,11 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
         );
         memoryManager = new OnHeapMemoryManager(usedBytes -> {});
 
-        avgSignature = Signature.aggregate(
-            "avg",
-            DataTypes.INTEGER.getTypeSignature(),
-            DataTypes.DOUBLE.getTypeSignature()
-        ).withFeature(Scalar.Feature.DETERMINISTIC);
+        avgSignature = Signature.builder("avg", FunctionType.AGGREGATE)
+                .argumentTypes(DataTypes.INTEGER.getTypeSignature())
+                .returnType(DataTypes.DOUBLE.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build();
     }
 
     @Test

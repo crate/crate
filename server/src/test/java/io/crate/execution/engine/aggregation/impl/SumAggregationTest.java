@@ -35,6 +35,7 @@ import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionImplementation;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.functions.Signature;
@@ -49,13 +50,13 @@ public class SumAggregationTest extends AggregationTestCase {
                                       DataType<?> returnType,
                                       Object[][] data) throws Exception {
         return executeAggregation(
-            Signature.aggregate(
-                SumAggregation.NAME,
-                argumentType.getTypeSignature(),
-                returnType.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC),
-            data,
-            List.of()
+                Signature.builder(SumAggregation.NAME, FunctionType.AGGREGATE)
+                        .argumentTypes(argumentType.getTypeSignature())
+                        .returnType(returnType.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .build(),
+                data,
+                List.of()
         );
     }
 
@@ -114,11 +115,11 @@ public class SumAggregationTest extends AggregationTestCase {
     @Test
     public void testFloatSummationWithoutLosingPrecision() throws Exception {
         Object[][] rows = new Object[][] { { 0.8f }, { 0.4f }, { 0.2f } };
-        Signature signature = Signature.aggregate(
-            SumAggregation.NAME,
-            DataTypes.FLOAT.getTypeSignature(),
-            DataTypes.FLOAT.getTypeSignature()
-        ).withFeature(Scalar.Feature.DETERMINISTIC);
+        Signature signature = Signature.builder(SumAggregation.NAME, FunctionType.AGGREGATE)
+                .argumentTypes(DataTypes.FLOAT.getTypeSignature())
+                .returnType(DataTypes.FLOAT.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build();
         Object result = executeAggregation(
             signature,
             signature.getArgumentDataTypes(),
@@ -172,13 +173,13 @@ public class SumAggregationTest extends AggregationTestCase {
     public void testInterval() {
         assertThat(execPartialAggregationWithoutDocValues(
                 (IntervalSumAggregation) nodeCtx.functions().getQualified(
-                    Signature.aggregate(
-                            IntervalSumAggregation.NAME,
-                            DataTypes.INTERVAL.getTypeSignature(),
-                            DataTypes.INTERVAL.getTypeSignature())
-                        .withFeature(Scalar.Feature.DETERMINISTIC),
-                    List.of(DataTypes.INTERVAL),
-                    DataTypes.INTERVAL
+                        Signature.builder(IntervalSumAggregation.NAME, FunctionType.AGGREGATE)
+                                .argumentTypes(DataTypes.INTERVAL.getTypeSignature())
+                                .returnType(DataTypes.INTERVAL.getTypeSignature())
+                                .features(Scalar.Feature.DETERMINISTIC)
+                                .build(),
+                        List.of(DataTypes.INTERVAL),
+                        DataTypes.INTERVAL
                 ),
                 new Object[][]{
                     {Period.days(6).withHours(12).withSeconds(10)},

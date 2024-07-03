@@ -21,23 +21,22 @@
 
 package io.crate.expression.scalar.geo;
 
-import static io.crate.metadata.functions.Signature.scalar;
-
 import io.crate.expression.scalar.UnaryScalar;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 
 public final class CoordinateFunction {
 
     public static void register(Functions.Builder module) {
         module.add(
-            scalar(
-                "latitude",
-                DataTypes.GEO_POINT.getTypeSignature(),
-                DataTypes.DOUBLE.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withFeature(Scalar.Feature.NULLABLE),
+            Signature.builder("latitude", FunctionType.SCALAR)
+                .argumentTypes(DataTypes.GEO_POINT.getTypeSignature())
+                .returnType(DataTypes.DOUBLE.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .build(),
             (signature, boundSignature) ->
                 new UnaryScalar<>(
                     signature,
@@ -47,12 +46,11 @@ public final class CoordinateFunction {
                 )
         );
         module.add(
-            scalar(
-                "longitude",
-                DataTypes.GEO_POINT.getTypeSignature(),
-                DataTypes.DOUBLE.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withFeature(Scalar.Feature.NULLABLE),
+            Signature.builder("longitude", FunctionType.SCALAR)
+                .argumentTypes(DataTypes.GEO_POINT.getTypeSignature())
+                .returnType(DataTypes.DOUBLE.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .build(),
             (signature, boundSignature) ->
                 new UnaryScalar<>(
                     signature,

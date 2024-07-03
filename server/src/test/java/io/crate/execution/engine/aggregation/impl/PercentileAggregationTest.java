@@ -36,6 +36,7 @@ import io.crate.data.breaker.RamAccounting;
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.expression.symbol.Literal;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
 import io.crate.operation.aggregation.AggregationTestCase;
@@ -47,27 +48,27 @@ public class PercentileAggregationTest extends AggregationTestCase {
 
     private Object execSingleFractionPercentile(DataType<?> argumentType, Object[][] rows) throws Exception {
         return executeAggregation(
-            Signature.aggregate(
-                PercentileAggregation.NAME,
-                argumentType.getTypeSignature(),
-                DataTypes.DOUBLE.getTypeSignature(),
-                DataTypes.DOUBLE.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC),
-            rows,
-            List.of()
+                Signature.builder(PercentileAggregation.NAME, FunctionType.AGGREGATE)
+                        .argumentTypes(argumentType.getTypeSignature(),
+                                DataTypes.DOUBLE.getTypeSignature())
+                        .returnType(DataTypes.DOUBLE.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .build(),
+                rows,
+                List.of()
         );
     }
 
     private Object execArrayFractionPercentile(DataType<?> argumentType, Object[][] rows) throws Exception {
         return executeAggregation(
-            Signature.aggregate(
-                PercentileAggregation.NAME,
-                argumentType.getTypeSignature(),
-                DataTypes.DOUBLE_ARRAY.getTypeSignature(),
-                DataTypes.DOUBLE_ARRAY.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC),
-            rows,
-            List.of()
+                Signature.builder(PercentileAggregation.NAME, FunctionType.AGGREGATE)
+                        .argumentTypes(argumentType.getTypeSignature(),
+                                DataTypes.DOUBLE_ARRAY.getTypeSignature())
+                        .returnType(DataTypes.DOUBLE_ARRAY.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .build(),
+                rows,
+                List.of()
         );
     }
 
@@ -77,24 +78,24 @@ public class PercentileAggregationTest extends AggregationTestCase {
     @Before
     public void initFunctions() throws Exception {
         singleArgPercentile = (PercentileAggregation) nodeCtx.functions().getQualified(
-            Signature.aggregate(
-                PercentileAggregation.NAME,
-                DataTypes.DOUBLE.getTypeSignature(),
-                DataTypes.DOUBLE.getTypeSignature(),
-                DataTypes.DOUBLE.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC),
-            List.of(DataTypes.DOUBLE, DataTypes.DOUBLE),
-            DataTypes.DOUBLE
+                Signature.builder(PercentileAggregation.NAME, FunctionType.AGGREGATE)
+                        .argumentTypes(DataTypes.DOUBLE.getTypeSignature(),
+                                DataTypes.DOUBLE.getTypeSignature())
+                        .returnType(DataTypes.DOUBLE.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .build(),
+                List.of(DataTypes.DOUBLE, DataTypes.DOUBLE),
+                DataTypes.DOUBLE
         );
         arraysPercentile = (PercentileAggregation) nodeCtx.functions().getQualified(
-            Signature.aggregate(
-                PercentileAggregation.NAME,
-                DataTypes.DOUBLE.getTypeSignature(),
-                DataTypes.DOUBLE_ARRAY.getTypeSignature(),
-                DataTypes.DOUBLE_ARRAY.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC),
-            List.of(DataTypes.DOUBLE, DataTypes.DOUBLE_ARRAY),
-            DataTypes.DOUBLE_ARRAY
+                Signature.builder(PercentileAggregation.NAME, FunctionType.AGGREGATE)
+                        .argumentTypes(DataTypes.DOUBLE.getTypeSignature(),
+                                DataTypes.DOUBLE_ARRAY.getTypeSignature())
+                        .returnType(DataTypes.DOUBLE_ARRAY.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .build(),
+                List.of(DataTypes.DOUBLE, DataTypes.DOUBLE_ARRAY),
+                DataTypes.DOUBLE_ARRAY
         );
     }
 
@@ -230,14 +231,14 @@ public class PercentileAggregationTest extends AggregationTestCase {
     @Test
     public void testSingleItemFractionsArgumentResultsInArrayResult() {
         var impl = (AggregationFunction<Object, ?>) nodeCtx.functions().getQualified(
-            Signature.aggregate(
-                PercentileAggregation.NAME,
-                DataTypes.LONG.getTypeSignature(),
-                DataTypes.DOUBLE_ARRAY.getTypeSignature(),
-                DataTypes.DOUBLE_ARRAY.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC),
-            List.of(DataTypes.LONG, DataTypes.DOUBLE_ARRAY),
-            DataTypes.DOUBLE_ARRAY
+                Signature.builder(PercentileAggregation.NAME, FunctionType.AGGREGATE)
+                        .argumentTypes(DataTypes.LONG.getTypeSignature(),
+                                DataTypes.DOUBLE_ARRAY.getTypeSignature())
+                        .returnType(DataTypes.DOUBLE_ARRAY.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .build(),
+                List.of(DataTypes.LONG, DataTypes.DOUBLE_ARRAY),
+                DataTypes.DOUBLE_ARRAY
         );
 
         RamAccounting ramAccounting = RamAccounting.NO_ACCOUNTING;
@@ -254,14 +255,14 @@ public class PercentileAggregationTest extends AggregationTestCase {
     @Test
     public void test_percentile_accounts_memory_for_tdigeststate() throws Exception {
         var impl = (AggregationFunction<Object, ?>) nodeCtx.functions().getQualified(
-            Signature.aggregate(
-                PercentileAggregation.NAME,
-                DataTypes.LONG.getTypeSignature(),
-                DataTypes.DOUBLE_ARRAY.getTypeSignature(),
-                DataTypes.DOUBLE_ARRAY.getTypeSignature()
-            ).withFeature(Scalar.Feature.DETERMINISTIC),
-            List.of(DataTypes.LONG, DataTypes.DOUBLE_ARRAY),
-            DataTypes.DOUBLE_ARRAY
+                Signature.builder(PercentileAggregation.NAME, FunctionType.AGGREGATE)
+                        .argumentTypes(DataTypes.LONG.getTypeSignature(),
+                                DataTypes.DOUBLE_ARRAY.getTypeSignature())
+                        .returnType(DataTypes.DOUBLE_ARRAY.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .build(),
+                List.of(DataTypes.LONG, DataTypes.DOUBLE_ARRAY),
+                DataTypes.DOUBLE_ARRAY
         );
         RamAccounting ramAccounting = new PlainRamAccounting();
         Object state = impl.newState(ramAccounting, Version.CURRENT, Version.CURRENT, memoryManager);

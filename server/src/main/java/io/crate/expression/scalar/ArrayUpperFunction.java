@@ -46,6 +46,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.lucene.LuceneQueryBuilder.Context;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
@@ -67,15 +68,14 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
     public static void register(Functions.Builder module) {
         for (var name : List.of(ARRAY_UPPER, ARRAY_LENGTH)) {
             module.add(
-                Signature.scalar(
-                        name,
-                        TypeSignature.parse("array(E)"),
-                        DataTypes.INTEGER.getTypeSignature(),
-                        DataTypes.INTEGER.getTypeSignature()
-                    ).withTypeVariableConstraints(typeVariable("E"))
-                    .withFeature(Feature.DETERMINISTIC)
-                    .withFeature(Feature.NULLABLE),
-                ArrayUpperFunction::new
+                    Signature.builder(name, FunctionType.SCALAR)
+                            .argumentTypes(TypeSignature.parse("array(E)"),
+                                    DataTypes.INTEGER.getTypeSignature())
+                            .returnType(DataTypes.INTEGER.getTypeSignature())
+                            .typeVariableConstraints(typeVariable("E"))
+                            .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+                            .build(),
+                    ArrayUpperFunction::new
             );
         }
     }

@@ -30,9 +30,10 @@ import java.util.List;
 
 import io.crate.data.Input;
 import io.crate.data.Row;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Scalar;
+import io.crate.metadata.Scalar.Feature;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -46,14 +47,13 @@ public class ValuesFunction {
 
     public static final String NAME = "_values";
 
-    public static final Signature SIGNATURE = Signature
-        .table(
-            NAME,
-            TypeSignature.parse("array(E)"),
-            RowType.EMPTY.getTypeSignature())
-        .withTypeVariableConstraints(typeVariableOfAnyType("E"))
-        .withFeature(Scalar.Feature.DETERMINISTIC)
-        .withVariableArity();
+    public static final Signature SIGNATURE = Signature.builder(NAME, FunctionType.TABLE)
+        .argumentTypes(TypeSignature.parse("array(E)"))
+        .returnType(RowType.EMPTY.getTypeSignature())
+        .typeVariableConstraints(typeVariableOfAnyType("E"))
+        .features(Feature.DETERMINISTIC)
+        .setVariableArity(true)
+        .build();
 
     public static void register(Functions.Builder builder) {
         builder.add(SIGNATURE, ValuesTableFunctionImplementation::of);

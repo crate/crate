@@ -22,6 +22,7 @@
 package io.crate.expression.scalar.string;
 
 import io.crate.data.Input;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -34,12 +35,11 @@ public final class ChrFunction extends Scalar<String, Object> {
 
     public static void register(Functions.Builder module) {
         module.add(
-            Signature.scalar(
-                    "chr",
-                    DataTypes.INTEGER.getTypeSignature(),
-                    DataTypes.STRING.getTypeSignature()
-                ).withFeature(Feature.DETERMINISTIC)
-                .withFeature(Feature.NULLABLE),
+            Signature.builder("chr", FunctionType.SCALAR)
+                .argumentTypes(DataTypes.INTEGER.getTypeSignature())
+                .returnType(DataTypes.STRING.getTypeSignature())
+                .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+                .build(),
             ChrFunction::new
         );
     }

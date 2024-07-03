@@ -27,6 +27,7 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
 import io.crate.data.Input;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -47,34 +48,32 @@ public class DateFormatFunction extends Scalar<String, Object> {
         for (DataType<?> dataType : supportedTimestampTypes) {
             // without format
             module.add(
-                Signature.scalar(
-                    NAME,
-                    dataType.getTypeSignature(),
-                    DataTypes.STRING.getTypeSignature()
-                ).withFeature(Feature.DETERMINISTIC),
+                Signature.builder(NAME, FunctionType.SCALAR)
+                    .argumentTypes(dataType.getTypeSignature())
+                    .returnType(DataTypes.STRING.getTypeSignature())
+                    .features(Feature.DETERMINISTIC)
+                    .build(),
                 DateFormatFunction::new
             );
 
             // with format
             module.add(
-                Signature.scalar(
-                    NAME,
-                    DataTypes.STRING.getTypeSignature(),
-                    dataType.getTypeSignature(),
-                    DataTypes.STRING.getTypeSignature()
-                ).withFeature(Feature.DETERMINISTIC),
+                Signature.builder(NAME, FunctionType.SCALAR)
+                    .argumentTypes(DataTypes.STRING.getTypeSignature(),
+                        dataType.getTypeSignature())
+                    .returnType(DataTypes.STRING.getTypeSignature())
+                    .features(Feature.DETERMINISTIC)
+                    .build(),
                 DateFormatFunction::new
             );
 
             // time zone aware variant
             module.add(
-                Signature.scalar(
-                    NAME,
-                    DataTypes.STRING.getTypeSignature(),
-                    DataTypes.STRING.getTypeSignature(),
-                    dataType.getTypeSignature(),
-                    DataTypes.STRING.getTypeSignature()
-                ).withFeature(Feature.DETERMINISTIC),
+                Signature.builder(NAME, FunctionType.SCALAR)
+                    .argumentTypes(DataTypes.STRING.getTypeSignature(), DataTypes.STRING.getTypeSignature(), dataType.getTypeSignature())
+                    .returnType(DataTypes.STRING.getTypeSignature())
+                    .features(Feature.DETERMINISTIC)
+                    .build(),
                 DateFormatFunction::new
             );
         }

@@ -22,6 +22,7 @@
 package io.crate.testing;
 
 import io.crate.data.Input;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
@@ -34,11 +35,10 @@ public class SleepScalarFunction extends Scalar<Boolean, Long> {
 
     public static final String NAME = "sleep";
 
-    public static final Signature SIGNATURE = Signature.scalar(
-        NAME,
-        DataTypes.LONG.getTypeSignature(),
-        DataTypes.BOOLEAN.getTypeSignature()
-    );
+    public static final Signature SIGNATURE = Signature.builder(NAME, FunctionType.SCALAR)
+        .argumentTypes(DataTypes.LONG.getTypeSignature())
+        .returnType(DataTypes.BOOLEAN.getTypeSignature())
+        .build();
 
     public SleepScalarFunction(Signature signature, BoundSignature boundSignature) {
         super(signature, boundSignature);

@@ -51,9 +51,7 @@ import io.crate.types.TypeSignature;
 public class SignatureBinderTest extends ESTestCase {
 
     private static Signature.Builder functionSignature() {
-        return Signature.builder()
-            .name("function")
-            .kind(SCALAR);
+        return Signature.builder("function", SCALAR);
     }
 
     @Test

@@ -40,6 +40,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.lucene.LuceneQueryBuilder;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
@@ -53,12 +54,11 @@ import io.crate.types.DataTypes;
 public class NotPredicate extends Scalar<Boolean, Boolean> {
 
     public static final String NAME = "op_not";
-    public static final Signature SIGNATURE = Signature.scalar(
-            NAME,
-            DataTypes.BOOLEAN.getTypeSignature(),
-            DataTypes.BOOLEAN.getTypeSignature())
-        .withFeature(Feature.DETERMINISTIC)
-        .withFeature(Feature.NULLABLE);
+    public static final Signature SIGNATURE = Signature.builder(NAME, FunctionType.SCALAR)
+        .argumentTypes(DataTypes.BOOLEAN.getTypeSignature())
+        .returnType(DataTypes.BOOLEAN.getTypeSignature())
+        .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+        .build();
 
     public static void register(Functions.Builder builder) {
         builder.add(SIGNATURE, NotPredicate::new);

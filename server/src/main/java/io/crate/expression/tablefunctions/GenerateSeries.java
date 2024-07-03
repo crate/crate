@@ -35,6 +35,7 @@ import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.legacy.LegacySettings;
 import io.crate.metadata.FunctionName;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
@@ -68,13 +69,12 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
 
         // without step
         builder.add(
-            Signature.table(
-                    NAME,
-                    DataTypes.LONG.getTypeSignature(),
-                    DataTypes.LONG.getTypeSignature(),
-                    DataTypes.LONG.getTypeSignature()
-                ).withFeature(Feature.DETERMINISTIC)
-                .withFeature(Feature.NON_NULLABLE),
+            Signature.builder(NAME, FunctionType.TABLE)
+                .argumentTypes(DataTypes.LONG.getTypeSignature(),
+                    DataTypes.LONG.getTypeSignature())
+                .returnType(DataTypes.LONG.getTypeSignature())
+                .features(Feature.DETERMINISTIC, Feature.NON_NULLABLE)
+                .build(),
             (signature, boundSignature) -> new GenerateSeries<>(
                 signature,
                 boundSignature,
@@ -86,13 +86,12 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                 new RowType(List.of(boundSignature.argTypes().get(0)), fieldNames))
         );
         builder.add(
-            Signature.table(
-                    NAME,
-                    DataTypes.INTEGER.getTypeSignature(),
-                    DataTypes.INTEGER.getTypeSignature(),
-                    DataTypes.INTEGER.getTypeSignature()
-                ).withFeature(Feature.DETERMINISTIC)
-                .withFeature(Feature.NON_NULLABLE),
+            Signature.builder(NAME, FunctionType.TABLE)
+                .argumentTypes(DataTypes.INTEGER.getTypeSignature(),
+                    DataTypes.INTEGER.getTypeSignature())
+                .returnType(DataTypes.INTEGER.getTypeSignature())
+                .features(Feature.DETERMINISTIC, Feature.NON_NULLABLE)
+                .build(),
             (signature, boundSignature) -> new GenerateSeries<>(
                 signature,
                 boundSignature,
@@ -106,14 +105,13 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
 
         // with step
         builder.add(
-            Signature.table(
-                    NAME,
+            Signature.builder(NAME, FunctionType.TABLE)
+                .argumentTypes(DataTypes.LONG.getTypeSignature(),
                     DataTypes.LONG.getTypeSignature(),
-                    DataTypes.LONG.getTypeSignature(),
-                    DataTypes.LONG.getTypeSignature(),
-                    DataTypes.LONG.getTypeSignature()
-                ).withFeature(Feature.DETERMINISTIC)
-                .withFeature(Feature.NON_NULLABLE),
+                    DataTypes.LONG.getTypeSignature())
+                .returnType(DataTypes.LONG.getTypeSignature())
+                .features(Feature.DETERMINISTIC, Feature.NON_NULLABLE)
+                .build(),
             (signature, boundSignature) -> new GenerateSeries<>(
                 signature,
                 boundSignature,
@@ -125,14 +123,13 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                 new RowType(List.of(boundSignature.argTypes().get(0)), fieldNames))
         );
         builder.add(
-            Signature.table(
-                    NAME,
+            Signature.builder(NAME, FunctionType.TABLE)
+                .argumentTypes(DataTypes.INTEGER.getTypeSignature(),
                     DataTypes.INTEGER.getTypeSignature(),
-                    DataTypes.INTEGER.getTypeSignature(),
-                    DataTypes.INTEGER.getTypeSignature(),
-                    DataTypes.INTEGER.getTypeSignature()
-                ).withFeature(Feature.DETERMINISTIC)
-                .withFeature(Feature.NON_NULLABLE),
+                    DataTypes.INTEGER.getTypeSignature())
+                .returnType(DataTypes.INTEGER.getTypeSignature())
+                .features(Feature.DETERMINISTIC, Feature.NON_NULLABLE)
+                .build(),
             (signature, boundSignature) -> new GenerateSeries<>(
                 signature,
                 boundSignature,
@@ -147,31 +144,30 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
         // generate_series(ts, ts, interval)
         for (var supportedType : List.of(DataTypes.TIMESTAMP, DataTypes.TIMESTAMPZ)) {
             builder.add(
-                Signature.table(
-                        NAME,
+                Signature.builder(NAME, FunctionType.TABLE)
+                    .argumentTypes(supportedType.getTypeSignature(),
                         supportedType.getTypeSignature(),
-                        supportedType.getTypeSignature(),
-                        DataTypes.INTERVAL.getTypeSignature(),
-                        supportedType.getTypeSignature()
-                    ).withFeature(Feature.DETERMINISTIC)
-                    .withFeature(Feature.NON_NULLABLE),
+                        DataTypes.INTERVAL.getTypeSignature())
+                    .returnType(supportedType.getTypeSignature())
+                    .features(Feature.DETERMINISTIC, Feature.NON_NULLABLE)
+                    .build(),
                 (signature, boundSignature) -> new GenerateSeriesIntervals(
                     signature,
                     boundSignature,
                     new RowType(List.of(boundSignature.argTypes().get(0)), fieldNames))
             );
             builder.add(
-                Signature.table(
-                    NAME,
-                    supportedType.getTypeSignature(),
-                    supportedType.getTypeSignature(),
-                    supportedType.getTypeSignature()
-                ).withFeature(Feature.DETERMINISTIC),
+                Signature.builder(NAME, FunctionType.TABLE)
+                    .argumentTypes(supportedType.getTypeSignature(),
+                        supportedType.getTypeSignature())
+                    .returnType(supportedType.getTypeSignature())
+                    .features(Feature.DETERMINISTIC)
+                    .build(),
                 (signature, boundSignature) -> {
                     throw new IllegalArgumentException(
                         "generate_series(start, stop) has type `" + boundSignature.argTypes().get(0).getName() +
-                        "` for start, but requires long/int values for start and stop, " +
-                        "or if used with timestamps, it requires a third argument for the step (interval)");
+                            "` for start, but requires long/int values for start and stop, " +
+                            "or if used with timestamps, it requires a third argument for the step (interval)");
                 }
             );
         }

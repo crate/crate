@@ -36,6 +36,7 @@ import io.crate.data.UnsafeArrayRow;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.window.WindowFrameState;
 import io.crate.execution.engine.window.WindowFunction;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
@@ -263,95 +264,95 @@ public class OffsetValueFunctions implements WindowFunction {
 
     public static void register(Functions.Builder builder) {
         builder.add(
-            Signature.window(
-                    LEAD_NAME,
-                    TypeSignature.parse("E"),
-                    TypeSignature.parse("E")
-                ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withTypeVariableConstraints(typeVariable("E")),
-            (signature, boundSignature) ->
-                new OffsetValueFunctions(
-                    signature,
-                    boundSignature,
-                    LEAD_DEFAULT_OFFSET
-                )
+                Signature.builder(LEAD_NAME, FunctionType.WINDOW)
+                        .argumentTypes(TypeSignature.parse("E"))
+                        .returnType(TypeSignature.parse("E"))
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .typeVariableConstraints(typeVariable("E"))
+                        .build(),
+                (signature, boundSignature) ->
+                        new OffsetValueFunctions(
+                                signature,
+                                boundSignature,
+                                LEAD_DEFAULT_OFFSET
+                        )
         );
         builder.add(
-            Signature.window(
-                    LEAD_NAME,
-                    TypeSignature.parse("E"),
-                    DataTypes.INTEGER.getTypeSignature(),
-                    TypeSignature.parse("E")
-                ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withTypeVariableConstraints(typeVariable("E")),
-            (signature, boundSignature) ->
-                new OffsetValueFunctions(
-                    signature,
-                    boundSignature,
-                    LEAD_DEFAULT_OFFSET
-                )
+                Signature.builder(LEAD_NAME, FunctionType.WINDOW)
+                        .argumentTypes(TypeSignature.parse("E"),
+                                DataTypes.INTEGER.getTypeSignature())
+                        .returnType(TypeSignature.parse("E"))
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .typeVariableConstraints(typeVariable("E"))
+                        .build(),
+                (signature, boundSignature) ->
+                        new OffsetValueFunctions(
+                                signature,
+                                boundSignature,
+                                LEAD_DEFAULT_OFFSET
+                        )
         );
         builder.add(
-            Signature.window(
-                    LEAD_NAME,
-                    TypeSignature.parse("E"),
-                    DataTypes.INTEGER.getTypeSignature(),
-                    TypeSignature.parse("E"),
-                    TypeSignature.parse("E")
-                ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withTypeVariableConstraints(typeVariable("E")),
-            (signature, boundSignature) ->
-                new OffsetValueFunctions(
-                    signature,
-                    boundSignature,
-                    LEAD_DEFAULT_OFFSET
-                )
+                Signature.builder(LEAD_NAME, FunctionType.WINDOW)
+                        .argumentTypes(TypeSignature.parse("E"),
+                                DataTypes.INTEGER.getTypeSignature(),
+                                TypeSignature.parse("E"))
+                        .returnType(TypeSignature.parse("E"))
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .typeVariableConstraints(typeVariable("E"))
+                        .build(),
+                (signature, boundSignature) ->
+                        new OffsetValueFunctions(
+                                signature,
+                                boundSignature,
+                                LEAD_DEFAULT_OFFSET
+                        )
         );
 
         builder.add(
-            Signature.window(
-                    LAG_NAME,
-                    TypeSignature.parse("E"),
-                    TypeSignature.parse("E")
-                ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withTypeVariableConstraints(typeVariable("E")),
-            (signature, boundSignature) ->
-                new OffsetValueFunctions(
-                    signature,
-                    boundSignature,
-                    LAG_DEFAULT_OFFSET
-                )
+                Signature.builder(LAG_NAME, FunctionType.WINDOW)
+                        .argumentTypes(TypeSignature.parse("E"))
+                        .returnType(TypeSignature.parse("E"))
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .typeVariableConstraints(typeVariable("E"))
+                        .build(),
+                (signature, boundSignature) ->
+                        new OffsetValueFunctions(
+                                signature,
+                                boundSignature,
+                                LAG_DEFAULT_OFFSET
+                        )
         );
         builder.add(
-            Signature.window(
-                    LAG_NAME,
-                    TypeSignature.parse("E"),
-                    DataTypes.INTEGER.getTypeSignature(),
-                    TypeSignature.parse("E")
-                ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withTypeVariableConstraints(typeVariable("E")),
-            (signature, boundSignature) ->
-                new OffsetValueFunctions(
-                    signature,
-                    boundSignature,
-                    LAG_DEFAULT_OFFSET
-                )
+                Signature.builder(LAG_NAME, FunctionType.WINDOW)
+                        .argumentTypes(TypeSignature.parse("E"),
+                                DataTypes.INTEGER.getTypeSignature())
+                        .returnType(TypeSignature.parse("E"))
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .typeVariableConstraints(typeVariable("E"))
+                        .build(),
+                (signature, boundSignature) ->
+                        new OffsetValueFunctions(
+                                signature,
+                                boundSignature,
+                                LAG_DEFAULT_OFFSET
+                        )
         );
         builder.add(
-            Signature.window(
-                    LAG_NAME,
-                    TypeSignature.parse("E"),
-                    DataTypes.INTEGER.getTypeSignature(),
-                    TypeSignature.parse("E"),
-                    TypeSignature.parse("E")
-                ).withFeature(Scalar.Feature.DETERMINISTIC)
-                .withTypeVariableConstraints(typeVariable("E")),
-            (signature, boundSignature) ->
-                new OffsetValueFunctions(
-                    signature,
-                    boundSignature,
-                    LAG_DEFAULT_OFFSET
-                )
+                Signature.builder(LAG_NAME, FunctionType.WINDOW)
+                        .argumentTypes(TypeSignature.parse("E"),
+                                DataTypes.INTEGER.getTypeSignature(),
+                                TypeSignature.parse("E"))
+                        .returnType(TypeSignature.parse("E"))
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .typeVariableConstraints(typeVariable("E"))
+                        .build(),
+                (signature, boundSignature) ->
+                        new OffsetValueFunctions(
+                                signature,
+                                boundSignature,
+                                LAG_DEFAULT_OFFSET
+                        )
         );
     }
 }

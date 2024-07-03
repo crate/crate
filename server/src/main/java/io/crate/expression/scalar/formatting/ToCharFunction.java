@@ -32,6 +32,7 @@ import org.joda.time.Period;
 
 import io.crate.data.Input;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
@@ -51,12 +52,12 @@ public class ToCharFunction extends Scalar<String, Object> {
         List.of(DataTypes.TIMESTAMP, DataTypes.TIMESTAMPZ).stream()
             .forEach(type -> {
                 module.add(
-                    Signature.scalar(
-                        NAME,
-                        type.getTypeSignature(),
-                        DataTypes.STRING.getTypeSignature(),
-                        DataTypes.STRING.getTypeSignature()
-                    ).withFeature(Feature.DETERMINISTIC),
+                    Signature.builder(NAME, FunctionType.SCALAR)
+                        .argumentTypes(type.getTypeSignature(),
+                            DataTypes.STRING.getTypeSignature())
+                        .returnType(DataTypes.STRING.getTypeSignature())
+                        .features(Feature.DETERMINISTIC)
+                        .build(),
                     (signature, boundSignature) ->
                         new ToCharFunction(
                             signature,
@@ -67,12 +68,12 @@ public class ToCharFunction extends Scalar<String, Object> {
             });
 
         module.add(
-            Signature.scalar(
-                NAME,
-                DataTypes.INTERVAL.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature(),
-                DataTypes.STRING.getTypeSignature()
-            ).withFeature(Feature.DETERMINISTIC),
+            Signature.builder(NAME, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.INTERVAL.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature())
+                .returnType(DataTypes.STRING.getTypeSignature())
+                .features(Feature.DETERMINISTIC)
+                .build(),
             (signature, boundSignature) ->
                 new ToCharFunction(
                     signature,

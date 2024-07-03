@@ -44,6 +44,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
@@ -73,16 +74,19 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
 
     public static final String NAME = "count";
     public static final Signature SIGNATURE =
-        Signature.aggregate(
-                NAME,
-                TypeSignature.parse("V"),
-                DataTypes.LONG.getTypeSignature())
-            .withFeature(Scalar.Feature.DETERMINISTIC)
-            .withTypeVariableConstraints(typeVariable("V"));
+            Signature.builder(NAME, FunctionType.AGGREGATE)
+                    .argumentTypes(TypeSignature.parse("V"))
+                    .returnType(DataTypes.LONG.getTypeSignature())
+                    .features(Scalar.Feature.DETERMINISTIC)
+                    .typeVariableConstraints(typeVariable("V"))
+                    .build();
 
     public static final Signature COUNT_STAR_SIGNATURE =
-        Signature.aggregate(NAME, DataTypes.LONG.getTypeSignature())
-            .withFeature(Scalar.Feature.DETERMINISTIC);
+            Signature.builder(NAME, FunctionType.AGGREGATE)
+                    .argumentTypes()
+                    .returnType(DataTypes.LONG.getTypeSignature())
+                    .features(Scalar.Feature.DETERMINISTIC)
+                    .build();
 
     static {
         DataTypes.register(CountAggregation.LongStateType.ID, in -> CountAggregation.LongStateType.INSTANCE);
