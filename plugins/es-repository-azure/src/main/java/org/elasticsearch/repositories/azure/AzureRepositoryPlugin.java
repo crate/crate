@@ -70,6 +70,6 @@ public class AzureRepositoryPlugin extends Plugin implements RepositoryPlugin {
 
     @Override
     public List<Setting<?>> getSettings() {
-        return List.of(AzureRepository.Repository.ACCOUNT_SETTING, AzureRepository.Repository.KEY_SETTING);
+        return List.of(AzureRepository.Repository.ACCOUNT_SETTING);
     }
 }
