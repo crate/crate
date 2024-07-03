@@ -805,24 +805,24 @@ Description of checked node settings
 .. raw:: html
 
   <span id="recovery-expected-nodes"></span>
-  
+
 Recovery expected data nodes
 ............................
 
-This check looks at the 
-:ref:`gateway.expected_data_nodes <gateway.expected_data_nodes>` setting and 
-checks if its value matches the actual number of data nodes present in the 
-cluster. 
-If the actual number of nodes is below the expected number, the warning is 
+This check looks at the
+:ref:`gateway.expected_data_nodes <gateway.expected_data_nodes>` setting and
+checks if its value matches the actual number of data nodes present in the
+cluster.
+If the actual number of nodes is below the expected number, the warning is
 raised to indicate some nodes are down.
-If the actual number is greater, this is flagged to indicate the setting 
+If the actual number is greater, this is flagged to indicate the setting
 should be updated.
 
 .. NOTE::
 
    For backward compatibility, setting the deprecated
    :ref:`gateway.expected_nodes <gateway.expected_nodes>` instead is still
-   supported. It counts all nodes, not only 
+   supported. It counts all nodes, not only
    :ref:`data-carrying nodes <node.data>`.
 
 .. raw:: html
@@ -832,16 +832,16 @@ should be updated.
 Recovery after data nodes
 .........................
 
-This check looks at the 
-:ref:`gateway.recover_after_data_nodes <gateway.recover_after_data_nodes>` 
-setting and checks if its value is greater than half the configured expected 
+This check looks at the
+:ref:`gateway.recover_after_data_nodes <gateway.recover_after_data_nodes>`
+setting and checks if its value is greater than half the configured expected
 number, but not greater than the configured expected number.
 
 .. NOTE::
 
    For backward compatibility, setting the deprecated
    :ref:`gateway.recover_after_nodes <gateway.recover_after_nodes>` instead
-   is still supported. 
+   is still supported.
 
 ::
 
@@ -851,10 +851,10 @@ Here, ``R`` is the number of :ref:`recovery <gloss-shard-recovery>` nodes and
 ``E`` is the number of expected (data) nodes.
 
 If recovery is started when some nodes are down, CrateDB proceeds on the
-basis the nodes that are down may not be coming back, and it will create new 
+basis the nodes that are down may not be coming back, and it will create new
 replicas and rebalance shards as necessary. This is throttled, and it can be
 controlled with :ref:`routing allocation settings <conf_routing>`, but
-depending on the context, you may prefer to delay recovery if the nodes are 
+depending on the context, you may prefer to delay recovery if the nodes are
 only down for a short period of time, so it is advisable to review the
 documentation around :ref:`the settings involved <metadata_gateway>` and
 configure them carefully.
@@ -1775,7 +1775,7 @@ How to reindex
     +--------------------+
     | version['created'] |
     +--------------------+
-    | 5.8.0              |
+    | 5.9.0              |
     +--------------------+
     SELECT 1 row in set (... sec)
 
