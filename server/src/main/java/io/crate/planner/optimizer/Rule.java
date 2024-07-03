@@ -47,10 +47,7 @@ public interface Rule<T> {
      */
     LogicalPlan apply(T plan,
                       Captures captures,
-                      PlanStats planStats,
-                      TransactionContext txnCtx,
-                      NodeContext nodeCtx,
-                      UnaryOperator<LogicalPlan> resolvePlan);
+                      Rule.Context context);
 
     /**
      * @return The version all nodes in the cluster must have to be able to use this optimization.
@@ -83,4 +80,12 @@ public interface Rule<T> {
     static String sessionSettingName(Class<?> rule) {
         return "optimizer_" + StringUtils.camelToSnakeCase(rule.getSimpleName());
     }
+
+    record Context(
+        PlanStats planStats,
+        TransactionContext txnCtx,
+        NodeContext nodeCtx,
+        UnaryOperator<LogicalPlan> resolvePlan
+    ) {}
+
 }

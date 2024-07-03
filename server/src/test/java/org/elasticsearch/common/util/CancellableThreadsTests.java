@@ -22,9 +22,6 @@ package org.elasticsearch.common.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
 import java.util.concurrent.CountDownLatch;
@@ -33,7 +30,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.elasticsearch.common.util.CancellableThreads.ExecutionCancelledException;
 import org.elasticsearch.common.util.CancellableThreads.Interruptable;
 import org.elasticsearch.test.ESTestCase;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 public class CancellableThreadsTests extends ESTestCase {
@@ -151,34 +147,29 @@ public class CancellableThreadsTests extends ESTestCase {
             TestPlan plan = plans[i];
             final Class<?> exceptionClass = CustomException.class;
             if (plan.exceptBeforeCancel) {
-                assertThat(exceptions[i], Matchers.instanceOf(exceptionClass));
+                assertThat(exceptions[i]).isExactlyInstanceOf(exceptionClass);
             } else if (plan.exitBeforeCancel) {
-                assertNull(exceptions[i]);
+                assertThat(exceptions[i]).isNull();
             } else {
                 // in all other cases, we expect a cancellation exception.
                 if (throwInOnCancel) {
-                    assertThat(exceptions[i], Matchers.instanceOf(ThrowOnCancelException.class));
+                    assertThat(exceptions[i]).isExactlyInstanceOf(ThrowOnCancelException.class);
                 } else {
-                    assertThat(exceptions[i], Matchers.instanceOf(ExecutionCancelledException.class));
+                    assertThat(exceptions[i]).isExactlyInstanceOf(ExecutionCancelledException.class);
                 }
                 if (plan.exceptAfterCancel) {
-                    assertThat(exceptions[i].getSuppressed(),
-                               Matchers.arrayContaining(
-                                   Matchers.instanceOf(exceptionClass)
-                               ));
+                    assertThat(exceptions[i].getSuppressed()).satisfiesExactly(
+                        e -> assertThat(e).isExactlyInstanceOf(exceptionClass));
                 } else {
-                    assertThat(exceptions[i].getSuppressed(), Matchers.emptyArray());
+                    assertThat(exceptions[i].getSuppressed()).isEmpty();
                 }
             }
             assertThat(interrupted[plan.id]).isEqualTo(plan.presetInterrupt);
         }
-        assertThat(
-            invokeTimes.longValue(),
-            equalTo(
-                Arrays.stream(plans)
-                    .filter(p -> p.exceptBeforeCancel == false && p.exitBeforeCancel == false)
-                    .count())
-        );
+        assertThat(invokeTimes.longValue()).isEqualTo(
+            Arrays.stream(plans)
+                .filter(p -> p.exceptBeforeCancel == false && p.exitBeforeCancel == false)
+                .count());
         if (throwInOnCancel) {
             assertThatThrownBy(cancellableThreads::checkForCancel)
                 .isExactlyInstanceOf(ThrowOnCancelException.class);
@@ -186,12 +177,9 @@ public class CancellableThreadsTests extends ESTestCase {
             assertThatThrownBy(cancellableThreads::checkForCancel)
                 .isExactlyInstanceOf(ExecutionCancelledException.class);
         }
-        assertThat(
-            invokeTimes.longValue(),
-            equalTo(
-                Arrays.stream(plans)
-                    .filter(p -> p.exceptBeforeCancel == false && p.exitBeforeCancel == false)
-                    .count() + 1)
-        );
+        assertThat(invokeTimes.longValue()).isEqualTo(
+            Arrays.stream(plans)
+                .filter(p -> p.exceptBeforeCancel == false && p.exitBeforeCancel == false)
+                .count() + 1);
     }
 }

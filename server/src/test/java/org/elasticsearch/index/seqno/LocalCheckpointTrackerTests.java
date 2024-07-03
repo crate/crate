@@ -21,8 +21,6 @@ package org.elasticsearch.index.seqno;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.index.seqno.LocalCheckpointTracker.BIT_SET_SIZE;
-import static org.hamcrest.Matchers.isOneOf;
-import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -257,7 +255,7 @@ public class LocalCheckpointTrackerTests extends ESTestCase {
         assertThat(tracker.getProcessedCheckpoint()).isEqualTo(maxOps - 1L);
         assertThat(tracker.hasProcessed(unFinishedSeq)).isTrue();
         assertThat(tracker.hasProcessed(randomLongBetween(maxOps, Long.MAX_VALUE))).isFalse();
-        assertThat(tracker.processedSeqNo.size(), isOneOf(0, 1));
+        assertThat(tracker.processedSeqNo.size()).isIn(0, 1);
         if (tracker.processedSeqNo.size() == 1) {
             assertThat(tracker.processedSeqNo.keys().iterator().next().value).isEqualTo(tracker.processedCheckpoint.get() / BIT_SET_SIZE);
         }

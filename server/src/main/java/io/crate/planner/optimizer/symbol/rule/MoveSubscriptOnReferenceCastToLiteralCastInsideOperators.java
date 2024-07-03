@@ -25,7 +25,6 @@ import static io.crate.expression.operator.Operators.COMPARISON_OPERATORS;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 
 import java.util.List;
-import java.util.Optional;
 
 import io.crate.expression.scalar.SubscriptFunction;
 import io.crate.expression.symbol.Function;
@@ -35,7 +34,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
-import io.crate.planner.optimizer.symbol.FunctionSymbolResolver;
+import io.crate.planner.optimizer.symbol.FunctionLookup;
 import io.crate.planner.optimizer.symbol.Rule;
 import io.crate.types.DataType;
 
@@ -44,17 +43,15 @@ public class MoveSubscriptOnReferenceCastToLiteralCastInsideOperators implements
 
     private final Capture<Function> castCapture;
     private final Pattern<Function> pattern;
-    private final FunctionSymbolResolver functionResolver;
 
-    public MoveSubscriptOnReferenceCastToLiteralCastInsideOperators(FunctionSymbolResolver functionResolver) {
-        this.functionResolver = functionResolver;
+    public MoveSubscriptOnReferenceCastToLiteralCastInsideOperators() {
         this.castCapture = new Capture<>();
         this.pattern = typeOf(Function.class)
             .with(f -> COMPARISON_OPERATORS.contains(f.name()))
             .with(f -> f.arguments().get(1).symbolType().isValueOrParameterSymbol())
-            .with(f -> Optional.of(f.arguments().get(0)), typeOf(Function.class).capturedAs(castCapture)
+            .with(f -> f.arguments().get(0), typeOf(Function.class).capturedAs(castCapture)
                 .with(f -> f.isCast())
-                .with(f -> Optional.of(f.arguments().get(0)), typeOf(Function.class)
+                .with(f -> f.arguments().get(0), typeOf(Function.class)
                     .with(f -> f.name().equals(SubscriptFunction.NAME))
                     .with(f -> f.arguments().get(0).symbolType() == SymbolType.REFERENCE)
                 )
@@ -70,13 +67,14 @@ public class MoveSubscriptOnReferenceCastToLiteralCastInsideOperators implements
     public Symbol apply(Function operator,
                         Captures captures,
                         NodeContext nodeCtx,
+                        FunctionLookup functionLookup,
                         Symbol parentNode) {
         var literalOrParam = operator.arguments().get(1);
         var castFunction = captures.get(castCapture);
         var subscript = castFunction.arguments().get(0);
         DataType<?> targetType = subscript.valueType();
 
-        return functionResolver.apply(
+        return functionLookup.get(
             operator.name(),
             List.of(subscript, literalOrParam.cast(targetType))
         );

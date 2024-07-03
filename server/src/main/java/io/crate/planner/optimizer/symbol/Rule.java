@@ -32,5 +32,9 @@ public interface Rule<T> {
 
     Pattern<T> pattern();
 
-    Symbol apply(T symbol, Captures captures, NodeContext nodeCtx, @Nullable Symbol parentNode);
+    Symbol apply(T symbol,
+                 Captures captures,
+                 NodeContext nodeCtx,
+                 FunctionLookup functionLookup,
+                 @Nullable Symbol parentNode);
 }

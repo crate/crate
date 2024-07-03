@@ -24,7 +24,6 @@ package io.crate.planner.optimizer.symbol.rule;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 
 import java.util.List;
-import java.util.Optional;
 
 import io.crate.expression.operator.any.AnyOperator;
 import io.crate.expression.symbol.Function;
@@ -34,7 +33,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
-import io.crate.planner.optimizer.symbol.FunctionSymbolResolver;
+import io.crate.planner.optimizer.symbol.FunctionLookup;
 import io.crate.planner.optimizer.symbol.Rule;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -44,15 +43,13 @@ public class MoveReferenceCastToLiteralCastOnAnyOperatorsWhenLeftIsReference imp
 
     private final Capture<Function> castCapture;
     private final Pattern<Function> pattern;
-    private final FunctionSymbolResolver functionResolver;
 
-    public MoveReferenceCastToLiteralCastOnAnyOperatorsWhenLeftIsReference(FunctionSymbolResolver functionResolver) {
-        this.functionResolver = functionResolver;
+    public MoveReferenceCastToLiteralCastOnAnyOperatorsWhenLeftIsReference() {
         this.castCapture = new Capture<>();
         this.pattern = typeOf(Function.class)
             .with(f -> AnyOperator.OPERATOR_NAMES.contains(f.name()))
             .with(f -> f.arguments().get(1).symbolType().isValueOrParameterSymbol())
-            .with(f -> Optional.of(f.arguments().get(0)), typeOf(Function.class).capturedAs(castCapture)
+            .with(f -> f.arguments().get(0), typeOf(Function.class).capturedAs(castCapture)
                 .with(f -> f.isCast())
                 .with(f -> f.arguments().get(0).symbolType() == SymbolType.REFERENCE)
             );
@@ -67,13 +64,14 @@ public class MoveReferenceCastToLiteralCastOnAnyOperatorsWhenLeftIsReference imp
     public Symbol apply(Function operator,
                         Captures captures,
                         NodeContext nodeCtx,
+                        FunctionLookup functionLookup,
                         Symbol parentNode) {
         var literalOrParam = operator.arguments().get(1);
         var castFunction = captures.get(castCapture);
         var reference = castFunction.arguments().get(0);
         DataType<?> targetType = new ArrayType<>(reference.valueType());
 
-        return functionResolver.apply(
+        return functionLookup.get(
             operator.name(),
             List.of(reference, literalOrParam.cast(targetType))
         );

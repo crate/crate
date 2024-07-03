@@ -22,9 +22,6 @@
 package io.crate.planner;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.Map;
@@ -58,20 +55,19 @@ public class PlanPrinterTest extends CrateDummyClusterServiceUnitTest {
                                             "group by a " +
                                             "having max(x) > 10 " +
                                             "order by 1");
-        assertThat(map.toString(),
-                is("{Collect={" +
-                "collectPhase={COLLECT={" +
-                    "distribution={distributedByColumn=0, type=BROADCAST}, executionNodes=[n1], id=0, " +
+        assertThat(map.toString()).isEqualTo(
+            "{Collect={" +
+            "collectPhase={COLLECT={" +
+                "distribution={distributedByColumn=0, type=BROADCAST}, executionNodes=[n1], id=0, " +
 
-                    "projections=[" +
-                        "{keys=INPUT(1), type=HashAggregation, aggregations=max(INPUT(0))}, " +
-                        "{keys=INPUT(0), type=HashAggregation, aggregations=max(INPUT(1))}, " +
-                        "{filter=(INPUT(1) > 10), type=Filter}, " +
-                        "{outputs=INPUT(0), INPUT(1), offset=0, limit=-1, orderBy=[INPUT(0) ASC], type=OrderLimitAndOffset}], " +
-                    "routing={n1={t1=[0, 1, 2, 3]}}, " +
-                    "toCollect=[x, a], type=executionPhase, where=true}}, " +
-                    "type=executionPlan}}")
-        );
+                "projections=[" +
+                    "{keys=INPUT(1), type=HashAggregation, aggregations=max(INPUT(0))}, " +
+                    "{keys=INPUT(0), type=HashAggregation, aggregations=max(INPUT(1))}, " +
+                    "{filter=(INPUT(1) > 10), type=Filter}, " +
+                    "{outputs=INPUT(0), INPUT(1), offset=0, limit=-1, orderBy=[INPUT(0) ASC], type=OrderLimitAndOffset}], " +
+                "routing={n1={t1=[0, 1, 2, 3]}}, " +
+                "toCollect=[x, a], type=executionPhase, where=true}}, " +
+                "type=executionPlan}}");
     }
 
     @Test
@@ -81,7 +77,7 @@ public class PlanPrinterTest extends CrateDummyClusterServiceUnitTest {
                                             "where t1.x > 10 and t2.y < 10 " +
                                             "order by 1");
         String mapStr = map.toString();
-        assertThat(mapStr, containsString("{Join={joinPhase={NESTED_LOOP={distribution={distributed"));
+        assertThat(mapStr).contains("{Join={joinPhase={NESTED_LOOP={distribution={distributed");
     }
 
     @Test
@@ -90,7 +86,7 @@ public class PlanPrinterTest extends CrateDummyClusterServiceUnitTest {
                                             "from t1 inner join t2 " +
                                             "on t1.x = t2.y " +
                                             "order by 1");
-        assertThat(map.toString(),containsString("{Join={joinPhase={HASH_JOIN={distribution={distributedBy"));
+        assertThat(map.toString()).contains("{Join={joinPhase={HASH_JOIN={distribution={distributedBy");
     }
 
     @Test

@@ -23,13 +23,8 @@ package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
-import static org.hamcrest.Matchers.arrayContaining;
-import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -60,7 +55,7 @@ public class UnionIntegrationTest extends IntegTestCase {
             new Object[]{44, "magic number"}
         });
         execute("insert into t3 (arr, obj) values ([1,2,3], {temperature = 42})");
-        refresh();
+        execute("refresh table t1, t2, t3");
     }
 
     @Test
@@ -68,14 +63,14 @@ public class UnionIntegrationTest extends IntegTestCase {
         execute("select * from unnest([1, 2, 3], ['1', '2', '3']) " +
                 "union all " +
                 "select * from unnest([4, 5, 6], ['4', '5', '6'])");
-        assertThat(response.rows(), arrayContainingInAnyOrder(
+        assertThat(response).hasRowsInAnyOrder(
             new Object[] {1, "1"},
             new Object[] {2, "2"},
             new Object[] {3, "3"},
             new Object[] {4, "4"},
             new Object[] {5, "5"},
             new Object[] {6, "6"}
-        ));
+        );
     }
 
     @Test
@@ -83,14 +78,14 @@ public class UnionIntegrationTest extends IntegTestCase {
         execute("select id from t1 " +
                 "union all " +
                 "select id from t1");
-        assertThat(response.rows(), arrayContainingInAnyOrder(
+        assertThat(response).hasRowsInAnyOrder(
             new Object[] {1},
             new Object[] {42},
             new Object[] {1000},
             // same results twice
             new Object[] {1},
             new Object[] {42},
-            new Object[] {1000}));
+            new Object[] {1000});
     }
 
     @Test
@@ -98,13 +93,13 @@ public class UnionIntegrationTest extends IntegTestCase {
         execute("select id from t1 " +
                 "union all " +
                 "select id from t2 ");
-        assertThat(response.rows(), arrayContainingInAnyOrder(
+        assertThat(response).hasRowsInAnyOrder(
             new Object[] {1},
             new Object[] {11},
             new Object[] {42},
             new Object[] {43},
             new Object[] {1000},
-            new Object[] {1000}));
+            new Object[] {1000});
     }
 
     @Test
@@ -114,7 +109,7 @@ public class UnionIntegrationTest extends IntegTestCase {
                 "select id from t2 " +
                 "union all " +
                 "select id from t3 where arr is null");
-        assertThat(response.rows(), arrayContainingInAnyOrder(
+        assertThat(response).hasRowsInAnyOrder(
             new Object[] {1},
             new Object[] {11},
             new Object[] {42},
@@ -123,7 +118,7 @@ public class UnionIntegrationTest extends IntegTestCase {
             new Object[] {111},
             new Object[] {1000},
             new Object[] {1000},
-            new Object[] {1000}));
+            new Object[] {1000});
     }
 
     @Test
@@ -132,13 +127,13 @@ public class UnionIntegrationTest extends IntegTestCase {
                 "union all " +
                 "select id from t2 " +
                 "order by id");
-        assertThat(response.rows(), arrayContaining(
+        assertThat(response).hasRows(
             new Object[] {1},
             new Object[] {11},
             new Object[] {42},
             new Object[] {43},
             new Object[] {1000},
-            new Object[] {1000}));
+            new Object[] {1000});
     }
 
     @Test
@@ -150,7 +145,7 @@ public class UnionIntegrationTest extends IntegTestCase {
                 "select id from t3 " +
                 "where arr is null " +
                 "order by id");
-        assertThat(response.rows(), arrayContaining(
+        assertThat(response).hasRows(
             new Object[] {1},
             new Object[] {11},
             new Object[] {42},
@@ -159,7 +154,7 @@ public class UnionIntegrationTest extends IntegTestCase {
             new Object[] {111},
             new Object[] {1000},
             new Object[] {1000},
-            new Object[] {1000}));
+            new Object[] {1000});
     }
 
     @Test
@@ -167,12 +162,12 @@ public class UnionIntegrationTest extends IntegTestCase {
         execute("select * from (select text from t1 order by text limit 2) a " +
                 "union all " +
                 "select text from t2 ");
-        assertThat(response.rows(), arrayContainingInAnyOrder(
+        assertThat(response).hasRowsInAnyOrder(
             new Object[] {"magic number"},
             new Object[] {"magic number"},
             new Object[] {"text"},
             new Object[] {"text"},
-            new Object[] {"text2"}));
+            new Object[] {"text2"});
     }
 
     @Test
@@ -181,12 +176,12 @@ public class UnionIntegrationTest extends IntegTestCase {
                 "union all " +
                 "select id, text from t2 " +
                 "order by text, id");
-        assertThat(response.rows(), arrayContaining(
+        assertThat(response).hasRows(
             new Object[] {42, "magic number"},
             new Object[] {43, "magic number"},
             new Object[] {1, "text"},
             new Object[] {11,"text"},
-            new Object[] {1000, "text2"}));
+            new Object[] {1000, "text2"});
     }
 
     @Test
@@ -195,11 +190,10 @@ public class UnionIntegrationTest extends IntegTestCase {
                 "union all " +
                 "select * from (select text from t2 order by text limit 1) b " +
                 "order by text ");
-        assertThat(response.rows(), arrayContaining(
+        assertThat(response).hasRows(
             new Object[] {"magic number"},
             new Object[] {"magic number"},
-            new Object[] {"text"}
-        ));
+            new Object[] {"text"});
     }
 
     /**
@@ -231,11 +225,10 @@ public class UnionIntegrationTest extends IntegTestCase {
                 "union all " +
                 "select * from (select t2.id from t1 join t2 on t1.text = t2.text) b " +
                 "order by id");
-        assertThat(response.rows(), arrayContaining(
+        assertThat(response).hasRows(
             new Object[]{11},
             new Object[]{43},
-            new Object[]{1000}
-        ));
+            new Object[]{1000});
     }
 
     @Test
@@ -244,11 +237,11 @@ public class UnionIntegrationTest extends IntegTestCase {
                 "union all " +
                 "select id, text, [1::bigint, 2::bigint], {custom = true} from t3 where arr is not null " +
                 "order by id");
-        assertThat(printedTable(response.rows())).isEqualTo(
-            "1| text| [1, 2, 3]| {temperature=42}\n" +
-            "42| magic number| [1, 2, 3]| {temperature=42}\n" +
-            "1000| text1| [1, 2, 3]| {temperature=42}\n" +
-            "NULL| NULL| [1, 2]| {custom=true}\n"
+        assertThat(response).hasRows(
+            "1| text| [1, 2, 3]| {temperature=42}",
+            "42| magic number| [1, 2, 3]| {temperature=42}",
+            "1000| text1| [1, 2, 3]| {temperature=42}",
+            "NULL| NULL| [1, 2]| {custom=true}"
         );
     }
 
@@ -257,24 +250,24 @@ public class UnionIntegrationTest extends IntegTestCase {
         execute("select * from (select count(*) from t1) a " +
                 "union all " +
                 "select id::long from t2");
-        assertThat(response.rows(), arrayContainingInAnyOrder(
+        assertThat(response).hasRowsInAnyOrder(
             new Object[]{3L},
             new Object[]{11L},
             new Object[]{43L},
             new Object[]{1000L}
-        ));
+        );
     }
 
     @Test
     public void testUnionAllAsSubquery() {
         execute("select t2.id from (select * from t1 union all select * from t2) a " +
                 "join t2 on a.id = t2.id");
-        assertThat(response.rows(), arrayContainingInAnyOrder(
+        assertThat(response).hasRowsInAnyOrder(
             new Object[] {11},
             new Object[] {43},
             new Object[] {1000},
             new Object[] {1000}
-        ));
+        );
     }
 
     @Test
@@ -313,10 +306,9 @@ public class UnionIntegrationTest extends IntegTestCase {
         execute("refresh table tbl1, tbl2");
 
         execute("select obj from tbl1 union all select obj from tbl2");
-        assertThat(printedTable(response.rows()), Matchers.anyOf(
-            is("{a=1, c=2}\n{b=3, c=4}\n"),
-            is("{b=3, c=4}\n{a=1, c=2}\n")
-        ));
+        assertThat(printedTable(response.rows())).satisfiesAnyOf(
+            r -> assertThat(r).isEqualTo("{a=1, c=2}\n{b=3, c=4}\n"),
+            r -> assertThat(r).isEqualTo("{b=3, c=4}\n{a=1, c=2}\n"));
     }
 
     @Test
@@ -328,12 +320,16 @@ public class UnionIntegrationTest extends IntegTestCase {
         execute("refresh table x, y");
 
         execute("select a from x union distinct select a from y order by a");
-        assertThat(printedTable(response.rows())).isEqualTo("1\n2\n3\n5\n");
+        assertThat(response).hasRows(
+            "1",
+            "2",
+            "3",
+            "5");
     }
 
     @Test
     public void test_null_literal_union_null_literal() {
         execute("select null from unnest([1, 2]) union select null from unnest([1])");
-        assertThat(printedTable(response.rows())).isEqualTo("NULL\n");
+        assertThat(response).hasRows("NULL");
     }
 }

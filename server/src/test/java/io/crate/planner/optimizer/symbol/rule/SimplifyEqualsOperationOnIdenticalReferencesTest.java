@@ -45,7 +45,7 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
-import io.crate.planner.optimizer.symbol.FunctionSymbolResolver;
+import io.crate.planner.optimizer.symbol.FunctionLookup;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
@@ -53,7 +53,7 @@ import io.crate.types.DataTypes;
 
 public class SimplifyEqualsOperationOnIdenticalReferencesTest {
     private static final NodeContext NODE_CONTEXT = TestingHelpers.createNodeContext();
-    private static final FunctionSymbolResolver FUNCTION_SYMBOL_RESOLVER = (f, args) -> {
+    private static final FunctionLookup FUNCTION_LOOKUP = (f, args) -> {
         try {
             return ExpressionAnalyzer.allocateFunction(
                 f,
@@ -66,8 +66,7 @@ public class SimplifyEqualsOperationOnIdenticalReferencesTest {
             return null;
         }
     };
-    private static final SimplifyEqualsOperationOnIdenticalReferences RULE =
-        new SimplifyEqualsOperationOnIdenticalReferences(FUNCTION_SYMBOL_RESOLVER);
+    private static final SimplifyEqualsOperationOnIdenticalReferences RULE = new SimplifyEqualsOperationOnIdenticalReferences();
     private static final Symbol NULLABLE_REF = new SimpleReference(
         new ReferenceIdent(new RelationName(null, "dummy"), "col"),
         RowGranularity.DOC,
@@ -106,7 +105,7 @@ public class SimplifyEqualsOperationOnIdenticalReferencesTest {
             DataTypes.BOOLEAN);
         Match<Function> match = RULE.pattern().accept(functionToOptimize, Captures.empty());
         assertThat(match.isPresent()).isTrue();
-        Symbol optimizedFunction = RULE.apply(match.value(), match.captures(), NODE_CONTEXT, null);
+        Symbol optimizedFunction = RULE.apply(match.value(), match.captures(), NODE_CONTEXT, FUNCTION_LOOKUP, null);
         Symbol expected = new Function(
             NotPredicate.SIGNATURE,
             List.of(
@@ -139,7 +138,7 @@ public class SimplifyEqualsOperationOnIdenticalReferencesTest {
         );
         Match<Function> match = RULE.pattern().accept(functionToOptimize, Captures.empty());
         assertThat(match.isPresent()).isTrue();
-        Symbol optimizedFunction = RULE.apply(match.value(), match.captures(), NODE_CONTEXT, dummyParent);
+        Symbol optimizedFunction = RULE.apply(match.value(), match.captures(), NODE_CONTEXT, FUNCTION_LOOKUP, dummyParent);
         assertThat(optimizedFunction).isNull();
     }
 
@@ -155,7 +154,7 @@ public class SimplifyEqualsOperationOnIdenticalReferencesTest {
         Match<Function> match = RULE.pattern().accept(functionToOptimize, Captures.empty());
         assertThat(match.isPresent()).isTrue();
         // function to optimize has no parent
-        Symbol optimizedFunction = RULE.apply(match.value(), match.captures(), NODE_CONTEXT, null);
+        Symbol optimizedFunction = RULE.apply(match.value(), match.captures(), NODE_CONTEXT, FUNCTION_LOOKUP, null);
         assertThat(optimizedFunction).isEqualTo(Literal.BOOLEAN_TRUE);
 
         // function to optimize has a parent
@@ -164,7 +163,7 @@ public class SimplifyEqualsOperationOnIdenticalReferencesTest {
             List.of(functionToOptimize),
             DataTypes.BOOLEAN
         );
-        optimizedFunction = RULE.apply(match.value(), match.captures(), NODE_CONTEXT, dummyParent);
+        optimizedFunction = RULE.apply(match.value(), match.captures(), NODE_CONTEXT, FUNCTION_LOOKUP, dummyParent);
         assertThat(optimizedFunction).isEqualTo(Literal.BOOLEAN_TRUE);
     }
 
@@ -184,7 +183,7 @@ public class SimplifyEqualsOperationOnIdenticalReferencesTest {
             DataTypes.BOOLEAN);
         Match<Function> match = RULE.pattern().accept(func.arguments().get(0), Captures.empty());
         assertThat(match.isPresent()).isTrue();
-        Symbol optimizedFunction = RULE.apply(match.value(), match.captures(), NODE_CONTEXT, func);
+        Symbol optimizedFunction = RULE.apply(match.value(), match.captures(), NODE_CONTEXT, FUNCTION_LOOKUP, func);
         assertThat(optimizedFunction).isEqualTo(Literal.BOOLEAN_TRUE);
     }
 }

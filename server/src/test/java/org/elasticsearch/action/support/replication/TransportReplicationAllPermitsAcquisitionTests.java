@@ -30,14 +30,6 @@ import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_C
 import static org.elasticsearch.cluster.routing.TestShardRouting.newShardRouting;
 import static org.elasticsearch.test.ClusterServiceUtils.createClusterService;
 import static org.elasticsearch.test.ClusterServiceUtils.setState;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.endsWith;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.startsWith;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -183,7 +175,9 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
         MockTransport transport = new MockTransport() {
             @Override
             protected void onSendRequest(long requestId, String action, TransportRequest request, DiscoveryNode node) {
-                assertThat(action, allOf(startsWith("cluster:admin/test/"), endsWith("[r]")));
+                assertThat(action)
+                    .startsWith("cluster:admin/test/")
+                    .endsWith("[r]");
                 assertThat(node).isEqualTo(node2);
                 // node2 doesn't really exist, but we are performing some trickery in mockIndicesService() to pretend that node1 holds both
                 // the primary and the replica, so redirect the request back to node1.
@@ -279,8 +273,8 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
 
                         @Override
                         void runWithPrimaryShardReference(final TransportReplicationAction.PrimaryShardReference reference) {
-                            assertThat(reference.indexShard.getActiveOperationsCount(), greaterThan(0));
-                            assertSame(primary, reference.indexShard);
+                            assertThat(reference.indexShard.getActiveOperationsCount()).isGreaterThan(0);
+                            assertThat(reference.indexShard).isSameAs(primary);
                             assertBlockIsPresentForDelayedOp();
                             super.runWithPrimaryShardReference(reference);
                         }
@@ -324,7 +318,7 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
                     @Override
                     void runWithPrimaryShardReference(final TransportReplicationAction.PrimaryShardReference reference) {
                         assertThat(reference.indexShard.getActiveOperationsCount()).as("All permits must be acquired").isEqualTo(IndexShard.OPERATIONS_BLOCKED);
-                        assertSame(primary, reference.indexShard);
+                        assertThat(reference.indexShard).isSameAs(primary);
 
                         final ClusterState clusterState = clusterService.state();
                         final ClusterBlocks.Builder blocks = ClusterBlocks.builder();
@@ -407,7 +401,7 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
             .isNull();
         assertThat(exception.getCause()).isExactlyInstanceOf(ClusterBlockException.class);
         ClusterBlockException clusterBlockException = (ClusterBlockException) exception.getCause();
-        assertThat(clusterBlockException.blocks(), hasItem(equalTo(block)));
+        assertThat(clusterBlockException.blocks()).contains(block);
     }
 
     private long primaryTerm() {
@@ -479,7 +473,7 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
             executedOnPrimary.set(true);
             // The TransportReplicationAction.getIndexShard() method is overridden for testing purpose but we double check here
             // that the permit has been acquired on the primary shard
-            assertSame(primary, shard);
+            assertThat(shard).isSameAs(primary);
             listener.onResponse(new PrimaryResult<>(shardRequest, new Response()));
         }
 
@@ -489,7 +483,7 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
             executedOnReplica.set(true);
             // The TransportReplicationAction.getIndexShard() method is overridden for testing purpose but we double check here
             // that the permit has been acquired on the replica shard
-            assertSame(replica, shard);
+            assertThat(shard).isSameAs(replica);
             return new ReplicaResult();
         }
     }
@@ -538,14 +532,14 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
         protected void shardOperationOnPrimary(Request shardRequest, IndexShard shard,
                 ActionListener<PrimaryResult<Request, Response>> listener) {
             assertNoBlocks("block must not exist when executing the operation on primary shard: it should have been blocked before");
-            assertThat(shard.getActiveOperationsCount(), greaterThan(0));
+            assertThat(shard.getActiveOperationsCount()).isGreaterThan(0);
             super.shardOperationOnPrimary(shardRequest, shard, listener);
         }
 
         @Override
         protected ReplicaResult shardOperationOnReplica(Request shardRequest, IndexShard shard) throws Exception {
             assertNoBlocks("block must not exist when executing the operation on replica shard: it should have been blocked before");
-            assertThat(shard.getActiveOperationsCount(), greaterThan(0));
+            assertThat(shard.getActiveOperationsCount()).isGreaterThan(0);
             return super.shardOperationOnReplica(shardRequest, shard);
         }
 
@@ -595,7 +589,7 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
         }
     }
 
-    static class Request extends ReplicationRequest<Request> {
+    private static class Request extends ReplicationRequest<Request> {
 
         Request(StreamInput in) throws IOException {
             super(in);
@@ -611,7 +605,7 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
         }
     }
 
-    static class Response extends ReplicationResponse {
+    private static class Response extends ReplicationResponse {
     }
 
     /**

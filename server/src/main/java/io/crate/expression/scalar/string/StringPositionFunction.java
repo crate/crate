@@ -21,6 +21,8 @@
 
 package io.crate.expression.scalar.string;
 
+import java.util.EnumSet;
+
 import io.crate.data.Input;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
@@ -39,7 +41,7 @@ public final class StringPositionFunction extends Scalar<Integer , String> {
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.STRING.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature()
-            ).withFeature(Feature.DETERMINISTIC),
+            ).withFeatures(EnumSet.of(Feature.DETERMINISTIC, Feature.NULLABLE)),
             StringPositionFunction::new
         );
     }

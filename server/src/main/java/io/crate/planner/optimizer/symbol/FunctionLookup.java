@@ -21,11 +21,12 @@
 
 package io.crate.planner.optimizer.symbol;
 
-import io.crate.expression.symbol.Symbol;
-
 import java.util.List;
 
-public interface FunctionSymbolResolver {
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Symbol;
 
-    Symbol apply(String name, List<Symbol> arguments);
+public interface FunctionLookup {
+
+    Function get(String name, List<Symbol> arguments);
 }

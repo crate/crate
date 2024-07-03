@@ -20,10 +20,7 @@
 package org.elasticsearch.snapshots;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -128,7 +125,7 @@ public class BlobStoreFormatIT extends AbstractSnapshotIntegTestCase {
         checksumFormat.write(blobObj, blobContainer, "blob-not-comp", false);
         Map<String, BlobMetadata> blobs = blobContainer.listBlobsByPrefix("blob-");
         assertThat(2).isEqualTo(blobs.size());
-        assertThat(blobs.get("blob-not-comp").length(), greaterThan(blobs.get("blob-comp").length()));
+        assertThat(blobs.get("blob-not-comp").length()).isGreaterThan(blobs.get("blob-comp").length());
     }
 
     public void testBlobCorruption() throws IOException {
@@ -144,7 +141,7 @@ public class BlobStoreFormatIT extends AbstractSnapshotIntegTestCase {
             checksumFormat.read(blobContainer, "test-path", xContentRegistry());
             fail("Should have failed due to corruption");
         } catch (ElasticsearchCorruptionException ex) {
-            assertThat(ex.getMessage(), containsString("test-path"));
+            assertThat(ex.getMessage()).contains("test-path");
         } catch (EOFException ex) {
             // This can happen if corrupt the byte length
         }

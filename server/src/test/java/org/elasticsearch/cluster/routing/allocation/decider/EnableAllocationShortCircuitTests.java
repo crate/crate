@@ -22,8 +22,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider.CLUSTER_ROUTING_ALLOCATION_ENABLE_SETTING;
 import static org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider.CLUSTER_ROUTING_REBALANCE_ENABLE_SETTING;
 import static org.elasticsearch.cluster.routing.allocation.decider.EnableAllocationDecider.INDEX_ROUTING_REBALANCE_ENABLE_SETTING;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -102,7 +100,7 @@ public class EnableAllocationShortCircuitTests extends ESAllocationTestCase {
                         EnableAllocationDecider.Rebalance.REPLICAS).name()),
             plugin);
         allocationService.reroute(clusterState, "reroute").routingTable();
-        assertThat(plugin.rebalanceAttempts, greaterThan(0));
+        assertThat(plugin.rebalanceAttempts).isGreaterThan(0);
     }
 
     @Test
@@ -149,7 +147,7 @@ public class EnableAllocationShortCircuitTests extends ESAllocationTestCase {
                 .put(CLUSTER_ROUTING_REBALANCE_ENABLE_SETTING.getKey(), EnableAllocationDecider.Rebalance.NONE.name()),
             plugin);
         allocationService.reroute(clusterState, "reroute").routingTable();
-        assertThat(plugin.rebalanceAttempts, greaterThan(0));
+        assertThat(plugin.rebalanceAttempts).isGreaterThan(0);
     }
 
     @Test

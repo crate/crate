@@ -25,7 +25,6 @@ package io.crate.planner.optimizer.symbol.rule;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 
 import java.util.List;
-import java.util.Optional;
 
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.predicate.IsNullPredicate;
@@ -38,19 +37,17 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
-import io.crate.planner.optimizer.symbol.FunctionSymbolResolver;
+import io.crate.planner.optimizer.symbol.FunctionLookup;
 import io.crate.planner.optimizer.symbol.Rule;
 
 public class SimplifyEqualsOperationOnIdenticalReferences implements Rule<Function> {
 
     private final Pattern<Function> pattern;
-    private final FunctionSymbolResolver functionSymbolResolver;
 
-    public SimplifyEqualsOperationOnIdenticalReferences(FunctionSymbolResolver functionResolver) {
-        this.functionSymbolResolver = functionResolver;
+    public SimplifyEqualsOperationOnIdenticalReferences() {
         this.pattern = typeOf(Function.class)
             .with(f -> EqOperator.NAME.equals(f.name()))
-            .with(f -> Optional.of(f.arguments()), typeOf(List.class)
+            .with(f -> f.arguments(), typeOf(List.class)
                 .with(list -> list.get(0) instanceof Reference left &&
                               list.get(1) instanceof Reference right &&
                               left.equals(right))
@@ -63,7 +60,7 @@ public class SimplifyEqualsOperationOnIdenticalReferences implements Rule<Functi
     }
 
     @Override
-    public Symbol apply(Function operator, Captures captures, NodeContext nodeCtx, Symbol parentNode) {
+    public Symbol apply(Function operator, Captures captures, NodeContext nodeCtx, FunctionLookup functionLookup, Symbol parentNode) {
         Reference ref = (Reference) operator.arguments().get(0);
         // if ref is not null or the parent node is ignore3vl
         if (ref.isNullable() == false || (parentNode != null && Ignore3vlFunction.NAME.equals(((Function) parentNode).name()))) {
@@ -73,14 +70,9 @@ public class SimplifyEqualsOperationOnIdenticalReferences implements Rule<Functi
         // if ref is nullable it is 3vl, but having no parent node makes it implicitly 2vl
         if (ref.isNullable() && parentNode == null) {
             // WHERE COL = COL  =>  WHERE COL IS NOT NULL
-            return functionSymbolResolver.apply(
+            return functionLookup.get(
                 NotPredicate.NAME,
-                List.of(
-                    functionSymbolResolver.apply(
-                        IsNullPredicate.NAME,
-                        List.of(ref)
-                    )
-                )
+                List.of(functionLookup.get(IsNullPredicate.NAME, List.of(ref)))
             );
         }
         return null;

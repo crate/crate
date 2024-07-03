@@ -28,7 +28,6 @@ import static io.crate.planner.optimizer.rule.MoveFilterBeneathJoin.getNewSource
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.UnaryOperator;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -38,14 +37,11 @@ import io.crate.common.collections.Lists;
 import io.crate.data.Input;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.optimizer.Rule;
-import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
@@ -118,18 +114,15 @@ public final class RewriteFilterOnOuterJoinToInnerJoin implements Rule<Filter> {
     @Override
     public LogicalPlan apply(Filter filter,
                              Captures captures,
-                             PlanStats planStats,
-                             TransactionContext txnCtx,
-                             NodeContext nodeCtx,
-                             UnaryOperator<LogicalPlan> resolvePlan) {
-        final var symbolEvaluator = new NullSymbolEvaluator(txnCtx, nodeCtx);
+                             Rule.Context context) {
+        final var symbolEvaluator = new NullSymbolEvaluator(context.txnCtx(), context.nodeCtx());
         JoinPlan join = captures.get(nlCapture);
         Symbol query = filter.query();
         Map<Set<RelationName>, Symbol> splitQueries = QuerySplitter.split(query);
         if (splitQueries.size() == 1 && splitQueries.keySet().iterator().next().size() > 1) {
             return null;
         }
-        var sources = Lists.map(join.sources(), resolvePlan);
+        var sources = Lists.map(join.sources(), context.resolvePlan());
         LogicalPlan lhs = sources.get(0);
         LogicalPlan rhs = sources.get(1);
         Set<RelationName> leftName = new HashSet<>(lhs.relationNames());

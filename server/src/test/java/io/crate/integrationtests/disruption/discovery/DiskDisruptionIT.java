@@ -20,8 +20,6 @@
 package io.crate.integrationtests.disruption.discovery;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.nio.channels.FileChannel;
@@ -193,7 +191,7 @@ public class DiskDisruptionIT extends AbstractDisruptionTestCase {
         for (var row : response.rows()) {
             final int shardId = (int) row[0];
             final long maxSeqNo = (long) row[1];
-            assertThat(maxSeqNo, greaterThanOrEqualTo(shardToGcp.get(shardId)));
+            assertThat(maxSeqNo).isGreaterThanOrEqualTo(shardToGcp.get(shardId));
         }
     }
 }

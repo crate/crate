@@ -22,4 +22,9 @@
 package io.crate.execution.dml;
 
 public class TranslogMappingUpdateException extends RuntimeException {
+
+    public TranslogMappingUpdateException(String message) {
+        super(message);
+    }
+
 }

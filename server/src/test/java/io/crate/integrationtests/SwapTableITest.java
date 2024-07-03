@@ -28,6 +28,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
+import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.Test;
 
 import io.crate.testing.Asserts;
@@ -178,6 +179,7 @@ public class SwapTableITest extends IntegTestCase {
     }
 
     @Test
+    @TestLogging("org.elasticsearch.index.shard.IndexShard:TRACE")
     public void test_swap_source_nonpartitioned_target_partitioned_with_drop_source() {
         execute("create table source (s int)");
         execute("create table target (t int) partitioned by(t)");

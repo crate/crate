@@ -24,13 +24,9 @@ package io.crate.planner.optimizer.rule;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 
-import java.util.function.UnaryOperator;
-
 import org.elasticsearch.Version;
 
 import io.crate.expression.symbol.Literal;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.GroupHashAggregate;
 import io.crate.planner.operators.Limit;
 import io.crate.planner.operators.LimitDistinct;
@@ -168,12 +164,9 @@ public final class RewriteGroupByKeysLimitToLimitDistinct implements Rule<Limit>
     @Override
     public LogicalPlan apply(Limit limit,
                              Captures captures,
-                             PlanStats planStats,
-                             TransactionContext txnCtx,
-                             NodeContext nodeCtx,
-                             UnaryOperator<LogicalPlan> resolvePlan) {
+                             Rule.Context context) {
         GroupHashAggregate groupBy = captures.get(groupCapture);
-        if (!eagerTerminateIsLikely(limit, groupBy, planStats)) {
+        if (!eagerTerminateIsLikely(limit, groupBy, context.planStats())) {
             return null;
         }
         return new LimitDistinct(

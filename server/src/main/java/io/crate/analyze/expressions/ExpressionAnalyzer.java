@@ -1181,12 +1181,12 @@ public class ExpressionAnalyzer {
         return allocateFunction(functionName, arguments, null, context, coordinatorTxnCtx, nodeCtx);
     }
 
-    public static Symbol allocateFunction(String functionName,
-                                          List<Symbol> arguments,
-                                          @Nullable Symbol filter,
-                                          ExpressionAnalysisContext context,
-                                          TransactionContext txnCtx,
-                                          NodeContext nodeCtx) {
+    public static Function allocateFunction(String functionName,
+                                            List<Symbol> arguments,
+                                            @Nullable Symbol filter,
+                                            ExpressionAnalysisContext context,
+                                            TransactionContext txnCtx,
+                                            NodeContext nodeCtx) {
         return allocateBuiltinOrUdfFunction(
             null, functionName, arguments, filter, null, context, null, txnCtx, nodeCtx);
     }
@@ -1205,15 +1205,15 @@ public class ExpressionAnalyzer {
      * @param nodeCtx The {@link NodeContext} to normalize constant expressions.
      * @return The supplied {@link Function} or a {@link Literal} in case of constant folding.
      */
-    private static Symbol allocateBuiltinOrUdfFunction(@Nullable String schema,
-                                                       String functionName,
-                                                       List<Symbol> arguments,
-                                                       @Nullable Symbol filter,
-                                                       @Nullable Boolean ignoreNulls,
-                                                       ExpressionAnalysisContext context,
-                                                       @Nullable WindowDefinition windowDefinition,
-                                                       TransactionContext txnCtx,
-                                                       NodeContext nodeCtx) {
+    private static Function allocateBuiltinOrUdfFunction(@Nullable String schema,
+                                                         String functionName,
+                                                         List<Symbol> arguments,
+                                                         @Nullable Symbol filter,
+                                                         @Nullable Boolean ignoreNulls,
+                                                         ExpressionAnalysisContext context,
+                                                         @Nullable WindowDefinition windowDefinition,
+                                                         TransactionContext txnCtx,
+                                                         NodeContext nodeCtx) {
         FunctionImplementation funcImpl = nodeCtx.functions().get(
             schema,
             functionName,

@@ -22,9 +22,7 @@
 package io.crate.integrationtests;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.anyOf;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,7 +32,6 @@ import java.util.concurrent.TimeoutException;
 
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.IntegTestCase;
-import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import io.crate.testing.SQLResponse;
@@ -84,10 +81,9 @@ public class ThreadPoolsExhaustedIntegrationTest extends IntegTestCase {
             } catch (TimeoutException e) {
                 fail("query run into a timeout");
             } catch (Exception e) {
-                assertThat(e.getMessage(), anyOf(
-                    Matchers.containsString("rejected execution"),
-                    Matchers.containsString("job killed")
-                ));
+                assertThat(e.getMessage()).satisfiesAnyOf(
+                    msg -> assertThat(msg).contains("rejected execution"),
+                    msg -> assertThat(msg).contains("job killed"));
             }
         }
     }

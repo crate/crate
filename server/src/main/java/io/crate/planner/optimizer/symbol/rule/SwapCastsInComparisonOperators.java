@@ -25,7 +25,6 @@ import static io.crate.expression.operator.Operators.COMPARISON_OPERATORS;
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 
 import java.util.List;
-import java.util.Optional;
 
 import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.scalar.cast.ImplicitCastFunction;
@@ -37,7 +36,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
-import io.crate.planner.optimizer.symbol.FunctionSymbolResolver;
+import io.crate.planner.optimizer.symbol.FunctionLookup;
 import io.crate.planner.optimizer.symbol.Rule;
 import io.crate.types.DataType;
 
@@ -47,12 +46,12 @@ public class SwapCastsInComparisonOperators implements Rule<Function> {
     private final Capture<Function> castCapture;
     private final Pattern<Function> pattern;
 
-    public SwapCastsInComparisonOperators(FunctionSymbolResolver functionResolver) {
+    public SwapCastsInComparisonOperators() {
         this.castCapture = new Capture<>();
         this.pattern = typeOf(Function.class)
             .with(f -> COMPARISON_OPERATORS.contains(f.name()))
             .with(f -> f.arguments().get(1).symbolType().isValueOrParameterSymbol())
-            .with(f -> Optional.of(f.arguments().get(0)), typeOf(Function.class).capturedAs(castCapture)
+            .with(f -> f.arguments().get(0), typeOf(Function.class).capturedAs(castCapture)
                 // We have to respect explicit casts, see https://github.com/crate/crate/issues/12135
                 .with(f -> f.name().equals(ImplicitCastFunction.NAME) || f.name().equals(TryCastFunction.NAME))
                 .with(f -> f.arguments().get(0).symbolType() == SymbolType.REFERENCE)
@@ -68,6 +67,7 @@ public class SwapCastsInComparisonOperators implements Rule<Function> {
     public Symbol apply(Function operator,
                         Captures captures,
                         NodeContext nodeCtx,
+                        FunctionLookup functionLookup,
                         Symbol parentNode) {
         var literalOrParam = operator.arguments().get(1);
         var castFunction = captures.get(castCapture);

@@ -20,6 +20,7 @@
 package org.elasticsearch.cluster.coordination;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.cluster.coordination.LeaderChecker.LEADER_CHECK_ACTION_NAME;
 import static org.elasticsearch.cluster.coordination.LeaderChecker.LEADER_CHECK_INTERVAL_SETTING;
 import static org.elasticsearch.cluster.coordination.LeaderChecker.LEADER_CHECK_RETRY_COUNT_SETTING;
@@ -28,12 +29,6 @@ import static org.elasticsearch.monitor.StatusInfo.Status.HEALTHY;
 import static org.elasticsearch.monitor.StatusInfo.Status.UNHEALTHY;
 import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
 import static org.elasticsearch.transport.TransportService.HANDSHAKE_ACTION_NAME;
-import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.endsWith;
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
-import static org.hamcrest.Matchers.matchesRegex;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -157,7 +152,7 @@ public class LeaderCheckerTests extends ESTestCase {
 
         final LeaderChecker leaderChecker = new LeaderChecker(settings, transportService,
             e -> {
-                assertThat(e.getMessage(), matchesRegex("node \\[.*\\] failed \\[[1-9][0-9]*\\] consecutive checks"));
+                assertThat(e.getMessage()).matches("node \\[.*\\] failed \\[[1-9][0-9]*\\] consecutive checks");
                 assertThat(leaderFailed.compareAndSet(false, true)).isTrue();
             }, () -> new StatusInfo(StatusInfo.Status.HEALTHY, "healthy-info"));
 
@@ -199,10 +194,10 @@ public class LeaderCheckerTests extends ESTestCase {
                 deterministicTaskQueue.runAllRunnableTasks();
             }
 
-            assertThat(deterministicTaskQueue.getCurrentTimeMillis() - failureTime,
-                lessThanOrEqualTo((leaderCheckIntervalMillis + leaderCheckTimeoutMillis) * leaderCheckRetryCount
+            assertThat(deterministicTaskQueue.getCurrentTimeMillis() - failureTime)
+                .isLessThanOrEqualTo((leaderCheckIntervalMillis + leaderCheckTimeoutMillis) * leaderCheckRetryCount
                     + leaderCheckTimeoutMillis // needed because a successful check response might be in flight at the time of failure
-                ));
+                );
         }
         leaderChecker.updateLeader(null);
     }
@@ -265,7 +260,9 @@ public class LeaderCheckerTests extends ESTestCase {
         final AtomicBoolean leaderFailed = new AtomicBoolean();
         final LeaderChecker leaderChecker = new LeaderChecker(settings, transportService,
             e -> {
-                assertThat(e.getMessage(), anyOf(endsWith("disconnected"), endsWith("disconnected during check")));
+                assertThat(e.getMessage()).satisfiesAnyOf(
+                    msg -> assertThat(msg).endsWith("disconnected"),
+                    msg -> assertThat(msg).endsWith("disconnected during check"));
                 assertThat(leaderFailed.compareAndSet(false, true)).isTrue();
             }, () -> new StatusInfo(StatusInfo.Status.HEALTHY, "healthy-info"));
 
@@ -373,7 +370,7 @@ public class LeaderCheckerTests extends ESTestCase {
         final AtomicBoolean leaderFailed = new AtomicBoolean();
         final LeaderChecker leaderChecker = new LeaderChecker(settings, transportService,
             e -> {
-                assertThat(e.getMessage(), endsWith("failed health checks"));
+                assertThat(e.getMessage()).endsWith("failed health checks");
                 assertThat(leaderFailed.compareAndSet(false, true)).isTrue();
             }, () -> new StatusInfo(StatusInfo.Status.HEALTHY, "healthy-info"));
 
