@@ -48,6 +48,12 @@ See the :ref:`version_5.7.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Added check to forbid setting both
+  :ref:`cluster.routing.allocation.balance.shard` and
+  :ref:`cluster.routing.allocation.balance.index` to `0.0f` as this could
+  lead, if both settings are set as ``persistent``, to a cluster not being able
+  to start up.
+
 - Fixed an issue that resulted in ``ColumnUnknownException`` errors when using a
   subscript expression on a ``object(ignored)`` column of a foreign table
   despite having set :ref:`error_on_unknown_object_key
