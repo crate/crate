@@ -92,6 +92,9 @@ None
 Scalar and Aggregation Functions
 --------------------------------
 
+- Added :ref:`topk aggregation function <aggregation-topk>` which computes
+  the k most frequent argument values and their frequencies.
+
 - Changed :ref:`pg_get_userbyid <scalar-pg_get_userbyid>` to return the matching
   user or ``unknown`` instead of always ``crate``.
 
