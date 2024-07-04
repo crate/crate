@@ -105,6 +105,7 @@ public class SysSnapshots {
                                              List<String> partedTables) {
         Version version = snapshotInfo.version();
         return new SysSnapshot(
+            snapshotId.getUUID(),
             snapshotId.getName(),
             repository.getMetadata().name(),
             snapshotInfo.indices(),
@@ -121,6 +122,7 @@ public class SysSnapshots {
                                              SnapshotsInProgress.Entry entry,
                                              List<String> partedTables) {
         return new SysSnapshot(
+            entry.snapshot().getSnapshotId().getUUID(),
             entry.snapshot().getSnapshotId().getName(),
             repositoryName,
             entry.indices().stream().map(IndexId::getName).toList(),
@@ -149,6 +151,7 @@ public class SysSnapshots {
                         LOGGER.debug("Couldn't retrieve snapshotId={} error={}", snapshotId, err);
                     }
                     return new SysSnapshot(
+                        snapshotId.getUUID(),
                         snapshotId.getName(),
                         repository.getMetadata().name(),
                         Collections.emptyList(),

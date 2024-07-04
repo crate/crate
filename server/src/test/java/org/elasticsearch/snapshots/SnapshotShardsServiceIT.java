@@ -30,8 +30,6 @@ import java.util.stream.Collectors;
 
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryAction;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
-import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsAction;
-import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsRequest;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.index.snapshots.IndexShardSnapshotStatus;
@@ -85,10 +83,8 @@ public class SnapshotShardsServiceIT extends AbstractSnapshotIntegTestCase {
         execute("create snapshot repo.snapshot table doc.test with (wait_for_completion = false)");
         waitForBlock(blockedNode, "repo", TimeValue.timeValueSeconds(60));
 
-        final SnapshotId snapshotId = client().admin().cluster()
-            .execute(GetSnapshotsAction.INSTANCE, new GetSnapshotsRequest("repo", new String[] { "snapshot" }))
-            .get()
-            .getSnapshots().get(0).snapshotId();
+        SnapshotInfo snapshotInfo = snapshotInfo("repo", "snapshot");
+        final SnapshotId snapshotId = snapshotInfo.snapshotId();
 
         logger.info("--> start disrupting cluster");
         final NetworkDisruption networkDisruption = new NetworkDisruption(new NetworkDisruption.TwoPartitions(masterNode, dataNode),

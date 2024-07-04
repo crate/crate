@@ -50,8 +50,6 @@ import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
-import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsAction;
-import org.elasticsearch.action.admin.cluster.snapshots.get.GetSnapshotsRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.admin.indices.flush.SyncedFlushAction;
@@ -104,6 +102,7 @@ import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.repositories.RepositoryData;
 import org.elasticsearch.snapshots.Snapshot;
+import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.test.BackgroundIndexer;
 import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.IntegTestCase.ClusterScope;
@@ -654,9 +653,10 @@ public class IndexRecoveryIT extends IntegTestCase {
 
         ensureGreen();
 
-        var snapshotInfo = client()
-            .execute(GetSnapshotsAction.INSTANCE, new GetSnapshotsRequest(REPO_NAME, new String[]{SNAP_NAME}))
-            .get().getSnapshots().get(0);
+        execute("SELECT id from sys.snapshots WHERE repository = ? AND name = ?", new Object[]{REPO_NAME, SNAP_NAME});
+
+        String uuid = (String) response.rows()[0][0];
+        SnapshotId snapshotId = new SnapshotId(SNAP_NAME, uuid);
 
         logger.info("--> request recoveries");
         var indexName = IndexParts.toIndexName(sqlExecutor.getCurrentSchema(), INDEX_NAME, null);
@@ -673,7 +673,7 @@ public class IndexRecoveryIT extends IntegTestCase {
             for (RecoveryState recoveryState : recoveryStates) {
                 RecoverySource.SnapshotRecoverySource recoverySource = new RecoverySource.SnapshotRecoverySource(
                     ((RecoverySource.SnapshotRecoverySource)recoveryState.getRecoverySource()).restoreUUID(),
-                    new Snapshot(REPO_NAME, snapshotInfo.snapshotId()),
+                    new Snapshot(REPO_NAME, snapshotId),
                     Version.CURRENT, repositoryData.resolveIndexId(indexName));
                 assertRecoveryState(recoveryState, 0, recoverySource, true, RecoveryState.Stage.DONE, null, nodeA);
                 validateIndexRecoveryState(recoveryState.getIndex());
