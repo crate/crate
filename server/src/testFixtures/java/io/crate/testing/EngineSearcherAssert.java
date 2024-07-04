@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,39 +19,37 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.integrationtests;
+package io.crate.testing;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.io.IOException;
 
-import org.elasticsearch.test.IntegTestCase;
-import org.junit.After;
-import org.junit.Test;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.search.Query;
+import org.assertj.core.api.AbstractAssert;
+import org.elasticsearch.index.engine.Engine;
 
-import io.crate.testing.SQLResponse;
+public class EngineSearcherAssert extends AbstractAssert<EngineSearcherAssert, Engine.Searcher> {
 
-public class SysJobsTest extends IntegTestCase {
 
-    @After
-    public void resetStatsEnabled() throws Exception {
-        execute("reset global stats.enabled");
+    protected EngineSearcherAssert(Engine.Searcher actual) {
+        super(actual, EngineSearcherAssert.class);
     }
 
-    @Test
-    public void testQueryAllColumns() throws Exception {
-        String stmt = "select * from sys.jobs";
+    public EngineSearcherAssert hasTotalHits(int totalHits) {
+        return hasTotalHits(new MatchAllDocsQuery(), totalHits);
+    }
 
-        // the response contains all current jobs, if the tests are executed in parallel
-        // this might be more then only the "select * from sys.jobs" statement.
-        SQLResponse response = execute(stmt);
-        List<String> statements = new ArrayList<>();
-
-        for (Object[] objects : response.rows()) {
-            assertThat(objects[0]).isNotNull();
-            statements.add((String) objects[3]);
+    public EngineSearcherAssert hasTotalHits(Query query, int totalHits) {
+        describedAs("total hits of size " + totalHits + " with query " + query);
+        try {
+            assertThat(actual.count(query)).isEqualTo(totalHits);
+        } catch (IOException e) {
+            fail(e.getMessage());
         }
-        assertThat(statements.contains(stmt)).isTrue();
+        return this;
     }
 }
+

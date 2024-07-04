@@ -21,7 +21,6 @@ package org.elasticsearch.test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.test.AbstractWireTestCase.NUMBER_OF_TEST_RUNS;
-import static org.junit.Assert.assertNotSame;
 
 import java.io.IOException;
 import java.util.function.Supplier;
@@ -54,7 +53,7 @@ public final class DiffableTestUtils {
         T localChanges = diffs.apply(localInstance);
         assertThat(localChanges).isEqualTo(remoteChanges);
         assertThat(localChanges.hashCode()).isEqualTo(remoteChanges.hashCode());
-        assertNotSame(remoteChanges, localChanges);
+        assertThat(remoteChanges).isNotSameAs(localChanges);
         return localChanges;
     }
 
@@ -99,7 +98,7 @@ public final class DiffableTestUtils {
         T deserializedInstance = copyInstance(testInstance, namedWriteableRegistry, reader);
         assertThat(deserializedInstance).isEqualTo(testInstance);
         assertThat(deserializedInstance.hashCode()).isEqualTo(testInstance.hashCode());
-        assertNotSame(testInstance, deserializedInstance);
+        assertThat(deserializedInstance).isNotSameAs(testInstance);
         return deserializedInstance;
     }
 

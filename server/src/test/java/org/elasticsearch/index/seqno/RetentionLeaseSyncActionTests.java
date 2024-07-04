@@ -18,9 +18,8 @@
 package org.elasticsearch.index.seqno;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.test.ClusterServiceUtils.createClusterService;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -114,7 +113,7 @@ public class RetentionLeaseSyncActionTests extends ESTestCase {
                     // we should forward the request containing the current retention leases to the replica
                     assertThat(result.replicaRequest()).isSameAs(request);
                     // we should start with an empty replication response
-                    assertNull(result.finalResponseIfSuccessful.getShardInfo());
+                    assertThat(result.finalResponseIfSuccessful.getShardInfo()).isNull();
                 }
             ));
     }
@@ -181,7 +180,7 @@ public class RetentionLeaseSyncActionTests extends ESTestCase {
             shardStateAction
         );
 
-        assertNull(action.indexBlockLevel());
+        assertThat(action.indexBlockLevel()).isNull();
     }
 
 }

@@ -21,7 +21,6 @@ package org.elasticsearch.repositories.blobstore;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertNotNull;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -175,7 +174,7 @@ public class BlobStoreRepositoryRestoreTests extends IndexShardTestCase {
             final Repository repository = createRepository();
             final Snapshot snapshot = new Snapshot(repository.getMetadata().name(), new SnapshotId(randomAlphaOfLength(10), "_uuid"));
             final String shardGen = snapshotShard(shard, snapshot, repository);
-            assertNotNull(shardGen);
+            assertThat(shardGen).isNotNull();
             final Snapshot snapshotWithSameName = new Snapshot(repository.getMetadata().name(), new SnapshotId(
                 snapshot.getSnapshotId().getName(), "_uuid2"));
             final ShardGenerations shardGenerations = ShardGenerations.builder().put(indexId, 0, shardGen).build();

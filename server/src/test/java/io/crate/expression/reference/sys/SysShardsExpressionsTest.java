@@ -25,7 +25,6 @@ import static io.crate.testing.TestingHelpers.createNodeContext;
 import static io.crate.testing.TestingHelpers.refInfo;
 import static io.crate.testing.TestingHelpers.resolveCanonicalString;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -183,7 +182,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
         assertThat(shardExpression.value()).isEqualTo(654321L);
 
         // second call should throw Exception
-        assertNull(shardExpression.value());
+        assertThat(shardExpression.value()).isNull();
     }
 
     @Test

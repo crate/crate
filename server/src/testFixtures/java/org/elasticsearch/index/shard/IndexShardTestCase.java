@@ -24,7 +24,6 @@ import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.routing.TestShardRouting.newShardRouting;
 import static org.elasticsearch.index.translog.Translog.UNSET_AUTO_GENERATED_TIMESTAMP;
-import static org.junit.Assert.assertNull;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -951,7 +950,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
         final IndexShardSnapshotStatus.Copy lastSnapshotStatus = snapshotStatus.asCopy();
         assertThat(lastSnapshotStatus.getStage()).isEqualTo(IndexShardSnapshotStatus.Stage.DONE);
         assertThat(lastSnapshotStatus.getTotalFileCount()).isEqualTo(shard.snapshotStoreMetadata().size());
-        assertNull(lastSnapshotStatus.getFailure());
+        assertThat(lastSnapshotStatus.getFailure()).isNull();
         return shardGen;
     }
 

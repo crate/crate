@@ -20,8 +20,6 @@
 package org.elasticsearch.test.test;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -142,7 +140,7 @@ public class ESTestCaseTests extends ESTestCase {
     public void testRandomValueOtherThan() {
         // "normal" way of calling where the value is not null
         int bad = randomInt();
-        assertNotEquals(bad, (int) randomValueOtherThan(bad, ESTestCase::randomInt));
+        assertThat((int) randomValueOtherThan(bad, ESTestCase::randomInt)).isNotEqualTo(bad);
 
         /*
          * "funny" way of calling where the value is null. This once
@@ -150,7 +148,7 @@ public class ESTestCaseTests extends ESTestCase {
          * like any other value.
          */
         Supplier<Object> usuallyNull = () -> usually() ? null : randomInt();
-        assertNotNull(randomValueOtherThan(null, usuallyNull));
+        assertThat(randomValueOtherThan(null, usuallyNull)).isNotNull();
     }
 
     public void testWorkerSystemProperty() {
@@ -166,7 +164,7 @@ public class ESTestCaseTests extends ESTestCase {
             "requires running tests with Maven",
             System.getProperty(ESTestCase.TEST_WORKER_SYS_PROPERTY) != null);
         // Maven worker IDs are 1 based
-        assertNotEquals(10300, ESTestCase.getBasePort());
+        assertThat(ESTestCase.getBasePort()).isNotEqualTo(10300);
     }
 
     public void testBasePortIDE() {

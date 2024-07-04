@@ -20,7 +20,6 @@
 package org.elasticsearch.cluster.coordination;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -106,7 +105,7 @@ public class NodeRemovalClusterStateTaskExecutorTests extends ESTestCase {
         verify(allocationService).disassociateDeadNodes(eq(remainingNodesClusterState.get()), eq(true), any(String.class));
 
         for (final NodeRemovalClusterStateTaskExecutor.Task task : tasks) {
-            assertNull(result.resultingState.nodes().get(task.node().getId()));
+            assertThat(result.resultingState.nodes().get(task.node().getId())).isNull();
         }
     }
 

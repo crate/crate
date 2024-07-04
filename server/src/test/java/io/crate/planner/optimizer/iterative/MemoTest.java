@@ -23,7 +23,7 @@ package io.crate.planner.optimizer.iterative;
 
 import static io.crate.common.collections.Iterables.getOnlyElement;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.util.List;
 import java.util.Map;

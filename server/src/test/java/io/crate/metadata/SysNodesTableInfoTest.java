@@ -22,7 +22,6 @@
 package io.crate.metadata;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertNotNull;
 
 import java.util.List;
 
@@ -51,7 +50,7 @@ public class SysNodesTableInfoTest extends CrateDummyClusterServiceUnitTest {
         var info = SysNodesTableInfo.INSTANCE;
         ReferenceResolver<?> referenceResolver = new StaticTableReferenceResolver<>(info.expressions());
         for (var reference : info) {
-            assertNotNull(referenceResolver.getImplementation(reference));
+            assertThat(referenceResolver.getImplementation(reference)).isNotNull();
         }
     }
 

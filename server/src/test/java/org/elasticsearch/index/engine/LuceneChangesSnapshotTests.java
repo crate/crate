@@ -19,9 +19,8 @@
 
 package org.elasticsearch.index.engine;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -35,7 +34,6 @@ import java.util.stream.Collectors;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.mapper.ParsedDocument;
-import org.elasticsearch.index.translog.SnapshotMatchers;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.test.IndexSettingsModule;
 import org.junit.Test;
@@ -61,7 +59,7 @@ public class LuceneChangesSnapshotTests extends EngineTestCase {
                 .hasMessageContaining("Not all operations between from_seqno [" + fromSeqNo + "] and to_seqno [" + toSeqNo + "] found");
         }
         try (Translog.Snapshot snapshot = engine.newChangesSnapshot("test", fromSeqNo, toSeqNo, false)) {
-            assertThat(snapshot, SnapshotMatchers.size(0));
+            assertThat(snapshot).hasSize(0);
         }
         int numOps = between(1, 100);
         int refreshedSeqNo = -1;
@@ -90,7 +88,7 @@ public class LuceneChangesSnapshotTests extends EngineTestCase {
             try (Translog.Snapshot snapshot = new LuceneChangesSnapshot(
                 searcher, between(1, LuceneChangesSnapshot.DEFAULT_BATCH_SIZE), fromSeqNo, toSeqNo, false)) {
                 searcher = null;
-                assertThat(snapshot, SnapshotMatchers.size(0));
+                assertThat(snapshot).hasSize(0);
             } finally {
                 IOUtils.close(searcher);
             }
@@ -112,7 +110,7 @@ public class LuceneChangesSnapshotTests extends EngineTestCase {
             try (Translog.Snapshot snapshot = new LuceneChangesSnapshot(
                 searcher, between(1, LuceneChangesSnapshot.DEFAULT_BATCH_SIZE), fromSeqNo, toSeqNo, false)) {
                 searcher = null;
-                assertThat(snapshot, SnapshotMatchers.containsSeqNoRange(fromSeqNo, refreshedSeqNo));
+                assertThat(snapshot).containsSeqNoRange(fromSeqNo, refreshedSeqNo);
             } finally {
                 IOUtils.close(searcher);
             }
@@ -131,7 +129,7 @@ public class LuceneChangesSnapshotTests extends EngineTestCase {
             try (Translog.Snapshot snapshot = new LuceneChangesSnapshot(
                 searcher, between(1, LuceneChangesSnapshot.DEFAULT_BATCH_SIZE), fromSeqNo, toSeqNo, true)) {
                 searcher = null;
-                assertThat(snapshot, SnapshotMatchers.containsSeqNoRange(fromSeqNo, toSeqNo));
+                assertThat(snapshot).containsSeqNoRange(fromSeqNo, toSeqNo);
             } finally {
                 IOUtils.close(searcher);
             }
@@ -140,7 +138,7 @@ public class LuceneChangesSnapshotTests extends EngineTestCase {
         fromSeqNo = randomLongBetween(0, numOps - 1);
         toSeqNo = randomLongBetween(fromSeqNo, numOps - 1);
         try (Translog.Snapshot snapshot = engine.newChangesSnapshot("test", fromSeqNo, toSeqNo, randomBoolean())) {
-            assertThat(snapshot, SnapshotMatchers.containsSeqNoRange(fromSeqNo, toSeqNo));
+            assertThat(snapshot).containsSeqNoRange(fromSeqNo, toSeqNo);
         }
     }
 

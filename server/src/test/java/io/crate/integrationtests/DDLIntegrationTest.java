@@ -25,12 +25,9 @@ import static io.crate.protocols.postgres.PGErrorStatus.DUPLICATE_TABLE;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
 import static io.crate.testing.Asserts.assertThat;
-import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -76,10 +73,10 @@ public class DDLIntegrationTest extends IntegTestCase {
 
         // test index usage
         execute("insert into test (col1, col2) values (1, 'foo')");
-        assertEquals(1, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1);
         execute("refresh table test");
         execute("SELECT * FROM test");
-        assertEquals(1L, response.rowCount());
+        assertThat(response.rowCount()).isEqualTo(1L);
     }
 
     @Test
@@ -271,12 +268,12 @@ public class DDLIntegrationTest extends IntegTestCase {
 
         // matching does not work on plain indexes
         execute("select quote from quotes where match(quote, 'time')");
-        assertEquals(0, response.rowCount());
+        assertThat(response).hasRowCount(0);
 
         // filtering on the actual value does work
         execute("select quote from quotes where quote = ?", new Object[]{quote});
-        assertEquals(1L, response.rowCount());
-        assertEquals(quote, response.rows()[0][0]);
+        assertThat(response).hasRowCount(1);
+        assertThat(response.rows()[0][0]).isEqualTo(quote);
     }
 
     @Test
@@ -287,13 +284,13 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("refresh table quotes");
 
         execute("select quote from quotes where match(quote, 'time')");
-        assertEquals(1L, response.rowCount());
-        assertEquals(quote, response.rows()[0][0]);
+        assertThat(response).hasRowCount(1);
+        assertThat(response.rows()[0][0]).isEqualTo(quote);
 
         // filtering on the actual value does not work anymore because its now indexed using the
         // standard analyzer
         execute("select quote from quotes where quote = ?", new Object[]{quote});
-        assertEquals(0, response.rowCount());
+        assertThat(response).hasRowCount(0);
     }
 
     @Test
@@ -315,12 +312,12 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("refresh table quotes");
 
         execute("select quote from quotes where match(quote_fulltext, 'time')");
-        assertEquals(1L, response.rowCount());
-        assertEquals(quote, response.rows()[0][0]);
+        assertThat(response).hasRowCount(1);
+        assertThat(response.rows()[0][0]).isEqualTo(quote);
 
         // filtering on the actual value does still work
         execute("select quote from quotes where quote = ?", new Object[]{quote});
-        assertEquals(1L, response.rowCount());
+        assertThat(response).hasRowCount(1);
     }
 
     @Test
@@ -358,19 +355,19 @@ public class DDLIntegrationTest extends IntegTestCase {
 
         // match token existing at field `title`
         execute("select title, description from novels where match(title_desc_fulltext, 'fish')");
-        assertEquals(1L, response.rowCount());
-        assertEquals(title, response.rows()[0][0]);
-        assertEquals(description, response.rows()[0][1]);
+        assertThat(response).hasRowCount(1);
+        assertThat(response.rows()[0][0]).isEqualTo(title);
+        assertThat(response.rows()[0][1]).isEqualTo(description);
 
         // match token existing at field `description`
         execute("select title, description from novels where match(title_desc_fulltext, 'oceans')");
-        assertEquals(1L, response.rowCount());
-        assertEquals(title, response.rows()[0][0]);
-        assertEquals(description, response.rows()[0][1]);
+        assertThat(response).hasRowCount(1);
+        assertThat(response.rows()[0][0]).isEqualTo(title);
+        assertThat(response.rows()[0][1]).isEqualTo(description);
 
         // filtering on the actual values does still work
         execute("select title from novels where title = ?", new Object[]{title});
-        assertEquals(1L, response.rowCount());
+        assertThat(response).hasRowCount(1);
     }
 
     @Test
@@ -379,9 +376,9 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("insert into t(id, qty) values(0, null), (1, 1)");
         execute("refresh table t");
         execute("select id, qty from t order by id");
-        assertEquals(printedTable(response.rows()),
-                     "0| NULL\n" +
-                     "1| 1\n");
+        assertThat(response).hasRows(
+            "0| NULL",
+            "1| 1");
         Asserts.assertSQLError(() -> execute("insert into t(id, qty) values(2, -1)"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
@@ -394,9 +391,9 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("insert into t(id, qty) values(0, 1)");
         execute("refresh table t");
         execute("select id, qty from t order by id");
-        assertEquals(printedTable(response.rows()), "0| 1\n");
+        assertThat(response).hasRows("0| 1");
         execute("update t set qty = 1 where id = 0 returning id, qty");
-        assertEquals(printedTable(response.rows()), "0| 1\n");
+        assertThat(response).hasRows("0| 1");
         Asserts.assertSQLError(() -> execute("update t set qty = -1 where id = 0"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(HttpResponseStatus.INTERNAL_SERVER_ERROR, 5000)
@@ -476,11 +473,11 @@ public class DDLIntegrationTest extends IntegTestCase {
         ensureYellow();
 
         execute("select number_of_replicas from information_schema.tables where table_name = 'test'");
-        assertEquals("0-all", response.rows()[0][0]);
+        assertThat(response).hasRows("0-all");
 
         execute("alter table test set (number_of_replicas=0)");
         execute("select number_of_replicas from information_schema.tables where table_name = 'test'");
-        assertEquals("0", response.rows()[0][0]);
+        assertThat(response).hasRows("0");
     }
 
     @Test
@@ -774,7 +771,7 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("alter blob table screenshots set (number_of_replicas=1)");
         execute("select number_of_replicas from information_schema.tables " +
                 "where table_schema = 'blob' and table_name = 'screenshots'");
-        assertEquals("1", response.rows()[0][0]);
+        assertThat(response).hasRows("1");
         execute("drop blob table screenshots");
     }
 
@@ -782,7 +779,7 @@ public class DDLIntegrationTest extends IntegTestCase {
     public void testDropIfExistsBlobTable() throws Exception {
         execute("create blob table screenshots with (number_of_replicas=0)");
         execute("drop blob table if exists screenshots");
-        assertEquals(response.rowCount(), 1);
+        assertThat(response).hasRowCount(1);
     }
 
     @Test
@@ -839,11 +836,9 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("refresh table a.t");
 
         execute("select name from a.t");
-        assertThat(response).hasRowCount(1);
         assertThat(response).hasRows("Ford");
 
         execute("select table_schema from information_schema.tables where table_name = 't'");
-        assertThat(response).hasRowCount(1);
         assertThat(response).hasRows("a");
     }
 

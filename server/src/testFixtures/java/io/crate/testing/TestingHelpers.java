@@ -22,11 +22,7 @@
 package io.crate.testing;
 
 import static io.crate.execution.ddl.tables.MappingUtil.createMapping;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.hasEntry;
-import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.core.Is.is;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -39,7 +35,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -47,7 +42,6 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.stream.StreamSupport;
 
@@ -57,10 +51,6 @@ import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.hamcrest.Description;
-import org.hamcrest.Matcher;
-import org.hamcrest.TypeSafeDiagnosingMatcher;
-import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.randomizedtesting.RandomizedTest;
@@ -286,61 +276,6 @@ public class TestingHelpers {
         return new SimpleReference(refIdent, rowGranularity, dataType, 0, null);
     }
 
-    public static <T, K extends Comparable<K>> Matcher<Iterable<? extends T>> isSortedBy(final Function<T, K> extractSortingKeyFunction) {
-        return isSortedBy(extractSortingKeyFunction, false, null);
-    }
-
-    public static <T, K extends Comparable<K>> Matcher<Iterable<? extends T>> isSortedBy(
-        final Function<T, K> extractSortingKeyFunction,
-        final boolean descending,
-        @Nullable final Boolean nullsFirst) {
-        Comparator<K> comparator = Comparator.naturalOrder();
-        if (descending) {
-            comparator = Comparator.reverseOrder();
-        }
-        if (nullsFirst != null && nullsFirst) {
-            comparator = Comparator.nullsFirst(comparator);
-        } else {
-            comparator = Comparator.nullsLast(comparator);
-        }
-        Comparator<K> finalComparator = comparator;
-        return new TypeSafeDiagnosingMatcher<>() {
-            @Override
-            protected boolean matchesSafely(Iterable<? extends T> item, Description mismatchDescription) {
-                K previous = null;
-                int i = 0;
-                for (T elem : item) {
-                    K current = extractSortingKeyFunction.apply(elem);
-                    if (previous != null) {
-                        if (finalComparator.compare(previous, current) > 0) {
-                            mismatchDescription
-                                .appendText("element ").appendValue(current)
-                                .appendText(" at position ").appendValue(i)
-                                .appendText(" is ")
-                                .appendText(descending ? "bigger" : "smaller")
-                                .appendText(" than previous element ")
-                                .appendValue(previous);
-                            return false;
-                        }
-                    }
-                    i++;
-                    previous = current;
-                }
-                return true;
-            }
-
-            @Override
-            public void describeTo(Description description) {
-                description.appendText("expected iterable to be sorted ");
-                if (descending) {
-                    description.appendText("in DESCENDING order");
-                } else {
-                    description.appendText("in ASCENDING order");
-                }
-            }
-        };
-    }
-
     public static DataType<?> randomPrimitiveType() {
         return DataTypes.PRIMITIVE_TYPES.get(ThreadLocalRandom.current().nextInt(DataTypes.PRIMITIVE_TYPES.size()));
     }
@@ -368,15 +303,25 @@ public class TestingHelpers {
     @SuppressWarnings("unchecked")
     public static void assertCrateVersion(Object object, Version versionCreated, Version versionUpgraded) {
         var map = (Map<String, String>) object;
-        assertThat(
-            map,
-            allOf(
-                hasEntry(
-                    is(Version.Property.CREATED.toString()),
-                    versionCreated == null ? nullValue() : is(versionCreated.externalNumber())),
-                hasEntry(
-                    is(Version.Property.UPGRADED.toString()),
-                    versionUpgraded == null ? nullValue() : is(versionUpgraded.externalNumber()))));
+        assertThat(map)
+            .hasEntrySatisfying(
+                Version.Property.CREATED.toString(),
+                s -> {
+                    if (versionCreated == null) {
+                        assertThat(s).isNull();
+                    } else {
+                        assertThat(s).isEqualTo(versionCreated.externalNumber());
+                    }
+                })
+            .hasEntrySatisfying(
+                Version.Property.UPGRADED.toString(),
+                s -> {
+                    if (versionUpgraded == null) {
+                        assertThat(s).isNull();
+                    } else {
+                        assertThat(s).isEqualTo(versionUpgraded.externalNumber());
+                    }
+                });
     }
 
     public static <T> List<T> getRandomsOfType(int minLength, int maxLength, DataType<T> dataType) {

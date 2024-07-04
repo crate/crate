@@ -20,7 +20,6 @@
 package org.elasticsearch.common.bytes;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertArrayEquals;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -76,7 +75,7 @@ public class RecyclingBytesStreamOutputTests extends ESTestCase {
             assertThat(bytesRef.length).isEqualTo(source.length);
             final byte[] trimmed = new byte[source.length];
             System.arraycopy(bytesRef.bytes, bytesRef.offset, trimmed, 0, bytesRef.length);
-            assertArrayEquals(source, trimmed);
+            assertThat(trimmed).isEqualTo(source);
         }
     }
 }

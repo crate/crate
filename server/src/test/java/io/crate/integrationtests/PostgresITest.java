@@ -53,7 +53,6 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.junit.jupiter.api.Assertions;
 import org.postgresql.PGProperty;
 import org.postgresql.geometric.PGpoint;
 import org.postgresql.jdbc.PreferQueryMode;
@@ -721,10 +720,9 @@ public class PostgresITest extends IntegTestCase {
             statement.addBatch("refresh table t");
             statement.addBatch("select count(*) from t");
 
-            Assertions.assertThrows(BatchUpdateException.class,
-                                    () -> statement.executeBatch(),
-                                    "Only write operations are allowed in Batch statements"
-            );
+            assertThatThrownBy(() -> statement.executeBatch())
+                .isExactlyInstanceOf(BatchUpdateException.class)
+                .hasMessageContaining("Only write operations are allowed in Batch statements");
         }
     }
 

@@ -23,7 +23,7 @@ package io.crate.protocols.postgres;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 

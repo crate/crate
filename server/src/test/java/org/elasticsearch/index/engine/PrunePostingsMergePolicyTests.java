@@ -20,7 +20,6 @@
 package org.elasticsearch.index.engine;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertNull;
 
 import java.io.IOException;
 
@@ -159,7 +158,7 @@ public class PrunePostingsMergePolicyTests extends ESTestCase {
                         LeafReader leafReader = reader.leaves().get(0).reader();
                         assertThat(leafReader.maxDoc()).isEqualTo(numDocs+1);
                         assertThat(leafReader.numDocs()).isEqualTo(0);
-                        assertNull(leafReader.terms("id"));
+                        assertThat(leafReader.terms("id")).isNull();
                         TermsEnum iterator = leafReader.terms("text").iterator();
                         assertThat(iterator.seekExact(new BytesRef("quick"))).isTrue();
                         assertThat(iterator.docFreq()).isEqualTo(leafReader.maxDoc());

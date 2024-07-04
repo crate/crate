@@ -18,9 +18,8 @@
 package org.elasticsearch.index.seqno;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.test.ClusterServiceUtils.createClusterService;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -184,7 +183,7 @@ public class RetentionLeaseBackgroundSyncActionTests extends ESTestCase {
             shardStateAction
         );
 
-        assertNull(action.indexBlockLevel());
+        assertThat(action.indexBlockLevel()).isNull();
     }
 
 }

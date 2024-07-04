@@ -20,8 +20,6 @@
 package org.elasticsearch.gateway;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -363,7 +361,7 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
                                                 Metadata.builder().coordinationMetadata(coordinationMetadata)
                                                     .clusterUUID(randomAlphaOfLength(10)).build());
         persistedState.setLastAcceptedState(state);
-        assertBusy(() -> assertTrue(gateway.allPendingAsyncStatesWritten()));
+        assertBusy(() -> assertThat(gateway.allPendingAsyncStatesWritten()).isTrue());
 
         assertThat(persistedState.getLastAcceptedState().getLastAcceptedConfiguration()).isNotEqualTo(persistedState.getLastAcceptedState().getLastCommittedConfiguration());
         CoordinationMetadata persistedCoordinationMetadata =
@@ -372,7 +370,7 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
         assertThat(persistedCoordinationMetadata.getLastCommittedConfiguration()).isEqualTo(GatewayMetaState.AsyncLucenePersistedState.STALE_STATE_CONFIG);
 
         persistedState.markLastAcceptedStateAsCommitted();
-        assertBusy(() -> assertTrue(gateway.allPendingAsyncStatesWritten()));
+        assertBusy(() -> assertThat(gateway.allPendingAsyncStatesWritten()).isTrue());
 
         CoordinationMetadata expectedCoordinationMetadata = CoordinationMetadata.builder(coordinationMetadata)
             .lastCommittedConfiguration(coordinationMetadata.getLastAcceptedConfiguration()).build();
@@ -406,7 +404,7 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
         }
         assertThat(persistedState.getCurrentTerm()).isEqualTo(currentTerm);
         assertClusterStateEqual(state, persistedState.getLastAcceptedState());
-        assertBusy(() -> assertTrue(gateway.allPendingAsyncStatesWritten()));
+        assertBusy(() -> assertThat(gateway.allPendingAsyncStatesWritten()).isTrue());
 
         gateway.close();
 
@@ -414,7 +412,7 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
             assertThat(reloadedPersistedState.getCurrentTerm()).isEqualTo(currentTerm);
             assertClusterStateEqual(GatewayMetaState.AsyncLucenePersistedState.resetVotingConfiguration(state),
                                     reloadedPersistedState.getLastAcceptedState());
-            assertNotNull(reloadedPersistedState.getLastAcceptedState().metadata().index(indexName));
+            assertThat(reloadedPersistedState.getLastAcceptedState().metadata().index(indexName)).isNotNull();
         }
 
         ThreadPool.terminate(threadPool, 10, TimeUnit.SECONDS);
@@ -454,7 +452,7 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
                     currentTerm = newTerm;
                 }
             } catch (IOError | Exception e) {
-                assertNotNull(Exceptions.firstCause(e, IOException.class));
+                assertThat(Exceptions.firstCause(e, IOException.class)).isNotNull();
             }
 
             ioExceptionRate.set(0.0d);
@@ -488,7 +486,7 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
             if (ioExceptionRate.get() == 0.0d) {
                 throw e;
             }
-            assertNotNull(Exceptions.firstCause(e, IOException.class));
+            assertThat(Exceptions.firstCause(e, IOException.class)).isNotNull();
             return;
         }
 

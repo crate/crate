@@ -22,7 +22,6 @@
 package io.crate.execution.engine.collect.files;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertNull;
 
 import org.junit.Test;
 
@@ -40,8 +39,8 @@ public class FilesIterablesTest {
         assertThat(context.subFeatureId).isEqualTo("");
         assertThat(context.subFeatureName).isEqualTo("");
         assertThat(context.isSupported).isEqualTo(false);
-        assertNull(context.isVerifiedBy);
-        assertNull(context.comments);
+        assertThat(context.isVerifiedBy).isNull();
+        assertThat(context.comments).isNull();
 
         assertThat(sqlFeatureContextIterable).hasSize(679);
     }

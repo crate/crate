@@ -20,8 +20,8 @@
 package org.elasticsearch.transport;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
-import static org.junit.Assert.fail;
 
 import java.util.List;
 

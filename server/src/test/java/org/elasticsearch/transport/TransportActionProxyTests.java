@@ -22,8 +22,7 @@
 package org.elasticsearch.transport;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
@@ -260,7 +259,7 @@ public class TransportActionProxyTests extends ESTestCase {
     public void testUnwrap() {
         TransportRequest transportRequest = TransportActionProxy.wrapRequest(nodeA, TransportService.HandshakeRequest.INSTANCE);
         assertThat(transportRequest instanceof TransportActionProxy.ProxyRequest).isTrue();
-        assertSame(TransportService.HandshakeRequest.INSTANCE, TransportActionProxy.unwrapRequest(transportRequest));
+        assertThat(TransportActionProxy.unwrapRequest(transportRequest)).isSameAs(TransportService.HandshakeRequest.INSTANCE);
     }
 
     public void testIsProxyAction() {

@@ -22,7 +22,6 @@
 package io.crate.expression;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertSame;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -104,7 +103,7 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
         Input<?> inputCount = aggregationContexts.get(0).inputs()[0];
         Input<?> inputAverage = aggregationContexts.get(1).inputs()[0];
 
-        assertSame(inputCount, inputAverage);
+        assertThat(inputAverage).isSameAs(inputCount);
     }
 
     @Test

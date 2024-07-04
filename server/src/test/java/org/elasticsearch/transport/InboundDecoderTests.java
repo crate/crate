@@ -21,7 +21,6 @@ package org.elasticsearch.transport;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertNull;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -264,11 +263,11 @@ public class InboundDecoderTests extends ESTestCase {
     public void testEnsureVersionCompatibility() throws IOException {
         IllegalStateException ise = InboundDecoder.ensureVersionCompatibility(VersionUtils.randomVersionBetween(random(),
             Version.CURRENT.minimumCompatibilityVersion(), Version.CURRENT), Version.CURRENT, randomBoolean());
-        assertNull(ise);
+        assertThat(ise).isNull();
 
         final Version version = Version.fromString("4.0.0");
         ise = InboundDecoder.ensureVersionCompatibility(Version.fromString("4.0.0"), version, true);
-        assertNull(ise);
+        assertThat(ise).isNull();
 
         ise = InboundDecoder.ensureVersionCompatibility(Version.fromString("3.0.0"), version, false);
         assertThat(ise.getMessage()).isEqualTo("Received message from unsupported version: [3.0.0] minimal compatible version is: ["

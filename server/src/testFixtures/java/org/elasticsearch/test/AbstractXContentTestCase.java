@@ -21,8 +21,6 @@ package org.elasticsearch.test;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertToXContentEquivalent;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertNull;
 
 import java.io.IOException;
 import java.util.function.BiConsumer;
@@ -97,7 +95,7 @@ public abstract class AbstractXContentTestCase<T extends ToXContent> extends EST
         private String[] shuffleFieldsExceptions = Strings.EMPTY_ARRAY;
         private Predicate<String> randomFieldsExcludeFilter = field -> false;
         private BiConsumer<T, T> assertEqualsConsumer = (expectedInstance, newInstance) -> {
-            assertNotSame(newInstance, expectedInstance);
+            assertThat(newInstance).isNotSameAs(expectedInstance);
             assertThat(newInstance).isEqualTo(expectedInstance);
             assertThat(newInstance.hashCode()).isEqualTo(expectedInstance.hashCode());
         };
@@ -204,7 +202,7 @@ public abstract class AbstractXContentTestCase<T extends ToXContent> extends EST
 
     private T parseInstance(XContentParser parser) throws IOException {
         T parsedInstance = doParseInstance(parser);
-        assertNull(parser.nextToken());
+        assertThat(parser.nextToken()).isNull();
         return parsedInstance;
     }
 
@@ -214,7 +212,7 @@ public abstract class AbstractXContentTestCase<T extends ToXContent> extends EST
     protected abstract T doParseInstance(XContentParser parser) throws IOException;
 
     protected void assertEqualInstances(T expectedInstance, T newInstance) {
-        assertNotSame(newInstance, expectedInstance);
+        assertThat(newInstance).isNotSameAs(expectedInstance);
         assertThat(newInstance).isEqualTo(expectedInstance);
         assertThat(newInstance.hashCode()).isEqualTo(expectedInstance.hashCode());
     }

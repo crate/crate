@@ -20,8 +20,7 @@
 package org.elasticsearch.gateway;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -95,8 +94,9 @@ public class MetadataWriteDataNodesIT extends IntegTestCase {
     }
 
     protected void assertIndexDirectoryExists(final String nodeName, final Index index) throws Exception {
-        assertBusy(() -> assertTrue("Expecting index directory of " + index + " to exist on node " + nodeName,
-                                    indexDirectoryExists(nodeName, index))
+        assertBusy(() -> assertThat(indexDirectoryExists(nodeName, index))
+            .as("Expecting index directory of " + index + " to exist on node " + nodeName)
+            .isTrue()
         );
     }
 

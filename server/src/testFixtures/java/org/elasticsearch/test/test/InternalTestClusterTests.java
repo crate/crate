@@ -21,9 +21,8 @@
 package org.elasticsearch.test.test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.discovery.DiscoveryModule.DISCOVERY_SEED_PROVIDERS_SETTING;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -216,7 +215,7 @@ public class InternalTestClusterTests extends ESTestCase {
                 Random random = new Random(seed);
                 cluster1.beforeTest(random);
             }
-            assertArrayEquals(cluster0.getNodeNames(), cluster1.getNodeNames());
+            assertThat(cluster1.getNodeNames()).isEqualTo(cluster0.getNodeNames());
             Iterator<Client> iterator1 = cluster1.getClients().iterator();
             for (Client client : cluster0.getClients()) {
                 assertThat(iterator1.hasNext()).isTrue();

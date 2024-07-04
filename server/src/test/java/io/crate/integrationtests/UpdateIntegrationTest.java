@@ -29,7 +29,6 @@ import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertNull;
 
 import java.util.HashMap;
 import java.util.List;
@@ -371,7 +370,7 @@ public class UpdateIntegrationTest extends IntegTestCase {
         execute("select a['x']['y'], a['x']['z'] from test");
         assertThat(response).hasRowCount(1);
         assertThat(response.rows()[0][0]).isEqualTo(2);
-        assertNull(response.rows()[0][1]);
+        assertThat(response.rows()[0][1]).isNull();
     }
 
     @Test
@@ -395,7 +394,7 @@ public class UpdateIntegrationTest extends IntegTestCase {
 
         execute("select a['x']['z'], a['x']['y'] from test");
         assertThat(response).hasRowCount(1);
-        assertNull(response.rows()[0][0]);
+        assertThat(response.rows()[0][0]).isNull();
         assertThat(response.rows()[0][1]).isEqualTo(2);
     }
 

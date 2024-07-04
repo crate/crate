@@ -20,8 +20,6 @@
 package org.elasticsearch.index.engine;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertSame;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -120,7 +118,7 @@ public class RecoverySourcePruneMergePolicyTests extends ESTestCase {
                                 }
                             });
                         // don't wrap if there is nothing to do
-                        assertSame(codecReader, forcedMerges.merges.get(0).wrapForMerge(codecReader));
+                        assertThat(forcedMerges.merges.get(0).wrapForMerge(codecReader)).isSameAs(codecReader);
                     }
                 }
             }
@@ -151,7 +149,7 @@ public class RecoverySourcePruneMergePolicyTests extends ESTestCase {
                 try (DirectoryReader reader = DirectoryReader.open(writer)) {
                     assertThat(reader.leaves().size()).isEqualTo(1);
                     NumericDocValues extra_source = reader.leaves().get(0).reader().getNumericDocValues("extra_source");
-                    assertNotNull(extra_source);
+                    assertThat(extra_source).isNotNull();
                     for (int i = 0; i < reader.maxDoc(); i++) {
                         Document document = reader.document(i);
                         Set<String> collect = document.getFields().stream().map(IndexableField::name).collect(Collectors.toSet());
@@ -192,7 +190,7 @@ public class RecoverySourcePruneMergePolicyTests extends ESTestCase {
                 try (DirectoryReader reader = DirectoryReader.open(writer)) {
                     assertThat(reader.leaves().size()).isEqualTo(1);
                     NumericDocValues extra_source = reader.leaves().get(0).reader().getNumericDocValues("extra_source");
-                    assertNotNull(extra_source);
+                    assertThat(extra_source).isNotNull();
                     for (int i = 0; i < reader.maxDoc(); i++) {
                         Document document = reader.document(i);
                         Set<String> collect = document.getFields().stream().map(IndexableField::name).collect(Collectors.toSet());

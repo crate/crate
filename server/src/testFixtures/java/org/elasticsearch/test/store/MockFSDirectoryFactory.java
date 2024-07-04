@@ -19,6 +19,8 @@
 
 package org.elasticsearch.test.store;
 
+import static org.assertj.core.api.Assertions.fail;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -49,7 +51,6 @@ import org.elasticsearch.index.store.Store;
 import org.elasticsearch.plugins.IndexStorePlugin;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.IntegTestCase;
-import org.junit.Assert;
 
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 
@@ -175,7 +176,7 @@ public class MockFSDirectoryFactory implements IndexStorePlugin.DirectoryFactory
             // failures.
             try {
                 if (failureMarker.wasSuccessful() && dir.isOpen()) {
-                    Assert.fail("Directory not closed: " + dir);
+                    fail("Directory not closed: " + dir);
                 }
             } finally {
                 // TODO: perform real close of the delegate: LUCENE-4058

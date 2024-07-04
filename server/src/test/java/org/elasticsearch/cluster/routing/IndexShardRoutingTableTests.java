@@ -20,10 +20,8 @@
 package org.elasticsearch.cluster.routing;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertNotEquals;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 import org.elasticsearch.index.Index;
@@ -32,17 +30,17 @@ import org.elasticsearch.test.ESTestCase;
 
 public class IndexShardRoutingTableTests extends ESTestCase {
     public void testEqualsAttributesKey() {
-        List<String> attr1 = Arrays.asList("a");
-        List<String> attr2 = Arrays.asList("b");
+        List<String> attr1 = List.of("a");
+        List<String> attr2 = List.of("b");
         IndexShardRoutingTable.AttributesKey attributesKey1 = new IndexShardRoutingTable.AttributesKey(attr1);
         IndexShardRoutingTable.AttributesKey attributesKey2 = new IndexShardRoutingTable.AttributesKey(attr1);
         IndexShardRoutingTable.AttributesKey attributesKey3 = new IndexShardRoutingTable.AttributesKey(attr2);
         String s = "Some random other object";
-        assertThat(attributesKey1).isEqualTo(attributesKey1);
+        assertThat(attributesKey1).isEqualTo(attributesKey2);
         assertThat(attributesKey2).isEqualTo(attributesKey1);
-        assertNotEquals(attributesKey1, null);
-        assertNotEquals(attributesKey1, s);
-        assertNotEquals(attributesKey1, attributesKey3);
+        assertThat(attributesKey1).isNotEqualTo(null);
+        assertThat(attributesKey1).isNotEqualTo(s);
+        assertThat(attributesKey1).isNotEqualTo(attributesKey3);
     }
 
     public void testEquals() {
@@ -53,10 +51,10 @@ public class IndexShardRoutingTableTests extends ESTestCase {
         IndexShardRoutingTable table2 = new IndexShardRoutingTable(shardId, new ArrayList<>());
         IndexShardRoutingTable table3 = new IndexShardRoutingTable(shardId2, new ArrayList<>());
         String s = "Some other random object";
-        assertThat(table1).isEqualTo(table1);
+        assertThat(table1).isEqualTo(table2);
         assertThat(table2).isEqualTo(table1);
-        assertNotEquals(table1, null);
-        assertNotEquals(table1, s);
-        assertNotEquals(table1, table3);
+        assertThat(table1).isNotEqualTo(null);
+        assertThat(table1).isNotEqualTo(s);
+        assertThat(table1).isNotEqualTo(table3);
     }
 }
