@@ -19,6 +19,9 @@
 
 package org.elasticsearch.common.settings;
 
+import static org.elasticsearch.cluster.routing.allocation.allocator.BalancedShardsAllocator.INDEX_BALANCE_FACTOR_SETTING;
+import static org.elasticsearch.cluster.routing.allocation.allocator.BalancedShardsAllocator.SHARD_BALANCE_FACTOR_SETTING;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -138,6 +141,17 @@ public final class ClusterSettings extends AbstractScopedSettings {
 
     public List<Setting<?>> maskedSettings() {
         return maskedSettings;
+    }
+
+    @Override
+    public synchronized Settings validateUpdate(Settings settings) {
+        Settings updatedSettings = super.validateUpdate(settings);
+        if (INDEX_BALANCE_FACTOR_SETTING.get(updatedSettings) + SHARD_BALANCE_FACTOR_SETTING.get(updatedSettings) == 0.0f) {
+            throw new IllegalArgumentException(
+                "[" + INDEX_BALANCE_FACTOR_SETTING.getKey() + "] and [" + SHARD_BALANCE_FACTOR_SETTING.getKey() +
+                "] cannot both be set to 0.0");
+        }
+        return updatedSettings;
     }
 
     private static final class LoggingSettingUpdater implements SettingUpdater<Settings> {
