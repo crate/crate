@@ -364,10 +364,10 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     public void testIsNullOnObjectArray() throws Exception {
         Query isNull = convert("o_array IS NULL");
         assertThat(isNull).hasToString(
-            "(o_array IS NULL)");
+            "+*:* -(+(+*:* -(o_array IS NULL)))");
         Query isNotNull = convert("o_array IS NOT NULL");
         assertThat(isNotNull).hasToString(
-            "(NOT (o_array IS NULL))");
+            "+(+*:* -(o_array IS NULL))");
     }
 
     @Test

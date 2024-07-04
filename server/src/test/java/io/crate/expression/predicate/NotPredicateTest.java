@@ -120,4 +120,38 @@ public class NotPredicateTest extends ScalarTestCase {
             }
         }
     }
+
+    @Test
+    public void test_neq_on_array_types_with_non_empty_array_does_filter_null() throws Exception {
+        for (DataType<?> type : ALL_STORED_TYPES_EXCEPT_ARRAYS) {
+            if (type instanceof FloatVectorType) {
+                continue;
+            }
+            Object[] values = new Object[] {null}; // A NULL row, not [null]
+
+            // ensure the test is operating on a fresh, empty cluster state (no tables)
+            resetClusterService();
+
+            String randomData;
+            if (type.id() == GeoPointType.ID) {
+                randomData = "'POINT (9.7417 47.4108)'::geo_point";
+            } else if (type.id() == GeoShapeType.ID) {
+                randomData = "'POLYGON ((5 5, 10 5, 10 10, 5 10, 5 5))'::geo_shape";
+            } else {
+                randomData = Literal.ofUnchecked(type, getDataGenerator(type).get()).toString();
+            }
+            String query = "xs != [" + randomData + "]";
+            try (QueryTester tester = new QueryTester.Builder(
+                THREAD_POOL,
+                clusterService,
+                Version.CURRENT,
+                "create table \"t_" + type.getName() + "\" (xs array(\"" + type.getName() + "\"))"
+            ).indexValues("xs", values).build()) {
+                List<Object> result = tester.runQuery("xs", query);
+                Asserts.assertThat(result)
+                    .as("QUERY: " + query + "; TYPE: " + type + " ; expects no rows returned")
+                    .isEmpty();
+            }
+        }
+    }
 }

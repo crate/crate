@@ -233,6 +233,12 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
                     countEmptyArrays(context.parentQuery(), nullableRef, context));
                 if (refExistsQuery != null) {
                     builder.add(refExistsQuery, BooleanClause.Occur.MUST);
+                } else {
+                    // fall back to less efficient query
+                    return new BooleanQuery.Builder()
+                        .add(notX, Occur.MUST)
+                        .add(LuceneQueryBuilder.genericFunctionFilter(input, context), Occur.FILTER)
+                        .build();
                 }
             }
             return builder.build();

@@ -130,7 +130,9 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
                         .add(Queries.not(isNullFuncToQuery(ref, context)), Occur.SHOULD)
                         .build();
                 } else {
-                    return null;
+                    return new BooleanQuery.Builder()
+                        .add(Queries.not(isNullFuncToQuery(ref, context)), Occur.MUST)
+                        .build();
                 }
             }
             // An empty array has no dimension, array_length([]) = NULL, thus we don't count [] as existing.

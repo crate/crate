@@ -68,6 +68,13 @@ Breaking Changes
   .. NOTE:: If the number of routing shards equals the number of shard,
             increasing the number of shards will not be supported.
 
+- Fixed an issue that caused ``WHERE`` clause containing ``NOT`` operator on
+  an array type with the inner type that has the
+  :ref:`columnstore <ddl-storage-columnstore>` disabled to not filter null rows
+  .
+
+  .. NOTE:: This is a breaking change because it causes performance degradations.
+
 Deprecations
 ============
 
