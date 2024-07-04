@@ -78,6 +78,13 @@
         <!--</module>-->
         <module name="AvoidStarImport"/>
         <module name="UnusedImports"/>
+        <module name="IllegalImport">
+            <property name="illegalPkgs" value="
+                org.junit.Assert,
+                org.junit.jupiter.api.Assertions,
+                org.hamcrest.CoreMatchers,
+                org.hamcrest.Matchers"/>
+        </module>
 
         <module name="OneTopLevelClass"/>
         <module name="NoLineWrap"/>
