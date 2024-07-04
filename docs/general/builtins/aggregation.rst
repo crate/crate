@@ -825,6 +825,33 @@ Example::
     executions of the aggregate function on the same data produce slightly
     differing results.
 
+.. _aggregation-topk:
+
+``topk(column, k)``
+-------------------
+
+The ``topk`` aggregate function computes an approximation of the most frequent
+values and their frequencies of a specific column. The result is an array of
+objects containing the most common values and their frequencies ordered by
+frequency. The k parameter is an optional parameter which defines how many
+elements should be returned which defaults to 8. The maximum limit for k is
+10000.
+
+Internally the ``topk``
+aggregate function use an implementation of the
+`Efficient Computation of Frequent and Top-k Elements in Data Streams`_
+algorithm.
+
+Example::
+
+    cr> select topk(country, 3) from sys.summits;
+    +--------------------------------------------------------------------------------------------------------+
+    | topk(country, 3)                                                                                       |
+    +--------------------------------------------------------------------------------------------------------+
+    | [{"frequency": 436, "item": "IT"}, {"frequency": 401, "item": "AT"}, {"frequency": 320, "item": "CH"}] |
+    +--------------------------------------------------------------------------------------------------------+
+    SELECT 1 row in set (... sec)
+
 
 .. _aggregation-limitations:
 
@@ -845,3 +872,4 @@ Limitations
 .. _Standard Deviation: https://en.wikipedia.org/wiki/Standard_deviation
 .. _TDigest: https://github.com/tdunning/t-digest/blob/master/docs/t-digest-paper/histo.pdf
 .. _Variance: https://en.wikipedia.org/wiki/Variance
+.. _Efficient Computation of Frequent and Top-k Elements in Data Streams: https://www.cs.ucsb.edu/sites/default/files/documents/2005-23.pdf
