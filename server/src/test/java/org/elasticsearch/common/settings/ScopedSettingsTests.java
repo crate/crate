@@ -22,10 +22,12 @@ package org.elasticsearch.common.settings;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.fail;
+import static org.elasticsearch.cluster.routing.allocation.allocator.BalancedShardsAllocator.INDEX_BALANCE_FACTOR_SETTING;
+import static org.elasticsearch.cluster.routing.allocation.allocator.BalancedShardsAllocator.SHARD_BALANCE_FACTOR_SETTING;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -445,12 +447,38 @@ public class ScopedSettingsTests extends ESTestCase {
         assertThat(consumer2.get()).isEqualTo(0);
         assertThat(aC.get()).isEqualTo(0);
         assertThat(bC.get()).isEqualTo(0);
-        try {
-            service.validateUpdate(Settings.builder().put("foo.bar", 2).put("foo.bar.baz", -15).build());
-            fail("invalid value");
-        } catch (IllegalArgumentException ex) {
-            assertThat(ex.getMessage()).isEqualTo("illegal value can't update [foo.bar.baz] from [1] to [-15]");
-        }
+        assertThatThrownBy(() ->
+            service.validateUpdate(Settings.builder().put("foo.bar", 2).put("foo.bar.baz", -15).build()))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("illegal value can't update [foo.bar.baz] from [1] to [-15]");
+
+        assertThatThrownBy(() ->
+            service.validateUpdate(Settings.builder()
+                .put(INDEX_BALANCE_FACTOR_SETTING.getKey(), 0.0f)
+                .put(SHARD_BALANCE_FACTOR_SETTING.getKey(), 0.0f)
+                .build()))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("[cluster.routing.allocation.balance.index] and [cluster.routing.allocation.balance.shard] " +
+                        "cannot both be set to 0.0");
+
+        AbstractScopedSettings serviceBalanceFactor1 = new ClusterSettings(Settings.builder()
+                .put(INDEX_BALANCE_FACTOR_SETTING.getKey(), 0.0f).build(), Set.of());
+        assertThatThrownBy(() ->
+            serviceBalanceFactor1.validateUpdate(Settings.builder()
+                .put(SHARD_BALANCE_FACTOR_SETTING.getKey(), 0.0f)
+                .build()))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("[cluster.routing.allocation.balance.index] and [cluster.routing.allocation.balance.shard] " +
+                "cannot both be set to 0.0");
+        AbstractScopedSettings serviceBalanceFactor2 = new ClusterSettings(Settings.builder()
+            .put(SHARD_BALANCE_FACTOR_SETTING.getKey(), 0.0f).build(), Set.of());
+        assertThatThrownBy(() ->
+            serviceBalanceFactor2.validateUpdate(Settings.builder()
+                .put(INDEX_BALANCE_FACTOR_SETTING.getKey(), 0.0f)
+                .build()))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("[cluster.routing.allocation.balance.index] and [cluster.routing.allocation.balance.shard] " +
+                "cannot both be set to 0.0");
 
         assertThat(consumer.get()).isEqualTo(0);
         assertThat(consumer2.get()).isEqualTo(0);
