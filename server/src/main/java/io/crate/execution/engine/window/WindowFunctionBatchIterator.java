@@ -33,11 +33,13 @@ import java.util.concurrent.Executor;
 import java.util.function.Function;
 import java.util.function.IntSupplier;
 import java.util.function.LongConsumer;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.collections.accountable.AccountableList;
 import io.crate.common.collections.Iterables;
 import io.crate.data.BatchIterator;
 import io.crate.data.Buckets;
@@ -99,7 +101,8 @@ public final class WindowFunctionBatchIterator {
         };
         return CollectingBatchIterator.newInstance(
             source,
-            src -> src.map(materialize).toList()
+            src -> src.map(materialize)
+                .collect(Collectors.toCollection(() -> new AccountableList<>(allocateBytes)))
                 .thenCompose(rows -> sortAndComputeWindowFunctions(
                     rows,
                     allocateBytes,

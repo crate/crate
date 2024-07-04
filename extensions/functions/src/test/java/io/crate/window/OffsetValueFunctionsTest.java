@@ -573,7 +573,6 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
     @Test
     public void test_row_cache_memory_is_accounted() throws Throwable {
         RamAccounting accounting = new PlainRamAccounting();
-
         assertEvaluate(
             "lag(x) over(order by x)",
             new Object[]{null, 1},
@@ -582,8 +581,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
             new Object[]{1},
             new Object[]{2}
         );
-
-        assertThat(accounting.totalBytes()).isEqualTo(149L);
+        assertThat(accounting.totalBytes()).isEqualTo(217L);
     }
 
 }
