@@ -705,6 +705,12 @@ each node closer together.
   <gloss-shard-allocation>` on a node (float). Raising this raises the tendency
   to equalize the number of shards across all nodes in the cluster.
 
+.. NOTE::
+
+    :ref:`cluster.routing.allocation.balance.shard` and
+    :ref:`cluster.routing.allocation.balance.index` cannot be both set to
+    ``0.0f``.
+
 .. _cluster.routing.allocation.balance.index:
 
 **cluster.routing.allocation.balance.index**
@@ -715,6 +721,12 @@ each node closer together.
   <gloss-shard-allocation>` on a specific node (float). Increasing this value
   raises the tendency to equalize the number of shards per index across all
   nodes in the cluster.
+
+.. NOTE::
+
+    :ref:`cluster.routing.allocation.balance.shard` and
+    :ref:`cluster.routing.allocation.balance.index` cannot be both set to
+    ``0.0f``.
 
 .. _cluster.routing.allocation.balance.threshold:
 

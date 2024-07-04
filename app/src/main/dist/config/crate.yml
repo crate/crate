@@ -528,6 +528,10 @@ auth:
 # node (float).
 #cluster.routing.allocation.balance.index: 0.5f
 
+## Note that cluster.routing.allocation.balance.shard & cluster.routing.allocation.balance.index
+## cannot be both set to 0.0f
+
+
 # Defines a weight factor for the number of primaries of a specific index
 # allocated on a node (float).
 #cluster.routing.allocation.balance.primary: 0.05f
