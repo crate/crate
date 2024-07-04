@@ -21,6 +21,9 @@
 package org.elasticsearch.common.settings;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.fail;
+import static org.elasticsearch.cluster.routing.allocation.allocator.BalancedShardsAllocator.INDEX_BALANCE_FACTOR_SETTING;
+import static org.elasticsearch.cluster.routing.allocation.allocator.BalancedShardsAllocator.SHARD_BALANCE_FACTOR_SETTING;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertEquals;
@@ -29,7 +32,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -449,12 +451,38 @@ public class ScopedSettingsTests extends ESTestCase {
         assertEquals(0, consumer2.get());
         assertEquals(0, aC.get());
         assertEquals(0, bC.get());
-        try {
-            service.validateUpdate(Settings.builder().put("foo.bar", 2).put("foo.bar.baz", -15).build());
-            fail("invalid value");
-        } catch (IllegalArgumentException ex) {
-            assertEquals("illegal value can't update [foo.bar.baz] from [1] to [-15]", ex.getMessage());
-        }
+        assertThatThrownBy(() ->
+            service.validateUpdate(Settings.builder().put("foo.bar", 2).put("foo.bar.baz", -15).build()))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("illegal value can't update [foo.bar.baz] from [1] to [-15]");
+
+        assertThatThrownBy(() ->
+            service.validateUpdate(Settings.builder()
+                .put(INDEX_BALANCE_FACTOR_SETTING.getKey(), 0.0f)
+                .put(SHARD_BALANCE_FACTOR_SETTING.getKey(), 0.0f)
+                .build()))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("[cluster.routing.allocation.balance.index] and [cluster.routing.allocation.balance.shard] " +
+                        "cannot both be set to 0.0");
+
+        AbstractScopedSettings serviceBalanceFactor1 = new ClusterSettings(Settings.builder()
+                .put(INDEX_BALANCE_FACTOR_SETTING.getKey(), 0.0f).build(), Set.of());
+        assertThatThrownBy(() ->
+            serviceBalanceFactor1.validateUpdate(Settings.builder()
+                .put(SHARD_BALANCE_FACTOR_SETTING.getKey(), 0.0f)
+                .build()))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("[cluster.routing.allocation.balance.index] and [cluster.routing.allocation.balance.shard] " +
+                "cannot both be set to 0.0");
+        AbstractScopedSettings serviceBalanceFactor2 = new ClusterSettings(Settings.builder()
+            .put(SHARD_BALANCE_FACTOR_SETTING.getKey(), 0.0f).build(), Set.of());
+        assertThatThrownBy(() ->
+            serviceBalanceFactor2.validateUpdate(Settings.builder()
+                .put(INDEX_BALANCE_FACTOR_SETTING.getKey(), 0.0f)
+                .build()))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("[cluster.routing.allocation.balance.index] and [cluster.routing.allocation.balance.shard] " +
+                "cannot both be set to 0.0");
 
         assertEquals(0, consumer.get());
         assertEquals(0, consumer2.get());
@@ -688,7 +716,7 @@ public class ScopedSettingsTests extends ESTestCase {
         try {
             new IndexScopedSettings(
                 Settings.EMPTY, Collections.singleton(Setting.groupSetting("foo.bar.", Property.IndexScope)));
-            fail();
+            fail("Should throw an exception");
         } catch (IllegalArgumentException e) {
             assertEquals("illegal settings key: [foo.bar.] must start with [index.]", e.getMessage());
         }
@@ -696,7 +724,7 @@ public class ScopedSettingsTests extends ESTestCase {
         try {
             new IndexScopedSettings(
                 Settings.EMPTY, Collections.singleton(Setting.simpleString("foo.bar", Property.IndexScope)));
-            fail();
+            fail("Should throw an exception");
         } catch (IllegalArgumentException e) {
             assertEquals("illegal settings key: [foo.bar] must start with [index.]", e.getMessage());
         }
@@ -704,7 +732,7 @@ public class ScopedSettingsTests extends ESTestCase {
         try {
             new IndexScopedSettings(
                 Settings.EMPTY, Collections.singleton(Setting.groupSetting("index. foo.", Property.IndexScope)));
-            fail();
+            fail("Should throw an exception");
         } catch (IllegalArgumentException e) {
             assertEquals("illegal settings key: [index. foo.]", e.getMessage());
         }
@@ -713,7 +741,7 @@ public class ScopedSettingsTests extends ESTestCase {
         try {
             new IndexScopedSettings(
                 Settings.EMPTY, Collections.singleton(Setting.boolSetting("index.", true, Property.IndexScope)));
-            fail();
+            fail("Should throw an exception");
         } catch (IllegalArgumentException e) {
             assertEquals("illegal settings key: [index.]", e.getMessage());
         }
