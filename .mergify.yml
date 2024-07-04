@@ -26,6 +26,16 @@ pull_request_rules:
         method: rebase
         name: default
 
+  - name: backport 5.8
+    actions:
+      backport:
+        ignore_conflicts: true
+        branches:
+          - '5.8'
+    conditions:
+      - label=ready-to-merge
+      - label=v/5.8
+
   - name: backport 5.7
     actions:
       backport:
