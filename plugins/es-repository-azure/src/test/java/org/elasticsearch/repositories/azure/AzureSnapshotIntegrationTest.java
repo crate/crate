@@ -151,6 +151,43 @@ public class AzureSnapshotIntegrationTest extends IntegTestCase {
     }
 
     @Test
+    public void test_create_azure_repo_with_sas_token() {
+        execute("CREATE REPOSITORY r1 TYPE AZURE WITH (" +
+            "container = '" + CONTAINER_NAME + "', " +
+            "account = 'devstoreaccount1', " +
+            "sas_token = 'aaQc3RvcmVhY2NvdW50Mdhdhd', " +
+            "location_mode = 'PRIMARY_ONLY', " +
+            "endpoint = '" + httpServerUrl() + "')");
+        assertThat(response.rowCount()).isEqualTo(1L);
+    }
+
+    @Test
+    public void test_create_azure_repo_with_sas_token_and_key_fails() {
+        Asserts.assertSQLError(() ->
+            execute("CREATE REPOSITORY r1 TYPE AZURE WITH (" +
+            "container = '" + CONTAINER_NAME + "', " +
+            "account = 'devstoreaccount1', " +
+            "sas_token = 'aaQc3RvcmVhY2NvdW50Mdhdhd', " +
+            "key = 'ZGV2c3RvcmVhY2NvdW50MQ==', " +
+            "location_mode = 'PRIMARY_ONLY', " +
+            "endpoint = '" + httpServerUrl() + "')"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(INTERNAL_SERVER_ERROR, 5000)
+            .hasMessageContaining("[r1] Unable to verify the repository, [r1] is not accessible on master node: " +
+                "SettingsException 'Both a secret as well as a shared access token were set.'");
+    }
+
+    @Test
+    public void test_create_azure_repo_with_missing_mandatory_settings() {
+        Asserts.assertSQLError(() ->
+                execute("CREATE REPOSITORY r1 TYPE AZURE WITH (account = 'devstoreaccount1')"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(INTERNAL_SERVER_ERROR, 5000)
+            .hasMessageContaining("[r1] Unable to verify the repository, [r1] is not accessible on master node: " +
+                "SettingsException 'Neither a secret key nor a shared access token was set.'");
+    }
+
+    @Test
     public void test_invalid_settings_to_create_azure_repository() {
         Asserts.assertSQLError(() -> execute(
             "CREATE REPOSITORY r1 TYPE AZURE WITH (container = 'invalid', " +
