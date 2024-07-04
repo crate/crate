@@ -22,7 +22,6 @@
 package io.crate.metadata.blob;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertNotNull;
 
 import java.util.Collections;
 
@@ -52,7 +51,7 @@ public class BlobTableInfoTest extends ESTestCase {
     @Test
     public void testGetColumnInfo() throws Exception {
         Reference foobar = info.getReference(ColumnIdent.of("digest"));
-        assertNotNull(foobar);
+        assertThat(foobar).isNotNull();
         assertThat(foobar.valueType()).isEqualTo(DataTypes.STRING);
     }
 

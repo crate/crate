@@ -19,7 +19,7 @@
 package org.elasticsearch.cluster.coordination;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.io.IOException;
 

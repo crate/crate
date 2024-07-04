@@ -19,7 +19,6 @@
 package org.elasticsearch.test.hamcrest;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertArrayEquals;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -140,7 +139,7 @@ public class ElasticsearchAssertions {
         } else if (expected instanceof byte[]) {
             //byte[] is really a special case for binary values when comparing SMILE and CBOR, arrays of other types
             //don't need to be handled. Ordinary arrays get parsed as lists.
-            assertArrayEquals((byte[]) expected, (byte[]) actual);
+            assertThat((byte[]) actual).isEqualTo((byte[]) expected);
         } else {
             assertThat(actual).isEqualTo(expected);
         }

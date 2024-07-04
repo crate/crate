@@ -20,7 +20,6 @@ package org.elasticsearch.snapshots.mockstore;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertArrayEquals;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -75,7 +74,7 @@ public class MockEventuallyConsistentRepositoryTests extends ESTestCase {
                 final byte[] readBytes = new byte[lengthWritten + 1];
                 final int lengthSeen = in.read(readBytes);
                 assertThat(lengthSeen).isEqualTo(lengthWritten);
-                assertArrayEquals(blobData, Arrays.copyOf(readBytes, lengthWritten));
+                assertThat(Arrays.copyOf(readBytes, lengthWritten)).isEqualTo(blobData);
             }
         }
     }

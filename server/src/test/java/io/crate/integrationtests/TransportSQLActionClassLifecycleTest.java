@@ -48,9 +48,7 @@ import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.IntegTestCase;
-import org.hamcrest.Matchers;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
@@ -482,13 +480,13 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
             for (Object[] objects : response.rows()) {
                 names.add((String) objects[4]);
             }
-            Assert.assertThat(names, Matchers.anyOf(
-                Matchers.hasItems("distributing collect", "distributing collect"),
-                Matchers.hasItems("collect", "localMerge"),
+            assertThat(names).satisfiesAnyOf(
+                _ -> assertThat(names).contains("distributing collect", "distributing collect"),
+                _ -> assertThat(names).contains("collect", "localMerge"),
 
                 // the select * from sys.operations_log has 2 collect operations (1 per node)
-                Matchers.hasItems("collect", "collect"),
-                Matchers.hasItems("distributed merge", "localMerge")));
+                _ -> assertThat(names).contains("collect", "collect"),
+                _ -> assertThat(names).contains("distributed merge", "localMerge"));
         }, 10L, TimeUnit.SECONDS);
 
         execute("set global transient stats.enabled = false");

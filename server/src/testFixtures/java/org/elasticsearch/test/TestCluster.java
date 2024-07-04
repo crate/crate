@@ -22,13 +22,13 @@ package org.elasticsearch.test;
 import static io.crate.common.unit.TimeValue.timeValueSeconds;
 import static io.crate.lucene.CrateLuceneTestCase.rarely;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.cluster.coordination.ClusterBootstrapService.INITIAL_MASTER_NODES_SETTING;
 import static org.elasticsearch.discovery.DiscoveryModule.DISCOVERY_TYPE_SETTING;
 import static org.elasticsearch.discovery.DiscoveryModule.ZEN2_DISCOVERY_TYPE;
 import static org.elasticsearch.test.ESTestCase.assertBusy;
 import static org.elasticsearch.test.ESTestCase.randomFrom;
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertAcked;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.Closeable;
 import java.io.IOException;

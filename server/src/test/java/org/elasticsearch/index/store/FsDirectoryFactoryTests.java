@@ -20,7 +20,7 @@
 package org.elasticsearch.index.store;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.io.IOException;
 import java.nio.file.Path;

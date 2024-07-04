@@ -25,8 +25,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.index.engine.Engine.Operation.Origin.PRIMARY;
 import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
@@ -483,7 +481,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
             new LatchedActionListener<>(ActionListener.wrap(r -> sendFilesError.set(null), sendFilesError::set), latch));
         latch.await();
         assertThat(sendFilesError.get()).isInstanceOf(IOException.class);
-        assertNotNull(SQLExceptions.unwrapCorruption(sendFilesError.get()));
+        assertThat(SQLExceptions.unwrapCorruption(sendFilesError.get())).isNotNull();
         assertThat(failedEngine.get()).isTrue();
         // ensure all chunk requests have been completed; otherwise some files on the target are left open.
         IOUtils.close(() -> terminate(threadPool), () -> threadPool = null);
@@ -761,7 +759,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         cancelingThread.join();
         // we have to use assert busy as we may be interrupted while acquiring the permit, if so we want to check
         // that the permit is released.
-        assertBusy(() -> assertTrue(freed.get()));
+        assertBusy(() -> assertThat(freed.get()).isTrue());
     }
 
     @Test
@@ -846,7 +844,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         } catch (Exception e) {
             assertThat(wasCancelled.get()).isTrue();
             Class<?>[] clazzes = { CancellableThreads.ExecutionCancelledException.class };
-            assertNotNull(Exceptions.firstCause(e, clazzes));
+            assertThat(Exceptions.firstCause(e, clazzes)).isNotNull();
         }
         store.close();
     }

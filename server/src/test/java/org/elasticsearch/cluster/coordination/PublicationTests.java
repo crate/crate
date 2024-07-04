@@ -20,10 +20,6 @@
 package org.elasticsearch.cluster.coordination;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -127,7 +123,7 @@ public class PublicationTests extends ESTestCase {
 
         @Override
         protected void onJoin(Join join) {
-            assertNull(joins.put(join.getSourceNode(), join));
+            assertThat(joins.put(join.getSourceNode(), join)).isNull();
         }
 
         @Override
@@ -138,8 +134,8 @@ public class PublicationTests extends ESTestCase {
         @Override
         protected void sendPublishRequest(DiscoveryNode destination, PublishRequest publishRequest,
                                           ActionListener<PublishWithJoinResponse> responseActionListener) {
-            assertSame(publishRequest, this.publishRequest);
-            assertNull(pendingPublications.put(destination, responseActionListener));
+            assertThat(publishRequest).isSameAs(this.publishRequest);
+            assertThat(pendingPublications.put(destination, responseActionListener)).isNull();
         }
 
         @Override
@@ -148,9 +144,9 @@ public class PublicationTests extends ESTestCase {
             if (this.applyCommit == null) {
                 this.applyCommit = applyCommit;
             } else {
-                assertSame(applyCommit, this.applyCommit);
+                assertThat(applyCommit).isSameAs(this.applyCommit);
             }
-            assertNull(pendingCommits.put(destination, responseActionListener));
+            assertThat(pendingCommits.put(destination, responseActionListener)).isNull();
         }
     }
 
@@ -195,7 +191,7 @@ public class PublicationTests extends ESTestCase {
             }
             PublishResponse publishResponse = nodeResolver.apply(e.getKey()).coordinationState.handlePublishRequest(
                 publication.publishRequest);
-            assertNotEquals(processedNode1PublishResponse.get(), publication.pendingCommits.isEmpty());
+            assertThat(processedNode1PublishResponse.get()).isNotEqualTo(publication.pendingCommits.isEmpty());
             assertThat(publication.joins.containsKey(e.getKey())).isFalse();
             PublishWithJoinResponse publishWithJoinResponse = new PublishWithJoinResponse(publishResponse,
                 randomBoolean() ? Optional.empty() : Optional.of(new Join(e.getKey(), randomFrom(n1, n2, n3), publishResponse.getTerm(),
@@ -212,7 +208,7 @@ public class PublicationTests extends ESTestCase {
             if (e.getKey().equals(n1)) {
                 processedNode1PublishResponse.set(true);
             }
-            assertNotEquals(processedNode1PublishResponse.get(), publication.pendingCommits.isEmpty());
+            assertThat(processedNode1PublishResponse.get()).isNotEqualTo(publication.pendingCommits.isEmpty());
         });
 
         if (delayProcessingNode2PublishResponse) {
@@ -220,7 +216,7 @@ public class PublicationTests extends ESTestCase {
         } else {
             assertThat(publication.pendingCommits.keySet()).isEqualTo(discoNodes);
         }
-        assertNotNull(publication.applyCommit);
+        assertThat(publication.applyCommit).isNotNull();
         assertThat(publication.publishRequest.getAcceptedState().term()).isEqualTo(publication.applyCommit.getTerm());
         assertThat(publication.publishRequest.getAcceptedState().version()).isEqualTo(publication.applyCommit.getVersion());
         publication.pendingCommits.entrySet().stream().collect(shuffle()).forEach(e -> {
@@ -374,7 +370,7 @@ public class PublicationTests extends ESTestCase {
         });
 
         assertThat(publication.pendingCommits.keySet()).isEqualTo(Collections.emptySet());
-        assertNull(publication.applyCommit);
+        assertThat(publication.applyCommit).isNull();
         assertThat(publication.completed).isTrue();
         assertThat(publication.committed).isFalse();
 
@@ -420,7 +416,7 @@ public class PublicationTests extends ESTestCase {
             }
         });
 
-        assertNotNull(publication.applyCommit);
+        assertThat(publication.applyCommit).isNotNull();
 
         Set<DiscoveryNode> committingNodes = new HashSet<>(randomSubsetOf(discoNodes));
         if (publishedToN3 == false) {

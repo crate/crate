@@ -23,11 +23,10 @@ package org.elasticsearch.action.admin.indices.close;
 import static io.crate.execution.ddl.tables.TransportCloseTable.INDEX_CLOSED_BLOCK_ID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.action.support.replication.ClusterStateCreationUtils.state;
 import static org.elasticsearch.test.ClusterServiceUtils.createClusterService;
 import static org.elasticsearch.test.ClusterServiceUtils.setState;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
@@ -190,7 +189,7 @@ public class TransportVerifyShardBeforeCloseActionTests extends ESTestCase {
             indexShard,
             ActionListener.wrap(
                 r -> {
-                    assertNotNull(r);
+                    assertThat(r).isNotNull();
                     res.complete(null);
                 },
                 res::completeExceptionally

@@ -20,7 +20,6 @@ package org.elasticsearch.common.util.concurrent;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertFalse;
 
 import java.io.IOException;
 import java.util.List;
@@ -230,6 +229,6 @@ public class AsyncIOProcessorTests extends ESTestCase {
         });
         assertThat(notified.get()).isEqualTo(threadCount);
         assertThat(received.get()).isEqualTo(threadCount);
-        threads.forEach(t -> assertFalse(t.isAlive()));
+        threads.forEach(t -> assertThat(t.isAlive()).isFalse());
     }
 }

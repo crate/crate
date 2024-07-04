@@ -23,9 +23,7 @@ package org.elasticsearch.common.settings;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.util.Arrays;
 
@@ -40,7 +38,7 @@ public class SecureStringTests extends ESTestCase {
         SecureString secureString = new SecureString(password);
         assertSecureStringEqualToChars(password, secureString);
         try (SecureString copy = secureString.clone()) {
-            assertArrayEquals(password, copy.getChars());
+            assertThat(copy.getChars()).isEqualTo(password);
             assertThat(copy.getChars()).isNotSameAs(password);
         }
         assertSecureStringEqualToChars(password, secureString);
@@ -52,13 +50,13 @@ public class SecureStringTests extends ESTestCase {
         SecureString secureString = new SecureString(password);
         assertSecureStringEqualToChars(password, secureString);
         SecureString copy = secureString.clone();
-        assertArrayEquals(password, copy.getChars());
+        assertThat(copy.getChars()).isEqualTo(password);
         assertThat(copy.getChars()).isNotSameAs(password);
         final char[] passwordCopy = Arrays.copyOf(password, password.length);
-        assertArrayEquals(password, passwordCopy);
+        assertThat(passwordCopy).isEqualTo(password);
         secureString.close();
-        assertNotEquals(password[0], passwordCopy[0]);
-        assertArrayEquals(passwordCopy, copy.getChars());
+        assertThat(passwordCopy[0]).isNotEqualTo(password[0]);
+        assertThat(copy.getChars()).isEqualTo(passwordCopy);
     }
 
     @Test
@@ -67,7 +65,7 @@ public class SecureStringTests extends ESTestCase {
         SecureString secureString = new SecureString(password);
         assertSecureStringEqualToChars(password, secureString);
         SecureString copy = secureString.clone();
-        assertArrayEquals(password, copy.getChars());
+        assertThat(copy.getChars()).isEqualTo(password);
         assertThat(copy.getChars()).isNotSameAs(password);
         copy.close();
         if (randomBoolean()) {

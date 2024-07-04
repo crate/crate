@@ -20,8 +20,7 @@ package org.elasticsearch.common.util.concurrent;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CyclicBarrier;
@@ -210,7 +209,7 @@ public class AbstractAsyncTaskTests extends ESTestCase {
         assertThat(task.isScheduled()).isTrue();
         // This should only take 2 milliseconds in ideal conditions, but allow 10 seconds in case of VM stalls
         assertThat(latch.await(10, TimeUnit.SECONDS)).isTrue();
-        assertBusy(() -> assertFalse(task.isScheduled()));
+        assertBusy(() -> assertThat(task.isScheduled()).isFalse());
         task.close();
         assertThat(task.isScheduled()).isFalse();
         assertThat(task.isClosed()).isTrue();

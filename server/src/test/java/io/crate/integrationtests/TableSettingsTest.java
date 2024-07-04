@@ -27,7 +27,6 @@ import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertNull;
 
 import java.util.Locale;
 import java.util.Map;
@@ -69,7 +68,7 @@ public class TableSettingsTest extends IntegTestCase {
         // system tables have no settings
         execute("select settings from information_schema.tables where table_schema = 'sys'");
         for (Object[] row : response.rows()) {
-            assertNull(row[0]);
+            assertThat(row[0]).isNull();
         }
 
         execute("select settings from information_schema.tables where table_name = 'settings_table'");

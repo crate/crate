@@ -28,12 +28,8 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.io.File;
 import java.nio.file.Paths;
@@ -100,7 +96,7 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("refresh table test");
 
         execute("select \"_id\" as b, \"_version\" as a from test");
-        assertArrayEquals(new String[]{"b", "a"}, response.cols());
+        assertThat(response.cols()).isEqualTo(new String[]{"b", "a"});
         assertThat(response.rowCount()).isEqualTo(1);
     }
 
@@ -183,14 +179,14 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("create table test (\"firstName\" string, \"lastName\" string)");
         ensureYellow();
         execute("select * from test");
-        assertArrayEquals(new String[]{"firstName", "lastName"}, response.cols());
+        assertThat(response.cols()).isEqualTo(new String[]{"firstName", "lastName"});
         assertThat(response.rowCount()).isEqualTo(0);
     }
 
     @Test
     public void testSelectStarEmptyMapping() throws Exception {
         execute("select * from unnest()");
-        assertArrayEquals(new String[]{}, response.cols());
+        assertThat(response.cols()).isEqualTo(new String[]{});
         assertThat(response.rowCount()).isEqualTo(0);
     }
 
@@ -228,19 +224,19 @@ public class TransportSQLActionTest extends IntegTestCase {
 
         Object[] args = new Object[]{"id1"};
         execute("select first_name, last_name from test where \"_id\" = $1", args);
-        assertArrayEquals(new Object[]{"Youri", "Zoon"}, response.rows()[0]);
+        assertThat(response.rows()[0]).isEqualTo(new Object[]{"Youri", "Zoon"});
 
         args = new Object[]{"Zoon"};
         execute("select first_name, last_name from test where last_name = $1", args);
-        assertArrayEquals(new Object[]{"Youri", "Zoon"}, response.rows()[0]);
+        assertThat(response.rows()[0]).isEqualTo(new Object[]{"Youri", "Zoon"});
 
         args = new Object[]{38, "Zoon"};
         execute("select first_name, last_name from test where age = $1 and last_name = $2", args);
-        assertArrayEquals(new Object[]{"Youri", "Zoon"}, response.rows()[0]);
+        assertThat(response.rows()[0]).isEqualTo(new Object[]{"Youri", "Zoon"});
 
         args = new Object[]{38, "Zoon"};
         execute("select first_name, last_name from test where age = ? and last_name = ?", args);
-        assertArrayEquals(new Object[]{"Youri", "Zoon"}, response.rows()[0]);
+        assertThat(response.rows()[0]).isEqualTo(new Object[]{"Youri", "Zoon"});
     }
 
     @Test
@@ -249,9 +245,9 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("insert into test (first_name, last_name) values ('Youri', 'Zoon')");
         execute("refresh table test");
         execute("select *, \"_version\", \"_version\" as v from test");
-        assertArrayEquals(new String[]{"first_name", "last_name", "_version", "v"}, response.cols());
+        assertThat(response.cols()).isEqualTo(new String[]{"first_name", "last_name", "_version", "v"});
         assertThat(response.rowCount()).isEqualTo(1);
-        assertArrayEquals(new Object[]{"Youri", "Zoon", 1L, 1L}, response.rows()[0]);
+        assertThat(response.rows()[0]).isEqualTo(new Object[]{"Youri", "Zoon", 1L, 1L});
     }
 
     @Test
@@ -267,7 +263,6 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("select name from test where name != ''");
         assertThat(response.rowCount()).isEqualTo(1);
         assertThat(response.rows()[0][0]).isEqualTo("Ruben Lenten");
-
     }
 
     @Test
@@ -330,13 +325,12 @@ public class TransportSQLActionTest extends IntegTestCase {
         refresh();
 
         execute("select FIRSTNAME, \"firstname\", \"firstName\" from test");
-        assertArrayEquals(new String[]{"firstname", "firstname", "firstName"}, response.cols());
+        assertThat(response.cols()).isEqualTo(new String[]{"firstname", "firstname", "firstName"});
         assertThat(response.rowCount()).isEqualTo(1);
         assertThat(response.rows()[0][0]).isEqualTo("LowerCase");
         assertThat(response.rows()[0][1]).isEqualTo("LowerCase");
         assertThat(response.rows()[0][2]).isEqualTo("CamelCase");
     }
-
 
     @Test
     public void testIdSelectWithResult() throws Exception {
@@ -345,7 +339,7 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("refresh table test");
 
         execute("select \"_id\" from test");
-        assertArrayEquals(new String[]{"_id"}, response.cols());
+        assertThat(response.cols()).isEqualTo(new String[]{"_id"});
         assertThat(response.rowCount()).isEqualTo(1);
         assertThat(response.rows()[0].length).isEqualTo(1);
         assertThat(response.rows()[0][0]).isEqualTo("id1");
@@ -360,7 +354,6 @@ public class TransportSQLActionTest extends IntegTestCase {
         assertThat(response.rowCount()).isEqualTo(1);
     }
 
-
     @Test
     public void testSqlRequestWithLimitAndOffset() throws Exception {
         execute("create table test (id string primary key) with (number_of_replicas=0)");
@@ -373,7 +366,6 @@ public class TransportSQLActionTest extends IntegTestCase {
             "id2"
         );
     }
-
 
     @Test
     @UseRandomizedOptimizerRules(0) // depends on realtime result via primary key lookup
@@ -744,8 +736,8 @@ public class TransportSQLActionTest extends IntegTestCase {
         execute("select o['notExisting'] from quotes");
         assertThat(response.rowCount()).isEqualTo(2L);
         assertThat(response.cols()[0]).isEqualTo("o['notExisting']");
-        assertNull(response.rows()[0][0]);
-        assertNull(response.rows()[1][0]);
+        assertThat(response.rows()[0][0]).isNull();
+        assertThat(response.rows()[1][0]).isNull();
     }
 
     @Test
@@ -755,9 +747,9 @@ public class TransportSQLActionTest extends IntegTestCase {
         assertThat(response.rowCount()).isEqualTo(2L);
         assertThat(response.cols()[0]).isEqualTo("o['unknown']");
         assertThat(response.cols()[1]).isEqualTo("id");
-        assertNull(response.rows()[0][0]);
+        assertThat(response.rows()[0][0]).isNull();
         assertThat(response.rows()[0][1]).isEqualTo(1);
-        assertNull(response.rows()[1][0]);
+        assertThat(response.rows()[1][0]).isNull();
         assertThat(response.rows()[1][1]).isEqualTo(2);
     }
 
@@ -1451,16 +1443,16 @@ public class TransportSQLActionTest extends IntegTestCase {
         refresh();
 
         execute("select _id, _version from locations where id=2");
-        assertNotNull(response.rows()[0][0]);
-        assertNotNull(response.rows()[0][1]);
+        assertThat(response.rows()[0][0]).isNotNull();
+        assertThat(response.rows()[0][1]).isNotNull();
 
         execute("select _id, name from locations where id=2");
-        assertNotNull(response.rows()[0][0]);
-        assertNotNull(response.rows()[0][1]);
+        assertThat(response.rows()[0][0]).isNotNull();
+        assertThat(response.rows()[0][1]).isNotNull();
 
         execute("select _id, _doc from locations where id=2");
-        assertNotNull(response.rows()[0][0]);
-        assertNotNull(response.rows()[0][1]);
+        assertThat(response.rows()[0][0]).isNotNull();
+        assertThat(response.rows()[0][1]).isNotNull();
 
         execute("select _doc, id from locations where id in (2,3) order by id");
         Map<String, Object> _doc1 = (Map<String, Object>) response.rows()[0][0];

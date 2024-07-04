@@ -22,7 +22,7 @@
 package org.elasticsearch.common.settings;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.util.LinkedHashMap;
 import java.util.Map;

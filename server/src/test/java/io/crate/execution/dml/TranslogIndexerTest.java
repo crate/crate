@@ -21,8 +21,8 @@
 
 package io.crate.execution.dml;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertNotNull;
 
 import java.io.IOException;
 
@@ -39,7 +39,7 @@ public class TranslogIndexerTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor executor = SQLExecutor.of(clusterService)
             .addTable("create table tbl (x int)");
         DocTableInfo table = executor.resolveTableInfo("tbl");
-        assertNotNull(table);
+        assertThat(table).isNotNull();
 
         TranslogIndexer ti = table.getTranslogIndexer();
         BytesReference source = new BytesArray("{\"1\":1,\"2\":2}");
@@ -47,5 +47,4 @@ public class TranslogIndexerTest extends CrateDummyClusterServiceUnitTest {
             .isExactlyInstanceOf(TranslogMappingUpdateException.class)
             .hasMessageContaining("Unknown column in translog entry: 2=2");
     }
-
 }

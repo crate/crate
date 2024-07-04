@@ -20,11 +20,6 @@
 package org.elasticsearch.common.bytes;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
 
 import java.io.IOException;
 
@@ -64,12 +59,12 @@ public class PagedBytesReferenceTests extends AbstractBytesReferenceTestCase {
         BytesReference pbr = newBytesReference(length);
         BytesArray ba = new BytesArray(pbr.toBytesRef());
         BytesArray ba2 = new BytesArray(pbr.toBytesRef());
-        assertNotNull(ba);
-        assertNotNull(ba2);
+        assertThat(ba).isNotNull();
+        assertThat(ba2).isNotNull();
         assertThat(ba.length()).isEqualTo(pbr.length());
         assertThat(ba2.length()).isEqualTo(ba.length());
         // ensure no single-page optimization
-        assertNotSame(ba.array(), ba2.array());
+        assertThat(ba2.array()).isNotSameAs(ba.array());
     }
 
     public void testSinglePage() throws IOException {
@@ -80,15 +75,15 @@ public class PagedBytesReferenceTests extends AbstractBytesReferenceTestCase {
             // verify that array() is cheap for small payloads
             if (sizes[i] <= PAGE_SIZE) {
                 BytesRef page = getSinglePageOrNull(pbr);
-                assertNotNull(page);
+                assertThat(page).isNotNull();
                 byte[] array = page.bytes;
-                assertNotNull(array);
+                assertThat(array).isNotNull();
                 assertThat(array.length).isEqualTo(sizes[i]);
-                assertSame(array, page.bytes);
+                assertThat(array).isSameAs(page.bytes);
             } else {
                 BytesRef page = getSinglePageOrNull(pbr);
                 if (pbr.length() > 0) {
-                    assertNull(page);
+                    assertThat(page).isNull();
                 }
             }
         }
@@ -103,9 +98,9 @@ public class PagedBytesReferenceTests extends AbstractBytesReferenceTestCase {
             assertThat(bytes.length).isEqualTo(sizes[i]);
             // verify that toBytes() is cheap for small payloads
             if (sizes[i] <= PAGE_SIZE) {
-                assertSame(bytes, BytesReference.toBytes(pbr));
+                assertThat(bytes).isSameAs(BytesReference.toBytes(pbr));
             } else {
-                assertNotSame(bytes, BytesReference.toBytes(pbr));
+                assertThat(bytes).isNotSameAs(BytesReference.toBytes(pbr));
             }
         }
     }
@@ -134,7 +129,6 @@ public class PagedBytesReferenceTests extends AbstractBytesReferenceTestCase {
         int offsetToFlip = randomIntBetween(0, length - 1);
         int value = ~Byte.toUnsignedInt(ba1.get(offsetToFlip));
         ba2.set(offsetToFlip, (byte)value);
-        assertNotEquals(pbr, pbr2);
+        assertThat(pbr2).isNotEqualTo(pbr);
     }
-
 }

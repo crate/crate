@@ -21,8 +21,7 @@
 package org.elasticsearch.common.lucene.store;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
@@ -157,7 +156,7 @@ public class ESIndexInputTestCase extends ESTestCase {
                                     final byte[] fromClone = new byte[overlapLen];
                                     System.arraycopy(mainThreadResult, maxStart, fromMainThread, 0, overlapLen);
                                     System.arraycopy(cloneResult, maxStart, fromClone, 0, overlapLen);
-                                    assertArrayEquals(fromMainThread, fromClone);
+                                    assertThat(fromClone).isEqualTo(fromMainThread);
                                 }
                             }
 

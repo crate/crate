@@ -145,7 +145,6 @@ import org.elasticsearch.test.DummyShardLock;
 import org.elasticsearch.test.VersionUtils;
 import org.elasticsearch.test.store.MockFSDirectoryFactory;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.junit.Assert;
 import org.junit.Test;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;
@@ -3670,7 +3669,7 @@ public class IndexShardTests extends IndexShardTestCase {
                 r.close();
                 engineResetLatch.countDown();
             }
-        }, Assert::assertNotNull), TimeValue.timeValueMinutes(1L));
+        }, s -> assertThat(s).isNotNull()), TimeValue.timeValueMinutes(1L));
         engineResetLatch.await();
         assertThat(getShardDocUIDs(shard)).isEqualTo(docBelowGlobalCheckpoint);
         assertThat(shard.seqNoStats().getMaxSeqNo()).isEqualTo(globalCheckpoint);
@@ -3733,7 +3732,7 @@ public class IndexShardTests extends IndexShardTestCase {
                 } finally {
                     engineResetLatch.countDown();
                 }
-            }, Assert::assertNotNull), TimeValue.timeValueMinutes(1L));
+            }, s -> assertThat(s).isNotNull()), TimeValue.timeValueMinutes(1L));
 
         engineResetLatch.await();
 
@@ -3842,7 +3841,7 @@ public class IndexShardTests extends IndexShardTestCase {
                 } finally {
                     engineResetLatch.countDown();
                 }
-            }, Assert::assertNotNull), TimeValue.timeValueMinutes(1L));
+            }, s -> assertThat(s).isNotNull()), TimeValue.timeValueMinutes(1L));
 
         engineResetLatch.await();
 

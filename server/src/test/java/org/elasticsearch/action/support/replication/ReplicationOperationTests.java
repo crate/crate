@@ -20,10 +20,9 @@
 package org.elasticsearch.action.support.replication;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.action.support.replication.ClusterStateCreationUtils.state;
 import static org.elasticsearch.action.support.replication.ClusterStateCreationUtils.stateWithActivePrimary;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
 
 import java.net.InetAddress;
 import java.util.ArrayList;
@@ -773,8 +772,8 @@ public class ReplicationOperationTests extends ESTestCase {
                 final long generatedLocalCheckpoint = random().nextLong();
                 final long generatedGlobalCheckpoint = random().nextLong();
                 final String allocationId = replica.allocationId().getId();
-                assertNull(generatedLocalCheckpoints.put(allocationId, generatedLocalCheckpoint));
-                assertNull(generatedGlobalCheckpoints.put(allocationId, generatedGlobalCheckpoint));
+                assertThat(generatedLocalCheckpoints.put(allocationId, generatedLocalCheckpoint)).isNull();
+                assertThat(generatedGlobalCheckpoints.put(allocationId, generatedGlobalCheckpoint)).isNull();
                 listener.onResponse(new ReplicaResponse(generatedLocalCheckpoint, generatedGlobalCheckpoint));
             }
         }

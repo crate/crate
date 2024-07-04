@@ -30,7 +30,9 @@ import org.assertj.core.api.Condition;
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.assertj.core.data.Offset;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.mapper.ParsedDocument;
+import org.elasticsearch.index.translog.Translog;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -43,6 +45,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.table.TableInfo;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.role.Policy;
 import io.crate.sql.tree.ColumnPolicy;
@@ -114,6 +117,18 @@ public class Asserts extends Assertions {
 
     public static PrivilegeResolutionAssert assertThat(Policy actual) {
         return new PrivilegeResolutionAssert(actual);
+    }
+
+    public static TranslogSnapshotAssert assertThat(Translog.Snapshot actual) {
+        return new TranslogSnapshotAssert(actual);
+    }
+
+    public static EngineSearcherAssert assertThat(Engine.Searcher actual) {
+        return new EngineSearcherAssert(actual);
+    }
+
+    public static TableInfoAssert assertThat(TableInfo actual) {
+        return new TableInfoAssert(actual);
     }
 
     // generic helper methods

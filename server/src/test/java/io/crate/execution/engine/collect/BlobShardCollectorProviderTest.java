@@ -22,12 +22,10 @@
 package io.crate.execution.engine.collect;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 
 import java.lang.reflect.Method;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -53,7 +51,6 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.distribution.DistributionInfo;
 
@@ -112,8 +109,7 @@ public class BlobShardCollectorProviderTest extends SQLHttpIntegrationTest {
                 String indexUUID = metadata.index(".blob_b1").getIndexUUID();
                 BlobIndicesService blobIndicesService = cluster().getDataNodeInstance(BlobIndicesService.class);
                 BlobShard blobShard = blobIndicesService.blobShard(new ShardId(".blob_b1", indexUUID, 0));
-                Schemas schemas = new Schemas(Collections.emptyMap(), clusterService, null, List::of);
-                assertNotNull(blobShard);
+                assertThat(blobShard).isNotNull();
                 collectorProvider = new BlobShardCollectorProvider(
                     blobShard,
                     clusterService,
@@ -125,7 +121,7 @@ public class BlobShardCollectorProviderTest extends SQLHttpIntegrationTest {
                     mock(ElasticsearchClient.class),
                     Map.of()
                 );
-                assertNotNull(collectorProvider);
+                assertThat(collectorProvider).isNotNull();
             } catch (Exception e) {
                 fail("Exception shouldn't be thrown: " + e.getMessage());
             }

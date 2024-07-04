@@ -23,7 +23,6 @@ package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertThrows;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -294,11 +293,9 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
         createPublication("pub1", false, List.of("doc.t1"));
 
         executeOnSubscriber("CREATE TABLE doc.t1 (id int)");
-        assertThrows(
-            "Subscription 'sub1' cannot be created as included relation 'doc.t1' already exists",
-            RelationAlreadyExists.class,
-            () -> createSubscription("sub1", "pub1")
-        );
+        assertThatThrownBy(() -> createSubscription("sub1", "pub1"))
+            .isExactlyInstanceOf(RelationAlreadyExists.class)
+            .hasMessage("Subscription 'sub1' cannot be created as included relation 'doc.t1' already exists");
     }
 
     @Test

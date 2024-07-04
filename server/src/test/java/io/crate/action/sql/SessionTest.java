@@ -23,6 +23,7 @@ package io.crate.action.sql;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.concurrent.CompletableFuture.completedFuture;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doReturn;
@@ -41,7 +42,6 @@ import java.util.concurrent.TimeUnit;
 import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
-import org.junit.jupiter.api.Assertions;
 import org.mockito.Answers;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
@@ -66,17 +66,14 @@ import io.crate.types.DataTypes;
 
 public class SessionTest extends CrateDummyClusterServiceUnitTest {
 
-
     @Test
     public void test_out_of_bounds_getParamType_fails() throws Exception {
         SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService).build();
         try (Session session = sqlExecutor.createSession()) {
             session.parse("S_1", "Select 1 + ? + ?;", Collections.emptyList());
-            Assertions.assertThrows(
-                IllegalArgumentException.class,
-                () -> session.getParamType("S_1", 3),
-                "foo"
-            );
+            assertThatThrownBy(() -> session.getParamType("S_1", 3))
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Requested parameter index exceeds the number of parameters: 3");
         }
     }
 

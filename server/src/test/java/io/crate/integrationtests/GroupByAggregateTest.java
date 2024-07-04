@@ -22,12 +22,11 @@
 package io.crate.integrationtests;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
+import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
+import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.util.Arrays;
 import java.util.List;
@@ -37,9 +36,9 @@ import org.assertj.core.data.Percentage;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.jupiter.api.Assertions;
 
 import io.crate.data.Paging;
+import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedOptimizerRules;
@@ -59,7 +58,7 @@ public class GroupByAggregateTest extends IntegTestCase {
         this.setup.groupBySetup("integer");
 
         execute("select min(age) as minage, gender from characters group by gender order by gender");
-        assertArrayEquals(new String[]{"minage", "gender"}, response.cols());
+        assertThat(response.cols()).isEqualTo(new String[]{"minage", "gender"});
         assertThat(response.rowCount()).isEqualTo(2L);
         assertThat(response.rows()[0][1]).isEqualTo("female");
         assertThat(response.rows()[0][0]).isEqualTo(32);
@@ -350,7 +349,7 @@ public class GroupByAggregateTest extends IntegTestCase {
         this.setup.groupBySetup("integer");
 
         execute("select max(age), gender from characters group by gender order by gender");
-        assertArrayEquals(new String[]{"max(age)", "gender"}, response.cols());
+        assertThat(response.cols()).isEqualTo(new String[]{"max(age)", "gender"});
         assertThat(response.rowCount()).isEqualTo(2L);
         assertThat(response.rows()[0][1]).isEqualTo("female");
         assertThat(response.rows()[0][0]).isEqualTo(43);
@@ -427,7 +426,7 @@ public class GroupByAggregateTest extends IntegTestCase {
         assertThat(response.rows()[2][0]).isEqualTo(Double.MAX_VALUE);
 
         assertThat(response.rows()[3][1]).isEqualTo("internship");
-        assertNull(response.rows()[3][0]);
+        assertThat(response.rows()[3][0]).isNull();
     }
 
     @Test
@@ -552,7 +551,7 @@ public class GroupByAggregateTest extends IntegTestCase {
         assertThat(response.rows()[1][0]).isEqualTo(true);  // by accident only single values exist in group
 
         assertThat(response.rows()[2][1]).isEqualTo("internship");
-        assertNull(response.rows()[2][0]);
+        assertThat(response.rows()[2][0]).isNull();
 
         assertThat(response.rows()[3][1]).isEqualTo("management");
         assertThat(response.rows()[3][0]).isEqualTo(false);
@@ -677,7 +676,7 @@ public class GroupByAggregateTest extends IntegTestCase {
         waitNoPendingTasksOnAll();
         execute("select race, count(details['job']) from characters group by race order by count(details['job']) desc limit 1");
         assertThat(response.rowCount()).isEqualTo(1);
-        assertArrayEquals(new String[]{"race", "count(details['job'])"}, response.cols());
+        assertThat(response.cols()).isEqualTo(new String[]{"race", "count(details['job'])"});
         assertThat(response.rows()[0][0]).isEqualTo("Human");
         assertThat(response.rows()[0][1]).isEqualTo(2L);
     }
@@ -688,7 +687,7 @@ public class GroupByAggregateTest extends IntegTestCase {
         waitNoPendingTasksOnAll();
         execute("select race, count(details['job']) as job_count from characters group by race order by job_count desc limit 1");
         assertThat(response.rowCount()).isEqualTo(1);
-        assertArrayEquals(new String[]{"race", "job_count"}, response.cols());
+        assertThat(response.cols()).isEqualTo(new String[]{"race", "job_count"});
 
         assertThat(response.rows()[0][0]).isEqualTo("Human");
         assertThat(response.rows()[0][1]).isEqualTo(2L);
@@ -697,8 +696,10 @@ public class GroupByAggregateTest extends IntegTestCase {
     @Test
     public void testGroupByUnknownResultColumn() throws Exception {
         this.setup.groupBySetup();
-        Assertions.assertThrows(Exception.class, () -> execute("select details_ignored['lol'] from characters group by race"),
-                                "'details_ignored['lol']' must appear in the GROUP BY clause");
+        Asserts.assertSQLError(() -> execute("select details_ignored['lol'] from characters group by race"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining("'details_ignored['lol']' must appear in the GROUP BY clause");
     }
 
     @Test
@@ -732,7 +733,7 @@ public class GroupByAggregateTest extends IntegTestCase {
         this.setup.groupBySetup();
         execute("select max(birthdate) from characters where details_ignored['lol']='funky'");
         assertThat(response.rowCount()).isEqualTo(1);
-        assertNull(response.rows()[0][0]);
+        assertThat(response.rows()[0][0]).isNull();
     }
 
     @Test

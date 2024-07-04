@@ -22,7 +22,7 @@
 package io.crate.types;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Map;
 
@@ -97,58 +97,58 @@ public class TimestampTypesTest {
 
     @Test
     public void testTimestampWithZoneUsingDoubleSpaceBetweenDateAndTimeDoesNotParse() {
-        assertThrows(IllegalArgumentException.class,
-                     () -> TimestampType.parseTimestamp("1999-01-08  04:00:00"),
-                     "could not be parsed, unparsed text found at index 10");
+        assertThatThrownBy(() -> TimestampType.parseTimestamp("1999-01-08  04:00:00"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("could not be parsed, unparsed text found at index 10");
     }
 
     @Test
     public void testTimestampWithoutZoneUsingDoubleSpaceBetweenDateAndTimeDoesNotParse() {
-        assertThrows(IllegalArgumentException.class,
-                     () -> TimestampType.parseTimestampIgnoreTimeZone("1999-01-08  04:00:00"),
-                     "could not be parsed, unparsed text found at index 10");
+        assertThatThrownBy(() -> TimestampType.parseTimestampIgnoreTimeZone("1999-01-08  04:00:00"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("could not be parsed, unparsed text found at index 10");
     }
 
     @Test
     public void testTimestampWithZoneNothingBetweenDateAndTimeDoesNotParse() {
-        assertThrows(IllegalArgumentException.class,
-                     () -> TimestampType.parseTimestamp("1999-01-0804:00:00"),
-                     "could not be parsed, unparsed text found at index 10");
+        assertThatThrownBy(() -> TimestampType.parseTimestamp("1999-01-0804:00:00"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("could not be parsed, unparsed text found at index 10");
     }
 
     @Test
     public void testTimestampWithoutZoneNothingBetweenDateAndTimeDoesNotParse() {
-        assertThrows(IllegalArgumentException.class,
-                     () -> TimestampType.parseTimestampIgnoreTimeZone("1999-01-0804:00:00"),
-                     "could not be parsed, unparsed text found at index 10");
+        assertThatThrownBy(() -> TimestampType.parseTimestampIgnoreTimeZone("1999-01-0804:00:00"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("could not be parsed, unparsed text found at index 10");
     }
 
     @Test
     public void testTimestampWithZoneUsingSpaceAndTBetweenDateAndTimeDoesNotParse() {
-        assertThrows(IllegalArgumentException.class,
-                     () -> TimestampType.parseTimestamp("1999-01-08 T04:00:00"),
-                     "could not be parsed, unparsed text found at index 10");
+        assertThatThrownBy(() -> TimestampType.parseTimestamp("1999-01-08 T04:00:00"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("could not be parsed, unparsed text found at index 10");
     }
 
     @Test
     public void testTimestampWithoutZoneUsingSpaceAndTBetweenDateAndTimeDoesNotParse() {
-        assertThrows(IllegalArgumentException.class,
-                     () -> TimestampType.parseTimestampIgnoreTimeZone("1999-01-08 T04:00:00"),
-                     "could not be parsed, unparsed text found at index 10");
+        assertThatThrownBy(() -> TimestampType.parseTimestampIgnoreTimeZone("1999-01-08 T04:00:00"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("could not be parsed, unparsed text found at index 10");
     }
 
     @Test
     public void testTimestampWithZoneUsingTAndSpaceBetweenDateAndTimeDoesNotParse() {
-        assertThrows(IllegalArgumentException.class,
-                     () -> TimestampType.parseTimestamp("1999-01-08T 04:00:00"),
-                     "could not be parsed, unparsed text found at index 10");
+        assertThatThrownBy(() -> TimestampType.parseTimestamp("1999-01-08T 04:00:00"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("could not be parsed, unparsed text found at index 10");
     }
 
     @Test
     public void testTimestampWithoutZoneUsingTAndSpaceBetweenDateAndTimeDoesNotParse() {
-        assertThrows(IllegalArgumentException.class,
-                     () -> TimestampType.parseTimestampIgnoreTimeZone("1999-01-08T 04:00:00"),
-                     "could not be parsed, unparsed text found at index 10");
+        assertThatThrownBy(() -> TimestampType.parseTimestampIgnoreTimeZone("1999-01-08T 04:00:00"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageContaining("could not be parsed, unparsed text found at index 10");
     }
 
     @Test
@@ -159,8 +159,8 @@ public class TimestampTypesTest {
 
     @Test
     public void test_cast_object_to_timestamptz_throws_exception() {
-        assertThrows(ClassCastException.class,
-                     () -> TimestampType.INSTANCE_WITH_TZ.implicitCast(Map.of()),
-                     "Can't cast '{}' to timestamp with time zone");
+        assertThatThrownBy(() -> TimestampType.INSTANCE_WITH_TZ.implicitCast(Map.of()))
+            .isExactlyInstanceOf(ClassCastException.class)
+            .hasMessage("Can't cast '{}' to timestamp with time zone");
     }
 }

@@ -21,7 +21,6 @@ package org.elasticsearch.transport;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.Assert.assertNotNull;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -163,7 +162,7 @@ public class InboundPipelineTests extends ESTestCase {
                     assertThat(actualMessageData.actionName).isEqualTo(expectedMessageData.actionName);
                     assertThat(actualMessageData.value).isEqualTo(expectedMessageData.value);
                     if (expectedTuple.v2() != null) {
-                        assertNotNull(actualTuple.v2());
+                        assertThat(actualTuple.v2()).isNotNull();
                         assertThat(actualTuple.v2()).isExactlyInstanceOf(expectedTuple.v2().getClass());
                     }
                 }

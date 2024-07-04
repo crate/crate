@@ -24,11 +24,7 @@ package org.elasticsearch.indices.recovery;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.biasedDoubleBetween;
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonMap;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.node.RecoverySettingsChunkSizePlugin.CHUNK_SIZE_SETTING;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -169,15 +165,15 @@ public class IndexRecoveryIT extends IntegTestCase {
         assertThat(state.getRecoverySource()).isEqualTo(recoverySource);
         assertThat(state.getPrimary()).isEqualTo(primary);
         if (sourceNode == null) {
-            assertNull(state.getSourceNode());
+            assertThat(state.getSourceNode()).isNull();
         } else {
-            assertNotNull(state.getSourceNode());
+            assertThat(state.getSourceNode()).isNotNull();
             assertThat(state.getSourceNode().getName()).isEqualTo(sourceNode);
         }
         if (targetNode == null) {
-            assertNull(state.getTargetNode());
+            assertThat(state.getTargetNode()).isNull();
         } else {
-            assertNotNull(state.getTargetNode());
+            assertThat(state.getTargetNode()).isNotNull();
             assertThat(state.getTargetNode().getName()).isEqualTo(targetNode);
         }
     }
@@ -1049,7 +1045,7 @@ public class IndexRecoveryIT extends IntegTestCase {
             mockTransportService.addSendBehavior(masterTransportService, (connection, requestId, action, request, options) -> {
                 logger.info("--> sending request {} on {}", action, connection.getNode());
                 if ((primaryRelocation && finalized.get()) == false) {
-                    assertNotEquals(action, ShardStateAction.SHARD_FAILED_ACTION_NAME);
+                    assertThat(action).isNotEqualTo(ShardStateAction.SHARD_FAILED_ACTION_NAME);
                 }
                 connection.sendRequest(requestId, action, request, options);
             });

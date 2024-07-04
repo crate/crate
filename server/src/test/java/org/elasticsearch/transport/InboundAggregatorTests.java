@@ -20,7 +20,6 @@
 package org.elasticsearch.transport;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertNotNull;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -125,7 +124,7 @@ public class InboundAggregatorTests extends ESTestCase {
         assertThat(aggregated).isNotNull();
         assertThat(aggregated.isShortCircuit()).isTrue();
         assertThat(aggregated.getException()).isExactlyInstanceOf(ActionNotFoundTransportException.class);
-        assertNotNull(aggregated.takeBreakerReleaseControl());
+        assertThat(aggregated.takeBreakerReleaseControl()).isNotNull();
     }
 
     public void testCircuitBreak() throws IOException {

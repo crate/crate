@@ -20,7 +20,6 @@
 package org.elasticsearch.test;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertNotSame;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -89,7 +88,7 @@ public abstract class AbstractWireTestCase<T> extends ESTestCase {
     }
 
     protected void assertEqualInstances(T expectedInstance, T newInstance) {
-        assertNotSame(newInstance, expectedInstance);
+        assertThat(newInstance).isNotSameAs(expectedInstance);
         assertThat(newInstance).isEqualTo(expectedInstance);
         assertThat(newInstance.hashCode()).isEqualTo(expectedInstance.hashCode());
     }

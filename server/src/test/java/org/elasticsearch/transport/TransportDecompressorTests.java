@@ -20,7 +20,6 @@
 package org.elasticsearch.transport;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertNull;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -78,7 +77,7 @@ public class TransportDecompressorTests extends ESTestCase {
             ReleasableBytesReference reference1 = decompressor.pollDecompressedPage();
             ReleasableBytesReference reference2 = decompressor.pollDecompressedPage();
             ReleasableBytesReference reference3 = decompressor.pollDecompressedPage();
-            assertNull(decompressor.pollDecompressedPage());
+            assertThat(decompressor.pollDecompressedPage()).isNull();
             BytesReference composite = CompositeBytesReference.of(reference1, reference2, reference3);
             assertThat(composite.length()).isEqualTo(4 * 10000);
             StreamInput streamInput = composite.streamInput();
@@ -120,7 +119,7 @@ public class TransportDecompressorTests extends ESTestCase {
             ReleasableBytesReference reference1 = decompressor.pollDecompressedPage();
             ReleasableBytesReference reference2 = decompressor.pollDecompressedPage();
             ReleasableBytesReference reference3 = decompressor.pollDecompressedPage();
-            assertNull(decompressor.pollDecompressedPage());
+            assertThat(decompressor.pollDecompressedPage()).isNull();
             BytesReference composite = CompositeBytesReference.of(reference1, reference2, reference3);
             assertThat(composite.length()).isEqualTo(4 * 10000);
             StreamInput streamInput = composite.streamInput();

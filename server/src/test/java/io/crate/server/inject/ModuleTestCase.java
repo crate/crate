@@ -20,7 +20,7 @@
 package io.crate.server.inject;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.lang.annotation.Annotation;
 import java.util.List;
