@@ -98,7 +98,7 @@
             <dependency>
               <groupId>com.puppycrawl.tools</groupId>
               <artifactId>checkstyle</artifactId>
-              <version>10.17.0</version>
+              <version>${versions.plugin.puppycrawl}</version>
             </dependency>
           </dependencies>
         <executions>
@@ -114,7 +114,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-dependency-plugin</artifactId>
-        <version>3.6.1</version>
+        <version>${versions.plugin.dependency}</version>
         <dependencies>
           <dependency>
             <groupId>org.ow2.asm</groupId>
@@ -312,23 +312,25 @@
 
     <versions.min_maven>3.6.3</versions.min_maven>
     <!-- Maven Plugins -->
-    <versions.plugin.enforcer>3.4.1</versions.plugin.enforcer>
-    <versions.plugin.clean>3.3.2</versions.plugin.clean>
+    <versions.plugin.dependency>3.7.1</versions.plugin.dependency>
+    <versions.plugin.enforcer>3.5.0</versions.plugin.enforcer>
+    <versions.plugin.clean>3.4.0</versions.plugin.clean>
     <versions.plugin.resources>3.3.1</versions.plugin.resources>
-    <versions.plugin.install>3.1.1</versions.plugin.install>
+    <versions.plugin.install>3.1.2</versions.plugin.install>
     <versions.plugin.compiler>3.13.0</versions.plugin.compiler>
     <versions.plugin.jar>3.3.0</versions.plugin.jar>
     <versions.plugin.surefire>3.3.0</versions.plugin.surefire>
-    <versions.plugin.checkstyle>3.3.1</versions.plugin.checkstyle>
+    <versions.plugin.checkstyle>3.4.0</versions.plugin.checkstyle>
+    <versions.plugin.puppycrawl>10.17.0</versions.plugin.puppycrawl>
     <versions.plugin.toolchains>4.5.0</versions.plugin.toolchains>
     <versions.plugin.jacoco>0.8.12</versions.plugin.jacoco>
     <versions.plugin.forbiddenapis>3.7</versions.plugin.forbiddenapis>
     <versions.plugin.jlink>3.1.0</versions.plugin.jlink>
     <versions.plugin.assembly>3.7.1</versions.plugin.assembly>
     <versions.plugin.download>1.9.0</versions.plugin.download>
-    <versions.plugin.git-commit>8.0.2</versions.plugin.git-commit>
+    <versions.plugin.git-commit>9.0.1</versions.plugin.git-commit>
     <versions.plugin.shade>3.6.0</versions.plugin.shade>
-    <versions.plugin.jar>3.4.1</versions.plugin.jar>
+    <versions.plugin.jar>3.4.2</versions.plugin.jar>
     <versions.plugin.build-helper>3.6.0</versions.plugin.build-helper>
     <versions.plugin.antlr>4.13.1</versions.plugin.antlr>
   </properties>
