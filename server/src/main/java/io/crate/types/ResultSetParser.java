@@ -80,11 +80,14 @@ public class ResultSetParser {
                 return PgOidVectorType.listFromOidVectorString(textval);
             }
             case "char":
-                String strValue = resultSet.getString(columnIndex);
-                if (strValue == null) {
+                // It's NOT char(1) which is actually "character".
+                // It's char with OID 18, ie single byte "char" which can store single ASCII character.
+                // See also https://www.postgresql.org/docs/15/datatype-character.html#DATATYPE-CHARACTER-SPECIAL-TABLE
+                String str = resultSet.getString(columnIndex);
+                if (str == null) {
                     return null;
                 }
-                return Byte.valueOf(strValue);
+                return str;
             case "byte":
                 value = resultSet.getByte(columnIndex);
                 break;
