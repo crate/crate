@@ -253,7 +253,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         ClusterState newState = addColumnTask.execute(state, request);
         DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
         Reference addedColumn = newTable.getReference(newColumn1.column());
-        assertThat(addedColumn).isReference().hasType(new ArrayType<>(new ArrayType<>(DataTypes.LONG)));
+        assertThat(addedColumn).hasType(new ArrayType<>(new ArrayType<>(DataTypes.LONG)));
     }
 
     @Test
@@ -287,7 +287,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
 
         Reference addedColumn = newTable.getReference(colToAdd.column());
-        assertThat(addedColumn).isReference().hasOid(COLUMN_OID_UNASSIGNED);
+        assertThat(addedColumn).hasOid(COLUMN_OID_UNASSIGNED);
     }
 
     @Test

@@ -27,7 +27,6 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
 import java.util.List;
@@ -37,8 +36,6 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.optimizer.rule.MergeFilterAndCollect;
 import io.crate.planner.optimizer.rule.OptimizeCollectWhereClauseAccess;
@@ -54,20 +51,6 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
     private String copyFilePath = Paths.get(getClass().getResource("/essetup/data/copy").toURI()).toUri().toString();
 
     public ColumnPolicyIntegrationTest() throws URISyntaxException {
-    }
-
-    private DocTableInfo getTable(RelationName name) {
-        return cluster().getInstance(NodeContext.class)
-            .schemas()
-            .getTableInfo(name);
-    }
-
-    private DocTableInfo getTable(String table) throws IOException {
-        return getTable(new RelationName(sqlExecutor.getCurrentSchema(), table));
-    }
-
-    private DocTableInfo getTable(String schema, String table) throws IOException {
-        return getTable(new RelationName(schema, table));
     }
 
     @Test

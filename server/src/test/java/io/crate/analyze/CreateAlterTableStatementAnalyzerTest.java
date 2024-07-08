@@ -26,6 +26,7 @@ import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.ANALYZER;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_ROUTING_EXCLUDE_GROUP_SETTING;
 import static org.elasticsearch.index.engine.EngineConfig.INDEX_CODEC_SETTING;
@@ -913,8 +914,8 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         Reference ftRef = columns.get(ft);
         assertThat(ftRef).isExactlyInstanceOf(IndexReference.class);
         assertThat(((IndexReference) ftRef).columns()).satisfiesExactly(
-            x -> assertThat(x).isReference().hasName("title"),
-            x -> assertThat(x).isReference().hasName("name")
+            x -> assertThat(x).hasName("title"),
+            x -> assertThat(x).hasName("name")
         );
     }
 
@@ -1544,7 +1545,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         ColumnIdent o2b = ColumnIdent.of("o1", List.of("o2", "b"));
         Map<ColumnIdent, Reference> columns = createTable.columns();
         assertThat(columns).containsKey(o2b);
-        assertThat(columns.get(o2b)).isReference().hasName("o1['o2']['b']").hasType(DataTypes.INTEGER);
+        assertThat(columns.get(o2b)).hasName("o1['o2']['b']").hasType(DataTypes.INTEGER);
         assertThat(createTable.checks()).hasSize(1);
         AnalyzedCheck check = createTable.checks().values().iterator().next();
         assertThat(check.check()).isSQL("(doc.t.o1['o2']['b'] > 100)");
@@ -1882,7 +1883,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         Map<ColumnIdent, Reference> columns = createTable.columns();
         assertThat(columns).containsKeys(x);
         Reference xRef = columns.get(x);
-        assertThat(xRef).isReference().hasName("x").hasType(new ArrayType<>(new ArrayType<>(DataTypes.INTEGER)));
+        assertThat(xRef).hasName("x").hasType(new ArrayType<>(new ArrayType<>(DataTypes.INTEGER)));
     }
 
 

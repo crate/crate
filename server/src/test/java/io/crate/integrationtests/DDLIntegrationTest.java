@@ -28,6 +28,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -38,12 +39,21 @@ import org.elasticsearch.Version;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
+import io.crate.expression.symbol.Literal;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.GeoReference;
+import io.crate.metadata.Reference;
+import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.protocols.postgres.PGErrorStatus;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.testing.Asserts;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseNewCluster;
 import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
+import io.crate.types.DataTypes;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
 @UseRandomizedOptimizerRules(0)
@@ -56,15 +66,11 @@ public class DDLIntegrationTest extends IntegTestCase {
     public void testCreateTable() throws Exception {
         execute("create table test (col1 integer primary key, col2 string) " +
                 "clustered into 5 shards with (number_of_replicas = 1, \"write.wait_for_active_shards\"=1)");
-        Map<String, Object> expectedMapping = Map.of(
-            "dynamic", "strict",
-            "_meta", Map.of("primary_keys", List.of("col1")),
-            "properties", Map.of(
-                "col1", Map.of("type", "integer", "position", 1, "oid", 1),
-                "col2", Map.of("type", "keyword", "position", 2, "oid", 2)
-            )
-        );
-        assertThat(getIndexMapping("test")).isEqualTo(expectedMapping);
+        DocTableInfo table = getTable("test");
+        assertThat(table.columnPolicy()).isEqualTo(ColumnPolicy.STRICT);
+        assertThat(table.primaryKey()).containsExactly(ColumnIdent.of("col1"));
+        assertThat(table.getReference(ColumnIdent.of("col1"))).hasName("col1").hasPosition(1).hasOid(1);
+        assertThat(table.getReference(ColumnIdent.of("col2"))).hasName("col2").hasPosition(2).hasOid(2);
 
         execute("select number_of_replicas, number_of_shards, version from information_schema.tables where table_name = 'test'");
         assertThat(response).hasRows(
@@ -120,15 +126,12 @@ public class DDLIntegrationTest extends IntegTestCase {
     public void testCreateTableWithReplicasAndShards() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)" +
                 "clustered by (col1) into 10 shards with (number_of_replicas=2, \"write.wait_for_active_shards\"=1)");
-        Map<String, Object> expectedMapping = Map.of(
-            "dynamic", "strict",
-            "_meta", Map.of("routing", "col1", "primary_keys", List.of("col1")),
-            "properties", Map.of(
-                "col1", Map.of("type", "integer", "position", 1, "oid", 1),
-                "col2", Map.of("type", "keyword", "position", 2, "oid", 2)
-            )
-        );
-        assertThat(getIndexMapping("test")).isEqualTo(expectedMapping);
+        DocTableInfo table = getTable("test");
+        assertThat(table.columnPolicy()).isEqualTo(ColumnPolicy.STRICT);
+        assertThat(table.primaryKey()).containsExactly(ColumnIdent.of("col1"));
+        assertThat(table.clusteredBy()).isEqualTo(ColumnIdent.of("col1"));
+        assertThat(table.getReference(ColumnIdent.of("col1"))).hasName("col1").hasPosition(1).hasOid(1);
+        assertThat(table.getReference(ColumnIdent.of("col2"))).hasName("col2").hasPosition(2).hasOid(2);
 
         execute("select number_of_replicas, number_of_shards, version "
                 + "from information_schema.tables where table_name = 'test'");
@@ -144,23 +147,11 @@ public class DDLIntegrationTest extends IntegTestCase {
                 "clustered into 5 shards " +
                 "with (column_policy='strict', number_of_replicas = 0)");
 
-        Map<String, Object> expectedMapping = Map.of(
-            "dynamic", "strict",
-            "_meta", Map.of("primary_keys", List.of("col1")),
-            "properties", Map.of(
-                "col1", Map.of(
-                    "type", "integer",
-                    "position", 1,
-                    "oid", 1
-                ),
-                "col2", Map.of(
-                    "type", "keyword",
-                    "position", 2,
-                    "oid", 2
-                )
-            )
-        );
-        assertThat(getIndexMapping("test")).isEqualTo(expectedMapping);
+        DocTableInfo table = getTable("test");
+        assertThat(table.columnPolicy()).isEqualTo(ColumnPolicy.STRICT);
+        assertThat(table.primaryKey()).containsExactly(ColumnIdent.of("col1"));
+        assertThat(table.getReference(ColumnIdent.of("col1"))).hasName("col1").hasType(DataTypes.INTEGER).hasPosition(1).hasOid(1);
+        assertThat(table.getReference(ColumnIdent.of("col2"))).hasName("col2").hasType(DataTypes.STRING).hasPosition(2).hasOid(2);
 
         execute("select number_of_replicas, number_of_shards, version "
                 + "from information_schema.tables where table_name = 'test'");
@@ -173,42 +164,40 @@ public class DDLIntegrationTest extends IntegTestCase {
     @UseNewCluster
     public void testCreateGeoShapeExplicitIndex() throws Exception {
         execute("create table test (col1 geo_shape INDEX using QUADTREE with (precision='1m', distance_error_pct='0.25'))");
-        Map<String, Object> expectedMapping = Map.of(
-            "dynamic", "strict",
-            "_meta", Map.of(),
-            "properties", Map.of(
-                "col1", Map.of(
-                    "type", "geo_shape",
-                    "tree", "quadtree",
-                    "position", 1,
-                    "oid", 1,
-                    "precision", "1m",
-                    "distance_error_pct", 0.25
-                )
-            )
-        );
-        assertThat(getIndexMapping("test")).isEqualTo(expectedMapping);
+        DocTableInfo table = getTable("test");
+        assertThat(table.columnPolicy()).isEqualTo(ColumnPolicy.STRICT);
+        assertThat(table.primaryKey()).containsExactly(DocSysColumns.ID.COLUMN);
+        Reference col1 = table.getReference(ColumnIdent.of("col1"));
+        assertThat(col1)
+            .isExactlyInstanceOf(GeoReference.class)
+            .hasType(DataTypes.GEO_SHAPE)
+            .hasPosition(1)
+            .hasOid(1)
+            .returns("quadtree", ref -> ((GeoReference) ref).geoTree())
+            .returns("1m", ref -> ((GeoReference) ref).precision())
+            .returns(0.25, ref -> ((GeoReference) ref).distanceErrorPct());
     }
 
     @Test
     @UseNewCluster
     public void testCreateColumnWithDefaultExpression() throws Exception {
         execute("create table test (id int, col1 text default 'foo', col2 int[] default [1,2])");
-        Map<String, Object> expectedMapping = Map.of(
-            "dynamic", "strict",
-            "_meta", Map.of(),
-            "properties", Map.of(
-                "id", Map.of("type", "integer", "position", 1, "oid", 1),
-                "col1", Map.of("type", "keyword", "position", 2, "default_expr", "'foo'", "oid", 2),
-                "col2", Map.of(
-                    "type", "array",
-                    "inner", Map.of(
-                        "type", "integer", "position", 3, "default_expr", "[1, 2]", "oid", 3
-                    )
-                )
-            )
-        );
-        assertThat(getIndexMapping("test")).isEqualTo(expectedMapping);
+        DocTableInfo table = getTable("test");
+        assertThat(table.columnPolicy()).isEqualTo(ColumnPolicy.STRICT);
+        assertThat(table.primaryKey()).containsExactly(DocSysColumns.ID.COLUMN);
+        assertThat(table.getReference(ColumnIdent.of("id"))).hasPosition(1).hasOid(1).hasType(DataTypes.INTEGER);
+
+        assertThat(table.getReference(ColumnIdent.of("col1")))
+            .hasPosition(2)
+            .hasOid(2)
+            .hasType(DataTypes.STRING)
+            .hasDefault(Literal.of("foo"));
+        assertThat(table.getReference(ColumnIdent.of("col2")))
+            .hasPosition(3)
+            .hasOid(3)
+            .hasType(DataTypes.INTEGER_ARRAY)
+            .hasDefault(Literal.of(DataTypes.INTEGER_ARRAY, List.of(1, 2)));
+
         execute("insert into test(id) values(1)");
         execute("refresh table test");
         execute("select id, col1, col2 from test");
@@ -219,19 +208,16 @@ public class DDLIntegrationTest extends IntegTestCase {
     @UseNewCluster
     public void testCreateGeoShape() throws Exception {
         execute("create table test (col1 geo_shape)");
-        Map<String, Object> expectedMapping = Map.of(
-            "dynamic", "strict",
-            "_meta", Map.of(),
-            "properties", Map.of(
-                "col1", Map.of(
-                    "type", "geo_shape",
-                    "tree", "geohash",
-                    "position", 1,
-                    "oid", 1
-                )
-            )
-        );
-        assertThat(getIndexMapping("test")).isEqualTo(expectedMapping);
+        DocTableInfo table = getTable("test");
+        assertThat(table.columnPolicy()).isEqualTo(ColumnPolicy.STRICT);
+        assertThat(table.primaryKey()).containsExactly(DocSysColumns.ID.COLUMN);
+        Reference col1 = table.getReference(ColumnIdent.of("col1"));
+        assertThat(col1)
+            .isExactlyInstanceOf(GeoReference.class)
+            .hasType(DataTypes.GEO_SHAPE)
+            .hasPosition(1)
+            .hasOid(1)
+            .returns("geohash", ref -> ((GeoReference) ref).geoTree());
     }
 
     @Test
@@ -323,26 +309,33 @@ public class DDLIntegrationTest extends IntegTestCase {
     @Test
     @UseNewCluster
     public void testCreateTableWithCompositeIndex() throws Exception {
-        execute("create table novels (title string, description string, " +
-                "index title_desc_fulltext using fulltext(title, description) " +
-                "with(analyzer='stop')) with (number_of_replicas = 0)");
-
-        Map<String, Object> expectedMapping = Map.of(
-            "dynamic", "strict",
-            "_meta", Map.of("indices", Map.of("3", Map.of())),
-            "properties", Map.of(
-                "title", Map.of("type", "keyword", "position", 1, "oid", 1),
-                "description", Map.of("type", "keyword", "position", 2, "oid", 2),
-                "title_desc_fulltext", Map.of(
-                    "type", "text",
-                    "position", 3,
-                    "oid", 3,
-                    "analyzer", "stop",
-                    "sources", List.of("1", "2")
-                )
-            )
+        execute("""
+            create table novels (
+                title string,
+                description string,
+                index title_desc_fulltext using fulltext(title, description) with (analyzer='stop')
+            ) with (number_of_replicas = 0)
+            """
         );
-        assertThat(getIndexMapping("novels")).isEqualTo(expectedMapping);
+        DocTableInfo table = getTable("novels");
+        assertThat(table.indexColumns()).satisfiesExactly(
+            x -> assertThat(x)
+                .hasName("title_desc_fulltext")
+                .hasType(DataTypes.STRING)
+                .hasAnalyzer("stop")
+                .hasSourceColumnsSatisfying(
+                    s -> assertThat(s).hasName("title"),
+                    s -> assertThat(s).hasName("description")
+                )
+        );
+        assertThat(table.getReference(ColumnIdent.of("title")))
+            .hasPosition(1)
+            .hasOid(1)
+            .hasType(DataTypes.STRING);
+        assertThat(table.getReference(ColumnIdent.of("description")))
+            .hasPosition(2)
+            .hasOid(2)
+            .hasType(DataTypes.STRING);
 
         String title = "So Long, and Thanks for All the Fish";
         String description = "Many were increasingly of the opinion that they'd all made a big " +
@@ -604,27 +597,24 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("create table t (o object as (x string)) " +
                 "clustered into 1 shards " +
                 "with (number_of_replicas=0)");
-        ensureYellow();
+
         execute("alter table t add o['y'] int");
 
-        // Verify that ADD COLUMN gets advanced OID.
-        assertThat(getIndexMapping("t")).isEqualTo(Map.of(
-            "_meta", Map.of(),
-            "dynamic", "strict",
-            "properties", Map.of(
-                "o",
-                Map.of(
-                    "dynamic", "true",
-                    "position", 1,
-                    "oid", 1,
-                    "type", "object",
-                    "properties", Map.of(
-                        "x", Map.of("position", 2, "oid", 2, "type", "keyword"),
-                        "y", Map.of("position", 3, "oid", 3, "type", "integer")
-                    )
-                )
-            )
-        ));
+        DocTableInfo table = getTable("t");
+        assertThat(table.getReference(ColumnIdent.of("o")))
+            .hasPosition(1)
+            .hasOid(1);
+
+        assertThat(table.getReference(ColumnIdent.of("o", "x")))
+            .hasPosition(2)
+            .hasOid(2)
+            .hasType(DataTypes.STRING);
+
+        assertThat(table.getReference(ColumnIdent.of("o", "y")))
+            .as("Column added via ADD COLUMN has next oid")
+            .hasPosition(3)
+            .hasOid(3)
+            .hasType(DataTypes.INTEGER);
 
         // column o exists already
         Asserts.assertSQLError(() -> execute("alter table t add o object as (z string)"))
@@ -642,8 +632,6 @@ public class DDLIntegrationTest extends IntegTestCase {
             fqColumnNames.add((String) row[0]);
         }
         assertThat(fqColumnNames).containsExactly("o", "o['x']", "o['y']");
-
-
     }
 
     @Test
@@ -869,29 +857,21 @@ public class DDLIntegrationTest extends IntegTestCase {
             "create table test (" +
             "   ts timestamp with time zone," +
             "   day as date_trunc('day', ts)) with (number_of_replicas=0)");
-        Map<String, Object> expectedMapping = Map.of(
-            "dynamic", "strict",
-            "_meta", Map.of(
-                "generated_columns", Map.of(
-                    "day", "date_trunc('day', ts)"
-                )
-            ),
-            "properties", Map.of(
-                "ts", Map.of(
-                    "type", "date",
-                    "position", 1,
-                    "oid", 1,
-                    "format", "epoch_millis||strict_date_optional_time"
-                ),
-                "day", Map.of(
-                    "type", "date",
-                    "position", 2,
-                    "oid", 2,
-                    "format", "epoch_millis||strict_date_optional_time"
-                )
-            )
+        DocTableInfo table = getTable("test");
+        assertThat(table.generatedColumns()).satisfiesExactly(
+            x -> assertThat(x)
+                .hasName("day")
+                .hasType(DataTypes.TIMESTAMPZ)
+                .returns("date_trunc('day', ts)", ref -> ((GeneratedReference) ref).formattedGeneratedExpression())
         );
-        assertThat(getIndexMapping("test")).isEqualTo(expectedMapping);
+        assertThat(table.getReference(ColumnIdent.of("ts")))
+            .hasPosition(1)
+            .hasOid(1)
+            .hasType(DataTypes.TIMESTAMPZ);
+        assertThat(table.getReference(ColumnIdent.of("day")))
+            .hasPosition(2)
+            .hasOid(2)
+            .hasType(DataTypes.TIMESTAMPZ);
     }
 
     @Test
@@ -902,36 +882,29 @@ public class DDLIntegrationTest extends IntegTestCase {
             "   ts timestamp with time zone," +
             "   day as date_trunc('day', ts)) with (number_of_replicas=0)");
         execute("alter table test add column added timestamp with time zone generated always as date_trunc('day', ts)");
-        Map<String, Object> expectedMapping = Map.of(
-            "dynamic", "strict",
-            "_meta", Map.of(
-                "generated_columns", Map.of(
-                    "day", "date_trunc('day', ts)",
-                    "added", "date_trunc('day', ts)"
-                )
-            ),
-            "properties", Map.of(
-                "ts", Map.of(
-                    "type", "date",
-                    "position", 1,
-                    "oid", 1,
-                    "format", "epoch_millis||strict_date_optional_time"
-                ),
-                "day", Map.of(
-                    "type", "date",
-                    "position", 2,
-                    "oid", 2,
-                    "format", "epoch_millis||strict_date_optional_time"
-                ),
-                "added", Map.of(
-                    "type", "date",
-                    "position", 3,
-                    "oid", 3,
-                    "format", "epoch_millis||strict_date_optional_time"
-                )
-            )
+        DocTableInfo table = getTable("test");
+        assertThat(table.generatedColumns()).satisfiesExactly(
+            x -> assertThat(x)
+                .hasName("added")
+                .hasType(DataTypes.TIMESTAMPZ)
+                .returns("date_trunc('day', ts)", ref -> ((GeneratedReference) ref).formattedGeneratedExpression()),
+            x -> assertThat(x)
+                .hasName("day")
+                .hasType(DataTypes.TIMESTAMPZ)
+                .returns("date_trunc('day', ts)", ref -> ((GeneratedReference) ref).formattedGeneratedExpression())
         );
-        assertThat(getIndexMapping("test")).isEqualTo(expectedMapping);
+        assertThat(table.getReference(ColumnIdent.of("ts")))
+            .hasPosition(1)
+            .hasOid(1)
+            .hasType(DataTypes.TIMESTAMPZ);
+        assertThat(table.getReference(ColumnIdent.of("day")))
+            .hasPosition(2)
+            .hasOid(2)
+            .hasType(DataTypes.TIMESTAMPZ);
+        assertThat(table.getReference(ColumnIdent.of("added")))
+            .hasPosition(3)
+            .hasOid(3)
+            .hasType(DataTypes.TIMESTAMPZ);
     }
 
 

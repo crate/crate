@@ -30,24 +30,19 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
+import java.util.stream.StreamSupport;
 
 import org.elasticsearch.test.IntegTestCase;
-import org.jetbrains.annotations.Nullable;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import io.crate.common.collections.Maps;
+import io.crate.metadata.Reference;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.testing.UseNewCluster;
 import io.crate.testing.UseRandomizedSchema;
-import io.crate.types.ArrayType;
-import io.crate.types.DataTypes;
-import io.crate.types.ObjectType;
 
 
 @UseRandomizedSchema(random = false)
@@ -233,11 +228,16 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
             "b| 2",
             "b['x']| 3");
 
-        Map<String, Object> mapping = getIndexMapping("t");
-        Set<Long> oids = new HashSet<>();
-        collectOID(Maps.get(mapping, "properties"), oids);
-        assertThat(oids).hasSize(48);
-        assertThat(oids.stream().max(Long::compareTo).get()).isEqualTo(48);
+        DocTableInfo table = getTable("t");
+        Iterable<Reference> allUserColumns = () -> StreamSupport.stream(table.spliterator(), false)
+            .filter(x -> !x.column().isSystemColumn())
+            .iterator();
+        assertThat(allUserColumns).hasSize(48);
+        assertThat(
+            StreamSupport.stream(allUserColumns.spliterator(), false)
+            .mapToLong(Reference::oid)
+            .max()
+        ).hasValue(48);
     }
 
     @Test
@@ -413,33 +413,6 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
             "o['a']| 10",
             "o['a']['b']| 11",
             "o['b']| 12");
-    }
-
-    private static void collectOID(@Nullable Map<String, Map<String, Object>> propertiesMap, Set<Long> oids) {
-        if (propertiesMap != null) {
-            for (Map<String, Object> colProps: propertiesMap.values()) {
-                String type = (String) colProps.get("type"); // Can be null
-
-                if (ArrayType.NAME.equals(type)) {
-                    Map<String, Object> inner = Maps.get(colProps, "inner");
-                    Number oid = Maps.get(inner, "oid");
-                    assertThat(oid).isNotNull();
-                    oids.add(oid.longValue());
-
-                    String innerType = (String) inner.get("type");
-                    if (ObjectType.UNTYPED.equals(DataTypes.ofMappingName(innerType))) {
-                        collectOID(Maps.get(inner, "properties"), oids);
-                    }
-                } else {
-                    Number oid = Maps.get(colProps, "oid");
-                    assertThat(oid).isNotNull();
-                    oids.add(oid.longValue());
-                    if (type == null || ObjectType.UNTYPED.equals(DataTypes.ofMappingName(type))) {
-                        collectOID(Maps.get(colProps,"properties"), oids);
-                    }
-                }
-            }
-        }
     }
 
     @Test

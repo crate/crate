@@ -23,6 +23,7 @@ package io.crate.metadata;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isReference;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Map;
@@ -47,7 +48,7 @@ public class SystemTableTest {
 
         assertThat(table.columns()).satisfiesExactly(isReference("obj_a"));
         assertThat(table.getReference(ColumnIdent.of("obj_a", List.of("obj_b", "x"))))
-            .isReference().hasName("obj_a['obj_b']['x']");
+            .hasName("obj_a['obj_b']['x']");
 
         var x = table.expressions().get(ColumnIdent.of("obj_a", List.of("obj_b", "x"))).create();
         x.setNextRow(null);
@@ -83,7 +84,7 @@ public class SystemTableTest {
                 .add("y", DataTypes.INTEGER, point -> point.y)
             .endObjectArray()
             .build();
-        assertThat(table.getReference(ColumnIdent.of("points"))).isReference().hasName("points");
+        assertThat(table.getReference(ColumnIdent.of("points"))).hasName("points");
         var points = table.expressions().get(ColumnIdent.of("points")).create();
         points.setNextRow(null);
         assertThat(points.value()).isEqualTo(
@@ -91,7 +92,6 @@ public class SystemTableTest {
                 Map.of("x", 10, "y", 20),
                 Map.of("x", 30, "y", 40)));
         assertThat(table.getReference(ColumnIdent.of("points", "x")))
-            .isReference()
             .hasName("points['x']")
             .hasType(new ArrayType<>(DataTypes.INTEGER));
         var xs = table.expressions().get(ColumnIdent.of("points", "x")).create();

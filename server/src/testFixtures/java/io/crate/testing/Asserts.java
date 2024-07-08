@@ -43,6 +43,7 @@ import io.crate.data.Input;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.table.TableInfo;
@@ -64,6 +65,10 @@ public class Asserts extends Assertions {
 
     public static SymbolAssert assertThat(Symbol actual) {
         return new SymbolAssert(actual);
+    }
+
+    public static ReferenceAssert assertThat(Reference reference) {
+        return new ReferenceAssert(reference);
     }
 
     public static SymbolsAssert<? extends Symbol> assertList(List<? extends Symbol> actual) {

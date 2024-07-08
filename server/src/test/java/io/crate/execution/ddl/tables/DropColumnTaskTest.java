@@ -77,7 +77,7 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         assertThat(newTable.getReference(colToDrop.column())).isNull();
         assertThat(newTable.columns()).hasSize(2);
         assertThat(newTable.droppedColumns()).satisfiesExactly(
-            x -> assertThat(x).isReference()
+            x -> assertThat(x)
                 .hasName("_dropped_2")
                 .hasPosition(2)
         );

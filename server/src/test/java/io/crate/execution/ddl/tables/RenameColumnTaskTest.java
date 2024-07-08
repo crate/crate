@@ -62,7 +62,7 @@ public class RenameColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         ClusterState newState = renameColumnTask.execute(clusterService.state(), request);
         DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
         assertThat(newTable.getReference(refToRename.column())).isNull();
-        assertThat(newTable.getReference(newName)).isReference().hasName(newName.sqlFqn());
+        assertThat(newTable.getReference(newName)).hasName(newName.sqlFqn());
     }
 
     @Test
@@ -82,7 +82,7 @@ public class RenameColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         ClusterState newState = renameColumnTask.execute(clusterService.state(), request);
         tbl = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
         assertThat(tbl.getReference(refToRename1.column())).isNull();
-        assertThat(tbl.getReference(newName1)).isReference().hasName(newName1.sqlFqn());
+        assertThat(tbl.getReference(newName1)).hasName(newName1.sqlFqn());
 
         Reference refToRename2 = tbl.getReference(ColumnIdent.of("p", List.of("o2")));
         var newName2 = ColumnIdent.of("p", List.of("p2"));
@@ -90,7 +90,7 @@ public class RenameColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         newState = renameColumnTask.execute(newState, request);
         tbl = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
         assertThat(tbl.getReference(refToRename2.column())).isNull();
-        assertThat(tbl.getReference(newName2)).isReference().hasName(newName2.sqlFqn());
+        assertThat(tbl.getReference(newName2)).hasName(newName2.sqlFqn());
 
         Reference refToRename3 = tbl.getReference(ColumnIdent.of("p", List.of("p2", "x")));
         var newName3 = ColumnIdent.of("p", List.of("p2", "y"));
@@ -98,7 +98,7 @@ public class RenameColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         newState = renameColumnTask.execute(newState, request);
         tbl = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
         assertThat(tbl.getReference(refToRename3.column())).isNull();
-        assertThat(tbl.getReference(newName3)).isReference().hasName(newName3.sqlFqn());
+        assertThat(tbl.getReference(newName3)).hasName(newName3.sqlFqn());
     }
 
     @Test
@@ -120,7 +120,7 @@ public class RenameColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
         assertThat(newTable.getReference(refToRename.column())).isNull();
         assertThat(newTable.partitionedBy()).doesNotContain(refToRename.column());
-        assertThat(newTable.getReference(newName)).isReference().hasName(newName.name());
+        assertThat(newTable.getReference(newName)).hasName(newName.name());
         assertThat(newTable.partitionedBy()).doesNotContain(refToRename.column()).contains(newName);
 
         // alter table tbl rename column o to p;
@@ -133,7 +133,7 @@ public class RenameColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         newState = renameColumnTask.execute(newState, request);
         newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
         assertThat(newTable.getReference(oldNameOfChild)).isNull();
-        assertThat(newTable.getReference(newName)).isReference().hasName(newNameOfChild.name());
+        assertThat(newTable.getReference(newName)).hasName(newNameOfChild.name());
         assertThat(newTable.partitionedBy()).doesNotContain(oldNameOfChild).contains(newNameOfChild);
     }
 
@@ -154,7 +154,7 @@ public class RenameColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         var oldPkCol = ColumnIdent.of("o", List.of("o2", "o3", "x"));
         var newPkCol = ColumnIdent.of("o", List.of("p2", "o3", "x"));
         assertThat(newTable.getReference(refToRename.column())).isNull();
-        assertThat(newTable.getReference(newName)).isReference().hasName(newName.sqlFqn());
+        assertThat(newTable.getReference(newName)).hasName(newName.sqlFqn());
         assertThat(newTable.primaryKey()).doesNotContain(oldPkCol).contains(newPkCol);
     }
 
@@ -283,7 +283,7 @@ public class RenameColumnTaskTest extends CrateDummyClusterServiceUnitTest {
 
         var renamedIndexColumn = tbl.indexColumn(ColumnIdent.of("i2"));
         assertThat(renamedIndexColumn.columns()).hasSize(1);
-        assertThat(renamedIndexColumn.columns().getFirst()).isReference().hasName("x2");
+        assertThat(renamedIndexColumn.columns().getFirst()).hasName("x2");
         assertThat(renamedIndexColumn.column()).isEqualTo(ColumnIdent.of("i2"));
     }
 }
