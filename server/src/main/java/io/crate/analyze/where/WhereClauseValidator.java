@@ -94,7 +94,7 @@ public final class WhereClauseValidator {
         @Override
         public Symbol visitFunction(Function function, Context context) {
             context.functions.push(function);
-            if (function.signature().getKind().equals(FunctionType.TABLE)) {
+            if (function.signature().getType().equals(FunctionType.TABLE)) {
                 throw new UnsupportedOperationException("Table functions are not allowed in WHERE");
             }
             continueTraversal(function, context);

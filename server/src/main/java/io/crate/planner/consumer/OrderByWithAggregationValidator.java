@@ -80,7 +80,7 @@ public class OrderByWithAggregationValidator {
             if (context.isDistinct) {
                 throw new UnsupportedOperationException(Symbols.format(INVALID_FIELD_IN_DISTINCT_TEMPLATE, symbol));
             }
-            switch (symbol.signature().getKind()) {
+            switch (symbol.signature().getType()) {
                 case AGGREGATE:
                     if (context.aggregateFunctionVisited == null) {
                         context.aggregateFunctionVisited = symbol;

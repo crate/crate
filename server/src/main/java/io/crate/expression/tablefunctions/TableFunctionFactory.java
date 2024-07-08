@@ -41,7 +41,7 @@ public class TableFunctionFactory {
 
     public static TableFunctionImplementation<?> from(FunctionImplementation functionImplementation) {
         TableFunctionImplementation<?> tableFunction;
-        switch (functionImplementation.signature().getKind()) {
+        switch (functionImplementation.signature().getType()) {
             case TABLE:
                 tableFunction = (TableFunctionImplementation<?>) functionImplementation;
                 break;

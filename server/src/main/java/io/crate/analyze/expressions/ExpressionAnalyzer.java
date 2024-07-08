@@ -1225,7 +1225,7 @@ public class ExpressionAnalyzer {
         List<Symbol> castArguments = cast(arguments, boundSignature.argTypes());
         Function newFunction;
         if (windowDefinition == null) {
-            if (signature.getKind() == FunctionType.AGGREGATE) {
+            if (signature.getType() == FunctionType.AGGREGATE) {
                 context.indicateAggregates();
             } else if (filter != null) {
                 throw new UnsupportedOperationException(
@@ -1239,8 +1239,8 @@ public class ExpressionAnalyzer {
             }
             newFunction = new Function(signature, castArguments, boundSignature.returnType(), filter);
         } else {
-            if (signature.getKind() != FunctionType.WINDOW) {
-                if (signature.getKind() != FunctionType.AGGREGATE) {
+            if (signature.getType() != FunctionType.WINDOW) {
+                if (signature.getType() != FunctionType.AGGREGATE) {
                     throw new IllegalArgumentException(String.format(
                         Locale.ENGLISH,
                         "OVER clause was specified, but %s is neither a window nor an aggregate function.",

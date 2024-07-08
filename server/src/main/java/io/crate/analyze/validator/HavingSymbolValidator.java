@@ -83,7 +83,7 @@ public class HavingSymbolValidator {
 
         @Override
         public Void visitFunction(Function function, HavingContext context) {
-            FunctionType type = function.signature().getKind();
+            FunctionType type = function.signature().getType();
             if (type == FunctionType.TABLE) {
                 throw new IllegalArgumentException("Table functions are not allowed in HAVING");
             } else if (type == FunctionType.AGGREGATE) {

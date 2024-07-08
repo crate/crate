@@ -110,7 +110,7 @@ public class ProjectionBuilder {
                                                    UnaryOperator<Symbol> subQueryAndParamBinder) {
         ArrayList<Aggregation> aggregations = new ArrayList<>(functions.size());
         for (Function function : functions) {
-            assert function.signature().getKind() == FunctionType.AGGREGATE :
+            assert function.signature().getType() == FunctionType.AGGREGATE :
                     "function type must be " + FunctionType.AGGREGATE;
             AggregationFunction<?, ?> aggregationFunction = (AggregationFunction<?, ?>) nodeCtx.functions().getQualified(
                 function

@@ -175,7 +175,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(relation.groupBy()).isEmpty();
         assertThat(relation.outputs()).hasSize(1);
         Function col1 = (Function) relation.outputs().getFirst();
-        assertThat(col1.signature().getKind()).isEqualTo(FunctionType.AGGREGATE);
+        assertThat(col1.signature().getType()).isEqualTo(FunctionType.AGGREGATE);
         assertThat(col1.name()).isEqualTo(AverageAggregation.NAME);
     }
 
@@ -230,7 +230,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
         Function whereClause = (Function) relation.where();
         assertThat(whereClause.name()).isEqualTo(OrOperator.NAME);
-        assertThat(whereClause.signature().getKind() == FunctionType.AGGREGATE).isFalse();
+        assertThat(whereClause.signature().getType() == FunctionType.AGGREGATE).isFalse();
 
         Function left = (Function) whereClause.arguments().getFirst();
         assertThat(left.name()).isEqualTo(EqOperator.NAME);
@@ -256,7 +256,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             "or load['1'] = ? or name = ?");
         Function whereClause = (Function) relation.where();
         assertThat(whereClause.name()).isEqualTo(OrOperator.NAME);
-        assertThat(whereClause.signature().getKind() == FunctionType.AGGREGATE).isFalse();
+        assertThat(whereClause.signature().getType() == FunctionType.AGGREGATE).isFalse();
 
         Function function = (Function) whereClause.arguments().getFirst();
         assertThat(function.name()).isEqualTo(OrOperator.NAME);
@@ -545,7 +545,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(symbol).isFunction("collect_set");
 
         Function collectSet = (Function) symbol;
-        assertThat(collectSet.signature().getKind()).isEqualTo(FunctionType.AGGREGATE);
+        assertThat(collectSet.signature().getType()).isEqualTo(FunctionType.AGGREGATE);
 
         assertThat(collectSet.arguments()).hasSize(1);
         assertThat(collectSet.arguments().getFirst()).isReference().hasName("load['1']");
