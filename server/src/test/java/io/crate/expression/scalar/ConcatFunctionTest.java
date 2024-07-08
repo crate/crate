@@ -45,7 +45,7 @@ public class ConcatFunctionTest extends ScalarTestCase {
     public void testArgumentThatHasNoStringRepr() {
         assertThatThrownBy(() -> assertNormalize("concat('foo', [1])", isNull()))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: concat('foo', _array(1)), " +
+            .hasMessageStartingWith("Unknown function: concat('foo', [1]), " +
                                     "no overload found for matching argument types: (text, integer_array).");
     }
 
@@ -94,7 +94,7 @@ public class ConcatFunctionTest extends ScalarTestCase {
     public void testTwoArraysOfIncompatibleInnerTypes() {
         assertThatThrownBy(() -> assertNormalize("concat([1, 2], [[1, 2]])", isNull()))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: concat(_array(1, 2), _array(_array(1, 2))), " +
+            .hasMessageStartingWith("Unknown function: concat([1, 2], [[1, 2]]), " +
                 "no overload found for matching argument types: (integer_array, integer_array_array).");
     }
 
