@@ -72,7 +72,7 @@ public class CaseFunction extends Scalar<Object, Object> {
                 .argumentTypes(bool, t)
                 .returnType(t)
                 .variableArityGroup(List.of(bool, t))
-                .feature(Feature.DETERMINISTIC)
+                .features(Feature.DETERMINISTIC)
                 .build(),
             CaseFunction::new
         );

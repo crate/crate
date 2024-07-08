@@ -59,7 +59,7 @@ public class MapFunction extends Scalar<Object, Object> {
             // This is *ok* as the returnType is currently not used directly, only for function description.
             .returnType(TypeSignature.parse("object(text, V)"))
             .variableArityGroup(List.of(TypeSignature.parse("text"), TypeSignature.parse("V")))
-            .feature(Feature.DETERMINISTIC)
+            .features(Feature.DETERMINISTIC)
             .build();
 
 
