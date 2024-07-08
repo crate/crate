@@ -68,7 +68,7 @@ public class WhereClauseAnalyzer {
         if (!table.isPartitioned()) {
             return where;
         }
-        if (table.getPartitions(metadata).isEmpty()) {
+        if (table.getPartitionNames(metadata).isEmpty()) {
             return WhereClause.NO_MATCH;
         }
         PartitionResult partitionResult = resolvePartitions(where.queryOrFallback(), table, coordinatorTxnCtx, nodeCtx, metadata);
@@ -107,7 +107,7 @@ public class WhereClauseAnalyzer {
                                                     NodeContext nodeCtx,
                                                     Metadata metadata) {
         assert tableInfo.isPartitioned() : "table must be partitioned in order to resolve partitions";
-        assert !tableInfo.getPartitions(metadata).isEmpty() : "table must have at least one partition";
+        assert !tableInfo.getPartitionNames(metadata).isEmpty() : "table must have at least one partition";
 
         PartitionReferenceResolver partitionReferenceResolver = preparePartitionResolver(
             tableInfo.partitionedByColumns());
@@ -121,7 +121,7 @@ public class WhereClauseAnalyzer {
         Symbol normalized;
         Map<Symbol, List<Literal<?>>> queryPartitionMap = new HashMap<>();
 
-        for (PartitionName partitionName : tableInfo.getPartitions(metadata)) {
+        for (PartitionName partitionName : tableInfo.getPartitionNames(metadata)) {
             for (PartitionExpression partitionExpression : partitionReferenceResolver.expressions()) {
                 partitionExpression.setNextRow(partitionName);
             }
@@ -153,7 +153,7 @@ public class WhereClauseAnalyzer {
             return partitionResult == null
                 // if partitionResult is null we can't narrow the partitions and keep the full query + use all partitions
                 // the query will then be evaluated correctly within each partition to see whether it matches or not
-                ? new PartitionResult(query, Lists.map(tableInfo.getPartitions(metadata), PartitionName::asIndexName))
+                ? new PartitionResult(query, Lists.map(tableInfo.getPartitionNames(metadata), PartitionName::asIndexName))
                 : partitionResult;
         } else {
             return new PartitionResult(Literal.BOOLEAN_FALSE, Collections.emptyList());

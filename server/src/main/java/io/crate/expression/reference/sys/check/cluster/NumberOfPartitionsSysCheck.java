@@ -21,17 +21,17 @@
 
 package io.crate.expression.reference.sys.check.cluster;
 
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
+
+import io.crate.expression.reference.sys.check.AbstractSysCheck;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.SchemaInfo;
-import io.crate.expression.reference.sys.check.AbstractSysCheck;
-
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 
 @Singleton
 public class NumberOfPartitionsSysCheck extends AbstractSysCheck {
@@ -61,7 +61,7 @@ public class NumberOfPartitionsSysCheck extends AbstractSysCheck {
             }
             for (var table : docSchemaInfo.getTables()) {
                 DocTableInfo docTableInfo = (DocTableInfo) table;
-                if (docTableInfo.isPartitioned() && docTableInfo.getPartitions(metadata).size() > PARTITIONS_THRESHOLD) {
+                if (docTableInfo.isPartitioned() && docTableInfo.getPartitionNames(metadata).size() > PARTITIONS_THRESHOLD) {
                     return false;
                 }
             }

@@ -172,7 +172,7 @@ public class InformationSchemaIterables implements ClusterStateListener {
             .flatMap(Function.identity())
             .iterator();
 
-        partitionInfos = new PartitionInfos(clusterService);
+        partitionInfos = new PartitionInfos(clusterService, schemas);
 
         referentialConstraints = emptyList();
         // these are initialized on a clusterState change

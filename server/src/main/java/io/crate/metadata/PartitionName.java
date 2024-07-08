@@ -71,7 +71,7 @@ public class PartitionName {
      */
     public static PartitionName ofAssignments(DocTableInfo table, List<Assignment<Object>> assignments, Metadata metadata) {
         PartitionName partitionName = ofAssignmentsUnsafe(table, assignments);
-        if (table.getPartitions(metadata).contains(partitionName) == false) {
+        if (table.getPartitionNames(metadata).contains(partitionName) == false) {
             throw new PartitionUnknownException(partitionName);
         }
         return partitionName;
