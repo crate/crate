@@ -21,7 +21,6 @@
 
 package io.crate.integrationtests;
 
-import static io.crate.common.collections.Maps.getByPath;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertSQLError;
 import static io.crate.testing.Asserts.assertThat;
@@ -31,16 +30,23 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Map;
 
-import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.optimizer.rule.MergeFilterAndCollect;
 import io.crate.planner.optimizer.rule.OptimizeCollectWhereClauseAccess;
 import io.crate.testing.Asserts;
 import io.crate.testing.UseRandomizedOptimizerRules;
+import io.crate.types.ArrayType;
+import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
 @IntegTestCase.ClusterScope(numDataNodes = 1)
 public class ColumnPolicyIntegrationTest extends IntegTestCase {
@@ -50,18 +56,18 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
     public ColumnPolicyIntegrationTest() throws URISyntaxException {
     }
 
-    private MappingMetadata getMappingMetadata(String index) {
-        return clusterService().state().metadata().indices()
-            .get(index)
-            .mapping();
+    private DocTableInfo getTable(RelationName name) {
+        return cluster().getInstance(NodeContext.class)
+            .schemas()
+            .getTableInfo(name);
     }
 
-    private Map<String, Object> getSourceMap(String index) throws IOException {
-        return getMappingMetadata(getFqn(index)).sourceAsMap();
+    private DocTableInfo getTable(String table) throws IOException {
+        return getTable(new RelationName(sqlExecutor.getCurrentSchema(), table));
     }
 
-    private Map<String, Object> getSourceMap(String schema, String index) throws IOException {
-        return getMappingMetadata(getFqn(schema, index)).sourceAsMap();
+    private DocTableInfo getTable(String schema, String table) throws IOException {
+        return getTable(new RelationName(schema, table));
     }
 
     @Test
@@ -81,10 +87,8 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("insert into dynamic_table (new, meta) values(['a', 'b', 'c'], 'hello')");
         execute("insert into dynamic_table (new) values(['d', 'e', 'f'])");
-        Map<String, Object> sourceMap = getSourceMap("dynamic_table");
-        assertThat(getByPath(sourceMap, "properties.new.type")).isEqualTo("array");
-        assertThat(getByPath(sourceMap, "properties.new.inner.type")).isEqualTo("keyword");
-        assertThat(getByPath(sourceMap, "properties.meta.type")).isEqualTo("keyword");
+        DocTableInfo table = getTable("dynamic_table");
+        assertThat(table.getReference(ColumnIdent.of("new")).valueType()).isEqualTo(new ArrayType<>(DataTypes.STRING));
     }
 
     @Test
@@ -92,16 +96,23 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
     @UseRandomizedOptimizerRules(alwaysKeep = {MergeFilterAndCollect.class, OptimizeCollectWhereClauseAccess.class})
     public void testInsertDynamicObjectArray() throws Exception {
         execute("create table dynamic_table (id int PRIMARY KEY, person object(dynamic)) with (number_of_replicas=0)");
-        ensureYellow();
         execute("insert into dynamic_table (id, person) values " +
                 "(1, {name='Ford', addresses=[{city='West Country', country='GB'}]})");
-        refresh();
+        execute("refresh table dynamic_table");
 
-        Map<String, Object> sourceMap = getSourceMap("dynamic_table");
-        assertThat(getByPath(sourceMap, "properties.person.properties.addresses.type")).isEqualTo("array");
-        assertThat(getByPath(sourceMap, "properties.person.properties.name.type")).isEqualTo("keyword");
-        assertThat(getByPath(sourceMap, "properties.person.properties.addresses.inner.properties.city.type")).isEqualTo("keyword");
-        assertThat(getByPath(sourceMap, "properties.person.properties.addresses.inner.properties.country.type")).isEqualTo("keyword");
+        DocTableInfo table = getTable("dynamic_table");
+        ObjectType expectedObject = ObjectType.builder()
+            .setInnerType("city", DataTypes.STRING)
+            .setInnerType("country", DataTypes.STRING)
+            .build();
+        assertThat(table.getReference(ColumnIdent.of("person", "addresses")).valueType())
+            .isEqualTo(new ArrayType<>(expectedObject));
+        assertThat(table.getReference(ColumnIdent.of("person", "name")).valueType())
+            .isEqualTo(DataTypes.STRING);
+        assertThat(table.getReference(ColumnIdent.of("person", List.of("addresses", "city"))).valueType())
+            .isEqualTo(DataTypes.STRING);
+        assertThat(table.getReference(ColumnIdent.of("person", List.of("addresses", "country"))).valueType())
+            .isEqualTo(DataTypes.STRING);
 
         execute("select person['name'], person['addresses']['city'] from dynamic_table");
 
@@ -127,12 +138,12 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         execute("refresh table dynamic_table");
         execute("insert into dynamic_table (new) values({nest={}, new={}})");
 
-        Map<String, Object> sourceMap = getSourceMap("dynamic_table");
-        assertThat(getByPath(sourceMap, "properties.new.properties.a.type")).isEqualTo("array");
-        assertThat(getByPath(sourceMap, "properties.new.properties.a.inner.type")).isEqualTo("keyword");
-        assertThat(getByPath(sourceMap, "properties.new.properties.nest.properties.a.type")).isEqualTo("array");
-        assertThat(getByPath(sourceMap, "properties.new.properties.nest.properties.a.inner.type")).isEqualTo("keyword");
-        assertThat(getByPath(sourceMap, "properties.meta.type")).isEqualTo("keyword");
+        DocTableInfo table = getTable("dynamic_table");
+        assertThat(table.getReference(ColumnIdent.of("new", "a")).valueType())
+            .isEqualTo(new ArrayType<>(DataTypes.STRING));
+        assertThat(table.getReference(ColumnIdent.of("new", List.of("nest", "a"))).valueType())
+            .isEqualTo(new ArrayType<>(DataTypes.STRING));
+        assertThat(table.getReference(ColumnIdent.of("meta")).valueType()).isEqualTo(DataTypes.STRING);
     }
 
     @Test
@@ -146,9 +157,9 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         execute("insert into c.dynamic_table (meta) values({meta={a=['a','b']}})");
         execute("refresh table c.dynamic_table");
         execute("insert into c.dynamic_table (meta) values({meta={a=['c','d']}})");
-        Map<String, Object> sourceMap = getSourceMap("c", "dynamic_table");
-        assertThat(getByPath(sourceMap, "properties.meta.properties.meta.properties.a.type")).isEqualTo("array");
-        assertThat(getByPath(sourceMap, "properties.meta.properties.meta.properties.a.inner.type")).isEqualTo("keyword");
+        DocTableInfo table = getTable("c", "dynamic_table");
+        assertThat(table.getReference(ColumnIdent.of("meta", List.of("meta", "a"))).valueType())
+            .isEqualTo(new ArrayType<>(DataTypes.STRING));
     }
 
     @Test
@@ -161,11 +172,11 @@ public class ColumnPolicyIntegrationTest extends IntegTestCase {
         execute("insert into dynamic_table (my_object) values ({a=['a','b']}),({b=['a']})");
         execute("refresh table dynamic_table");
 
-        Map<String, Object> sourceMap = getSourceMap("dynamic_table");
-        assertThat(getByPath(sourceMap, "properties.my_object.properties.a.type")).isEqualTo("array");
-        assertThat(getByPath(sourceMap, "properties.my_object.properties.a.inner.type")).isEqualTo("keyword");
-        assertThat(getByPath(sourceMap, "properties.my_object.properties.b.type")).isEqualTo("array");
-        assertThat(getByPath(sourceMap, "properties.my_object.properties.b.inner.type")).isEqualTo("keyword");
+        DocTableInfo table = getTable("dynamic_table");
+        assertThat(table.getReference(ColumnIdent.of("my_object", "a")).valueType())
+            .isEqualTo(new ArrayType<>(DataTypes.STRING));
+        assertThat(table.getReference(ColumnIdent.of("my_object", "b")).valueType())
+            .isEqualTo(new ArrayType<>(DataTypes.STRING));
     }
 
     @Test
