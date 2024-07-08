@@ -122,7 +122,7 @@ public final class WhereClauseOptimizer {
                 clusteredBy.add(binder.apply(clusteredByValue));
             }
             if (table.isPartitioned()) {
-                if (table.getPartitions(metadata).isEmpty()) {
+                if (table.getPartitionNames(metadata).isEmpty()) {
                     return WhereClause.NO_MATCH;
                 }
                 WhereClauseAnalyzer.PartitionResult partitionResult =

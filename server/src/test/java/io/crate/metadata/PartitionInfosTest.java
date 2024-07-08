@@ -26,100 +26,81 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
 
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.common.settings.Settings;
+import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 
 public class PartitionInfosTest extends CrateDummyClusterServiceUnitTest {
 
-    private static Settings defaultSettings() {
-        return Settings.builder().put("index.version.created", Version.CURRENT).build();
-    }
+    private SQLExecutor e;
 
-    private void addIndexMetadataToClusterState(IndexMetadata.Builder imdBuilder) throws Exception {
-        CompletableFuture<Boolean> processed = new CompletableFuture<>();
-        ClusterState currentState = clusterService.state();
-        ClusterState newState = ClusterState.builder(currentState)
-            .metadata(Metadata.builder(currentState.metadata())
-                .put(imdBuilder))
+    @Before
+    public void setup() {
+        e = SQLExecutor.builder(clusterService)
             .build();
-        clusterService.addListener(event -> {
-            if (event.state() == newState) {
-                processed.complete(true);
-            }
-        });
-        clusterService.getClusterApplierService()
-            .onNewClusterState("test", () -> newState, (source, e) -> processed.completeExceptionally(e));
-        processed.get(5, TimeUnit.SECONDS);
     }
 
     @Test
     public void testIgnoreNoPartitions() throws Exception {
-        addIndexMetadataToClusterState(
-            IndexMetadata.builder("test1").settings(defaultSettings()).numberOfShards(10).numberOfReplicas(4));
-        Iterable<PartitionInfo> partitioninfos = new PartitionInfos(clusterService);
+        e.addTable("create table tbl (x int)");
+        Iterable<PartitionInfo> partitioninfos = new PartitionInfos(clusterService, e.schemas());
         assertThat(partitioninfos.iterator().hasNext()).isFalse();
     }
 
-    @Test
-    public void testPartitionWithoutMapping() throws Exception {
-        PartitionName partitionName = new PartitionName(
-            new RelationName("doc", "test1"), List.of("foo"));
-        addIndexMetadataToClusterState(IndexMetadata.builder(partitionName.asIndexName())
-            .settings(defaultSettings()).numberOfShards(10).numberOfReplicas(4));
-        Iterable<PartitionInfo> partitioninfos = new PartitionInfos(clusterService);
-        assertThat(partitioninfos.iterator().hasNext()).isFalse();
-    }
 
     @Test
     public void testPartitionWithMeta() throws Exception {
-        PartitionName partitionName = new PartitionName(
-            new RelationName("doc", "test1"), List.of("foo"));
-        IndexMetadata.Builder indexMetadata = IndexMetadata
-            .builder(partitionName.asIndexName())
-            .settings(defaultSettings())
-            .putMapping("{\"_meta\":{\"partitioned_by\":[[\"col\", \"string\"]]}}")
-            .numberOfShards(10)
-            .numberOfReplicas(4);
-        addIndexMetadataToClusterState(indexMetadata);
-        Iterable<PartitionInfo> partitioninfos = new PartitionInfos(clusterService);
+        PartitionName partitionName = new PartitionName(new RelationName("doc", "tbl"), List.of("1"));
+        e.addPartitionedTable(
+            """
+                create table doc.tbl (
+                    x int,
+                    p int
+                )
+                clustered into 10 shards
+                partitioned by (p)
+                with (number_of_replicas = 4)
+            """,
+            partitionName.asIndexName()
+        );
+        Iterable<PartitionInfo> partitioninfos = new PartitionInfos(clusterService, e.schemas());
         Iterator<PartitionInfo> iter = partitioninfos.iterator();
         PartitionInfo partitioninfo = iter.next();
-        assertThat(partitioninfo.name().asIndexName()).isEqualTo(partitionName.asIndexName());
+        assertThat(partitioninfo.name()).isEqualTo(partitionName);
         assertThat(partitioninfo.numberOfShards()).isEqualTo(10);
         assertThat(partitioninfo.numberOfReplicas()).isEqualTo("4");
-        assertThat(partitioninfo.values()).containsOnly(Map.entry("col", "foo"));
+        assertThat(partitioninfo.values()).containsOnly(Map.entry("p", 1));
         assertThat(iter.hasNext()).isFalse();
     }
 
     @Test
     public void testPartitionWithMetaMultiCol() throws Exception {
-        PartitionName partitionName = new PartitionName(
-            new RelationName("doc", "test1"), List.of("foo", "1"));
-        IndexMetadata.Builder indexMetadata = IndexMetadata
-            .builder(partitionName.asIndexName())
-            .settings(defaultSettings())
-            .putMapping("{\"_meta\":{\"partitioned_by\":[[\"col\", \"string\"], [\"col2\", \"integer\"]]}}")
-            .numberOfShards(10)
-            .numberOfReplicas(4);
-        addIndexMetadataToClusterState(indexMetadata);
-        Iterable<PartitionInfo> partitioninfos = new PartitionInfos(clusterService);
+        PartitionName partitionName = new PartitionName(new RelationName("doc", "tbl"), List.of("foo", "2"));
+        e.addPartitionedTable(
+            """
+                create table doc.tbl (
+                    x int,
+                    p1 text,
+                    p2 int
+                )
+                clustered into 10 shards
+                partitioned by (p1, p2)
+                with (number_of_replicas = 4)
+            """,
+            partitionName.asIndexName()
+        );
+        Iterable<PartitionInfo> partitioninfos = new PartitionInfos(clusterService, e.schemas());
         Iterator<PartitionInfo> iter = partitioninfos.iterator();
         PartitionInfo partitioninfo = iter.next();
         assertThat(partitioninfo.name().asIndexName()).isEqualTo(partitionName.asIndexName());
         assertThat(partitioninfo.numberOfShards()).isEqualTo(10);
         assertThat(partitioninfo.numberOfReplicas()).isEqualTo("4");
         assertThat(partitioninfo.values()).containsExactlyInAnyOrderEntriesOf(Map.of(
-            "col", "foo",
-            "col2", 1));
+            "p1", "foo",
+            "p2", 2));
         assertThat(iter.hasNext()).isFalse();
     }
 }

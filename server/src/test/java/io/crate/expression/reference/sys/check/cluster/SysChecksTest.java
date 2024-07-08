@@ -21,8 +21,8 @@
 
 package io.crate.expression.reference.sys.check.cluster;
 
-import static org.assertj.core.api.Assertions.assertThat;
 import static io.crate.testing.TestingHelpers.createNodeContext;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -67,7 +67,7 @@ public class SysChecksTest extends ESTestCase {
 
         List<PartitionName> partitionsFirst = buildPartitions(500);
         List<PartitionName> partitionsSecond = buildPartitions(100);
-        when(docTableInfo.getPartitions(any())).thenReturn(partitionsFirst, partitionsSecond);
+        when(docTableInfo.getPartitionNames(any())).thenReturn(partitionsFirst, partitionsSecond);
 
         assertThat(numberOfPartitionsSysCheck.id()).isEqualTo(2);
         assertThat(numberOfPartitionsSysCheck.severity()).isEqualTo(Severity.MEDIUM);
@@ -86,7 +86,7 @@ public class SysChecksTest extends ESTestCase {
         when(clusterService.state()).thenReturn(ClusterState.EMPTY_STATE);
         when(docSchemaInfo.getTables()).thenReturn(List.of(docTableInfo));
         when(docTableInfo.isPartitioned()).thenReturn(true);
-        when(docTableInfo.getPartitions(any())).thenReturn(partitions);
+        when(docTableInfo.getPartitionNames(any())).thenReturn(partitions);
 
         assertThat(numberOfPartitionsSysCheck.id()).isEqualTo(2);
         assertThat(numberOfPartitionsSysCheck.severity()).isEqualTo(Severity.MEDIUM);

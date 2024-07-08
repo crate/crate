@@ -65,11 +65,11 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.rest.RestStatus;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.fdw.ForeignTablesMetadata;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
@@ -333,6 +333,9 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
         throw new IndexNotFoundException(index);
     }
 
+    /**
+     * @return indexName -> indexMetadata
+     **/
     public ImmutableOpenMap<String, IndexMetadata> indices() {
         return this.indices;
     }

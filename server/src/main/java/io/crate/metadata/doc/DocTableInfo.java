@@ -46,6 +46,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.IndexMetadata.State;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
@@ -55,6 +56,7 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
+import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -85,6 +87,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.PartitionInfo;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
@@ -489,7 +492,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         return partitionedBy;
     }
 
-    public List<PartitionName> getPartitions(Metadata metadata) {
+    public List<PartitionName> getPartitionNames(Metadata metadata) {
         if (!isPartitioned) {
             throw new IllegalArgumentException("Relation " + ident + " isn't partitioned, cannot get partitions");
         }
@@ -501,11 +504,55 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         return partitions;
     }
 
+    public List<PartitionInfo> getPartitions(Metadata metadata) {
+        if (!isPartitioned) {
+            return List.of();
+        }
+        Index[] indices = IndexNameExpressionResolver.concreteIndices(
+            metadata,
+            IndicesOptions.lenientExpand(),
+            ident.indexNameOrAlias()
+        );
+        ArrayList<PartitionInfo> result = new ArrayList<>(indices.length);
+        for (Index index : indices) {
+            IndexMetadata indexMetadata = metadata.index(index);
+            PartitionName partitionName = PartitionName.fromIndexOrTemplate(index.getName());
+            List<String> values = partitionName.values();
+            Map<String, Object> valuesMap = HashMap.newHashMap(values.size());
+            assert values.size() == partitionedBy.size()
+                : "Number of values in partitionIdent must match number of partitionedBy columns";
+            for (int i = 0; i < values.size(); i++) {
+                String value = values.get(i);
+                Reference reference = partitionedByColumns.get(i);
+                valuesMap.put(
+                    reference.column().sqlFqn(),
+                    reference.valueType().implicitCast(value)
+                );
+            }
+            Settings settings = indexMetadata.getSettings();
+            // Not using numberOfShards/numberOfReplicas/... properties because PartitionInfo
+            // needs to show the values of the partition, not the table/template
+            PartitionInfo partitionInfo = new PartitionInfo(
+                partitionName,
+                indexMetadata.getNumberOfShards(),
+                NumberOfReplicas.getVirtualValue(settings),
+                IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(settings),
+                settings.getAsVersion(IndexMetadata.SETTING_VERSION_UPGRADED, null),
+                indexMetadata.getState() == State.CLOSE,
+                valuesMap,
+                settings
+            );
+            result.add(partitionInfo);
+        }
+        return result;
+    }
+
+
     /**
      * returns <code>true</code> if this table is a partitioned table,
      * <code>false</code> otherwise
      * <p>
-     * if so, {@linkplain #getPartitions(Metadata)} returns infos about the concrete indices that make
+     * if so, {@linkplain #getPartitionNames(Metadata)} returns infos about the concrete indices that make
      * up this virtual partitioned table
      */
     public boolean isPartitioned() {

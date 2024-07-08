@@ -103,7 +103,7 @@ public final class DeletePlanner {
             return new DeleteById(tableRel.tableInfo(), detailedQuery.docKeys().get());
         }
         if (table.isPartitioned() && query instanceof Input<?> input && DataTypes.BOOLEAN.sanitizeValue(input.value())) {
-            return new DeleteAllPartitions(Lists.map(table.getPartitions(context.clusterState().metadata()), PartitionName::asIndexName));
+            return new DeleteAllPartitions(Lists.map(table.getPartitionNames(context.clusterState().metadata()), PartitionName::asIndexName));
         }
 
         return new Delete(tableRel, detailedQuery);
