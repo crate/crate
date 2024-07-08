@@ -100,7 +100,7 @@ public class ArrayLowerFunctionTest extends ScalarTestCase {
     public void testOneArgument() {
         assertThatThrownBy(() -> assertEvaluateNull("array_lower([1])"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: array_lower(_array(1)), " +
+            .hasMessageStartingWith("Unknown function: array_lower([1]), " +
                                     "no overload found for matching argument types: (integer_array).");
     }
 
@@ -108,7 +108,7 @@ public class ArrayLowerFunctionTest extends ScalarTestCase {
     public void testThreeArguments() {
         assertThatThrownBy(() -> assertEvaluateNull("array_lower([1], 2, [3])"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: array_lower(_array(1), 2, _array(3)), " +
+            .hasMessageStartingWith("Unknown function: array_lower([1], 2, [3]), " +
                     "no overload found for matching argument types: (integer_array, integer, integer_array).");
     }
 
@@ -116,7 +116,7 @@ public class ArrayLowerFunctionTest extends ScalarTestCase {
     public void testSecondArgumentNotANumber() {
         assertThatThrownBy(() -> assertEvaluateNull("array_lower([1], [2])"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: array_lower(_array(1), _array(2)), " +
+            .hasMessageStartingWith("Unknown function: array_lower([1], [2]), " +
                     "no overload found for matching argument types: (integer_array, integer_array).");
     }
 

@@ -23,6 +23,7 @@ package io.crate.planner.operators;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.MemoryLimits.assertMaxBytesAllocated;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -644,8 +645,8 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan).isEqualTo(
             """
                 Rename[sumx, umaxx, minx, uavgx] AS vt
-                  └ Eval[sum(x) AS sumx, unnest(_array(max(x))) AS umaxx, min(x) AS minx, unnest(_array(avg(x))) AS uavgx]
-                    └ ProjectSet[unnest(_array(min(x))), unnest(_array(max(x))), unnest(_array(avg(x))), unnest(_array(sum(x))), sum(x), max(x), min(x), avg(x)]
+                  └ Eval[sum(x) AS sumx, unnest([max(x)]) AS umaxx, min(x) AS minx, unnest([avg(x)]) AS uavgx]
+                    └ ProjectSet[unnest([min(x)]), unnest([max(x)]), unnest([avg(x)]), unnest([sum(x)]), sum(x), max(x), min(x), avg(x)]
                       └ HashAggregate[min(x), max(x), avg(x), sum(x)]
                         └ Collect[doc.t1 | [x] | true]""");
     }

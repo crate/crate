@@ -325,7 +325,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testAnyWithArrayOnBothSidesResultsInNiceErrorMessage() {
         assertThatThrownBy(() -> executor.analyze("select * from tarr where xs = ANY([10, 20])"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: (doc.tarr.xs = ANY(_array(10, 20)))," +
+            .hasMessageStartingWith("Unknown function: (doc.tarr.xs = ANY([10, 20]))," +
                         " no overload found for matching argument types: (integer_array, integer_array).");
     }
 
