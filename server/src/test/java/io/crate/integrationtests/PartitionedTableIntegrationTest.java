@@ -31,6 +31,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.rtsp.RtspResponseStatuses.BAD_REQUEST;
 import static io.netty.handler.codec.rtsp.RtspResponseStatuses.INTERNAL_SERVER_ERROR;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -50,7 +51,6 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
-import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.IntegTestCase;
@@ -1576,33 +1576,26 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         assertThat(response.rowCount()).isLessThanOrEqualTo(4L);
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     public void testAlterPartitionedTableKeepsMetadata() throws Exception {
         execute("create table dynamic_table (" +
                 "  id integer, " +
                 "  score double" +
                 ") partitioned by (score) with (number_of_replicas=0, column_policy='dynamic')");
-        ensureGreen();
         execute("insert into dynamic_table (id, score) values (1, 10)");
         execute("refresh table dynamic_table");
-        ensureGreen();
-        MappingMetadata partitionMetadata = clusterService().state().metadata().indices()
-            .get(new PartitionName(
-                new RelationName(sqlExecutor.getCurrentSchema(), "dynamic_table"),
-                Collections.singletonList("10.0")).asIndexName())
-            .mapping();
-        Map<String, Object> metaMap = (Map<String, Object>) partitionMetadata.sourceAsMap().get("_meta");
-        assertThat(String.valueOf(metaMap.get("partitioned_by"))).isEqualTo("[[score, double]]");
+        ensureYellow();
+
+        DocTableInfo table = getTable("dynamic_table");
+        assertThat(table.columns()).hasSize(2);
+        assertThat(table.partitionedBy()).containsExactly(ColumnIdent.of("score"));
+
         execute("alter table dynamic_table set (column_policy= 'dynamic')");
         waitNoPendingTasksOnAll();
-        partitionMetadata = clusterService().state().metadata().indices()
-            .get(new PartitionName(
-                new RelationName(sqlExecutor.getCurrentSchema(), "dynamic_table"),
-                Collections.singletonList("10.0")).asIndexName())
-            .mapping();
-        metaMap = (Map<String, Object>) partitionMetadata.sourceAsMap().get("_meta");
-        assertThat(String.valueOf(metaMap.get("partitioned_by"))).isEqualTo("[[score, double]]");
+
+        table = getTable("dynamic_table");
+        assertThat(table.columns()).hasSize(2);
+        assertThat(table.partitionedBy()).containsExactly(ColumnIdent.of("score"));
     }
 
     @Test
