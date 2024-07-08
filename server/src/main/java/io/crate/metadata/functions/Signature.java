@@ -52,13 +52,13 @@ public final class Signature implements Writeable, Accountable {
     public static Builder builder(FunctionName name, FunctionType type) {
         return new Builder()
             .name(name)
-            .kind(type);
+            .type(type);
     }
 
     public static Builder builder(String name, FunctionType type) {
         return new Builder()
             .name(name)
-            .kind(type);
+            .type(type);
     }
 
     public static Builder builder(Signature signature) {
@@ -67,7 +67,7 @@ public final class Signature implements Writeable, Accountable {
 
     public static class Builder {
         private FunctionName name;
-        private FunctionType kind;
+        private FunctionType type;
         private List<TypeSignature> argumentTypes = Collections.emptyList();
         private TypeSignature returnType;
         private Set<Scalar.Feature> features = Set.of();
@@ -81,7 +81,7 @@ public final class Signature implements Writeable, Accountable {
 
         public Builder(Signature signature) {
             name = signature.getName();
-            kind = signature.getKind();
+            type = signature.getType();
             argumentTypes = signature.getArgumentTypes();
             returnType = signature.getReturnType();
             features = signature.getFeatures();
@@ -102,8 +102,8 @@ public final class Signature implements Writeable, Accountable {
             return this;
         }
 
-        public Builder kind(FunctionType kind) {
-            this.kind = kind;
+        public Builder type(FunctionType type) {
+            this.type = type;
             return this;
         }
 
@@ -163,11 +163,11 @@ public final class Signature implements Writeable, Accountable {
 
         public Signature build() {
             assert name != null : "Signature requires the 'name' to be set";
-            assert kind != null : "Signature requires the 'kind' to be set";
+            assert type != null : "Signature requires the 'type' to be set";
             assert returnType != null : "Signature requires the 'returnType' to be set";
             return new Signature(
                 name,
-                kind,
+                type,
                 typeVariableConstraints,
                 argumentTypes,
                 returnType,
@@ -208,7 +208,7 @@ public final class Signature implements Writeable, Accountable {
 
 
     private final FunctionName name;
-    private final FunctionType kind;
+    private final FunctionType type;
     private final List<TypeSignature> argumentTypes;
     private final TypeSignature returnType;
     private final Set<Scalar.Feature> features;
@@ -216,7 +216,7 @@ public final class Signature implements Writeable, Accountable {
     private final SignatureBindingInfo bindingInfo;
 
     private Signature(FunctionName name,
-                      FunctionType kind,
+                      FunctionType type,
                       List<TypeVariableConstraint> typeVariableConstraints,
                       List<TypeSignature> argumentTypes,
                       TypeSignature returnType,
@@ -225,7 +225,7 @@ public final class Signature implements Writeable, Accountable {
                       boolean variableArity,
                       boolean allowCoercion) {
         this.name = name;
-        this.kind = kind;
+        this.type = type;
         this.argumentTypes = argumentTypes;
         this.returnType = returnType;
         this.features = features;
@@ -239,7 +239,7 @@ public final class Signature implements Writeable, Accountable {
 
     public Signature(StreamInput in) throws IOException {
         name = new FunctionName(in);
-        kind = FunctionType.values()[in.readVInt()];
+        type = FunctionType.values()[in.readVInt()];
         int argsSize = in.readVInt();
         argumentTypes = new ArrayList<>(argsSize);
         for (int i = 0; i < argsSize; i++) {
@@ -263,8 +263,8 @@ public final class Signature implements Writeable, Accountable {
         return name;
     }
 
-    public FunctionType getKind() {
-        return kind;
+    public FunctionType getType() {
+        return type;
     }
 
     public List<TypeSignature> getArgumentTypes() {
@@ -299,7 +299,7 @@ public final class Signature implements Writeable, Accountable {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         name.writeTo(out);
-        out.writeVInt(kind.ordinal());
+        out.writeVInt(type.ordinal());
         out.writeVInt(argumentTypes.size());
         for (TypeSignature typeSignature : argumentTypes) {
             TypeSignature.toStream(typeSignature, out);
@@ -312,7 +312,7 @@ public final class Signature implements Writeable, Accountable {
     public boolean equals(Object o) {
         return o instanceof Signature signature &&
             name.equals(signature.name) &&
-            kind == signature.kind &&
+            type == signature.type &&
             argumentTypes.equals(signature.argumentTypes) &&
             returnType.equals(signature.returnType);
     }
@@ -320,7 +320,7 @@ public final class Signature implements Writeable, Accountable {
     @Override
     public int hashCode() {
         int result = name.hashCode();
-        result = 31 * result + kind.hashCode();
+        result = 31 * result + type.hashCode();
         result = 31 * result + argumentTypes.hashCode();
         result = 31 * result + returnType.hashCode();
         return result;
@@ -355,7 +355,7 @@ public final class Signature implements Writeable, Accountable {
         // FunctionIdent end
 
         DataTypes.toStream(returnType.createType(), out);
-        out.writeVInt(kind.ordinal());
+        out.writeVInt(type.ordinal());
         out.writeVInt(EnumSets.packToInt(features));
     }
 }

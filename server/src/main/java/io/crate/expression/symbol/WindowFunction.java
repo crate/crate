@@ -66,7 +66,7 @@ public class WindowFunction extends Function {
                           WindowDefinition windowDefinition,
                           @Nullable Boolean ignoreNulls) {
         super(signature, arguments, returnType, filter);
-        assert signature.getKind() == WINDOW || signature.getKind() == AGGREGATE :
+        assert signature.getType() == WINDOW || signature.getType() == AGGREGATE :
             "only window and aggregate functions are allowed to be modelled over a window";
         this.windowDefinition = windowDefinition;
         this.ignoreNulls = ignoreNulls;

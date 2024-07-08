@@ -75,7 +75,7 @@ public class ProjectSet extends ForwardingLogicalPlan {
         while (true) {
             List<Function> childTableFunctions = tableFunctions.stream()
                 .flatMap(func -> func.arguments().stream())
-                .filter(arg -> arg instanceof Function fn && fn.signature().getKind() == FunctionType.TABLE)
+                .filter(arg -> arg instanceof Function fn && fn.signature().getType() == FunctionType.TABLE)
                 .map(x -> (Function) x)
                 .toList();
 
@@ -88,7 +88,7 @@ public class ProjectSet extends ForwardingLogicalPlan {
         LogicalPlan result = source;
         for (int i = nestedFunctions.size() - 1; i >= 0; i--) {
             List<Symbol> standalone = result.outputs().stream()
-                .filter(x -> !(x instanceof Function fn && fn.signature().getKind() == FunctionType.TABLE))
+                .filter(x -> !(x instanceof Function fn && fn.signature().getType() == FunctionType.TABLE))
                 .toList();
             result = new ProjectSet(result, nestedFunctions.get(i), standalone);
         }

@@ -155,9 +155,9 @@ public final class PgProcTable {
     }
 
     private static String prokind(Signature signature) {
-        if (signature.getKind() == WINDOW) {
+        if (signature.getType() == WINDOW) {
             return "w";
-        } else if (signature.getKind() == AGGREGATE) {
+        } else if (signature.getType() == AGGREGATE) {
             return "a";
         } else return "f";
     }

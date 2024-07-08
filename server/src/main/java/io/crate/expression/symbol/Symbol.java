@@ -122,7 +122,7 @@ public interface Symbol extends Writeable, Accountable {
      * Returns true if the tree contains the given function type
      */
     default boolean hasFunctionType(FunctionType type) {
-        return any(s -> s instanceof Function fn && fn.signature.getKind().equals(type));
+        return any(s -> s instanceof Function fn && fn.signature.getType().equals(type));
     }
 
     /**
