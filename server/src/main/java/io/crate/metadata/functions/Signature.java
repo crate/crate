@@ -37,7 +37,6 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.collections.EnumSets;
 import io.crate.common.collections.Lists;
-import io.crate.common.collections.Sets;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Scalar;
@@ -121,18 +120,18 @@ public final class Signature implements Writeable, Accountable {
             return this;
         }
 
-        public Builder feature(Scalar.Feature feature) {
-            this.features = Sets.concat(this.features, feature);
-            return this;
-        }
-
         public Builder features(Set<Scalar.Feature> features) {
-            this.features = Sets.union(this.features, features);
+            this.features = features;
             return this;
         }
 
         public Builder features(Scalar.Feature feature, Scalar.Feature ... rest) {
             this.features = EnumSet.of(feature, rest);
+            return this;
+        }
+
+        public Builder features(Scalar.Feature feature) {
+            this.features = EnumSet.of(feature);
             return this;
         }
 
