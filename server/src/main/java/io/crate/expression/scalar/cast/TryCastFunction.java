@@ -39,18 +39,15 @@ import io.crate.types.TypeSignature;
 public class TryCastFunction extends Scalar<Object, Object> {
 
     public static final String NAME = "try_cast";
+    public static final Signature SIGNATURE = Signature.builder(NAME, FunctionType.SCALAR)
+        .argumentTypes(TypeSignature.parse("E"), TypeSignature.parse("V"))
+        .returnType(TypeSignature.parse("V"))
+        .features(Feature.DETERMINISTIC)
+        .typeVariableConstraints(typeVariable("E"), typeVariable("V"))
+        .build();
 
     public static void register(Functions.Builder module) {
-        module.add(
-            Signature.builder(NAME, FunctionType.SCALAR)
-                .argumentTypes(TypeSignature.parse("E"),
-                    TypeSignature.parse("V"))
-                .returnType(TypeSignature.parse("V"))
-                .features(Feature.DETERMINISTIC)
-                .typeVariableConstraints(typeVariable("E"), typeVariable("V"))
-                .build(),
-            TryCastFunction::new
-        );
+        module.add(SIGNATURE, TryCastFunction::new);
     }
 
     private final DataType<?> returnType;
