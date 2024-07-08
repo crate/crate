@@ -26,14 +26,17 @@ import static io.crate.testing.Asserts.isLiteral;
 import org.junit.Test;
 
 import io.crate.expression.scalar.ScalarTestCase;
+import io.crate.expression.symbol.Literal;
+import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.role.Role;
 
 public class PgGetUserByIdFunctionTest extends ScalarTestCase {
 
     @Test
     public void testPgGetUserById() {
-        assertEvaluate("pg_get_userbyid('1')", Role.CRATE_USER.name());
-        assertNormalize("pg_get_userbyid(2)", isLiteral(Role.CRATE_USER.name()));
+        assertEvaluate("pg_get_userbyid('1')", "unknown (OID=1)");
+        assertNormalize("pg_get_userbyid(2)", isLiteral("unknown (OID=2)"));
+        assertEvaluate("pg_get_userbyid(?)", "crate", Literal.of(OidHash.userOid("crate")));
     }
 
     @Test
@@ -43,6 +46,11 @@ public class PgGetUserByIdFunctionTest extends ScalarTestCase {
 
     @Test
     public void testPgGetUserByIdWithFQN() {
-        assertEvaluate("pg_catalog.pg_get_userbyid(1)", Role.CRATE_USER.name());
+        assertEvaluate("pg_catalog.pg_get_userbyid(1)", "unknown (OID=1)");
+        assertEvaluate(
+            "pg_catalog.pg_get_userbyid(?)",
+            Role.CRATE_USER.name(),
+            Literal.of(OidHash.userOid("crate"))
+        );
     }
 }

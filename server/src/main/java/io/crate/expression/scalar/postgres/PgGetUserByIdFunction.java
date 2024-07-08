@@ -21,18 +21,20 @@
 
 package io.crate.expression.scalar.postgres;
 
-import static io.crate.role.Role.CRATE_USER;
-
-import io.crate.expression.scalar.UnaryScalar;
+import io.crate.data.Input;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.TransactionContext;
+import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
+import io.crate.role.Role;
 import io.crate.types.DataTypes;
 
-public class PgGetUserByIdFunction {
+public class PgGetUserByIdFunction extends Scalar<String, Integer> {
 
     public static void register(Functions.Builder builder) {
         var name = new FunctionName(PgCatalogSchemaInfo.NAME, "pg_get_userbyid");
@@ -42,13 +44,25 @@ public class PgGetUserByIdFunction {
                 .returnType(DataTypes.STRING.getTypeSignature())
                 .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
                 .build(),
-            (signature, boundSignature) ->
-                new UnaryScalar<>(
-                    signature,
-                    boundSignature,
-                    DataTypes.INTEGER,
-                    id -> CRATE_USER.name()
-                )
+            PgGetUserByIdFunction::new
         );
+    }
+
+    private PgGetUserByIdFunction(Signature signature, BoundSignature boundSignature) {
+        super(signature, boundSignature);
+    }
+
+    @Override
+    @SafeVarargs
+    public final String evaluate(TransactionContext txnCtx, NodeContext nodeContext, Input<Integer>... args) {
+        Integer oid = args[0].value();
+        if (oid == null) {
+            return null;
+        }
+        Role user = nodeContext.roles().findUser(oid);
+        if (user == null) {
+            return "unknown (OID=" + oid + ")";
+        }
+        return user.name();
     }
 }
