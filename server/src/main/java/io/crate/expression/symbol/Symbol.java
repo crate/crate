@@ -44,16 +44,12 @@ import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Reference;
-import io.crate.metadata.Scalar;
-import io.crate.metadata.functions.Signature;
-import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.Expression;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.TypeSignature;
 
 public interface Symbol extends Writeable, Accountable {
 
@@ -241,32 +237,17 @@ public interface Symbol extends Writeable, Accountable {
             // types have to be considered as well. Therefore, to bypass this
             // limitation we encode the return type info as the second function
             // argument.
-            var name = modes.contains(CastMode.TRY)
-                ? TryCastFunction.NAME
-                : ExplicitCastFunction.NAME;
-            return new Function(
-                Signature.builder(name, FunctionType.SCALAR)
-                    .argumentTypes(TypeSignature.parse("E"),
-                        TypeSignature.parse("V"))
-                    .returnType(TypeSignature.parse("V"))
-                    .features(Scalar.Feature.DETERMINISTIC)
-                    .typeVariableConstraints(TypeVariableConstraint.typeVariable("E"),
-                        TypeVariableConstraint.typeVariable("V"))
-                    .build(),
-                // a literal with a NULL value is passed as an argument
-                // to match the method signature
-                List.of(sourceSymbol, Literal.of(targetType, null)),
-                targetType
-            );
+            var signature = modes.contains(CastMode.TRY)
+                ? TryCastFunction.SIGNATURE
+                : ExplicitCastFunction.SIGNATURE;
+
+            // a literal with a NULL value is passed as an argument
+            // to match the method signature
+            List<Symbol> arguments = List.of(sourceSymbol, Literal.of(targetType, null));
+            return new Function(signature, arguments, targetType);
         } else {
             return new Function(
-                Signature.builder(ImplicitCastFunction.NAME, FunctionType.SCALAR)
-                    .argumentTypes(TypeSignature.parse("E"),
-                        DataTypes.STRING.getTypeSignature())
-                    .returnType(DataTypes.UNDEFINED.getTypeSignature())
-                    .features(Scalar.Feature.DETERMINISTIC)
-                    .typeVariableConstraints(TypeVariableConstraint.typeVariable("E"))
-                    .build(),
+                ImplicitCastFunction.SIGNATURE,
                 List.of(
                     sourceSymbol,
                     Literal.of(targetType.getTypeSignature().toString())

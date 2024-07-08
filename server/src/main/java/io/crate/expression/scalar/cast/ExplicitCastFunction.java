@@ -40,18 +40,15 @@ import io.crate.types.TypeSignature;
 public class ExplicitCastFunction extends Scalar<Object, Object> {
 
     public static final String NAME = "cast";
+    public static final Signature SIGNATURE = Signature.builder(NAME, FunctionType.SCALAR)
+        .argumentTypes(TypeSignature.parse("E"), TypeSignature.parse("V"))
+        .returnType(TypeSignature.parse("V"))
+        .features(Feature.DETERMINISTIC)
+        .typeVariableConstraints(typeVariable("E"), typeVariable("V"))
+        .build();
 
     public static void register(Functions.Builder module) {
-        module.add(
-            Signature.builder(NAME, FunctionType.SCALAR)
-                .argumentTypes(TypeSignature.parse("E"),
-                    TypeSignature.parse("V"))
-                .returnType(TypeSignature.parse("V"))
-                .features(Feature.DETERMINISTIC)
-                .typeVariableConstraints(typeVariable("E"), typeVariable("V"))
-                .build(),
-            ExplicitCastFunction::new
-        );
+        module.add(SIGNATURE, ExplicitCastFunction::new);
     }
 
     private final DataType<?> returnType;

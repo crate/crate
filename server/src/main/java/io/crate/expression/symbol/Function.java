@@ -177,7 +177,7 @@ public class Function implements Symbol, Cloneable {
     @Override
     public Symbol cast(DataType<?> targetType, CastMode... modes) {
         String name = signature.getName().name();
-        if (targetType instanceof ArrayType && name.equals(ArrayFunction.NAME)) {
+        if (targetType instanceof ArrayType<?> arrayType && name.equals(ArrayFunction.NAME)) {
             /* We treat _array(...) in a special way since it's a value constructor and no regular function
              * This allows us to do proper type inference for inserts/updates where there are assignments like
              *
@@ -185,7 +185,7 @@ public class Function implements Symbol, Cloneable {
              * or
              *      some_array = array_cat([?, ?], [1, 2])
              */
-            return castArrayElements(targetType, modes);
+            return castArrayElements(arrayType, modes);
         } else {
             return Symbol.super.cast(targetType, modes);
         }
@@ -199,22 +199,17 @@ public class Function implements Symbol, Cloneable {
         return this;
     }
 
-    private Symbol castArrayElements(DataType<?> newDataType, CastMode... modes) {
-        DataType<?> innerType = ((ArrayType<?>) newDataType).innerType();
+    private Symbol castArrayElements(ArrayType<?> targetType, CastMode... modes) {
+        DataType<?> innerType = targetType.innerType();
         ArrayList<Symbol> newArgs = new ArrayList<>(arguments.size());
         for (Symbol arg : arguments) {
             try {
                 newArgs.add(arg.cast(innerType, modes));
             } catch (ConversionException e) {
-                throw new ConversionException(returnType, newDataType);
+                throw new ConversionException(returnType, targetType);
             }
         }
-        return new Function(
-            signature,
-            newArgs,
-            newDataType,
-            null
-        );
+        return new Function(signature, newArgs, targetType, null);
     }
 
     public boolean isCast() {
