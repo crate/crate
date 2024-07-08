@@ -33,6 +33,8 @@ import java.util.function.Predicate;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -113,6 +115,8 @@ import io.crate.replication.logical.metadata.PublicationsMetadata;
  * </table>
  */
 public class DocSchemaInfo implements SchemaInfo {
+
+    private static final Logger LOGGER = LogManager.getLogger(DocSchemaInfo.class);
 
     public static final String NAME = "doc";
 
@@ -234,6 +238,14 @@ public class DocSchemaInfo implements SchemaInfo {
         return schemaName;
     }
 
+    private static void pause() {
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            return;
+        }
+    }
+
     @Override
     public void update(ClusterChangedEvent event) {
         assert event.metadataChanged() : "metadataChanged must be true if update is called";
@@ -270,10 +282,14 @@ public class DocSchemaInfo implements SchemaInfo {
 
             IndexMetadata newIndexMetadata = newMetadata.index(indexName);
             if (newIndexMetadata == null) {
+                LOGGER.debug("Invalidating DocTableInfo for deleted table [{}] [{}]", tableName, newMetadata.indices().keys());
+                //pause();
                 docTableByName.remove(tableName);
             } else {
                 IndexMetadata oldIndexMetadata = prevMetadata.index(indexName);
                 if (oldIndexMetadata != null && ClusterChangedEvent.indexMetadataChanged(oldIndexMetadata, newIndexMetadata)) {
+                    LOGGER.debug("Invalidating DocTableInfo for updated table [{}]", tableName);
+                    //pause();
                     docTableByName.remove(tableName);
                     // invalidate aliases of changed indices
                     invalidateAliases(newIndexMetadata.getAliases());
@@ -284,6 +300,7 @@ public class DocSchemaInfo implements SchemaInfo {
                     if (templates.contains(possibleTemplateName)) {
                         for (ObjectObjectCursor<String, IndexMetadata> indexEntry : indices) {
                             if (IndexParts.isPartitioned(indexEntry.key)) {
+                                LOGGER.debug("Invalidating partitioned DocTableInfo for table [{}]", tableName);
                                 docTableByName.remove(tableName);
                                 break;
                             }

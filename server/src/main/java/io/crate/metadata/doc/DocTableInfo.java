@@ -42,6 +42,8 @@ import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
@@ -165,6 +167,8 @@ import io.crate.types.ObjectType;
  *
  */
 public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
+
+    private static final Logger LOGGER = LogManager.getLogger(DocTableInfo.class);
 
     public static final Setting<Long> TOTAL_COLUMNS_LIMIT =
         Setting.longSetting("index.mapping.total_fields.limit", 1000L, 0, Property.Dynamic, Property.IndexScope);
@@ -344,6 +348,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
      */
     public TranslogIndexer getTranslogIndexer() {
         if (this.translogIndexer == null) {
+            LOGGER.debug(() -> "Building translog indexer for " + this.ident + " using mapping " + this.mapping().mapping);
             this.translogIndexer = new TranslogIndexer(this);
         }
         return this.translogIndexer;
@@ -1013,6 +1018,43 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
     public Metadata.Builder writeTo(Metadata metadata,
                                     Metadata.Builder metadataBuilder) throws IOException {
+        Mapping mapping = mapping();
+        for (String indexName : concreteIndices(metadata)) {
+            IndexMetadata indexMetadata = metadata.index(indexName);
+            if (indexMetadata == null) {
+                throw new UnsupportedOperationException("Cannot create index via DocTableInfo.writeTo");
+            }
+
+            long allowedTotalColumns = TOTAL_COLUMNS_LIMIT.get(indexMetadata.getSettings());
+            if (mapping.columnCount > allowedTotalColumns) {
+                throw new IllegalArgumentException("Limit of total columns [" + allowedTotalColumns + "] in table [" + ident + "] exceeded");
+            }
+            metadataBuilder.put(
+                IndexMetadata.builder(indexMetadata)
+                    .putMapping(new MappingMetadata(mapping.mapping))
+                    .numberOfShards(numberOfShards)
+                    .mappingVersion(indexMetadata.getMappingVersion() + 1)
+            );
+        }
+        if (isPartitioned) {
+            String templateName = PartitionName.templateName(ident.schema(), ident.name());
+            IndexTemplateMetadata indexTemplateMetadata = metadata.templates().get(templateName);
+            if (indexTemplateMetadata == null) {
+                throw new UnsupportedOperationException("Cannot create template via DocTableInfo.writeTo");
+            }
+            Integer version = indexTemplateMetadata.version();
+            var template = new IndexTemplateMetadata.Builder(indexTemplateMetadata)
+                .putMapping(Strings.toString(JsonXContent.builder().map(mapping.mapping)))
+                .version(version == null ? 1 : version + 1)
+                .build();
+            metadataBuilder.put(template);
+        }
+        return metadataBuilder;
+    }
+
+    private record Mapping(Map<String, Object> mapping, int columnCount) {}
+
+    private Mapping mapping() {
         List<Reference> allColumns = Stream.concat(
                 Stream.concat(
                     droppedColumns.stream(),
@@ -1035,7 +1077,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             checkConstraintMap.put(check.name(), check.expressionStr());
         }
         AllocPosition allocPosition = AllocPosition.forTable(this);
-        Map<String, Object> mapping = Map.of("default", MappingUtil.createMapping(
+        return new Mapping(Map.of("default", MappingUtil.createMapping(
             allocPosition,
             pkConstraintName,
             allColumns,
@@ -1044,38 +1086,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             Lists.map(partitionedByColumns, BoundCreateTable::toPartitionMapping),
             columnPolicy,
             clusteredBy == DocSysColumns.ID.COLUMN ? null : clusteredBy.fqn()
-        ));
-        for (String indexName : concreteIndices(metadata)) {
-            IndexMetadata indexMetadata = metadata.index(indexName);
-            if (indexMetadata == null) {
-                throw new UnsupportedOperationException("Cannot create index via DocTableInfo.writeTo");
-            }
-
-            long allowedTotalColumns = TOTAL_COLUMNS_LIMIT.get(indexMetadata.getSettings());
-            if (allColumns.size() > allowedTotalColumns) {
-                throw new IllegalArgumentException("Limit of total columns [" + allowedTotalColumns + "] in table [" + ident + "] exceeded");
-            }
-            metadataBuilder.put(
-                IndexMetadata.builder(indexMetadata)
-                    .putMapping(new MappingMetadata(mapping))
-                    .numberOfShards(numberOfShards)
-                    .mappingVersion(indexMetadata.getMappingVersion() + 1)
-            );
-        }
-        if (isPartitioned) {
-            String templateName = PartitionName.templateName(ident.schema(), ident.name());
-            IndexTemplateMetadata indexTemplateMetadata = metadata.templates().get(templateName);
-            if (indexTemplateMetadata == null) {
-                throw new UnsupportedOperationException("Cannot create template via DocTableInfo.writeTo");
-            }
-            Integer version = indexTemplateMetadata.version();
-            var template = new IndexTemplateMetadata.Builder(indexTemplateMetadata)
-                .putMapping(Strings.toString(JsonXContent.builder().map(mapping)))
-                .version(version == null ? 1 : version + 1)
-                .build();
-            metadataBuilder.put(template);
-        }
-        return metadataBuilder;
+        )), allColumns.size());
     }
 
     private boolean addNewReferences(LongSupplier acquireOid,

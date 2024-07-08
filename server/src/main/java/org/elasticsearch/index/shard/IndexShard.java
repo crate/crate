@@ -1463,6 +1463,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                             Runnable onOperationRecovered) throws IOException {
         int opsRecovered = 0;
         Translog.Operation operation;
+        logger.trace("[translog] Expecting to run [{}] operations", snapshot.totalOperations());
         while ((operation = snapshot.next()) != null) {
             try {
                 logger.trace("[translog] recover op {}", operation);

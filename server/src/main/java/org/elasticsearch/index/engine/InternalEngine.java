@@ -465,19 +465,23 @@ public class InternalEngine extends Engine {
         final int opsRecovered;
         final long localCheckpoint = getProcessedLocalCheckpoint();
         if (localCheckpoint < recoverUpToSeqNo) {
+            logger.debug("Local checkpoint [{}] lower than translog max checkpoint [{}], recovering from translog",
+                localCheckpoint, recoverUpToSeqNo);
             try (Translog.Snapshot snapshot = translog.newSnapshot(localCheckpoint + 1, recoverUpToSeqNo)) {
                 opsRecovered = translogRecoveryRunner.run(this, snapshot);
             } catch (Exception e) {
                 throw new EngineException(shardId, "failed to recover from translog", e);
             }
         } else {
+            logger.debug("Local checkpoint [{}] up-to-date with translog checkpoint [{}], no recovery required",
+                localCheckpoint, recoverUpToSeqNo);
             opsRecovered = 0;
         }
         // flush if we recovered something or if we have references to older translogs
         // note: if opsRecovered == 0 and we have older translogs it means they are corrupted or 0 length.
         assert pendingTranslogRecovery.get() : "translogRecovery is not pending but should be";
         pendingTranslogRecovery.set(false); // we are good - now we can commit
-        logger.trace(() -> new ParameterizedMessage(
+        logger.debug(() -> new ParameterizedMessage(
                 "flushing post recovery from translog: ops recovered [{}], current translog generation [{}]",
                 opsRecovered, translog.currentFileGeneration()));
         flush(false, true);

@@ -179,7 +179,7 @@ public class SwapTableITest extends IntegTestCase {
     }
 
     @Test
-    @TestLogging("org.elasticsearch.index.shard.IndexShard:TRACE")
+    @TestLogging("org.elasticsearch.index.shard.IndexShard:TRACE,io.crate.metadata.doc.DocTableInfoFactory:DEBUG,io.crate.metadata.doc.DocSchemaInfo:DEBUG")
     public void test_swap_source_nonpartitioned_target_partitioned_with_drop_source() {
         execute("create table source (s int)");
         execute("create table target (t int) partitioned by(t)");
@@ -196,9 +196,13 @@ public class SwapTableITest extends IntegTestCase {
                 .isEqualTo(part1Ident + "| target\n" +
                            part2Ident + "| target\n");
 
+        execute("insert into source (s) values (5), (6)");
+
         execute("alter cluster swap table source to target with (drop_source = ?)", $(true));
+        execute("insert into target (s) values (7), (8)");
+        execute("refresh table target");
         assertThat(printedTable(execute("select * from target order by s").rows()))
-                .isEqualTo("1\n2\n");
+                .isEqualTo("1\n2\n5\n6\n7\n8\n");
         assertThat(printedTable(execute(
                 "select table_name from information_schema.tables where table_name in ('source', 'target') order by 1").rows()))
                 .isEqualTo("target\n");

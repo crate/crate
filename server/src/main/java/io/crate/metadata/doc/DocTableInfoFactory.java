@@ -34,6 +34,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -87,6 +89,8 @@ import io.crate.types.StorageSupport;
 import io.crate.types.StringType;
 
 public class DocTableInfoFactory {
+
+    private static final Logger LOGGER = LogManager.getLogger(DocTableInfoFactory.class);
 
     private final NodeContext nodeCtx;
     private final ExpressionAnalyzer expressionAnalyzer;
@@ -235,6 +239,7 @@ public class DocTableInfoFactory {
             if (concreteIndices.length == 0) {
                 throw new RelationUnknown(relation);
             }
+            LOGGER.debug("Creating DocTableInfo v{} for [{}] directly from index metadata for {}", tableVersion, relation, relation.indexNameOrAlias());
         } else {
             mappingSource = XContentHelper.toMap(
                 indexTemplateMetadata.mapping().compressedReference(),
@@ -248,6 +253,7 @@ public class DocTableInfoFactory {
                 Maps.getOrDefault(mappingSource, "_meta", Map.of()), "closed", false);
             state = isClosed ? State.CLOSE : State.OPEN;
             tableVersion = indexTemplateMetadata.version() == null ? 0 : indexTemplateMetadata.version();
+            LOGGER.debug("Creating DocTableInfo v{} for [{}] from index template {}", tableVersion, relation, templateName);
         }
         final Map<String, Object> metaMap = Maps.getOrDefault(mappingSource, "_meta", Map.of());
         final List<ColumnIdent> partitionedBy = parsePartitionedByStringsList(
