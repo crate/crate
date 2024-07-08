@@ -327,12 +327,12 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         Reference yref = table1.getReference(ColumnIdent.of("y"));
         DocTableInfo table2 = table1.dropColumns(List.of(new DropColumn(xref, true)));
         assertThat(table2.droppedColumns()).satisfiesExactlyInAnyOrder(
-            x -> assertThat(x).isReference().hasName("x")
+            x -> assertThat(x).hasName("x")
         );
         DocTableInfo table3 = table2.dropColumns(List.of(new DropColumn(yref, true)));
         assertThat(table3.droppedColumns()).satisfiesExactlyInAnyOrder(
-            x -> assertThat(x).isReference().hasName("x"),
-            x -> assertThat(x).isReference().hasName("y")
+            x -> assertThat(x).hasName("x"),
+            x -> assertThat(x).hasName("y")
         );
     }
 
@@ -359,7 +359,8 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo tbl2 = docTableInfoFactory.create(tbl.ident(), builder.build());
 
         Reference description = tbl2.getReference(ColumnIdent.of("description"));
-        assertThat(description).isIndexReference()
+        assertThat(description)
+            .isExactlyInstanceOf(IndexReference.class)
             .hasName("description")
             .hasAnalyzer("simple");
 
@@ -367,7 +368,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         assertThat(indexColumn).isNotNull();
         assertThat(indexColumn.analyzer()).isEqualTo("standard");
         assertThat(indexColumn.columns()).satisfiesExactly(
-            x -> assertThat(x).isReference().hasName("name")
+            x -> assertThat(x).hasName("name")
         );
     }
 
@@ -393,17 +394,17 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             new IntArrayList(),
             Map.of());
         assertThat(table2.columns()).satisfiesExactly(
-            x -> assertThat(x).isReference()
+            x -> assertThat(x)
                 .hasName("x")
                 .hasType(DataTypes.INTEGER)
                 .hasPosition(1)
                 .isSameAs(xref),
-            x -> assertThat(x).isReference()
+            x -> assertThat(x)
                 .hasName("point")
                 .hasPosition(2)
                 .hasType(pointRef.valueType())
                 .isSameAs(pointRef),
-            x -> assertThat(x).isReference()
+            x -> assertThat(x)
                 .hasName("y")
                 .hasPosition(4)
                 .hasType(DataTypes.LONG)
@@ -497,15 +498,12 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             .setInnerType("a1", DataTypes.INTEGER).build();
 
         assertThat(newTable.getReference(ColumnIdent.of("o", List.of("o", "o"))))
-            .isReference()
             .hasName("o['o']['o']")
             .hasType(oooType);
         assertThat(newTable.getReference(ColumnIdent.of("o", List.of("o"))))
-            .isReference()
             .hasName("o['o']")
             .hasType(ooType);
         assertThat(newTable.getReference(ColumnIdent.of("o")))
-            .isReference()
             .hasName("o")
             .hasType(oType);
     }
@@ -535,11 +533,9 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         assertThat(newTable.getReference(dropCol2)).isNull();
         assertThat(newTable.getReference(dropCol3)).isNull();
         assertThat(newTable.getReference(ColumnIdent.of("o", List.of("o"))))
-            .isReference()
             .hasName("o['o']")
             .hasType(ooType);
         assertThat(newTable.getReference(ColumnIdent.of("o")))
-            .isReference()
             .hasName("o")
             .hasType(oType);
     }
@@ -567,11 +563,10 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(table.getReference(ooo)).isNull();
         assertThat(table.getReference(ooo2))
-            .isReference()
             .hasName("o['o']['o2']")
             .hasType(ooo2Type);
-        assertThat(table.getReference(oo)).isReference().hasName("o['o']")
+        assertThat(table.getReference(oo)).hasName("o['o']")
             .hasType(ooType);
-        assertThat(table.getReference(o)).isReference().hasName("o").hasType(oType);
+        assertThat(table.getReference(o)).hasName("o").hasType(oType);
     }
 }

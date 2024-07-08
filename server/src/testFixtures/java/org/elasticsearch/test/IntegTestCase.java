@@ -181,6 +181,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.planner.DependencyCarrier;
@@ -1848,24 +1849,18 @@ public abstract class IntegTestCase extends ESTestCase {
         }
     }
 
-    /**
-     * Get all mappings from an index as JSON String
-     *
-     * @param index the name of the index
-     * @return the index mapping as String
-     * @throws IOException
-     */
-    protected Map<String, Object> getIndexMapping(String index) throws IOException {
-        ClusterStateRequest request = new ClusterStateRequest()
-            .routingTable(false)
-            .nodes(false)
-            .metadata(true)
-            .indices(index);
-        ClusterStateResponse response = FutureUtils.get(client().admin().cluster().state(request));
+    public DocTableInfo getTable(RelationName name) {
+        return cluster().getCurrentMasterNodeInstance(NodeContext.class)
+            .schemas()
+            .getTableInfo(name);
+    }
 
-        Metadata metadata = response.getState().metadata();
-        IndexMetadata indexMetadata = metadata.iterator().next();
-        return indexMetadata.mapping().sourceAsMap();
+    public DocTableInfo getTable(String table) throws IOException {
+        return getTable(new RelationName(sqlExecutor.getCurrentSchema(), table));
+    }
+
+    public DocTableInfo getTable(String schema, String table) throws IOException {
+        return getTable(new RelationName(schema, table));
     }
 
     public void assertFunctionIsCreatedOnAll(String schema, String name, List<DataType<?>> argTypes) throws Exception {

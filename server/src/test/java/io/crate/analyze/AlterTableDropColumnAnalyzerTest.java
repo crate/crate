@@ -54,7 +54,7 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
 
         AnalyzedAlterTableDropColumn d = e.analyze("ALTER TABLE t DROP COLUMN a");
         assertThat(d.columns()).satisfiesExactly(
-            dc -> assertThat(dc.ref()).isReference().hasName("a"));
+            dc -> assertThat(dc.ref()).hasName("a"));
     }
 
     @Test
@@ -65,8 +65,8 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
         AnalyzedAlterTableDropColumn d = e.analyze("ALTER TABLE t DROP COLUMN a, DROP b");
         assertThat(d.table().ident().name()).isEqualTo("t");
         assertThat(d.columns()).satisfiesExactly(
-            dc -> assertThat(dc.ref()).isReference().hasName("a"),
-            dc -> assertThat(dc.ref()).isReference().hasName("b"));
+            dc -> assertThat(dc.ref()).hasName("a"),
+            dc -> assertThat(dc.ref()).hasName("b"));
     }
 
     @Test
@@ -76,7 +76,7 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
 
         AnalyzedAlterTableDropColumn d = e.analyze("ALTER TABLE t DROP COLUMN b");
         assertThat(d.columns()).satisfiesExactly(
-            dc -> assertThat(dc.ref()).isReference().hasName("b"));
+            dc -> assertThat(dc.ref()).hasName("b"));
     }
 
     @Test
@@ -86,7 +86,7 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
 
         AnalyzedAlterTableDropColumn d = e.analyze("ALTER TABLE t DROP COLUMN b");
         assertThat(d.columns()).satisfiesExactly(
-            dc -> assertThat(dc.ref()).isReference().hasName("b"));
+            dc -> assertThat(dc.ref()).hasName("b"));
     }
 
     @Test
@@ -96,7 +96,7 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
 
         AnalyzedAlterTableDropColumn d = e.analyze("ALTER TABLE t DROP COLUMN b");
         assertThat(d.columns()).satisfiesExactly(
-            dc -> assertThat(dc.ref()).isReference().hasName("b"));
+            dc -> assertThat(dc.ref()).hasName("b"));
     }
 
     @Test
@@ -107,7 +107,7 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
 
         AnalyzedAlterTableDropColumn d = e.analyze("ALTER TABLE t DROP COLUMN o['oo']");
         assertThat(d.columns()).satisfiesExactly(
-            dc -> assertThat(dc.ref()).isReference().hasName("o['oo']"));
+            dc -> assertThat(dc.ref()).hasName("o['oo']"));
     }
 
     @Test
@@ -129,7 +129,6 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
         assertThat(d.table().ident().name()).isEqualTo("t");
         assertThat(d.columns()).satisfiesExactly(
             dc -> assertThat(dc.ref())
-                .isReference()
                 .hasColumnIdent(ColumnIdent.of("o", List.of("oo", "ooa")))
                 .hasTableIdent(d.table().ident())
                 .hasType(DataTypes.INTEGER)
@@ -189,19 +188,17 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
         AnalyzedAlterTableDropColumn d2 = e.analyze("ALTER TABLE t1 DROP COLUMN b, DROP IF EXISTS d");
         assertThat(d2.table().ident().name()).isEqualTo("t1");
         assertThat(d2.columns()).satisfiesExactly(
-            dc -> assertThat(dc.ref()).isReference().hasName("b"));
+            dc -> assertThat(dc.ref()).hasName("b"));
 
         AnalyzedAlterTableDropColumn d3 = e.analyze("ALTER TABLE t2 DROP COLUMN o['oa'], DROP COLUMN IF EXISTS o['ob'], " +
                          "DROP o['oo']['ooa'], DROP IF EXISTS o['oo']['ooc']");
         assertThat(d3.table().ident().name()).isEqualTo("t2");
         assertThat(d3.columns()).satisfiesExactly(
             dc -> assertThat(dc.ref())
-                .isReference()
                 .hasColumnIdent(ColumnIdent.of("o", "oa"))
                 .hasTableIdent(d3.table().ident())
                 .hasType(DataTypes.INTEGER),
             dc -> assertThat(dc.ref())
-                .isReference()
                 .hasColumnIdent(ColumnIdent.of("o", List.of("oo", "ooa")))
                 .hasTableIdent(d3.table().ident())
                 .hasType(DataTypes.INTEGER)

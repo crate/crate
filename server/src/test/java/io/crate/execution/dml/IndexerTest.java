@@ -26,6 +26,7 @@ import static io.crate.types.GeoShapeType.Names.TREE_BKD;
 import static io.crate.types.GeoShapeType.Names.TREE_GEOHASH;
 import static io.crate.types.GeoShapeType.Names.TREE_LEGACY_QUADTREE;
 import static io.crate.types.GeoShapeType.Names.TREE_QUADTREE;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
@@ -207,10 +208,10 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(newColumns)
             .satisfiesExactly(
-                col1 -> assertThat(col1).isReference().hasName("o['obj']"),
-                col2 -> assertThat(col2).isReference()
+                col1 -> assertThat(col1).hasName("o['obj']"),
+                col2 -> assertThat(col2)
                     .hasName("o['obj']['y']"),
-                col3 -> assertThat(col3).isReference()
+                col3 -> assertThat(col3)
                     .hasName("o['obj']['z']")
             );
 
@@ -264,7 +265,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(newColumns)
             .satisfiesExactly(
                 col1 -> assertThat(col1)
-                    .isReference()
                     .hasName("o['xs']")
                     .hasType(new ArrayType<>(DataTypes.LONG))
             );
@@ -553,7 +553,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         List<Reference> newColumns = indexer.collectSchemaUpdates(item(Map.of("x", 10, "y", 20)));
         assertThat(newColumns).satisfiesExactly(
             r -> assertThat(r)
-                .isReference()
                 .hasName("o['y']")
                 .hasType(DataTypes.LONG)
         );
@@ -743,12 +742,10 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         ParsedDocument doc = indexer.index(item);
         assertThat(newColumns).satisfiesExactly(
             x -> assertThat(x)
-                .isReference()
                 .hasName("y")
                 .hasType(DataTypes.STRING)
                 .hasPosition(-1),
             x -> assertThat(x)
-                .isReference()
                 .hasName("z")
                 .hasType(DataTypes.LONG)
                 .hasPosition(-2)
@@ -1068,7 +1065,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         ParsedDocument doc = indexer.index(item);
         assertThat(newColumns).satisfiesExactly(
             column -> assertThat(column)
-                .isReference()
                 .hasName("y")
                 .hasType(new ArrayType<>(new ArrayType<>(DataTypes.LONG)))
         );
