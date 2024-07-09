@@ -32,7 +32,6 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -50,7 +49,6 @@ import io.crate.data.breaker.RamAccounting;
 import io.crate.data.testing.TestingRowConsumer;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.RowCollectExpression;
-import io.crate.execution.engine.pipeline.TableSettingsResolver;
 import io.crate.execution.jobs.NodeLimits;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
@@ -61,6 +59,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.NumberOfReplicas;
 import io.crate.types.DataTypes;
 
@@ -79,8 +78,8 @@ public class IndexWriterProjectorTest extends IntegTestCase {
 
         RelationName bulkImportIdent = new RelationName(sqlExecutor.getCurrentSchema(), "bulk_import");
         ClusterState state = clusterService().state();
-        Settings tableSettings = TableSettingsResolver.get(state.metadata(), bulkImportIdent, false);
         ThreadPool threadPool = cluster().getInstance(ThreadPool.class);
+        DocTableInfo table = getTable("bulk_import");
         IndexWriterProjector writerProjector = new IndexWriterProjector(
             clusterService(),
             new NodeLimits(new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS)),
@@ -91,8 +90,8 @@ public class IndexWriterProjectorTest extends IntegTestCase {
             CoordinatorTxnCtx.systemTransactionContext(),
             createNodeContext(),
             Settings.EMPTY,
-            IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.get(tableSettings),
-            NumberOfReplicas.effectiveNumReplicas(tableSettings, state.nodes()),
+            table.numberOfShards(),
+            NumberOfReplicas.effectiveNumReplicas(table.parameters(), state.nodes()),
             cluster().client(),
             IndexNameResolver.forTable(bulkImportIdent),
             new SimpleReference(new ReferenceIdent(bulkImportIdent, DocSysColumns.RAW),
