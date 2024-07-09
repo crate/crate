@@ -94,7 +94,7 @@ public class RegexpReplaceFunctionTest extends ScalarTestCase {
         assertThatThrownBy(() ->
                 assertNormalize("regexp_replace('foobar', '.*', [1,2])", isLiteral("")))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: regexp_replace('foobar', '.*', _array(1, 2)), " +
+            .hasMessageStartingWith("Unknown function: regexp_replace('foobar', '.*', [1, 2]), " +
                                     "no overload found for matching argument types: (text, text, integer_array).");
     }
 }

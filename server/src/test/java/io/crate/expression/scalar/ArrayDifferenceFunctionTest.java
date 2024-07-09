@@ -102,7 +102,7 @@ public class ArrayDifferenceFunctionTest extends ScalarTestCase {
     public void testOneArgument() {
         assertThatThrownBy(() -> assertNormalize("array_difference([1])", isNull()))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: array_difference(_array(1)), " +
+            .hasMessageStartingWith("Unknown function: array_difference([1]), " +
                                     "no overload found for matching argument types: (integer_array).");
     }
 
