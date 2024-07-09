@@ -70,7 +70,7 @@ public class CorrelatedJoinPlannerTest extends CrateDummyClusterServiceUnitTest 
         String statement = "SELECT 'Mountain-' || (SELECT t.mountain) FROM sys.summits t";
         LogicalPlan logicalPlan = e.logicalPlan(statement);
         assertThat(logicalPlan).isEqualTo(
-            "Eval[concat('Mountain-', (SELECT mountain FROM (empty_row)))]\n" +
+            "Eval[('Mountain-' || (SELECT mountain FROM (empty_row)))]\n" +
             "  └ CorrelatedJoin[mountain, (SELECT mountain FROM (empty_row))]\n" +
             "    └ Rename[mountain] AS t\n" +
             "      └ Collect[sys.summits | [mountain] | true]\n" +

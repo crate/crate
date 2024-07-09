@@ -418,7 +418,7 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void test_non_deterministic_function_is_not_normalized() {
         AnalyzedCopyFrom analyzedCopyFrom = e.analyze("copy users from '/tmp/t_' || curdate()");
         assertThat(analyzedCopyFrom.uri()).isFunction(
-            ConcatFunction.NAME,
+            ConcatFunction.OPERATOR_NAME,
             isLiteral("/tmp/t_"),
             isFunction(
                 ImplicitCastFunction.NAME,
@@ -428,7 +428,7 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         );
         AnalyzedCopyTo analyzedCopyTo = e.analyze("copy users to directory '/tmp/' || curdate()");
         assertThat(analyzedCopyTo.uri()).isFunction(
-            ConcatFunction.NAME,
+            ConcatFunction.OPERATOR_NAME,
             isLiteral("/tmp/"),
             isFunction(
                 ImplicitCastFunction.NAME,

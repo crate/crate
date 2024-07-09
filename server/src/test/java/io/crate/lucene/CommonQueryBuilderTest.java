@@ -746,7 +746,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
             "create table t (a int)",
             () -> oid
         ).indexValues("a", new Object[]{1, null, 2}).build()) {
-            Query query = tester.toQuery("a != a||1"); // where a is nullable and a||1 is not null
+            Query query = tester.toQuery("a != concat(a, 1)"); // where a is nullable and concat(a, 1) is not null
             assertThat(query).hasToString(String.format("+(+*:* -(a = concat(a, '1'))) +FieldExistsQuery [field=%s]", oid));
             assertThat(tester.runQuery("a", "a != a||1")).containsExactly(1, 2);
         }
@@ -769,9 +769,9 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
             .indexValues(List.of("a", "b"), 2, 2)
             .build()) {
             assertThat(oidIdx[0]).isEqualTo(2);
-            Query query = tester.toQuery("a != b||1"); // where a is nullable and b||1 is not null
+            Query query = tester.toQuery("a != concat(b, 1)"); // where a is nullable and concat(b, 1) is not null
             assertThat(query).hasToString(String.format("+(+*:* -(a = concat(b, '1'))) +FieldExistsQuery [field=%s]", oid[0]));
-            assertThat(tester.runQuery("b", "a != b||1")).containsExactlyInAnyOrder(2, null);
+            assertThat(tester.runQuery("b", "a != concat(b, 1)")).containsExactlyInAnyOrder(2, null);
         }
     }
 
