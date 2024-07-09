@@ -32,7 +32,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.SnapshotsInProgress;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.repositories.IndexId;
@@ -139,8 +141,9 @@ public class SysSnapshots {
         return repository.getSnapshotGlobalMetadata(snapshotId).thenCombine(
             repository.getSnapshotInfo(snapshotId),
             (metadata, snapshotInfo) -> {
-                List<String> partedTables = new ArrayList<>();
-                for (var template : metadata.templates().values()) {
+                ImmutableOpenMap<String, IndexTemplateMetadata> templates = metadata.templates();
+                List<String> partedTables = new ArrayList<>(templates.size());
+                for (var template : templates.values()) {
                     partedTables.add(RelationName.fqnFromIndexName(template.value.name()));
                 }
                 return SysSnapshots.toSysSnapshot(repository, snapshotId, snapshotInfo, partedTables);

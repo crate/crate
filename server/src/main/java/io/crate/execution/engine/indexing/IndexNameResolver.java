@@ -61,7 +61,8 @@ public class IndexNameResolver {
     }
 
     private static Supplier<String> forPartition(RelationName relationName, String partitionIdent) {
-        return () -> IndexParts.toIndexName(relationName, partitionIdent);
+        String indexName = IndexParts.toIndexName(relationName, partitionIdent);
+        return () -> indexName;
     }
 
     private static Supplier<String> forPartition(final RelationName relationName, final List<Input<?>> partitionedByInputs) {
