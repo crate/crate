@@ -342,6 +342,16 @@ public final class ExpressionFormatter {
                 arguments = "DISTINCT " + arguments;
             }
 
+            var nonFqnName = node.getName().getSuffix();
+            if (nonFqnName.startsWith("op_")) {
+                return formatBinaryExpression(
+                    nonFqnName.substring("op_".length()),
+                    node.getArguments().get(0),
+                    node.getArguments().get(1),
+                    parameters
+                );
+            }
+
             builder.append(node.getName());
             if (!FUNCTION_CALLS_WITHOUT_PARENTHESIS.contains(node.getName().toString())) {
                 builder.append('(').append(arguments).append(')');
