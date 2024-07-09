@@ -106,6 +106,15 @@ public class SysSnapshot {
             .toList();
     }
 
+    public List<RelationName> relationNames() {
+        return Stream.concat(
+                concreteIndices.stream().map(RelationName::fromIndexName),
+                partitionedTables.stream().map(RelationName::fromIndexName)
+            )
+            .distinct()
+            .toList();
+    }
+
     public List<PartitionName> tablePartitions() {
         return concreteIndices.stream()
             .map(IndexParts::new)
