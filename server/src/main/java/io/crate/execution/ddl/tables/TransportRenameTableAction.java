@@ -111,7 +111,6 @@ public class TransportRenameTableAction extends TransportMasterNodeAction<Rename
                         true,
                         true,
                         false,
-                        true,
                         true
                     );
                     newIndexNames.set(IndexNameExpressionResolver.concreteIndexNames(

@@ -49,7 +49,6 @@ public class IndicesOptions implements ToXContentFragment {
     public enum Option {
         IGNORE_UNAVAILABLE,
         ALLOW_NO_INDICES,
-        FORBID_ALIASES_TO_MULTIPLE_INDICES,
         FORBID_CLOSED_INDICES;
 
         public static final EnumSet<Option> NONE = EnumSet.noneOf(Option.class);
@@ -68,7 +67,7 @@ public class IndicesOptions implements ToXContentFragment {
     public static final IndicesOptions STRICT_EXPAND_OPEN_FORBID_CLOSED =
         new IndicesOptions(EnumSet.of(Option.ALLOW_NO_INDICES, Option.FORBID_CLOSED_INDICES), EnumSet.of(WildcardStates.OPEN));
     public static final IndicesOptions STRICT_SINGLE_INDEX_NO_EXPAND_FORBID_CLOSED =
-        new IndicesOptions(EnumSet.of(Option.FORBID_ALIASES_TO_MULTIPLE_INDICES, Option.FORBID_CLOSED_INDICES),
+        new IndicesOptions(EnumSet.of(Option.FORBID_CLOSED_INDICES),
             EnumSet.noneOf(WildcardStates.class));
 
     private final EnumSet<Option> options;
@@ -122,15 +121,6 @@ public class IndicesOptions implements ToXContentFragment {
         return options.contains(Option.FORBID_CLOSED_INDICES);
     }
 
-    /**
-     * @return whether aliases pointing to multiple indices are allowed
-     */
-    public boolean allowAliasesToMultipleIndices() {
-        // true is default here, for bw comp we keep the first 16 values
-        // in the array same as before + the default value for the new flag
-        return options.contains(Option.FORBID_ALIASES_TO_MULTIPLE_INDICES) == false;
-    }
-
     public void writeIndicesOptions(StreamOutput out) throws IOException {
         out.writeEnumSet(options);
         out.writeEnumSet(expandWildcards);
@@ -149,7 +139,6 @@ public class IndicesOptions implements ToXContentFragment {
             allowNoIndices,
             expandToOpenIndices,
             expandToClosedIndices,
-            true,
             false
         );
     }
@@ -164,7 +153,6 @@ public class IndicesOptions implements ToXContentFragment {
             allowNoIndices,
             expandToOpenIndices,
             expandToClosedIndices,
-            defaultOptions.allowAliasesToMultipleIndices(),
             defaultOptions.forbidClosedIndices()
         );
     }
@@ -173,7 +161,6 @@ public class IndicesOptions implements ToXContentFragment {
                                              boolean allowNoIndices,
                                              boolean expandToOpenIndices,
                                              boolean expandToClosedIndices,
-                                             boolean allowAliasesToMultipleIndices,
                                              boolean forbidClosedIndices) {
         final Set<Option> opts = new HashSet<>();
         final Set<WildcardStates> wildcards = new HashSet<>();
@@ -189,9 +176,6 @@ public class IndicesOptions implements ToXContentFragment {
         }
         if (expandToClosedIndices) {
             wildcards.add(WildcardStates.CLOSED);
-        }
-        if (allowAliasesToMultipleIndices == false) {
-            opts.add(Option.FORBID_ALIASES_TO_MULTIPLE_INDICES);
         }
         if (forbidClosedIndices) {
             opts.add(Option.FORBID_CLOSED_INDICES);
@@ -288,7 +272,6 @@ public class IndicesOptions implements ToXContentFragment {
                 ", allow_no_indices=" + allowNoIndices() +
                 ", expand_wildcards_open=" + expandWildcardsOpen() +
                 ", expand_wildcards_closed=" + expandWildcardsClosed() +
-                ", allow_aliases_to_multiple_indices=" + allowAliasesToMultipleIndices() +
                 ", forbid_closed_indices=" + forbidClosedIndices() +
                 ']';
     }
