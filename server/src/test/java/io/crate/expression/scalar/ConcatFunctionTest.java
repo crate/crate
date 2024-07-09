@@ -100,10 +100,7 @@ public class ConcatFunctionTest extends ScalarTestCase {
 
     @Test
     public void testTwoArraysOfUndefinedTypes() throws Exception {
-        assertThatThrownBy(() -> assertNormalize("concat([], [])", isNull()))
-            .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessageStartingWith(
-                "One of the arguments of the `concat` function can be of undefined inner type, but not both");
+        assertNormalize("concat([], [])", isLiteral(List.of()));
     }
 
     @Test
