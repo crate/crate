@@ -137,11 +137,6 @@ public class ShardRowContext {
     }
 
     @Nullable
-    public String templateName() {
-        return templateName;
-    }
-
-    @Nullable
     public Long numDocs() {
         if (blobShard == null) {
             try {

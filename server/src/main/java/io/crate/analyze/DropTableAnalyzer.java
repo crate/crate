@@ -30,7 +30,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SchemaUnknownException;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.blob.BlobSchemaInfo;
@@ -85,9 +84,7 @@ class DropTableAnalyzer {
         } catch (SchemaUnknownException | RelationUnknown e) {
             tableName = RelationName.of(name, sessionSettings.searchPath().currentSchema());
             var metadata = clusterService.state().metadata();
-            String indexNameOrAlias = tableName.indexNameOrAlias();
-            String templateName = PartitionName.templateName(tableName.schema(), tableName.name());
-            if (!(metadata.hasIndex(indexNameOrAlias) || metadata.templates().containsKey(templateName) || dropIfExists)) {
+            if (!(metadata.contains(tableName) || dropIfExists)) {
                 throw e;
             }
         } catch (OperationOnInaccessibleRelationException e) {

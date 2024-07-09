@@ -42,7 +42,6 @@ import java.util.stream.Collector;
 import org.elasticsearch.Version;
 import org.elasticsearch.client.ElasticsearchClient;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.settings.Settings;
@@ -135,6 +134,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.NumberOfReplicas;
 import io.crate.metadata.sys.SysNodeChecksTableInfo;
 import io.crate.planner.operators.SubQueryResults;
@@ -442,11 +442,10 @@ public class ProjectionToProjectorVisitor
         Supplier<String> indexNameResolver =
             IndexNameResolver.create(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs);
         ClusterState state = clusterService.state();
-        Settings tableSettings = TableSettingsResolver.get(state.metadata(),
-            projection.tableIdent(), !projection.partitionedBySymbols().isEmpty());
+        DocTableInfo tableInfo = nodeCtx.schemas().getTableInfo(projection.tableIdent());
 
-        int targetTableNumShards = IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.get(tableSettings);
-        int targetTableNumReplicas = NumberOfReplicas.effectiveNumReplicas(tableSettings, state.nodes());
+        int targetTableNumShards = tableInfo.numberOfShards();
+        int targetTableNumReplicas = NumberOfReplicas.effectiveNumReplicas(tableInfo.parameters(), state.nodes());
 
         UpsertResultContext upsertResultContext;
         if (projection instanceof SourceIndexWriterReturnSummaryProjection) {
@@ -506,11 +505,10 @@ public class ProjectionToProjectorVisitor
             insertInputs.add(ctx.add(symbol));
         }
         ClusterState state = clusterService.state();
-        Settings tableSettings = TableSettingsResolver.get(state.metadata(),
-            projection.tableIdent(), !projection.partitionedBySymbols().isEmpty());
+        DocTableInfo tableInfo = nodeCtx.schemas().getTableInfo(projection.tableIdent());
 
-        int targetTableNumShards = IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.get(tableSettings);
-        int targetTableNumReplicas = NumberOfReplicas.effectiveNumReplicas(tableSettings, state.nodes());
+        int targetTableNumShards = tableInfo.numberOfShards();
+        int targetTableNumReplicas = NumberOfReplicas.effectiveNumReplicas(tableInfo.parameters(), state.nodes());
 
         final Map<String, Consumer<IndexItem>> validatorsCache = new HashMap<>();
         BiConsumer<String, IndexItem> constraintsChecker = (indexName, indexItem) -> checkConstraints(
