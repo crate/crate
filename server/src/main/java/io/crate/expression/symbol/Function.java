@@ -370,6 +370,10 @@ public class Function implements Symbol, Cloneable {
                 }
                 break;
 
+            case ArrayFunction.NAME:
+                printArray(builder, style);
+                break;
+
             default:
                 if (AnyOperator.OPERATOR_NAMES.contains(name)) {
                     printAnyOperator(builder, style);
@@ -401,6 +405,19 @@ public class Function implements Symbol, Cloneable {
         builder.append(arguments.get(0).toString(style));
         builder.append(").");
         builder.append(arguments.get(1).toString(style));
+    }
+
+    private void printArray(StringBuilder builder, Style style) {
+        builder.append("[");
+        int size = arguments.size();
+        for (int i = 0; i < size; i++) {
+            Symbol arg = arguments.get(i);
+            builder.append(arg.toString(style));
+            if (i + 1 < size) {
+                builder.append(", ");
+            }
+        }
+        builder.append("]");
     }
 
     private void printAnyOperator(StringBuilder builder, Style style) {
