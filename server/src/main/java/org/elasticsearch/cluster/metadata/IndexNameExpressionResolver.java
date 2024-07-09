@@ -127,16 +127,6 @@ public class IndexNameExpressionResolver {
                     continue;
                 }
             }
-            if (aliasOrIndex.getIndices().size() > 1 && !options.allowAliasesToMultipleIndices()) {
-                String[] indexNames = new String[aliasOrIndex.getIndices().size()];
-                int i = 0;
-                for (IndexMetadata indexMetadata : aliasOrIndex.getIndices()) {
-                    indexNames[i++] = indexMetadata.getIndex().getName();
-                }
-                throw new IllegalArgumentException("Alias [" + expression + "] has more than one indices associated with it [" +
-                    Arrays.toString(indexNames) + "], can't execute a single index op");
-            }
-
             for (IndexMetadata index : aliasOrIndex.getIndices()) {
                 if (index.getState() == IndexMetadata.State.CLOSE) {
                     if (failClosed) {
