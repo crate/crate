@@ -39,7 +39,6 @@ import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.ToXContentObject;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -59,7 +58,7 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
  * </ul>
  */
 public class CreateSnapshotRequest extends MasterNodeRequest<CreateSnapshotRequest>
-    implements IndicesRequest.Replaceable, ToXContentObject {
+    implements IndicesRequest.Replaceable {
 
     private String snapshot;
 
@@ -362,32 +361,6 @@ public class CreateSnapshotRequest extends MasterNodeRequest<CreateSnapshotReque
      */
     public boolean includeGlobalState() {
         return includeGlobalState;
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, Params params) throws IOException {
-        builder.startObject();
-        builder.field("repository", repository);
-        builder.field("snapshot", snapshot);
-        builder.startArray("indices");
-        for (String index : indices) {
-            builder.value(index);
-        }
-        builder.endArray();
-        builder.field("partial", partial);
-        if (settings != null) {
-            builder.startObject("settings");
-            if (settings.isEmpty() == false) {
-                settings.toXContent(builder, params);
-            }
-            builder.endObject();
-        }
-        builder.field("include_global_state", includeGlobalState);
-        if (indicesOptions != null) {
-            indicesOptions.toXContent(builder, params);
-        }
-        builder.endObject();
-        return builder;
     }
 
     @Override

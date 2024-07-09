@@ -24,20 +24,16 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashSet;
-import java.util.Locale;
 import java.util.Set;
 
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.xcontent.ToXContent;
-import org.elasticsearch.common.xcontent.ToXContentFragment;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 
 /**
  * Controls how to deal with unavailable concrete indices (closed or missing), how wildcard expressions are expanded
  * to actual indices (all, closed or open indices) and how to deal with wildcard expressions that resolve to no indices.
  */
-public class IndicesOptions implements ToXContentFragment {
+public class IndicesOptions {
 
     public enum WildcardStates {
         OPEN,
@@ -228,18 +224,6 @@ public class IndicesOptions implements ToXContentFragment {
         }
 
         return new IndicesOptions(opts, wildcards);
-    }
-
-    @Override
-    public XContentBuilder toXContent(XContentBuilder builder, ToXContent.Params params) throws IOException {
-        builder.startArray("expand_wildcards");
-        for (WildcardStates expandWildcard : expandWildcards) {
-            builder.value(expandWildcard.toString().toLowerCase(Locale.ROOT));
-        }
-        builder.endArray();
-        builder.field("ignore_unavailable", ignoreUnavailable());
-        builder.field("allow_no_indices", allowNoIndices());
-        return builder;
     }
 
     @Override
