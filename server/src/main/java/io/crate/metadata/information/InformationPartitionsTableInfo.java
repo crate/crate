@@ -65,7 +65,7 @@ public class InformationPartitionsTableInfo {
         .add("number_of_shards", INTEGER, PartitionInfo::numberOfShards)
         .add("number_of_replicas", STRING, PartitionInfo::numberOfReplicas)
         .add("routing_hash_function", STRING, r -> IndexMappings.DEFAULT_ROUTING_HASH_FUNCTION_PRETTY_NAME)
-        .add("closed", BOOLEAN, PartitionInfo::isClosed)
+        .add("closed", BOOLEAN, PartitionInfo::closed)
         .startObject("version")
             .add(Version.Property.CREATED.toString(), STRING, r -> r.versionCreated().externalNumber())
             .add(Version.Property.UPGRADED.toString(), STRING, r -> r.versionUpgraded().externalNumber())
