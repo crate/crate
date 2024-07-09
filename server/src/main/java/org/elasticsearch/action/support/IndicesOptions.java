@@ -48,7 +48,6 @@ public class IndicesOptions implements ToXContentFragment {
 
     public enum Option {
         IGNORE_UNAVAILABLE,
-        IGNORE_ALIASES,
         ALLOW_NO_INDICES,
         FORBID_ALIASES_TO_MULTIPLE_INDICES,
         FORBID_CLOSED_INDICES;
@@ -132,13 +131,6 @@ public class IndicesOptions implements ToXContentFragment {
         return options.contains(Option.FORBID_ALIASES_TO_MULTIPLE_INDICES) == false;
     }
 
-    /**
-     * @return whether aliases should be ignored (when resolving a wildcard)
-     */
-    public boolean ignoreAliases() {
-        return options.contains(Option.IGNORE_ALIASES);
-    }
-
     public void writeIndicesOptions(StreamOutput out) throws IOException {
         out.writeEnumSet(options);
         out.writeEnumSet(expandWildcards);
@@ -158,7 +150,6 @@ public class IndicesOptions implements ToXContentFragment {
             expandToOpenIndices,
             expandToClosedIndices,
             true,
-            false,
             false
         );
     }
@@ -174,8 +165,7 @@ public class IndicesOptions implements ToXContentFragment {
             expandToOpenIndices,
             expandToClosedIndices,
             defaultOptions.allowAliasesToMultipleIndices(),
-            defaultOptions.forbidClosedIndices(),
-            defaultOptions.ignoreAliases()
+            defaultOptions.forbidClosedIndices()
         );
     }
 
@@ -184,8 +174,7 @@ public class IndicesOptions implements ToXContentFragment {
                                              boolean expandToOpenIndices,
                                              boolean expandToClosedIndices,
                                              boolean allowAliasesToMultipleIndices,
-                                             boolean forbidClosedIndices,
-                                             boolean ignoreAliases) {
+                                             boolean forbidClosedIndices) {
         final Set<Option> opts = new HashSet<>();
         final Set<WildcardStates> wildcards = new HashSet<>();
 
@@ -206,9 +195,6 @@ public class IndicesOptions implements ToXContentFragment {
         }
         if (forbidClosedIndices) {
             opts.add(Option.FORBID_CLOSED_INDICES);
-        }
-        if (ignoreAliases) {
-            opts.add(Option.IGNORE_ALIASES);
         }
 
         return new IndicesOptions(opts, wildcards);
@@ -304,7 +290,6 @@ public class IndicesOptions implements ToXContentFragment {
                 ", expand_wildcards_closed=" + expandWildcardsClosed() +
                 ", allow_aliases_to_multiple_indices=" + allowAliasesToMultipleIndices() +
                 ", forbid_closed_indices=" + forbidClosedIndices() +
-                ", ignore_aliases=" + ignoreAliases() +
                 ']';
     }
 }

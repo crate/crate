@@ -126,14 +126,7 @@ public class IndexNameExpressionResolver {
                 } else {
                     continue;
                 }
-            } else if (aliasOrIndex.isAlias() && options.ignoreAliases()) {
-                if (failNoIndices) {
-                    throw aliasesNotSupportedException(expression);
-                } else {
-                    continue;
-                }
             }
-
             if (aliasOrIndex.getIndices().size() > 1 && !options.allowAliasesToMultipleIndices()) {
                 String[] indexNames = new String[aliasOrIndex.getIndices().size()];
                 int i = 0;
@@ -167,11 +160,6 @@ public class IndexNameExpressionResolver {
             throw infe;
         }
         return concreteIndices.toArray(new Index[concreteIndices.size()]);
-    }
-
-    private static IllegalArgumentException aliasesNotSupportedException(String expression) {
-        return new IllegalArgumentException("The provided expression [" + expression + "] matches an " +
-                "alias, specify the corresponding concrete indices instead.");
     }
 
     /**
@@ -278,8 +266,6 @@ public class IndexNameExpressionResolver {
                     AliasOrIndex aliasOrIndex = metadata.getAliasAndIndexLookup().get(expression);
                     if (aliasOrIndex == null) {
                         throw indexNotFoundException(expression);
-                    } else if (aliasOrIndex.isAlias() && options.ignoreAliases()) {
-                        throw aliasesNotSupportedException(expression);
                     }
                 }
                 if (add) {
@@ -310,8 +296,7 @@ public class IndexNameExpressionResolver {
 
     private static boolean aliasOrIndexExists(Metadata metadata, IndicesOptions options, String expression) {
         AliasOrIndex aliasOrIndex = metadata.getAliasAndIndexLookup().get(expression);
-        //treat aliases as unavailable indices when ignoreAliases is set to true (e.g. delete index and update aliases api)
-        return aliasOrIndex != null && (options.ignoreAliases() == false || aliasOrIndex.isAlias() == false);
+        return aliasOrIndex != null;
     }
 
     private static IndexNotFoundException indexNotFoundException(String expression) {
@@ -337,14 +322,7 @@ public class IndexNameExpressionResolver {
 
     private static Map<String, AliasOrIndex> matches(Metadata metadata, IndicesOptions options, String expression) {
         if (Regex.isMatchAllPattern(expression)) {
-            // Can only happen if the expressions was initially: '-*'
-            if (options.ignoreAliases()) {
-                return metadata.getAliasAndIndexLookup().entrySet().stream()
-                        .filter(e -> e.getValue().isAlias() == false)
-                        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-            } else {
-                return metadata.getAliasAndIndexLookup();
-            }
+            return metadata.getAliasAndIndexLookup();
         } else if (expression.indexOf("*") == expression.length() - 1) {
             return suffixWildcard(metadata, options, expression);
         } else {
@@ -359,11 +337,6 @@ public class IndexNameExpressionResolver {
         toPrefixCharArr[toPrefixCharArr.length - 1]++;
         String toPrefix = new String(toPrefixCharArr);
         SortedMap<String,AliasOrIndex> subMap = metadata.getAliasAndIndexLookup().subMap(fromPrefix, toPrefix);
-        if (options.ignoreAliases()) {
-            return subMap.entrySet().stream()
-                .filter(entry -> entry.getValue().isAlias() == false)
-                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
-        }
         return subMap;
     }
 
@@ -372,7 +345,7 @@ public class IndexNameExpressionResolver {
         return metadata.getAliasAndIndexLookup()
             .entrySet()
             .stream()
-            .filter(e -> options.ignoreAliases() == false || e.getValue().isAlias() == false)
+            .filter(e -> e.getValue().isAlias() == false)
             .filter(e -> Regex.simpleMatch(pattern, e.getKey()))
             .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
     }
