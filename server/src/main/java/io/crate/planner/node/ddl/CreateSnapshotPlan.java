@@ -215,7 +215,7 @@ public class CreateSnapshotPlan implements Plan {
                     true,
                     true,
                     false,
-                    IndicesOptions.lenientExpandOpen()))
+                    IndicesOptions.LENIENT_EXPAND_OPEN))
             .templates(templates.stream().toList())
             .settings(settings);
     }

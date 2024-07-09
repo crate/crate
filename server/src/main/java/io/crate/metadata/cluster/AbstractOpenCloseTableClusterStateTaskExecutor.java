@@ -25,8 +25,6 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -36,6 +34,7 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.execution.ddl.tables.OpenCloseTableOrPartitionRequest;
 import io.crate.metadata.PartitionName;
@@ -87,7 +86,7 @@ public abstract class AbstractOpenCloseTableClusterStateTaskExecutor extends DDL
         Metadata metadata = currentState.metadata();
         String indexToResolve = partitionIndexName != null ? partitionIndexName : relationName.indexNameOrAlias();
         PartitionName partitionName = partitionIndexName != null ? PartitionName.fromIndexOrTemplate(partitionIndexName) : null;
-        String[] concreteIndices = IndexNameExpressionResolver.concreteIndexNames(currentState.metadata(), IndicesOptions.lenientExpandOpen(), indexToResolve);
+        String[] concreteIndices = IndexNameExpressionResolver.concreteIndexNames(currentState.metadata(), IndicesOptions.LENIENT_EXPAND_OPEN, indexToResolve);
         Set<IndexMetadata> indicesMetadata = DDLClusterStateHelpers.indexMetadataSetFromIndexNames(metadata, concreteIndices, indexState());
         IndexTemplateMetadata indexTemplateMetadata = null;
         if (partitionIndexName == null) {

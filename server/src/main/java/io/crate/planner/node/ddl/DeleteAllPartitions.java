@@ -21,6 +21,12 @@
 
 package io.crate.planner.node.ddl;
 
+import java.util.List;
+
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexAction;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
+import org.elasticsearch.action.support.IndicesOptions;
+
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -31,11 +37,6 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexAction;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.action.support.IndicesOptions;
-
-import java.util.List;
 
 public final class DeleteAllPartitions implements Plan {
 
@@ -69,7 +70,7 @@ public final class DeleteAllPartitions implements Plan {
              * so ignore it if some are missing
              */
             DeleteIndexRequest deleteIndexRequest = new DeleteIndexRequest(partitions().toArray(new String[0]))
-                .indicesOptions(IndicesOptions.lenientExpandOpen());
+                .indicesOptions(IndicesOptions.LENIENT_EXPAND_OPEN);
             executor.client().execute(DeleteIndexAction.INSTANCE, deleteIndexRequest)
                 .whenComplete(new OneRowActionListener<>(consumer, r -> Row1.ROW_COUNT_UNKNOWN));
         }

@@ -76,7 +76,7 @@ public class DropSubscriptionAction extends ActionType<AcknowledgedResponse> {
         for (var relationName : relations) {
             var concreteIndices = IndexNameExpressionResolver.concreteIndexNames(
                 metadata,
-                IndicesOptions.lenientExpandOpen(),
+                IndicesOptions.LENIENT_EXPAND_OPEN,
                 relationName.indexNameOrAlias()
             );
             for (var indexName : concreteIndices) {

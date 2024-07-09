@@ -50,7 +50,7 @@ public class DropTableClusterStateTaskExecutor extends DDLClusterStateTaskExecut
         RelationName relationName = request.tableIdent();
         Set<Index> concreteIndices = Set.of(IndexNameExpressionResolver.concreteIndices(
             currentState.metadata(),
-            IndicesOptions.lenientExpandOpen(),
+            IndicesOptions.LENIENT_EXPAND_OPEN,
             relationName.indexNameOrAlias()));
 
         currentState = deleteIndexService.deleteIndices(currentState, concreteIndices);

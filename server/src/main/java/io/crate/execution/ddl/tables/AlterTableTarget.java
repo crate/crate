@@ -47,12 +47,12 @@ public final record AlterTableTarget(RelationName table,
     public static AlterTableTarget of(ClusterState state, RelationName table, @Nullable String partition) {
         Metadata metadata = state.metadata();
         if (partition == null) {
-            Index[] indices = IndexNameExpressionResolver.concreteIndices(metadata, IndicesOptions.lenientExpandOpen(), table.indexNameOrAlias());
+            Index[] indices = IndexNameExpressionResolver.concreteIndices(metadata, IndicesOptions.LENIENT_EXPAND_OPEN, table.indexNameOrAlias());
             String templateName = PartitionName.templateName(table.schema(), table.name());
             IndexTemplateMetadata indexTemplateMetadata = metadata.templates().get(templateName);
             return new AlterTableTarget(table, indices, partition, indexTemplateMetadata);
         } else {
-            Index[] indices = IndexNameExpressionResolver.concreteIndices(metadata, IndicesOptions.lenientExpandOpen(), partition);
+            Index[] indices = IndexNameExpressionResolver.concreteIndices(metadata, IndicesOptions.LENIENT_EXPAND_OPEN, partition);
             return new AlterTableTarget(table, indices, partition, null);
         }
     }

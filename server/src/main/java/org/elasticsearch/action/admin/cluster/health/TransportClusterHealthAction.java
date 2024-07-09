@@ -290,7 +290,7 @@ public class TransportClusterHealthAction extends TransportMasterNodeReadAction<
         }
         if (request.indices().length > 0) {
             try {
-                IndexNameExpressionResolver.concreteIndexNames(clusterState.metadata(), IndicesOptions.strictExpand(), request.indices());
+                IndexNameExpressionResolver.concreteIndexNames(clusterState.metadata(), IndicesOptions.STRICT_EXPAND_OPEN_CLOSED, request.indices());
                 waitForCounter++;
             } catch (IndexNotFoundException e) {
                 response.setStatus(ClusterHealthStatus.RED); // no indices, make sure its RED

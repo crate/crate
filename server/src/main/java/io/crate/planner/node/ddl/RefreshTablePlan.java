@@ -89,7 +89,7 @@ public class RefreshTablePlan implements Plan {
         }
 
         RefreshRequest request = new RefreshRequest(toRefresh.toArray(String[]::new));
-        request.indicesOptions(IndicesOptions.lenientExpandOpen());
+        request.indicesOptions(IndicesOptions.LENIENT_EXPAND_OPEN);
 
         dependencies.client().execute(RefreshAction.INSTANCE, request)
             .whenComplete(

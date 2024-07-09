@@ -212,8 +212,8 @@ public class DocTableInfoFactory {
             concreteIndices = IndexNameExpressionResolver.concreteIndexNames(
                 metadata,
                 indexTemplateMetadata == null
-                    ? IndicesOptions.strictExpandOpen()
-                    : IndicesOptions.lenientExpandOpen(),
+                    ? IndicesOptions.STRICT_EXPAND_OPEN
+                    : IndicesOptions.LENIENT_EXPAND_OPEN,
                 relation.indexNameOrAlias()
             );
         } catch (IndexNotFoundException e) {

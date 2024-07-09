@@ -451,7 +451,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             .metadata(true)
             .nodes(includeNodes)
             .routingTable(includeRouting)
-            .indicesOptions(IndicesOptions.strictSingleIndexNoExpandForbidClosed())
+            .indicesOptions(IndicesOptions.STRICT_SINGLE_INDEX_NO_EXPAND_FORBID_CLOSED)
             .waitForTimeout(new TimeValue(REMOTE_CLUSTER_REPO_REQ_TIMEOUT_IN_MILLI_SEC));
         return remoteClient.admin().cluster().state(clusterStateRequest);
     }
