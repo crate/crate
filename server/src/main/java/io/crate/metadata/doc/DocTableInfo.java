@@ -451,12 +451,12 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     public String[] concreteOpenIndices(Metadata metadata) {
-        String[] concreteIndices = concreteIndices(metadata);
         if (!isPartitioned) {
             IndexMetadata index = metadata.index(ident.indexNameOrAlias());
             if (index == null) {
                 throw new RelationUnknown(ident);
             }
+            String[] concreteIndices = concreteIndices(metadata);
             if (concreteIndices.length == 0) {
                 throw new RelationUnknown(ident);
             }
