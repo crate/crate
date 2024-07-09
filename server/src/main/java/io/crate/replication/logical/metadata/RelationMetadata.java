@@ -66,7 +66,7 @@ public record RelationMetadata(RelationName name,
             var templateMetadata = metadata.templates().get(templateName);
             String[] concreteIndices = IndexNameExpressionResolver.concreteIndexNames(
                 metadata,
-                IndicesOptions.lenientExpandOpen(),
+                IndicesOptions.LENIENT_EXPAND_OPEN,
                 indexNameOrAlias
             );
             ArrayList<IndexMetadata> indicesMetadata = new ArrayList<>(concreteIndices.length);

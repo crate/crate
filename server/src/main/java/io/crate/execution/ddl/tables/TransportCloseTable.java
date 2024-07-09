@@ -265,7 +265,7 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
                                                   ClusterState clusterState) {
         var concreteIndices = IndexNameExpressionResolver.concreteIndexNames(
             clusterState.metadata(),
-            IndicesOptions.lenientExpandOpen(),
+            IndicesOptions.LENIENT_EXPAND_OPEN,
             relationName.indexNameOrAlias()
         );
         if (concreteIndices.length > 0) {
@@ -371,7 +371,7 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
             RelationName table = request.table();
             String partition = request.partition();
             Index[] indices = IndexNameExpressionResolver.concreteIndices(currentState.metadata(),
-                    IndicesOptions.lenientExpandOpen(), partition == null ? table.indexNameOrAlias() : partition);
+                    IndicesOptions.LENIENT_EXPAND_OPEN, partition == null ? table.indexNameOrAlias() : partition);
             if (indices.length == 0) {
                 return currentState;
             }

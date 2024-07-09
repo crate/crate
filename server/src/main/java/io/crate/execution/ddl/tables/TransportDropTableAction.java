@@ -91,7 +91,7 @@ public class TransportDropTableAction extends AbstractDDLTransportAction<DropTab
         String templateName = PartitionName.templateName(relation.schema(), relation.name());
         Metadata metadata = state.metadata();
         boolean isPartitioned = metadata.templates().containsKey(templateName);
-        IndicesOptions indicesOptions = isPartitioned ? IndicesOptions.lenientExpandOpen() : INDICES_OPTIONS;
+        IndicesOptions indicesOptions = isPartitioned ? IndicesOptions.LENIENT_EXPAND_OPEN : INDICES_OPTIONS;
         return state.blocks().indicesBlockedException(
             ClusterBlockLevel.METADATA_WRITE,
             IndexNameExpressionResolver.concreteIndexNames(

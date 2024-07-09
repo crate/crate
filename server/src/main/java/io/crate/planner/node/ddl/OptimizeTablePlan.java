@@ -107,7 +107,7 @@ public class OptimizeTablePlan implements Plan {
             request.maxNumSegments(MAX_NUM_SEGMENTS.get(settings));
             request.onlyExpungeDeletes(ONLY_EXPUNGE_DELETES.get(settings));
             request.flush(FLUSH.get(settings));
-            request.indicesOptions(IndicesOptions.lenientExpandOpen());
+            request.indicesOptions(IndicesOptions.LENIENT_EXPAND_OPEN);
 
             dependencies.client()
                 .execute(ForceMergeAction.INSTANCE, request)

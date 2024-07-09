@@ -61,8 +61,8 @@ import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.Scheduler.Cancellable;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jetbrains.annotations.Nullable;
-
 import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.concurrent.CountdownFuture;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.support.RetryRunnable;
@@ -481,7 +481,7 @@ public final class MetadataTracker implements Closeable {
             // Check for possible dropped partitions
             var concreteIndices = IndexNameExpressionResolver.concreteIndices(
                 subscriberClusterState.metadata(),
-                IndicesOptions.lenientExpand(),
+                IndicesOptions.LENIENT_EXPAND_OPEN_CLOSED,
                 relationName.indexNameOrAlias()
             );
             for (var concreteIndex : concreteIndices) {

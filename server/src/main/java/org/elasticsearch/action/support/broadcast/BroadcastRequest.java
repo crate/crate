@@ -19,18 +19,18 @@
 
 package org.elasticsearch.action.support.broadcast;
 
+import java.io.IOException;
+
 import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportRequest;
 
-import java.io.IOException;
-
 public class BroadcastRequest<Request extends BroadcastRequest<Request>> extends TransportRequest implements IndicesRequest.Replaceable {
 
     protected String[] indices;
-    private IndicesOptions indicesOptions = IndicesOptions.strictExpandOpenAndForbidClosed();
+    private IndicesOptions indicesOptions = IndicesOptions.STRICT_EXPAND_OPEN_FORBID_CLOSED;
 
     public BroadcastRequest() {
     }

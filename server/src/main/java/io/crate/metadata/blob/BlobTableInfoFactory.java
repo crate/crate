@@ -60,7 +60,7 @@ public class BlobTableInfoFactory {
         String indexName = BlobIndex.fullIndexName(tableName);
         Index index;
         try {
-            index = IndexNameExpressionResolver.concreteIndices(metadata, IndicesOptions.strictExpandOpen(), indexName)[0];
+            index = IndexNameExpressionResolver.concreteIndices(metadata, IndicesOptions.STRICT_EXPAND_OPEN, indexName)[0];
         } catch (IndexNotFoundException ex) {
             throw new RelationUnknown(indexName, ex);
         }
