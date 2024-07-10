@@ -50,7 +50,7 @@ public class VersionFunction extends Scalar<String, Void> {
             Signature.builder(FQN, FunctionType.SCALAR)
                 .argumentTypes()
                 .returnType(DataTypes.STRING.getTypeSignature())
-                .features(EnumSet.of(Feature.NON_NULLABLE))
+                .features(EnumSet.of(Feature.NOTNULL))
                 .build(),
             VersionFunction::new
         );

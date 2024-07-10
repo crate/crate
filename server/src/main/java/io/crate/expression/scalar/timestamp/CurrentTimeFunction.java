@@ -46,7 +46,7 @@ public class CurrentTimeFunction extends Scalar<TimeTZ, Integer> {
             Signature.builder(NAME, FunctionType.SCALAR)
                 .argumentTypes(DataTypes.INTEGER.getTypeSignature())
                 .returnType(DataTypes.TIMETZ.getTypeSignature())
-                .features(Feature.DETERMINISTIC, Feature.NON_NULLABLE)
+                .features(Feature.DETERMINISTIC, Feature.NOTNULL)
                 .build(),
             CurrentTimeFunction::new
         );
@@ -54,7 +54,7 @@ public class CurrentTimeFunction extends Scalar<TimeTZ, Integer> {
             Signature.builder(NAME, FunctionType.SCALAR)
                 .argumentTypes()
                 .returnType(DataTypes.TIMETZ.getTypeSignature())
-                .features(Feature.DETERMINISTIC, Feature.NON_NULLABLE)
+                .features(Feature.DETERMINISTIC, Feature.NOTNULL)
                 .build(),
             CurrentTimeFunction::new
         );

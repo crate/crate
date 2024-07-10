@@ -46,7 +46,7 @@ public final class ParseURIFunction extends Scalar<Object, String> {
             Signature.builder(NAME, FunctionType.SCALAR)
                 .argumentTypes(DataTypes.STRING.getTypeSignature())
                 .returnType(DataTypes.UNTYPED_OBJECT.getTypeSignature())
-                .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             ParseURIFunction::new
         );

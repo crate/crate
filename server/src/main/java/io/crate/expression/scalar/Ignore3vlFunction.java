@@ -55,7 +55,7 @@ public class Ignore3vlFunction extends Scalar<Boolean, Boolean> {
     public static final Signature SIGNATURE = Signature.builder(NAME, FunctionType.SCALAR)
         .argumentTypes(DataTypes.BOOLEAN.getTypeSignature())
         .returnType(DataTypes.BOOLEAN.getTypeSignature())
-        .features(Feature.DETERMINISTIC, Feature.NON_NULLABLE)
+        .features(Feature.DETERMINISTIC, Feature.NOTNULL)
         .build();
 
     public static void register(Functions.Builder module) {

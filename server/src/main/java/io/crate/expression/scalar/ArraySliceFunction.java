@@ -50,7 +50,7 @@ public class ArraySliceFunction extends Scalar<List<Object>, Object> {
                                 DataTypes.INTEGER.getTypeSignature())
                         .returnType(TypeSignature.parse("array(E)"))
                         .typeVariableConstraints(typeVariable("E"))
-                        .features(Feature.DETERMINISTIC, Feature.NON_NULLABLE)
+                        .features(Feature.DETERMINISTIC, Feature.NOTNULL)
                         .build(),
                 ArraySliceFunction::new
         );

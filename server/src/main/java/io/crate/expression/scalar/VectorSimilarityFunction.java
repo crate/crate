@@ -40,7 +40,7 @@ public class VectorSimilarityFunction extends Scalar<Float, float[]> {
                 .argumentTypes(FloatVectorType.INSTANCE_ONE.getTypeSignature(),
                     FloatVectorType.INSTANCE_ONE.getTypeSignature())
                 .returnType(DataTypes.FLOAT.getTypeSignature())
-                .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             VectorSimilarityFunction::new
         );

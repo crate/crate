@@ -46,7 +46,7 @@ public class RandomFunction extends Scalar<Double, Void> {
             Signature.builder(NAME, FunctionType.SCALAR)
                 .argumentTypes()
                 .returnType(DataTypes.DOUBLE.getTypeSignature())
-                .features(EnumSet.of(Feature.NON_NULLABLE))
+                .features(EnumSet.of(Feature.NOTNULL))
                 .build(),
             RandomFunction::new
         );

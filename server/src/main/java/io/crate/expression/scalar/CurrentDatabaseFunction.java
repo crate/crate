@@ -43,7 +43,7 @@ final class CurrentDatabaseFunction extends Scalar<String, Void> {
             Signature.builder(FQN, FunctionType.SCALAR)
                 .argumentTypes()
                 .returnType(DataTypes.STRING.getTypeSignature())
-                .features(Feature.DETERMINISTIC, Feature.NON_NULLABLE)
+                .features(Feature.DETERMINISTIC, Feature.NOTNULL)
                 .build(),
             CurrentDatabaseFunction::new
         );

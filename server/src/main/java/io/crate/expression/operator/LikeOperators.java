@@ -112,7 +112,7 @@ public class LikeOperators {
                 .argumentTypes(DataTypes.STRING.getTypeSignature(),
                     DataTypes.STRING.getTypeSignature())
                 .returnType(Operator.RETURN_TYPE.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
                 new LikeOperator(signature, boundSignature, LikeOperators::matches, CaseSensitivity.SENSITIVE)
@@ -122,7 +122,7 @@ public class LikeOperators {
                 .argumentTypes(DataTypes.STRING.getTypeSignature(),
                     DataTypes.STRING.getTypeSignature())
                 .returnType(Operator.RETURN_TYPE.getTypeSignature())
-                .features(Scalar.Feature.NULLABLE, Scalar.Feature.DETERMINISTIC)
+                .features(Scalar.Feature.STRICTNULL, Scalar.Feature.DETERMINISTIC)
                 .build(),
             (signature, boundSignature) ->
                 new LikeOperator(signature, boundSignature, LikeOperators::matches, CaseSensitivity.INSENSITIVE)
@@ -151,7 +151,7 @@ public class LikeOperators {
                 .argumentTypes(DataTypes.STRING.getTypeSignature(),
                     DataTypes.STRING_ARRAY.getTypeSignature())
                 .returnType(Operator.RETURN_TYPE.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
                 new AnyLikeOperator(
@@ -165,7 +165,7 @@ public class LikeOperators {
                 .argumentTypes(DataTypes.STRING.getTypeSignature(),
                     DataTypes.STRING_ARRAY.getTypeSignature())
                 .returnType(Operator.RETURN_TYPE.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
                 new AnyNotLikeOperator(
@@ -179,7 +179,7 @@ public class LikeOperators {
                 .argumentTypes(DataTypes.STRING.getTypeSignature(),
                     DataTypes.STRING_ARRAY.getTypeSignature())
                 .returnType(Operator.RETURN_TYPE.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
                 new AnyLikeOperator(
@@ -193,7 +193,7 @@ public class LikeOperators {
                 .argumentTypes(DataTypes.STRING.getTypeSignature(),
                     DataTypes.STRING_ARRAY.getTypeSignature())
                 .returnType(Operator.RETURN_TYPE.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
                 new AnyNotLikeOperator(

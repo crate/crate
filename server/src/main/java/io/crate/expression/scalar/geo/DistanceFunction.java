@@ -64,7 +64,7 @@ public class DistanceFunction extends Scalar<Double, Point> {
                 .argumentTypes(DataTypes.GEO_POINT.getTypeSignature(),
                     DataTypes.GEO_POINT.getTypeSignature())
                 .returnType(DataTypes.DOUBLE.getTypeSignature())
-                .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             DistanceFunction::new
         );

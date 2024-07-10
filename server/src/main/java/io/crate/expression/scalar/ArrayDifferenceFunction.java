@@ -57,7 +57,7 @@ class ArrayDifferenceFunction extends Scalar<List<Object>, List<Object>> {
                 .argumentTypes(TypeSignature.parse("array(E)"),
                     TypeSignature.parse("array(E)"))
                 .returnType(TypeSignature.parse("array(E)"))
-                .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .typeVariableConstraints(typeVariable("E"))
                 .build(),
             (signature, boundSignature) ->

@@ -102,7 +102,7 @@ public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
             DataTypes.STRING.getTypeSignature(),
             DataTypes.UNTYPED_OBJECT.getTypeSignature())
         .returnType(DataTypes.BOOLEAN.getTypeSignature())
-        .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NON_NULLABLE)
+        .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NOTNULL)
         .build();
 
     public static final Signature GEO_MATCH = Signature.builder(NAME, FunctionType.SCALAR)
@@ -111,7 +111,7 @@ public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
             DataTypes.STRING.getTypeSignature(),
             DataTypes.UNTYPED_OBJECT.getTypeSignature())
         .returnType(DataTypes.BOOLEAN.getTypeSignature())
-        .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NON_NULLABLE)
+        .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NOTNULL)
         .build();
 
 

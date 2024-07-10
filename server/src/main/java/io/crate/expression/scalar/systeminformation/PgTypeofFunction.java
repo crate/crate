@@ -45,7 +45,7 @@ public final class PgTypeofFunction extends Scalar<String, Object> {
             Signature.builder(FQNAME, FunctionType.SCALAR)
                 .argumentTypes(TypeSignature.parse("E"))
                 .returnType(DataTypes.STRING.getTypeSignature())
-                .features(Feature.DETERMINISTIC, Feature.NON_NULLABLE)
+                .features(Feature.DETERMINISTIC, Feature.NOTNULL)
                 .typeVariableConstraints(typeVariable("E"))
                 .build(),
             PgTypeofFunction::new
