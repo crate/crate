@@ -71,4 +71,24 @@ public class TopKTest extends AggregationTestCase {
         );
         assertThat(result).isEqualTo(List.of(List.of("3", 3L), List.of("2", 2L), List.of("1", 1L)));
     }
+
+    @Test
+    public void test_top_K_boolean() throws Exception {
+        var result = executeAggregation(
+            TopKAggregation.PARAMETER_SIGNATURE,
+            List.of(DataTypes.BOOLEAN),
+            DataTypes.UNTYPED_OBJECT,
+            new Object[][]{
+                new Boolean[]{true},
+                new Boolean[]{true},
+                new Boolean[]{true},
+                new Boolean[]{false},
+                new Boolean[]{false},
+
+            },
+            true,
+            List.of()
+        );
+        assertThat(result).isEqualTo(List.of(List.of(true, 3L), List.of(false, 2L)));
+    }
 }

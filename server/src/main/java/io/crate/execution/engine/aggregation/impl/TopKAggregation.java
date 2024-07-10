@@ -122,8 +122,11 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.TopKSta
                              MemoryManager memoryManager,
                              TopKState state,
                              Input<?>... args) throws CircuitBreakingException {
-        if (state.isEmpty() && args.length == 2) {
+        if (state.itemsSketch.isEmpty() && args.length == 2) {
             Integer limit = (Integer) args[1].value();
+            // ItemsSketch maxMapSize must be an within the  power of 2, like 2, 4 , 8, 16 etc.
+            // Hence, we convert the limit to the closest power of 2.
+            // So Limit 6 becomes 8, because 8 is 2^3
             int maxMapSize = convertToClosestPowerOfTwo(limit);
             state = new TopKState(new ItemsSketch<>(maxMapSize), limit);
         }
@@ -143,11 +146,12 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.TopKSta
 
     @Override
     public List<Object> terminatePartial(RamAccounting ramAccounting, TopKState state) {
-        List<Object> result = new ArrayList<>();
         ItemsSketch.Row<Object>[] frequentItems = state.itemsSketch.getFrequentItems(ErrorType.NO_FALSE_POSITIVES);
-        for (int i = 0; i < Math.min(frequentItems.length, state.limit); i++) {
-            var x = frequentItems[i];
-            result.add(List.of(x.getItem(), x.getEstimate()));
+        int limit = Math.min(frequentItems.length, state.limit);
+        var result = new ArrayList<>(limit);
+        for (int i = 0; i < limit; i++) {
+            var item = frequentItems[i];
+            result.add(List.of(item.getItem(), item.getEstimate()));
         }
         return result;
     }
@@ -156,12 +160,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.TopKSta
         return TopKStateType.INSTANCE;
     }
 
-    public record TopKState(ItemsSketch<Object> itemsSketch, int limit) {
-
-        public boolean isEmpty() {
-            return itemsSketch.isEmpty();
-        }
-    }
+    public record TopKState(ItemsSketch<Object> itemsSketch, int limit) {}
 
     static final class TopKStateType extends DataType<TopKState> implements Streamer<TopKState> {
 
@@ -210,18 +209,13 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.TopKSta
 
         @Override
         public long valueBytes(TopKState value) {
-            throw new UnsupportedOperationException("valueSize is not implemented for TDigestStateType");
+            throw new UnsupportedOperationException("valueSize is not implemented for TopKStateType");
         }
 
         @Override
         public int compare(TopKState s1, TopKState s2) {
             return 0;
         }
-    }
-
-    @Override
-    public boolean isRemovableCumulative() {
-        return true;
     }
 
 }
