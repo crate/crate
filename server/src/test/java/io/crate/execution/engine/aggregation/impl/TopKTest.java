@@ -24,6 +24,7 @@ package io.crate.execution.engine.aggregation.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
+import java.util.Map;
 
 import org.junit.Test;
 
@@ -49,7 +50,15 @@ public class TopKTest extends AggregationTestCase {
             true,
             List.of()
         );
-        assertThat(result).isEqualTo(List.of(List.of(3L, 3L), List.of(2L, 2L), List.of(1L, 1L)));
+
+        assertThat(result)
+            .isEqualTo(
+                List.of(
+                    Map.of("item", 3L, "frequency", 3L),
+                    Map.of("item", 2L, "frequency", 2L),
+                    Map.of("item", 1L, "frequency", 1L)
+                )
+            );
     }
 
     @Test
@@ -69,7 +78,14 @@ public class TopKTest extends AggregationTestCase {
             true,
             List.of()
         );
-        assertThat(result).isEqualTo(List.of(List.of("3", 3L), List.of("2", 2L), List.of("1", 1L)));
+        assertThat(result)
+            .isEqualTo(
+                List.of(
+                    Map.of("item", "3", "frequency", 3L),
+                    Map.of("item", "2", "frequency", 2L),
+                    Map.of("item", "1", "frequency", 1L)
+                )
+            );
     }
 
     @Test
@@ -89,6 +105,12 @@ public class TopKTest extends AggregationTestCase {
             true,
             List.of()
         );
-        assertThat(result).isEqualTo(List.of(List.of(true, 3L), List.of(false, 2L)));
+        assertThat(result)
+            .isEqualTo(
+                List.of(
+                    Map.of("item", true, "frequency", 3L),
+                    Map.of("item", false, "frequency", 2L)
+                )
+            );
     }
 }

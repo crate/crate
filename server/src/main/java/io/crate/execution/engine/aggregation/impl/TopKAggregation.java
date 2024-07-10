@@ -27,6 +27,7 @@ import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.datasketches.frequencies.ErrorType;
 import org.apache.datasketches.frequencies.ItemsSketch;
@@ -56,19 +57,19 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.TopKSta
 
     public static final String NAME = "top_k";
 
-    public static final Signature DEFAULT_SIGNATURE =
+    static final Signature DEFAULT_SIGNATURE =
         Signature.builder(NAME, FunctionType.AGGREGATE)
             .argumentTypes(TypeSignature.parse("V"))
-            .returnType(DataTypes.UNDEFINED.getTypeSignature())
+            .returnType(DataTypes.UNTYPED_OBJECT.getTypeSignature())
             .features(Scalar.Feature.DETERMINISTIC)
             .typeVariableConstraints(typeVariable("V"))
             .build();
 
-    public static final Signature PARAMETER_SIGNATURE =
+    static final Signature PARAMETER_SIGNATURE =
         Signature.builder(NAME, FunctionType.AGGREGATE)
             .argumentTypes(TypeSignature.parse("V"),
                 DataTypes.INTEGER.getTypeSignature())
-            .returnType(DataTypes.UNDEFINED.getTypeSignature())
+            .returnType(DataTypes.UNTYPED_OBJECT.getTypeSignature())
             .features(Scalar.Feature.DETERMINISTIC)
             .typeVariableConstraints(typeVariable("V"))
             .build();
@@ -124,7 +125,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.TopKSta
                              Input<?>... args) throws CircuitBreakingException {
         if (state.itemsSketch.isEmpty() && args.length == 2) {
             Integer limit = (Integer) args[1].value();
-            // ItemsSketch maxMapSize must be an within the  power of 2, like 2, 4 , 8, 16 etc.
+            // ItemsSketch maxMapSize must be within the power of 2.
             // Hence, we convert the limit to the closest power of 2.
             // So Limit 6 becomes 8, because 8 is 2^3
             int maxMapSize = convertToClosestPowerOfTwo(limit);
@@ -151,7 +152,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.TopKSta
         var result = new ArrayList<>(limit);
         for (int i = 0; i < limit; i++) {
             var item = frequentItems[i];
-            result.add(List.of(item.getItem(), item.getEstimate()));
+            result.add(Map.of("item", item.getItem(), "frequency", item.getEstimate()));
         }
         return result;
     }
@@ -160,7 +161,8 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.TopKSta
         return TopKStateType.INSTANCE;
     }
 
-    public record TopKState(ItemsSketch<Object> itemsSketch, int limit) {}
+    public record TopKState(ItemsSketch<Object> itemsSketch, int limit) {
+    }
 
     static final class TopKStateType extends DataType<TopKState> implements Streamer<TopKState> {
 

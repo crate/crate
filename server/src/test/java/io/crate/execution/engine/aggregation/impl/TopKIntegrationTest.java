@@ -25,29 +25,21 @@ import static io.crate.testing.Asserts.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 
-import com.carrotsearch.randomizedtesting.annotations.Seed;
-
-import io.crate.testing.UseJdbc;
-
-@IntegTestCase.ClusterScope(numDataNodes = 3, numClientNodes = 0)
 public class TopKIntegrationTest extends IntegTestCase {
 
-    @Seed("98F2E1BE81E67C98")
-    @UseJdbc(0)
     public void test_default_case() {
         execute("create table doc.t1(x long);");
         execute("insert into doc.t1 values (1), (2), (2), (3), (3), (3);");
         execute("refresh table doc.t1;");
         execute("select top_k(x) from doc.t1;");
-        assertThat(response).hasRows("[[3, 3], [2, 2], [1, 1]]");
+        assertThat(response).hasRows("[{item=3, frequency=3}, {item=2, frequency=2}, {item=1, frequency=1}]");
     }
 
-    @UseJdbc(0)
     public void test_with_limit() {
         execute("create table doc.t1(x long);");
         execute("insert into doc.t1 values (1), (2), (2), (3), (3), (3);");
         execute("refresh table doc.t1;");
         execute("select top_k(x, 2) from doc.t1;");
-        assertThat(response).hasRows("[[3, 3], [2, 2]]");
+        assertThat(response).hasRows("[{item=3, frequency=3}, {item=2, frequency=2}]");
     }
 }
