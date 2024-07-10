@@ -94,4 +94,7 @@ Fixes
 
       SELECT * from t1 JOIN t2 ON (t1.a >= 1) = ((t1.a = t1.a) AND (t2.b <= t2.b))
 
+- Fixed a regression introduced in 5.7.2 that caused ``SQLParseException`` when
+  selecting columns of type ``char`` from a foreign table.
+
 
