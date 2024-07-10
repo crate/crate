@@ -42,7 +42,7 @@ public final class RoundFunction {
                 Signature.builder(NAME, FunctionType.SCALAR)
                     .argumentTypes(typeSignature)
                     .returnType(returnType.getTypeSignature())
-                    .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                    .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                     .build(),
                 (signature, boundSignature) -> {
                     if (returnType.equals(DataTypes.INTEGER)) {

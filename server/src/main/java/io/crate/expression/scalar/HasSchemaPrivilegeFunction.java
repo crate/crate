@@ -22,7 +22,7 @@
 package io.crate.expression.scalar;
 
 import static io.crate.metadata.Scalar.Feature.DETERMINISTIC;
-import static io.crate.metadata.Scalar.Feature.NULLABLE;
+import static io.crate.metadata.Scalar.Feature.STRICTNULL;
 
 import java.util.Collection;
 import java.util.EnumSet;
@@ -105,7 +105,7 @@ public class HasSchemaPrivilegeFunction {
                     DataTypes.STRING.getTypeSignature(), // Schema
                     DataTypes.STRING.getTypeSignature())
                 .returnType(DataTypes.BOOLEAN.getTypeSignature())
-                .features(EnumSet.of(DETERMINISTIC, NULLABLE))
+                .features(EnumSet.of(DETERMINISTIC, STRICTNULL))
                 .build(),
             (signature, boundSignature) -> new HasPrivilegeFunction(
                 signature,
@@ -123,7 +123,7 @@ public class HasSchemaPrivilegeFunction {
                     DataTypes.INTEGER.getTypeSignature(), // Schema
                     DataTypes.STRING.getTypeSignature())
                 .returnType(DataTypes.BOOLEAN.getTypeSignature())
-                .features(EnumSet.of(DETERMINISTIC, NULLABLE))
+                .features(EnumSet.of(DETERMINISTIC, STRICTNULL))
                 .build(),
             (signature, boundSignature) -> new HasPrivilegeFunction(
                 signature,
@@ -141,7 +141,7 @@ public class HasSchemaPrivilegeFunction {
                     DataTypes.STRING.getTypeSignature(), // Schema
                     DataTypes.STRING.getTypeSignature())
                 .returnType(DataTypes.BOOLEAN.getTypeSignature())
-                .features(EnumSet.of(DETERMINISTIC, NULLABLE))
+                .features(EnumSet.of(DETERMINISTIC, STRICTNULL))
                 .build(),
             (signature, boundSignature) -> new HasPrivilegeFunction(
                 signature,
@@ -159,7 +159,7 @@ public class HasSchemaPrivilegeFunction {
                     DataTypes.INTEGER.getTypeSignature(), // Schema
                     DataTypes.STRING.getTypeSignature())
                 .returnType(DataTypes.BOOLEAN.getTypeSignature())
-                .features(EnumSet.of(DETERMINISTIC, NULLABLE))
+                .features(EnumSet.of(DETERMINISTIC, STRICTNULL))
                 .build(),
             (signature, boundSignature) -> new HasPrivilegeFunction(
                 signature,
@@ -177,7 +177,7 @@ public class HasSchemaPrivilegeFunction {
                     DataTypes.STRING.getTypeSignature(),  // Schema
                     DataTypes.STRING.getTypeSignature())
                 .returnType(DataTypes.BOOLEAN.getTypeSignature())
-                .features(EnumSet.of(DETERMINISTIC, NULLABLE))
+                .features(EnumSet.of(DETERMINISTIC, STRICTNULL))
                 .build(),
             (signature, boundSignature) -> new HasPrivilegeFunction(
                 signature,
@@ -195,7 +195,7 @@ public class HasSchemaPrivilegeFunction {
                     DataTypes.INTEGER.getTypeSignature(), // Schema
                     DataTypes.STRING.getTypeSignature())
                 .returnType(DataTypes.BOOLEAN.getTypeSignature())
-                .features(EnumSet.of(DETERMINISTIC, NULLABLE))
+                .features(EnumSet.of(DETERMINISTIC, STRICTNULL))
                 .build(),
             (signature, boundSignature) -> new HasPrivilegeFunction(
                 signature,

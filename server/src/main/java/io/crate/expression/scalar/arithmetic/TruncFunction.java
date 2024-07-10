@@ -52,7 +52,7 @@ public final class TruncFunction {
                 Signature.builder(NAME, FunctionType.SCALAR)
                     .argumentTypes(type.getTypeSignature())
                     .returnType(returnType.getTypeSignature())
-                    .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                    .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                     .forbidCoercion()
                     .build(),
                 (signature, boundSignature) ->
@@ -75,7 +75,7 @@ public final class TruncFunction {
                 .argumentTypes(DataTypes.DOUBLE.getTypeSignature(),
                     DataTypes.INTEGER.getTypeSignature())
                 .returnType(DataTypes.DOUBLE.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                 .build(),
             TruncFunction::createTruncWithMode
         );

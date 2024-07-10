@@ -51,7 +51,7 @@ public class ArraySetFunction extends Scalar<List<Object>, Object> {
                                 arrayESignature)
                         .returnType(arrayESignature)
                         .typeVariableConstraints(typeVariable("E"))
-                        .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+                        .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                         .build(),
                 ArraySetFunction::new
         );
@@ -62,7 +62,7 @@ public class ArraySetFunction extends Scalar<List<Object>, Object> {
                                 TypeSignature.parse("E"))
                         .returnType(arrayESignature)
                         .typeVariableConstraints(typeVariable("E"))
-                        .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+                        .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                         .build(),
                 SingleArraySetFunction::new
         );

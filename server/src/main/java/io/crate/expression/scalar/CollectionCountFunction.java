@@ -46,7 +46,7 @@ public class CollectionCountFunction extends Scalar<Long, List<Object>> {
                         .argumentTypes(TypeSignature.parse("array(E)"))
                         .returnType(DataTypes.LONG.getTypeSignature())
                         .typeVariableConstraints(typeVariable("E"))
-                        .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+                        .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                         .build(),
                 CollectionCountFunction::new
         );

@@ -42,7 +42,7 @@ public class ExistsOperator extends Operator<List<Object>> {
                 .argumentTypes(TypeSignature.parse("array(E)"))
                 .returnType(Operator.RETURN_TYPE.getTypeSignature())
                 .typeVariableConstraints(TypeVariableConstraint.typeVariable("E"))
-                .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build();
         builder.add(signature, ExistsOperator::new);
     }

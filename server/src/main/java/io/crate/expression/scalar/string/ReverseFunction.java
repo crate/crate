@@ -37,7 +37,7 @@ public final class ReverseFunction {
             Signature.builder(NAME, FunctionType.SCALAR)
                 .argumentTypes(DataTypes.STRING.getTypeSignature())
                 .returnType(DataTypes.STRING.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) -> {
                 return new UnaryScalar<>(

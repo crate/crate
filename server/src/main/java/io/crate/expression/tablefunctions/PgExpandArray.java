@@ -53,7 +53,7 @@ public final class PgExpandArray extends TableFunctionImplementation<List<Object
                 Signature.builder(FUNCTION_NAME, FunctionType.TABLE)
                         .argumentTypes(TypeSignature.parse("array(E)"))
                         .returnType(TypeSignature.parse("record(x E, n integer)"))
-                        .features(Feature.DETERMINISTIC, Feature.NON_NULLABLE)
+                        .features(Feature.DETERMINISTIC, Feature.NOTNULL)
                         .typeVariableConstraints(typeVariable("E"))
                         .build(),
                 PgExpandArray::new
