@@ -441,8 +441,8 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             return IndexNameExpressionResolver.concreteIndexNames(
                 metadata,
                 isPartitioned
-                    ? IndicesOptions.lenientExpandOpen()
-                    : IndicesOptions.strictExpandOpen(),
+                    ? IndicesOptions.LENIENT_EXPAND_OPEN
+                    : IndicesOptions.STRICT_EXPAND_OPEN,
                 ident.indexNameOrAlias()
             );
         } catch (IndexNotFoundException e) {
@@ -464,7 +464,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         } else {
             return IndexNameExpressionResolver.concreteIndexNames(
                 metadata,
-                IndicesOptions.fromOptions(true, true, true, false, IndicesOptions.strictExpandOpenAndForbidClosed()),
+                IndicesOptions.fromOptions(true, true, true, false, IndicesOptions.STRICT_EXPAND_OPEN_FORBID_CLOSED),
                 ident.indexNameOrAlias()
             );
         }
@@ -510,7 +510,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         }
         Index[] indices = IndexNameExpressionResolver.concreteIndices(
             metadata,
-            IndicesOptions.lenientExpand(),
+            IndicesOptions.LENIENT_EXPAND_OPEN_CLOSED,
             ident.indexNameOrAlias()
         );
         ArrayList<PartitionInfo> result = new ArrayList<>(indices.length);

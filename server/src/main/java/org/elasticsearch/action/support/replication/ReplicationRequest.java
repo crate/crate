@@ -108,7 +108,7 @@ public abstract class ReplicationRequest<Request extends ReplicationRequest<Requ
 
     @Override
     public IndicesOptions indicesOptions() {
-        return IndicesOptions.strictSingleIndexNoExpandForbidClosed();
+        return IndicesOptions.STRICT_SINGLE_INDEX_NO_EXPAND_FORBID_CLOSED;
     }
 
     public ActiveShardCount waitForActiveShards() {

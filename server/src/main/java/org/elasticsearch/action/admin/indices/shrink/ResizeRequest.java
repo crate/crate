@@ -70,7 +70,7 @@ public class ResizeRequest extends AcknowledgedRequest<ResizeRequest> implements
 
     @Override
     public IndicesOptions indicesOptions() {
-        return IndicesOptions.lenientExpandOpen();
+        return IndicesOptions.LENIENT_EXPAND_OPEN;
     }
 
     /**

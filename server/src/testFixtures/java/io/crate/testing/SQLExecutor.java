@@ -830,7 +830,7 @@ public class SQLExecutor {
         ClusterState prevState = clusterService.state();
         var metadata = prevState.metadata();
         String[] concreteIndices = IndexNameExpressionResolver
-            .concreteIndexNames(metadata, IndicesOptions.lenientExpandOpen(), indexName);
+            .concreteIndexNames(metadata, IndicesOptions.LENIENT_EXPAND_OPEN, indexName);
 
         Metadata.Builder mdBuilder = Metadata.builder(clusterService.state().metadata());
         ClusterBlocks.Builder blocksBuilder = ClusterBlocks.builder()

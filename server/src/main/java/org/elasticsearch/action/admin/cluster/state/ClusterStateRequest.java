@@ -44,7 +44,7 @@ public class ClusterStateRequest extends MasterNodeReadRequest<ClusterStateReque
     private TimeValue waitForTimeout = DEFAULT_WAIT_FOR_NODE_TIMEOUT;
     private String[] indices = Strings.EMPTY_ARRAY;
     private String[] templates = Strings.EMPTY_ARRAY;
-    private IndicesOptions indicesOptions = IndicesOptions.lenientExpandOpen();
+    private IndicesOptions indicesOptions = IndicesOptions.LENIENT_EXPAND_OPEN;
 
     public ClusterStateRequest() {
     }

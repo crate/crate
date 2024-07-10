@@ -104,7 +104,7 @@ public class RestoreSnapshotPlan implements Plan {
             true,
             true,
             false,
-            IndicesOptions.lenientExpandOpen()
+            IndicesOptions.LENIENT_EXPAND_OPEN
         );
 
         boolean includeTables = stmt.includeTables();

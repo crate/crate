@@ -28,9 +28,9 @@ import java.util.function.Function;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexAction;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.support.IndicesOptions;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.SymbolEvaluator;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -76,7 +76,7 @@ public class DeletePartitions implements Plan {
         ArrayList<String> indexNames = getIndices(
             plannerContext.transactionContext(), dependencies.nodeContext(), params, subQueryResults);
         DeleteIndexRequest request = new DeleteIndexRequest(indexNames.toArray(new String[0]));
-        request.indicesOptions(IndicesOptions.lenientExpandOpen());
+        request.indicesOptions(IndicesOptions.LENIENT_EXPAND_OPEN);
         dependencies.client().execute(DeleteIndexAction.INSTANCE, request)
             .whenComplete(new OneRowActionListener<>(consumer, r -> Row1.ROW_COUNT_UNKNOWN));
     }
