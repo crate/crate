@@ -146,6 +146,7 @@ public class DocSchemaInfo implements SchemaInfo {
 
     @Override
     public TableInfo getTableInfo(String name) {
+        LOGGER.debug("docTableByName: [{}]", docTableByName);
         Metadata metadata = clusterService.state().metadata();
         DocTableInfo docTableInfo = docTableByName.get(name);
         try {
@@ -158,6 +159,7 @@ public class DocSchemaInfo implements SchemaInfo {
             }
             if (docTableInfo.tableVersion() < getTableVersion(metadata, relation)) {
                 DocTableInfo newTable = docTableInfoFactory.create(new RelationName(schemaName, name), metadata);
+                LOGGER.debug("Updating DocTableInfo [{}] from version {} to version {}", name, docTableInfo.tableVersion(), newTable.tableVersion());
                 docTableByName.replace(name, newTable);
                 return newTable;
             }
@@ -238,14 +240,6 @@ public class DocSchemaInfo implements SchemaInfo {
         return schemaName;
     }
 
-    private static void pause() {
-        try {
-            Thread.sleep(1000);
-        } catch (InterruptedException e) {
-            return;
-        }
-    }
-
     @Override
     public void update(ClusterChangedEvent event) {
         assert event.metadataChanged() : "metadataChanged must be true if update is called";
@@ -283,13 +277,11 @@ public class DocSchemaInfo implements SchemaInfo {
             IndexMetadata newIndexMetadata = newMetadata.index(indexName);
             if (newIndexMetadata == null) {
                 LOGGER.debug("Invalidating DocTableInfo for deleted table [{}] [{}]", tableName, newMetadata.indices().keys());
-                //pause();
                 docTableByName.remove(tableName);
             } else {
                 IndexMetadata oldIndexMetadata = prevMetadata.index(indexName);
                 if (oldIndexMetadata != null && ClusterChangedEvent.indexMetadataChanged(oldIndexMetadata, newIndexMetadata)) {
                     LOGGER.debug("Invalidating DocTableInfo for updated table [{}]", tableName);
-                    //pause();
                     docTableByName.remove(tableName);
                     // invalidate aliases of changed indices
                     invalidateAliases(newIndexMetadata.getAliases());
