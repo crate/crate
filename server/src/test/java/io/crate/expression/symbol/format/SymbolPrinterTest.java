@@ -385,6 +385,11 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_concat_operator() {
+        assertPrintingRoundTrip("foo || 'bar'", "(doc.formatter.foo || 'bar')");
+    }
+
+    @Test
     public void testNot() {
         assertPrintingRoundTrip("not foo = 'bar'", "(NOT (doc.formatter.foo = 'bar'))");
     }
