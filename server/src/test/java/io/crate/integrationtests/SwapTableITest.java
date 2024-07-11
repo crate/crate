@@ -179,7 +179,7 @@ public class SwapTableITest extends IntegTestCase {
     }
 
     @Test
-    @TestLogging("org.elasticsearch.index.shard.IndexShard:TRACE,io.crate.metadata.doc.DocTableInfoFactory:DEBUG,io.crate.metadata.doc.DocSchemaInfo:DEBUG")
+    @TestLogging("org.elasticsearch.index.shard.IndexShard:TRACE,io.crate.metadata.doc.DocTableInfoFactory:DEBUG,io.crate.metadata.doc.DocTableInfo:DEBUG,io.crate.metadata.doc.DocSchemaInfo:DEBUG")
     public void test_swap_source_nonpartitioned_target_partitioned_with_drop_source() {
         execute("create table source (s int)");
         execute("create table target (t int) partitioned by(t)");

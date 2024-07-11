@@ -146,7 +146,6 @@ public class DocSchemaInfo implements SchemaInfo {
 
     @Override
     public TableInfo getTableInfo(String name) {
-        LOGGER.debug("docTableByName: [{}]", docTableByName);
         Metadata metadata = clusterService.state().metadata();
         DocTableInfo docTableInfo = docTableByName.get(name);
         try {
