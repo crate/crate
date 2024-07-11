@@ -30,25 +30,32 @@ import io.crate.testing.UseJdbc;
 public class TopKIntegrationTest extends IntegTestCase {
 
     @UseJdbc(1)
-    public void test_default_case() {
-        execute("create table doc.t1(x long);");
-        execute("insert into doc.t1 values (1), (2), (2), (3), (3), (3);");
-        execute("refresh table doc.t1;");
-        execute("select top_k(x) from doc.t1;");
-        assertThat(response).hasRows("[{item=3, frequency=3}, {item=2, frequency=2}, {item=1, frequency=1}]");
+    public void test_top_k_agg_with_default_limit() {
+        execute("select top_k(country) from sys.summits;");
+        assertThat(response)
+            .hasRows("[" +
+                "{item=IT, frequency=436}, " +
+                "{item=AT, frequency=401}, " +
+                "{item=CH, frequency=320}, " +
+                "{item=FR, frequency=240}, " +
+                "{item=CH/IT, frequency=60}, " +
+                "{item=FR/IT, frequency=43}, " +
+                "{item=AT/IT, frequency=30}, " +
+                "{item=SI, frequency=22}" +
+                "]"
+            );
     }
 
     @UseJdbc(1)
-    public void test_with_limit() {
-        execute("create table doc.t1(x long);");
-        execute("insert into doc.t1 values (1), (2), (2), (3), (3), (3);");
-        execute("refresh table doc.t1;");
-        execute("select top_k(x, 2) from doc.t1;");
-        assertThat(response).hasRows("[{item=3, frequency=3}, {item=2, frequency=2}]");
-    }
-
-    public void test_sys_table() {
-        execute("select top_k(country) from sys.summits;");
-        assertThat(response).hasRows("[{item=3, frequency=3}, {item=2, frequency=2}]");
+    public void test_top_k_agg_with_custom_limit() {
+        execute("select top_k(country, 4) from sys.summits;");
+        assertThat(response)
+            .hasRows("[" +
+                "{item=IT, frequency=436}, " +
+                "{item=AT, frequency=401}, " +
+                "{item=CH, frequency=320}, " +
+                "{item=FR, frequency=240}" +
+                "]"
+            );
     }
 }

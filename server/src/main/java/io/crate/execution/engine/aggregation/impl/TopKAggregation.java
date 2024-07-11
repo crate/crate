@@ -26,6 +26,7 @@ import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -118,7 +119,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.TopKSta
                               Version indexVersionCreated,
                               Version minNodeInCluster,
                               MemoryManager memoryManager) {
-        return new TopKState(new ItemsSketch<>(8), 8);
+        return new TopKState(new ItemsSketch<>(1024), 8);
     }
 
     @Override
@@ -131,7 +132,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.TopKSta
             // ItemsSketch maxMapSize must be within the power of 2.
             // Hence, we convert the limit to the closest power of 2.
             int maxMapSize = convertToClosestPowerOfTwo(limit);
-            state = new TopKState(new ItemsSketch<>(maxMapSize), limit);
+            state = new TopKState(new ItemsSketch<>(1024), limit);
         }
         Object value = args[0].value();
         state.itemsSketch.update(value);
@@ -149,12 +150,12 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.TopKSta
 
     @Override
     public Object terminatePartial(RamAccounting ramAccounting, TopKState state) {
-        ItemsSketch.Row<Object>[] frequentItems = state.itemsSketch.getFrequentItems(ErrorType.NO_FALSE_POSITIVES);
+        ItemsSketch.Row<Object>[] frequentItems = state.itemsSketch.getFrequentItems(ErrorType.NO_FALSE_NEGATIVES);
         int limit = Math.min(frequentItems.length, state.limit);
         var result = new ArrayList<>(limit);
         for (int i = 0; i < limit; i++) {
             var item = frequentItems[i];
-            var row = new TreeMap<>();
+            var row = new LinkedHashMap<>(2);
             row.put("item", item.getItem());
             row.put("frequency", item.getEstimate());
             result.add(row);
