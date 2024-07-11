@@ -40,7 +40,7 @@ public final class ReplaceFunction {
             Signature.builder(NAME, FunctionType.SCALAR)
                 .argumentTypes(DataTypes.STRING.getTypeSignature(), DataTypes.STRING.getTypeSignature(), DataTypes.STRING.getTypeSignature())
                 .returnType(DataTypes.STRING.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
                 new TripleScalar<>(

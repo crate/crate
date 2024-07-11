@@ -47,7 +47,7 @@ public class IntersectsFunction extends Scalar<Boolean, Object> {
                 .argumentTypes(DataTypes.GEO_SHAPE.getTypeSignature(),
                     DataTypes.GEO_SHAPE.getTypeSignature())
                 .returnType(DataTypes.BOOLEAN.getTypeSignature())
-                .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             IntersectsFunction::new
         );

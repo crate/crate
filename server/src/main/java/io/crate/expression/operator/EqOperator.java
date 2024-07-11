@@ -76,7 +76,7 @@ public final class EqOperator extends Operator<Object> {
         .argumentTypes(TypeSignature.parse("E"),
             TypeSignature.parse("E"))
         .returnType(Operator.RETURN_TYPE.getTypeSignature())
-        .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+        .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
         .typeVariableConstraints(typeVariable("E"))
         .build();
 

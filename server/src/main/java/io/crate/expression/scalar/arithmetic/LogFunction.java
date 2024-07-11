@@ -70,7 +70,7 @@ public abstract class LogFunction extends Scalar<Number, Number> {
                     .argumentTypes(DataTypes.DOUBLE.getTypeSignature(),
                         DataTypes.DOUBLE.getTypeSignature())
                     .returnType(TypeSignature.parse("double precision"))
-                    .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+                    .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                     .build(),
                 LogBaseFunction::new
             );
@@ -108,7 +108,7 @@ public abstract class LogFunction extends Scalar<Number, Number> {
                 Signature.builder(NAME, FunctionType.SCALAR)
                     .argumentTypes(DataTypes.DOUBLE.getTypeSignature())
                     .returnType(DataTypes.DOUBLE.getTypeSignature())
-                    .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+                    .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                     .build(),
                 Log10Function::new
             );
@@ -142,7 +142,7 @@ public abstract class LogFunction extends Scalar<Number, Number> {
                 Signature.builder(LnFunction.NAME, FunctionType.SCALAR)
                     .argumentTypes(DataTypes.DOUBLE.getTypeSignature())
                     .returnType(DataTypes.DOUBLE.getTypeSignature())
-                    .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+                    .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                     .build(),
                 LnFunction::new
             );

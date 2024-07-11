@@ -35,7 +35,7 @@ public final class AsciiFunction {
             Signature.builder("ascii", FunctionType.SCALAR)
                 .argumentTypes(DataTypes.STRING.getTypeSignature())
                 .returnType(DataTypes.INTEGER.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
                 new UnaryScalar<>(signature, boundSignature, DataTypes.STRING, AsciiFunction::ascii)

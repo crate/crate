@@ -37,7 +37,7 @@ public final class ObjectKeysFunction {
             Signature.builder("object_keys", FunctionType.SCALAR)
                 .argumentTypes(DataTypes.UNTYPED_OBJECT.getTypeSignature())
                 .returnType(DataTypes.STRING_ARRAY.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
                 new UnaryScalar<>(

@@ -40,7 +40,7 @@ public final class AbsFunction {
                 Signature.builder(NAME, FunctionType.SCALAR)
                     .argumentTypes(typeSignature)
                     .returnType(typeSignature)
-                    .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                    .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                     .build(),
                 (signature, boundSignature) -> {
                     DataType<?> argType = boundSignature.argTypes().get(0);

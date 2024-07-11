@@ -41,7 +41,7 @@ public class SignFunction {
             Signature.builder(NAME, FunctionType.SCALAR)
                 .argumentTypes(DataTypes.NUMERIC.getTypeSignature())
                 .returnType(DataTypes.NUMERIC.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) -> {
                 DataType<?> argType = boundSignature.argTypes().getFirst();
@@ -59,7 +59,7 @@ public class SignFunction {
             Signature.builder(NAME, FunctionType.SCALAR)
                 .argumentTypes(DataTypes.DOUBLE.getTypeSignature())
                 .returnType(DataTypes.DOUBLE.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
                 new DoubleScalar(signature, boundSignature, Math::signum)

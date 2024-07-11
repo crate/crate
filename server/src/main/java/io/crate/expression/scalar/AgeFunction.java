@@ -51,7 +51,7 @@ public class AgeFunction extends Scalar<Period, Object> {
             Signature.builder(NAME, FunctionType.SCALAR)
                 .argumentTypes(DataTypes.TIMESTAMP.getTypeSignature())
                 .returnType(DataTypes.INTERVAL.getTypeSignature())
-                .features(EnumSet.of(Feature.NULLABLE))
+                .features(EnumSet.of(Feature.STRICTNULL))
                 .build(),
             AgeFunction::new
         );
@@ -61,7 +61,7 @@ public class AgeFunction extends Scalar<Period, Object> {
                 .argumentTypes(DataTypes.TIMESTAMP.getTypeSignature(),
                     DataTypes.TIMESTAMP.getTypeSignature())
                 .returnType(DataTypes.INTERVAL.getTypeSignature())
-                .features(EnumSet.of(Feature.NULLABLE))
+                .features(EnumSet.of(Feature.STRICTNULL))
                 .build(),
             AgeFunction::new
         );

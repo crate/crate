@@ -55,7 +55,7 @@ public final class TrimFunctions {
             Signature.builder(TRIM_NAME, FunctionType.SCALAR)
                 .argumentTypes(DataTypes.STRING.getTypeSignature())
                 .returnType(DataTypes.STRING.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
                 new OneCharTrimFunction(
@@ -69,7 +69,7 @@ public final class TrimFunctions {
             Signature.builder(TRIM_NAME, FunctionType.SCALAR)
                 .argumentTypes(DataTypes.STRING.getTypeSignature(), DataTypes.STRING.getTypeSignature(), DataTypes.STRING.getTypeSignature())
                 .returnType(DataTypes.STRING.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                 .build(),
             TrimFunction::new
         );
@@ -79,7 +79,7 @@ public final class TrimFunctions {
             Signature.builder(LTRIM_NAME, FunctionType.SCALAR)
                 .argumentTypes(DataTypes.STRING.getTypeSignature())
                 .returnType(DataTypes.STRING.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
                 new SideTrimFunction(
@@ -94,7 +94,7 @@ public final class TrimFunctions {
                 .argumentTypes(DataTypes.STRING.getTypeSignature(),
                     DataTypes.STRING.getTypeSignature())
                 .returnType(DataTypes.STRING.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
                 new SideTrimFunction(
@@ -109,7 +109,7 @@ public final class TrimFunctions {
             Signature.builder(RTRIM_NAME, FunctionType.SCALAR)
                 .argumentTypes(DataTypes.STRING.getTypeSignature())
                 .returnType(DataTypes.STRING.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
                 new SideTrimFunction(
@@ -124,7 +124,7 @@ public final class TrimFunctions {
                 .argumentTypes(DataTypes.STRING.getTypeSignature(),
                     DataTypes.STRING.getTypeSignature())
                 .returnType(DataTypes.STRING.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
                 new SideTrimFunction(
@@ -140,7 +140,7 @@ public final class TrimFunctions {
             Signature.builder(BTRIM_NAME, FunctionType.SCALAR)
                 .argumentTypes(DataTypes.STRING.getTypeSignature())
                 .returnType(DataTypes.STRING.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
                 new SideTrimFunction(
@@ -155,7 +155,7 @@ public final class TrimFunctions {
                 .argumentTypes(DataTypes.STRING.getTypeSignature(),
                     DataTypes.STRING.getTypeSignature())
                 .returnType(DataTypes.STRING.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
                 new SideTrimFunction(

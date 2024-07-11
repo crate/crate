@@ -38,7 +38,7 @@ public final class ChrFunction extends Scalar<String, Object> {
             Signature.builder("chr", FunctionType.SCALAR)
                 .argumentTypes(DataTypes.INTEGER.getTypeSignature())
                 .returnType(DataTypes.STRING.getTypeSignature())
-                .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             ChrFunction::new
         );

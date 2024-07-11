@@ -39,7 +39,7 @@ public class ExpFunction {
             Signature.builder(NAME, FunctionType.SCALAR)
                 .argumentTypes(signature)
                 .returnType(signature)
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                 .build(),
             (declaredSignature, boundSignature) ->
                 new UnaryScalar<>(

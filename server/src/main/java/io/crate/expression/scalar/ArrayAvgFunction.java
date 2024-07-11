@@ -91,7 +91,7 @@ public class ArrayAvgFunction {
             Signature.builder(NAME, FunctionType.SCALAR)
                 .argumentTypes(new ArrayType<>(DataTypes.NUMERIC).getTypeSignature())
                 .returnType(DataTypes.NUMERIC.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) -> new UnaryScalar<>(
                 signature,
@@ -105,7 +105,7 @@ public class ArrayAvgFunction {
             Signature.builder(NAME, FunctionType.SCALAR)
                 .argumentTypes(new ArrayType<>(DataTypes.FLOAT).getTypeSignature())
                 .returnType(DataTypes.FLOAT.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) -> new UnaryScalar<>(
                 signature,
@@ -119,7 +119,7 @@ public class ArrayAvgFunction {
             Signature.builder(NAME, FunctionType.SCALAR)
                 .argumentTypes(new ArrayType<>(DataTypes.DOUBLE).getTypeSignature())
                 .returnType(DataTypes.DOUBLE.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) -> new UnaryScalar<>(
                 signature,
@@ -136,7 +136,7 @@ public class ArrayAvgFunction {
                     Signature.builder(NAME, FunctionType.SCALAR)
                         .argumentTypes(new ArrayType<>(supportedType).getTypeSignature())
                         .returnType(DataTypes.NUMERIC.getTypeSignature())
-                        .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                        .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                         .build(),
                     (signature, boundSignature) -> new UnaryScalar<>(
                         signature,

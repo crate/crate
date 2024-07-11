@@ -40,7 +40,7 @@ public final class NegateFunctions {
             Signature.builder(NAME, FunctionType.SCALAR)
                 .argumentTypes(TypeSignature.parse("double precision"))
                 .returnType(TypeSignature.parse("double precision"))
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                 .forbidCoercion()
                 .build(),
             (signature, boundSignature) ->
@@ -50,7 +50,7 @@ public final class NegateFunctions {
             Signature.builder(NAME, FunctionType.SCALAR)
                 .argumentTypes(DataTypes.FLOAT.getTypeSignature())
                 .returnType(DataTypes.FLOAT.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                 .forbidCoercion()
                 .build(),
             (signature, boundSignature) ->
@@ -60,7 +60,7 @@ public final class NegateFunctions {
             Signature.builder(NAME, FunctionType.SCALAR)
                 .argumentTypes(TypeSignature.parse("integer"))
                 .returnType(TypeSignature.parse("integer"))
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                 .forbidCoercion()
                 .build(),
             (signature, boundSignature) ->
@@ -70,7 +70,7 @@ public final class NegateFunctions {
             Signature.builder(NAME, FunctionType.SCALAR)
                 .argumentTypes(TypeSignature.parse("bigint"))
                 .returnType(TypeSignature.parse("bigint"))
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                 .forbidCoercion()
                 .build(),
             (signature, boundSignature) ->
@@ -80,7 +80,7 @@ public final class NegateFunctions {
             Signature.builder(NAME, FunctionType.SCALAR)
                 .argumentTypes(TypeSignature.parse("smallint"))
                 .returnType(TypeSignature.parse("smallint"))
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                 .forbidCoercion()
                 .build(),
             (signature, boundSignature) ->
@@ -90,7 +90,7 @@ public final class NegateFunctions {
             Signature.builder(NAME, FunctionType.SCALAR)
                 .argumentTypes(DataTypes.NUMERIC.getTypeSignature())
                 .returnType(DataTypes.NUMERIC.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                 .forbidCoercion()
                 .build(),
             (signature, boundSignature) ->

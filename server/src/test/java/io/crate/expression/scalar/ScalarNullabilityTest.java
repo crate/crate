@@ -54,7 +54,7 @@ public class ScalarNullabilityTest {
     public void test_nullability_scalars_return_null_on_null_input() {
         var numberOfFunctionsToTested = 0;
         for (var signature : functions.signatures()) {
-            if (signature.hasFeature(Scalar.Feature.NULLABLE)) {
+            if (signature.hasFeature(Scalar.Feature.STRICTNULL)) {
                 // Using this::getDataType instead of signature.getArgumentDataTypes to handle generics as string
                 List<DataType<?>> argumentTypes = Lists.map(signature.getArgumentTypes(), this::getDataType);
                 var function = functions.getQualified(
@@ -79,7 +79,7 @@ public class ScalarNullabilityTest {
     public void test_non_nullability_scalars_return_not_null_on_null_input() {
         var numberOfFunctionsToTested = 0;
         for (var signature : functions.signatures()) {
-            if (signature.hasFeature(Scalar.Feature.NON_NULLABLE)) {
+            if (signature.hasFeature(Scalar.Feature.NOTNULL)) {
                 // Using this::getDataType instead of signature.getArgumentDataTypes to handle generics as string
                 List<DataType<?>> argumentTypes = Lists.map(signature.getArgumentTypes(), this::getDataType);
                 var function = functions.getQualified(
