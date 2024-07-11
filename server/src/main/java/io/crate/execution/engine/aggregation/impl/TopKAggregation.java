@@ -28,7 +28,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
+import org.antlr.v4.runtime.tree.Tree;
 import org.apache.datasketches.frequencies.ErrorType;
 import org.apache.datasketches.frequencies.ItemsSketch;
 import org.apache.datasketches.memory.Memory;
@@ -40,6 +42,7 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.Streamer;
 import io.crate.data.Input;
+import io.crate.data.RowN;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.memory.MemoryManager;
@@ -53,14 +56,14 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
 
-public class TopKAggregation extends AggregationFunction<TopKAggregation.TopKState, List<Object>> {
+public class TopKAggregation extends AggregationFunction<TopKAggregation.TopKState, Object> {
 
     public static final String NAME = "top_k";
 
     static final Signature DEFAULT_SIGNATURE =
         Signature.builder(NAME, FunctionType.AGGREGATE)
             .argumentTypes(TypeSignature.parse("V"))
-            .returnType(DataTypes.UNDEFINED.getTypeSignature())
+            .returnType(DataTypes.UNTYPED_OBJECT.getTypeSignature())
             .features(Scalar.Feature.DETERMINISTIC)
             .typeVariableConstraints(typeVariable("V"))
             .build();
@@ -69,7 +72,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.TopKSta
         Signature.builder(NAME, FunctionType.AGGREGATE)
             .argumentTypes(TypeSignature.parse("V"),
                 DataTypes.INTEGER.getTypeSignature())
-            .returnType(DataTypes.UNDEFINED.getTypeSignature())
+            .returnType(DataTypes.UNTYPED_OBJECT.getTypeSignature())
             .features(Scalar.Feature.DETERMINISTIC)
             .typeVariableConstraints(typeVariable("V"))
             .build();
@@ -145,13 +148,16 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.TopKSta
     }
 
     @Override
-    public List<Object> terminatePartial(RamAccounting ramAccounting, TopKState state) {
+    public Object terminatePartial(RamAccounting ramAccounting, TopKState state) {
         ItemsSketch.Row<Object>[] frequentItems = state.itemsSketch.getFrequentItems(ErrorType.NO_FALSE_POSITIVES);
         int limit = Math.min(frequentItems.length, state.limit);
         var result = new ArrayList<>(limit);
         for (int i = 0; i < limit; i++) {
             var item = frequentItems[i];
-            result.add(Map.of("item", item.getItem(), "frequency", item.getEstimate()));
+            var row = new TreeMap<>();
+            row.put("item", item.getItem());
+            row.put("frequency", item.getEstimate());
+            result.add(row);
         }
         return result;
     }

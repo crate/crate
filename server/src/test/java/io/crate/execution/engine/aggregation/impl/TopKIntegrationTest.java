@@ -25,8 +25,11 @@ import static io.crate.testing.Asserts.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 
+import io.crate.testing.UseJdbc;
+
 public class TopKIntegrationTest extends IntegTestCase {
 
+    @UseJdbc(1)
     public void test_default_case() {
         execute("create table doc.t1(x long);");
         execute("insert into doc.t1 values (1), (2), (2), (3), (3), (3);");
@@ -35,11 +38,17 @@ public class TopKIntegrationTest extends IntegTestCase {
         assertThat(response).hasRows("[{item=3, frequency=3}, {item=2, frequency=2}, {item=1, frequency=1}]");
     }
 
+    @UseJdbc(1)
     public void test_with_limit() {
         execute("create table doc.t1(x long);");
         execute("insert into doc.t1 values (1), (2), (2), (3), (3), (3);");
         execute("refresh table doc.t1;");
         execute("select top_k(x, 2) from doc.t1;");
+        assertThat(response).hasRows("[{item=3, frequency=3}, {item=2, frequency=2}]");
+    }
+
+    public void test_sys_table() {
+        execute("select top_k(country) from sys.summits;");
         assertThat(response).hasRows("[{item=3, frequency=3}, {item=2, frequency=2}]");
     }
 }
