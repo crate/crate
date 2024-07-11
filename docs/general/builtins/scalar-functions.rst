@@ -52,6 +52,13 @@ You can also use the ``||`` :ref:`operator <gloss-operator>`::
     +--------+
     SELECT 1 row in set (... sec)
 
+.. NOTE::
+
+    The ``||`` operator differs from the ``concat`` function regarding the
+    handling of ``NULL`` arguments. It will return ``NULL`` if any of the
+    operands is ``NULL`` while the ``concat`` scalar will return an empty
+    string if both arguments are ``NULL`` and the non-null argument otherwise.
+
 .. TIP::
 
     The ``concat`` function can also be used for merging objects:
@@ -4006,7 +4013,7 @@ Example::
     | TRUE     |
     +----------+
     SELECT 1 row in set (... sec)
-    
+
 .. NOTE::
 
     For unknown tables:
