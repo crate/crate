@@ -831,11 +831,12 @@ Example::
 ------------------------
 
 The ``top_k`` aggregate function computes an approximation of the most frequent
-values and their frequencies of a specific column. The result is an array
-containing the most common values and their frequencies. The k parameter is an
-optional parameter which defines how many elements should be returned which
-defaults to 4. Internally the ``top_k`` aggregate function use an implementation
-of the `Efficient Computation of Frequent and Top-k Elements in Data Streams`_
+values and their frequencies of a specific column. The result is an array of
+objects containing the most common values and their frequencies ordered by
+frequency. The k parameter is an optional parameter which defines how many
+elements should be returned which defaults to 4. Internally the ``top_k``
+aggregate function use an implementation of the
+`Efficient Computation of Frequent and Top-k Elements in Data Streams`_
 algorithm.
 
 Example::
@@ -847,7 +848,7 @@ Example::
     | [{"frequency": 436, "item": "IT"}, {"frequency": 401, "item": "AT"}, {"frequency": 320, "item": "CH"}] |
     +--------------------------------------------------------------------------------------------------------+
     SELECT 1 row in set (... sec)
-    
+
 
 .. _aggregation-limitations:
 
