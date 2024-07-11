@@ -248,6 +248,9 @@ public class LuceneQueryBuilder {
                     }
                 } catch (UnsupportedOperationException e) {
                     return genericFunctionFilter(function, context);
+                } catch (ClassCastException e) {
+                    // The only purpose of this catch block is to allow filters involving nested arrays to fall back to generic queries
+                    return genericFunctionFilter(function, context);
                 }
                 if (query != null) {
                     return query;
