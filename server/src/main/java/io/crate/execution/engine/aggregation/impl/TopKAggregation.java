@@ -60,7 +60,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.TopKSta
     static final Signature DEFAULT_SIGNATURE =
         Signature.builder(NAME, FunctionType.AGGREGATE)
             .argumentTypes(TypeSignature.parse("V"))
-            .returnType(DataTypes.UNTYPED_OBJECT.getTypeSignature())
+            .returnType(DataTypes.UNDEFINED.getTypeSignature())
             .features(Scalar.Feature.DETERMINISTIC)
             .typeVariableConstraints(typeVariable("V"))
             .build();
@@ -69,7 +69,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.TopKSta
         Signature.builder(NAME, FunctionType.AGGREGATE)
             .argumentTypes(TypeSignature.parse("V"),
                 DataTypes.INTEGER.getTypeSignature())
-            .returnType(DataTypes.UNTYPED_OBJECT.getTypeSignature())
+            .returnType(DataTypes.UNDEFINED.getTypeSignature())
             .features(Scalar.Feature.DETERMINISTIC)
             .typeVariableConstraints(typeVariable("V"))
             .build();
@@ -115,7 +115,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.TopKSta
                               Version indexVersionCreated,
                               Version minNodeInCluster,
                               MemoryManager memoryManager) {
-        return new TopKState(new ItemsSketch<>(4), 4);
+        return new TopKState(new ItemsSketch<>(8), 8);
     }
 
     @Override
@@ -127,7 +127,6 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.TopKSta
             Integer limit = (Integer) args[1].value();
             // ItemsSketch maxMapSize must be within the power of 2.
             // Hence, we convert the limit to the closest power of 2.
-            // So Limit 6 becomes 8, because 8 is 2^3
             int maxMapSize = convertToClosestPowerOfTwo(limit);
             state = new TopKState(new ItemsSketch<>(maxMapSize), limit);
         }
@@ -196,17 +195,16 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.TopKSta
 
         @Override
         public TopKState readValueFrom(StreamInput in) throws IOException {
+            int limit = in.readInt();
             SketchStreamer<Object> streamer = new SketchStreamer<>(DataTypes.UNDEFINED);
-            var limit = in.readInt();
-            byte[] bytes = in.readByteArray();
-            return new TopKState(ItemsSketch.getInstance(Memory.wrap(bytes), streamer), limit);
+            return new TopKState(ItemsSketch.getInstance(Memory.wrap(in.readByteArray()), streamer), limit);
         }
 
         @Override
-        public void writeValueTo(StreamOutput out, TopKState v) throws IOException {
-            out.writeInt(v.limit);
+        public void writeValueTo(StreamOutput out, TopKState state) throws IOException {
+            out.writeInt(state.limit);
             SketchStreamer<Object> streamer = new SketchStreamer<>(DataTypes.UNDEFINED);
-            out.writeByteArray(v.itemsSketch.toByteArray(streamer));
+            out.writeByteArray(state.itemsSketch.toByteArray(streamer));
         }
 
         @Override
