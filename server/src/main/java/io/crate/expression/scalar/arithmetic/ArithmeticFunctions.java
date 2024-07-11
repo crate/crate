@@ -50,7 +50,7 @@ public class ArithmeticFunctions {
 
     private enum Operations {
         ADD(
-            EnumSet.of(Feature.DETERMINISTIC, Feature.COMPARISON_REPLACEMENT, Feature.NULLABLE),
+            EnumSet.of(Feature.DETERMINISTIC, Feature.COMPARISON_REPLACEMENT, Feature.STRICTNULL),
             Math::addExact,
             Double::sum,
             Math::addExact,
@@ -58,7 +58,7 @@ public class ArithmeticFunctions {
             BigDecimal::add
         ),
         SUBTRACT(
-            EnumSet.of(Feature.DETERMINISTIC, Feature.NULLABLE),
+            EnumSet.of(Feature.DETERMINISTIC, Feature.STRICTNULL),
             Math::subtractExact,
                 (arg0, arg1) -> arg0 - arg1,
             Math::subtractExact,
@@ -66,7 +66,7 @@ public class ArithmeticFunctions {
             BigDecimal::subtract
         ),
         MULTIPLY(
-            EnumSet.of(Feature.DETERMINISTIC, Feature.NULLABLE),
+            EnumSet.of(Feature.DETERMINISTIC, Feature.STRICTNULL),
             Math::multiplyExact,
                 (arg0, arg1) -> arg0 * arg1,
             Math::multiplyExact,
@@ -74,7 +74,7 @@ public class ArithmeticFunctions {
             BigDecimal::multiply
         ),
         DIVIDE(
-            EnumSet.of(Feature.DETERMINISTIC, Feature.NULLABLE),
+            EnumSet.of(Feature.DETERMINISTIC, Feature.STRICTNULL),
                 (arg0, arg1) -> arg0 / arg1,
                 (arg0, arg1) -> arg0 / arg1,
                 (arg0, arg1) -> arg0 / arg1,
@@ -82,7 +82,7 @@ public class ArithmeticFunctions {
                 (arg0, arg1) -> arg0.divide(arg1, MathContext.DECIMAL64)
         ),
         MODULUS(
-            EnumSet.of(Feature.DETERMINISTIC, Feature.NULLABLE),
+            EnumSet.of(Feature.DETERMINISTIC, Feature.STRICTNULL),
                 (arg0, arg1) -> arg0 % arg1,
                 (arg0, arg1) -> arg0 % arg1,
                 (arg0, arg1) -> arg0 % arg1,
@@ -90,7 +90,7 @@ public class ArithmeticFunctions {
             BigDecimal::remainder
         ),
         MOD(
-            EnumSet.of(Feature.DETERMINISTIC, Feature.NULLABLE),
+            EnumSet.of(Feature.DETERMINISTIC, Feature.STRICTNULL),
                 (arg0, arg1) -> arg0 % arg1,
                 (arg0, arg1) -> arg0 % arg1,
                 (arg0, arg1) -> arg0 % arg1,
@@ -192,7 +192,7 @@ public class ArithmeticFunctions {
             Signature.builder(Names.POWER, FunctionType.SCALAR)
                 .argumentTypes(DataTypes.DOUBLE.getTypeSignature(), DataTypes.DOUBLE.getTypeSignature())
                 .returnType(DataTypes.DOUBLE.getTypeSignature())
-                .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
                 new BinaryScalar<>(Math::pow, signature, boundSignature, DataTypes.DOUBLE)

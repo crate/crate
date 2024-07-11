@@ -46,7 +46,7 @@ public final class CeilFunction {
                     Signature.builder(name, FunctionType.SCALAR)
                         .argumentTypes(typeSignature)
                         .returnType(returnType.getTypeSignature())
-                        .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                        .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                         .build(),
                     (signature, boundSignature) ->
                         new UnaryScalar<>(

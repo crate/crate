@@ -1992,9 +1992,9 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     @Override
     public Node visitConcatenation(SqlBaseParser.ConcatenationContext context) {
         return new FunctionCall(
-            QualifiedName.of("concat"), List.of(
-            (Expression) visit(context.left),
-            (Expression) visit(context.right)));
+            QualifiedName.of("op_||"),
+            List.of((Expression) visit(context.left), (Expression) visit(context.right))
+        );
     }
 
     @Override

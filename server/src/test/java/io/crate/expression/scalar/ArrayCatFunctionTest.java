@@ -26,13 +26,12 @@ import static io.crate.testing.Asserts.isLiteral;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Arrays;
-import java.util.function.Consumer;
+import java.util.List;
 
 import org.junit.Test;
 
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbol;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 
@@ -117,8 +116,11 @@ public class ArrayCatFunctionTest extends ScalarTestCase {
 
     @Test
     public void testEmptyArrays() throws Exception {
-        assertThatThrownBy(() -> assertNormalize("array_cat([], [])", (Consumer<Symbol>) null))
-            .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("One of the arguments of the `array_cat` function can be of undefined inner type, but not both");
+        assertNormalize("array_cat([], [])", isLiteral(List.of()));
+    }
+
+    @Test
+    public void test_null_arguments() {
+        assertNormalize("array_cat(null, null)", isLiteral(null));
     }
 }

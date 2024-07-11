@@ -47,7 +47,7 @@ public class EmptyRowTableFunction {
             Signature.builder(NAME, FunctionType.TABLE)
                 .argumentTypes()
                 .returnType(RowType.EMPTY.getTypeSignature())
-                .features(Scalar.Feature.NON_NULLABLE, Scalar.Feature.DETERMINISTIC)
+                .features(Scalar.Feature.NOTNULL, Scalar.Feature.DETERMINISTIC)
                 .build(),
             EmptyRowTableFunctionImplementation::new
         );

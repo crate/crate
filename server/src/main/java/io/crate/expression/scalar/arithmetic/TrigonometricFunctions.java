@@ -48,7 +48,7 @@ public final class TrigonometricFunctions {
                 .argumentTypes(DataTypes.DOUBLE.getTypeSignature(),
                     DataTypes.DOUBLE.getTypeSignature())
                 .returnType(DataTypes.DOUBLE.getTypeSignature())
-                .features(Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .features(Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
                 new BinaryScalar<>(
@@ -65,7 +65,7 @@ public final class TrigonometricFunctions {
             Signature.builder(name, FunctionType.SCALAR)
                 .argumentTypes(DataTypes.DOUBLE.getTypeSignature())
                 .returnType(DataTypes.DOUBLE.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
                 new DoubleScalar(signature, boundSignature, func)

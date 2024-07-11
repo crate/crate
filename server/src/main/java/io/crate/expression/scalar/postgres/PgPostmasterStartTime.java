@@ -46,7 +46,7 @@ public final class PgPostmasterStartTime extends Scalar<Long, Void> {
             Signature.builder(FQN, FunctionType.SCALAR)
                 .argumentTypes()
                 .returnType(DataTypes.TIMESTAMPZ.getTypeSignature())
-                .features(EnumSet.of(Feature.NON_NULLABLE))
+                .features(EnumSet.of(Feature.NOTNULL))
                 .build(),
             PgPostmasterStartTime::new
         );

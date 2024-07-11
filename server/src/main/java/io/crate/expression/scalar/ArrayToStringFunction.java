@@ -51,7 +51,7 @@ class ArrayToStringFunction extends Scalar<String, Object> {
                     DataTypes.STRING.getTypeSignature())
                 .returnType(DataTypes.STRING.getTypeSignature())
                 .typeVariableConstraints(typeVariable("E"))
-                .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             ArrayToStringFunction::new
         );
@@ -62,7 +62,7 @@ class ArrayToStringFunction extends Scalar<String, Object> {
                     DataTypes.STRING.getTypeSignature())
                 .returnType(DataTypes.STRING.getTypeSignature())
                 .typeVariableConstraints(typeVariable("E"))
-                .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             ArrayToStringFunction::new
         );

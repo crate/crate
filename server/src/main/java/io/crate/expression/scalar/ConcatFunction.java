@@ -24,6 +24,7 @@ package io.crate.expression.scalar;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 
 import io.crate.data.Input;
+import io.crate.expression.operator.Operator;
 import io.crate.expression.scalar.object.ObjectMergeFunction;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
@@ -41,6 +42,7 @@ import io.crate.types.TypeSignature;
 public abstract class ConcatFunction extends Scalar<String, String> {
 
     public static final String NAME = "concat";
+    public static final String OPERATOR_NAME = Operator.PREFIX + "||";
 
     public static void register(Functions.Builder module) {
         module.add(
@@ -48,7 +50,7 @@ public abstract class ConcatFunction extends Scalar<String, String> {
                 .argumentTypes(DataTypes.STRING.getTypeSignature(),
                     DataTypes.STRING.getTypeSignature())
                 .returnType(DataTypes.STRING.getTypeSignature())
-                .features(Feature.DETERMINISTIC, Feature.NON_NULLABLE)
+                .features(Feature.DETERMINISTIC, Feature.NOTNULL)
                 .build(),
             StringConcatFunction::new
         );
@@ -57,7 +59,7 @@ public abstract class ConcatFunction extends Scalar<String, String> {
             Signature.builder(NAME, FunctionType.SCALAR)
                 .argumentTypes(DataTypes.STRING.getTypeSignature())
                 .returnType(DataTypes.STRING.getTypeSignature())
-                .features(Feature.DETERMINISTIC, Feature.NON_NULLABLE)
+                .features(Feature.DETERMINISTIC, Feature.NOTNULL)
                 .setVariableArity(true)
                 .build(),
             GenericConcatFunction::new
@@ -69,7 +71,7 @@ public abstract class ConcatFunction extends Scalar<String, String> {
                 .argumentTypes(TypeSignature.parse("array(E)"),
                     TypeSignature.parse("array(E)"))
                 .returnType(TypeSignature.parse("array(E)"))
-                .features(Feature.DETERMINISTIC, Feature.NON_NULLABLE)
+                .features(Feature.DETERMINISTIC, Feature.NOTNULL)
                 .typeVariableConstraints(typeVariable("E"))
                 .build(),
             ArrayCatFunction::new
@@ -84,6 +86,39 @@ public abstract class ConcatFunction extends Scalar<String, String> {
                 .build(),
             ObjectMergeFunction::new
         );
+
+
+        // Operator versions of concat, the default(string) version differs
+        // as it will return null if any of the arguments is null
+        module.add(
+            Signature.builder(OPERATOR_NAME, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature())
+                .returnType(DataTypes.STRING.getTypeSignature())
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
+                .build(),
+            (signature, boundSignature) -> new StringConcatFunction(signature, boundSignature, true)
+        );
+        module.add(
+            Signature.builder(OPERATOR_NAME, FunctionType.SCALAR)
+                .argumentTypes(TypeSignature.parse("array(E)"),
+                    TypeSignature.parse("array(E)"))
+                .returnType(TypeSignature.parse("array(E)"))
+                .features(Feature.DETERMINISTIC)
+                .typeVariableConstraints(typeVariable("E"))
+                .build(),
+            ArrayCatFunction::new
+        );
+        module.add(
+            Signature.builder(OPERATOR_NAME, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.UNTYPED_OBJECT.getTypeSignature(),
+                    DataTypes.UNTYPED_OBJECT.getTypeSignature())
+                .returnType(DataTypes.UNTYPED_OBJECT.getTypeSignature())
+                .features(Feature.DETERMINISTIC)
+                .build(),
+            ObjectMergeFunction::new
+        );
+
     }
 
     ConcatFunction(Signature signature, BoundSignature boundSignature) {
@@ -105,14 +140,29 @@ public abstract class ConcatFunction extends Scalar<String, String> {
 
     static class StringConcatFunction extends ConcatFunction {
 
+        private final boolean calledByOperator;
+
         StringConcatFunction(Signature signature, BoundSignature boundSignature) {
             super(signature, boundSignature);
+            calledByOperator = false;
+        }
+
+        StringConcatFunction(Signature signature,
+                             BoundSignature boundSignature,
+                             boolean calledByOperator) {
+            super(signature, boundSignature);
+            this.calledByOperator = calledByOperator;
         }
 
         @Override
         public String evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input[] args) {
             String firstArg = (String) args[0].value();
             String secondArg = (String) args[1].value();
+
+            if (calledByOperator && (firstArg == null || secondArg == null)) {
+                return null;
+            }
+
             if (firstArg == null) {
                 if (secondArg == null) {
                     return "";
@@ -124,6 +174,8 @@ public abstract class ConcatFunction extends Scalar<String, String> {
             }
             return firstArg + secondArg;
         }
+
+
     }
 
     private static class GenericConcatFunction extends ConcatFunction {

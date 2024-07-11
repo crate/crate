@@ -21,7 +21,6 @@
 
 package io.crate.expression.scalar;
 
-import static io.crate.expression.scalar.array.ArrayArgumentValidators.ensureBothInnerTypesAreNotUndefined;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 
 import java.util.ArrayList;
@@ -49,7 +48,7 @@ public class ArrayCatFunction extends Scalar<List<Object>, List<Object>> {
                 .argumentTypes(TypeSignature.parse("array(E)"),
                     TypeSignature.parse("array(E)"))
                 .returnType(TypeSignature.parse("array(E)"))
-                .features(Feature.DETERMINISTIC, Feature.NON_NULLABLE)
+                .features(Feature.DETERMINISTIC, Feature.NOTNULL)
                 .typeVariableConstraints(typeVariable("E"))
                 .build(),
             ArrayCatFunction::new
@@ -58,7 +57,6 @@ public class ArrayCatFunction extends Scalar<List<Object>, List<Object>> {
 
     ArrayCatFunction(Signature signature, BoundSignature boundSignature) {
         super(signature, boundSignature);
-        ensureBothInnerTypesAreNotUndefined(boundSignature.argTypes(), signature.getName().name());
     }
 
     @SafeVarargs
@@ -66,14 +64,20 @@ public class ArrayCatFunction extends Scalar<List<Object>, List<Object>> {
     public final List<Object> evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<List<Object>>... args) {
         DataType<?> innerType = ((ArrayType<?>) this.boundSignature.returnType()).innerType();
         ArrayList<Object> resultList = new ArrayList<>();
+
+        int nullCnt = 0;
         for (Input<List<Object>> arg : args) {
             List<Object> values = arg.value();
             if (values == null) {
+                nullCnt++;
                 continue;
             }
             for (Object value : values) {
                 resultList.add(innerType.sanitizeValue(value));
             }
+        }
+        if (nullCnt == args.length) {
+            return null;
         }
         return resultList;
     }

@@ -45,7 +45,7 @@ public class IntervalArithmeticFunctions {
                 .argumentTypes(DataTypes.INTERVAL.getTypeSignature(),
                     DataTypes.INTERVAL.getTypeSignature())
                 .returnType(DataTypes.INTERVAL.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
                 new IntervalIntervalArithmeticScalar(Period::plus, signature, boundSignature)
@@ -55,7 +55,7 @@ public class IntervalArithmeticFunctions {
                 .argumentTypes(DataTypes.INTERVAL.getTypeSignature(),
                     DataTypes.INTERVAL.getTypeSignature())
                 .returnType(DataTypes.INTERVAL.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
                 new IntervalIntervalArithmeticScalar(Period::minus, signature, boundSignature)
@@ -65,7 +65,7 @@ public class IntervalArithmeticFunctions {
                 .argumentTypes(DataTypes.INTEGER.getTypeSignature(),
                     DataTypes.INTERVAL.getTypeSignature())
                 .returnType(DataTypes.INTERVAL.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                 .build(),
             MultiplyIntervalByIntegerScalar::new
         );
@@ -74,7 +74,7 @@ public class IntervalArithmeticFunctions {
                 .argumentTypes(DataTypes.INTERVAL.getTypeSignature(),
                     DataTypes.INTEGER.getTypeSignature())
                 .returnType(DataTypes.INTERVAL.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                 .build(),
             MultiplyIntervalByIntegerScalar::new
         );

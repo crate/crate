@@ -1215,7 +1215,7 @@ public class InformationSchemaTest extends IntegTestCase {
                 "with (number_of_replicas = 0)");
         execute("select column_name, is_generated, generation_expression from information_schema.columns where is_generated = 'ALWAYS'");
         assertThat(response).hasRows(
-            "name| ALWAYS| concat(concat(lastname, '_'), firstname)");
+            "name| ALWAYS| ((lastname || '_') || firstname)");
     }
 
     @Test

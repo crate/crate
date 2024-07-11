@@ -421,21 +421,22 @@ public class Functions {
         List<ApplicableFunction> representatives = new ArrayList<>();
 
         for (ApplicableFunction current : candidates) {
-            boolean found = false;
-            for (int i = 0; i < representatives.size(); i++) {
-                ApplicableFunction representative = representatives.get(i);
+            boolean addCandidate = true;
+            var it = representatives.iterator();
+            while (it.hasNext()) {
+                ApplicableFunction representative = it.next();
+                if (representative.equals(current)) {
+                    continue;
+                }
                 if (isMoreSpecific.apply(current, representative)) {
-                    representatives.clear();
-                    representatives.add(current);
-                    found = true;
-                    break;
+                    it.remove();
+                    addCandidate = true;
                 } else if (isMoreSpecific.apply(representative, current)) {
-                    found = true;
-                    break;
+                    addCandidate = false;
                 }
             }
 
-            if (!found) {
+            if (addCandidate) {
                 representatives.add(current);
             }
         }

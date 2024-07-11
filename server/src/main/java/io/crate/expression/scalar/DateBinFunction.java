@@ -49,7 +49,7 @@ public class DateBinFunction extends Scalar<Long, Object> {
                                 DataTypes.TIMESTAMPZ.getTypeSignature(), // source
                                 DataTypes.TIMESTAMPZ.getTypeSignature())
                         .returnType(DataTypes.TIMESTAMPZ.getTypeSignature())
-                        .features(EnumSet.of(Feature.DETERMINISTIC, Feature.COMPARISON_REPLACEMENT, Feature.NULLABLE))
+                        .features(EnumSet.of(Feature.DETERMINISTIC, Feature.COMPARISON_REPLACEMENT, Feature.STRICTNULL))
                         .build(),
                 DateBinFunction::new);
 
@@ -59,7 +59,7 @@ public class DateBinFunction extends Scalar<Long, Object> {
                                 DataTypes.TIMESTAMP.getTypeSignature(), // source
                                 DataTypes.TIMESTAMP.getTypeSignature())
                         .returnType(DataTypes.TIMESTAMP.getTypeSignature())
-                        .features(EnumSet.of(Feature.DETERMINISTIC, Feature.COMPARISON_REPLACEMENT, Feature.NULLABLE))
+                        .features(EnumSet.of(Feature.DETERMINISTIC, Feature.COMPARISON_REPLACEMENT, Feature.STRICTNULL))
                         .build(),
                 DateBinFunction::new);
     }

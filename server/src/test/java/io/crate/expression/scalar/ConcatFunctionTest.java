@@ -100,10 +100,7 @@ public class ConcatFunctionTest extends ScalarTestCase {
 
     @Test
     public void testTwoArraysOfUndefinedTypes() throws Exception {
-        assertThatThrownBy(() -> assertNormalize("concat([], [])", isNull()))
-            .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessageStartingWith(
-                "One of the arguments of the `concat` function can be of undefined inner type, but not both");
+        assertNormalize("concat([], [])", isLiteral(List.of()));
     }
 
     @Test
@@ -120,5 +117,27 @@ public class ConcatFunctionTest extends ScalarTestCase {
     @Test
     public void test_two_objects() {
         assertEvaluate("concat({a=1},{a=2,b=2})", Map.of("a",2,"b",2));
+    }
+
+    @Test
+    public void test_concat_operator_with_null_literals() {
+        assertNormalize("null || null", isLiteral(null));
+        assertNormalize("null || 'foo'", isLiteral(null));
+        assertNormalize("'foo' || null", isLiteral(null));
+
+        assertNormalize("[1] || null", isLiteral(List.of(1)));
+        assertNormalize("null || [1]", isLiteral(List.of(1)));
+    }
+
+    public void test_concat_operator_with_strings() {
+        assertNormalize("'foo' || 'bar'", isLiteral("foobar"));
+    }
+
+    public void test_concat_operator_with_arrays() {
+        assertNormalize("[] || [1]", isLiteral(List.of(1)));
+    }
+
+    public void test_concat_operator_with_objects() {
+        assertEvaluate("{a=1} || {a=2,b=2}", Map.of("a",2,"b",2));
     }
 }

@@ -38,7 +38,7 @@ public final class LtOperator {
                     .argumentTypes(supportedType.getTypeSignature(),
                         supportedType.getTypeSignature())
                     .returnType(Operator.RETURN_TYPE.getTypeSignature())
-                    .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                    .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                     .build(),
                 (signature, boundSignature) ->
                     new CmpOperator(signature, boundSignature, cmpResult -> cmpResult < 0)

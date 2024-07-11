@@ -38,7 +38,7 @@ public final class StringPositionFunction extends Scalar<Integer , String> {
             Signature.builder("strpos", FunctionType.SCALAR)
                 .argumentTypes(DataTypes.STRING.getTypeSignature(), DataTypes.STRING.getTypeSignature())
                 .returnType(DataTypes.INTEGER.getTypeSignature())
-                .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             StringPositionFunction::new
         );

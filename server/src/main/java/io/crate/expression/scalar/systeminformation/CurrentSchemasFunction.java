@@ -47,7 +47,7 @@ public class CurrentSchemasFunction extends Scalar<List<String>, Boolean> {
             Signature.builder(FQN, FunctionType.SCALAR)
                 .argumentTypes(DataTypes.BOOLEAN.getTypeSignature())
                 .returnType(DataTypes.STRING_ARRAY.getTypeSignature())
-                .features(EnumSet.of(Feature.NON_NULLABLE))
+                .features(EnumSet.of(Feature.NOTNULL))
                 .build(),
             CurrentSchemasFunction::new
         );

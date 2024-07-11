@@ -50,7 +50,7 @@ public class ArrayMaxFunction<T> extends Scalar<T, List<T>> {
             Signature.builder(NAME, FunctionType.SCALAR)
                 .argumentTypes(new ArrayType(DataTypes.NUMERIC).getTypeSignature())
                 .returnType(DataTypes.NUMERIC.getTypeSignature())
-                .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             ArrayMaxFunction::new
         );
@@ -60,7 +60,7 @@ public class ArrayMaxFunction<T> extends Scalar<T, List<T>> {
                 Signature.builder(NAME, FunctionType.SCALAR)
                     .argumentTypes(new ArrayType(supportedType).getTypeSignature())
                     .returnType(supportedType.getTypeSignature())
-                    .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+                    .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                     .build(),
                 ArrayMaxFunction::new
             );

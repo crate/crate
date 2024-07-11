@@ -63,7 +63,7 @@ public class MapRowUsingInputsTest extends ESTestCase {
                 .argumentTypes(DataTypes.LONG.getTypeSignature(),
                     DataTypes.LONG.getTypeSignature())
                 .returnType(DataTypes.LONG.getTypeSignature())
-                .features(Feature.DETERMINISTIC, Feature.COMPARISON_REPLACEMENT, Scalar.Feature.NULLABLE)
+                .features(Feature.DETERMINISTIC, Feature.COMPARISON_REPLACEMENT, Scalar.Feature.STRICTNULL)
                 .build(),
             List.of(new InputColumn(0, DataTypes.LONG), Literal.of(2L)),
             DataTypes.LONG

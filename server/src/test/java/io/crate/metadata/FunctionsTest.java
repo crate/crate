@@ -41,6 +41,7 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
+import io.crate.types.UndefinedType;
 
 public class FunctionsTest extends ESTestCase {
 
@@ -54,9 +55,15 @@ public class FunctionsTest extends ESTestCase {
     private static class DummyFunction implements FunctionImplementation {
 
         private final Signature signature;
+        private final BoundSignature boundSignature;
+
+        public DummyFunction(Signature signature, BoundSignature boundSignature) {
+            this.signature = signature;
+            this.boundSignature = boundSignature;
+        }
 
         public DummyFunction(Signature signature) {
-            this.signature = signature;
+            this(signature, BoundSignature.sameAsUnbound(signature));
         }
 
         @Override
@@ -66,7 +73,7 @@ public class FunctionsTest extends ESTestCase {
 
         @Override
         public BoundSignature boundSignature() {
-            return BoundSignature.sameAsUnbound(signature);
+            return boundSignature;
         }
     }
 
@@ -230,6 +237,48 @@ public class FunctionsTest extends ESTestCase {
 
         var impl = resolve("foo", List.of(Literal.of(1), Literal.of(1L)));
         assertThat(impl.boundSignature().argTypes()).containsExactly(DataTypes.INTEGER, DataTypes.INTEGER);
+    }
+
+    @Test
+    public void test_most_specific_will_not_remove_specific_candidates() {
+        functionsBuilder.add(
+            Signature.builder("foo", FunctionType.SCALAR)
+                .argumentTypes(
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature()
+                )
+                .returnType(DataTypes.STRING.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build(),
+            DummyFunction::new);
+        functionsBuilder.add(
+            Signature.builder("foo", FunctionType.SCALAR)
+                .argumentTypes(
+                    TypeSignature.parse("array(E)"),
+                    TypeSignature.parse("array(E)"))
+                .returnType(TypeSignature.parse("array(E)"))
+                .typeVariableConstraints(typeVariable("E"))
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build(),
+            DummyFunction::new);
+        functionsBuilder.add(
+            Signature.builder("foo", FunctionType.SCALAR)
+                .argumentTypes(
+                    TypeSignature.parse("array(E)"),
+                    TypeSignature.parse("E"))
+                .returnType(TypeSignature.parse("array(E)"))
+                .typeVariableConstraints(typeVariable("E"))
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build(),
+            DummyFunction::new);
+
+        var impl = resolve("foo", List.of(
+            Literal.of(UndefinedType.INSTANCE, null),
+            Literal.of(UndefinedType.INSTANCE, null)
+        ));
+
+        // the first 2 functions are equally specific, but the first one should be chosen
+        assertThat(impl.boundSignature().argTypes()).containsExactly(DataTypes.STRING, DataTypes.STRING);
     }
 
     @Test

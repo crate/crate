@@ -1311,7 +1311,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         String expectedPlan =
             """
             Eval[name]
-              └ HashJoin[(name = concat(name, $1))]
+              └ HashJoin[(name = (name || $1))]
                 ├ Rename[name] AS u1
                 │  └ Collect[doc.users | [name] | true]
                 └ Rename[name] AS u2
@@ -1335,7 +1335,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         String expectedPlan =
             """
             Eval[name]
-              └ NestedLoopJoin[INNER | (NOT (name = concat(name, $1)))]
+              └ NestedLoopJoin[INNER | (NOT (name = (name || $1)))]
                 ├ Rename[name] AS u1
                 │  └ Collect[doc.users | [name] | true]
                 └ Rename[name] AS u2

@@ -50,7 +50,7 @@ public class ArraySumFunction<T extends Number, R extends Number> extends Scalar
         return Signature.builder(NAME, FunctionType.SCALAR)
             .argumentTypes(new ArrayType<>(elementType).getTypeSignature())
             .returnType(returnType.getTypeSignature())
-            .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+            .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
             .build();
     }
 

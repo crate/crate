@@ -58,7 +58,7 @@ public class UnnestFunction {
             Signature.builder(NAME, FunctionType.TABLE)
                 .argumentTypes(TypeSignature.parse("array(N)"))
                 .returnType(RowType.EMPTY.getTypeSignature())
-                .features(Scalar.Feature.NON_NULLABLE, Scalar.Feature.DETERMINISTIC)
+                .features(Scalar.Feature.NOTNULL, Scalar.Feature.DETERMINISTIC)
                 .typeVariableConstraints(typeVariableOfAnyType("N"))
                 .setVariableArity(true)
                 .build(),
@@ -90,7 +90,7 @@ public class UnnestFunction {
             Signature.builder(NAME, FunctionType.TABLE)
                 .argumentTypes()
                 .returnType(DataTypes.UNTYPED_OBJECT.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NON_NULLABLE)
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NOTNULL)
                 .build(),
             (signature, boundSignature) -> new UnnestTableFunctionImplementation(
                 signature,

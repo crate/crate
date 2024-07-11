@@ -55,7 +55,7 @@ public final class CIDROperator {
                 .argumentTypes(DataTypes.IP.getTypeSignature(),
                     DataTypes.STRING.getTypeSignature())
                 .returnType(Operator.RETURN_TYPE.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                 .build(),
             ContainedWithinOperator::new
         );
