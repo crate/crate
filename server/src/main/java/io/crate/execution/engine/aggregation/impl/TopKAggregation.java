@@ -116,7 +116,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.TopKSta
                               Version indexVersionCreated,
                               Version minNodeInCluster,
                               MemoryManager memoryManager) {
-        return new TopKState(new ItemsSketch<>(32), 8);
+        return new TopKState(new ItemsSketch<>(16), 4);
     }
 
     @Override
@@ -126,6 +126,9 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.TopKSta
                              Input<?>... args) throws CircuitBreakingException {
         if (state.itemsSketch.isEmpty() && args.length == 2) {
             Integer limit = (Integer) args[1].value();
+            if (limit <= 0) {
+                throw new IllegalArgumentException("Invalid value for parameter k for top-k aggregation");
+            }
             state = new TopKState(new ItemsSketch<>(maxMapSize(limit)), limit);
         }
         Object value = args[0].value();
