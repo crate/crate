@@ -32,6 +32,7 @@ import java.util.List;
 import org.apache.datasketches.frequencies.ErrorType;
 import org.apache.datasketches.frequencies.ItemsSketch;
 import org.apache.datasketches.memory.Memory;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -42,16 +43,33 @@ import io.crate.Streamer;
 import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.execution.engine.aggregation.DocValueAggregator;
+import io.crate.execution.engine.aggregation.impl.templates.BinaryDocValueAggregator;
+import io.crate.execution.engine.aggregation.impl.templates.SortedNumericDocValueAggregator;
+import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
+import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
+import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.statistics.SketchStreamer;
 import io.crate.types.ArrayType;
+import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.DoubleType;
+import io.crate.types.FloatType;
+import io.crate.types.GeoPointType;
+import io.crate.types.IntegerType;
+import io.crate.types.IpType;
+import io.crate.types.LongType;
+import io.crate.types.ShortType;
+import io.crate.types.StringType;
+import io.crate.types.TimestampType;
 import io.crate.types.TypeSignature;
 
 public class TopKAggregation extends AggregationFunction<TopKAggregation.TopKState, List<Object>> {
@@ -221,6 +239,63 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.TopKSta
         public int compare(TopKState s1, TopKState s2) {
             return 0;
         }
+    }
+
+    private DocValueAggregator<?> getDocValueAggregator(Reference ref) {
+        if (!ref.hasDocValues()) {
+            return null;
+        }
+        switch (ref.valueType().id()) {
+            case ByteType.ID:
+            case ShortType.ID:
+            case IntegerType.ID:
+            case LongType.ID:
+            case TimestampType.ID_WITH_TZ:
+            case TimestampType.ID_WITHOUT_TZ:
+            case FloatType.ID:
+            case DoubleType.ID:
+            case GeoPointType.ID:
+                return new SortedNumericDocValueAggregator<>(
+                    ref.storageIdent(),
+                    (ramAccounting, memoryManager, minNodeVersion) -> {
+                        return new TopKState(new ItemsSketch<>(32), 8);
+                    },
+                    (values, state) -> {
+                        state.itemsSketch.update(values.nextValue());
+                    }
+                );
+            case IpType.ID:
+            case StringType.ID:
+                return new BinaryDocValueAggregator<>(
+                    ref.storageIdent(),
+                    (ramAccounting, memoryManager, minNodeVersion) -> {
+                        return new TopKState(new ItemsSketch<>(32), 8);
+                    },
+                    (values, state) -> {
+                        long ord = values.nextOrd();
+                        BytesRef value = values.lookupOrd(ord);
+                        state.itemsSketch.update(value.utf8ToString());
+                    }
+                );
+            default:
+                return null;
+        }
+    }
+
+    @Nullable
+    @Override
+    public DocValueAggregator<?> getDocValueAggregator(LuceneReferenceResolver referenceResolver,
+                                                       List<Reference> aggregationReferences,
+                                                       DocTableInfo table,
+                                                       List<Literal<?>> optionalParams) {
+        if (aggregationReferences.size() != 1) {
+            return null;
+        }
+        Reference reference = aggregationReferences.get(0);
+        if (!reference.hasDocValues()) {
+            return null;
+        }
+        return getDocValueAggregator(reference);
     }
 
 }
