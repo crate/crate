@@ -24,6 +24,7 @@ package io.crate.lucene;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -46,6 +47,24 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
 
     private QueryTester tester;
 
+    private static final List<Integer> ARRAY_WITH_ONE_NULL_ELEMENT;
+    private static final List<Integer> ARRAY_WITH_TWO_NULL_ELEMENT;
+    private static final List<Integer> ARRAY_WITH_THREE_NULL_ELEMENT;
+
+    static {
+        ARRAY_WITH_ONE_NULL_ELEMENT = new ArrayList<>();
+        ARRAY_WITH_ONE_NULL_ELEMENT.add(null);
+
+        ARRAY_WITH_TWO_NULL_ELEMENT = new ArrayList<>();
+        ARRAY_WITH_TWO_NULL_ELEMENT.add(null);
+        ARRAY_WITH_TWO_NULL_ELEMENT.add(null);
+
+        ARRAY_WITH_THREE_NULL_ELEMENT = new ArrayList<>();
+        ARRAY_WITH_THREE_NULL_ELEMENT.add(null);
+        ARRAY_WITH_THREE_NULL_ELEMENT.add(null);
+        ARRAY_WITH_THREE_NULL_ELEMENT.add(null);
+    }
+
     @Before
     public void setUpTester() throws Exception {
         QueryTester.Builder builder = new QueryTester.Builder(
@@ -65,7 +84,10 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
                 List.of(10, 10),
                 List.of(10, 20),
                 List.of(10, 10, 20),
-                List.of(10, 20, 30)
+                List.of(10, 20, 30),
+                ARRAY_WITH_ONE_NULL_ELEMENT,
+                ARRAY_WITH_TWO_NULL_ELEMENT,
+                ARRAY_WITH_THREE_NULL_ELEMENT
             )
             .build();
     }
@@ -84,7 +106,10 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
             List.of(10, 10),
             List.of(10, 20),
             List.of(10, 10, 20),
-            List.of(10, 20, 30)
+            List.of(10, 20, 30),
+            ARRAY_WITH_ONE_NULL_ELEMENT,
+            ARRAY_WITH_TWO_NULL_ELEMENT,
+            ARRAY_WITH_THREE_NULL_ELEMENT
         );
     }
 
@@ -98,7 +123,10 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
             List.of(10, 10),
             List.of(10, 20),
             List.of(10, 10, 20),
-            List.of(10, 20, 30)
+            List.of(10, 20, 30),
+            ARRAY_WITH_ONE_NULL_ELEMENT,
+            ARRAY_WITH_TWO_NULL_ELEMENT,
+            ARRAY_WITH_THREE_NULL_ELEMENT
         );
     }
 
@@ -109,7 +137,9 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
             List.of(10, 10),
             List.of(10, 20),
             List.of(10, 10, 20),
-            List.of(10, 20, 30)
+            List.of(10, 20, 30),
+            ARRAY_WITH_TWO_NULL_ELEMENT,
+            ARRAY_WITH_THREE_NULL_ELEMENT
         );
     }
 
@@ -122,7 +152,10 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
             List.of(10, 10),
             List.of(10, 20),
             List.of(10, 10, 20),
-            List.of(10, 20, 30)
+            List.of(10, 20, 30),
+            ARRAY_WITH_ONE_NULL_ELEMENT,
+            ARRAY_WITH_TWO_NULL_ELEMENT,
+            ARRAY_WITH_THREE_NULL_ELEMENT
         );
     }
 
@@ -131,7 +164,8 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
         List<Object> rows = tester.runQuery("xs", "array_length(xs, 1) > 2");
         assertThat(rows).containsExactlyInAnyOrder(
             List.of(10, 10, 20),
-            List.of(10, 20, 30)
+            List.of(10, 20, 30),
+            ARRAY_WITH_THREE_NULL_ELEMENT
         );
     }
 
@@ -142,7 +176,9 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
             List.of(10, 10),
             List.of(10, 20),
             List.of(10, 10, 20),
-            List.of(10, 20, 30)
+            List.of(10, 20, 30),
+            ARRAY_WITH_TWO_NULL_ELEMENT,
+            ARRAY_WITH_THREE_NULL_ELEMENT
         );
     }
 
@@ -171,7 +207,8 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
         List<Object> rows = tester.runQuery("xs", "array_length(xs, 1) <= 1");
         assertThat(rows).containsExactlyInAnyOrder(
             List.of(10),
-            List.of(20)
+            List.of(20),
+            ARRAY_WITH_ONE_NULL_ELEMENT
         );
     }
 
@@ -184,7 +221,10 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
             List.of(10, 10),
             List.of(10, 20),
             List.of(10, 10, 20),
-            List.of(10, 20, 30)
+            List.of(10, 20, 30),
+            ARRAY_WITH_ONE_NULL_ELEMENT,
+            ARRAY_WITH_TWO_NULL_ELEMENT,
+            ARRAY_WITH_THREE_NULL_ELEMENT
         );
     }
 
@@ -195,7 +235,9 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
             List.of(10),
             List.of(20),
             List.of(10, 10),
-            List.of(10, 20)
+            List.of(10, 20),
+            ARRAY_WITH_ONE_NULL_ELEMENT,
+            ARRAY_WITH_TWO_NULL_ELEMENT
         );
     }
 
@@ -204,7 +246,8 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
         List<Object> rows = tester.runQuery("xs", "array_length(xs, 1) = 1");
         assertThat(rows).containsExactlyInAnyOrder(
             List.of(10),
-            List.of(20)
+            List.of(20),
+            ARRAY_WITH_ONE_NULL_ELEMENT
         );
     }
 
@@ -213,7 +256,8 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
         List<Object> rows = tester.runQuery("xs", "array_length(xs, 1) = 2");
         assertThat(rows).containsExactlyInAnyOrder(
             List.of(10, 10),
-            List.of(10, 20)
+            List.of(10, 20),
+            ARRAY_WITH_TWO_NULL_ELEMENT
         );
     }
 

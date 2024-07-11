@@ -41,9 +41,9 @@ public class ArrayLengthQueryBuilderTest extends LuceneQueryBuilderTest {
     }
 
     @Test
-    public void testArrayLengthGt0UsesExistsQuery() {
+    public void testArrayLengthGt0UsesNumTermsPerOrAndGenericFunction() {
         Query query = convert("array_length(y_array, 1) > 0");
-        assertThat(query).hasToString("FieldExistsQuery [field=y_array]");
+        assertThat(query).hasToString("(NumTermsPerDoc: y_array (array_length(y_array, 1) > 0))~1");
     }
 
     @Test
@@ -53,9 +53,9 @@ public class ArrayLengthQueryBuilderTest extends LuceneQueryBuilderTest {
     }
 
     @Test
-    public void testArrayLengthGte1UsesNumTermsPerDocQuery() {
+    public void testArrayLengthGte1UsesNumTermsPerOrAndGenericFunction() {
         Query query = convert("array_length(y_array, 1) >= 1");
-        assertThat(query).hasToString("NumTermsPerDoc: y_array");
+        assertThat(query).hasToString("(NumTermsPerDoc: y_array (array_length(y_array, 1) >= 1))~1");
     }
 
     @Test
@@ -89,7 +89,7 @@ public class ArrayLengthQueryBuilderTest extends LuceneQueryBuilderTest {
             () -> oid
         ).indexValues("int_array", List.of(), List.of(1)).build()) {
             Query query = tester.toQuery("array_length(int_array, 1) >= 1");
-            assertThat(query).hasToString(String.format("NumTermsPerDoc: %s", oid));
+            assertThat(query).hasToString(String.format("(NumTermsPerDoc: %s (array_length(int_array, 1) >= 1))~1", oid));
             Assertions.assertThat(tester.runQuery("int_array", "array_length(int_array, 1) >= 1"))
                 .containsExactly(List.of(1));
         }

@@ -41,7 +41,6 @@ import io.crate.expression.operator.GteOperator;
 import io.crate.expression.operator.LtOperator;
 import io.crate.expression.operator.LteOperator;
 import io.crate.expression.operator.Operators;
-import io.crate.expression.predicate.IsNullPredicate;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder;
@@ -206,22 +205,17 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
                 if (cmpVal == 0) {
                     return new MatchNoDocsQuery("array_length([], 1) is NULL, so array_length([], 1) = 0 can't match");
                 }
-                return genericAndDocValueCount(parent, context, arrayRef, valueCountIsMatch);
+                return docValueCountOrGeneric(parent, context, arrayRef, valueCountIsMatch);
 
             case GtOperator.NAME:
-                if (cmpVal == 0) {
-                    return IsNullPredicate.refExistsQuery(arrayRef, context, false);
-                }
                 return docValueCountOrGeneric(parent, context, arrayRef, valueCountIsMatch);
 
             case GteOperator.NAME:
                 if (cmpVal == 0) {
-                    return IsNullPredicate.refExistsQuery(arrayRef, context, false);
-                } else if (cmpVal == 1) {
-                    return NumTermsPerDocQuery.forRef(arrayRef, valueCountIsMatch);
-                } else {
-                    return genericFunctionFilter(parent, context);
+                    // 'array_length >= 0' is equivalent to 'array_length >= 1' since 'array_length([], 1)' is NULL
+                    return docValueCountOrGeneric(parent, context, arrayRef, predicateForFunction(GteOperator.NAME, 1));
                 }
+                return docValueCountOrGeneric(parent, context, arrayRef, valueCountIsMatch);
 
             case LtOperator.NAME:
                 if (cmpVal == 0 || cmpVal == 1) {
