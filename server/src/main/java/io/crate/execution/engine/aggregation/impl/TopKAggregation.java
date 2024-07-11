@@ -116,7 +116,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.TopKSta
                               Version indexVersionCreated,
                               Version minNodeInCluster,
                               MemoryManager memoryManager) {
-        return new TopKState(new ItemsSketch<>(16), 4);
+        return new TopKState(new ItemsSketch<>(32), 8);
     }
 
     @Override
