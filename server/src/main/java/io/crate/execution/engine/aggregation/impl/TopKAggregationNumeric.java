@@ -63,7 +63,6 @@ public class TopKAggregationNumeric extends AggregationFunction<TopKAggregationN
             .argumentTypes(DataTypes.LONG.getTypeSignature())
             .returnType(new ArrayType<>(DataTypes.UNTYPED_OBJECT).getTypeSignature())
             .features(Scalar.Feature.DETERMINISTIC)
-            .typeVariableConstraints(typeVariable("V"))
             .build();
 
     static final Signature PARAMETER_SIGNATURE =
@@ -72,7 +71,6 @@ public class TopKAggregationNumeric extends AggregationFunction<TopKAggregationN
                 DataTypes.INTEGER.getTypeSignature())
             .returnType(new ArrayType<>(DataTypes.UNTYPED_OBJECT).getTypeSignature())
             .features(Scalar.Feature.DETERMINISTIC)
-            .typeVariableConstraints(typeVariable("V"))
             .build();
 
     static {
