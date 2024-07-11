@@ -27,11 +27,7 @@ import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
 
-import org.antlr.v4.runtime.tree.Tree;
 import org.apache.datasketches.frequencies.ErrorType;
 import org.apache.datasketches.frequencies.ItemsSketch;
 import org.apache.datasketches.memory.Memory;
@@ -43,7 +39,6 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.Streamer;
 import io.crate.data.Input;
-import io.crate.data.RowN;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.memory.MemoryManager;
@@ -119,7 +114,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.TopKSta
                               Version indexVersionCreated,
                               Version minNodeInCluster,
                               MemoryManager memoryManager) {
-        return new TopKState(new ItemsSketch<>(1024), 8);
+        return new TopKState(new ItemsSketch<>(32), 8);
     }
 
     @Override
@@ -129,18 +124,16 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.TopKSta
                              Input<?>... args) throws CircuitBreakingException {
         if (state.itemsSketch.isEmpty() && args.length == 2) {
             Integer limit = (Integer) args[1].value();
-            // ItemsSketch maxMapSize must be within the power of 2.
-            // Hence, we convert the limit to the closest power of 2.
-            int maxMapSize = convertToClosestPowerOfTwo(limit);
-            state = new TopKState(new ItemsSketch<>(1024), limit);
+            state = new TopKState(new ItemsSketch<>(maxMapSize(limit)), limit);
         }
         Object value = args[0].value();
         state.itemsSketch.update(value);
         return state;
     }
 
-    private int convertToClosestPowerOfTwo(int x) {
-        return (int) Math.pow(2, Math.ceil(Math.log(x) / Math.log(2)));
+    private int maxMapSize(int x) {
+        // max map size should be 4 * the limit based on the power of 2 to avoid errors
+        return (int) Math.pow(2, Math.ceil(Math.log(x) / Math.log(2))) * 4;
     }
 
     @Override
