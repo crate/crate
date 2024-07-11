@@ -57,6 +57,6 @@ public class Aggregations implements FunctionsProvider {
         VarianceAggregation.register(builder);
         GeometricMeanAggregation.register(builder);
         StandardDeviationAggregation.register(builder);
-        TopKAggregation.register(builder);
+        TopKAggregationNumeric.register(builder);
     }
 }
