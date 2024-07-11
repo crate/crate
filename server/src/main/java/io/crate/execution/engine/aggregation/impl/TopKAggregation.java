@@ -27,6 +27,7 @@ import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 
 import org.apache.datasketches.frequencies.ErrorType;
 import org.apache.datasketches.frequencies.ItemsSketch;
@@ -53,7 +54,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
 
-public class TopKAggregation extends AggregationFunction<TopKAggregation.TopKState, Object> {
+public class TopKAggregation extends AggregationFunction<TopKAggregation.TopKState, List<Object>> {
 
     public static final String NAME = "top_k";
 
@@ -143,7 +144,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.TopKSta
     }
 
     @Override
-    public Object terminatePartial(RamAccounting ramAccounting, TopKState state) {
+    public List<Object> terminatePartial(RamAccounting ramAccounting, TopKState state) {
         ItemsSketch.Row<Object>[] frequentItems = state.itemsSketch.getFrequentItems(ErrorType.NO_FALSE_NEGATIVES);
         int limit = Math.min(frequentItems.length, state.limit);
         var result = new ArrayList<>(limit);

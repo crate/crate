@@ -25,11 +25,8 @@ import static io.crate.testing.Asserts.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 
-import io.crate.testing.UseJdbc;
-
 public class TopKIntegrationTest extends IntegTestCase {
 
-    @UseJdbc(1)
     public void test_top_k_agg_with_default_limit() {
         execute("select top_k(country) from sys.summits;");
         assertThat(response)
@@ -46,7 +43,6 @@ public class TopKIntegrationTest extends IntegTestCase {
             );
     }
 
-    @UseJdbc(1)
     public void test_top_k_agg_with_custom_limit() {
         execute("select top_k(country, 4) from sys.summits;");
         assertThat(response)
