@@ -48,6 +48,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.statistics.SketchStreamer;
+import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
@@ -59,7 +60,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.TopKSta
     static final Signature DEFAULT_SIGNATURE =
         Signature.builder(NAME, FunctionType.AGGREGATE)
             .argumentTypes(TypeSignature.parse("V"))
-            .returnType(DataTypes.UNTYPED_OBJECT.getTypeSignature())
+            .returnType(new ArrayType<>(DataTypes.UNTYPED_OBJECT).getTypeSignature())
             .features(Scalar.Feature.DETERMINISTIC)
             .typeVariableConstraints(typeVariable("V"))
             .build();
@@ -68,7 +69,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.TopKSta
         Signature.builder(NAME, FunctionType.AGGREGATE)
             .argumentTypes(TypeSignature.parse("V"),
                 DataTypes.INTEGER.getTypeSignature())
-            .returnType(DataTypes.UNTYPED_OBJECT.getTypeSignature())
+            .returnType(new ArrayType<>(DataTypes.UNTYPED_OBJECT).getTypeSignature())
             .features(Scalar.Feature.DETERMINISTIC)
             .typeVariableConstraints(typeVariable("V"))
             .build();
