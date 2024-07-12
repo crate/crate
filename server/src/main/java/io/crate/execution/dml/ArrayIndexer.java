@@ -67,7 +67,12 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
                     );
                 }
             }
+            // map '[]' to '_array_size_ = 0'
+            // map '[null]' to '_array_size_ = 1'
             addField.accept(new IntField("_array_size_" + storageIdent, values.size(), Field.Store.NO));
+        } else {
+            // map 'null' to '_array_size_ = -1'
+            addField.accept(new IntField("_array_size_" + storageIdent, -1, Field.Store.NO));
         }
         xContentBuilder.endArray();
     }
