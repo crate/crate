@@ -116,7 +116,10 @@ public class SysSnapshots {
             snapshotInfo.endTime(),
             version == null ? null : version.toString(),
             snapshotInfo.state().name(),
-            Lists.map(snapshotInfo.shardFailures(), SnapshotShardFailure::toString)
+            Lists.map(snapshotInfo.shardFailures(), SnapshotShardFailure::toString),
+            snapshotInfo.reason(),
+            snapshotInfo.totalShards(),
+            snapshotInfo.includeGlobalState()
         );
     }
 
@@ -133,7 +136,10 @@ public class SysSnapshots {
             0L,
             Version.CURRENT.toString(),
             SnapshotState.IN_PROGRESS.name(),
-            Collections.emptyList()
+            Collections.emptyList(),
+            entry.failure(),
+            entry.shards().size(),
+            entry.includeGlobalState()
         );
     }
 
@@ -163,7 +169,10 @@ public class SysSnapshots {
                         null,
                         null,
                         SnapshotState.FAILED.name(),
-                        List.of()
+                        List.of(),
+                        null, // We don't show info retrieval error, "reason" shows only snapshotting operation error.
+                        0,
+                        null
                     );
                 }
                 throw Exceptions.toRuntimeException(err);

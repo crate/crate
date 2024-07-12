@@ -21,6 +21,8 @@
 
 package io.crate.metadata.sys;
 
+import static io.crate.types.DataTypes.BOOLEAN;
+import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.STRING;
 import static io.crate.types.DataTypes.STRING_ARRAY;
 import static io.crate.types.DataTypes.TIMESTAMPZ;
@@ -60,6 +62,9 @@ public class SysSnapshotsTableInfo {
         .add("version", STRING, SysSnapshot::version)
         .add("state", STRING, SysSnapshot::state)
         .add("failures", STRING_ARRAY, SysSnapshot::failures)
+        .add("reason", STRING, SysSnapshot::reason)
+        .add("total_shards", INTEGER, SysSnapshot::totalShards)
+        .add("include_global_state", BOOLEAN, SysSnapshot::includeGlobalState)
         .setPrimaryKeys(ColumnIdent.of("name"), ColumnIdent.of("repository"))
         .withRouting(SysSnapshotsTableInfo::getRouting)
         .build();

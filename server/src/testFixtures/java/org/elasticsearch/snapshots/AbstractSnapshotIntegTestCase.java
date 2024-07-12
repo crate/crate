@@ -275,18 +275,19 @@ public abstract class AbstractSnapshotIntegTestCase extends IntegTestCase {
     @SuppressWarnings("unchecked")
     protected SnapshotInfo snapshotInfo(String repo, String snapshot) throws Exception {
         execute(
-            "SELECT id, concrete_indices, started, finished, failures from sys.snapshots WHERE repository = ? AND name = ?",
+            "SELECT id, concrete_indices, started, reason, finished, total_shards, failures, include_global_state " +
+                "FROM sys.snapshots WHERE repository = ? AND name = ?",
             new Object[]{repo, snapshot}
         );
         return new SnapshotInfo(
             new SnapshotId(snapshot, (String) response.rows()[0][0]),
             (List<String>) response.rows()[0][1],
             (Long) response.rows()[0][2],
-            null, // Dummy value, since it's not used in tests and not exposed in sys.snapshots.
-            (Long) response.rows()[0][3],
-            1, // Dummy value, since it's not used in tests and not exposed in sys.snapshots.
-            (List<SnapshotShardFailure>) response.rows()[0][4],
-            true // Dummy value, since it's not used in tests and not exposed in sys.snapshots.
+            (String) response.rows()[0][3],
+            (Long) response.rows()[0][4],
+            (int) response.rows()[0][5],
+            (List<SnapshotShardFailure>) response.rows()[0][6],
+            (boolean) response.rows()[0][7]
         );
     }
 

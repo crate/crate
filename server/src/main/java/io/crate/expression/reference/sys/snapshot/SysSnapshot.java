@@ -39,6 +39,9 @@ public class SysSnapshot {
     private final Long finished;
     private final String version;
     private final String state;
+    private final String reason;
+    private final int totalShards;
+    private final Boolean includeGlobalState;
 
     private final List<String> snapshotShardFailures;
 
@@ -51,7 +54,11 @@ public class SysSnapshot {
                        Long finished,
                        String version,
                        String state,
-                       List<String> snapshotShardFailures) {
+                       List<String> snapshotShardFailures,
+                       String reason,
+                       int totalShards,
+                       Boolean includeGlobalState
+                       ) {
         this.uuid = uuid;
         this.name = name;
         this.repository = repository;
@@ -62,6 +69,9 @@ public class SysSnapshot {
         this.version = version;
         this.state = state;
         this.snapshotShardFailures = snapshotShardFailures;
+        this.reason = reason;
+        this.totalShards = totalShards;
+        this.includeGlobalState = includeGlobalState;
     }
 
     public String uuid() {
@@ -100,6 +110,18 @@ public class SysSnapshot {
         return snapshotShardFailures;
     }
 
+    public String reason() {
+        return reason;
+    }
+
+    public int totalShards() {
+        return totalShards;
+    }
+
+    public Boolean includeGlobalState() {
+        return includeGlobalState;
+    }
+
     public List<String> tables() {
         return Stream.concat(concreteIndices.stream().map(RelationName::fqnFromIndexName), partitionedTables.stream())
             .distinct()
@@ -124,4 +146,6 @@ public class SysSnapshot {
                 indexParts.getPartitionIdent()))
             .toList();
     }
+
+
 }

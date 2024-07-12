@@ -110,5 +110,5 @@ Administration and Operations
 - Added support for :ref:`Shared Access Signatures (SAS) tokens <sql-create-repo-azure-sas-token>`
   as an alternative for authentication for :ref:`Azure repositories <sql-create-repo-azure>`.
 
-- Added ``id`` column to the :ref:`sys.snapshots <sys-snapshots>` table which
-  exposes snapshot UUID.
+- Added ``id``, ``reason``, ``total_shards`` and ``include_global_state``
+  columns to the :ref:`sys.snapshots <sys-snapshots>` table.

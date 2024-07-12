@@ -1956,57 +1956,68 @@ Snapshots
 The table ``sys.snapshots`` lists all existing snapshots in all configured
 repositories (see :ref:`snapshot-restore`).
 
-+----------------------+----------------------------------+------------------------------+
-| Column Name          | Description                      | Return Type                  |
-+======================+==================================+==============================+
-| ``id``               | UUID of the snapshot             | ``TEXT``                     |
-+----------------------+----------------------------------+------------------------------+
-| ``name``             | The name of the snapshot         | ``TEXT``                     |
-+----------------------+----------------------------------+------------------------------+
-| ``repository``       | The name of the repository that  | ``TEXT``                     |
-|                      | contains this snapshot.          |                              |
-+----------------------+----------------------------------+------------------------------+
-| ``concrete_indices`` | Contains the names of all        | ``ARRAY(TEXT)``              |
-|                      | tables and partitions that are   |                              |
-|                      | contained in this snapshot       |                              |
-|                      | how they are represented         |                              |
-|                      | as ES index names.               |                              |
-+----------------------+----------------------------------+------------------------------+
-| ``tables``           | Contains the fully qualified     | ``ARRAY(TEXT)``              |
-|                      | names of all tables within the   |                              |
-|                      | snapshot.                        |                              |
-+----------------------+----------------------------------+------------------------------+
-| ``relations``        | Contains the ``table_schema``    | ``ARRAY(OBJECT)``            |
-|                      | and ``table_name`` of all tables |                              |
-|                      | within the snapshot.             |                              |
-+----------------------+----------------------------------+------------------------------+
-| ``table_partitions`` | Contains the table schema, table | ``ARRAY(OBJECT)``            |
-|                      | name and partition values of     |                              |
-|                      | partitioned tables within the    |                              |
-|                      | snapshot.                        |                              |
-+----------------------+----------------------------------+------------------------------+
-| ``started``          | The point in time when the       | ``TIMESTAMP WITH TIME ZONE`` |
-|                      | creation of the snapshot         |                              |
-|                      | started. Changes made after      |                              |
-|                      | that are not stored in this      |                              |
-|                      | snapshot.                        |                              |
-+----------------------+----------------------------------+------------------------------+
-| ``finished``         | The point in time when the       | ``TIMESTAMP WITH TIME ZONE`` |
-|                      | snapshot creation finished.      |                              |
-+----------------------+----------------------------------+------------------------------+
-| ``state``            | The current state of the         | ``TEXT``                     |
-|                      | snapshot. One of:                |                              |
-|                      | ``IN_PROGRESS``, ``SUCCESS``,    |                              |
-|                      | ``PARTIAL``, or ``FAILED``.      |                              |
-+----------------------+----------------------------------+------------------------------+
-| ``version``          | An internal version this         | ``TEXT``                     |
-|                      | snapshot was created with.       |                              |
-+----------------------+----------------------------------+------------------------------+
-| ``failures``         | A list of failures that occurred | ``ARRAY(TEXT)``              |
-|                      | while taking the snapshot.       |                              |
-|                      | If taking the snapshot was       |                              |
-|                      | successful this is empty.        |                              |
-+----------------------+----------------------------------+------------------------------+
++--------------------------+----------------------------------+------------------------------+
+| Column Name              | Description                      | Return Type                  |
++==========================+==================================+==============================+
+| ``id``                   | UUID of the snapshot             | ``TEXT``                     |
++--------------------------+----------------------------------+------------------------------+
+| ``name``                 | The name of the snapshot         | ``TEXT``                     |
++--------------------------+----------------------------------+------------------------------+
+| ``repository``           | The name of the repository that  | ``TEXT``                     |
+|                          | contains this snapshot.          |                              |
++--------------------------+----------------------------------+------------------------------+
+| ``concrete_indices``     | Contains the names of all        | ``ARRAY(TEXT)``              |
+|                          | tables and partitions that are   |                              |
+|                          | contained in this snapshot       |                              |
+|                          | how they are represented         |                              |
+|                          | as ES index names.               |                              |
++--------------------------+----------------------------------+------------------------------+
+| ``tables``               | Contains the fully qualified     | ``ARRAY(TEXT)``              |
+|                          | names of all tables within the   |                              |
+|                          | snapshot.                        |                              |
++--------------------------+----------------------------------+------------------------------+
+| ``relations``            | Contains the ``table_schema``    | ``ARRAY(OBJECT)``            |
+|                          | and ``table_name`` of all tables |                              |
+|                          | within the snapshot.             |                              |
++--------------------------+----------------------------------+------------------------------+
+| ``table_partitions``     | Contains the table schema, table | ``ARRAY(OBJECT)``            |
+|                          | name and partition values of     |                              |
+|                          | partitioned tables within the    |                              |
+|                          | snapshot.                        |                              |
++--------------------------+----------------------------------+------------------------------+
+| ``started``              | The point in time when the       | ``TIMESTAMP WITH TIME ZONE`` |
+|                          | creation of the snapshot         |                              |
+|                          | started. Changes made after      |                              |
+|                          | that are not stored in this      |                              |
+|                          | snapshot.                        |                              |
++--------------------------+----------------------------------+------------------------------+
+| ``finished``             | The point in time when the       | ``TIMESTAMP WITH TIME ZONE`` |
+|                          | snapshot creation finished.      |                              |
++--------------------------+----------------------------------+------------------------------+
+| ``state``                | The current state of the         | ``TEXT``                     |
+|                          | snapshot. One of:                |                              |
+|                          | ``IN_PROGRESS``, ``SUCCESS``,    |                              |
+|                          | ``PARTIAL``, or ``FAILED``.      |                              |
++--------------------------+----------------------------------+------------------------------+
+| ``version``              | An internal version this         | ``TEXT``                     |
+|                          | snapshot was created with.       |                              |
++--------------------------+----------------------------------+------------------------------+
+| ``failures``             | A list of failures that occurred | ``ARRAY(TEXT)``              |
+|                          | while taking the snapshot.       |                              |
+|                          | If taking the snapshot was       |                              |
+|                          | successful this is empty.        |                              |
++--------------------------+----------------------------------+------------------------------+
+| ``reason``               | Snapshot failure reason.         | ``TEXT``                     |
+|                          | If the snapshot was              |                              |
+|                          | successful this is ``NULL``.     |                              |
++--------------------------+----------------------------------+------------------------------+
+| ``total_shards``         | Total number of primary shards   | ``INTEGER``                  |
+|                          | in the snapshot.                 |                              |
++--------------------------+----------------------------------+------------------------------+
+| ``include_global_state`` | Flag indicating that the         | ``BOOLEAN``                  |
+|                          | snapshot was taken with the      |                              |
+|                          | ``ALL`` option.                  |                              |
++--------------------------+----------------------------------+------------------------------+
 
 Snapshot/Restore operates on a per-shard basis. Hence, the ``state`` column
 indicates whether all (``SUCCESS``), some (``PARTIAL``), or no
