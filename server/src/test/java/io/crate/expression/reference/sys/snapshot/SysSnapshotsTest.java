@@ -37,6 +37,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+import org.assertj.core.api.Assertions;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.SnapshotsInProgress;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -124,6 +125,96 @@ public class SysSnapshotsTest extends ESTestCase {
         });
         assertThat(names).containsExactlyInAnyOrder("s1", "s2", "s3");
         assertThat(uuids).containsExactlyInAnyOrder(s1.getUUID(), s2.getUUID(), s3.getUUID());
+    }
+
+    @Test
+    public void test_global_state_and_reason_and_total_shards_are_exposed_in_sys_snapshots() throws Exception {
+        HashMap<String, SnapshotId> snapshots = new HashMap<>();
+        SnapshotId sid1 = new SnapshotId("s1", UUIDs.randomBase64UUID());
+        snapshots.put(sid1.getUUID(), sid1);
+
+        RepositoryData repositoryData = new RepositoryData(
+            1, snapshots, Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), ShardGenerations.EMPTY, IndexMetaDataGenerations.EMPTY);
+
+        Repository r1 = mock(Repository.class);
+        doReturn(CompletableFuture.completedFuture(repositoryData))
+            .when(r1)
+            .getRepositoryData();
+
+        when(r1.getMetadata()).thenReturn(new RepositoryMetadata("repo1", "fs", Settings.EMPTY));
+
+        Metadata metadata = mock(Metadata.class);
+        when(metadata.templates()).thenReturn(ImmutableOpenMap.of());
+
+        doReturn(CompletableFuture.completedFuture(metadata))
+            .when(r1)
+            .getSnapshotGlobalMetadata(sid1);
+
+        int totalShards = 4;
+        String reason = "dummy";
+        boolean includeGlobalState = false;
+        doReturn(CompletableFuture.completedFuture(
+            new SnapshotInfo(
+                sid1,
+                List.of(),
+                1,
+                reason,
+                2,
+                totalShards,
+                List.of(),
+                includeGlobalState
+            )
+        ))
+            .when(r1)
+            .getSnapshotInfo(sid1);
+
+        ClusterService clusterService = mock(ClusterService.class, Answers.RETURNS_DEEP_STUBS);
+        when(clusterService.state().custom(SnapshotsInProgress.TYPE)).thenReturn(null);
+        SysSnapshots sysSnapshots = new SysSnapshots(() -> Collections.singletonList(r1), clusterService);
+        Iterable<SysSnapshot> iterable = sysSnapshots.currentSnapshots().get();
+        SysSnapshot sysSnapshot = iterable.iterator().next();
+
+        assertThat(sysSnapshot.name()).isEqualTo("s1");
+        assertThat(sysSnapshot.reason()).isEqualTo(reason);
+        assertThat(sysSnapshot.includeGlobalState()).isEqualTo(includeGlobalState);
+        assertThat(sysSnapshot.totalShards()).isEqualTo(totalShards);
+    }
+
+    @Test
+    public void test_unavailable_snapshot_has_zero_total_shards_and_null_include_global_state() throws Exception {
+        HashMap<String, SnapshotId> snapshots = new HashMap<>();
+        SnapshotId sid1 = new SnapshotId("s1", UUIDs.randomBase64UUID());
+        snapshots.put(sid1.getUUID(), sid1);
+
+        RepositoryData repositoryData = new RepositoryData(
+            1, snapshots, Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(), ShardGenerations.EMPTY, IndexMetaDataGenerations.EMPTY);
+
+        Repository r1 = mock(Repository.class);
+        doReturn(CompletableFuture.completedFuture(repositoryData))
+            .when(r1)
+            .getRepositoryData();
+
+        when(r1.getMetadata()).thenReturn(new RepositoryMetadata("repo1", "fs", Settings.EMPTY));
+
+        Metadata metadata = mock(Metadata.class);
+        when(metadata.templates()).thenReturn(ImmutableOpenMap.of());
+
+        doReturn(CompletableFuture.completedFuture(metadata))
+            .when(r1)
+            .getSnapshotGlobalMetadata(sid1);
+        doReturn(CompletableFuture.failedFuture(new SnapshotException("repo1", "s1", "Everything is wrong")))
+            .when(r1)
+            .getSnapshotInfo(sid1);
+
+        ClusterService clusterService = mock(ClusterService.class, Answers.RETURNS_DEEP_STUBS);
+        when(clusterService.state().custom(SnapshotsInProgress.TYPE)).thenReturn(null);
+        SysSnapshots sysSnapshots = new SysSnapshots(() -> Collections.singletonList(r1), clusterService);
+        Iterable<SysSnapshot> iterable = sysSnapshots.currentSnapshots().get();
+        SysSnapshot sysSnapshot = iterable.iterator().next();
+        Assertions.assertThat(sysSnapshot.name()).isEqualTo("s1");
+        Assertions.assertThat(sysSnapshot.reason()).isNull();
+        Assertions.assertThat(sysSnapshot.includeGlobalState()).isNull();
+        Assertions.assertThat(sysSnapshot.totalShards()).isEqualTo(0);
     }
 
     @Test
