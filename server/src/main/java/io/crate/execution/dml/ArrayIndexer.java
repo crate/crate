@@ -24,7 +24,6 @@ package io.crate.execution.dml;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -68,9 +67,7 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
                     );
                 }
             }
-            if (values.stream().filter(Objects::nonNull).toList().isEmpty()) {
-                addField.accept(new IntField("_empty_null_arrays_" + storageIdent, values.size(), Field.Store.NO));
-            }
+            addField.accept(new IntField("_array_size_" + storageIdent, values.size(), Field.Store.NO));
         }
         xContentBuilder.endArray();
     }

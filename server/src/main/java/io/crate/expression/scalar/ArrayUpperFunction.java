@@ -209,12 +209,7 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
                 return docValueCountOrGeneric(parent, context, arrayRef, valueCountIsMatch);
 
             case GtOperator.NAME:
-                return new BooleanQuery.Builder()
-                    .setMinimumNumberShouldMatch(1)
-                    .add(docValueCountOrGeneric(parent, context, arrayRef, valueCountIsMatch), BooleanClause.Occur.SHOULD)
-                    .add(
-                        new IntEqQuery().rangeQuery("_empty_null_arrays_" + arrayRef.storageIdent(), cmpVal, null, false, false, true, true), BooleanClause.Occur.SHOULD
-                    ).build();
+                return new IntEqQuery().rangeQuery("_array_size_" + arrayRef.storageIdent(), cmpVal, null, false, false, true, true);
                 //return docValueCountOrGeneric(parent, context, arrayRef, valueCountIsMatch);
 
             case GteOperator.NAME:
