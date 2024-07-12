@@ -158,9 +158,14 @@ public abstract class ConcatFunction extends Scalar<String, String> {
         public String evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input[] args) {
             String firstArg = (String) args[0].value();
             String secondArg = (String) args[1].value();
+
+            if (calledByOperator && (firstArg == null || secondArg == null)) {
+                return null;
+            }
+
             if (firstArg == null) {
                 if (secondArg == null) {
-                    return calledByOperator ? null : "";
+                    return "";
                 }
                 return secondArg;
             }

@@ -160,7 +160,7 @@ left-hand relation::
     | Smith Clark | Marketing             |
     | Tim Malone  | Purchasing            |
     | Tim Doe     | Human Resources       |
-    |             | Shipping              |
+    | NULL        | Shipping              |
     | John Smith  | IT                    |
     +-------------+-----------------------+
     SELECT 6 rows in set (... sec)
@@ -202,7 +202,7 @@ columns of the left-hand relation::
     | Marry Georgia      |                       |
     | Tim Doe            | Human Resources       |
     | Tim Malone         | Purchasing            |
-    |                    | Shipping              |
+    | NULL               | Shipping              |
     +--------------------+-----------------------+
     SELECT 19 rows in set (... sec)
 
