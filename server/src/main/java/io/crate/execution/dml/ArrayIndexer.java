@@ -24,9 +24,12 @@ package io.crate.execution.dml;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.IntField;
 import org.apache.lucene.index.IndexableField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.jetbrains.annotations.Nullable;
@@ -37,9 +40,11 @@ import io.crate.metadata.Reference;
 public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
 
     private final ValueIndexer<T> innerIndexer;
+    private final String storageIdent;
 
-    public ArrayIndexer(ValueIndexer<T> innerIndexer) {
+    public ArrayIndexer(ValueIndexer<T> innerIndexer, String storageIdent) {
         this.innerIndexer = innerIndexer;
+        this.storageIdent = storageIdent;
     }
 
     @Override
@@ -62,6 +67,9 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
                         toValidate
                     );
                 }
+            }
+            if (values.stream().filter(Objects::nonNull).toList().isEmpty()) {
+                addField.accept(new IntField("_empty_null_arrays_" + storageIdent, values.size(), Field.Store.NO));
             }
         }
         xContentBuilder.endArray();

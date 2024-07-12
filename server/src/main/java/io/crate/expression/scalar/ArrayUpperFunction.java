@@ -56,6 +56,7 @@ import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.IntEqQuery;
 import io.crate.types.ObjectType;
 import io.crate.types.TypeSignature;
 
@@ -208,7 +209,13 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
                 return docValueCountOrGeneric(parent, context, arrayRef, valueCountIsMatch);
 
             case GtOperator.NAME:
-                return docValueCountOrGeneric(parent, context, arrayRef, valueCountIsMatch);
+                return new BooleanQuery.Builder()
+                    .setMinimumNumberShouldMatch(1)
+                    .add(docValueCountOrGeneric(parent, context, arrayRef, valueCountIsMatch), BooleanClause.Occur.SHOULD)
+                    .add(
+                        new IntEqQuery().rangeQuery("_empty_null_arrays_" + arrayRef.storageIdent(), cmpVal, null, false, false, true, true), BooleanClause.Occur.SHOULD
+                    ).build();
+                //return docValueCountOrGeneric(parent, context, arrayRef, valueCountIsMatch);
 
             case GteOperator.NAME:
                 if (cmpVal == 0) {

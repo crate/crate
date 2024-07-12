@@ -99,7 +99,7 @@ public class ArrayType<T> extends DataType<List<T>> {
                 public ValueIndexer<T> valueIndexer(RelationName table, Reference ref,
                                                     Function<ColumnIdent, Reference> getRef) {
                     return new ArrayIndexer<>(
-                        innerStorage.valueIndexer(table, ref, getRef));
+                        innerStorage.valueIndexer(table, ref, getRef), ref.storageIdent());
                 }
             };
         }
