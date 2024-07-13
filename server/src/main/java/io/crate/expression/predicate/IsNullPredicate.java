@@ -58,6 +58,7 @@ import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.IntEqQuery;
 import io.crate.types.ObjectType;
 import io.crate.types.StorageSupport;
 import io.crate.types.TypeSignature;
@@ -123,18 +124,9 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
         boolean canUseFieldsExist = ref.hasDocValues() || ref.indexType() == IndexType.FULLTEXT;
         if (valueType instanceof ArrayType<?>) {
             if (countEmptyArrays) {
-                if (canUseFieldsExist) {
-                    return new BooleanQuery.Builder()
-                        .setMinimumNumberShouldMatch(1)
-                        .add(new FieldExistsQuery(field), Occur.SHOULD)
-                        .add(Queries.not(isNullFuncToQuery(ref, context)), Occur.SHOULD)
-                        .build();
-                } else {
-                    return null;
-                }
+                return new IntEqQuery().rangeQuery("_array_size_" + ref.storageIdent(), 0, null, true, false, true, true);
             }
-            // An empty array has no dimension, array_length([]) = NULL, thus we don't count [] as existing.
-            valueType = ArrayType.unnest(valueType);
+            return new IntEqQuery().rangeQuery("_array_size_" + ref.storageIdent(), 0, null, false, false, true, true);
         }
         StorageSupport<?> storageSupport = valueType.storageSupport();
         if (ref instanceof DynamicReference) {
