@@ -25,6 +25,8 @@ import java.util.List;
 
 import org.apache.lucene.document.IntPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
 
 public class IntEqQuery implements EqQuery<Number> {
@@ -68,7 +70,11 @@ public class IntEqQuery implements EqQuery<Number> {
     @Override
     public Query termsQuery(String field, List<Number> nonNullValues, boolean hasDocValues, boolean isIndexed) {
         if (isIndexed) {
-            return IntPoint.newSetQuery(field, nonNullValues.stream().mapToInt(Number::intValue).toArray());
+            return new BooleanQuery.Builder()
+                .add(IntPoint.newSetQuery(field, nonNullValues.stream().mapToInt(Number::intValue).toArray()), BooleanClause.Occur.FILTER)
+                .add(new IntEqQuery().termQuery("_array_size_" + field, nonNullValues.size(), hasDocValues, isIndexed), BooleanClause.Occur.FILTER)
+                .build();
+            //return IntPoint.newSetQuery(field, nonNullValues.stream().mapToInt(Number::intValue).toArray());
         }
         if (hasDocValues) {
             return SortedNumericDocValuesField.newSlowSetQuery(field, nonNullValues.stream().mapToLong(Number::longValue).toArray());
