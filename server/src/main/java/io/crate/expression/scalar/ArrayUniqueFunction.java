@@ -52,7 +52,7 @@ public class ArrayUniqueFunction extends Scalar<List<Object>, List<Object>> {
                 .argumentTypes(TypeSignature.parse("array(E)"))
                 .returnType(TypeSignature.parse("array(E)"))
                 .typeVariableConstraints(typeVariable("E"))
-                .features(Feature.DETERMINISTIC, Feature.NON_NULLABLE)
+                .features(Feature.DETERMINISTIC, Feature.NOTNULL)
                 .build(),
             ArrayUniqueFunction::new
         );
@@ -61,7 +61,7 @@ public class ArrayUniqueFunction extends Scalar<List<Object>, List<Object>> {
                 .argumentTypes(TypeSignature.parse("array(E)"), TypeSignature.parse("array(E)"))
                 .returnType(TypeSignature.parse("array(E)"))
                 .typeVariableConstraints(typeVariable("E"))
-                .features(Feature.DETERMINISTIC, Feature.NON_NULLABLE)
+                .features(Feature.DETERMINISTIC, Feature.NOTNULL)
                 .build(),
             ArrayUniqueFunction::new
         );

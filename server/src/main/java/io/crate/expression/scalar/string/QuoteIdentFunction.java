@@ -45,7 +45,7 @@ public final class QuoteIdentFunction {
             Signature.builder(FQNAME, FunctionType.SCALAR)
                 .argumentTypes(DataTypes.STRING.getTypeSignature())
                 .returnType(DataTypes.STRING.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) ->
                 new UnaryScalar<>(

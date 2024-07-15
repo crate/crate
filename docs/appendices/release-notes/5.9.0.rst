@@ -54,7 +54,7 @@ Breaking Changes
   It is a breaking change because the fix causes performance degradations.
 
 - Changed the return value of the concat operator to return a ``NULL`` literal
-  instead of an empty string if any of the operands is ``NULL``.
+  instead of an empty string when any of the operand is ``NULL``.
 
 - Changed the return value of :ref:`scalar-array_cat` to return a ``NULL``
   literal instead of an empty array when both arguments are ``NULL``.

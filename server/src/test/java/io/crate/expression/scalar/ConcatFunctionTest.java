@@ -122,10 +122,15 @@ public class ConcatFunctionTest extends ScalarTestCase {
     @Test
     public void test_concat_operator_with_null_literals() {
         assertNormalize("null || null", isLiteral(null));
+        assertNormalize("null || 'foo'", isLiteral(null));
+        assertNormalize("'foo' || null", isLiteral(null));
+
+        assertNormalize("[1] || null", isLiteral(List.of(1)));
+        assertNormalize("null || [1]", isLiteral(List.of(1)));
     }
 
     public void test_concat_operator_with_strings() {
-        assertNormalize("'foo' || null", isLiteral("foo"));
+        assertNormalize("'foo' || 'bar'", isLiteral("foobar"));
     }
 
     public void test_concat_operator_with_arrays() {

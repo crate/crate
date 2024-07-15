@@ -73,7 +73,7 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                 .argumentTypes(DataTypes.LONG.getTypeSignature(),
                     DataTypes.LONG.getTypeSignature())
                 .returnType(DataTypes.LONG.getTypeSignature())
-                .features(Feature.DETERMINISTIC, Feature.NON_NULLABLE)
+                .features(Feature.DETERMINISTIC, Feature.NOTNULL)
                 .build(),
             (signature, boundSignature) -> new GenerateSeries<>(
                 signature,
@@ -90,7 +90,7 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                 .argumentTypes(DataTypes.INTEGER.getTypeSignature(),
                     DataTypes.INTEGER.getTypeSignature())
                 .returnType(DataTypes.INTEGER.getTypeSignature())
-                .features(Feature.DETERMINISTIC, Feature.NON_NULLABLE)
+                .features(Feature.DETERMINISTIC, Feature.NOTNULL)
                 .build(),
             (signature, boundSignature) -> new GenerateSeries<>(
                 signature,
@@ -110,7 +110,7 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                     DataTypes.LONG.getTypeSignature(),
                     DataTypes.LONG.getTypeSignature())
                 .returnType(DataTypes.LONG.getTypeSignature())
-                .features(Feature.DETERMINISTIC, Feature.NON_NULLABLE)
+                .features(Feature.DETERMINISTIC, Feature.NOTNULL)
                 .build(),
             (signature, boundSignature) -> new GenerateSeries<>(
                 signature,
@@ -128,7 +128,7 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                     DataTypes.INTEGER.getTypeSignature(),
                     DataTypes.INTEGER.getTypeSignature())
                 .returnType(DataTypes.INTEGER.getTypeSignature())
-                .features(Feature.DETERMINISTIC, Feature.NON_NULLABLE)
+                .features(Feature.DETERMINISTIC, Feature.NOTNULL)
                 .build(),
             (signature, boundSignature) -> new GenerateSeries<>(
                 signature,
@@ -149,7 +149,7 @@ public final class GenerateSeries<T extends Number> extends TableFunctionImpleme
                         supportedType.getTypeSignature(),
                         DataTypes.INTERVAL.getTypeSignature())
                     .returnType(supportedType.getTypeSignature())
-                    .features(Feature.DETERMINISTIC, Feature.NON_NULLABLE)
+                    .features(Feature.DETERMINISTIC, Feature.NOTNULL)
                     .build(),
                 (signature, boundSignature) -> new GenerateSeriesIntervals(
                     signature,

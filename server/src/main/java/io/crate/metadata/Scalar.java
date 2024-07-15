@@ -220,13 +220,20 @@ public abstract class Scalar<ReturnType, InputType> implements FunctionImplement
          */
         COMPARISON_REPLACEMENT,
         LAZY_ATTRIBUTES,
+
         /**
-         * If this feature is set, the function will return for null argument(s) as result null.
-         */
-        NULLABLE,
+         * Function returns null if any argument is null.
+         * <p>
+         *
+         * Not set for functions that return null under special conditions - e.g. null only if all
+         * arguments are null
+         * </p>
+         **/
+        STRICTNULL,
+
         /**
-         * If this feature is set, the function will never return null.
-         */
-        NON_NULLABLE
+         * Function never returns null.
+         **/
+        NOTNULL
     }
 }

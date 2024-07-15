@@ -77,7 +77,7 @@ public final class PgProcTable {
         .add("prokind", STRING, x -> prokind(x.signature))
         .add("prosecdef", BOOLEAN, x -> null)
         .add("proleakproof", BOOLEAN, x -> null)
-        .add("proisstrict", BOOLEAN, x -> x.signature.hasFeature(Feature.NULLABLE))
+        .add("proisstrict", BOOLEAN, x -> x.signature.hasFeature(Feature.STRICTNULL))
         .add("proretset", BOOLEAN, x -> x.returnSetType)
         .add("provolatile", STRING, x -> null)
         .add("proparallel", STRING, x -> null)

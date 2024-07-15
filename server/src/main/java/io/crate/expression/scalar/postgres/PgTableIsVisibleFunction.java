@@ -54,7 +54,7 @@ public class PgTableIsVisibleFunction extends Scalar<Boolean, Integer> {
             Signature.builder(NAME, FunctionType.SCALAR)
                 .argumentTypes(DataTypes.INTEGER.getTypeSignature())
                 .returnType(DataTypes.BOOLEAN.getTypeSignature())
-                .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             PgTableIsVisibleFunction::new);
     }

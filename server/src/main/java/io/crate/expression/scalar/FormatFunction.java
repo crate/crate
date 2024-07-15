@@ -43,7 +43,7 @@ public class FormatFunction extends Scalar<String, Object> {
     public static final Signature SIGNATURE = Signature.builder(NAME, FunctionType.SCALAR)
         .argumentTypes(DataTypes.STRING.getTypeSignature(), TypeSignature.parse("E"))
         .returnType(DataTypes.STRING.getTypeSignature())
-        .features(Feature.DETERMINISTIC, Feature.NON_NULLABLE)
+        .features(Feature.DETERMINISTIC, Feature.NOTNULL)
         .typeVariableConstraints(typeVariableOfAnyType("E"))
         .setVariableArity(true)
         .build();

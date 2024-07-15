@@ -49,7 +49,7 @@ public class ArrayAppendFunction extends Scalar<List<Object>, Object> {
                                 TypeSignature.parse("E"))
                         .returnType(TypeSignature.parse("array(E)"))
                         .typeVariableConstraints(typeVariable("E"))
-                        .features(Feature.DETERMINISTIC, Feature.NON_NULLABLE)
+                        .features(Feature.DETERMINISTIC, Feature.NOTNULL)
                         .build(),
                 ArrayAppendFunction::new
         );

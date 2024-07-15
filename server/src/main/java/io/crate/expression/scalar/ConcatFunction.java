@@ -50,7 +50,7 @@ public abstract class ConcatFunction extends Scalar<String, String> {
                 .argumentTypes(DataTypes.STRING.getTypeSignature(),
                     DataTypes.STRING.getTypeSignature())
                 .returnType(DataTypes.STRING.getTypeSignature())
-                .features(Feature.DETERMINISTIC, Feature.NON_NULLABLE)
+                .features(Feature.DETERMINISTIC, Feature.NOTNULL)
                 .build(),
             StringConcatFunction::new
         );
@@ -59,7 +59,7 @@ public abstract class ConcatFunction extends Scalar<String, String> {
             Signature.builder(NAME, FunctionType.SCALAR)
                 .argumentTypes(DataTypes.STRING.getTypeSignature())
                 .returnType(DataTypes.STRING.getTypeSignature())
-                .features(Feature.DETERMINISTIC, Feature.NON_NULLABLE)
+                .features(Feature.DETERMINISTIC, Feature.NOTNULL)
                 .setVariableArity(true)
                 .build(),
             GenericConcatFunction::new
@@ -71,7 +71,7 @@ public abstract class ConcatFunction extends Scalar<String, String> {
                 .argumentTypes(TypeSignature.parse("array(E)"),
                     TypeSignature.parse("array(E)"))
                 .returnType(TypeSignature.parse("array(E)"))
-                .features(Feature.DETERMINISTIC, Feature.NON_NULLABLE)
+                .features(Feature.DETERMINISTIC, Feature.NOTNULL)
                 .typeVariableConstraints(typeVariable("E"))
                 .build(),
             ArrayCatFunction::new
@@ -95,7 +95,7 @@ public abstract class ConcatFunction extends Scalar<String, String> {
                 .argumentTypes(DataTypes.STRING.getTypeSignature(),
                     DataTypes.STRING.getTypeSignature())
                 .returnType(DataTypes.STRING.getTypeSignature())
-                .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             (signature, boundSignature) -> new StringConcatFunction(signature, boundSignature, true)
         );
@@ -104,7 +104,7 @@ public abstract class ConcatFunction extends Scalar<String, String> {
                 .argumentTypes(TypeSignature.parse("array(E)"),
                     TypeSignature.parse("array(E)"))
                 .returnType(TypeSignature.parse("array(E)"))
-                .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+                .features(Feature.DETERMINISTIC)
                 .typeVariableConstraints(typeVariable("E"))
                 .build(),
             ArrayCatFunction::new
@@ -114,7 +114,7 @@ public abstract class ConcatFunction extends Scalar<String, String> {
                 .argumentTypes(DataTypes.UNTYPED_OBJECT.getTypeSignature(),
                     DataTypes.UNTYPED_OBJECT.getTypeSignature())
                 .returnType(DataTypes.UNTYPED_OBJECT.getTypeSignature())
-                .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+                .features(Feature.DETERMINISTIC)
                 .build(),
             ObjectMergeFunction::new
         );
@@ -158,9 +158,14 @@ public abstract class ConcatFunction extends Scalar<String, String> {
         public String evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input[] args) {
             String firstArg = (String) args[0].value();
             String secondArg = (String) args[1].value();
+
+            if (calledByOperator && (firstArg == null || secondArg == null)) {
+                return null;
+            }
+
             if (firstArg == null) {
                 if (secondArg == null) {
-                    return calledByOperator ? null : "";
+                    return "";
                 }
                 return secondArg;
             }

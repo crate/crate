@@ -46,7 +46,7 @@ public class CurrentTimestampFunction extends Scalar<Long, Integer> {
             Signature.builder(NAME, FunctionType.SCALAR)
                 .argumentTypes()
                 .returnType(DataTypes.TIMESTAMPZ.getTypeSignature())
-                .features(EnumSet.of(Feature.NON_NULLABLE))
+                .features(EnumSet.of(Feature.NOTNULL))
                 .build(),
             CurrentTimestampFunction::new
         );
@@ -54,7 +54,7 @@ public class CurrentTimestampFunction extends Scalar<Long, Integer> {
             Signature.builder(NAME, FunctionType.SCALAR)
                 .argumentTypes(DataTypes.INTEGER.getTypeSignature())
                 .returnType(DataTypes.TIMESTAMPZ.getTypeSignature())
-                .features(EnumSet.of(Feature.NON_NULLABLE))
+                .features(EnumSet.of(Feature.NOTNULL))
                 .build(),
             CurrentTimestampFunction::new
         );

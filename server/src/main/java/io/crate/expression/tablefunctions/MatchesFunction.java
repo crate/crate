@@ -33,8 +33,8 @@ import java.util.regex.Pattern;
 
 import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
-
 import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
@@ -70,7 +70,7 @@ public final class MatchesFunction extends TableFunctionImplementation<List<Obje
                 .argumentTypes(DataTypes.STRING.getTypeSignature(),
                     DataTypes.STRING.getTypeSignature())
                 .returnType(DataTypes.STRING_ARRAY.getTypeSignature())
-                .features(Feature.DETERMINISTIC, Feature.NON_NULLABLE)
+                .features(Feature.DETERMINISTIC, Feature.NOTNULL)
                 .build(),
             (signature, boundSignature) -> new MatchesFunction(
                 signature,
@@ -84,7 +84,7 @@ public final class MatchesFunction extends TableFunctionImplementation<List<Obje
                     DataTypes.STRING.getTypeSignature(),
                     DataTypes.STRING.getTypeSignature())
                 .returnType(DataTypes.STRING_ARRAY.getTypeSignature())
-                .features(Feature.DETERMINISTIC, Feature.NON_NULLABLE)
+                .features(Feature.DETERMINISTIC, Feature.NOTNULL)
                 .build(),
             (signature, boundSignature) -> new MatchesFunction(
                 signature,

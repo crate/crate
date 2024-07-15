@@ -48,7 +48,7 @@ public class PgBackendPidFunction extends Scalar<Integer, Void> {
             Signature.builder(FQN, FunctionType.SCALAR)
                 .argumentTypes()
                 .returnType(DataTypes.INTEGER.getTypeSignature())
-                .features(EnumSet.of(Feature.NON_NULLABLE))
+                .features(EnumSet.of(Feature.NOTNULL))
                 .build(),
             PgBackendPidFunction::new
         );

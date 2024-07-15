@@ -42,7 +42,7 @@ public class PgGetUserByIdFunction extends Scalar<String, Integer> {
             Signature.builder(name, FunctionType.SCALAR)
                 .argumentTypes(DataTypes.INTEGER.getTypeSignature())
                 .returnType(DataTypes.STRING.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                 .build(),
             PgGetUserByIdFunction::new
         );

@@ -54,7 +54,7 @@ public class ArrayPositionFunction extends Scalar<Integer, List<Object>> {
                                 TypeSignature.parse("T"))
                         .returnType(DataTypes.INTEGER.getTypeSignature())
                         .typeVariableConstraints(typeVariable("T"))
-                        .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+                        .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                         .build(),
                 ArrayPositionFunction::new);
 
@@ -65,7 +65,7 @@ public class ArrayPositionFunction extends Scalar<Integer, List<Object>> {
                                 DataTypes.INTEGER.getTypeSignature())
                         .returnType(DataTypes.INTEGER.getTypeSignature())
                         .typeVariableConstraints(typeVariable("T"))
-                        .features(Feature.DETERMINISTIC, Feature.NULLABLE)
+                        .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                         .build(),
                 ArrayPositionFunction::new);
     }

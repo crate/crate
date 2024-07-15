@@ -42,7 +42,7 @@ public final class CurrentDateFunction extends Scalar<Long, String> {
                 Signature.builder(NAME, FunctionType.SCALAR)
                         .argumentTypes()
                         .returnType(DataTypes.DATE.getTypeSignature())
-                        .features(EnumSet.of(Feature.NON_NULLABLE))
+                        .features(EnumSet.of(Feature.NOTNULL))
                         .build(),
                 CurrentDateFunction::new
         );

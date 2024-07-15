@@ -38,7 +38,7 @@ public final class GtOperator {
                     .argumentTypes(supportedType.getTypeSignature(),
                         supportedType.getTypeSignature())
                     .returnType(Operator.RETURN_TYPE.getTypeSignature())
-                    .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NULLABLE)
+                    .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                     .build(),
                 (signature, boundSignature) -> new CmpOperator(
                     signature,
