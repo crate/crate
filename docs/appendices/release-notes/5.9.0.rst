@@ -95,6 +95,10 @@ Scalar and Aggregation Functions
 - Changed :ref:`pg_get_userbyid <scalar-pg_get_userbyid>` to return the matching
   user or ``unknown`` instead of always ``crate``.
 
+- Added support of the ``array || element`` operator as an alias for the
+  :ref:`array_append(array, value) <scalar-array_append>` scalar function for
+  improved compatibility with PostgreSQL.
+
 Performance and Resilience Improvements
 ---------------------------------------
 

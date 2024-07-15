@@ -76,7 +76,6 @@ public abstract class ConcatFunction extends Scalar<String, String> {
                 .build(),
             ArrayCatFunction::new
         );
-
         module.add(
             Signature.builder(NAME, FunctionType.SCALAR)
                 .argumentTypes(DataTypes.UNTYPED_OBJECT.getTypeSignature(),
@@ -111,6 +110,18 @@ public abstract class ConcatFunction extends Scalar<String, String> {
         );
         module.add(
             Signature.builder(OPERATOR_NAME, FunctionType.SCALAR)
+                .argumentTypes(
+                    TypeSignature.parse("array(E)"),
+                    TypeSignature.parse("E")
+                )
+                .returnType(TypeSignature.parse("array(E)"))
+                .typeVariableConstraints(typeVariable("E"))
+                .features(Feature.DETERMINISTIC)
+                .build(),
+            (signature, boundSignature) -> new ArrayAppendFunction(signature, boundSignature, true)
+        );
+        module.add(
+            Signature.builder(OPERATOR_NAME, FunctionType.SCALAR)
                 .argumentTypes(DataTypes.UNTYPED_OBJECT.getTypeSignature(),
                     DataTypes.UNTYPED_OBJECT.getTypeSignature())
                 .returnType(DataTypes.UNTYPED_OBJECT.getTypeSignature())
@@ -118,7 +129,6 @@ public abstract class ConcatFunction extends Scalar<String, String> {
                 .build(),
             ObjectMergeFunction::new
         );
-
     }
 
     ConcatFunction(Signature signature, BoundSignature boundSignature) {
