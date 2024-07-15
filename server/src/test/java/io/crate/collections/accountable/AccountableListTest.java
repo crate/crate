@@ -47,12 +47,12 @@ public class AccountableListTest {
         List<Integer> subList = list.subList(10, 20);
         assertThat(accounting.totalBytes()).isEqualTo(480L); // Sub list structures (pointer, offset and size).
 
-        // Account for temporal storage overhead on list sorting.
+        // Temporal storage overhead on list sorting is not accounted for.
         list.sort(Comparator.comparingInt(x -> x));
-        assertThat(accounting.totalBytes()).isEqualTo(680L);
+        assertThat(accounting.totalBytes()).isEqualTo(480L);
 
-        // Account for temporal storage overhead on sub-list sorting.
+        // Temporal storage overhead on sub-list sorting is not accounted for.
         subList.sort(Comparator.comparingInt(x -> x));
-        assertThat(accounting.totalBytes()).isEqualTo(704L);
+        assertThat(accounting.totalBytes()).isEqualTo(480L);
     }
 }

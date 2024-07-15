@@ -21,6 +21,7 @@
 
 package io.crate.collections.accountable;
 
+import static org.apache.lucene.util.RamUsageEstimator.NUM_BYTES_ARRAY_HEADER;
 import static org.apache.lucene.util.RamUsageEstimator.NUM_BYTES_OBJECT_REF;
 
 import java.util.AbstractList;
@@ -72,8 +73,7 @@ public class AccountableList<T> extends AbstractList<T> {
         @Override
         @SuppressWarnings("unchecked")
         public void sort(Comparator<? super T> c) {
-            // Arrays.sort might require up to n/ 2 temporary object references.
-            root.allocateBytes.accept(RamUsageEstimator.alignObjectSize((long) NUM_BYTES_OBJECT_REF * size / 2));
+            // Arrays.sort might require up to n/ 2 temporary object references, but we account only for retained memory.
             Arrays.sort((T[]) root.elementData, offset, offset + size, c);
         }
 
@@ -115,8 +115,7 @@ public class AccountableList<T> extends AbstractList<T> {
     @Override
     @SuppressWarnings("unchecked")
     public void sort(Comparator<? super T> c) {
-        // Arrays.sort might require up to n/ 2 temporary object references.
-        allocateBytes.accept(RamUsageEstimator.alignObjectSize((long) NUM_BYTES_OBJECT_REF * size / 2));
+        // Arrays.sort might require up to n/ 2 temporary object references, but we account only for retained memory.
         Arrays.sort((T[]) elementData, 0, size, c);
     }
 
@@ -135,8 +134,7 @@ public class AccountableList<T> extends AbstractList<T> {
      */
     @Override
     public boolean addAll(Collection<? extends T> c) {
-        Object[] a = c.toArray();
-        allocateBytes.accept(RamUsageEstimator.shallowSizeOf(a));
+        Object[] a = c.toArray(); // We account only for retained memory.
         int numNew = a.length;
         if (numNew == 0)
             return false;
@@ -172,8 +170,10 @@ public class AccountableList<T> extends AbstractList<T> {
             allocateBytes.accept(RamUsageEstimator.alignObjectSize((long) NUM_BYTES_OBJECT_REF * (newCapacity - oldCapacity)));
             elementData = Arrays.copyOf(elementData, newCapacity);
         } else {
-            elementData = new Object[Math.max(DEFAULT_CAPACITY, minCapacity)];
-            allocateBytes.accept(RamUsageEstimator.shallowSizeOf(elementData));
+            int length = Math.max(DEFAULT_CAPACITY, minCapacity);
+            // Inlining RamUsageEstimator.shallowSizeOf(array) since we want to account before allocation.
+            allocateBytes.accept(RamUsageEstimator.alignObjectSize((long) NUM_BYTES_ARRAY_HEADER + (long) NUM_BYTES_OBJECT_REF * length));
+            elementData = new Object[length];
         }
         return elementData;
     }

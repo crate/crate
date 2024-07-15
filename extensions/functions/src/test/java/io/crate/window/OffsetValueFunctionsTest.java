@@ -581,7 +581,7 @@ public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
             new Object[]{1},
             new Object[]{2}
         );
-        assertThat(accounting.totalBytes()).isEqualTo(217L);
+        assertThat(accounting.totalBytes()).isEqualTo(209L);
     }
 
 }
