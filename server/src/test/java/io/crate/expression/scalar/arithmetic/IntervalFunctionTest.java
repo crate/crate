@@ -36,12 +36,18 @@ public class IntervalFunctionTest extends ScalarTestCase {
     public void test_interval_to_interval() {
         assertEvaluate("interval '1 second' + interval '1 second'",
                        Period.seconds(2).withPeriodType(PeriodType.yearMonthDayTime()));
+        assertEvaluate("interval '1000 millisecond' + interval '1 second'",
+                       Period.seconds(2).withPeriodType(PeriodType.yearMonthDayTime()));
+        assertEvaluate("interval '1000 millisecond' + interval '1000 millisecond'",
+                       Period.seconds(2).withPeriodType(PeriodType.yearMonthDayTime()));
         assertEvaluate("interval '1100 years' + interval '2000 years'",
                        Period.years(3100).withPeriodType(PeriodType.yearMonthDayTime()));
         assertEvaluate("interval '-10 years' + interval '1 years'",
                        Period.years(-9).withPeriodType(PeriodType.yearMonthDayTime()));
         assertEvaluate("interval '2 second' - interval '1 second'",
                        Period.seconds(1).withPeriodType(PeriodType.yearMonthDayTime()));
+        assertEvaluate("interval '2 millisecond' - interval '1 millisecond'",
+                       Period.millis(1).withPeriodType(PeriodType.yearMonthDayTime()));
         assertEvaluate("interval '-1 second' - interval '-1 second'",
                        Period.seconds(0).withPeriodType(PeriodType.yearMonthDayTime()));
         assertEvaluate("interval '1 month' + interval '1 year'",
@@ -76,6 +82,13 @@ public class IntervalFunctionTest extends ScalarTestCase {
         assertEvaluate("900 * interval '1 second'",
                        Period.minutes(15).withPeriodType(PeriodType.yearMonthDayTime()));
         assertEvaluate("interval '1 second' * 900",
+                       Period.minutes(15).withPeriodType(PeriodType.yearMonthDayTime()));
+    }
+
+    public void test_normalize_multiplication_result_millis() {
+        assertEvaluate("900 * interval '1000 millisecond'",
+                       Period.minutes(15).withPeriodType(PeriodType.yearMonthDayTime()));
+        assertEvaluate("interval '1 millisecond' * 900000",
                        Period.minutes(15).withPeriodType(PeriodType.yearMonthDayTime()));
     }
 
@@ -121,6 +134,16 @@ public class IntervalFunctionTest extends ScalarTestCase {
     }
 
     @Test
+    public void test_null_interval_millis() {
+        assertEvaluateNull("null + interval '1 millisecond'");
+        assertEvaluateNull("null - interval '1 millisecond'");
+        assertEvaluateNull("interval '1 millisecond' + null");
+        assertEvaluateNull("interval '1 millisecond' - null");
+        assertEvaluateNull("null * interval '1 millisecond'");
+        assertEvaluateNull("interval '1 millisecond' * null");
+    }
+
+    @Test
     public void test_unsupported_arithmetic_operator_on_interval_types() {
         assertThatThrownBy(
             () -> assertEvaluate("null / interval '1 second'", null))
@@ -137,6 +160,15 @@ public class IntervalFunctionTest extends ScalarTestCase {
         assertEvaluate("'86400000'::timestamp + interval '-1 second'", 86399000L);
         assertEvaluate("'86400000'::timestamp - interval '1000 years'", -31556822400000L);
         assertEvaluate("'9223372036854775807'::timestamp - interval '1 second'", 9223372036854774807L);
+    }
+
+    @Test
+    public void test_timestamp_interval_millis() {
+        assertEvaluate("interval '1 millisecond' + '86400000'::timestamp", 86400001L);
+        assertEvaluate("'86400001'::timestamp - interval '1 millisecond'", 86400000L);
+        assertEvaluate("'86400000'::timestamp - interval '-1 millisecond'", 86400001L);
+        assertEvaluate("'86400000'::timestamp + interval '-1 millisecond'", 86399999L);
+        assertEvaluate("'9223372036854775807'::timestamp - interval '1 millisecond'", 9223372036854775806L);
     }
 
     @Test

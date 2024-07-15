@@ -40,7 +40,8 @@ public class IntervalLiteral extends Literal {
         DAY,
         HOUR,
         MINUTE,
-        SECOND
+        SECOND,
+        MILLISECOND
     }
 
     private final String value;

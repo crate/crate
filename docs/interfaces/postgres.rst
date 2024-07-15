@@ -457,7 +457,7 @@ Dates and times
 At the moment, CrateDB does not support ``TIME`` without a time zone.
 
 Additionally, CrateDB does not support the ``INTERVAL`` input units
-``MILLENNIUM``, ``CENTURY``, ``DECADE``, ``MILLISECOND``, or ``MICROSECOND``.
+``MILLENNIUM``, ``CENTURY``, ``DECADE``, or ``MICROSECOND``.
 
 
 .. _postgres-objects:

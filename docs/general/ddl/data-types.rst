@@ -1926,6 +1926,7 @@ Where ``unit`` can be any of the following:
 - ``HOUR``
 - ``MINUTE``
 - ``SECOND``
+- ``MILLISECOND``
 
 For example::
 
@@ -1961,7 +1962,7 @@ of zero to six digits)::
 .. CAUTION::
 
     The ``INTERVAL`` data type does not currently support the input units
-    ``MILLENNIUM``, ``CENTURY``, ``DECADE``, ``MILLISECOND``, or
+    ``MILLENNIUM``, ``CENTURY``, ``DECADE``, or
     ``MICROSECOND``.
 
     This behaviour does not comply with standard SQL and is incompatible with
