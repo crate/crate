@@ -87,6 +87,15 @@ public class IntervalLiteralTest {
     }
 
     @Test
+    public void test_millisecond() {
+        IntervalLiteral interval = (IntervalLiteral) SqlParser.createExpression("INTERVAL +'1' MILLISECOND");
+        assertThat(interval.getValue()).isEqualTo("1");
+        assertThat(interval.getSign()).isEqualTo(IntervalLiteral.Sign.PLUS);
+        assertThat(interval.getStartField()).isEqualTo(IntervalLiteral.IntervalField.MILLISECOND);
+        assertThat(interval.getEndField()).isNull();
+    }
+
+    @Test
     public void testNegative() {
         IntervalLiteral interval = (IntervalLiteral) SqlParser.createExpression("INTERVAL -'1' HOUR");
         assertThat(interval.getValue()).isEqualTo("1");
