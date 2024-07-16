@@ -50,8 +50,7 @@ class ArrayLowerFunction extends Scalar<Integer, Object> {
                     DataTypes.INTEGER.getTypeSignature(),
                     DataTypes.INTEGER.getTypeSignature()
                 ).withFeature(Feature.DETERMINISTIC)
-                .withTypeVariableConstraints(typeVariable("E"))
-                .withFeature(Feature.NULLABLE),
+                .withTypeVariableConstraints(typeVariable("E")),
             ArrayLowerFunction::new
         );
     }
