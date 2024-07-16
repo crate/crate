@@ -50,3 +50,9 @@ Fixes
 
 - Fixed an issue that could lead to ``ANALYZE`` over account the number of
   documents in a table if shards were relocating.
+
+- Fixed an issue that caused ``WHERE`` clause to fail to filter rows when
+  the clause contained array scalar functions under ``NOT`` operator. The
+  affected scalars include :ref:`scalar-array_min`, :ref:`scalar-array_max`,
+  :ref:`scalar-array_sum`, :ref:`scalar-array_avg`, :ref:`scalar-array_upper`,
+  :ref:`scalar-array_lower` and :ref:`scalar-array_length`.

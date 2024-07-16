@@ -55,3 +55,9 @@ Fixes
 
 - Fixed a regression introduced in 5.8.0 that prevented cluster to become GREEN
   after a rolling upgrade.
+
+- Fixed an issue that caused ``WHERE`` clause to fail to filter rows when
+  the clause contained array scalar functions under ``NOT`` operator. The
+  affected scalars include :ref:`scalar-array_min`, :ref:`scalar-array_max`,
+  :ref:`scalar-array_sum`, :ref:`scalar-array_avg`, :ref:`scalar-array_upper`,
+  :ref:`scalar-array_lower` and :ref:`scalar-array_length`.

@@ -49,7 +49,7 @@ class ArrayLowerFunction extends Scalar<Integer, Object> {
                 .argumentTypes(TypeSignature.parse("array(E)"),
                     DataTypes.INTEGER.getTypeSignature())
                 .returnType(DataTypes.INTEGER.getTypeSignature())
-                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
+                .features(Feature.DETERMINISTIC)
                 .typeVariableConstraints(typeVariable("E"))
                 .build(),
             ArrayLowerFunction::new
