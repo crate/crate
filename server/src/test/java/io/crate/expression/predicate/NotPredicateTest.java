@@ -120,4 +120,47 @@ public class NotPredicateTest extends ScalarTestCase {
             }
         }
     }
+
+    @Test
+    public void test_neq_on_array_scalars_that_evaluate_non_null_inputs_to_nulls() throws Exception {
+        var listOfNulls = new ArrayList<Integer>();
+        listOfNulls.add(null);
+        listOfNulls.add(null);
+        Object[] values = new Object[] {List.of(), listOfNulls}; // '[]' and [null, null]
+        try (QueryTester tester = new QueryTester.Builder(
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            "create table t (xs array(int))"
+        ).indexValues("xs", values).build()) {
+
+            String query = "array_max(xs) != 1";
+            List<Object> result = tester.runQuery("xs", query);
+            Asserts.assertThat(result).isEmpty();
+
+            query = "array_min(xs) != 1";
+            result = tester.runQuery("xs", query);
+            Asserts.assertThat(result).isEmpty();
+
+            query = "array_avg(xs) != 1";
+            result = tester.runQuery("xs", query);
+            Asserts.assertThat(result).isEmpty();
+
+            query = "array_sum(xs) != 1";
+            result = tester.runQuery("xs", query);
+            Asserts.assertThat(result).isEmpty();
+
+            query = "array_length(xs, -1) != 1";
+            result = tester.runQuery("xs", query);
+            Asserts.assertThat(result).isEmpty();
+
+            query = "array_lower(xs, -1) != 1";
+            result = tester.runQuery("xs", query);
+            Asserts.assertThat(result).isEmpty();
+
+            query = "array_lower(xs, -1) != 1";
+            result = tester.runQuery("xs", query);
+            Asserts.assertThat(result).isEmpty();
+        }
+    }
 }
