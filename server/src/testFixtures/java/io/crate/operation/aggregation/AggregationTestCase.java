@@ -524,7 +524,7 @@ public abstract class AggregationTestCase extends ESTestCase {
                 shardPath,
                 store,
                 queryCache,
-                testAnalysis.indexAnalyzers,
+                testAnalysis.indexAnalyzers.getDefaultIndexAnalyzer(),
                 () -> null,
                 List.of(),
                 EMPTY_EVENT_LISTENER,
