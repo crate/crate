@@ -21,7 +21,7 @@
 
 package io.crate.expression.scalar.systeminformation;
 
-import io.crate.expression.scalar.arithmetic.BinaryScalar;
+import io.crate.expression.scalar.BinaryScalar;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;

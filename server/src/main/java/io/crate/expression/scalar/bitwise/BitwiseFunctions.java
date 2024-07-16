@@ -30,7 +30,7 @@ import java.util.Locale;
 import java.util.function.BinaryOperator;
 
 import io.crate.common.TriConsumer;
-import io.crate.expression.scalar.arithmetic.BinaryScalar;
+import io.crate.expression.scalar.BinaryScalar;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;

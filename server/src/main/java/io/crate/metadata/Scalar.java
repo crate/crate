@@ -56,7 +56,7 @@ import io.crate.role.Roles;
  *
  * <ul>
  *     <li>{@link io.crate.expression.scalar.UnaryScalar}</li>
- *     <li>{@link io.crate.expression.scalar.arithmetic.BinaryScalar}</li>
+ *     <li>{@link io.crate.expression.scalar.BinaryScalar}</li>
  *     <li>{@link io.crate.expression.scalar.DoubleScalar}</li>
  *     <li>{@link io.crate.expression.scalar.TripleScalar}</li>
  * </ul>
