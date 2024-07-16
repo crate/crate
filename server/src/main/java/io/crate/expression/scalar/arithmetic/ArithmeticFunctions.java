@@ -29,6 +29,7 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.function.BinaryOperator;
 
+import io.crate.expression.scalar.BinaryScalar;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;

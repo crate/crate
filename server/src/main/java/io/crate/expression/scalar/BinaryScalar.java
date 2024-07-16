@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.expression.scalar.arithmetic;
+package io.crate.expression.scalar;
 
 import java.util.function.BinaryOperator;
 
@@ -51,11 +51,10 @@ public final class BinaryScalar<T> extends Scalar<T, T> {
     @Override
     public T evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<T>[] args) {
         T arg0Value = type.sanitizeValue(args[0].value());
-        T arg1Value = type.sanitizeValue(args[1].value());
-
         if (arg0Value == null) {
             return null;
         }
+        T arg1Value = type.sanitizeValue(args[1].value());
         if (arg1Value == null) {
             return null;
         }

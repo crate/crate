@@ -23,6 +23,7 @@ package io.crate.expression.scalar.arithmetic;
 
 import java.util.function.DoubleUnaryOperator;
 
+import io.crate.expression.scalar.BinaryScalar;
 import io.crate.expression.scalar.DoubleScalar;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;

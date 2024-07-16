@@ -29,7 +29,7 @@ import java.util.function.UnaryOperator;
 
 import io.crate.common.Hex;
 import io.crate.common.Octal;
-import io.crate.expression.scalar.arithmetic.BinaryScalar;
+import io.crate.expression.scalar.BinaryScalar;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
