@@ -73,8 +73,7 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
                         DataTypes.INTEGER.getTypeSignature(),
                         DataTypes.INTEGER.getTypeSignature()
                     ).withTypeVariableConstraints(typeVariable("E"))
-                    .withFeature(Feature.DETERMINISTIC)
-                    .withFeature(Feature.NULLABLE),
+                    .withFeature(Feature.DETERMINISTIC),
                 ArrayUpperFunction::new
             );
         }
