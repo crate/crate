@@ -53,6 +53,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateApplier;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
@@ -505,7 +506,7 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
             AllocatedIndex<? extends Shard> indexService = null;
             try {
                 indexService = indicesService.createIndex(indexMetadata, buildInIndexListener, true);
-                indexService.validateMapping(indexMetadata);
+                indexService.validateMapping(state.metadata(), indexMetadata);
             } catch (Exception e) {
                 final String failShardReason;
                 if (indexService == null) {
@@ -543,7 +544,7 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
                     }
 
                     reason = "mapping update failed";
-                    indexService.validateMapping(newIndexMetadata);
+                    indexService.validateMapping(state.metadata(), newIndexMetadata);
                 } catch (Exception e) {
                     indicesService.removeIndex(indexService.index(), FAILURE, "removing index (" + reason + ")");
 
@@ -838,7 +839,7 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
         /**
          * Checks if index requires refresh from master.
          */
-        void validateMapping(IndexMetadata newIndexMetadata) throws IOException;
+        void validateMapping(Metadata metadata, IndexMetadata newIndexMetadata) throws IOException;
 
         /**
          * Returns shard with given id.
