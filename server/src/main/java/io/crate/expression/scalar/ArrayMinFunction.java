@@ -47,22 +47,20 @@ public class ArrayMinFunction<T> extends Scalar<T, List<T>> {
 
         module.add(
             Signature.scalar(
-                    NAME,
-                    new ArrayType(DataTypes.NUMERIC).getTypeSignature(),
-                    DataTypes.NUMERIC.getTypeSignature()
-                )
-                .withFeature(Feature.NULLABLE),
+                NAME,
+                new ArrayType(DataTypes.NUMERIC).getTypeSignature(),
+                DataTypes.NUMERIC.getTypeSignature()
+            ),
             ArrayMinFunction::new
         );
 
         for (var supportedType : DataTypes.PRIMITIVE_TYPES) {
             module.add(
                 Signature.scalar(
-                        NAME,
-                        new ArrayType(supportedType).getTypeSignature(),
-                        supportedType.getTypeSignature()
-                    )
-                    .withFeature(Feature.NULLABLE),
+                    NAME,
+                    new ArrayType(supportedType).getTypeSignature(),
+                    supportedType.getTypeSignature()
+                ),
                 ArrayMinFunction::new
             );
         }
