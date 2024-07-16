@@ -58,7 +58,6 @@ import java.util.stream.StreamSupport;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.DelegatingAnalyzerWrapper;
 import org.apache.lucene.index.CheckIndex;
 import org.apache.lucene.index.IndexCommit;
 import org.apache.lucene.index.SegmentInfos;
@@ -106,8 +105,6 @@ import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.VersionType;
-import org.elasticsearch.index.analysis.IndexAnalyzers;
-import org.elasticsearch.index.analysis.NamedAnalyzer;
 import org.elasticsearch.index.codec.CodecService;
 import org.elasticsearch.index.engine.CommitStats;
 import org.elasticsearch.index.engine.Engine;
@@ -163,21 +160,16 @@ import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.dml.TranslogIndexer;
 import io.crate.execution.dml.TranslogMappingUpdateException;
-import io.crate.metadata.IndexReference;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
-import io.crate.metadata.table.ShardedTable;
-import io.crate.metadata.table.TableInfo;
 
 public class IndexShard extends AbstractIndexShardComponent implements IndicesClusterStateService.Shard {
 
     public static final long RETAIN_ALL = -1;
 
     private final ThreadPool threadPool;
-    private final Supplier<TableInfo> getTable;
+    private final Supplier<TranslogIndexer> getTranslogIndexer;
     private final QueryCache queryCache;
     private final Store store;
     private final Object mutex = new Object();
@@ -264,8 +256,8 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             ShardPath path,
             Store store,
             QueryCache queryCache,
-            IndexAnalyzers indexAnalyzers,
-            Supplier<TableInfo> getTable,
+            Analyzer indexAnalyzer,
+            Supplier<TranslogIndexer> getTranslogIndexer,
             Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders,
             IndexEventListener indexEventListener,
             ThreadPool threadPool,
@@ -284,7 +276,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         this.store = store;
         this.indexEventListener = indexEventListener;
         this.threadPool = threadPool;
-        this.getTable = getTable;
+        this.getTranslogIndexer = getTranslogIndexer;
         this.queryCache = queryCache;
         this.indexingOperationListeners = new IndexingOperationListener.CompositeListener(listeners, logger);
         this.globalCheckpointSyncer = globalCheckpointSyncer;
@@ -343,22 +335,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         persistMetadata(path, indexSettings, shardRouting, null, logger);
         this.useRetentionLeasesInPeerRecovery = replicationTracker.hasAllPeerRecoveryRetentionLeases();
         this.refreshPendingLocationListener = new RefreshPendingLocationListener();
-        this.indexAnalyzer = new DelegatingAnalyzerWrapper(Analyzer.PER_FIELD_REUSE_STRATEGY) {
-
-            @Override
-            protected Analyzer getWrappedAnalyzer(String storageIdent) {
-                if (getTable.get() instanceof DocTableInfo docTable) {
-                    Reference reference = docTable.getReference(storageIdent);
-                    if (reference instanceof IndexReference indexRef) {
-                        NamedAnalyzer namedAnalyzer = indexAnalyzers.get(indexRef.analyzer());
-                        return namedAnalyzer == null
-                            ? indexAnalyzers.getDefaultIndexAnalyzer()
-                            : namedAnalyzer;
-                    }
-                }
-                return indexAnalyzers.getDefaultIndexAnalyzer();
-            }
-        };
+        this.indexAnalyzer = indexAnalyzer;
     }
 
     public ThreadPool getThreadPool() {
@@ -370,10 +347,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     }
 
     public boolean isClosed() {
-        TableInfo tableInfo = getTable.get();
-        return tableInfo instanceof ShardedTable shardedTable
-            ? shardedTable.isClosed()
-            : false;
+        return this.queryCache == null;
     }
 
     /**
@@ -755,10 +729,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         assert opPrimaryTerm <= getOperationPrimaryTerm()
                 : "op term [ " + opPrimaryTerm + " ] > shard term [" + getOperationPrimaryTerm() + "]";
         ensureWriteAllowed(origin);
-        TableInfo tableInfo = getTable.get();
-        assert tableInfo instanceof DocTableInfo
-            : "Table used in indexShard must be a DocTableInfo for index operations";
-        TranslogIndexer ti = ((DocTableInfo) tableInfo).getTranslogIndexer();
+        TranslogIndexer ti = getTranslogIndexer.get();
         if (ti == null) {
             throw new IllegalIndexShardStateException(shardId, state, "DocTableInfo unavailable for shard " + shardId);
         }

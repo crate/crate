@@ -108,6 +108,7 @@ import org.mockito.Mockito;
 import io.crate.action.FutureActionListener;
 import io.crate.common.CheckedFunction;
 import io.crate.common.io.IOUtils;
+import io.crate.execution.dml.TranslogIndexer;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
@@ -524,8 +525,8 @@ public abstract class IndexShardTestCase extends ESTestCase {
                 shardPath,
                 store,
                 queryCache,
-                testAnalysis.indexAnalyzers,
-                () -> getDocTable(() -> indexSettings.getIndexMetadata()),
+                testAnalysis.indexAnalyzers.getDefaultIndexAnalyzer(),
+                () -> new TranslogIndexer(getDocTable(indexSettings::getIndexMetadata)),
                 engineFactoryProviders,
                 indexEventListener,
                 threadPool,
