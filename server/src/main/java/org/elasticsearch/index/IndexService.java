@@ -43,11 +43,14 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.DelegatingAnalyzerWrapper;
 import org.apache.lucene.search.QueryCache;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.store.Directory;
 import org.elasticsearch.Assertions;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
@@ -61,6 +64,7 @@ import org.elasticsearch.gateway.MetadataStateFormat;
 import org.elasticsearch.gateway.WriteStateException;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
 import org.elasticsearch.index.analysis.IndexAnalyzers;
+import org.elasticsearch.index.analysis.NamedAnalyzer;
 import org.elasticsearch.index.engine.EngineFactory;
 import org.elasticsearch.index.seqno.RetentionLeaseSyncer;
 import org.elasticsearch.index.shard.IndexEventListener;
@@ -80,7 +84,13 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
+import io.crate.execution.dml.TranslogIndexer;
+import io.crate.metadata.IndexParts;
+import io.crate.metadata.IndexReference;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.metadata.table.TableInfo;
 
@@ -91,7 +101,9 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
     private final ShardStoreDeleter shardStoreDeleter;
     private final QueryCache queryCache;
     private final IndexStorePlugin.DirectoryFactory directoryFactory;
-    private final Supplier<TableInfo> getTable;
+    private Supplier<TranslogIndexer> getTranslogIndexer = () -> {
+        throw new IllegalStateException("Translog called before schema validation");
+    };
     private final Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders;
     private volatile Map<Integer, IndexShard> shards = emptyMap();
     private final AtomicBoolean closed = new AtomicBoolean(false);
@@ -111,6 +123,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
     private final BigArrays bigArrays;
     private final CircuitBreakerService circuitBreakerService;
     private final IndexAnalyzers indexAnalyzers;
+    private final Analyzer indexAnalyzer;
     private final NodeContext nodeContext;
     private final DocTableInfoFactory tableFactory;
 
@@ -138,12 +151,28 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         if (indexSettings.getIndexMetadata().getState() == IndexMetadata.State.CLOSE &&
                 indexCreationContext == IndexCreationContext.CREATE_INDEX) { // metadata verification needs a mapper service
             this.indexAnalyzers = null;
+            this.indexAnalyzer = null;
             this.queryCache = null;
         } else {
             this.indexAnalyzers = registry.build(indexSettings);
             this.queryCache = queryCache;
+            this.indexAnalyzer = new DelegatingAnalyzerWrapper(Analyzer.PER_FIELD_REUSE_STRATEGY) {
+
+                @Override
+                protected Analyzer getWrappedAnalyzer(String storageIdent) {
+                    if (getTableInfo.get() instanceof DocTableInfo docTable) {
+                        Reference reference = docTable.getReference(storageIdent);
+                        if (reference instanceof IndexReference indexRef) {
+                            NamedAnalyzer namedAnalyzer = indexAnalyzers.get(indexRef.analyzer());
+                            return namedAnalyzer == null
+                                ? indexAnalyzers.getDefaultIndexAnalyzer()
+                                : namedAnalyzer;
+                        }
+                    }
+                    return indexAnalyzers.getDefaultIndexAnalyzer();
+                }
+            };
         }
-        this.getTable = getTableInfo;
         this.shardStoreDeleter = shardStoreDeleter;
         this.bigArrays = bigArrays;
         this.threadPool = threadPool;
@@ -358,8 +387,8 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
                 path,
                 store,
                 queryCache,
-                indexAnalyzers,
-                getTable,
+                indexAnalyzer,
+                this::getTranslogIndexer,
                 engineFactoryProviders,
                 eventListener,
                 threadPool,
@@ -463,8 +492,17 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
     }
 
     @Override
-    public void validateMapping(final IndexMetadata newIndexMetadata) throws IOException {
-        tableFactory.validateSchema(newIndexMetadata);
+    public void validateMapping(Metadata metadata, final IndexMetadata newIndexMetadata) {
+        var indexName = newIndexMetadata.getIndex().getName();
+        if (IndexParts.isDangling(indexName)) {
+            return;
+        }
+        var tableInfo = tableFactory.create(RelationName.fromIndexName(indexName), metadata);
+        this.getTranslogIndexer = () -> new TranslogIndexer(tableInfo);
+    }
+
+    private TranslogIndexer getTranslogIndexer() {
+        return this.getTranslogIndexer.get();
     }
 
     private class StoreCloseListener implements Store.OnClose {
