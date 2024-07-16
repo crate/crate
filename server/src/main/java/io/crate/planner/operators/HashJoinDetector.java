@@ -37,17 +37,17 @@ import io.crate.metadata.RelationName;
 import io.crate.sql.tree.JoinType;
 
 /**
- * Helper to detect if a join is an Equi join and could be executed with a hash join algorithm.
+ * Helper to detect if a join can be executed with a hash join algorithm.
  * <p>
  * Using hash join is possible under following assumptions:
  * <ul>
  * <li>it's a {@link JoinType#INNER} join type</li>
- * <li>the join condition contains no {@link OrOperator}</li>
+ * <li>the join condition contains no {@link OrOperator} on the top-level</li>
  * <li>the join condition contains at least one {@link EqOperator}</li>
  * <li>at least one argument of the {@link EqOperator} must NOT contain fields to multiple tables</li>
  * </ul>
  */
-public class EquiJoinDetector {
+public class HashJoinDetector {
 
     private static final Visitor VISITOR = new Visitor();
 

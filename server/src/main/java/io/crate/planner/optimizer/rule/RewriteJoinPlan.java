@@ -23,7 +23,7 @@ package io.crate.planner.optimizer.rule;
 
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 
-import io.crate.planner.operators.EquiJoinDetector;
+import io.crate.planner.operators.HashJoinDetector;
 import io.crate.planner.operators.HashJoin;
 import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.operators.LogicalPlan;
@@ -53,7 +53,7 @@ public class RewriteJoinPlan implements Rule<JoinPlan> {
                              Captures captures,
                              Rule.Context context) {
         if (context.txnCtx().sessionSettings().hashJoinsEnabled() &&
-            EquiJoinDetector.isHashJoinPossible(join.joinType(), join.joinCondition())) {
+            HashJoinDetector.isHashJoinPossible(join.joinType(), join.joinCondition())) {
             return new HashJoin(
                 join.lhs(),
                 join.rhs(),

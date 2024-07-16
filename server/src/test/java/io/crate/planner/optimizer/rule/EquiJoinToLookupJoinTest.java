@@ -35,7 +35,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.Collect;
-import io.crate.planner.operators.EquiJoinDetector;
+import io.crate.planner.operators.HashJoinDetector;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.optimizer.matcher.Captures;
@@ -225,7 +225,7 @@ public class EquiJoinToLookupJoinTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_skip_non_equi_joins() throws Exception {
         var joinCondition = e.asSymbol("lhs.x = 2");
-        Assertions.assertThat(EquiJoinDetector.isEquiJoin(joinCondition)).isFalse();
+        Assertions.assertThat(HashJoinDetector.isEquiJoin(joinCondition)).isFalse();
         var join = new JoinPlan(lhs, rhs, JoinType.INNER, joinCondition);
 
         Map<RelationName, Stats> rowCountByTable = new HashMap<>();

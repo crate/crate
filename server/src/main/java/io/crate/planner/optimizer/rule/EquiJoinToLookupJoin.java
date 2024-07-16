@@ -36,7 +36,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.AbstractJoinPlan;
-import io.crate.planner.operators.EquiJoinDetector;
+import io.crate.planner.operators.HashJoinDetector;
 import io.crate.planner.operators.Eval;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.JoinConditionSymbolsExtractor;
@@ -75,7 +75,7 @@ public class EquiJoinToLookupJoin implements Rule<JoinPlan> {
             // only inner-equi-joins
             j.joinType() == JoinType.INNER &&
             j.joinCondition() != null &&
-            EquiJoinDetector.isEquiJoin(j.joinCondition()) &&
+            HashJoinDetector.isEquiJoin(j.joinCondition()) &&
             // no nested subqueries
             j.lhs().relationNames().size() == 1 &&
             j.rhs().relationNames().size() == 1

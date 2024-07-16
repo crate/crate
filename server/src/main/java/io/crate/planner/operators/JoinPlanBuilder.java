@@ -53,7 +53,7 @@ import io.crate.sql.tree.JoinType;
  * <p>
  * We currently support the {@link NestedLoopJoin} and {@link HashJoin} operators (the hash join operator is
  * enabled by the {@link io.crate.metadata.settings.session.SessionSettingRegistry#HASH_JOIN_KEY} setting and its
- * application is mandated by {@link EquiJoinDetector}).
+ * application is mandated by {@link HashJoinDetector}).
  */
 public class JoinPlanBuilder {
 

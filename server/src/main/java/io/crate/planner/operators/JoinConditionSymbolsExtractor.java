@@ -56,7 +56,7 @@ import io.crate.metadata.RelationName;
  * as t2.c is compared to the same symbol as t2.b and only EQ operators are processed.
  *
  * It is expected that each expression argument of a EQ operator only contains symbols of one relation.
- * This can be ensured by using the {@link EquiJoinDetector} upfront.
+ * This can be ensured by using the {@link HashJoinDetector} upfront.
  */
 public final class JoinConditionSymbolsExtractor {
 
@@ -85,7 +85,7 @@ public final class JoinConditionSymbolsExtractor {
             // For example, consider `t1.a = t2.a AND t1.a = t1.a + t2.b`, as a whole
             // it is an equi-join condition due to `t1.a = t2.b`
             // but `t1.a = t1.a + t2.b` by itself is not an equi-join condition.
-            if (!EquiJoinDetector.isEquiJoin(function)) {
+            if (!HashJoinDetector.isEquiJoin(function)) {
                 return null;
             }
 
