@@ -150,4 +150,10 @@ public class EquiJoinDetectorTest extends CrateDummyClusterServiceUnitTest {
         joinCondition = sqlExpressions.asSymbol("(t1.a >= 1) = (t2.b <= t2.b AND t2.b < 10)");
         assertThat(EquiJoinDetector.isHashJoinPossible(JoinType.INNER, joinCondition)).isTrue();
     }
+
+    @Test
+    public void test_or_in_boolean_join_condition_hash_join_possible() {
+        Symbol joinCondition = sqlExpressions.asSymbol("(t1.a > 1) = (t2.b < 5 OR t2.b > 10)");
+        assertThat(EquiJoinDetector.isHashJoinPossible(JoinType.INNER, joinCondition)).isTrue();
+    }
 }

@@ -97,9 +97,17 @@ public class EquiJoinDetector {
                     }
                 }
                 case OrOperator.NAME -> {
-                    context.isHashJoinPossible = false;
-                    context.exit = true;
-                    return null;
+                    if (context.insideEqualOperand) {
+                        // Not a top-level OR.
+                        // It's OR inside either side of the top level EQ operator, keep collecting relations.
+                        for (Symbol arg : function.arguments()) {
+                            arg.accept(this, context);
+                        }
+                    } else {
+                        context.isHashJoinPossible = false;
+                        context.exit = true;
+                        return null;
+                    }
                 }
                 case EqOperator.NAME -> {
                     List<Symbol> arguments = function.arguments();
