@@ -42,7 +42,6 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionType;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.Scalar.Feature;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -63,7 +62,7 @@ public class MapRowUsingInputsTest extends ESTestCase {
                 .argumentTypes(DataTypes.LONG.getTypeSignature(),
                     DataTypes.LONG.getTypeSignature())
                 .returnType(DataTypes.LONG.getTypeSignature())
-                .features(Feature.DETERMINISTIC, Feature.COMPARISON_REPLACEMENT, Scalar.Feature.STRICTNULL)
+                .features(Feature.DETERMINISTIC, Feature.COMPARISON_REPLACEMENT)
                 .build(),
             List.of(new InputColumn(0, DataTypes.LONG), Literal.of(2L)),
             DataTypes.LONG

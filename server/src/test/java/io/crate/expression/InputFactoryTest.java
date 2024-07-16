@@ -48,7 +48,6 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.Scalar.Feature;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
@@ -67,7 +66,7 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
                     .argumentTypes(DataTypes.INTEGER.getTypeSignature(),
                             DataTypes.INTEGER.getTypeSignature())
                     .returnType(DataTypes.INTEGER.getTypeSignature())
-                    .features(Feature.DETERMINISTIC, Feature.COMPARISON_REPLACEMENT, Scalar.Feature.STRICTNULL)
+                    .features(Feature.DETERMINISTIC, Feature.COMPARISON_REPLACEMENT)
                     .build(),
             List.of(new InputColumn(1, DataTypes.INTEGER), Literal.of(10)),
             DataTypes.INTEGER
