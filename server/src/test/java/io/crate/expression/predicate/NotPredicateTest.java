@@ -25,6 +25,7 @@ import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.elasticsearch.Version;
@@ -73,6 +74,49 @@ public class NotPredicateTest extends ScalarTestCase {
             assertThat(result).containsExactly(null, 2);
 
             result = tester.runQuery("x", "(case when true then 2 else x end) != 2");
+            assertThat(result).isEmpty();
+        }
+    }
+
+    @Test
+    public void test_neq_on_array_scalars_that_evaluate_non_null_inputs_to_nulls() throws Exception {
+        var listOfNulls = new ArrayList<Integer>();
+        listOfNulls.add(null);
+        listOfNulls.add(null);
+        Object[] values = new Object[] {List.of(), listOfNulls}; // '[]' and [null, null]
+        try (QueryTester tester = new QueryTester.Builder(
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            "create table t (xs array(int))"
+        ).indexValues("xs", values).build()) {
+
+            String query = "array_max(xs) != 1";
+            List<Object> result = tester.runQuery("xs", query);
+            assertThat(result).isEmpty();
+
+            query = "array_min(xs) != 1";
+            result = tester.runQuery("xs", query);
+            assertThat(result).isEmpty();
+
+            query = "array_avg(xs) != 1";
+            result = tester.runQuery("xs", query);
+            assertThat(result).isEmpty();
+
+            query = "array_sum(xs) != 1";
+            result = tester.runQuery("xs", query);
+            assertThat(result).isEmpty();
+
+            query = "array_length(xs, -1) != 1";
+            result = tester.runQuery("xs", query);
+            assertThat(result).isEmpty();
+
+            query = "array_lower(xs, -1) != 1";
+            result = tester.runQuery("xs", query);
+            assertThat(result).isEmpty();
+
+            query = "array_lower(xs, -1) != 1";
+            result = tester.runQuery("xs", query);
             assertThat(result).isEmpty();
         }
     }

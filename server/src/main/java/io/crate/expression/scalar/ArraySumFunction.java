@@ -50,7 +50,7 @@ public class ArraySumFunction<T extends Number, R extends Number> extends Scalar
             NAME,
             new ArrayType<>(elementType).getTypeSignature(),
             returnType.getTypeSignature()
-        ).withFeature(Feature.NULLABLE);
+        );
     }
 
     public static void register(Functions.Builder builder) {
