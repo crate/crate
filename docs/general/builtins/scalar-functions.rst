@@ -2746,6 +2746,13 @@ values to an array::
     +--------------+
     SELECT 1 row in set (... sec)
 
+.. NOTE::
+
+    The ``||`` operator differs from the ``array_append`` function regarding
+    the handling of ``NULL`` arguments. It will ignore a ``NULL`` value while
+    the ``array_append`` function will append a ``NULL`` value to the array.
+
+
 .. _scalar-array_cat:
 
 ``array_cat(first_array, second_array)``
@@ -3238,6 +3245,45 @@ Begin the search from given position (optional).
     clause is much more efficient as it can utilize the index whereas
     ``array_position`` won't even when used inside the ``WHERE`` clause.
 
+
+.. _scalar-array_prepend:
+
+``array_prepend(value, anyarray)``
+----------------------------------
+
+The ``array_prepend`` function prepends a value to the beginning of the array.
+
+Returns: ``array``
+
+::
+
+    cr> select
+    ...     array_prepend(1, [2,3,4]) AS array_prepend;
+    +---------------+
+    | array_prepend |
+    +---------------+
+    | [1, 2, 3, 4]  |
+    +---------------+
+    SELECT 1 row in set (... sec)
+
+
+You can also use the concat :ref:`operator <gloss-operator>` ``||`` to prepend
+values to an array::
+
+    cr> select
+    ...    1 || [2,3,4] AS array_prepend;
+    +---------------+
+    | array_prepend |
+    +---------------+
+    | [1, 2, 3, 4]  |
+    +---------------+
+    SELECT 1 row in set (... sec)
+
+.. NOTE::
+
+    The ``||`` operator differs from the ``array_prepend`` function regarding the
+    handling of ``NULL`` arguments. It will ignore a ``NULL`` value while the
+    ``array_prepend`` function will prepend a ``NULL`` value to the array.
 
 .. _scalar-array_max:
 

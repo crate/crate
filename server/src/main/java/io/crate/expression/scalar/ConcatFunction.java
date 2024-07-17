@@ -122,6 +122,18 @@ public abstract class ConcatFunction extends Scalar<String, String> {
         );
         module.add(
             Signature.builder(OPERATOR_NAME, FunctionType.SCALAR)
+                .argumentTypes(
+                    TypeSignature.parse("E"),
+                    TypeSignature.parse("array(E)")
+                )
+                .returnType(TypeSignature.parse("array(E)"))
+                .typeVariableConstraints(typeVariable("E"))
+                .features(Feature.DETERMINISTIC)
+                .build(),
+            (signature, boundSignature) -> new ArrayPrependFunction(signature, boundSignature, true)
+        );
+        module.add(
+            Signature.builder(OPERATOR_NAME, FunctionType.SCALAR)
                 .argumentTypes(DataTypes.UNTYPED_OBJECT.getTypeSignature(),
                     DataTypes.UNTYPED_OBJECT.getTypeSignature())
                 .returnType(DataTypes.UNTYPED_OBJECT.getTypeSignature())

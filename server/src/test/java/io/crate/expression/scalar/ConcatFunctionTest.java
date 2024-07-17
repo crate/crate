@@ -145,4 +145,9 @@ public class ConcatFunctionTest extends ScalarTestCase {
     public void test_concat_operator_with_array_and_element() {
         assertEvaluate("[1] || 2", List.of(1, 2));
     }
+
+    @Test
+    public void test_concat_operator_with_element_and_array() {
+        assertEvaluate("1 || [2]", List.of(1, 2));
+    }
 }

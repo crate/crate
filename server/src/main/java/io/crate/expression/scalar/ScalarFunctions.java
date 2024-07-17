@@ -210,6 +210,7 @@ public class ScalarFunctions implements FunctionsProvider {
         ArrayAvgFunction.register(builder);
         ArraySliceFunction.register(builder);
         ArrayPositionFunction.register(builder);
+        ArrayPrependFunction.register(builder);
         ArrayUnnestFunction.register(builder);
         ArraySetFunction.register(builder);
 
