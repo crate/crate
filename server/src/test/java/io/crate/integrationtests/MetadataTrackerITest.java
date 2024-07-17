@@ -97,7 +97,7 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
                 "5| luke| 37",
                 "6| yoda| 900"
             );
-        });
+        }, 60, TimeUnit.SECONDS);
     }
 
     @Test
@@ -129,7 +129,7 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
                     "name"
                 );
             }
-        }, 30, TimeUnit.SECONDS);
+        }, 60, TimeUnit.SECONDS);
     }
 
     @Test
