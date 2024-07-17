@@ -31,6 +31,7 @@ import java.util.Map;
 
 import org.apache.datasketches.frequencies.ErrorType;
 import org.apache.datasketches.frequencies.ItemsSketch;
+import org.apache.datasketches.frequencies.LongsSketch;
 import org.apache.datasketches.memory.Memory;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
@@ -60,18 +61,10 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.statistics.SketchStreamer;
 import io.crate.types.ArrayType;
-import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.DoubleType;
-import io.crate.types.FloatType;
-import io.crate.types.GeoPointType;
-import io.crate.types.IntegerType;
-import io.crate.types.IpType;
 import io.crate.types.LongType;
-import io.crate.types.ShortType;
 import io.crate.types.StringType;
-import io.crate.types.TimestampType;
 import io.crate.types.TypeSignature;
 
 public class TopKAggregation extends AggregationFunction<TopKAggregation.State, List<Object>> {
@@ -114,7 +107,6 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
     private final Signature signature;
     private final BoundSignature boundSignature;
 
-    private static final int DEFAULT_MAP_SIZE = 32;
     private static final int DEFAULT_LIMIT = 8;
     private static final int MAX_LIMIT = 10_000;
 
@@ -157,21 +149,24 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
                     throw new IllegalArgumentException(
                         "Limit parameter for topk must be between 0 and 10_000. Got: " + limit);
                 }
-                int maxMapSize = maxMapSize(limit);
-                ramAccounting.addBytes(calculateRamUsage(maxMapSize));
-                state = new TopKState(new ItemsSketch<>(maxMapSize), limit);
+                state = initState(ramAccounting, limit);
 
             } else if (args.length == 1) {
-                // We don't have a limit provided, let's go with the default values
-                ramAccounting.addBytes(calculateRamUsage(DEFAULT_MAP_SIZE));
-                state = new TopKState(new ItemsSketch<>(DEFAULT_MAP_SIZE), DEFAULT_LIMIT);
+                state = initState(ramAccounting, DEFAULT_LIMIT);
             }
             ramAccounting.addBytes(RamUsageEstimator.shallowSizeOf(state));
         }
         if (state instanceof TopKState topKState) {
-            topKState.itemsSketch.update(value);
+            topKState.sketch.update(value);
         }
         return state;
+    }
+
+    private static TopKState initState(RamAccounting ramAccounting, int limit) {
+        int maxMapSize = maxMapSize(limit);
+        ramAccounting.addBytes(calculateRamUsage(maxMapSize));
+        ramAccounting.addBytes(TopKState.RAM_USAGE);
+        return new TopKState(new ItemsSketch<>(maxMapSize), limit);
     }
 
     private static int maxMapSize(int x) {
@@ -189,7 +184,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
     @Override
     public State reduce(RamAccounting ramAccounting, State state1, State state2) {
         if (state1 instanceof TopKState t1 && state2 instanceof TopKState t2) {
-            return new TopKState(t1.itemsSketch.merge(t2.itemsSketch), t1.limit);
+            return new TopKState(t1.sketch.merge(t2.sketch), t1.limit);
         } else if (state1 instanceof Empty) {
             return state2;
         } else {
@@ -200,7 +195,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
     @Override
     public List<Object> terminatePartial(RamAccounting ramAccounting, State state) {
         if (state instanceof TopKState topKState) {
-            ItemsSketch.Row<Object>[] frequentItems = topKState.itemsSketch.getFrequentItems(ErrorType.NO_FALSE_NEGATIVES);
+            ItemsSketch.Row<Object>[] frequentItems = topKState.sketch.getFrequentItems(ErrorType.NO_FALSE_NEGATIVES);
             int limit = Math.min(frequentItems.length, topKState.limit);
             var result = new ArrayList<>(limit);
             for (int i = 0; i < limit; i++) {
@@ -222,65 +217,38 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
                                                        List<Reference> aggregationReferences,
                                                        DocTableInfo table,
                                                        List<Literal<?>> optionalParams) {
-        if (aggregationReferences.size() != 1) {
-            return null;
+        if (aggregationReferences.size() == 1) {
+            Reference reference = aggregationReferences.getFirst();
+            if (reference.hasDocValues()) {
+                int limit;
+                if (optionalParams.size() == 1) {
+                    limit = (int) optionalParams.getFirst().value();
+                } else {
+                    limit = DEFAULT_LIMIT;
+                }
+                return getDocValueAggregator(reference, limit);
+            }
         }
-        Reference reference = aggregationReferences.get(0);
-        if (!reference.hasDocValues()) {
-            return null;
-        }
-
-        int limit;
-        if(optionalParams.size() == 1) {
-            limit = (int) optionalParams.getFirst().value();
-        } else {
-            limit = DEFAULT_LIMIT;
-        }
-        return getDocValueAggregator(reference, limit);
+        return null;
     }
 
     @Nullable
     private DocValueAggregator<?> getDocValueAggregator(Reference ref, int limit) {
-        if (!ref.hasDocValues()) {
-            return null;
-        }
         return switch (ref.valueType().id()) {
-            case ByteType.ID,
-                 ShortType.ID,
-                 IntegerType.ID,
-                 LongType.ID,
-                 TimestampType.ID_WITH_TZ,
-                 TimestampType.ID_WITHOUT_TZ,
-                 FloatType.ID,
-                 DoubleType.ID,
-                 GeoPointType.ID ->
-                new SortedNumericDocValueAggregator<>(
-                    ref.storageIdent(),
-                    (ramAccounting, _, _) -> {
-                        int maxMapSize = maxMapSize(limit);
-                        ramAccounting.addBytes(calculateRamUsage(maxMapSize));
-                        var state = new TopKState(new ItemsSketch<>(maxMapSize), limit);
-                        ramAccounting.addBytes(RamUsageEstimator.shallowSizeOf(state));
-                        return state;
-                    },
-                    (values, state) -> {
-                        state.itemsSketch.update(values.nextValue());
-                    }
-                );
-            case IpType.ID,
-                 StringType.ID -> new BinaryDocValueAggregator<>(
+            case LongType.ID -> new SortedNumericDocValueAggregator<>(
                 ref.storageIdent(),
-                (ramAccounting, _, _) -> {
-                    int maxMapSize = maxMapSize(limit);
-                    ramAccounting.addBytes(calculateRamUsage(maxMapSize));
-                    var state = new TopKState(new ItemsSketch<>(maxMapSize), limit);
-                    ramAccounting.addBytes(RamUsageEstimator.shallowSizeOf(state));
-                    return state;
-                },
+                (ramAccounting, _, _) -> initState(ramAccounting, limit),
+                (values, state) -> {
+                    state.sketch.update(values.nextValue());
+                }
+            );
+            case StringType.ID -> new BinaryDocValueAggregator<>(
+                ref.storageIdent(),
+                (ramAccounting, _, _) -> initState(ramAccounting, limit),
                 (values, state) -> {
                     long ord = values.nextOrd();
                     BytesRef value = values.lookupOrd(ord);
-                    state.itemsSketch.update(value.utf8ToString());
+                    state.sketch.update(value.utf8ToString());
                 }
             );
             default -> null;
@@ -293,7 +261,17 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
 
     record Empty() implements State { }
 
-    record TopKState(ItemsSketch<Object> itemsSketch, int limit) implements State { }
+    record TopKState(ItemsSketch<Object> sketch, int limit) implements State {
+
+        final static long RAM_USAGE = RamUsageEstimator.shallowSizeOfInstance(TopKState.class);
+
+    }
+
+    record TopKLongState(LongsSketch sketch, int limit) implements State {
+
+        final static long RAM_USAGE = RamUsageEstimator.shallowSizeOfInstance(TopKLongState.class);
+
+    }
 
     static final class StateType extends DataType<State> implements Streamer<State> {
 
@@ -359,7 +337,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
                 out.writeBoolean(false);
                 out.writeInt(topkState.limit);
                 SketchStreamer streamer = new SketchStreamer(innerType.streamer());
-                out.writeByteArray(topkState.itemsSketch.toByteArray(streamer));
+                out.writeByteArray(topkState.sketch.toByteArray(streamer));
             }
         }
 

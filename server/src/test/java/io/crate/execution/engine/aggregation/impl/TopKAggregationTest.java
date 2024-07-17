@@ -33,6 +33,62 @@ import io.crate.types.DataTypes;
 
 public class TopKAggregationTest extends AggregationTestCase {
 
+    @Test
+    public void test_top_k_float() throws Exception {
+        var result = executeAggregation(
+            TopKAggregation.PARAMETER_SIGNATURE,
+            List.of(DataTypes.FLOAT),
+            DataTypes.UNTYPED_OBJECT,
+            new Object[][]{
+                new Float[]{1.0f},
+                new Float[]{2.0f},
+                new Float[]{2.0f},
+                new Float[]{3.0f},
+                new Float[]{3.0f},
+                new Float[]{3.0f},
+            },
+            true,
+            List.of()
+        );
+
+        assertThat(result)
+            .isEqualTo(
+                List.of(
+                    Map.of("item", 3.0f, "frequency", 3L),
+                    Map.of("item", 2.0f, "frequency", 2L),
+                    Map.of("item", 1.0f, "frequency", 1L)
+                )
+            );
+    }
+
+    @Test
+    public void test_top_k_double() throws Exception {
+        var result = executeAggregation(
+            TopKAggregation.PARAMETER_SIGNATURE,
+            List.of(DataTypes.DOUBLE),
+            DataTypes.UNTYPED_OBJECT,
+            new Object[][]{
+                new Double[]{1.0},
+                new Double[]{2.0},
+                new Double[]{2.0},
+                new Double[]{3.0},
+                new Double[]{3.0},
+                new Double[]{3.0},
+            },
+            true,
+            List.of()
+        );
+
+        assertThat(result)
+            .isEqualTo(
+                List.of(
+                    Map.of("item", 3.0, "frequency", 3L),
+                    Map.of("item", 2.0, "frequency", 2L),
+                    Map.of("item", 1.0, "frequency", 1L)
+                )
+            );
+    }
+
 
     @Test
     public void test_top_k_longs() throws Exception {
@@ -91,7 +147,7 @@ public class TopKAggregationTest extends AggregationTestCase {
     }
 
     @Test
-    public void test_top_K_strings() throws Exception {
+    public void test_top_k_strings() throws Exception {
         var result = executeAggregation(
             TopKAggregation.PARAMETER_SIGNATURE,
             List.of(DataTypes.STRING),
@@ -118,7 +174,7 @@ public class TopKAggregationTest extends AggregationTestCase {
     }
 
     @Test
-    public void test_top_K_boolean() throws Exception {
+    public void test_top_k_boolean() throws Exception {
         var result = executeAggregation(
             TopKAggregation.PARAMETER_SIGNATURE,
             List.of(DataTypes.BOOLEAN),
