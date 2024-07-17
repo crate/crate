@@ -55,6 +55,13 @@ public final class PolyglotLanguage implements UDFLanguage {
         .allowMapAccess(true)
         .build();
 
+    public static Context newContext(String graalLanguageId) {
+        return Context.newBuilder(graalLanguageId)
+            .engine(ENGINE)
+            .allowHostAccess(HOST_ACCESS)
+            .build();
+    }
+
     private final String verboseLanguage;
     private final String graalLanguageId;
 
@@ -67,6 +74,7 @@ public final class PolyglotLanguage implements UDFLanguage {
         this.graalLanguageId = graalLanguageId;
     }
 
+
     @Override
     public Scalar<?, ?> createFunctionImplementation(UserDefinedFunctionMetadata metadata,
                                                      Signature signature,
@@ -76,14 +84,15 @@ public final class PolyglotLanguage implements UDFLanguage {
 
     @Nullable
     public String validate(UserDefinedFunctionMetadata meta) {
-        try {
-            getFunctionValue(graalLanguageId, meta.name(), meta.definition());
+        String functionName = meta.name();
+        try (var context = newContext(graalLanguageId)) {
+            getFunction(context, graalLanguageId, meta.name(), meta.definition());
             return null;
         } catch (IllegalArgumentException | IOException | PolyglotException t) {
             return String.format(Locale.ENGLISH, "Invalid %s in function '%s.%s(%s)' AS '%s': %s",
                 verboseLanguage,
                 meta.schema(),
-                meta.name(),
+                functionName,
                 meta.argumentTypes().stream().map(DataType::getName).collect(Collectors.joining(", ")),
                 meta.definition(),
                 t.getMessage()
@@ -91,26 +100,23 @@ public final class PolyglotLanguage implements UDFLanguage {
         }
     }
 
-    @Override
-    public String name() {
-        return verboseLanguage;
-    }
-
-    static Value getFunctionValue(String graalLanguageId,
-                                  String functionName,
-                                  String script) throws IOException {
-        var context = Context.newBuilder(graalLanguageId)
-            .engine(ENGINE)
-            .allowHostAccess(HOST_ACCESS)
-            .build();
-        var source = Source.newBuilder(graalLanguageId, script, functionName).build();
+    static Value getFunction(Context context,
+                             String languageId,
+                             String functionName,
+                             String script) throws IOException {
+        var source = Source.newBuilder(languageId, script, functionName).build();
         context.eval(source);
-        var polyglotFunctionValue = context.getBindings(graalLanguageId).getMember(functionName);
-        if (polyglotFunctionValue == null) {
+        var function = context.getBindings(languageId).getMember(functionName);
+        if (function == null) {
             throw new IllegalArgumentException(
                 "The name of the function signature '" + functionName + "' doesn't match " +
                 "the function name in the function definition.");
         }
-        return polyglotFunctionValue;
+        return function;
+    }
+
+    @Override
+    public String name() {
+        return verboseLanguage;
     }
 }
