@@ -102,6 +102,11 @@ Scalar and Aggregation Functions
   :ref:`array_append(array, value) <scalar-array_append>` scalar function for
   improved compatibility with PostgreSQL.
 
+- Added the :ref:`array_prepend(value, array) <scalar-array_prepend>` scalar
+  function which prepends a value to an array. Additionally, added the
+  ``value || array`` operator as an alias to the new
+  :ref:`array_prepend(value, array) <scalar-array_prepend>` scalar function.
+
 Performance and Resilience Improvements
 ---------------------------------------
 
