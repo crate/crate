@@ -227,18 +227,18 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
                                                        List<Reference> aggregationReferences,
                                                        DocTableInfo table,
                                                        List<Literal<?>> optionalParams) {
-//        if (aggregationReferences.size() >= 1) {
-//            Reference reference = aggregationReferences.getFirst();
-//            if (reference.hasDocValues()) {
-//                int limit;
-//                if (optionalParams.size() == 1) {
-//                    limit = (int) optionalParams.getFirst().value();
-//                } else {
-//                    limit = DEFAULT_LIMIT;
-//                }
-//                return getDocValueAggregator(reference, limit);
-//            }
-//        }
+        if (aggregationReferences.size() >= 1) {
+            Reference reference = aggregationReferences.getFirst();
+            if (reference.hasDocValues()) {
+                int limit;
+                if (optionalParams.size() == 1) {
+                    limit = (int) optionalParams.getFirst().value();
+                } else {
+                    limit = DEFAULT_LIMIT;
+                }
+                return getDocValueAggregator(reference, limit);
+            }
+        }
         return null;
     }
 
@@ -247,7 +247,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
         return switch (ref.valueType().id()) {
             case LongType.ID -> new SortedNumericDocValueAggregator<>(
                 ref.storageIdent(),
-                (ramAccounting, _, _) -> topKState(ramAccounting, limit),
+                (ramAccounting, _, _) -> topKLongState(ramAccounting, limit),
                 (values, state) -> {
                     state.sketch.update(values.nextValue());
                 }
