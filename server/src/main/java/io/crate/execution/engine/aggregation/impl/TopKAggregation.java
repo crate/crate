@@ -150,11 +150,11 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
                         "Limit parameter for topk must be between 0 and 10_000. Got: " + limit);
                 }
                 //todo use long type
-                state = topKState(ramAccounting, limit);
+                state = topKLongState(ramAccounting, limit);
 
             } else if (args.length == 1) {
                 //todo use long type
-                state = topKState(ramAccounting, DEFAULT_LIMIT);
+                state = topKLongState(ramAccounting, DEFAULT_LIMIT);
             }
         }
         if (state instanceof TopKState topKState) {
@@ -227,18 +227,18 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
                                                        List<Reference> aggregationReferences,
                                                        DocTableInfo table,
                                                        List<Literal<?>> optionalParams) {
-        if (aggregationReferences.size() >= 1) {
-            Reference reference = aggregationReferences.getFirst();
-            if (reference.hasDocValues()) {
-                int limit;
-                if (optionalParams.size() == 1) {
-                    limit = (int) optionalParams.getFirst().value();
-                } else {
-                    limit = DEFAULT_LIMIT;
-                }
-                return getDocValueAggregator(reference, limit);
-            }
-        }
+//        if (aggregationReferences.size() >= 1) {
+//            Reference reference = aggregationReferences.getFirst();
+//            if (reference.hasDocValues()) {
+//                int limit;
+//                if (optionalParams.size() == 1) {
+//                    limit = (int) optionalParams.getFirst().value();
+//                } else {
+//                    limit = DEFAULT_LIMIT;
+//                }
+//                return getDocValueAggregator(reference, limit);
+//            }
+//        }
         return null;
     }
 
