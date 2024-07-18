@@ -27,7 +27,6 @@ import static io.crate.testing.Asserts.assertSQLError;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Locale;
 
@@ -198,7 +197,7 @@ public class AlterTableIntegrationTest extends IntegTestCase {
     public void test_drop_sub_column_readd_and_update() {
         execute("CREATE TABLE t1 (id int, obj object as (x int, y int))");
         execute("INSERT INTO t1 (id, obj) VALUES (1, {x=11, y=21})");
-        refresh();
+        execute("REFRESH TABLE t1");
         execute("SELECT id, obj FROM t1");
         assertThat(response).hasRows("1| {x=11, y=21}");
 
@@ -209,7 +208,7 @@ public class AlterTableIntegrationTest extends IntegTestCase {
         execute("ALTER TABLE t1 ADD COLUMN obj['y'] TEXT");
         execute("UPDATE t1 SET obj['y'] = 'foo'");
         assertThat(response.rowCount()).isEqualTo(1L);
-        refresh();
+        execute("REFRESH TABLE t1");
         execute("SELECT id, obj FROM t1");
         assertThat(response).hasRows("1| {x=11, y=foo}");
     }
@@ -250,9 +249,8 @@ public class AlterTableIntegrationTest extends IntegTestCase {
             {"1": 1, "2": 11, "3": {"5": {"6": 1111}, "4": 111}}
             {"%d": "some-text", "2": 222," 3": {"5": {"6": 2222}, "4": 222}}
             """;
-        assertThat(TestingHelpers.printedTable(response.rows())).isEqualToIgnoringWhitespace(
-            String.format(Locale.ENGLISH, rawRows, newColumnOid)
-        );
+        assertThat(TestingHelpers.jsonMap(TestingHelpers.printedTable(response.rows())))
+            .isEqualTo(TestingHelpers.jsonMap(String.format(Locale.ENGLISH, rawRows, newColumnOid)));
 
         // Ensure that re-added column is the last in 'SELECT *' output since it has the highest ordinal.
         // This is aligned with PG 14 behavior.
@@ -271,10 +269,12 @@ public class AlterTableIntegrationTest extends IntegTestCase {
         // Root column 'o' and it's unaffected child o['a'] retained their OID-s (3 and 4).
         // Dropped children column got updated OID-s.
         rawRows = """
-           {"%d": "another-text", "2": 333," 3": {"%d": {"%d": "hello"}, "4": 333}}
+            {"%d": "another-text", "2": 333,"3": {"%d": {"%d": "hello"}, "4": 333}}
             """;
-        assertThat(TestingHelpers.printedTable(response.rows())).isEqualToIgnoringWhitespace(
-            String.format(Locale.ENGLISH, rawRows, newColumnOid, newColumnOid + 1, newColumnOid + 2)
+        assertThat(
+            TestingHelpers.jsonMap(TestingHelpers.printedTable(response.rows()))
+        ).isEqualTo(
+            TestingHelpers.jsonMap(String.format(Locale.ENGLISH, rawRows, newColumnOid, newColumnOid + 1, newColumnOid + 2))
         );
     }
 
@@ -308,7 +308,7 @@ public class AlterTableIntegrationTest extends IntegTestCase {
             """);
         execute("insert into doc.t(a, o) values (1, {a=2})");
         execute("insert into doc.t(a, o) values (4, {a=5})");
-        refresh();
+        execute("REFRESH TABLE doc.t");
 
         execute("alter table doc.t rename column a to a2");
         execute("alter table doc.t rename column o to o2");

@@ -244,8 +244,9 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
         return storageSupport;
     }
 
-
-    @Nullable
+    /**
+     * Returns a ValueIndexer for this type
+     */
     public final ValueIndexer<? super T> valueIndexer(RelationName table,
                                                       Reference ref,
                                                       Function<ColumnIdent, Reference> getRef) {
