@@ -28,83 +28,29 @@ import java.util.Map;
 
 import org.junit.Test;
 
+import io.crate.expression.symbol.Literal;
 import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.types.DataTypes;
 
 public class TopKAggregationTest extends AggregationTestCase {
 
     @Test
-    public void test_top_k_float() throws Exception {
-        var result = executeAggregation(
-            TopKAggregation.PARAMETER_SIGNATURE,
-            List.of(DataTypes.FLOAT),
-            DataTypes.UNTYPED_OBJECT,
-            new Object[][]{
-                new Float[]{1.0f},
-                new Float[]{2.0f},
-                new Float[]{2.0f},
-                new Float[]{3.0f},
-                new Float[]{3.0f},
-                new Float[]{3.0f},
-            },
-            true,
-            List.of()
-        );
+    public void test_top_k_longs_with_and_without_doc_values() throws Exception {
 
-        assertThat(result)
-            .isEqualTo(
-                List.of(
-                    Map.of("item", 3.0f, "frequency", 3L),
-                    Map.of("item", 2.0f, "frequency", 2L),
-                    Map.of("item", 1.0f, "frequency", 1L)
-                )
-            );
-    }
+        Object[][] data = {
+            new Long[]{1L},
+            new Long[]{2L},
+            new Long[]{2L},
+            new Long[]{3L},
+            new Long[]{3L},
+            new Long[]{3L},
+        };
 
-    @Test
-    public void test_top_k_double() throws Exception {
-        var result = executeAggregation(
-            TopKAggregation.PARAMETER_SIGNATURE,
-            List.of(DataTypes.DOUBLE),
-            DataTypes.UNTYPED_OBJECT,
-            new Object[][]{
-                new Double[]{1.0},
-                new Double[]{2.0},
-                new Double[]{2.0},
-                new Double[]{3.0},
-                new Double[]{3.0},
-                new Double[]{3.0},
-            },
-            true,
-            List.of()
-        );
-
-        assertThat(result)
-            .isEqualTo(
-                List.of(
-                    Map.of("item", 3.0, "frequency", 3L),
-                    Map.of("item", 2.0, "frequency", 2L),
-                    Map.of("item", 1.0, "frequency", 1L)
-                )
-            );
-    }
-
-
-    @Test
-    public void test_top_k_longs() throws Exception {
-        var result = executeAggregation(
+        var result = executeAggregationWithoutDocValues(
             TopKAggregation.PARAMETER_SIGNATURE,
             List.of(DataTypes.LONG),
             DataTypes.UNTYPED_OBJECT,
-            new Object[][]{
-                new Long[]{1L},
-                new Long[]{2L},
-                new Long[]{2L},
-                new Long[]{3L},
-                new Long[]{3L},
-                new Long[]{3L},
-            },
-            true,
+            data,
             List.of()
         );
 
@@ -116,53 +62,64 @@ public class TopKAggregationTest extends AggregationTestCase {
                     Map.of("item", 1L, "frequency", 1L)
                 )
             );
-    }
 
-    @Test
-    public void test_top_k_longs_with_limit() throws Exception {
-        int limit = 2;
-        var result = executeAggregation(
+        var docValueResult = executeAggregationWithDocValues(
             TopKAggregation.PARAMETER_SIGNATURE,
-            List.of(DataTypes.LONG, DataTypes.LONG),
+            List.of(DataTypes.LONG),
             DataTypes.UNTYPED_OBJECT,
-            new Object[][]{
-                new Object[]{1L, limit},
-                new Object[]{2L, limit},
-                new Object[]{2L, limit},
-                new Object[]{3L, limit},
-                new Object[]{3L, limit},
-                new Object[]{3L, limit},
-            },
-            true,
+            data,
             List.of()
         );
 
-        assertThat(result)
+        assertThat(result).isEqualTo(docValueResult);
+
+        var resultWithLimit = executeAggregationWithoutDocValues(
+            TopKAggregation.PARAMETER_SIGNATURE,
+            List.of(DataTypes.LONG, DataTypes.LONG),
+            DataTypes.UNTYPED_OBJECT,
+            data,
+            List.of(Literal.of(2))
+        );
+
+        assertThat(resultWithLimit)
             .isEqualTo(
                 List.of(
                     Map.of("item", 3L, "frequency", 3L),
                     Map.of("item", 2L, "frequency", 2L)
                 )
             );
+
+
+        var docValueResultWithLimit = executeAggregationWithDocValues(
+            TopKAggregation.PARAMETER_SIGNATURE,
+            List.of(DataTypes.LONG),
+            DataTypes.UNTYPED_OBJECT,
+            data,
+            List.of(Literal.of(2))
+        );
+
+        assertThat(resultWithLimit).isEqualTo(docValueResultWithLimit);
     }
 
     @Test
     public void test_top_k_strings() throws Exception {
-        var result = executeAggregation(
+        Object[][] data = {
+            new String[]{"1"},
+            new String[]{"2"},
+            new String[]{"2"},
+            new String[]{"3"},
+            new String[]{"3"},
+            new String[]{"3"}
+        };
+
+        var result = executeAggregationWithoutDocValues(
             TopKAggregation.PARAMETER_SIGNATURE,
             List.of(DataTypes.STRING),
             DataTypes.UNTYPED_OBJECT,
-            new Object[][]{
-                new String[]{"1"},
-                new String[]{"2"},
-                new String[]{"2"},
-                new String[]{"3"},
-                new String[]{"3"},
-                new String[]{"3"}
-            },
-            true,
+            data,
             List.of()
         );
+
         assertThat(result)
             .isEqualTo(
                 List.of(
@@ -171,6 +128,17 @@ public class TopKAggregationTest extends AggregationTestCase {
                     Map.of("item", "1", "frequency", 1L)
                 )
             );
+
+        var docValueResult = executeAggregationWithDocValues(
+            TopKAggregation.PARAMETER_SIGNATURE,
+            List.of(DataTypes.STRING),
+            DataTypes.UNTYPED_OBJECT,
+            data,
+            List.of()
+        );
+
+        assertThat(result).isEqualTo(docValueResult);
+
     }
 
     @Test
