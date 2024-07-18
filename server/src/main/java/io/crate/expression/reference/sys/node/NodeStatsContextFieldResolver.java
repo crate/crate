@@ -241,6 +241,10 @@ public class NodeStatsContextFieldResolver {
                 context.threadPools(threadPool.stats());
             }
         }),
+        // TODO: Added due to BWC reasons, <= 5.7 nodes should be able to query this column.
+        // Remove it in 6.0
+        entry(SysNodesTableInfo.Columns.NETWORK, context -> {
+        }),
         entry(SysNodesTableInfo.Columns.CONNECTIONS, new Consumer<>() {
             @Override
             public void accept(NodeStatsContext nodeStatsContext) {
