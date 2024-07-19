@@ -37,7 +37,8 @@ import org.junit.jupiter.api.Test;
 import io.crate.sql.Literals;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.tree.AlterPublication;
-import io.crate.sql.tree.AlterRole;
+import io.crate.sql.tree.AlterRoleReset;
+import io.crate.sql.tree.AlterRoleSet;
 import io.crate.sql.tree.AlterSubscription;
 import io.crate.sql.tree.ArrayComparisonExpression;
 import io.crate.sql.tree.ArrayLikePredicate;
@@ -1906,12 +1907,20 @@ public class TestStatementBuilder {
     public void testAlterUser() {
         printStatement("alter user crate set (password = 'password')");
         printStatement("alter user crate set (password = null, session_setting='foo')");
+        printStatement("alter user crate set (password = null, session_setting=?)");
+        printStatement("alter user crate reset session_setting");
+        printStatement("alter user crate reset \"session.setting\"");
+        printStatement("alter user crate reset all");
     }
 
     @Test
     public void testAlterRole() {
         printStatement("alter role r1 set (password = 'password')");
         printStatement("alter role r1 set (password = null, session_setting='foo')");
+        printStatement("alter role r1 set (session_setting=?)");
+        printStatement("alter role r1 reset session_setting");
+        printStatement("alter role r1 reset \"session.setting\"");
+        printStatement("alter role r1 reset all");
     }
 
     @Test
@@ -1919,7 +1928,7 @@ public class TestStatementBuilder {
         assertThatThrownBy(
             () -> printStatement("alter user crate"))
             .isExactlyInstanceOf(ParsingException.class)
-            .hasMessage("line 1:17: mismatched input '<EOF>' expecting 'SET'");
+            .hasMessage("line 1:17: no viable alternative at input 'alter user crate'");
     }
 
     @Test
@@ -1927,7 +1936,7 @@ public class TestStatementBuilder {
         assertThatThrownBy(
             () -> printStatement("alter role r1"))
             .isExactlyInstanceOf(ParsingException.class)
-            .hasMessage("line 1:14: mismatched input '<EOF>' expecting 'SET'");
+            .hasMessage("line 1:14: no viable alternative at input 'alter role r1'");
     }
 
     @Test
@@ -2216,7 +2225,8 @@ public class TestStatementBuilder {
             statement instanceof GrantPrivilege ||
             statement instanceof DenyPrivilege ||
             statement instanceof RevokePrivilege ||
-            statement instanceof AlterRole ||
+            statement instanceof AlterRoleSet ||
+            statement instanceof AlterRoleReset ||
             statement instanceof DropRole ||
             statement instanceof DropAnalyzer ||
             statement instanceof DropFunction ||

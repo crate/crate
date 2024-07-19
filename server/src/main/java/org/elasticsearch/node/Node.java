@@ -771,7 +771,8 @@ public class Node implements Closeable {
                 dependencyCarrier,
                 jobsLogService.get(),
                 settings,
-                clusterService
+                clusterService,
+                sessionSettingRegistry
             );
             final HttpServerTransport httpServerTransport = newHttpTransport(
                 networkService,

@@ -33,7 +33,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -73,13 +72,14 @@ public class RolesMetadataTest extends ESTestCase {
             Set.of(),
             DummyParentRoles,
             getSecureHash("fords-pwd")));
-        DummyUsersAndRolesWithParentRoles.put("John", userOf(
-            "John",
-            Set.of(),
-            new HashSet<>(),
-            getSecureHash("johns-pwd"),
-            new JwtProperties("https:dummy.org", "test", null))
-        );
+
+        var passwd = getSecureHash("johns-pwd");
+        var jwt = new JwtProperties("https:dummy.org", "test", null);
+        DummyUsersAndRolesWithParentRoles.put("John", userOf("John", passwd).with(
+            passwd,
+            jwt,
+            Map.of("statement_timeout", "1m", "enable_hashjoin", false)
+        ));
         DummyUsersAndRolesWithParentRoles.put("role1", roleOf("role1"));
         DummyUsersAndRolesWithParentRoles.put("role2", roleOf("role2"));
         DummyUsersAndRolesWithParentRoles.put("role3", roleOf("role3"));

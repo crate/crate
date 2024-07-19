@@ -21,13 +21,13 @@
 
 package io.crate.role;
 
+import java.io.IOException;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
-import org.jetbrains.annotations.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-
-import java.io.IOException;
+import org.jetbrains.annotations.Nullable;
 
 public class CreateRoleRequest extends AcknowledgedRequest<CreateRoleRequest> {
 
@@ -38,7 +38,6 @@ public class CreateRoleRequest extends AcknowledgedRequest<CreateRoleRequest> {
 
     @Nullable
     private final JwtProperties jwtProperties;
-
 
     public CreateRoleRequest(String roleName,
                              boolean isUser,

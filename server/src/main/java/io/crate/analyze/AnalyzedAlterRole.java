@@ -26,8 +26,15 @@ import io.crate.sql.tree.GenericProperties;
 
 public class AnalyzedAlterRole extends AnalyzedRole {
 
-    public AnalyzedAlterRole(String roleName, GenericProperties<Symbol> properties) {
+    private final boolean isReset;
+
+    public AnalyzedAlterRole(String roleName, GenericProperties<Symbol> properties, boolean isReset) {
         super(roleName, properties);
+        this.isReset = isReset;
+    }
+
+    public boolean isReset() {
+        return isReset;
     }
 
     @Override

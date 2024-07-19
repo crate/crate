@@ -123,6 +123,10 @@ None
 Administration and Operations
 -----------------------------
 
+- Added support to set :ref:`session settings <conf-session>` to a user via
+  :ref:`ALTER ROLE <ref-alter-role>` statement. For details and examples see:
+  :ref:`here <administration_user_management_alter_user>`.
+
 - Added support for :ref:`Shared Access Signatures (SAS) tokens <sql-create-repo-azure-sas-token>`
   as an alternative for authentication for :ref:`Azure repositories <sql-create-repo-azure>`.
 

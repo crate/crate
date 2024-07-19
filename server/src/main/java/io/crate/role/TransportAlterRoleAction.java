@@ -22,6 +22,9 @@
 package io.crate.role;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
@@ -105,7 +108,8 @@ public class TransportAlterRoleAction extends TransportMasterNodeAction<AlterRol
                                 request.secureHash(),
                                 request.jwtProperties(),
                                 request.resetPassword(),
-                                request.resetJwtProperties()
+                                request.resetJwtProperties(),
+                                request.sessionSettingsChange()
                         );
                         return ClusterState.builder(currentState).metadata(mdBuilder).build();
                     }
@@ -123,7 +127,8 @@ public class TransportAlterRoleAction extends TransportMasterNodeAction<AlterRol
                              @Nullable SecureHash secureHash,
                              @Nullable JwtProperties jwtProperties,
                              boolean resetPassword,
-                             boolean resetJwtProperties) {
+                             boolean resetJwtProperties,
+                             Map<Boolean, Map<String, Object>> sessionSettingsChange) {
         RolesMetadata oldRolesMetadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
         UsersMetadata oldUsersMetadata = (UsersMetadata) mdBuilder.getCustom(UsersMetadata.TYPE);
         if (oldUsersMetadata == null && oldRolesMetadata == null) {
@@ -142,6 +147,10 @@ public class TransportAlterRoleAction extends TransportMasterNodeAction<AlterRol
                 if (jwtProperties != null || resetJwtProperties) {
                     throw new UnsupportedFeatureException("Setting JWT properties to a ROLE is not allowed");
                 }
+                if (sessionSettingsChange.isEmpty() == false) {
+                    throw new UnsupportedFeatureException(
+                        "Setting or resetting session settings to a ROLE is not allowed");
+                }
             }
 
             var newSecureHash = secureHash != null ? secureHash : (resetPassword ? null : role.password());
@@ -153,7 +162,10 @@ public class TransportAlterRoleAction extends TransportMasterNodeAction<AlterRol
                 );
             }
 
-            newMetadata.roles().put(roleName, role.with(newSecureHash, newJwtProperties));
+            newMetadata.roles().put(roleName, role.with(
+                    newSecureHash,
+                    newJwtProperties,
+                    getUpdatedSessionSettings(role.sessionSettings(), sessionSettingsChange)));
             exists = true;
         }
         if (newMetadata.equals(oldRolesMetadata)) {
@@ -169,5 +181,31 @@ public class TransportAlterRoleAction extends TransportMasterNodeAction<AlterRol
     @Override
     protected ClusterBlockException checkBlock(AlterRoleRequest request, ClusterState state) {
         return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
+    }
+
+    private static Map<String, Object> getUpdatedSessionSettings(
+        Map<String, Object> oldSessionSettings,
+        Map<Boolean, Map<String, Object>> sessionSettingsChange) {
+
+        Map<String, Object> updatedSessionSettings = new HashMap<>();
+        for (var change : sessionSettingsChange.entrySet()) {
+            boolean isReset = change.getKey();
+            Map<String, Object> settingsToChange = change.getValue();
+            if (isReset) { // reset
+                if (settingsToChange.isEmpty()) { // reset all
+                    return Map.of();
+                } else { // reset some settings
+                    for (var oldSetting : oldSessionSettings.entrySet()) {
+                        if (settingsToChange.containsKey(oldSetting.getKey()) == false) {
+                            updatedSessionSettings.put(oldSetting.getKey(), oldSetting.getValue());
+                        }
+                    }
+                }
+            } else { // add and overwrite existing settings
+                updatedSessionSettings.putAll(oldSessionSettings);
+                updatedSessionSettings.putAll(settingsToChange);
+            }
+        }
+        return Collections.unmodifiableMap(updatedSessionSettings);
     }
 }

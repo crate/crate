@@ -28,6 +28,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
@@ -45,6 +46,7 @@ import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.transport.CancelRequest;
 import io.crate.execution.jobs.transport.TransportCancelAction;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Planner;
 import io.crate.protocols.postgres.KeyData;
@@ -59,6 +61,8 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class SessionsTest extends CrateDummyClusterServiceUnitTest {
 
+    private final SessionSettingRegistry sessionSettingRegistry = new SessionSettingRegistry(Set.of());
+
     @Test
     public void test_sessions_broadcasts_cancel_if_no_local_match() throws Exception {
         NodeContext nodeCtx = createNodeContext();
@@ -72,7 +76,8 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
             () -> dependencies,
             new JobsLogs(() -> false),
             Settings.EMPTY,
-            clusterService
+            clusterService,
+            sessionSettingRegistry
         );
 
         KeyData keyData = new KeyData(10, 20);
@@ -135,11 +140,22 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
             Settings.builder()
                 .put("statement_timeout", "30s")
                 .build(),
-            clusterService
+            clusterService,
+            sessionSettingRegistry
         );
         Session session = sessions.newSession("doc", Role.CRATE_USER);
         assertThat(session.sessionSettings().statementTimeout())
             .isEqualTo(TimeValue.timeValueSeconds(30));
+    }
+
+    @Test
+    public void test_user_session_settings_are_applied() throws Exception {
+        Sessions sessions = newSessions(createNodeContext());
+
+        Role john = RolesHelper.userOf("john");
+        assertThat(sessions.newSession("", john).sessionSettings().hashJoinsEnabled()).isTrue();
+        john = RolesHelper.userOf("john", null).with(null, null, Map.of("enable_hashjoin", false));
+        assertThat(sessions.newSession("", john).sessionSettings().hashJoinsEnabled()).isFalse();
     }
 
     private Sessions newSessions(NodeContext nodeCtx) {
@@ -150,7 +166,8 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
             () -> mock(DependencyCarrier.class),
             new JobsLogs(() -> false),
             Settings.EMPTY,
-            clusterService
+            clusterService,
+            sessionSettingRegistry
         );
         return sessions;
     }

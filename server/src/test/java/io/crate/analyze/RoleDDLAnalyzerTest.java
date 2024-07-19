@@ -131,26 +131,60 @@ public class RoleDDLAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCreateUserWithPasswordIsStringLiteral() throws Exception {
-        String userOrRole = randomBoolean() ? "USER" : "ROLE";
-        assertThatThrownBy(() -> e.analyze("CREATE " + userOrRole + " ROOT WITH (PASSWORD = NO_STRING)"))
-            .isExactlyInstanceOf(UnsupportedOperationException.class)
-            .hasMessage("Columns cannot be used in this context. " +
-                        "Maybe you wanted to use a string literal which requires single quotes: 'no_string'");
+        for (String userOrRole : List.of("USER", "ROLE")) {
+            assertThatThrownBy(() -> e.analyze("CREATE " + userOrRole + " ROOT WITH (PASSWORD = NO_STRING)"))
+                .isExactlyInstanceOf(UnsupportedOperationException.class)
+                .hasMessage("Columns cannot be used in this context. " +
+                    "Maybe you wanted to use a string literal which requires single quotes: 'no_string'");
+        }
+    }
+
+    @Test
+    public void test_create_user_and_role_with_invalid_settings() throws Exception {
+        for (String userOrRole : List.of("USER", "ROLE")) {
+            assertThatThrownBy(() -> e.analyze("CREATE " + userOrRole + " ROOT WITH (enable_hashjoin = false)"))
+                .isExactlyInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Setting 'enable_hashjoin' is not supported");
+        }
     }
 
     @Test
     public void test_alter_role_with_password() throws Exception {
-        String userOrRole = randomBoolean() ? "USER" : "ROLE";
-        AnalyzedAlterRole analysis = e.analyze("ALTER " + userOrRole + " ROOT SET (PASSWORD = 'ROOT')");
-        assertThat(analysis.roleName()).isEqualTo("root");
-        assertThat(analysis.properties().get("password")).isLiteral("ROOT");
+        for (String userOrRole : List.of("USER", "ROLE")) {
+            AnalyzedAlterRole analysis = e.analyze("ALTER " + userOrRole + " ROOT SET (PASSWORD = 'ROOT')");
+            assertThat(analysis.roleName()).isEqualTo("root");
+            assertThat(analysis.properties().get("password")).isLiteral("ROOT");
+            assertThat(analysis.isReset()).isFalse();
+        }
     }
 
     @Test
     public void test_alter_role_reset_password() throws Exception {
-        String userOrRole = randomBoolean() ? "USER" : "ROLE";
-        AnalyzedAlterRole analysis = e.analyze("ALTER " + userOrRole + " ROOT SET (PASSWORD = NULL)");
-        assertThat(analysis.roleName()).isEqualTo("root");
-        assertThat(analysis.properties().get("password")).isLiteral(null, DataTypes.UNDEFINED);
+        for (String userOrRole : List.of("USER", "ROLE")) {
+            AnalyzedAlterRole analysis = e.analyze("ALTER " + userOrRole + " ROOT SET (PASSWORD = NULL)");
+            assertThat(analysis.roleName()).isEqualTo("root");
+            assertThat(analysis.properties().get("password")).isLiteral(null, DataTypes.UNDEFINED);
+            assertThat(analysis.isReset()).isFalse();
+        }
+    }
+
+    @Test
+    public void test_alter_role_reset_session_setting() throws Exception {
+        for (String userOrRole : List.of("USER", "ROLE")) {
+            AnalyzedAlterRole analysis = e.analyze("ALTER " + userOrRole + " ROOT RESET enable_hashjoin");
+            assertThat(analysis.roleName()).isEqualTo("root");
+            assertThat(analysis.properties().contains("enable_hashjoin")).isTrue();
+            assertThat(analysis.isReset()).isTrue();
+        }
+    }
+
+    @Test
+    public void test_alter_role_all_settings() throws Exception {
+        for (String userOrRole : List.of("USER", "ROLE")) {
+            AnalyzedAlterRole analysis = e.analyze("ALTER " + userOrRole + " ROOT RESET ALL");
+            assertThat(analysis.roleName()).isEqualTo("root");
+            assertThat(analysis.properties().isEmpty()).isTrue();
+            assertThat(analysis.isReset()).isTrue();
+        }
     }
 }
