@@ -107,6 +107,9 @@ Scalar and Aggregation Functions
   ``value || array`` operator as an alias to the new
   :ref:`array_prepend(value, array) <scalar-array_prepend>` scalar function.
 
+- Added :ref:`position scalar function <scalar-position>` as alias for the
+  :ref:`strpos scalar function <scalar-strpos>`.
+
 Performance and Resilience Improvements
 ---------------------------------------
 
