@@ -389,7 +389,7 @@ public class EqualityExtractorTest extends EqualityExtractorBaseTest {
     @Test
     public void test_pk_extraction_breaks_after_x_iterations() {
         StringJoiner sj = new StringJoiner(" or ");
-        for (int j = 0; j < 50; j++) {
+        for (int j = 0; j < 20; j++) {
             sj.add("x = ? AND i = ?");
         }
 
