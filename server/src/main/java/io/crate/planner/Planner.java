@@ -420,12 +420,12 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     @Override
     protected Plan visitAnalyzedCreateRole(AnalyzedCreateRole analysis,
                                            PlannerContext context) {
-        return new CreateRolePlan(analysis, roleManager);
+        return new CreateRolePlan(analysis, roleManager, sessionSettingRegistry);
     }
 
     @Override
     public Plan visitAnalyzedAlterRole(AnalyzedAlterRole analysis, PlannerContext context) {
-        return new AlterRolePlan(analysis, roleManager);
+        return new AlterRolePlan(analysis, roleManager, sessionSettingRegistry);
     }
 
     @Override

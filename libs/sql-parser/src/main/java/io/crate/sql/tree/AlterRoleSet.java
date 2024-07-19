@@ -24,12 +24,12 @@ package io.crate.sql.tree;
 import java.util.Objects;
 import java.util.function.Function;
 
-public class AlterRole<T> extends Statement {
+public class AlterRoleSet<T> extends Statement {
 
     private final GenericProperties<T> properties;
     private final String name;
 
-    public AlterRole(String name, GenericProperties<T> properties) {
+    public AlterRoleSet(String name, GenericProperties<T> properties) {
         this.properties = properties;
         this.name = name;
     }
@@ -42,8 +42,8 @@ public class AlterRole<T> extends Statement {
         return name;
     }
 
-    public <U> AlterRole<U> map(Function<? super T, ? extends U> mapper) {
-        return new AlterRole<>(name, properties.map(mapper));
+    public <U> AlterRoleSet<U> map(Function<? super T, ? extends U> mapper) {
+        return new AlterRoleSet<>(name, properties.map(mapper));
     }
 
     @Override
@@ -54,9 +54,9 @@ public class AlterRole<T> extends Statement {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        AlterRole<?> alterRole = (AlterRole<?>) o;
-        return Objects.equals(properties, alterRole.properties) &&
-               Objects.equals(name, alterRole.name);
+        AlterRoleSet<?> alterRoleSet = (AlterRoleSet<?>) o;
+        return Objects.equals(properties, alterRoleSet.properties) &&
+               Objects.equals(name, alterRoleSet.name);
     }
 
     @Override
@@ -66,7 +66,7 @@ public class AlterRole<T> extends Statement {
 
     @Override
     public String toString() {
-        return "AlterRole{" +
+        return "AlterRoleSet{" +
                "properties=" + properties +
                ", name='" + name + '\'' +
                '}';
@@ -74,6 +74,6 @@ public class AlterRole<T> extends Statement {
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitAlterRole(this, context);
+        return visitor.visitAlterRoleSet(this, context);
     }
 }

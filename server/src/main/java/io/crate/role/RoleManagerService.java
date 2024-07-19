@@ -23,6 +23,7 @@ package io.crate.role;
 
 import java.util.Collection;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.client.node.NodeClient;
@@ -102,13 +103,15 @@ public class RoleManagerService implements RoleManager {
                                              @Nullable SecureHash newHashedPw,
                                              @Nullable JwtProperties newJwtProperties,
                                              boolean resetPassword,
-                                             boolean resetJwtProperties) {
+                                             boolean resetJwtProperties,
+                                             Map<Boolean, Map<String, Object>> sessionSettingsChange) {
         AlterRoleRequest request = new AlterRoleRequest(
             roleName,
             newHashedPw,
             newJwtProperties,
             resetPassword,
-            resetJwtProperties
+            resetJwtProperties,
+            sessionSettingsChange
         );
         return client.execute(TransportAlterRoleAction.ACTION, request).thenApply(r -> {
             if (r.doesUserExist() == false) {

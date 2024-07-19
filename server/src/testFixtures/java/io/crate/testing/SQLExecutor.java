@@ -226,7 +226,7 @@ public class SQLExecutor {
 
 
     /**
-     * Shortcut for {@link #getPlannerContext(ClusterState, Random)}
+     * Shortcut for {@link #getPlannerContext(Random)}
      * This can only be used if {@link com.carrotsearch.randomizedtesting.RandomizedContext} is available
      * (e.g. TestCase using {@link com.carrotsearch.randomizedtesting.RandomizedRunner}
      */
@@ -401,6 +401,7 @@ public class SQLExecutor {
                         sessionSettingRegistry
                     ),
                 relationAnalyzer,
+                sessionSettingRegistry,
                 new CoordinatorSessionSettings(Role.CRATE_USER, Role.CRATE_USER, LoadedRules.INSTANCE.disabledRules()),
                 nodeCtx.schemas(),
                 Randomness.get(),
@@ -459,6 +460,7 @@ public class SQLExecutor {
                         Analyzer analyzer,
                         Planner planner,
                         RelationAnalyzer relAnalyzer,
+                        SessionSettingRegistry sessionSettingRegistry,
                         CoordinatorSessionSettings sessionSettings,
                         Schemas schemas,
                         Random random,
@@ -480,7 +482,8 @@ public class SQLExecutor {
             () -> dependencyMock,
             jobsLogs,
             clusterService.getSettings(),
-            clusterService
+            clusterService,
+            sessionSettingRegistry
         );
         this.analyzer = analyzer;
         this.planner = planner;

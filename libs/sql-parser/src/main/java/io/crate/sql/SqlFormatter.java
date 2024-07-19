@@ -43,7 +43,8 @@ import io.crate.common.collections.Lists;
 import io.crate.sql.tree.AliasedRelation;
 import io.crate.sql.tree.AllColumns;
 import io.crate.sql.tree.AlterPublication;
-import io.crate.sql.tree.AlterRole;
+import io.crate.sql.tree.AlterRoleReset;
+import io.crate.sql.tree.AlterRoleSet;
 import io.crate.sql.tree.AlterSubscription;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.AstVisitor;
@@ -837,13 +838,31 @@ public final class SqlFormatter {
         }
 
         @Override
-        public Void visitAlterRole(AlterRole<?> node, Integer indent) {
+        public Void visitAlterRoleSet(AlterRoleSet<?> node, Integer indent) {
             builder.append("ALTER ROLE ");
             builder.append(quoteIdentifierIfNeeded(node.name()));
             if (node.properties().isEmpty() == false) {
                 builder.append("SET (");
                 appendProperties(node.properties(), 0);
                 builder.append(")");
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitAlterRoleReset(AlterRoleReset node, Integer indent) {
+            builder.append("ALTER ROLE ");
+            builder.append(quoteIdentifierIfNeeded(node.name()));
+            builder.append("RESET ");
+            String property = node.property();
+            if (property == null) {
+                builder.append("ALL");
+            } else {
+                if (property.contains(".")) {
+                    builder.append(String.format(Locale.ENGLISH, "\"%s\"", property));
+                } else {
+                    builder.append(property);
+                }
             }
             return null;
         }

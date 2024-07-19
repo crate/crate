@@ -22,6 +22,7 @@
 package io.crate.role;
 
 import java.util.Collection;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import org.jetbrains.annotations.Nullable;
@@ -42,8 +43,7 @@ public interface RoleManager extends Roles {
     CompletableFuture<Long> createRole(String roleName,
                                        boolean isUser,
                                        @Nullable SecureHash hashedPw,
-                                       @Nullable JwtProperties jwtProperties
-    );
+                                       @Nullable JwtProperties jwtProperties);
 
     /**
      * Delete a roles.
@@ -64,13 +64,19 @@ public interface RoleManager extends Roles {
      * @param newJwtProperties new jwt properties. if null properties are removed from the role
      * @param resetPassword hints how to treat NULL password: as not provided and supposed to be kept or explicitly set to NULL.
      * @param resetJwtProperties hints how to treat NULL jwt: as not provided and supposed to be kept or explicitly set to NULL.
+     * @param sessionSettingsChange session settings to change, it can hold an entry with {@code false} key, which means
+     *                              add/overwrite with the settings defined in the {@code Map<String, Object>} value of
+     *                              the entry, or an entry with {@code true} key, which means reset all the settings in
+     *                              the {@code Map<String, Object>} value of the entry, or reset all settings if this map
+     *                              is empty.
      * @return 1 if the role has been updated, otherwise a failed future.
      */
     CompletableFuture<Long> alterRole(String roleName,
                                       @Nullable SecureHash newHashedPw,
                                       @Nullable JwtProperties newJwtProperties,
                                       boolean resetPassword,
-                                      boolean resetJwtProperties);
+                                      boolean resetJwtProperties,
+                                      Map<Boolean, Map<String, Object>> sessionSettingsChange);
 
     /**
      * Apply given list of {@link Privilege}s or {@link Role} for each given role

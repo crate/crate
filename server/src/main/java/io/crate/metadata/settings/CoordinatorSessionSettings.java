@@ -49,11 +49,11 @@ public class CoordinatorSessionSettings extends SessionSettings {
     private String dateStyle;
     private TimeValue statementTimeout;
 
-    public CoordinatorSessionSettings(Role authenticatedUser, String ... searchPath) {
+    public CoordinatorSessionSettings(Role authenticatedUser, String... searchPath) {
         this(authenticatedUser, authenticatedUser, Set.of(), searchPath);
     }
 
-    public CoordinatorSessionSettings(Role authenticatedUser, Role sessionUser, String ... searchPath) {
+    public CoordinatorSessionSettings(Role authenticatedUser, Role sessionUser, String... searchPath) {
         this(
             authenticatedUser,
             sessionUser,
@@ -65,7 +65,7 @@ public class CoordinatorSessionSettings extends SessionSettings {
     public CoordinatorSessionSettings(Role authenticatedUser,
                                       Role sessionUser,
                                       Set<Class<? extends Rule<?>>> excludedOptimizerRules,
-                                      String ... searchPath) {
+                                      String... searchPath) {
         this(
             authenticatedUser,
             sessionUser,
