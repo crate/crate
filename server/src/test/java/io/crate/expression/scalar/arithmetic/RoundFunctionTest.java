@@ -44,6 +44,32 @@ public class RoundFunctionTest extends ScalarTestCase {
     }
 
     @Test
+    public void test_round_with_precision() throws Exception {
+        assertEvaluate("round(123.123,0)", 123.0d);
+        assertEvaluate("round(123.123,1)", 123.1d);
+        assertEvaluate("round(123.123,4)", 123.123d);
+        assertEvaluate("round(123.123,-1)", 120.0d);
+        assertEvaluate("round(123.123,-4)", 0.0d);
+
+        assertEvaluate("round(987.987,0)", 988.0d);
+        assertEvaluate("round(987.987,1)", 988.0d);
+        assertEvaluate("round(987.987,-1)", 990.0d);
+
+        assertEvaluate("round(1000.0, 17)", 1000.0d);
+        assertEvaluate("round(260.775, 2)", 260.78d);
+
+        assertEvaluate("round(-123.123,0)", -123.0d);
+        assertEvaluate("round(-123.123,1)", -123.1d);
+        assertEvaluate("round(-123.123,4)", -123.123d);
+        assertEvaluate("round(-123.123,-1)", -120.0d);
+        assertEvaluate("round(-123.123,-4)", 0.0d);
+
+        assertEvaluateNull("round(1,null)");
+        assertEvaluateNull("round(null,null)");
+        assertEvaluateNull("round(null,1)");
+    }
+
+    @Test
     public void testInvalidType() throws Exception {
         assertThatThrownBy(() -> assertEvaluateNull("round('foo')"))
             .isExactlyInstanceOf(ConversionException.class)

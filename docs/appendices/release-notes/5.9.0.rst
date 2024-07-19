@@ -107,6 +107,9 @@ Scalar and Aggregation Functions
   ``value || array`` operator as an alias to the new
   :ref:`array_prepend(value, array) <scalar-array_prepend>` scalar function.
 
+- Added an optional ``precision`` parameter to the :ref:`round <scalar-round>`
+  scalar function.
+
 Performance and Resilience Improvements
 ---------------------------------------
 
