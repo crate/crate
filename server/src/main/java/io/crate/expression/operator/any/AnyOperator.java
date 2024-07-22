@@ -22,9 +22,13 @@
 package io.crate.expression.operator.any;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
+import java.util.stream.StreamSupport;
 
+import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
+import org.jetbrains.annotations.NotNull;
 
 import io.crate.data.Input;
 import io.crate.expression.operator.LikeOperators;
@@ -114,7 +118,7 @@ public abstract sealed class AnyOperator<T> extends Operator<T>
 
     abstract boolean matches(T probe, T candidate);
 
-    protected abstract Query refMatchesAnyArrayLiteral(Function any, Reference probe, Literal<?> candidates, Context context);
+    protected abstract Query refMatchesAnyArrayLiteral(Function any, Reference probe, @NotNull List<?> nonNullValues, Context context);
 
     protected abstract Query literalMatchesAnyArrayRef(Function any, Literal<?> probe, Reference candidates, Context context);
 
@@ -159,7 +163,13 @@ public abstract sealed class AnyOperator<T> extends Operator<T>
         if (probe instanceof Literal<?> literal && candidates instanceof Reference ref) {
             return literalMatchesAnyArrayRef(function, (Literal<T>) literal, ref, context);
         } else if (probe instanceof Reference ref && candidates instanceof Literal<?> literal) {
-            return refMatchesAnyArrayLiteral(function, ref, (Literal<T>) literal, context);
+            var nonNullValues = StreamSupport
+                .stream(((Iterable<?>) literal.value()).spliterator(), false)
+                .filter(Objects::nonNull).toList();
+            if (nonNullValues.isEmpty()) {
+                return new MatchNoDocsQuery("Cannot match unless there is at least one non-null candidate");
+            }
+            return refMatchesAnyArrayLiteral(function, ref, nonNullValues, context);
         } else {
             return null;
         }

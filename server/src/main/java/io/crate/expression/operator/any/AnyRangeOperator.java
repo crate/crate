@@ -22,9 +22,12 @@
 package io.crate.expression.operator.any;
 
 
+import java.util.List;
+
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
+import org.jetbrains.annotations.NotNull;
 
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.expression.operator.CmpOperator;
@@ -101,14 +104,11 @@ public final class AnyRangeOperator extends AnyOperator<Object> {
     }
 
     @Override
-    protected Query refMatchesAnyArrayLiteral(Function any, Reference probe, Literal<?> candidates, Context context) {
+    protected Query refMatchesAnyArrayLiteral(Function any, Reference probe, @NotNull List<?> nonNullValues, Context context) {
         // col < ANY ([1,2,3]) --> or(col<1, col<2, col<3)
         BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
         booleanQuery.setMinimumNumberShouldMatch(1);
-        for (Object value : (Iterable<?>) candidates.value()) {
-            if (value == null) {
-                continue;
-            }
+        for (Object value : nonNullValues) {
             booleanQuery.add(
                 CmpOperator.toQuery(comparison.innerOpName, probe, value),
                 BooleanClause.Occur.SHOULD);
