@@ -47,4 +47,5 @@ See the :ref:`version_5.8.0` release notes for a full list of changes in the
 Fixes
 =====
 
-None
+- Fixed a regression introduced in 5.8.0 that led to error when running a query
+  ``SELECT * FROM sys.nodes`` in a mixed cluster.

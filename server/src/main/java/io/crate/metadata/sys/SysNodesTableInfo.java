@@ -57,6 +57,7 @@ public class SysNodesTableInfo {
     private static final String SYS_COL_HEAP = "heap";
     private static final String SYS_COL_VERSION = "version";
     private static final String SYS_COL_THREAD_POOLS = "thread_pools";
+    private static final String SYS_COL_NETWORK = "network";
     private static final String SYS_COL_OS = "os";
     private static final String SYS_COL_OS_INFO = "os_info";
     private static final String SYS_COL_PROCESS = "process";
@@ -81,6 +82,8 @@ public class SysNodesTableInfo {
         public static final ColumnIdent VERSION = ColumnIdent.of(SYS_COL_VERSION);
 
         public static final ColumnIdent THREAD_POOLS = ColumnIdent.of(SYS_COL_THREAD_POOLS);
+
+        public static final ColumnIdent NETWORK = ColumnIdent.of(SYS_COL_NETWORK);
 
         public static final ColumnIdent CONNECTIONS = ColumnIdent.of("connections");
 
