@@ -46,6 +46,7 @@ import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.store.RateLimiter;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -191,7 +192,8 @@ public final class ReservoirSampler {
                     = getCollectorExpressions(indexService, docTable, columns);
 
                 for (IndexShard indexShard : indexService) {
-                    if (!indexShard.routingEntry().primary()) {
+                    ShardRouting routingEntry = indexShard.routingEntry();
+                    if (!routingEntry.primary() || !routingEntry.active()) {
                         continue;
                     }
                     try {

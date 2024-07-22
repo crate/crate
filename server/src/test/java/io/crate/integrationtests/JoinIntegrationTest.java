@@ -47,7 +47,6 @@ import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 import io.crate.testing.Asserts;
 import io.crate.testing.UseHashJoins;
-import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
 import io.crate.types.DataTypes;
@@ -1524,7 +1523,6 @@ public class JoinIntegrationTest extends IntegTestCase {
      *
      * https://github.com/crate/crate/issues/14583
      */
-    @UseJdbc(1)
     @UseHashJoins(1)
     @UseRandomizedSchema(random = false)
     @UseRandomizedOptimizerRules(0)
