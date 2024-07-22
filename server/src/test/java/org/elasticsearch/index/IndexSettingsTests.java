@@ -23,7 +23,6 @@ package org.elasticsearch.index;
 
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Arrays;
@@ -466,6 +465,7 @@ public class IndexSettingsTests extends ESTestCase {
     public void testPrivateSettingsValidation() {
         final Settings settings = Settings.builder()
             .put(IndexMetadata.SETTING_CREATION_DATE, System.currentTimeMillis())
+            .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
             .build();
         final IndexScopedSettings indexScopedSettings = new IndexScopedSettings(
             settings,
@@ -489,6 +489,7 @@ public class IndexSettingsTests extends ESTestCase {
     public void testArchivedSettingsValidation() {
         final Settings settings = Settings.builder()
             .put(AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX + "foo", System.currentTimeMillis())
+            .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
             .build();
         final IndexScopedSettings indexScopedSettings = new IndexScopedSettings(
             settings,
