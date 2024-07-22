@@ -29,6 +29,7 @@ import java.util.function.Consumer;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
+import org.jetbrains.annotations.NotNull;
 
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.Function;
@@ -57,11 +58,10 @@ public final class AnyEqOperator extends AnyOperator<Object> {
     }
 
     @Override
-    protected Query refMatchesAnyArrayLiteral(Function any, Reference probe, Literal<?> candidates, Context context) {
+    protected Query refMatchesAnyArrayLiteral(Function any, Reference probe, @NotNull List<?> nonNullValues, Context context) {
         String columnName = probe.storageIdent();
-        List<?> values = (List<?>) candidates.value();
         DataType<?> innerType = ArrayType.unnest(probe.valueType());
-        return EqOperator.termsQuery(columnName, innerType, values, probe.hasDocValues(), probe.indexType());
+        return EqOperator.termsQuery(columnName, innerType, nonNullValues, probe.hasDocValues(), probe.indexType());
     }
 
     @Override

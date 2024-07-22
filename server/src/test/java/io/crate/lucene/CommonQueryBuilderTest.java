@@ -698,6 +698,42 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     }
 
     @Test
+    public void test_any_operators_with_empty_array_literal() {
+        Query query = convert("x != any([])");
+        assertThat(query).hasToString("MatchNoDocsQuery(\"Cannot match unless there is at least one non-null candidate\")");
+
+        query = convert("x = any([])");
+        assertThat(query).hasToString("MatchNoDocsQuery(\"Cannot match unless there is at least one non-null candidate\")");
+
+        query = convert("x < any([])");
+        assertThat(query).hasToString("MatchNoDocsQuery(\"Cannot match unless there is at least one non-null candidate\")");
+
+        query = convert("name like any([])");
+        assertThat(query).hasToString("MatchNoDocsQuery(\"Cannot match unless there is at least one non-null candidate\")");
+
+        query = convert("name not ilike any([])");
+        assertThat(query).hasToString("MatchNoDocsQuery(\"Cannot match unless there is at least one non-null candidate\")");
+    }
+
+    @Test
+    public void test_any_operators_with_null_array_literal() {
+        Query query = convert("x != any([null])");
+        assertThat(query).hasToString("MatchNoDocsQuery(\"Cannot match unless there is at least one non-null candidate\")");
+
+        query = convert("x = any([null])");
+        assertThat(query).hasToString("MatchNoDocsQuery(\"Cannot match unless there is at least one non-null candidate\")");
+
+        query = convert("x < any([null])");
+        assertThat(query).hasToString("MatchNoDocsQuery(\"Cannot match unless there is at least one non-null candidate\")");
+
+        query = convert("name like any([null])");
+        assertThat(query).hasToString("MatchNoDocsQuery(\"Cannot match unless there is at least one non-null candidate\")");
+
+        query = convert("name not ilike any([null])");
+        assertThat(query).hasToString("MatchNoDocsQuery(\"Cannot match unless there is at least one non-null candidate\")");
+    }
+
+    @Test
     public void test_any_neq_operator_maps_column_names_to_oids() throws Exception {
         final long oid = 123;
         try (QueryTester tester = new QueryTester.Builder(
