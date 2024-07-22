@@ -21,11 +21,14 @@
 
 package io.crate.expression.operator.any;
 
+import java.util.List;
+
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.common.lucene.search.Queries;
+import org.jetbrains.annotations.NotNull;
 
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.predicate.IsNullPredicate;
@@ -54,14 +57,11 @@ public final class AnyNeqOperator extends AnyOperator<Object> {
     }
 
     @Override
-    protected Query refMatchesAnyArrayLiteral(Function any, Reference probe, Literal<?> candidates, Context context) {
+    protected Query refMatchesAnyArrayLiteral(Function any, Reference probe, @NotNull List<?> nonNullValues, Context context) {
         //  col != ANY ([1,2,3]) --> not(col=1 and col=2 and col=3)
         String columnName = probe.storageIdent();
         BooleanQuery.Builder andBuilder = new BooleanQuery.Builder();
-        for (Object value : (Iterable<?>) candidates.value()) {
-            if (value == null) {
-                continue;
-            }
+        for (Object value : nonNullValues) {
             var fromPrimitive = EqOperator.fromPrimitive(
                 probe.valueType(),
                 columnName,
