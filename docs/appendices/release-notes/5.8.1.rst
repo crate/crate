@@ -47,5 +47,8 @@ See the :ref:`version_5.8.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that could lead to ``ANALYZE`` over account the number of
+  documents in a table if shards were relocating.
+
 - Fixed a regression introduced in 5.8.0 that led to error when running a query
   ``SELECT * FROM sys.nodes`` in a mixed cluster.
