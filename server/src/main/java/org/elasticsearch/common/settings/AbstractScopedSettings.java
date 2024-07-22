@@ -829,6 +829,35 @@ public abstract class AbstractScopedSettings {
         }
     }
 
+    /**
+     * Removes unknown settings.
+     * Keeps archived and private settings.
+     * Used to remove unknown settings coming from an old node during rolling upgrade.
+     */
+    public Settings removeUnknownSettings(Settings settings) {
+        Settings.Builder builder = Settings.builder();
+        boolean changed = false;
+        for (final String key : settings.keySet()) {
+            final Setting<?> setting = getRaw(key);
+            if (((isPrivateSetting(key) || (setting != null && setting.isPrivateIndex())))) {
+                builder.copy(key, settings);
+            }
+            if (key.startsWith(ARCHIVED_SETTINGS_PREFIX)) {
+                builder.copy(key, settings);
+            }
+            if (setting != null) {
+                builder.copy(key, settings);
+            } else {
+                // Builder doesn't include this, actual difference.
+                changed = true;
+            }
+        }
+        if (changed) {
+            return builder.build();
+        }
+        return settings;
+    }
+
     private static final class Entry implements Map.Entry<String, String> {
 
         private final String key;
