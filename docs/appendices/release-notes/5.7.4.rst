@@ -48,4 +48,5 @@ See the :ref:`version_5.7.0` release notes for a full list of changes in the
 Fixes
 =====
 
-None
+- Fixed an issue that could lead to ``ANALYZE`` over account the number of
+  documents in a table if shards were relocating.
