@@ -2079,6 +2079,13 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     }
 
     @Override
+    public Node visitPosition(SqlBaseParser.PositionContext context) {
+        Expression substr = (Expression) visit(context.expr(0)); 
+        Expression str = (Expression) visit(context.expr(1)); 
+        return new FunctionCall(QualifiedName.of("strpos"), List.of(str, substr));
+    }
+
+    @Override
     public Node visitAtTimezone(SqlBaseParser.AtTimezoneContext context) {
         Expression zone = (Expression) visit(context.zone);
         Expression timestamp = (Expression) visit(context.timestamp);
