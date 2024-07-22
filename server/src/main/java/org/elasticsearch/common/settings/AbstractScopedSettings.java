@@ -41,6 +41,8 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.search.spell.LevenshteinDistance;
 import org.apache.lucene.util.CollectionUtil;
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.regex.Regex;
 
@@ -407,7 +409,17 @@ public abstract class AbstractScopedSettings {
                 msg += " please check that any required plugins are installed," +
                     " or check the breaking changes documentation for removed settings";
             }
-            throw new IllegalArgumentException(msg);
+            Version versionCreated = IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(settings);
+            if (versionCreated.before(Version.CURRENT) && this instanceof IndexScopedSettings) {
+                // Index creation can happen when applying a cluster state from a gateway node.
+                // On a mixed cluster, we can get an old setting, non-existent on the current version.
+                // We don't throw an exception in order not to block a rolling upgrade.
+                // Instead, we log a warning and delete the setting.
+                logger.warn(msg);
+                return;
+            } else {
+                throw new IllegalArgumentException(msg);
+            }
         } else {
             Set<Setting.SettingDependency> settingsDependencies = setting.getSettingsDependencies(key);
             if (setting.hasComplexMatcher()) {

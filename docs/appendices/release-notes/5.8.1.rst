@@ -52,3 +52,6 @@ Fixes
 
 - Fixed a regression introduced in 5.8.0 that led to error when running a query
   ``SELECT * FROM sys.nodes`` in a mixed cluster.
+
+- Fixed a regression introduced in 5.8.0 that prevented cluster to become GREEN
+  after a rolling upgrade.
