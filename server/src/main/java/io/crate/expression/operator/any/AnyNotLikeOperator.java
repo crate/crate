@@ -21,6 +21,8 @@
 
 package io.crate.expression.operator.any;
 
+import java.util.List;
+
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
@@ -62,15 +64,11 @@ public final class AnyNotLikeOperator extends AnyOperator<String> {
     }
 
     @Override
-    protected Query refMatchesAnyArrayLiteral(Function any, Reference probe, Literal<?> candidates, Context context) {
+    protected Query refMatchesAnyArrayLiteral(Function any, Reference probe, List<?> nonNullValues, Context context) {
         // col not like ANY (['a', 'b']) --> not(and(like(col, 'a'), like(col, 'b')))
         String columnName = probe.storageIdent();
         BooleanQuery.Builder andLikeQueries = new BooleanQuery.Builder();
-        Iterable<?> values = (Iterable<?>) candidates.value();
-        for (Object value : values) {
-            if (value == null) {
-                continue;
-            }
+        for (Object value : nonNullValues) {
             var likeQuery = caseSensitivity.likeQuery(columnName,
                 (String) value,
                 LikeOperators.DEFAULT_ESCAPE,
