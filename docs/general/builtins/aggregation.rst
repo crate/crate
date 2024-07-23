@@ -838,7 +838,7 @@ elements should be returned which defaults to 8. The maximum limit for k is
 10000.
 
 Internally the ``topk``
-aggregate function use an implementation of the
+aggregate function uses an implementation of the
 `Efficient Computation of Frequent and Top-k Elements in Data Streams`_
 algorithm.
 
