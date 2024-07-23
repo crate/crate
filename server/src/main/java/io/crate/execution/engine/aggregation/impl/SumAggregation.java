@@ -196,9 +196,15 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
                                                        DocTableInfo table,
                                                        List<Literal<?>> optionalParams) {
         Reference reference = aggregationReferences.get(0);
+
+        if (reference == null) {
+            return null;
+        }
+
         if (!reference.hasDocValues()) {
             return null;
         }
+
         switch (reference.valueType().id()) {
             case ByteType.ID:
             case ShortType.ID:

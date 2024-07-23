@@ -163,6 +163,9 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
                                                        DocTableInfo table,
                                                        List<Literal<?>> optionalParams) {
         Reference arg = aggregationReferences.get(0);
+        if (arg == null) {
+            return null;
+        }
         if (!arg.hasDocValues()) {
             return null;
         }

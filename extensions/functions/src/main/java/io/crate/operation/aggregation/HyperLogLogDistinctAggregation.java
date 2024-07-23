@@ -173,8 +173,16 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                                                        List<Reference> aggregationReferences,
                                                        DocTableInfo table,
                                                        List<Literal<?>> optionalParams) {
-        if (aggregationReferences.stream().anyMatch(x -> !x.hasDocValues())) {
+        if (aggregationReferences.stream().anyMatch(x -> x != null && !x.hasDocValues())) {
             return null;
+        }
+
+        final int precision;
+        if (optionalParams.isEmpty()) {
+            precision = HyperLogLogPlusPlus.DEFAULT_PRECISION;
+        } else {
+            Literal<?> value = optionalParams.getLast();
+            precision = value == null ? HyperLogLogPlusPlus.DEFAULT_PRECISION : (int) value.value();
         }
         Reference reference = aggregationReferences.get(0);
         var dataType = reference.valueType();
@@ -189,7 +197,6 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                     reference.storageIdent(),
                     (ramAccounting, memoryManager, minNodeVersion) -> {
                         var state = new HllState(dataType, minNodeVersion.onOrAfter(Version.V_4_1_0));
-                        var precision = optionalParams.size() == 1 ? (Integer) optionalParams.get(0).value() : HyperLogLogPlusPlus.DEFAULT_PRECISION;
                         return initIfNeeded(state, memoryManager, precision);
                     },
                     (values, state) -> {
@@ -202,7 +209,6 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                     reference.storageIdent(),
                     (ramAccounting, memoryManager, minNodeVersion) -> {
                         var state = new HllState(dataType, minNodeVersion.onOrAfter(Version.V_4_1_0));
-                        var precision = optionalParams.size() == 1 ? (Integer) optionalParams.get(0).value() : HyperLogLogPlusPlus.DEFAULT_PRECISION;
                         return initIfNeeded(state, memoryManager, precision);
                     },
                     (values, state) -> {
@@ -221,7 +227,6 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                     reference.storageIdent(),
                     (ramAccounting, memoryManager, minNodeVersion) -> {
                         var state = new HllState(dataType, minNodeVersion.onOrAfter(Version.V_4_1_0));
-                        var precision = optionalParams.size() == 1 ? (Integer) optionalParams.get(0).value() : HyperLogLogPlusPlus.DEFAULT_PRECISION;
                         return initIfNeeded(state, memoryManager, precision);
                     },
                     (values, state) -> {
@@ -236,7 +241,6 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                 );
             case StringType.ID:
             case CharacterType.ID:
-                var precision = optionalParams.size() == 1 ? (Integer) optionalParams.get(0).value() : HyperLogLogPlusPlus.DEFAULT_PRECISION;
                 return new HllAggregator(reference.storageIdent(), dataType, precision) {
                     @Override
                     public void apply(RamAccounting ramAccounting, int doc, HllState state) throws IOException {
@@ -251,8 +255,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                     }
                 };
             case IpType.ID:
-                var ipPrecision = optionalParams.size() == 1 ? (Integer) optionalParams.get(0).value() : HyperLogLogPlusPlus.DEFAULT_PRECISION;
-                return new HllAggregator(reference.storageIdent(), dataType, ipPrecision) {
+                return new HllAggregator(reference.storageIdent(), dataType, precision) {
                     @Override
                     public void apply(RamAccounting ramAccounting, int doc, HllState state) throws IOException {
                         if (super.values.advanceExact(doc) && super.values.docValueCount() == 1) {
