@@ -297,6 +297,9 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
             return null;
         }
         Reference reference = aggregationReferences.get(0);
+        if (reference == null) {
+            return null;
+        }
         if (reference.valueType().id() == ObjectType.ID) {
             // Count on object would require loading the source just to check if there is a value.
             // Try to count on a non-null sub-column to be able to utilize doc-values.

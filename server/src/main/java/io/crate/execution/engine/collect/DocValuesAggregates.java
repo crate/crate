@@ -155,6 +155,7 @@ public final class DocValuesAggregates {
             for (var input : aggregation.inputs()) {
                 if (input instanceof Literal<?> literal) {
                     literals.add(literal);
+                    aggregationReferences.add(null);
                 } else {
                     var reference = input.accept(AggregationInputToReferenceResolver.INSTANCE, toCollect);
                     if (reference == null) {
@@ -165,6 +166,7 @@ public final class DocValuesAggregates {
                     assert reference.ident().columnIdent().fqn().startsWith(DocSysColumns.Names.DOC) == false :
                         "Source look-up for Reference " + reference + " is not allowed in DocValuesAggregates.";
                     aggregationReferences.add(reference);
+                    literals.add(null);
                 }
             }
             FunctionImplementation func = functions.getQualified(aggregation);
