@@ -125,8 +125,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
         roleManager = new RoleManagerService(
             null,
             roles,
-            new DDLClusterStateService(),
-            this.clusterService
+            new DDLClusterStateService()
         );
 
         e = SQLExecutor.builder(clusterService)
