@@ -30,7 +30,7 @@ import org.apache.lucene.document.LongField;
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.index.IndexableField;
-import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.jetbrains.annotations.NotNull;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
@@ -48,12 +48,10 @@ public class LongIndexer implements ValueIndexer<Long> {
     }
 
     @Override
-    public void indexValue(Long value,
-                           XContentBuilder xcontentBuilder,
+    public Long indexValue(@NotNull Long value,
                            Consumer<? super IndexableField> addField,
                            Synthetics synthetics,
                            Map<ColumnIdent, Indexer.ColumnConstraint> toValidate) throws IOException {
-        xcontentBuilder.value(value);
         long longValue = value;
         if (ref.hasDocValues() && ref.indexType() != IndexType.NONE) {
             addField.accept(new LongField(name, longValue, Field.Store.NO));
@@ -70,5 +68,6 @@ public class LongIndexer implements ValueIndexer<Long> {
                         DocSysColumns.FieldNames.FIELD_TYPE));
             }
         }
+        return value;
     }
 }

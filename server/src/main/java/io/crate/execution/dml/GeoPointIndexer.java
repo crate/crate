@@ -29,7 +29,7 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.document.LatLonDocValuesField;
 import org.apache.lucene.document.LatLonPoint;
 import org.apache.lucene.index.IndexableField;
-import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.jetbrains.annotations.NotNull;
 import org.locationtech.spatial4j.shape.Point;
 
 import io.crate.execution.dml.Indexer.ColumnConstraint;
@@ -49,16 +49,11 @@ public class GeoPointIndexer implements ValueIndexer<Point> {
     }
 
     @Override
-    public void indexValue(Point point,
-                           XContentBuilder xcontentBuilder,
-                           Consumer<? super IndexableField> addField,
-                           Synthetics synthetics,
-                           Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
+    public Point indexValue(@NotNull Point point,
+                            Consumer<? super IndexableField> addField,
+                            Synthetics synthetics,
+                            Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
 
-        xcontentBuilder.startArray()
-            .value(point.getX())
-            .value(point.getY())
-            .endArray();
         if (ref.indexType() != IndexType.NONE) {
             addField.accept(new LatLonPoint(name, point.getLat(), point.getLon()));
         }
@@ -70,5 +65,6 @@ public class GeoPointIndexer implements ValueIndexer<Point> {
                 name,
                 DocSysColumns.FieldNames.FIELD_TYPE));
         }
+        return point;
     }
 }

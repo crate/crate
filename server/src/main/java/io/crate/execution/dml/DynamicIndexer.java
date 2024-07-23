@@ -26,12 +26,12 @@ import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.apache.lucene.index.IndexableField;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.NotNull;
 
 import io.crate.execution.dml.Indexer.ColumnConstraint;
 import io.crate.expression.symbol.Symbol;
@@ -55,21 +55,17 @@ import io.crate.types.UndefinedType;
 public final class DynamicIndexer implements ValueIndexer<Object> {
 
     private final ReferenceIdent refIdent;
-    private Function<ColumnIdent, Reference> getRef;
+    private final Function<ColumnIdent, Reference> getRef;
     private final int position;
     private DataType<?> type = null;
     private ValueIndexer<Object> indexer;
-    @Nullable
-    private final String storageIdentPrefixForEmptyArrays;
 
     public DynamicIndexer(ReferenceIdent refIdent,
                           int position,
-                          Function<ColumnIdent, Reference> getRef,
-                          @Nullable String storageIdentPrefixForEmptyArrays) {
+                          Function<ColumnIdent, Reference> getRef) {
         this.refIdent = refIdent;
         this.getRef = getRef;
         this.position = position;
-        this.storageIdentPrefixForEmptyArrays = storageIdentPrefixForEmptyArrays;
     }
 
     @Override
@@ -82,7 +78,7 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
             DynamicIndexer.throwOnNestedArray(type);
             StorageSupport<?> storageSupport = type.storageSupport();
             if (storageSupport == null) {
-                if (handleEmptyArray(type, value, null, null)) {
+                if (handleEmptyArray(type, value)) {
                     type = null; // guess type again with next value
                     return;
                 }
@@ -121,12 +117,10 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
     }
 
     @Override
-    public void indexValue(Object value,
-                           String storageIdentLeafName,
-                           XContentBuilder xcontentBuilder,
-                           Consumer<? super IndexableField> addField,
-                           Synthetics synthetics,
-                           Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
+    public Object indexValue(@NotNull Object value,
+                             Consumer<? super IndexableField> addField,
+                             Synthetics synthetics,
+                             Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
         if (type == null) {
             // At the second phase of indexing type is not null in almost all cases
             // except the case with array of nulls
@@ -134,32 +128,14 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
         }
         StorageSupport<?> storageSupport = type.storageSupport();
         if (storageSupport == null) {
-            var emptyArrayStorageIdent = storageIdentLeafName;
-            if (storageIdentPrefixForEmptyArrays != null) {
-                emptyArrayStorageIdent = storageIdentPrefixForEmptyArrays + storageIdentLeafName;
-            }
-            if (handleEmptyArray(type, value, emptyArrayStorageIdent, xcontentBuilder)) {
+            if (handleEmptyArray(type, value)) {
                 type = null; // guess type again with next value
-                return;
+                return value;
             }
             throw new IllegalArgumentException(
                 "Cannot create columns of type " + type.getName() + " dynamically. " +
                     "Storage is not supported for this type");
         }
-        if (storageIdentLeafName != null) {
-            xcontentBuilder.field(storageIdentLeafName);
-        }
-        indexValue(value, xcontentBuilder, addField, synthetics, toValidate);
-    }
-
-    @Override
-    @SuppressWarnings("unchecked")
-    public void indexValue(Object value,
-                           XContentBuilder xcontentBuilder,
-                           Consumer<? super IndexableField> addField,
-                           Synthetics synthetics,
-                           Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
-        StorageSupport<?> storageSupport = type.storageSupport();
         boolean nullable = true;
         Symbol defaultExpression = null;
         Reference newColumn = new SimpleReference(
@@ -179,16 +155,12 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
             // Reuse indexer if phase 1 already created one.
             // Phase 1 mutates indexer.innerTypes on new columns creation.
             // Phase 2 must be aware of all mapping updates.
-            indexer = (ValueIndexer<Object>) storageSupport.valueIndexer(
-                refIdent.tableIdent(),
-                newColumn,
-                getRef
-            );
+            // noinspection unchecked
+            indexer = (ValueIndexer<Object>) storageSupport.valueIndexer(refIdent.tableIdent(), newColumn, getRef);
         }
         value = type.sanitizeValue(value);
-        indexer.indexValue(
+        return indexer.indexValue(
             value,
-            xcontentBuilder,
             addField,
             synthetics,
             toValidate
@@ -196,22 +168,10 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
     }
 
     static boolean handleEmptyArray(DataType<?> type,
-                                    Object value,
-                                    @Nullable String name,
-                                    @Nullable XContentBuilder builder) throws IOException {
+                                    Object value) {
         if (type instanceof ArrayType<?> && ArrayType.unnest(type) instanceof UndefinedType) {
             Collection<?> values = (Collection<?>) value;
-            if (values.isEmpty() || values.stream().allMatch(x -> x == null)) {
-                if (builder != null) {
-                    builder.field(name);
-                    builder.startArray();
-                    for (int i = 0; i < values.size(); i++) {
-                        builder.nullValue();
-                    }
-                    builder.endArray();
-                }
-                return true;
-            }
+            return values.isEmpty() || values.stream().allMatch(Objects::isNull);
         }
         return false;
     }

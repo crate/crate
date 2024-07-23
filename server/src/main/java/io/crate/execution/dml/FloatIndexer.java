@@ -31,7 +31,7 @@ import org.apache.lucene.document.FloatPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.NumericUtils;
-import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.jetbrains.annotations.NotNull;
 
 import io.crate.execution.dml.Indexer.ColumnConstraint;
 import io.crate.metadata.ColumnIdent;
@@ -50,12 +50,10 @@ public class FloatIndexer implements ValueIndexer<Float> {
     }
 
     @Override
-    public void indexValue(Float value,
-                           XContentBuilder xcontentBuilder,
-                           Consumer<? super IndexableField> addField,
-                           Synthetics synthetics,
-                           Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
-        xcontentBuilder.value(value);
+    public Float indexValue(@NotNull Float value,
+                            Consumer<? super IndexableField> addField,
+                            Synthetics synthetics,
+                            Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
         float floatValue = value.floatValue();
         if (ref.hasDocValues() && ref.indexType() != IndexType.NONE) {
             addField.accept(new FloatField(name, floatValue, Field.Store.NO));
@@ -74,5 +72,6 @@ public class FloatIndexer implements ValueIndexer<Float> {
                         DocSysColumns.FieldNames.FIELD_TYPE));
             }
         }
+        return value;
     }
 }

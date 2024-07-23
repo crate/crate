@@ -41,7 +41,7 @@ import org.elasticsearch.common.geo.GeoUtils;
 import org.elasticsearch.common.geo.builders.ShapeBuilder;
 import org.elasticsearch.common.geo.builders.ShapeBuilder.Orientation;
 import org.elasticsearch.common.unit.DistanceUnit;
-import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.jetbrains.annotations.NotNull;
 import org.locationtech.spatial4j.shape.Shape;
 
 import io.crate.execution.dml.Indexer.ColumnConstraint;
@@ -82,17 +82,16 @@ public class GeoShapeIndexer implements ValueIndexer<Map<String, Object>> {
     }
 
     @Override
-    public void indexValue(Map<String, Object> value,
-                           XContentBuilder xcontentBuilder,
-                           Consumer<? super IndexableField> addField,
-                           Synthetics synthetics,
-                           Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
-        xcontentBuilder.map(value);
+    public Map<String, Object> indexValue(@NotNull Map<String, Object> value,
+                                          Consumer<? super IndexableField> addField,
+                                          Synthetics synthetics,
+                                          Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
         indexableFieldsFactory.create(value, addField);
         addField.accept(new Field(
             DocSysColumns.FieldNames.NAME,
             name,
             DocSysColumns.FieldNames.FIELD_TYPE));
+        return value;
     }
 
     private interface IndexableFieldsFactory {

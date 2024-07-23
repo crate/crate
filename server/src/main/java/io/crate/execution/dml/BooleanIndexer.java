@@ -30,7 +30,7 @@ import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
-import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.jetbrains.annotations.NotNull;
 
 import io.crate.execution.dml.Indexer.ColumnConstraint;
 import io.crate.metadata.ColumnIdent;
@@ -58,12 +58,10 @@ public class BooleanIndexer implements ValueIndexer<Boolean> {
     }
 
     @Override
-    public void indexValue(Boolean value,
-                           XContentBuilder xContentBuilder,
-                           Consumer<? super IndexableField> addField,
-                           Synthetics synthetics,
-                           Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
-        xContentBuilder.value(value);
+    public Boolean indexValue(@NotNull Boolean value,
+                              Consumer<? super IndexableField> addField,
+                              Synthetics synthetics,
+                              Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
         if (ref.indexType() != IndexType.NONE) {
             addField.accept(new Field(name, value ? "T" : "F", FIELD_TYPE));
         }
@@ -75,5 +73,6 @@ public class BooleanIndexer implements ValueIndexer<Boolean> {
                 name,
                 DocSysColumns.FieldNames.FIELD_TYPE));
         }
+        return value;
     }
 }

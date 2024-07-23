@@ -30,7 +30,7 @@ import org.apache.lucene.document.IntField;
 import org.apache.lucene.document.IntPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.index.IndexableField;
-import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.jetbrains.annotations.NotNull;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
@@ -48,12 +48,10 @@ public class IntIndexer implements ValueIndexer<Number> {
     }
 
     @Override
-    public void indexValue(Number value,
-                           XContentBuilder xContentBuilder,
-                           Consumer<? super IndexableField> addField,
-                           Synthetics synthetics,
-                           Map<ColumnIdent, Indexer.ColumnConstraint> toValidate) throws IOException {
-        xContentBuilder.value(value);
+    public Number indexValue(@NotNull Number value,
+                             Consumer<? super IndexableField> addField,
+                             Synthetics synthetics,
+                             Map<ColumnIdent, Indexer.ColumnConstraint> toValidate) throws IOException {
         int intValue = value.intValue();
         if (ref.hasDocValues() && ref.indexType() != IndexType.NONE) {
             addField.accept(new IntField(name, intValue, Field.Store.NO));
@@ -70,5 +68,6 @@ public class IntIndexer implements ValueIndexer<Number> {
                         DocSysColumns.FieldNames.FIELD_TYPE));
             }
         }
+        return value;
     }
 }

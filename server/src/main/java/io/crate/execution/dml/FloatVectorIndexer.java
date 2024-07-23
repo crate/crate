@@ -35,7 +35,6 @@ import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.VectorEncoding;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -72,19 +71,13 @@ public class FloatVectorIndexer implements ValueIndexer<float[]> {
     }
 
     @Override
-    public void indexValue(float @Nullable [] values,
-                           XContentBuilder xcontentBuilder,
-                           Consumer<? super IndexableField> addField,
-                           Synthetics synthetics,
-                           Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
+    public float[] indexValue(float @Nullable @NotNull [] values,
+                              Consumer<? super IndexableField> addField,
+                              Synthetics synthetics,
+                              Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
         if (values == null) {
-            return;
+            return null;
         }
-        xcontentBuilder.startArray();
-        for (float value : values) {
-            xcontentBuilder.value(value);
-        }
-        xcontentBuilder.endArray();
 
         createFields(
             name,
@@ -97,6 +90,7 @@ public class FloatVectorIndexer implements ValueIndexer<float[]> {
         if (fieldType.stored()) {
             throw new UnsupportedOperationException("Cannot store float_vector as stored field");
         }
+        return values;
     }
 
     public static void createFields(String fqn,

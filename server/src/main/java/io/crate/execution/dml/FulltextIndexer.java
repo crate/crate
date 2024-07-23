@@ -30,7 +30,7 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
-import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.jetbrains.annotations.NotNull;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
@@ -56,19 +56,18 @@ public class FulltextIndexer implements ValueIndexer<String> {
     }
 
     @Override
-    public void indexValue(String value,
-                           XContentBuilder xcontentBuilder,
-                           Consumer<? super IndexableField> addField,
-                           Synthetics synthetics,
-                           Map<ColumnIdent, Indexer.ColumnConstraint> toValidate) throws IOException {
-        xcontentBuilder.value(value);
+    public String indexValue(@NotNull String value,
+                             Consumer<? super IndexableField> addField,
+                             Synthetics synthetics,
+                             Map<ColumnIdent, Indexer.ColumnConstraint> toValidate) throws IOException {
         if (value == null) {
-            return;
+            return null;
         }
         String name = ref.storageIdent();
         if (ref.indexType() != IndexType.NONE) {
             Field field = new Field(name, value, FIELD_TYPE);
             addField.accept(field);
         }
+        return value;
     }
 }

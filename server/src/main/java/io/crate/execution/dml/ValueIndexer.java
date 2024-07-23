@@ -27,7 +27,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.apache.lucene.index.IndexableField;
-import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
@@ -79,30 +79,13 @@ public interface ValueIndexer<T> {
     default void updateTargets(Function<ColumnIdent, Reference> getRef) {}
 
     /**
-     * @param storageIdentLeafName is a key in the source.
-     * If it's NULL, writing key must be skipped.
-     * For example, for array of primitives,
-     * we need to write key only once and inner primitive indexer should be writing only values.
+     * Writes a value into an indexable document, returning the value that should be written to the translog
      */
-    default void indexValue(
-        @Nullable T value,
-        @Nullable String storageIdentLeafName,
-        XContentBuilder xcontentBuilder,
-        Consumer<? super IndexableField> addField,
-        Synthetics synthetics,
-        Map<ColumnIdent, ColumnConstraint> toValidate
-    ) throws IOException {
-        if (storageIdentLeafName != null) {
-            xcontentBuilder.field(storageIdentLeafName);
-        }
-        indexValue(value, xcontentBuilder, addField, synthetics, toValidate);
-    }
-
-    void indexValue(
-        @Nullable T value,
-        XContentBuilder xcontentBuilder,
+    T indexValue(
+        @NotNull T value,
         Consumer<? super IndexableField> addField,
         Synthetics synthetics,
         Map<ColumnIdent, ColumnConstraint> toValidate
     ) throws IOException;
+
 }

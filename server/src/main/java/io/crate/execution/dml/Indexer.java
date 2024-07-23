@@ -32,6 +32,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -46,9 +47,6 @@ import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.SequenceIDFields;
 import org.elasticsearch.index.mapper.Uid;
@@ -123,8 +121,8 @@ public class Indexer {
     private final List<IndexColumn> indexColumns;
     private final List<Input<?>> returnValueInputs;
     private final List<Synthetic> undeterministic = new ArrayList<>();
-    private final BytesStreamOutput stream;
     private final Function<ColumnIdent, Reference> getRef;
+    private final boolean writeOids;
 
     record IndexColumn(Reference reference, List<Input<?>> inputs) {
     }
@@ -406,8 +404,7 @@ public class Indexer {
                    Symbol[] returnValues) {
         this.columns = targetColumns;
         this.synthetics = new HashMap<>();
-        this.stream = new BytesStreamOutput();
-        boolean writeOids = table.versionCreated().onOrAfter(Version.V_5_5_0);
+        this.writeOids = table.versionCreated().onOrAfter(Version.V_5_5_0);
         this.getRef = table::getReference;
         PartitionName partitionName = table.isPartitioned()
             ? PartitionName.fromIndexOrTemplate(indexName)
@@ -433,8 +430,7 @@ public class Indexer {
                     ));
                 }
                 // Empty arrays are not registered as known references, such they are stored in the source as unknown columns
-                var storageIdentPrefixForEmptyArrays = writeOids ? UNKNOWN_COLUMN_PREFIX : null;
-                valueIndexer = new DynamicIndexer(ref.ident(), position, getRef, storageIdentPrefixForEmptyArrays);
+                valueIndexer = new DynamicIndexer(ref.ident(), position, getRef);
                 position--;
             } else {
                 valueIndexer = ref.valueType().valueIndexer(
@@ -731,108 +727,113 @@ public class Indexer {
         for (var expression : expressions) {
             expression.setNextRow(item);
         }
-        stream.reset();
-        for (Synthetic synthetic: synthetics.values()) {
+        for (Synthetic synthetic : synthetics.values()) {
             synthetic.reset();
         }
-        try (XContentBuilder xContentBuilder = XContentFactory.json(stream)) {
-            xContentBuilder.startObject();
-            Object[] values = item.insertValues();
-            for (int i = 0; i < values.length; i++) {
-                Reference reference = columns.get(i);
-                Object value = valueForInsert(reference.valueType(), values[i]);
-                ColumnConstraint check = columnConstraints.get(reference.column());
-                if (check != null) {
-                    check.verify(value);
-                }
-                if (reference.granularity() == RowGranularity.PARTITION) {
-                    continue;
-                }
+
+        Map<String, Object> translogValues = new LinkedHashMap<>();
+        Object[] values = item.insertValues();
+
+        for (int i = 0; i < values.length; i++) {
+            Reference reference = columns.get(i);
+            Object value = valueForInsert(reference.valueType(), values[i]);
+            ColumnConstraint check = columnConstraints.get(reference.column());
+            if (check != null) {
+                check.verify(value);
+            }
+            if (reference.granularity() == RowGranularity.PARTITION) {
+                continue;
+            }
+            ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) valueIndexers.get(i);
+            if (value == null) {
+                continue;
+            }
+            Object translogValue = valueIndexer.indexValue(
+                value,
+                addField,
+                synthetics::get,
+                columnConstraints
+            );
+            translogValues.put(translogFieldName(reference), translogValue);
+        }
+        for (var entry : synthetics.entrySet()) {
+            ColumnIdent column = entry.getKey();
+            if (!column.isRoot()) {
+                continue;
+            }
+            Synthetic synthetic = entry.getValue();
+
+            Object value = synthetic.value();
+            if (value == null) {
+                continue;
+            }
+            ValueIndexer<Object> indexer = synthetic.indexer();
+            value = indexer.indexValue(
+                value,
+                addField,
+                synthetics::get,
+                columnConstraints
+            );
+            translogValues.put(column.name(), value);
+        }
+
+        for (var indexColumn : indexColumns) {
+            String fqn = indexColumn.reference.storageIdent();
+            for (var input : indexColumn.inputs) {
+                Object value = input.value();
                 if (value == null) {
                     continue;
                 }
-                ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) valueIndexers.get(i);
-                valueIndexer.indexValue(
-                    value,
-                    reference.storageIdentLeafName(),
-                    xContentBuilder,
-                    addField,
-                    synthetics::get,
-                    columnConstraints
-                );
-            }
-            for (var entry : synthetics.entrySet()) {
-                ColumnIdent column = entry.getKey();
-                if (!column.isRoot()) {
-                    continue;
-                }
-                Synthetic synthetic = entry.getValue();
-
-                Object value = synthetic.value();
-                if (value == null) {
-                    continue;
-                }
-                ValueIndexer<Object> indexer = synthetic.indexer();
-                indexer.indexValue(
-                    value,
-                    synthetic.ref.storageIdentLeafName(),
-                    xContentBuilder,
-                    addField,
-                    synthetics::get,
-                    columnConstraints
-                );
-            }
-            xContentBuilder.endObject();
-
-            for (var indexColumn : indexColumns) {
-                String fqn = indexColumn.reference.storageIdent();
-                for (var input : indexColumn.inputs) {
-                    Object value = input.value();
-                    if (value == null) {
-                        continue;
-                    }
-                    if (value instanceof Iterable<?> it) {
-                        for (Object val : it) {
-                            if (val == null) {
-                                continue;
-                            }
-                            Field field = new Field(fqn, val.toString(), FulltextIndexer.FIELD_TYPE);
-                            doc.add(field);
+                if (value instanceof Iterable<?> it) {
+                    for (Object val : it) {
+                        if (val == null) {
+                            continue;
                         }
-                    } else {
-                        Field field = new Field(fqn, value.toString(), FulltextIndexer.FIELD_TYPE);
+                        Field field = new Field(fqn, val.toString(), FulltextIndexer.FIELD_TYPE);
                         doc.add(field);
                     }
+                } else {
+                    Field field = new Field(fqn, value.toString(), FulltextIndexer.FIELD_TYPE);
+                    doc.add(field);
                 }
             }
-
-            for (var constraint : tableConstraints) {
-                constraint.verify(item.insertValues());
-            }
-
-            NumericDocValuesField version = new NumericDocValuesField(DocSysColumns.Names.VERSION, -1L);
-            doc.add(version);
-
-            BytesReference source = BytesReference.bytes(xContentBuilder);
-            BytesRef sourceRef = source.toBytesRef();
-            doc.add(new StoredField("_source", sourceRef.bytes, sourceRef.offset, sourceRef.length));
-
-            BytesRef idBytes = Uid.encodeId(item.id());
-            doc.add(new Field(DocSysColumns.Names.ID, idBytes, DocSysColumns.ID.FIELD_TYPE));
-
-            SequenceIDFields seqID = SequenceIDFields.emptySeqID();
-            // Actual values are set via ParsedDocument.updateSeqID
-            doc.add(seqID.seqNo);
-            doc.add(seqID.seqNoDocValue);
-            doc.add(seqID.primaryTerm);
-            return new ParsedDocument(
-                version,
-                seqID,
-                item.id(),
-                doc,
-                source
-            );
         }
+
+        for (var constraint : tableConstraints) {
+            constraint.verify(item.insertValues());
+        }
+
+        NumericDocValuesField version = new NumericDocValuesField(DocSysColumns.Names.VERSION, -1L);
+        doc.add(version);
+        
+        BytesReference source = TranslogWriter.convert(translogValues);
+        BytesRef sourceRef = source.toBytesRef();
+        doc.add(new StoredField("_source", sourceRef.bytes, sourceRef.offset, sourceRef.length));
+
+        BytesRef idBytes = Uid.encodeId(item.id());
+        doc.add(new Field(DocSysColumns.Names.ID, idBytes, DocSysColumns.ID.FIELD_TYPE));
+
+        SequenceIDFields seqID = SequenceIDFields.emptySeqID();
+        // Actual values are set via ParsedDocument.updateSeqID
+        doc.add(seqID.seqNo);
+        doc.add(seqID.seqNoDocValue);
+        doc.add(seqID.primaryTerm);
+        return new ParsedDocument(
+            version,
+            seqID,
+            item.id(),
+            doc,
+            source
+        );
+
+    }
+
+    private String translogFieldName(Reference reference) {
+        String storageName = reference.storageIdentLeafName();
+        if (reference instanceof DynamicReference && this.writeOids) {
+            return UNKNOWN_COLUMN_PREFIX + storageName;
+        }
+        return storageName;
     }
 
     private static <T> T valueForInsert(DataType<T> valueType, Object value) {

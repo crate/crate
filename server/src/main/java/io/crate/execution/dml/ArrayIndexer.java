@@ -22,13 +22,14 @@
 package io.crate.execution.dml;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.apache.lucene.index.IndexableField;
-import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.metadata.ColumnIdent;
@@ -43,28 +44,28 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
     }
 
     @Override
-    public void indexValue(List<T> values,
-                           XContentBuilder xContentBuilder,
-                           Consumer<? super IndexableField> addField,
-                           Synthetics synthetics,
-                           Map<ColumnIdent, Indexer.ColumnConstraint> toValidate) throws IOException {
-        xContentBuilder.startArray();
+    public List<T> indexValue(@NotNull List<T> values,
+                              Consumer<? super IndexableField> addField,
+                              Synthetics synthetics,
+                              Map<ColumnIdent, Indexer.ColumnConstraint> toValidate) throws IOException {
         if (values != null) {
+            List<T> translogValues = new ArrayList<>();
             for (T value : values) {
                 if (value == null) {
-                    xContentBuilder.nullValue();
+                    translogValues.add(null);
                 } else {
-                    innerIndexer.indexValue(
+                    var translogValue = innerIndexer.indexValue(
                         value,
-                        xContentBuilder,
                         addField,
                         synthetics,
                         toValidate
                     );
+                    translogValues.add(translogValue);
                 }
             }
+            return translogValues;
         }
-        xContentBuilder.endArray();
+        return null;
     }
 
     @Override
