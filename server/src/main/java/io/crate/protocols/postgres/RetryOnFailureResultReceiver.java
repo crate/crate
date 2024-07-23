@@ -28,8 +28,6 @@ import java.util.function.Predicate;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.ClusterStateObserver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -38,7 +36,6 @@ import org.elasticsearch.transport.ConnectTransportException;
 
 import io.crate.Constants;
 import io.crate.action.sql.ResultReceiver;
-import io.crate.common.unit.TimeValue;
 import io.crate.data.Row;
 import io.crate.exceptions.SQLExceptions;
 
@@ -47,7 +44,6 @@ public class RetryOnFailureResultReceiver<T> implements ResultReceiver<T> {
     private static final Logger LOGGER = LogManager.getLogger(RetryOnFailureResultReceiver.class);
 
     private final ClusterService clusterService;
-    private final ClusterState initialState;
     private final Predicate<String> hasIndex;
     private final ResultReceiver<T> delegate;
     private final UUID jobId;
@@ -55,13 +51,11 @@ public class RetryOnFailureResultReceiver<T> implements ResultReceiver<T> {
     private int attempt = 1;
 
     public RetryOnFailureResultReceiver(ClusterService clusterService,
-                                        ClusterState initialState,
                                         Predicate<String> hasIndex,
                                         ResultReceiver<T> delegate,
                                         UUID jobId,
                                         BiConsumer<UUID, ResultReceiver<T>> retryAction) {
         this.clusterService = clusterService;
-        this.initialState = initialState;
         this.hasIndex = hasIndex;
         this.delegate = delegate;
         this.jobId = jobId;
@@ -92,24 +86,12 @@ public class RetryOnFailureResultReceiver<T> implements ResultReceiver<T> {
             if (clusterService.state().blocks().hasGlobalBlockWithStatus(RestStatus.SERVICE_UNAVAILABLE)) {
                 delegate.fail(error);
             } else {
-                ClusterStateObserver clusterStateObserver = new ClusterStateObserver(initialState, clusterService, null, LOGGER);
-                clusterStateObserver.waitForNextChange(new ClusterStateObserver.Listener() {
-                    @Override
-                    public void onNewClusterState(ClusterState state) {
-                        attempt += 1;
-                        retry();
-                    }
-
-                    @Override
-                    public void onClusterServiceClose() {
-                        delegate.fail(error);
-                    }
-
-                    @Override
-                    public void onTimeout(TimeValue timeout) {
-                        delegate.fail(error);
-                    }
-                });
+                attempt += 1;
+                UUID newJobId = UUIDs.dirtyUUID();
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("Retrying statement due to a shard failure, attempt={}, jobId={}->{}", attempt, jobId, newJobId);
+                }
+                retryAction.accept(newJobId, this);
             }
         } else {
             delegate.fail(error);
@@ -118,14 +100,6 @@ public class RetryOnFailureResultReceiver<T> implements ResultReceiver<T> {
 
     private boolean indexWasTemporaryUnavailable(Throwable t) {
         return t instanceof IndexNotFoundException && hasIndex.test(((IndexNotFoundException) t).getIndex().getName());
-    }
-
-    private void retry() {
-        UUID newJobId = UUIDs.dirtyUUID();
-        if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("Retrying statement due to a shard failure, attempt={}, jobId={}->{}", attempt, jobId, newJobId);
-        }
-        retryAction.accept(newJobId, this);
     }
 
     @Override
