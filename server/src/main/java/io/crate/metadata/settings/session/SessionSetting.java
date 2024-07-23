@@ -23,7 +23,6 @@ package io.crate.metadata.settings.session;
 
 import java.util.List;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -35,8 +34,7 @@ import io.crate.types.DataType;
 public class SessionSetting<T> {
 
     private final String name;
-    private final Consumer<Object[]> validator;
-    private final Function<Object[], T> converter;
+    private final Function<Object[], T> parse;
     private final BiConsumer<CoordinatorSessionSettings, T> setter;
     private final Function<SessionSettings, String> getter;
     private final Supplier<String> defaultValue;
@@ -45,16 +43,14 @@ public class SessionSetting<T> {
     private final DataType<?> type;
 
     public SessionSetting(String name,
-                   Consumer<Object[]> validator,
-                   Function<Object[], T> converter,
+                   Function<Object[], T> parse,
                    BiConsumer<CoordinatorSessionSettings, T> setter,
                    Function<SessionSettings, String> getter,
                    Supplier<String> defaultValue,
                    String description,
                    DataType<?> type) {
         this.name = name;
-        this.validator = validator;
-        this.converter = converter;
+        this.parse = parse;
         this.setter = setter;
         this.getter = getter;
         this.defaultValue = defaultValue;
@@ -70,8 +66,7 @@ public class SessionSetting<T> {
             Symbol symbol = symbols.get(i);
             values[i] = eval.apply(symbol);
         }
-        validator.accept(values);
-        T converted = converter.apply(values);
+        T converted = parse.apply(values);
         setter.accept(sessionSettings, converted);
     }
 
