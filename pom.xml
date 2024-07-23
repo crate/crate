@@ -257,7 +257,7 @@
     <!-- see surefire plugin configuration for explanation -->
     <skipRunTests>false</skipRunTests>
 
-    <versions.jdk>22.0.1+8</versions.jdk>
+    <versions.jdk>22.0.2+9</versions.jdk>
     <versions.annotations>24.1.0</versions.annotations>
     <versions.log4j>2.22.0</versions.log4j>
     <versions.assertj>3.26.0</versions.assertj>
@@ -269,7 +269,7 @@
     <versions.antlr>4.13.1</versions.antlr>
     <versions.quickcheck>1.0</versions.quickcheck>
     <versions.hppc>0.8.2</versions.hppc>
-    <versions.netty>4.1.111.Final</versions.netty>
+    <versions.netty>4.1.112.Final</versions.netty>
     <versions.lucene>9.11.1</versions.lucene>
     <versions.spatial4j>0.8</versions.spatial4j>
     <versions.jts>1.19.0</versions.jts>

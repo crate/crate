@@ -58,6 +58,7 @@ import org.apache.lucene.search.QueryCache;
 import org.apache.lucene.util.CollectionUtil;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ResourceAlreadyExistsException;
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -432,11 +433,21 @@ public class IndicesService extends AbstractLifecycleComponent
                                                          QueryCache indicesQueryCache,
                                                          List<IndexEventListener> builtInListeners,
                                                          IndexingOperationListener... indexingOperationListeners) throws IOException {
-        final IndexSettings idxSettings = new IndexSettings(indexMetadata, this.settings, indexScopedSettings);
         // we ignore private settings since they are not registered settings
         indexScopedSettings.validate(indexMetadata.getSettings(), true, true, true);
+
+        IndexMetadata safeMetadata = indexMetadata;
+        Version versionCreated = IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(indexMetadata.getSettings());
+        if (versionCreated.before(Version.CURRENT)) {
+            Settings safeSettings = indexScopedSettings.removeUnknownSettings(indexMetadata.getSettings());
+            if (safeSettings != indexMetadata.getSettings()) {
+                safeMetadata = IndexMetadata.builder(indexMetadata).settings(safeSettings).build();
+            }
+        }
+
+        final IndexSettings idxSettings = new IndexSettings(safeMetadata, this.settings, indexScopedSettings);
         LOGGER.debug("creating Index [{}], shards [{}]/[{}] - reason [{}]",
-            indexMetadata.getIndex(),
+            safeMetadata.getIndex(),
             idxSettings.getNumberOfShards(),
             idxSettings.getNumberOfReplicas(),
             indexCreationContext);
@@ -449,7 +460,7 @@ public class IndicesService extends AbstractLifecycleComponent
         for (IndexEventListener listener : builtInListeners) {
             indexModule.addIndexEventListener(listener);
         }
-        String indexName = indexMetadata.getIndex().getName();
+        String indexName = safeMetadata.getIndex().getName();
         Schemas schemas = nodeContext.schemas();
         return indexModule.newIndexService(
             nodeContext,

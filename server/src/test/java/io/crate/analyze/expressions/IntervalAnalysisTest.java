@@ -44,23 +44,67 @@ public class IntervalAnalysisTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_psql_compact_format_from_string_with_start() {
+    public void test_psql_compact_format_from_string_with_start_year() {
         var symbol = e.asSymbol("INTERVAL '6 years 5 mons 4 days 03:02:01' YEAR");
-        assertThat(symbol).isLiteral(new Period().withYears(6).withPeriodType(PeriodType.yearMonthDayTime()));
+        assertThat(symbol).isLiteral(new Period().withYears(6)
+            .withMonths(0).withDays(0).withSeconds(0)
+            .withPeriodType(PeriodType.yearMonthDayTime()));
+    }
+
+
+    @Test
+    public void test_psql_compact_format_from_string_with_milliseconds() {
+        var symbol = e.asSymbol("INTERVAL '2 seconds 200 ms' MINUTE");
+        assertThat(symbol).isLiteral(new Period()
+            .withMinutes(0).withSeconds(0).withMillis(0)
+            .withPeriodType(PeriodType.yearMonthDayTime()));
+        symbol = e.asSymbol("INTERVAL '2 seconds 20 ms'");
+        assertThat(symbol).isLiteral(new Period()
+            .withMinutes(0).withSeconds(2).withMillis(20)
+            .withPeriodType(PeriodType.yearMonthDayTime()));
+    }
+
+
+    @Test
+    public void test_psql_compact_format_from_string_with_milliseconds_from_minute() {
+        var symbol = e.asSymbol("INTERVAL '1 day 1 minute 2 seconds 200 ms' MINUTE");
+        assertThat(symbol).isLiteral(new Period().withDays(1).withMinutes(1)
+            .withSeconds(0).withMillis(0)
+            .withPeriodType(PeriodType.yearMonthDayTime()));
+        symbol = e.asSymbol("INTERVAL '1 day 1 minute 2 seconds 200 ms'");
+        assertThat(symbol).isLiteral(new Period().withDays(1).withMinutes(1).withSeconds(2).withMillis(200)
+            .withPeriodType(PeriodType.yearMonthDayTime()));
+        symbol = e.asSymbol("INTERVAL '1 minute 2 seconds 200 ms' MINUTE");
+        assertThat(symbol).isLiteral(new Period().withMinutes(1)
+            .withSeconds(0).withMillis(0)
+            .withPeriodType(PeriodType.yearMonthDayTime()));
+        symbol = e.asSymbol("INTERVAL '1 minute 2 seconds 200 ms'");
+        assertThat(symbol).isLiteral(new Period().withMinutes(1).withSeconds(2).withMillis(200)
+            .withPeriodType(PeriodType.yearMonthDayTime()));
+    }
+
+    @Test
+    public void test_psql_compact_format_from_string_with_start_year2() {
+        var symbol = e.asSymbol("'6 years 5 mons 4 days 03:02:01'::interval");
+        assertThat(symbol).isLiteral(new Period().withYears(6)
+            .withMonths(5).withDays(4).withHours(3).withMinutes(2).withSeconds(1)
+            .withPeriodType(PeriodType.yearMonthDayTime()));
     }
 
     @Test
     public void test_psql_compact_format_from_string_with_start_end() {
         var symbol = e.asSymbol("INTERVAL '6 years 5 mons 4 days 03:02:01' YEAR TO MONTH");
         assertThat(symbol).isLiteral(new Period().withYears(6).withMonths(5)
-                                         .withPeriodType(PeriodType.yearMonthDayTime()));
+            .withDays(0).withHours(0).withMinutes(0)
+            .withPeriodType(PeriodType.yearMonthDayTime()));
     }
 
     @Test
     public void test_psql_compact_format_from_string_with_start_end1() {
         var symbol = e.asSymbol("INTERVAL '6 years 5 mons 4 days 03:02:01' DAY TO HOUR");
         assertThat(symbol).isLiteral(new Period().withYears(6).withMonths(5).withDays(4).withHours(3)
-                                         .withPeriodType(PeriodType.yearMonthDayTime()));
+            .withMinutes(0).withSeconds(0)
+            .withPeriodType(PeriodType.yearMonthDayTime()));
     }
 
     @Test
@@ -103,6 +147,17 @@ public class IntervalAnalysisTest extends CrateDummyClusterServiceUnitTest {
         symbol = e.asSymbol("INTERVAL '60.1'");
         assertThat(symbol).isLiteral(new Period().withMinutes(1).withMillis(100)
                                          .withPeriodType(PeriodType.yearMonthDayTime()));
+
+        symbol = e.asSymbol("INTERVAL '1000 milliseconds'");
+        assertThat(symbol).isLiteral(new Period().withSeconds(1).withPeriodType(PeriodType.yearMonthDayTime()));
+
+        symbol = e.asSymbol("INTERVAL '1 secs 100 ms'");
+        assertThat(symbol).isLiteral(new Period().withSeconds(1).withMillis(100)
+                                         .withPeriodType(PeriodType.yearMonthDayTime()));
+
+        symbol = e.asSymbol("INTERVAL '60 secs 100 ms'");
+        assertThat(symbol).isLiteral(new Period().withMinutes(1).withMillis(100)
+                                         .withPeriodType(PeriodType.yearMonthDayTime()));
     }
 
     @Test
@@ -120,8 +175,50 @@ public class IntervalAnalysisTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_odd_milliseconds() throws Exception {
+        // Millisecond outside the quotes, treated as a column name and number treated as seconds (normalized).
+        var symbol = e.asSymbol("INTERVAL '101' MILLISECOND");
+        assertThat(symbol).isLiteral(new Period().withMinutes(1).withSeconds(41)
+                                         .withPeriodType(PeriodType.yearMonthDayTime()));
+        // Millisecond inside the quotes, treated as interval of 101 milliseconds.
+        symbol = e.asSymbol("INTERVAL '101 MILLISECOND'");
+        assertThat(symbol).isLiteral(new Period().withMillis(101).withSeconds(0)
+                                         .withPeriodType(PeriodType.yearMonthDayTime()));
+    }
+
+    @Test
     public void test_more_odds() throws Exception {
         assertThatThrownBy(() -> e.asSymbol("INTERVAL '1-2 3 4-5-6'"))
             .isExactlyInstanceOf(ConversionException.class);
+    }
+
+    @Test
+    public void test_psql_compact_format_from_string_with_start_end_day_minute() {
+        var symbol = e.asSymbol("INTERVAL '6 years 5 mons 4 days 03:02:01' DAY TO MINUTE");
+        assertThat(symbol).isLiteral(new Period().withYears(6).withMonths(5).withDays(4).withHours(3).withMinutes(2)
+            .withSeconds(0)
+            .withPeriodType(PeriodType.yearMonthDayTime()));
+    }
+
+    @Test
+    public void test_psql_compact_format_from_string_with_start_end_day_seconds() {
+        var symbol = e.asSymbol("INTERVAL '6 years 5 mons 4 days 03:02:01' DAY TO SECOND");
+        assertThat(symbol).isLiteral(new Period().withYears(6).withMonths(5).withDays(4).withHours(3).withMinutes(2).withSeconds(1)
+            .withPeriodType(PeriodType.yearMonthDayTime()));
+    }
+
+    @Test
+    public void test_psql_compact_format_from_string_with_start_end_hour_minute() {
+        var symbol = e.asSymbol("INTERVAL '6 years 5 mons 4 days 03:02:01.100' HOUR TO MINUTE");
+        assertThat(symbol).isLiteral(new Period().withYears(6).withMonths(5).withDays(4).withHours(3).withMinutes(2)
+            .withSeconds(0)
+            .withPeriodType(PeriodType.yearMonthDayTime()));
+    }
+
+    @Test
+    public void test_psql_compact_format_from_string_with_start_end_hour_seconds() {
+        var symbol = e.asSymbol("INTERVAL '6 years 5 mons 4 days 03:02:01' HOUR TO SECOND");
+        assertThat(symbol).isLiteral(new Period().withYears(6).withMonths(5).withDays(4).withHours(3).withMinutes(2).withSeconds(1)
+            .withPeriodType(PeriodType.yearMonthDayTime()));
     }
 }

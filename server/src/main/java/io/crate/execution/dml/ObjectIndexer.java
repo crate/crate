@@ -28,6 +28,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -53,14 +54,18 @@ import io.crate.types.StorageSupport;
 
 public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
 
-    private final ObjectType objectType;
-    private final HashMap<String, ValueIndexer<Object>> innerIndexers;
     private final ColumnIdent column;
-    private final Map<String, Reference> childColumns;
+    private final Map<String, Child> children = new HashMap<>();
     private final Function<ColumnIdent, Reference> getRef;
     private final RelationName table;
     private final Reference ref;
     private final boolean prefixUnknownColumns;
+
+    private record Child(Reference reference, ValueIndexer<Object> indexer) {
+        ColumnIdent ident() {
+            return reference.column();
+        }
+    }
 
     @SuppressWarnings("unchecked")
     public ObjectIndexer(RelationName table,
@@ -71,9 +76,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
         this.getRef = getRef;
         this.prefixUnknownColumns = ref.oid() != COLUMN_OID_UNASSIGNED;
         this.column = ref.column();
-        this.objectType = (ObjectType) ArrayType.unnest(ref.valueType());
-        this.innerIndexers = new HashMap<>();
-        this.childColumns = new HashMap<>();
+        ObjectType objectType = (ObjectType) ArrayType.unnest(ref.valueType());
         for (var entry : objectType.innerTypes().entrySet()) {
             String innerName = entry.getKey();
             DataType<?> value = entry.getValue();
@@ -84,15 +87,9 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                 // Treat it as dynamic column if a value for the nested column is found
                 continue;
             }
-            childColumns.put(innerName, childRef);
-            if (childRef.granularity() != RowGranularity.PARTITION) {
-                ValueIndexer<?> valueIndexer = value.valueIndexer(
-                    table,
-                    childRef,
-                    getRef
-                );
-                innerIndexers.put(innerName, (ValueIndexer<Object>) valueIndexer);
-            }
+            ValueIndexer<?> indexer
+                = childRef.granularity() == RowGranularity.PARTITION ? null : value.valueIndexer(table, childRef, getRef);
+            children.put(innerName, new Child(childRef, (ValueIndexer<Object>) indexer));
         }
     }
 
@@ -103,33 +100,31 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                            Synthetics synthetics,
                            Map<ColumnIdent, Indexer.ColumnConstraint> checks) throws IOException {
         xContentBuilder.startObject();
-        for (var entry : childColumns.entrySet()) {
-            var childRef = entry.getValue();
+        for (var entry : children.entrySet()) {
             String innerName = entry.getKey();
-            DataType<?> type = childRef.valueType();
-            ColumnIdent innerColumn = column.getChild(innerName);
+            Child child = entry.getValue();
             Object innerValue = null;
             if (value == null || value.containsKey(innerName) == false) {
-                Input<Object> synthetic = synthetics.get(innerColumn);
+                Input<Object> synthetic = synthetics.get(child.ident());
                 if (synthetic != null) {
                     innerValue = synthetic.value();
                 }
             } else {
                 innerValue = value.get(innerName);
             }
-            ColumnConstraint check = checks.get(innerColumn);
+            ColumnConstraint check = checks.get(child.ident());
             if (check != null) {
                 check.verify(innerValue);
             }
             if (innerValue == null) {
                 continue;
             }
-            var valueIndexer = innerIndexers.get(innerName);
+            var valueIndexer = child.indexer;
             // valueIndexer is null for partitioned columns
             if (valueIndexer != null) {
                 valueIndexer.indexValue(
-                    type.sanitizeValue(innerValue),
-                    childRef.storageIdentLeafName(),
+                    child.reference.valueType().sanitizeValue(innerValue),
+                    child.reference.storageIdentLeafName(),
                     xContentBuilder,
                     addField,
                     synthetics,
@@ -148,25 +143,22 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
     public void collectSchemaUpdates(@Nullable Map<String, Object> value,
                                      Consumer<? super Reference> onDynamicColumn,
                                      Synthetics synthetics) throws IOException {
-        for (var entry : childColumns.entrySet()) {
-            var childRef = entry.getValue();
+        for (var entry : children.entrySet()) {
             String innerName = entry.getKey();
-            DataType<?> type = childRef.valueType();
-            ColumnIdent innerColumn = column.getChild(innerName);
+            Child child = entry.getValue();
             Object innerValue = null;
             if (value == null || value.containsKey(innerName) == false) {
-                Input<Object> synthetic = synthetics.get(innerColumn);
+                Input<Object> synthetic = synthetics.get(child.ident());
                 if (synthetic != null) {
                     innerValue = synthetic.value();
                 }
             } else {
                 innerValue = value.get(innerName);
             }
-            var valueIndexer = innerIndexers.get(innerName);
             // valueIndexer is null for partitioned columns
-            if (valueIndexer != null) {
-                valueIndexer.collectSchemaUpdates(
-                    type.sanitizeValue(innerValue),
+            if (child.indexer != null) {
+                child.indexer.collectSchemaUpdates(
+                    child.reference.valueType().sanitizeValue(innerValue),
                     onDynamicColumn,
                     synthetics
                 );
@@ -179,25 +171,15 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
 
     @Override
     public void updateTargets(Function<ColumnIdent, Reference> getRef) {
-        for (Map.Entry<String, Reference> entry : childColumns.entrySet()) {
-            var innerName = entry.getKey();
-            var oldChildRef = entry.getValue();
-            var newChildRef = getRef.apply(oldChildRef.column());
-            if (oldChildRef.equals(newChildRef) == false) {
-                entry.setValue(newChildRef);
-                if (newChildRef.granularity() != RowGranularity.PARTITION) {
-                    //noinspection unchecked
-                    ValueIndexer<Object> newIndexer = (ValueIndexer<Object>) newChildRef.valueType().valueIndexer(
-                            newChildRef.ident().tableIdent(),
-                            newChildRef,
-                            getRef
-                    );
-                    innerIndexers.put(innerName, newIndexer);
-                }
+        for (var entry : children.entrySet()) {
+            var newChildRef = getRef.apply(entry.getValue().ident());
+            if (Objects.equals(entry.getValue().reference, newChildRef) == false) {
+                // noinspection unchecked
+                ValueIndexer<Object> indexer = newChildRef.granularity() == RowGranularity.PARTITION
+                    ? null : (ValueIndexer<Object>) newChildRef.valueType().valueIndexer(newChildRef.ident().tableIdent(), newChildRef, getRef);
+                children.put(entry.getKey(), new Child(newChildRef, indexer));
             }
-        }
-        for (var indexer : innerIndexers.values()) {
-            indexer.updateTargets(getRef);
+            entry.getValue().indexer.updateTargets(getRef);
         }
     }
 
@@ -209,11 +191,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
         for (var entry : value.entrySet()) {
             String innerName = entry.getKey();
             Object innerValue = entry.getValue();
-            boolean isNewColumn = !childColumns.containsKey(innerName);
-            if (!isNewColumn) {
-                continue;
-            }
-            if (innerValue == null) {
+            if (children.containsKey(innerName) || innerValue == null) {
                 continue;
             }
             if (ref.columnPolicy() == ColumnPolicy.STRICT) {
@@ -261,8 +239,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                 newColumn,
                 getRef
             );
-            innerIndexers.put(innerName, valueIndexer);
-            childColumns.put(innerName, newColumn);
+            children.put(innerName, new Child(newColumn, valueIndexer));
             valueIndexer.collectSchemaUpdates(
                 innerValue,
                 onDynamicColumn,
@@ -284,10 +261,10 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
         for (var entry : value.entrySet()) {
             String innerName = entry.getKey();
             Object innerValue = entry.getValue();
-            boolean isNewColumn = !childColumns.containsKey(innerName);
-            if (!isNewColumn) {
+            if (children.containsKey(innerName)) {
                 continue;
             }
+
             if (prefixUnknownColumns) {
                 innerName = UNKNOWN_COLUMN_PREFIX + innerName;
             }

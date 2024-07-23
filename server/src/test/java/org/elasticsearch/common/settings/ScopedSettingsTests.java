@@ -652,9 +652,14 @@ public class ScopedSettingsTests extends ESTestCase {
         IndexScopedSettings settings = new IndexScopedSettings(
             Settings.EMPTY,
             IndexScopedSettings.BUILT_IN_INDEX_SETTINGS);
-        assertThatThrownBy(() -> settings.validate(Settings.builder().put("index.numbe_of_replica", "1").build(), false))
-            .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("unknown setting [index.numbe_of_replica] did you mean [index.number_of_replicas]?");
+
+        assertThatThrownBy(() -> settings.validate(Settings.builder()
+            .put("index.numbe_of_replica", "1")
+            .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
+            .build(), false)
+        )
+        .isExactlyInstanceOf(IllegalArgumentException.class)
+        .hasMessage("unknown setting [index.numbe_of_replica] did you mean [index.number_of_replicas]?");
     }
 
     @Test
@@ -666,8 +671,17 @@ public class ScopedSettingsTests extends ESTestCase {
             " removed settings";
         settings.validate(Settings.builder().put("index.store.type", "boom").build(), false);
 
+        // Validation doesn't throw an error if a setting was created on on earlier version
+        settings.validate(Settings.builder()
+            .put("index.store.type", "boom")
+            .put(IndexMetadata.SETTING_VERSION_CREATED, Version.V_5_7_3)
+            .put("i.am.not.a.setting", true).build(), false);
+
         assertThatThrownBy(() ->
-            settings.validate(Settings.builder().put("index.store.type", "boom").put("i.am.not.a.setting", true).build(), false)
+            settings.validate(Settings.builder()
+                .put("index.store.type", "boom")
+                .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
+                .put("i.am.not.a.setting", true).build(), false)
         ).isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("unknown setting [i.am.not.a.setting]" + unknownMsgSuffix);
 
@@ -680,6 +694,26 @@ public class ScopedSettingsTests extends ESTestCase {
             settings.validate("index.number_of_replicas", Settings.builder().put("index.number_of_replicas", "true").build(), false)
         ).isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Failed to parse value [true] for setting [index.number_of_replicas]");
+    }
+
+    @Test
+    public void test_archived_and_private_settings_are_retained_after_removal_of_unknown_settings_created_on_earlier_versions_() {
+        IndexScopedSettings settings = new IndexScopedSettings(
+            Settings.EMPTY,
+            IndexScopedSettings.BUILT_IN_INDEX_SETTINGS);
+
+        String unknownKey = "dummy";
+        boolean archivedValue = true;
+        long created = System.currentTimeMillis();
+        Settings safeSettings = settings.removeUnknownSettings(Settings.builder()
+            .put(unknownKey, true) // Unknown, to be removed.
+            .put("archived.index.similarity.BM25.type", archivedValue) // Archived, must stay
+            .put(IndexMetadata.SETTING_CREATION_DATE, created) // Private, must stay
+            .build()
+        );
+        assertThat(safeSettings.get(unknownKey)).isNull();
+        assertThat(safeSettings.getAsLong(IndexMetadata.SETTING_CREATION_DATE, 0L)).isEqualTo(created);
+        assertThat(safeSettings.getAsBoolean("archived.index.similarity.BM25.type", false)).isEqualTo(archivedValue);
     }
 
     public static IndexMetadata newIndexMeta(String name, Settings indexSettings) {

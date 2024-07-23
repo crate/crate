@@ -350,6 +350,7 @@ explicitFunction
     | LEFT OPEN_ROUND_BRACKET strOrColName=expr COMMA len=expr CLOSE_ROUND_BRACKET   #left
     | RIGHT OPEN_ROUND_BRACKET strOrColName=expr COMMA len=expr CLOSE_ROUND_BRACKET  #right
     | SUBSTRING OPEN_ROUND_BRACKET expr FROM expr (FOR expr)? CLOSE_ROUND_BRACKET    #substring
+    | POSITION OPEN_ROUND_BRACKET expr IN expr CLOSE_ROUND_BRACKET                   #position
     | TRIM OPEN_ROUND_BRACKET ((trimMode=(LEADING | TRAILING | BOTH))?
                 (charsToTrim=expr)? FROM)? target=expr CLOSE_ROUND_BRACKET           #trim
     | EXTRACT OPEN_ROUND_BRACKET stringLiteralOrIdentifier FROM
@@ -537,7 +538,7 @@ intervalLiteral
     ;
 
 intervalField
-    : YEAR | MONTH | DAY | HOUR | MINUTE | SECOND
+    : YEAR | MONTH | DAY | HOUR | MINUTE | SECOND | MILLISECOND
     ;
 
 booleanLiteral
@@ -956,6 +957,7 @@ nonReserved
     | MATERIALIZED
     | METADATA
     | MINUTE
+    | MILLISECOND
     | MONTH
     | MOVE
     | NEXT
@@ -972,6 +974,7 @@ nonReserved
     | PARTITIONS
     | PLAIN
     | PLANS
+    | POSITION
     | PRECEDING
     | PRECISION
     | PREPARE

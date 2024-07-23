@@ -68,4 +68,9 @@ public class StringPositionFunctionTest extends ScalarTestCase {
         assertEvaluateNull("strpos(null, null)");
     }
 
+    @Test
+    public void test_position_returns_same_value_as_strpos() {
+        assertEvaluate("strpos('crate','ate') = position('ate' in 'crate')", true);
+    }
+
 }

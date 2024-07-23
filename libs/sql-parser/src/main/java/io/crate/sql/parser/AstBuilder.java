@@ -438,6 +438,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
             case SqlBaseLexer.HOUR -> IntervalLiteral.IntervalField.HOUR;
             case SqlBaseLexer.MINUTE -> IntervalLiteral.IntervalField.MINUTE;
             case SqlBaseLexer.SECOND -> IntervalLiteral.IntervalField.SECOND;
+            case SqlBaseLexer.MILLISECOND -> IntervalLiteral.IntervalField.MILLISECOND;
             default -> throw new IllegalArgumentException("Unsupported interval field: " + token.getText());
         };
     }
@@ -2076,6 +2077,13 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     @Override
     public Node visitSubstring(SqlBaseParser.SubstringContext context) {
         return new FunctionCall(QualifiedName.of("substring"), visitCollection(context.expr(), Expression.class));
+    }
+
+    @Override
+    public Node visitPosition(SqlBaseParser.PositionContext context) {
+        Expression substr = (Expression) visit(context.expr(0)); 
+        Expression str = (Expression) visit(context.expr(1)); 
+        return new FunctionCall(QualifiedName.of("strpos"), List.of(str, substr));
     }
 
     @Override

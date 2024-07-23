@@ -26,14 +26,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-
+import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.common.collections.Maps;
 import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.ScopedSymbol;
@@ -70,7 +69,7 @@ public class Stats implements Writeable {
         this.numDocs = in.readLong();
         this.sizeInBytes = in.readLong();
         int numColumnStats = in.readVInt();
-        this.statsByColumn = new HashMap<>();
+        this.statsByColumn = HashMap.newHashMap(numColumnStats);
         for (int i = 0; i < numColumnStats; i++) {
             statsByColumn.put(ColumnIdent.of(in), new ColumnStats<>(in));
         }

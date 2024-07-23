@@ -825,6 +825,16 @@ Returns: ``integer``
     +---+
     SELECT 1 row in set (... sec)
 
+
+.. _scalar-position:
+
+``position(substring in string)``
+---------------------------------
+
+The ``position()`` scalar function is an alias of the :ref:`scalar-strpos`
+scalar function. Note that the order of the arguments is reversed.
+
+
 .. _scalar-reverse:
 
 ``reverse(text)``
