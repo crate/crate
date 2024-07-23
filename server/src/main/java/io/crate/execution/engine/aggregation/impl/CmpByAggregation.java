@@ -160,11 +160,19 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
                                                        List<Reference> aggregationReferences,
                                                        DocTableInfo table,
                                                        List<Literal<?>> optionalParams) {
-        Reference searchRef = aggregationReferences.get(1);
-        if (!searchRef.hasDocValues()) {
+        Reference returnField = aggregationReferences.getFirst();
+        Reference searchField = aggregationReferences.getLast();
+        if (returnField == null) {
             return null;
         }
-        DataType<?> searchType = searchRef.valueType();
+        if (searchField == null) {
+            return null;
+        }
+        if (!searchField.hasDocValues()) {
+            return null;
+        }
+
+        DataType<?> searchType = searchField.valueType();
         switch (searchType.id()) {
             case ByteType.ID:
             case ShortType.ID:
@@ -172,17 +180,17 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
             case LongType.ID:
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
-                var resultExpression = referenceResolver.getImplementation(aggregationReferences.get(0));
+                var resultExpression = referenceResolver.getImplementation(returnField);
                 if (signature.getName().name().equalsIgnoreCase("min_by")) {
                     return new MinByLong(
-                        searchRef.storageIdent(),
+                        searchField.storageIdent(),
                         searchType,
                         resultExpression,
                         new CollectorContext(table.droppedColumns(), table.lookupNameBySourceKey())
                     );
                 } else {
                     return new MaxByLong(
-                        searchRef.storageIdent(),
+                        searchField.storageIdent(),
                         searchType,
                         resultExpression,
                         new CollectorContext(table.droppedColumns(), table.lookupNameBySourceKey())
