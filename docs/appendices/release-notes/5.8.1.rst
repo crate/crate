@@ -47,6 +47,12 @@ See the :ref:`version_5.8.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that caused an ``IndexOutOfBoundsException`` when the
+  :ref:`max_by <aggregation-max_by>` aggregation was called with a literal
+  as searchfield parameter instead of a column e.g.::
+
+    SELECT MAX_BY(x, 1) from tbl;
+
 - Fixed an issue that caused write operations to fail if the table contained
   generated columns with a cast to ``geo_shape``.
 

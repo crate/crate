@@ -230,6 +230,9 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
                                                        DocTableInfo table,
                                                        List<Literal<?>> optionalParams) {
         Reference reference = aggregationReferences.get(0);
+        if (reference == null) {
+            return null;
+        }
         if (!reference.hasDocValues()) {
             return null;
         }
