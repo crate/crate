@@ -22,6 +22,7 @@
 package io.crate.role;
 
 import java.io.IOException;
+import java.util.Map;
 import java.util.Set;
 
 import org.elasticsearch.Version;
@@ -104,7 +105,8 @@ public class TransportCreateRoleAction extends TransportMasterNodeAction<CreateR
                             request.roleName(),
                             request.isUser(),
                             request.secureHash(),
-                            request.jwtProperties()
+                            request.jwtProperties(),
+                            Map.of()
                         );
                         return ClusterState.builder(currentState).metadata(mdBuilder).build();
                     }
@@ -131,7 +133,8 @@ public class TransportCreateRoleAction extends TransportMasterNodeAction<CreateR
                            String roleName,
                            boolean isUser,
                            @Nullable SecureHash secureHash,
-                           @Nullable JwtProperties jwtProperties) {
+                           @Nullable JwtProperties jwtProperties,
+                           Map<String, Object> sessionSettings) {
         RolesMetadata oldRolesMetadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
         UsersMetadata oldUsersMetadata = (UsersMetadata) mdBuilder.getCustom(UsersMetadata.TYPE);
 
@@ -144,7 +147,14 @@ public class TransportCreateRoleAction extends TransportMasterNodeAction<CreateR
             );
         }
         if (newMetadata.contains(roleName) == false) {
-            newMetadata.roles().put(roleName, new Role(roleName, isUser, Set.of(), Set.of(), secureHash, jwtProperties));
+            newMetadata.roles().put(roleName, new Role(
+                roleName,
+                isUser,
+                Set.of(),
+                Set.of(),
+                secureHash,
+                jwtProperties,
+                sessionSettings));
             exists = false;
         } else if (newMetadata.equals(oldRolesMetadata)) {
             // nothing changed, no need to update the cluster state

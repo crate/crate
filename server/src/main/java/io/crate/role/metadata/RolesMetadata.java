@@ -83,7 +83,7 @@ public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
         RolesMetadata rolesMetadata = new RolesMetadata();
         for (var user : usersMetadata.users().entrySet()) {
             var userName = user.getKey();
-            var role = new Role(userName, true, getPrivileges.apply(userName), Set.of(), user.getValue(), null);
+            var role = new Role(userName, true, getPrivileges.apply(userName), Set.of(), user.getValue(), null, Map.of());
             rolesMetadata.roles().put(userName, role);
         }
         return rolesMetadata;
@@ -239,7 +239,14 @@ public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
             }
         }
         if (affectedCount > 0) {
-            roles.put(role.name(), new Role(role.name(), role.isUser(), Set.of(), grantedRoles, role.password(), role.jwtProperties()));
+            roles.put(role.name(), new Role(
+                role.name(),
+                role.isUser(),
+                Set.of(),
+                grantedRoles,
+                role.password(),
+                role.jwtProperties(),
+                role.sessionSettings()));
         }
         return affectedCount;
     }

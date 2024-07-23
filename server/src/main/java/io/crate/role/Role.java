@@ -28,7 +28,9 @@ import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
@@ -43,7 +45,11 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.common.collections.Sets;
 import io.crate.metadata.pgcatalog.OidHash;
+import io.crate.metadata.settings.session.SessionSetting;
+import io.crate.metadata.settings.session.SessionSettingProvider;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.sql.tree.GenericProperties;
 import io.crate.types.DataTypes;
 
@@ -53,18 +59,31 @@ public class Role implements Writeable, ToXContent {
         "crate",
         new RolePrivileges(Set.of()),
         Set.of(),
-        new Properties(true, null, null),
+        new Properties(true, null, null, Map.of()),
         true);
 
+    /**
+     * Create properties to store for a user/role
+     * @param login Ability to login or not
+     * @param password User's password
+     * @param jwtProperties User's JWT properties for alternative authentication method
+     * @param sessionSettings It can contain settings defined in {@link SessionSettingRegistry} and settings dynamically
+     *                        created through {@link SessionSettingProvider}, e.g. optimizer rules.
+     */
     public record Properties(boolean login,
                              @Nullable SecureHash password,
-                             @Nullable JwtProperties jwtProperties) implements Writeable, ToXContent {
+                             @Nullable JwtProperties jwtProperties,
+                             Map<String, Object> sessionSettings) implements Writeable, ToXContent {
 
         public static final String PASSWORD_KEY = "password";
         public static final String JWT_KEY = "jwt";
 
-        public static Properties of(boolean login, GenericProperties<Object> properties) throws GeneralSecurityException {
-            properties.ensureContainsOnly(Set.of(PASSWORD_KEY, JWT_KEY));
+        public static Properties of(boolean login,
+                                    boolean isReset,
+                                    GenericProperties<Object> properties,
+                                    SessionSettingRegistry sessionSettingRegistry) throws GeneralSecurityException {
+            properties.ensureContainsOnly(
+                Sets.concat(sessionSettingRegistry.settings().keySet(), PASSWORD_KEY, JWT_KEY));
             SecureHash hash = null;
             String pw = DataTypes.STRING.implicitCast(properties.get(PASSWORD_KEY, null));
             if (pw != null) {
@@ -76,13 +95,30 @@ public class Role implements Writeable, ToXContent {
                 }
             }
             JwtProperties jwtProperties = JwtProperties.fromMap(properties.getUnsafe(JWT_KEY));
-            return new Properties(login, hash, jwtProperties);
+
+            Map<String, Object> sessionSettings = new HashMap<>();
+            for (var p : properties) {
+                String property = p.getKey();
+                if (property.equals(PASSWORD_KEY) || property.equals(JWT_KEY)) {
+                    continue;
+                }
+                Object value = p.getValue();
+                if (isReset == false) {
+                    SessionSetting<?> sessionSetting = sessionSettingRegistry.settings().get(property);
+                    assert sessionSetting != null : "sessionSetting shouldn't be null";
+                    sessionSetting.validate(value);
+                }
+                sessionSettings.put(property, value);
+            }
+
+            return new Properties(login, hash, jwtProperties, Collections.unmodifiableMap(sessionSettings));
         }
 
         public static Properties fromXContent(XContentParser parser) throws IOException {
             boolean login = false;
             SecureHash secureHash = null;
             JwtProperties jwtProperties = null;
+            Map<String, Object> sessionSettings = null;
             while (parser.nextToken() == XContentParser.Token.FIELD_NAME) {
                 switch (parser.currentName()) {
                     case "login":
@@ -95,19 +131,24 @@ public class Role implements Writeable, ToXContent {
                     case "jwt":
                         jwtProperties = JwtProperties.fromXContent(parser);
                         break;
+                    case "session_settings":
+                        parser.nextToken();
+                        sessionSettings = parser.map();
+                        break;
                     default:
                         throw new ElasticsearchParseException(
                             "failed to parse role properties, unexpected field name: " + parser.currentName()
                         );
                 }
             }
-            return new Properties(login, secureHash, jwtProperties);
+            return new Properties(login, secureHash, jwtProperties, sessionSettings);
         }
 
         public Properties(StreamInput in) throws IOException {
             this(in.readBoolean(),
                  in.readOptionalWriteable(SecureHash::readFrom),
-                 in.getVersion().onOrAfter(Version.V_5_7_0) ? in.readOptionalWriteable(JwtProperties::readFrom) : null
+                 in.getVersion().onOrAfter(Version.V_5_7_0) ? in.readOptionalWriteable(JwtProperties::readFrom) : null,
+                 in.getVersion().onOrAfter(Version.V_5_9_0) ? in.readMap() : null
             );
         }
 
@@ -120,6 +161,9 @@ public class Role implements Writeable, ToXContent {
             if (jwtProperties != null) {
                 jwtProperties.toXContent(builder, params);
             }
+            if (sessionSettings != null) {
+                builder.field("session_settings", sessionSettings);
+            }
             return builder;
         }
 
@@ -129,6 +173,9 @@ public class Role implements Writeable, ToXContent {
             out.writeOptionalWriteable(password);
             if (out.getVersion().onOrAfter(Version.V_5_7_0)) {
                 out.writeOptionalWriteable(jwtProperties);
+            }
+            if (out.getVersion().onOrAfter(Version.V_5_9_0)) {
+                out.writeMap(sessionSettings);
             }
         }
     }
@@ -145,8 +192,18 @@ public class Role implements Writeable, ToXContent {
                 Set<Privilege> privileges,
                 Set<GrantedRole> grantedRoles,
                 @Nullable SecureHash password,
-                @Nullable JwtProperties jwtProperties) {
-        this(name, new RolePrivileges(privileges), grantedRoles, new Properties(login, password, jwtProperties), false);
+                @Nullable JwtProperties jwtProperties,
+                Map<String, Object> sessionSettings) {
+        this(
+            name,
+            new RolePrivileges(privileges),
+            grantedRoles,
+            new Properties(
+                login,
+                password,
+                jwtProperties,
+                sessionSettings),
+            false);
     }
 
     private Role(String name,
@@ -189,12 +246,17 @@ public class Role implements Writeable, ToXContent {
     }
 
     public Role with(@Nullable SecureHash password,
-                     @Nullable JwtProperties jwtProperties) {
+                     @Nullable JwtProperties jwtProperties,
+                     Map<String, Object> sessionSettings) {
         return new Role(
             name,
             privileges,
             grantedRoles,
-            new Properties(properties.login, password, jwtProperties),
+            new Properties(
+                properties.login,
+                password,
+                jwtProperties,
+                sessionSettings),
             false
         );
     }
@@ -215,6 +277,10 @@ public class Role implements Writeable, ToXContent {
     @Nullable
     public JwtProperties jwtProperties() {
         return properties.jwtProperties();
+    }
+
+    public Map<String, Object> sessionSettings() {
+        return properties.sessionSettings();
     }
 
     public boolean isSuperUser() {

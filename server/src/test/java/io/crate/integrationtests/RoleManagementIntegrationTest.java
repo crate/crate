@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_OBJECT;
+import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
@@ -88,6 +89,7 @@ public class RoleManagementIntegrationTest extends BaseRolesIntegrationTest {
             "jwt['username']| text",
             "name| text",
             "password| text",
+            "session_settings| object",
             "superuser| boolean"
         );
     }
@@ -103,21 +105,26 @@ public class RoleManagementIntegrationTest extends BaseRolesIntegrationTest {
     public void testSysUsersTable() {
         executeAsSuperuser("CREATE USER arthur");
         assertUserIsCreated("arthur");
+        executeAsSuperuser("ALTER USER arthur SET (enable_hashjoin = false)");
         executeAsSuperuser("CREATE USER ford WITH (password = 'foo')");
         assertUserIsCreated("ford");
         executeAsSuperuser("CREATE ROLE a_role");
         assertRoleIsCreated("a_role");
         executeAs("GRANT a_role to arthur", GRANTOR_USER);
         executeAsSuperuser(
-            "SELECT name, granted_roles, password, superuser FROM sys.users " +
+            "SELECT name, granted_roles, session_settings, password, superuser FROM sys.users " +
             "WHERE superuser = FALSE ORDER BY name");
         // Every created user is not a superuser
         assertThat(response).hasRows(
-            "arthur| [{role=a_role, grantor=the_grantor}]| NULL| false",
-            "ford| []| ********| false",
-            "normal| []| NULL| false",
-            "the_grantor| []| NULL| false"
+            "arthur| [{role=a_role, grantor=the_grantor}]| {enable_hashjoin=false}| NULL| false",
+            "ford| []| {}| ********| false",
+            "normal| []| {}| NULL| false",
+            "the_grantor| []| {}| NULL| false"
         );
+        executeAsSuperuser(
+            "SELECT session_settings['enable_hashjoin'] FROM sys.users " +
+                "WHERE name = 'arthur'");
+        assertThat(response).hasRows("f");
     }
 
     @Test
@@ -293,5 +300,25 @@ public class RoleManagementIntegrationTest extends BaseRolesIntegrationTest {
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(CONFLICT, 4099)
             .hasMessageContaining("Another role with the same combination of iss/username jwt properties already exists");
+    }
+
+    @Test
+    public void test_user_session_settings_are_applied_and_reset() {
+        execute("CREATE USER user1");
+        execute("ALTER USER user1 SET (search_path='my_schema')");
+        assertUserIsCreated("user1");
+        execute("GRANT DQL ON SCHEMA my_schema TO user1");
+        execute("CREATE table my_schema.t(a int);");
+        execute("INSERT INTO my_schema.t(a) values(1),(2)");
+        execute("REFRESH TABLE my_schema.t");
+
+        executeAs("SELECT * FROM t ORDER BY 1", "user1");
+        assertThat(response).hasRows("1", "2");
+
+        execute("ALTER USER user1 RESET search_path");
+        Asserts.assertSQLError(() -> executeAs("SELECT * FROM t", "user1"))
+            .hasPGError(UNDEFINED_TABLE)
+            .hasHTTPError(NOT_FOUND, 4041)
+            .hasMessageContaining("Relation 't' unknown");
     }
 }

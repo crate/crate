@@ -47,6 +47,7 @@ import org.junit.Test;
 
 import io.crate.exceptions.RoleAlreadyExistsException;
 import io.crate.exceptions.UnsupportedFeatureException;
+import io.crate.expression.symbol.Literal;
 import io.crate.fdw.AddServerTask;
 import io.crate.fdw.CreateServerRequest;
 import io.crate.role.metadata.RolesHelper;
@@ -65,10 +66,12 @@ public class TransportRoleActionTest extends CrateDummyClusterServiceUnitTest {
             "root",
             true,
             null,
-            new JwtProperties("https:dummy.org", "test", "test_aud"));
+            new JwtProperties("https:dummy.org", "test", "test_aud"),
+            Map.of("session_timeout", "1h"));
         RolesMetadata metadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
         assertThat(metadata.roleNames()).containsExactly("root");
-        var jwtProps = metadata.roles().get("root").jwtProperties();
+        Role role = metadata.roles().get("root");
+        var jwtProps = role.jwtProperties();
         assertThat(jwtProps).isNotNull();
         assertThat(jwtProps.iss()).isEqualTo("https:dummy.org");
         assertThat(jwtProps.username()).isEqualTo("test");
@@ -83,13 +86,15 @@ public class TransportRoleActionTest extends CrateDummyClusterServiceUnitTest {
             "user1",
             true,
             null,
-            new JwtProperties("https:dummy.org", "test", "aud1"));
+            new JwtProperties("https:dummy.org", "test", "aud1"),
+            Map.of());
 
         assertThatThrownBy(() -> TransportCreateRoleAction.putRole(mdBuilder,
                 "user2",
                 true,
                 null,
-                new JwtProperties("https:dummy.org", "test", "aud2")))
+                new JwtProperties("https:dummy.org", "test", "aud2"),
+            Map.of()))
             .isExactlyInstanceOf(RoleAlreadyExistsException.class)
             .hasMessage("Another role with the same combination of iss/username jwt properties already exists");
     }
@@ -101,13 +106,15 @@ public class TransportRoleActionTest extends CrateDummyClusterServiceUnitTest {
             "user1",
             true,
             null,
-            new JwtProperties("https:dummy.org", "test", null));
+            new JwtProperties("https:dummy.org", "test", null),
+            Map.of());
 
         boolean exists = TransportCreateRoleAction.putRole(mdBuilder,
             "user1",
             true,
             null,
-            new JwtProperties("https:dummy.org", "test2", null));
+            new JwtProperties("https:dummy.org", "test2", null),
+            Map.of());
         assertThat(exists).isTrue();
     }
 
@@ -115,14 +122,14 @@ public class TransportRoleActionTest extends CrateDummyClusterServiceUnitTest {
     public void testCreateUserAlreadyExists() throws Exception {
         Metadata.Builder mdBuilder = new Metadata.Builder()
             .putCustom(RolesMetadata.TYPE, new RolesMetadata(SINGLE_USER_ONLY));
-        assertThat(TransportCreateRoleAction.putRole(mdBuilder, "Arthur", true, null, null)).isTrue();
+        assertThat(TransportCreateRoleAction.putRole(mdBuilder, "Arthur", true, null, null, Map.of())).isTrue();
     }
 
     @Test
     public void testCreateUser() throws Exception {
         Metadata.Builder mdBuilder = new Metadata.Builder()
             .putCustom(RolesMetadata.TYPE, new RolesMetadata(SINGLE_USER_ONLY));
-        TransportCreateRoleAction.putRole(mdBuilder, "Trillian", true, null, null);
+        TransportCreateRoleAction.putRole(mdBuilder, "Trillian", true, null, null, Map.of());
         RolesMetadata newMetadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
         assertThat(newMetadata.roleNames()).containsExactlyInAnyOrder("Trillian", "Arthur");
     }
@@ -134,7 +141,7 @@ public class TransportRoleActionTest extends CrateDummyClusterServiceUnitTest {
         Metadata.Builder mdBuilder = Metadata.builder()
             .putCustom(UsersMetadata.TYPE, oldUsersMetadata)
             .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
-        boolean res = TransportCreateRoleAction.putRole(mdBuilder, "RoleFoo", false, null, null);
+        boolean res = TransportCreateRoleAction.putRole(mdBuilder, "RoleFoo", false, null, null, Map.of());
         assertThat(res).isFalse();
         assertThat(roles(mdBuilder)).containsExactlyInAnyOrderEntriesOf(
             Map.of("Arthur", DUMMY_USERS.get("Arthur"),
@@ -157,7 +164,8 @@ public class TransportRoleActionTest extends CrateDummyClusterServiceUnitTest {
             newPasswd,
             null,
             false,
-            false
+            false,
+            Map.of()
         );
         assertThat(res).isTrue();
 
@@ -165,7 +173,7 @@ public class TransportRoleActionTest extends CrateDummyClusterServiceUnitTest {
                 .with(OLD_DUMMY_USERS_PRIVILEGES.get("Ford"));
         var newArthurUser = DUMMY_USERS_WITHOUT_PASSWORD.get("Arthur")
                 .with(OLD_DUMMY_USERS_PRIVILEGES.get("Arthur"))
-                .with(newPasswd, null);
+                .with(newPasswd, null, Map.of());
         assertThat(roles(mdBuilder)).containsExactlyInAnyOrderEntriesOf(
             Map.of("Arthur", newArthurUser,
                 "Ford", newFordUser));
@@ -262,7 +270,8 @@ public class TransportRoleActionTest extends CrateDummyClusterServiceUnitTest {
             getSecureHash("new-passwd"),
             null,
             false,
-            false))
+            false,
+            Map.of()))
             .isExactlyInstanceOf(UnsupportedFeatureException.class)
             .hasMessage("Setting a password to a ROLE is not allowed");
 
@@ -273,7 +282,8 @@ public class TransportRoleActionTest extends CrateDummyClusterServiceUnitTest {
             null,
             null,
             true,
-            false))
+            false,
+            Map.of()))
             .isExactlyInstanceOf(UnsupportedFeatureException.class)
             .hasMessage("Setting a password to a ROLE is not allowed");
     }
@@ -290,7 +300,8 @@ public class TransportRoleActionTest extends CrateDummyClusterServiceUnitTest {
             null,
             new JwtProperties("iss", "username", null),
             false,
-            false))
+            false,
+            Map.of()))
             .isExactlyInstanceOf(UnsupportedFeatureException.class)
             .hasMessage("Setting JWT properties to a ROLE is not allowed");
 
@@ -301,7 +312,8 @@ public class TransportRoleActionTest extends CrateDummyClusterServiceUnitTest {
             null,
             null,
             false,
-            true))
+            true,
+            Map.of()))
             .isExactlyInstanceOf(UnsupportedFeatureException.class)
             .hasMessage("Setting JWT properties to a ROLE is not allowed");
     }
@@ -326,7 +338,8 @@ public class TransportRoleActionTest extends CrateDummyClusterServiceUnitTest {
             null,
             new JwtProperties("new_issuer", "new_username", null),
             false, // No reset, keep pwd
-            false
+            false,
+            Map.of()
         );
         assertThat(exists).isTrue();
         assertThat(roles(mdBuilder)).containsExactlyInAnyOrderEntriesOf(
@@ -335,8 +348,7 @@ public class TransportRoleActionTest extends CrateDummyClusterServiceUnitTest {
                     Set.of(),
                     new HashSet<>(),
                     oldPassword,
-                    new JwtProperties("new_issuer", "new_username", null)
-                )
+                    new JwtProperties("new_issuer", "new_username", null))
             )
         );
     }
@@ -361,7 +373,8 @@ public class TransportRoleActionTest extends CrateDummyClusterServiceUnitTest {
             null,
             null,
             true,
-            true
+            true,
+            Map.of()
         );
         assertThat(exists).isTrue();
         assertThat(roles(mdBuilder)).containsExactlyInAnyOrderEntriesOf(
@@ -403,11 +416,186 @@ public class TransportRoleActionTest extends CrateDummyClusterServiceUnitTest {
             null,
             new JwtProperties("https:dummy.org", "test", null),
             false,
-            false))
+            false,
+            Map.of()))
             .isExactlyInstanceOf(RoleAlreadyExistsException.class)
             .hasMessage("Another role with the same combination of iss/username jwt properties already exists");
     }
 
+    @Test
+    public void test_alter_user_add_session_setting() throws Exception {
+        Map<String, Role> role = new HashMap<>();
+        var password = getSecureHash("johns-pwd"); // Has randomness, keep it for assertions.
+        role.put("John", userOf(
+            "John",
+            password,
+            Map.of("search_path", "my_schema"))
+        );
+        var oldRolesMetadata = new RolesMetadata(role);
+        Metadata.Builder mdBuilder = Metadata.builder()
+            .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
+        boolean exists = TransportAlterRoleAction.alterRole(
+            mdBuilder,
+            "John",
+            null,
+            null,
+            false,
+            false,
+            Map.of(false, Map.of("enable_hashjoin", false))
+        );
+        assertThat(exists).isTrue();
+        assertThat(roles(mdBuilder)).containsExactlyEntriesOf(
+            Map.of("John", userOf(
+                    "John",
+                    password,
+                    Map.of("search_path", "my_schema", "enable_hashjoin", false)
+                )
+            )
+        );
+    }
+
+    @Test
+    public void test_alter_user_add_and_override_session_setting() throws Exception {
+        Map<String, Role> role = new HashMap<>();
+        var password = getSecureHash("johns-pwd"); // Has randomness, keep it for assertions.
+        role.put("John", userOf(
+            "John",
+            password,
+            Map.of("search_path", "my_schema"))
+        );
+        var oldRolesMetadata = new RolesMetadata(role);
+        Metadata.Builder mdBuilder = Metadata.builder()
+            .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
+        boolean exists = TransportAlterRoleAction.alterRole(
+            mdBuilder,
+            "John",
+            null,
+            null,
+            false,
+            false,
+            Map.of(false, Map.of("enable_hashjoin", false, "search_path", "schema1, schema2"))
+        );
+        assertThat(exists).isTrue();
+        assertThat(roles(mdBuilder)).containsExactlyEntriesOf(
+            Map.of("John", userOf(
+                    "John",
+                    password,
+                    Map.of("search_path", "schema1, schema2", "enable_hashjoin", false)
+                )
+            )
+        );
+    }
+
+    @Test
+    public void test_alter_user_reset_session_setting() throws Exception {
+        Map<String, Role> role = new HashMap<>();
+        var password = getSecureHash("johns-pwd"); // Has randomness, keep it for assertions.
+        role.put("John", userOf(
+            "John",
+            password,
+            Map.of("search_path", "my_schema", "enable_hashjoin", false))
+        );
+        var oldRolesMetadata = new RolesMetadata(role);
+        Metadata.Builder mdBuilder = Metadata.builder()
+            .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
+        boolean exists = TransportAlterRoleAction.alterRole(
+            mdBuilder,
+            "John",
+            null,
+            null,
+            false,
+            false,
+            Map.of(true, Map.of("search_path", Literal.NULL))
+        );
+        assertThat(exists).isTrue();
+        assertThat(roles(mdBuilder)).containsExactlyEntriesOf(
+            Map.of("John", userOf(
+                    "John",
+                    password,
+                    Map.of("enable_hashjoin", false)
+                )
+            )
+        );
+    }
+
+    @Test
+    public void test_alter_user_reset_all_session_settings() throws Exception {
+        Map<String, Role> role = new HashMap<>();
+        var password = getSecureHash("johns-pwd"); // Has randomness, keep it for assertions.
+        role.put("John", userOf(
+            "John",
+            password,
+            Map.of("search_path", "my_schema", "enable_hashjoin", false))
+        );
+        var oldRolesMetadata = new RolesMetadata(role);
+        Metadata.Builder mdBuilder = Metadata.builder()
+            .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
+        boolean exists = TransportAlterRoleAction.alterRole(
+            mdBuilder,
+            "John",
+            null,
+            null,
+            false,
+            false,
+            Map.of(true, Map.of())
+        );
+        assertThat(exists).isTrue();
+        assertThat(roles(mdBuilder)).containsExactlyEntriesOf(
+            Map.of("John", userOf(
+                    "John",
+                    password,
+                    Map.of()
+                )
+            )
+        );
+    }
+
+    @Test
+    public void test_cannot_set_session_settings_to_a_role() throws Exception {
+        var oldRolesMetadata = new RolesMetadata(DUMMY_USERS_AND_ROLES_WITHOUT_PASSWORD);
+        Metadata.Builder mdBuilder = Metadata.builder()
+            .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
+        assertThatThrownBy(() -> TransportAlterRoleAction.alterRole(
+            mdBuilder,
+            "DummyRole",
+            null,
+            null,
+            false,
+            false,
+            Map.of(false, Map.of("error_on_unknown_object_key", false))))
+            .isExactlyInstanceOf(UnsupportedFeatureException.class)
+            .hasMessage("Setting or resetting session settings to a ROLE is not allowed");
+    }
+
+    @Test
+    public void test_cannot_reset_session_settings_to_a_role() throws Exception {
+        var oldRolesMetadata = new RolesMetadata(DUMMY_USERS_AND_ROLES_WITHOUT_PASSWORD);
+        Metadata.Builder mdBuilder = Metadata.builder()
+            .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
+        // Reset ALL
+        assertThatThrownBy(() -> TransportAlterRoleAction.alterRole(
+            mdBuilder,
+            "DummyRole",
+            null,
+            null,
+            false,
+            false,
+            Map.of(true, Map.of("error_on_unknown_object_key", Literal.NULL))))
+            .isExactlyInstanceOf(UnsupportedFeatureException.class)
+            .hasMessage("Setting or resetting session settings to a ROLE is not allowed");
+
+        // Reset ALL
+        assertThatThrownBy(() -> TransportAlterRoleAction.alterRole(
+            mdBuilder,
+            "DummyRole",
+            null,
+            null,
+            false,
+            false,
+            Map.of(true, Map.of())))
+            .isExactlyInstanceOf(UnsupportedFeatureException.class)
+            .hasMessage("Setting or resetting session settings to a ROLE is not allowed");
+    }
 
     private static Map<String, Role> roles(Metadata.Builder mdBuilder) {
         return ((RolesMetadata) mdBuilder.build().custom(RolesMetadata.TYPE)).roles();

@@ -21,13 +21,21 @@
 
 package io.crate.analyze;
 
+import static io.crate.role.Role.Properties.JWT_KEY;
+import static io.crate.role.Role.Properties.PASSWORD_KEY;
+
+import java.util.Map;
+import java.util.Set;
+
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
+import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
-import io.crate.sql.tree.AlterRole;
+import io.crate.sql.tree.AlterRoleReset;
+import io.crate.sql.tree.AlterRoleSet;
 import io.crate.sql.tree.CreateRole;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.GenericProperties;
@@ -43,18 +51,26 @@ public class RoleAnalyzer {
     public AnalyzedCreateRole analyze(CreateRole node,
                                       ParamTypeHints paramTypeHints,
                                       CoordinatorTxnCtx txnContext) {
-        return new AnalyzedCreateRole(
-            node.name(),
-            node.isUser(),
-            mappedProperties(node.properties(), paramTypeHints, txnContext));
+        GenericProperties<Symbol> properties = mappedProperties(node.properties(), paramTypeHints, txnContext);
+        properties.ensureContainsOnly(Set.of(PASSWORD_KEY, JWT_KEY));
+        return new AnalyzedCreateRole(node.name(), node.isUser(), properties);
     }
 
-    public AnalyzedAlterRole analyze(AlterRole<Expression> node,
+    public AnalyzedAlterRole analyze(AlterRoleSet<Expression> node,
                                      ParamTypeHints paramTypeHints,
                                      CoordinatorTxnCtx txnContext) {
+        GenericProperties<Symbol> properties = mappedProperties(node.properties(), paramTypeHints, txnContext);
+        return new AnalyzedAlterRole(node.name(), properties, false);
+    }
+
+    public AnalyzedAlterRole analyze(AlterRoleReset node) {
+        if (node.property() == null) { // RESET ALL
+            return new AnalyzedAlterRole(node.name(), new GenericProperties<>(Map.of()), true);
+        }
         return new AnalyzedAlterRole(
             node.name(),
-            mappedProperties(node.properties(), paramTypeHints, txnContext));
+            new GenericProperties<>(Map.of(node.property(), Literal.NULL)),
+            true);
     }
 
     private GenericProperties<Symbol> mappedProperties(GenericProperties<Expression> properties,
