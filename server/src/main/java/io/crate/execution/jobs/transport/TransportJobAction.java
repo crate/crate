@@ -21,6 +21,22 @@
 
 package io.crate.execution.jobs.transport;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.UnaryOperator;
+
+import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionListenerResponseHandler;
+import org.elasticsearch.action.support.TransportAction;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.search.profile.query.QueryProfiler;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.TransportService;
+
 import io.crate.common.concurrent.CompletableFutures;
 import io.crate.execution.engine.distribution.StreamBucket;
 import io.crate.execution.jobs.InstrumentedIndexSearcher;
@@ -32,21 +48,6 @@ import io.crate.execution.support.NodeActionRequestHandler;
 import io.crate.execution.support.NodeRequest;
 import io.crate.execution.support.Transports;
 import io.crate.profile.ProfilingContext;
-import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.ActionListenerResponseHandler;
-import org.elasticsearch.action.support.TransportAction;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.search.profile.query.QueryProfiler;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.TransportService;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
-import java.util.function.UnaryOperator;
 
 @Singleton
 public class TransportJobAction extends TransportAction<NodeRequest<JobRequest>, JobResponse> {
@@ -102,17 +103,18 @@ public class TransportJobAction extends TransportAction<NodeRequest<JobRequest>,
             sharedShardContexts
         );
 
+        CompletableFuture<Void> startFuture;
         try {
             RootTask context = tasksService.createTask(contextBuilder);
-            context.start();
+            startFuture = context.start();
         } catch (Throwable t) {
             return CompletableFuture.failedFuture(t);
         }
 
         if (directResponseFutures.size() == 0) {
-            return CompletableFuture.completedFuture(new JobResponse(List.of()));
+            return startFuture.thenApply(ignored -> new JobResponse(List.of()));
         } else {
-            return CompletableFutures.allAsList(directResponseFutures).thenApply(JobResponse::new);
+            return startFuture.thenCompose(ignored -> CompletableFutures.allAsList(directResponseFutures)).thenApply(JobResponse::new);
         }
     }
 
