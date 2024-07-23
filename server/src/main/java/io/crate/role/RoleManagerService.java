@@ -26,7 +26,6 @@ import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.client.node.NodeClient;
-import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Singleton;
 import org.jetbrains.annotations.Nullable;
 
@@ -40,14 +39,14 @@ import io.crate.metadata.settings.CoordinatorSessionSettings;
 @Singleton
 public class RoleManagerService implements RoleManager {
 
-    private static final void ensureDropRoleTargetIsNotSuperUser(Role user) {
+    private static void ensureDropRoleTargetIsNotSuperUser(Role user) {
         if (user != null && user.isSuperUser()) {
             throw new UnsupportedOperationException(String.format(
                 Locale.ENGLISH, "Cannot drop a superuser '%s'", user.name()));
         }
     }
 
-    private static final void ensureAlterPrivilegeTargetIsNotSuperuser(Role user) {
+    private static void ensureAlterPrivilegeTargetIsNotSuperuser(Role user) {
         if (user != null && user.isSuperUser()) {
             throw new UnsupportedOperationException(String.format(
                 Locale.ENGLISH, "Cannot alter privileges for superuser '%s'", user.name()));
@@ -62,8 +61,7 @@ public class RoleManagerService implements RoleManager {
 
     public RoleManagerService(NodeClient client,
                               Roles roles,
-                              DDLClusterStateService ddlClusterStateService,
-                              ClusterService clusterService) {
+                              DDLClusterStateService ddlClusterStateService) {
         this.client = client;
         this.roles = roles;
         ddlClusterStateService.addModifier(DDL_MODIFIER);

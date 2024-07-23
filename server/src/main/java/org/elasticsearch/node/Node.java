@@ -730,8 +730,7 @@ public class Node implements Closeable {
             RoleManagerService rolesManager = new RoleManagerService(
                 client,
                 roles,
-                ddlClusterStateService,
-                clusterService
+                ddlClusterStateService
             );
             AnalysisRegistry analysisRegistry = analysisModule.getAnalysisRegistry();
             AtomicReference<Injector> injectorRef = new AtomicReference<>();
