@@ -191,4 +191,34 @@ public class IntervalAnalysisTest extends CrateDummyClusterServiceUnitTest {
         assertThatThrownBy(() -> e.asSymbol("INTERVAL '1-2 3 4-5-6'"))
             .isExactlyInstanceOf(ConversionException.class);
     }
+
+    @Test
+    public void test_psql_compact_format_from_string_with_start_end_day_minute() {
+        var symbol = e.asSymbol("INTERVAL '6 years 5 mons 4 days 03:02:01' DAY TO MINUTE");
+        assertThat(symbol).isLiteral(new Period().withYears(6).withMonths(5).withDays(4).withHours(3).withMinutes(2)
+            .withSeconds(0)
+            .withPeriodType(PeriodType.yearMonthDayTime()));
+    }
+
+    @Test
+    public void test_psql_compact_format_from_string_with_start_end_day_seconds() {
+        var symbol = e.asSymbol("INTERVAL '6 years 5 mons 4 days 03:02:01' DAY TO SECOND");
+        assertThat(symbol).isLiteral(new Period().withYears(6).withMonths(5).withDays(4).withHours(3).withMinutes(2).withSeconds(1)
+            .withPeriodType(PeriodType.yearMonthDayTime()));
+    }
+
+    @Test
+    public void test_psql_compact_format_from_string_with_start_end_hour_minute() {
+        var symbol = e.asSymbol("INTERVAL '6 years 5 mons 4 days 03:02:01.100' HOUR TO MINUTE");
+        assertThat(symbol).isLiteral(new Period().withYears(6).withMonths(5).withDays(4).withHours(3).withMinutes(2)
+            .withSeconds(0)
+            .withPeriodType(PeriodType.yearMonthDayTime()));
+    }
+
+    @Test
+    public void test_psql_compact_format_from_string_with_start_end_hour_seconds() {
+        var symbol = e.asSymbol("INTERVAL '6 years 5 mons 4 days 03:02:01' HOUR TO SECOND");
+        assertThat(symbol).isLiteral(new Period().withYears(6).withMonths(5).withDays(4).withHours(3).withMinutes(2).withSeconds(1)
+            .withPeriodType(PeriodType.yearMonthDayTime()));
+    }
 }
