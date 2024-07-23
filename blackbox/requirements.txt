@@ -19,4 +19,4 @@ sphinx-csv-filter==0.4.0
 crate-docs-theme>=0.30.0
 
 # Documentation: local development
-sphinx-autobuild>=2020.9.1
+sphinx-autobuild<2024
