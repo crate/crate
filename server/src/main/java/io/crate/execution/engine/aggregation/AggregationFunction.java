@@ -117,6 +117,17 @@ public abstract class AggregationFunction<TPartial, TFinal> implements FunctionI
                                                 "not removable cumulative");
     }
 
+    /**
+     * @param referenceResolver A LuceneReferenceResolver to resolve references.
+     * @param aggregationReferences contains a list of references of the size of the input values of the function.
+     *                              If the value at the position is not a reference in the inputs the value in
+     *                              the list is null.
+     * @param table DocTableInfo for the underlying table which is the source of the doc-values.
+     * @param optionalParams contains a list of literals of the size of the input values of the function.
+     *                       If the value at the position is not a literal in the inputs the value in the list is
+     *                       null.
+     * @return A DocValueAggregator or null if there is no doc-value support for the given input parameters.
+     */
     @Nullable
     public DocValueAggregator<?> getDocValueAggregator(LuceneReferenceResolver referenceResolver,
                                                        List<Reference> aggregationReferences,

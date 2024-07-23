@@ -297,4 +297,12 @@ public class AggregateExpressionIntegrationTest extends IntegTestCase {
             "b",
             "c");
     }
+
+    public void test_assure_cmp_by_function_call_with_reference_and_literal_does_not_throw_exception() {
+        execute("create table tbl (name text, x int);");
+        execute("insert into tbl (name, x) values ('foo', 10)");
+        execute("refresh table tbl");
+        execute("select max_by(name, 1) from tbl;");
+        assertThat(response).hasRows("foo");
+    }
 }
