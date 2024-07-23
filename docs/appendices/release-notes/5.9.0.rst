@@ -84,6 +84,11 @@ SQL Standard and PostgreSQL Compatibility
   true or false depending on if a function always returns null if any call
   argument is null. Before the property's value was a static ``null``.
 
+- `Martin Stein <https://github.com/marstein>`_ added support for
+  ``MILLISECOND`` unit for the :ref:`INTERVAL <type-interval>` data type.
+  ``ms``, ``msec``, ``msecs``, ``millisecond`` or ``milliseconds`` can
+  be used as the unit name as well.
+
 Data Types
 ----------
 

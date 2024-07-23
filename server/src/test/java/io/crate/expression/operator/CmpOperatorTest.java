@@ -40,6 +40,8 @@ public class CmpOperatorTest extends ScalarTestCase {
         assertNormalize("'abc' <= 'abd'", isLiteral(true));
         assertNormalize("'2 hour'::interval <= '2 hour'::interval", isLiteral(true));
         assertNormalize("'1 hour'::interval <= '2 hour'::interval", isLiteral(true));
+        assertNormalize("'1 ms'::interval <= '2 ms'::interval", isLiteral(true));
+        assertNormalize("'2 ms'::interval <= '2 ms'::interval", isLiteral(true));
         assertNormalize("'1 month 1 hour'::interval <= '1 month 2 hour'::interval", isLiteral(true));
         assertNormalize("'987 years 567 months 482 days 127 hours 185 mins 31214 seconds'::interval <= " +
                         "'987 years 567 months 487 days 18 hours 45 mins 15 seconds'::interval",
@@ -59,6 +61,7 @@ public class CmpOperatorTest extends ScalarTestCase {
         assertNormalize("0.1 < 0.2", isLiteral(true));
         assertNormalize("'abc' < 'abd'", isLiteral(true));
         assertNormalize("'1 hour'::interval < '2 hour'::interval", isLiteral(true));
+        assertNormalize("'1 ms'::interval < '2 ms'::interval", isLiteral(true));
         assertNormalize("'1 month 1 hour'::interval < '1 month 2 hour'::interval", isLiteral(true));
         assertNormalize("'987 years 567 months 482 days 127 hours 185 mins 31214 seconds'::interval < " +
                         "'987 years 567 months 487 days 18 hours 45 mins 16 seconds'::interval",
@@ -79,6 +82,8 @@ public class CmpOperatorTest extends ScalarTestCase {
         assertNormalize("16 >= 8", isLiteral(true));
         assertNormalize("'abc' >= 'abd'", isLiteral(false));
         assertNormalize("'2 hour'::interval >= '2 hour'::interval", isLiteral(true));
+        assertNormalize("'2 ms'::interval >= '2 ms'::interval", isLiteral(true));
+        assertNormalize("'0.002 secs'::interval >= '2 ms'::interval", isLiteral(true));
         assertNormalize("'12 hour'::interval >= '2 hour'::interval", isLiteral(true));
         assertNormalize("'1 month 1 hour'::interval >= '1 month 2 hour'::interval", isLiteral(false));
         assertEvaluateNull("true >= null");

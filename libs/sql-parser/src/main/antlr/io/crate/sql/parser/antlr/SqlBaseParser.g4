@@ -538,7 +538,7 @@ intervalLiteral
     ;
 
 intervalField
-    : YEAR | MONTH | DAY | HOUR | MINUTE | SECOND
+    : YEAR | MONTH | DAY | HOUR | MINUTE | SECOND | MILLISECOND
     ;
 
 booleanLiteral
@@ -957,6 +957,7 @@ nonReserved
     | MATERIALIZED
     | METADATA
     | MINUTE
+    | MILLISECOND
     | MONTH
     | MOVE
     | NEXT

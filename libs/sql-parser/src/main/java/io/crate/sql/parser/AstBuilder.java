@@ -438,6 +438,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
             case SqlBaseLexer.HOUR -> IntervalLiteral.IntervalField.HOUR;
             case SqlBaseLexer.MINUTE -> IntervalLiteral.IntervalField.MINUTE;
             case SqlBaseLexer.SECOND -> IntervalLiteral.IntervalField.SECOND;
+            case SqlBaseLexer.MILLISECOND -> IntervalLiteral.IntervalField.MILLISECOND;
             default -> throw new IllegalArgumentException("Unsupported interval field: " + token.getText());
         };
     }

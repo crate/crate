@@ -168,6 +168,15 @@ final class PGIntervalParser {
                             milliSeconds = parseMilliSeconds(valueToken);
                             timeParsed = true;
                         }
+                        case "ms", "msec", "msecs", "millisecond", "milliseconds" -> {
+                            if (milliSeconds > 0) {
+                                throw new IllegalArgumentException("Invalid interval format: " + value);
+                            }
+                            // Do not use parseMilliSeconds() because it will throw away the int part of this float value.
+                            // example: parseMilliSeconds("1043") would become 1000.
+                            milliSeconds = parseInteger(valueToken);
+                            timeParsed = true;
+                        }
                         default -> throw new IllegalArgumentException("Invalid interval format: " + value);
                     }
                 }
