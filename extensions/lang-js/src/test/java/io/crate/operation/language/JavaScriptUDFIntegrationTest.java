@@ -123,4 +123,33 @@ public class JavaScriptUDFIntegrationTest extends IntegTestCase {
         execute("SELECT nested({l1={l2={l3='Hello'}}})");
         assertThat(response).hasRows("Hello");
     }
+
+    /**
+     * Regression test for https://github.com/crate/crate/issues/16368
+     * Note that even without the fix this didn't fail 100%
+     **/
+    @Test
+    public void test_udf_can_return_geoshape_and_use_in_match_predicate() throws Exception {
+        execute("CREATE TABLE tbl (indexed_point geo_shape INDEX USING bkdtree)");
+        execute("INSERT INTO tbl (indexed_point) VALUES ('POINT (1.5 2.5)'), ('POINT (3.0 4.0)')");
+        execute("refresh table tbl");
+        execute("""
+            CREATE FUNCTION shapeudf()
+            RETURNS geo_shape
+            LANGUAGE JAVASCRIPT
+            AS
+            $$
+                function shapeudf() {
+                    return {"coordinates": [[[2.0, 2.0], [2.0, 3.0], [1.0, 3.0], [1.0, 2.0], [2.0, 2.0]]], "type": "Polygon"}
+                }
+            $$;
+            """
+        );
+        try {
+            execute("SELECT COUNT(*) FROM tbl WHERE MATCH (indexed_point, shapeudf()) USING WITHIN");
+            assertThat(response).hasRows("1");
+        } finally {
+            execute("drop function shapeudf()");
+        }
+    }
 }
