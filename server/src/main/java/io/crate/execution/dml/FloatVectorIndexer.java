@@ -35,9 +35,7 @@ import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.VectorEncoding;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import io.crate.execution.dml.Indexer.ColumnConstraint;
 import io.crate.metadata.ColumnIdent;
@@ -72,20 +70,11 @@ public class FloatVectorIndexer implements ValueIndexer<float[]> {
     }
 
     @Override
-    public void indexValue(float @Nullable [] values,
-                           XContentBuilder xcontentBuilder,
+    public void indexValue(float @NotNull [] values,
                            Consumer<? super IndexableField> addField,
+                           TranslogWriter translogWriter,
                            Synthetics synthetics,
                            Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
-        if (values == null) {
-            return;
-        }
-        xcontentBuilder.startArray();
-        for (float value : values) {
-            xcontentBuilder.value(value);
-        }
-        xcontentBuilder.endArray();
-
         createFields(
             name,
             fieldType,
@@ -97,6 +86,7 @@ public class FloatVectorIndexer implements ValueIndexer<float[]> {
         if (fieldType.stored()) {
             throw new UnsupportedOperationException("Cannot store float_vector as stored field");
         }
+        translogWriter.writeValue(values);
     }
 
     public static void createFields(String fqn,
@@ -124,5 +114,10 @@ public class FloatVectorIndexer implements ValueIndexer<float[]> {
                 fqn,
                 DocSysColumns.FieldNames.FIELD_TYPE));
         }
+    }
+
+    @Override
+    public String storageIdentLeafName() {
+        return ref.storageIdentLeafName();
     }
 }

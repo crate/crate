@@ -33,7 +33,7 @@ import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.jetbrains.annotations.NotNull;
 
 import io.crate.execution.dml.Indexer.ColumnConstraint;
 import io.crate.metadata.ColumnIdent;
@@ -63,14 +63,13 @@ public class BitStringIndexer implements ValueIndexer<BitString> {
     }
 
     @Override
-    public void indexValue(BitString value,
-                           XContentBuilder xcontentBuilder,
+    public void indexValue(@NotNull BitString value,
                            Consumer<? super IndexableField> addField,
+                           TranslogWriter translogWriter,
                            Synthetics synthetics,
                            Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
         BitSet bitSet = value.bitSet();
         byte[] bytes = bitSet.toByteArray();
-        xcontentBuilder.value(bytes);
 
         BytesRef binaryValue = new BytesRef(bytes);
         if (ref.indexType() != IndexType.NONE) {
@@ -85,5 +84,11 @@ public class BitStringIndexer implements ValueIndexer<BitString> {
                 name,
                 DocSysColumns.FieldNames.FIELD_TYPE));
         }
+        translogWriter.writeValue(bytes);
+    }
+
+    @Override
+    public String storageIdentLeafName() {
+        return ref.storageIdentLeafName();
     }
 }

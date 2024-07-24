@@ -21,16 +21,17 @@
 
 package io.crate.expression.symbol;
 
+import java.io.IOException;
+
+import org.elasticsearch.common.io.stream.StreamInput;
+
 import io.crate.metadata.IndexType;
-import io.crate.metadata.SimpleReference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.SimpleReference;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import org.elasticsearch.common.io.stream.StreamInput;
-
-import java.io.IOException;
 
 public class DynamicReference extends SimpleReference {
 
