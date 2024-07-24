@@ -137,6 +137,9 @@ public final class BitStringType extends DataType<BitString> implements Streamer
 
     @Override
     public TypeSignature getTypeSignature() {
+        if (length == DEFAULT_LENGTH) {
+            return new TypeSignature(NAME);
+        }
         return new TypeSignature(getName(), List.of(TypeSignature.of(length)));
     }
 
