@@ -21,7 +21,6 @@
 
 package io.crate.execution.dml;
 
-import static io.crate.expression.reference.doc.lucene.SourceParser.UNKNOWN_COLUMN_PREFIX;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.io.IOException;
@@ -33,11 +32,12 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.apache.lucene.index.IndexableField;
-import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
 import io.crate.execution.dml.Indexer.ColumnConstraint;
+import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
@@ -59,7 +59,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
     private final Function<ColumnIdent, Reference> getRef;
     private final RelationName table;
     private final Reference ref;
-    private final boolean prefixUnknownColumns;
+    private final String unknownColumnPrefix;
 
     private record Child(Reference reference, ValueIndexer<Object> indexer) {
         ColumnIdent ident() {
@@ -74,7 +74,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
         this.table = table;
         this.ref = ref;
         this.getRef = getRef;
-        this.prefixUnknownColumns = ref.oid() != COLUMN_OID_UNASSIGNED;
+        this.unknownColumnPrefix = ref.oid() != COLUMN_OID_UNASSIGNED ? SourceParser.UNKNOWN_COLUMN_PREFIX : "";
         this.column = ref.column();
         ObjectType objectType = (ObjectType) ArrayType.unnest(ref.valueType());
         for (var entry : objectType.innerTypes().entrySet()) {
@@ -94,12 +94,12 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
     }
 
     @Override
-    public void indexValue(@Nullable Map<String, Object> value,
-                           XContentBuilder xContentBuilder,
+    public void indexValue(@NotNull Map<String, Object> value,
                            Consumer<? super IndexableField> addField,
+                           TranslogWriter translogWriter,
                            Synthetics synthetics,
                            Map<ColumnIdent, Indexer.ColumnConstraint> checks) throws IOException {
-        xContentBuilder.startObject();
+        translogWriter.startObject();
         for (var entry : children.entrySet()) {
             String innerName = entry.getKey();
             Child child = entry.getValue();
@@ -122,21 +122,23 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
             var valueIndexer = child.indexer;
             // valueIndexer is null for partitioned columns
             if (valueIndexer != null) {
+                translogWriter.writeFieldName(child.reference.storageIdentLeafName());
                 valueIndexer.indexValue(
                     child.reference.valueType().sanitizeValue(innerValue),
-                    child.reference.storageIdentLeafName(),
-                    xContentBuilder,
                     addField,
+                    translogWriter,
                     synthetics,
                     checks
                 );
             }
         }
-
-        if (value != null) {
-            indexUnknownColumns(value, xContentBuilder);
-        }
-        xContentBuilder.endObject();
+        value.forEach((k, v) -> {
+            if (children.containsKey(k) == false) {
+                translogWriter.writeFieldName(this.unknownColumnPrefix + k);
+                translogWriter.writeValue(v);
+            }
+        });
+        translogWriter.endObject();
     }
 
     @Override
@@ -183,6 +185,11 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
         }
     }
 
+    @Override
+    public String storageIdentLeafName() {
+        return ref.storageIdentLeafName();
+    }
+
     @SuppressWarnings("unchecked")
     private void addNewColumns(Map<String, Object> value,
                                Consumer<? super Reference> onDynamicColumn,
@@ -210,12 +217,12 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
             innerValue = type.sanitizeValue(innerValue);
             StorageSupport<?> storageSupport = type.storageSupport();
             if (storageSupport == null) {
-                if (DynamicIndexer.handleEmptyArray(type, innerValue, null, null)) {
+                if (DynamicIndexer.handleEmptyArray(type, innerValue)) {
                     continue;
                 }
                 throw new IllegalArgumentException(
                     "Cannot create columns of type " + type.getName() + " dynamically. " +
-                    "Storage is not supported for this type");
+                        "Storage is not supported for this type");
             }
             boolean nullable = true;
             Symbol defaultExpression = null;
@@ -246,48 +253,5 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                 synthetics
             );
         }
-    }
-
-    /**
-     * Writes keys and values for which there are no columns after {@link #collectSchemaUpdates(Map, Consumer, Synthetics) to the xContentBuilder.
-     *
-     * There are no columns for:
-     * <ul>
-     *  <li>OBJECT (IGNORED)</li>
-     *  <li>Empty arrays, or arrays with only null values</li>
-     * </ul>
-     */
-    private void indexUnknownColumns(Map<String, Object> value, XContentBuilder xContentBuilder) throws IOException {
-        for (var entry : value.entrySet()) {
-            String innerName = entry.getKey();
-            Object innerValue = entry.getValue();
-            if (children.containsKey(innerName)) {
-                continue;
-            }
-
-            if (prefixUnknownColumns) {
-                innerName = UNKNOWN_COLUMN_PREFIX + innerName;
-            }
-            if (innerValue == null) {
-                xContentBuilder.nullField(innerName);
-                continue;
-            }
-            if (ref.columnPolicy() == ColumnPolicy.IGNORED) {
-                xContentBuilder.field(innerName, innerValue);
-                continue;
-            }
-            var type = DynamicIndexer.guessType(innerValue);
-            innerValue = type.sanitizeValue(innerValue);
-            StorageSupport<?> storageSupport = type.storageSupport();
-            if (storageSupport == null) {
-                if (DynamicIndexer.handleEmptyArray(type, innerValue, innerName, xContentBuilder)) {
-                    continue;
-                }
-                throw new IllegalArgumentException(
-                    "Cannot create columns of type " + type.getName() + " dynamically. " +
-                        "Storage is not supported for this type");
-            }
-        }
-
     }
 }

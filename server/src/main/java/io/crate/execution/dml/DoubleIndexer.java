@@ -31,7 +31,7 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.NumericUtils;
-import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.jetbrains.annotations.NotNull;
 
 import io.crate.execution.dml.Indexer.ColumnConstraint;
 import io.crate.metadata.ColumnIdent;
@@ -50,12 +50,11 @@ public class DoubleIndexer implements ValueIndexer<Number> {
     }
 
     @Override
-    public void indexValue(Number value,
-                           XContentBuilder xcontentBuilder,
+    public void indexValue(@NotNull Number value,
                            Consumer<? super IndexableField> addField,
+                           TranslogWriter translogWriter,
                            Synthetics synthetics,
                            Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
-        xcontentBuilder.value(value);
         double doubleValue = value.doubleValue();
         if (ref.hasDocValues() && ref.indexType() != IndexType.NONE) {
             addField.accept(new DoubleField(name, doubleValue, Field.Store.NO));
@@ -65,14 +64,20 @@ public class DoubleIndexer implements ValueIndexer<Number> {
             }
             if (ref.hasDocValues()) {
                 addField.accept(
-                        new SortedNumericDocValuesField(name, NumericUtils.doubleToSortableLong(doubleValue))
+                    new SortedNumericDocValuesField(name, NumericUtils.doubleToSortableLong(doubleValue))
                 );
             } else {
                 addField.accept(new Field(
-                        DocSysColumns.FieldNames.NAME,
-                        name,
-                        DocSysColumns.FieldNames.FIELD_TYPE));
+                    DocSysColumns.FieldNames.NAME,
+                    name,
+                    DocSysColumns.FieldNames.FIELD_TYPE));
             }
         }
+        translogWriter.writeValue(value);
+    }
+
+    @Override
+    public String storageIdentLeafName() {
+        return ref.storageIdentLeafName();
     }
 }

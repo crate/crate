@@ -27,18 +27,17 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import io.crate.testing.UseNewCluster;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.testing.Asserts;
 import io.crate.testing.UseJdbc;
+import io.crate.testing.UseNewCluster;
 
 public class ObjectColumnTest extends IntegTestCase {
 

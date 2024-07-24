@@ -28,7 +28,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.apache.lucene.index.IndexableField;
-import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.metadata.ColumnIdent;
@@ -43,28 +43,26 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
     }
 
     @Override
-    public void indexValue(List<T> values,
-                           XContentBuilder xContentBuilder,
+    public void indexValue(@NotNull List<T> values,
                            Consumer<? super IndexableField> addField,
+                           TranslogWriter translogWriter,
                            Synthetics synthetics,
                            Map<ColumnIdent, Indexer.ColumnConstraint> toValidate) throws IOException {
-        xContentBuilder.startArray();
-        if (values != null) {
-            for (T value : values) {
-                if (value == null) {
-                    xContentBuilder.nullValue();
-                } else {
-                    innerIndexer.indexValue(
-                        value,
-                        xContentBuilder,
-                        addField,
-                        synthetics,
-                        toValidate
-                    );
-                }
+        translogWriter.startArray();
+        for (T value : values) {
+            if (value == null) {
+                translogWriter.writeNull();
+            } else {
+                innerIndexer.indexValue(
+                    value,
+                    addField,
+                    translogWriter,
+                    synthetics,
+                    toValidate
+                );
             }
         }
-        xContentBuilder.endArray();
+        translogWriter.endArray();
     }
 
     @Override
@@ -83,5 +81,10 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
     @Override
     public void updateTargets(Function<ColumnIdent, Reference> getRef) {
         innerIndexer.updateTargets(getRef);
+    }
+
+    @Override
+    public String storageIdentLeafName() {
+        return innerIndexer.storageIdentLeafName();
     }
 }

@@ -32,7 +32,7 @@ import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.network.InetAddresses;
-import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.jetbrains.annotations.NotNull;
 
 import io.crate.execution.dml.Indexer.ColumnConstraint;
 import io.crate.metadata.ColumnIdent;
@@ -51,12 +51,11 @@ public class IpIndexer implements ValueIndexer<String> {
     }
 
     @Override
-    public void indexValue(String value,
-                           XContentBuilder xContentBuilder,
+    public void indexValue(@NotNull String value,
                            Consumer<? super IndexableField> addField,
+                           TranslogWriter translogWriter,
                            Synthetics synthetics,
                            Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
-        xContentBuilder.value(value);
         InetAddress address = InetAddresses.forString(value);
         if (ref.indexType() != IndexType.NONE) {
             addField.accept(new InetAddressPoint(name, address));
@@ -69,5 +68,11 @@ public class IpIndexer implements ValueIndexer<String> {
                 name,
                 DocSysColumns.FieldNames.FIELD_TYPE));
         }
+        translogWriter.writeValue(value);
+    }
+
+    @Override
+    public String storageIdentLeafName() {
+        return ref.storageIdentLeafName();
     }
 }
