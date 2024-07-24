@@ -1400,4 +1400,31 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             }
         }
     }
+
+    @Test
+    public void test_can_index_generated_geo_shape() throws Exception {
+        var sqlExecutor = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (o object(ignored), geo generated always as o::geo_shape)");
+
+        DocTableInfo table = sqlExecutor.resolveTableInfo("tbl");
+        try (var indexEnv = new IndexEnv(
+                THREAD_POOL,
+                table,
+                clusterService.state(),
+                Version.CURRENT)) {
+
+            MapperService mapperService = indexEnv.mapperService();
+            Indexer indexer = getIndexer(sqlExecutor, "tbl", mapperService::getLuceneFieldType, "o");
+
+            Map<String, Object> obj = LinkedHashMap.newLinkedHashMap(2);
+            obj.put("coordinates", List.of(50, 50));
+            obj.put("type", "Point");
+            ParsedDocument doc = indexer.index(item(obj));
+
+            assertThat(doc.source().utf8ToString())
+                .isEqualToIgnoringWhitespace("""
+                    {"1":{"_u_coordinates":[50,50],"_u_type":"Point"},"2":{"coordinates":[50,50],"type":"Point"}}
+                    """);
+        }
+    }
 }
