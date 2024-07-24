@@ -22,17 +22,18 @@
 package io.crate.operation.language;
 
 import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.HashMap;
+import java.util.Set;
 
 import org.graalvm.polyglot.TypeLiteral;
 import org.graalvm.polyglot.Value;
-import org.graalvm.polyglot.proxy.ProxyObject;
 
 import io.crate.data.Input;
 import io.crate.types.ArrayType;
+import io.crate.types.BitStringType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.FloatVectorType;
 import io.crate.types.GeoPointType;
 import io.crate.types.GeoShapeType;
 import io.crate.types.ObjectType;
@@ -41,26 +42,66 @@ class PolyglotValues {
 
     private static final TypeLiteral<Number> NUMBER_TYPE_LITERAL = new TypeLiteral<>() {
     };
-    private static final TypeLiteral<Map<?, ?>> MAP_TYPE_LITERAL = new TypeLiteral<>() {
+    private static final TypeLiteral<Object> OBJECT_LITERAL = new TypeLiteral<>() {
     };
 
     private PolyglotValues() {
     }
 
+    private static Object toCrateObject(Value value) {
+        if (value.isNull()) {
+            return null;
+        }
+        if (value.isHostObject()) {
+            return value.asHostObject();
+        }
+        if (value.hasIterator()) {
+            ArrayList<Object> items = new ArrayList<>();
+            Value iterator = value.getIterator();
+            while (iterator.hasIteratorNextElement()) {
+                items.add(toCrateObject(iterator.getIteratorNextElement()));
+            }
+            return items;
+        }
+        if (value.hasMembers()) {
+            Set<String> memberKeys = value.getMemberKeys();
+            HashMap<String, Object> result = HashMap.newHashMap(memberKeys.size());
+            for (String key : memberKeys) {
+                result.put(key, toCrateObject(value.getMember(key)));
+            }
+            return result;
+        }
+        return value.as(OBJECT_LITERAL);
+    }
+
     static Object toCrateObject(Value value, DataType<?> type) {
+        // function needs to do deep copies because the proxy objects graalvm uses
+        // are not safe for concurrent read access
         if (value == null) {
             return null;
         }
+        if (value.isHostObject()) {
+            return type.implicitCast(value.asHostObject());
+        }
         return switch (type) {
             case ArrayType<?> arrayType -> {
-                ArrayList<Object> items = new ArrayList<>((int) value.getArraySize());
-                for (int idx = 0; idx < value.getArraySize(); idx++) {
-                    var item = toCrateObject(value.getArrayElement(idx), arrayType.innerType());
+                DataType<?> innerType = arrayType.innerType();
+                int size = (int) value.getArraySize();
+                ArrayList<Object> items = new ArrayList<>(size);
+                for (int idx = 0; idx < size; idx++) {
+                    var item = toCrateObject(value.getArrayElement(idx), innerType);
                     items.add(idx, item);
                 }
                 yield type.implicitCast(items);
             }
-            case ObjectType objectType -> type.implicitCast(value.as(MAP_TYPE_LITERAL));
+            case ObjectType objectType -> {
+                Set<String> memberKeys = value.getMemberKeys();
+                HashMap<String, Object> shape = HashMap.newHashMap(memberKeys.size());
+                for (String key : memberKeys) {
+                    shape.put(key, toCrateObject(value.getMember(key)));
+                }
+                yield type.implicitCast(shape);
+            }
             case GeoPointType geoPointType -> {
                 if (value.hasArrayElements()) {
                     yield type.implicitCast(toCrateObject(value, DataTypes.DOUBLE_ARRAY));
@@ -71,10 +112,25 @@ class PolyglotValues {
             case GeoShapeType geoShapeType -> {
                 if (value.isString()) {
                     yield type.implicitCast(value.asString());
-                } else {
-                    yield type.implicitCast(value.as(MAP_TYPE_LITERAL));
                 }
+                Set<String> memberKeys = value.getMemberKeys();
+                HashMap<String, Object> shape = HashMap.newHashMap(memberKeys.size());
+                for (String key : memberKeys) {
+                    shape.put(key, toCrateObject(value.getMember(key)));
+                }
+                yield type.implicitCast(shape);
             }
+            case FloatVectorType floatVectorType -> {
+                long size = value.getArraySize();
+                assert size == floatVectorType.characterMaximumLength()
+                    : "Length of array returned from UDF must match float vector type dimensions";
+                float[] result = new float[floatVectorType.characterMaximumLength()];
+                for (int i = 0; i < size; i++) {
+                    result[i] = value.getArrayElement(i).as(NUMBER_TYPE_LITERAL).floatValue();
+                }
+                yield result;
+            }
+            case BitStringType bitStringType -> bitStringType.implicitCast(value.asString());
             default -> {
                 final Object polyglotValue;
                 if (value.isNumber()) {
@@ -91,16 +147,11 @@ class PolyglotValues {
         };
     }
 
-    @SuppressWarnings("unchecked")
-    static Object[] toPolyglotValues(Input<Object>[] inputs, List<DataType<?>> dataTypes) {
-        Object[] args = new Object[inputs.length];
+    static Value[] toPolyglotValues(Input<Object>[] inputs) {
+        Value[] result = new Value[inputs.length];
         for (int i = 0; i < inputs.length; i++) {
-            switch (dataTypes.get(i).id()) {
-                case ObjectType.ID, GeoShapeType.ID ->
-                    args[i] = ProxyObject.fromMap((Map<String, Object>) inputs[i].value());
-                default -> args[i] = Value.asValue(inputs[i].value());
-            }
+            result[i] = Value.asValue(inputs[i].value());
         }
-        return args;
+        return result;
     }
 }

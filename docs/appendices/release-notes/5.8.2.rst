@@ -47,4 +47,6 @@ See the :ref:`version_5.8.0` release notes for a full list of changes in the
 Fixes
 =====
 
-None
+- Fixed an issue that led to a ``IllegalStateException`` or
+  ``SQLParseException`` when trying to use a user defined function which returns
+  a value of type ``GEO_SHAPE`` within a ``MATCH`` predicate.

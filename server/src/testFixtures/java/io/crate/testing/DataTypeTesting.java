@@ -151,8 +151,7 @@ public class DataTypeTesting {
             case GeoShapeType.ID:
                 return () -> {
                     // Can't use immutable Collections.singletonMap; insert-analyzer mutates the map
-                    Map<String, Object> geoShape = new HashMap<>(2);
-
+                    Map<String, Object> geoShape = HashMap.newHashMap(2);
                     geoShape.put(
                         "coordinates",
                         Arrays.asList(
