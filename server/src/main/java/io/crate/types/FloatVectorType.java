@@ -164,6 +164,9 @@ public class FloatVectorType extends DataType<float[]> implements Streamer<float
 
     @Override
     public TypeSignature getTypeSignature() {
+        if (dimensions == 1) {
+            return new TypeSignature(NAME);
+        }
         return new TypeSignature(getName(), List.of(TypeSignature.of(dimensions)));
     }
 
