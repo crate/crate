@@ -22,18 +22,14 @@
 package io.crate.execution.dml;
 
 import java.io.IOException;
-import java.util.Map;
-import java.util.function.Consumer;
 
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.index.IndexOptions;
-import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
 import org.jetbrains.annotations.NotNull;
 
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
@@ -57,27 +53,23 @@ public class StringIndexer implements ValueIndexer<String> {
     }
 
     @Override
-    public void indexValue(@NotNull String value,
-                           Consumer<? super IndexableField> addField,
-                           TranslogWriter translogWriter,
-                           Synthetics synthetics,
-                           Map<ColumnIdent, Indexer.ColumnConstraint> toValidate) throws IOException {
+    public void indexValue(@NotNull String value, IndexDocumentBuilder docBuilder) throws IOException {
         String name = ref.storageIdent();
         BytesRef binaryValue = new BytesRef(value);
         if (ref.indexType() != IndexType.NONE) {
             Field field = new Field(name, binaryValue, FIELD_TYPE);
-            addField.accept(field);
+            docBuilder.addField(field);
             if (ref.hasDocValues() == false) {
-                addField.accept(new Field(
+                docBuilder.addField(new Field(
                     DocSysColumns.FieldNames.NAME,
                     name,
                     DocSysColumns.FieldNames.FIELD_TYPE));
             }
         }
         if (ref.hasDocValues()) {
-            addField.accept(new SortedSetDocValuesField(name, binaryValue));
+            docBuilder.addField(new SortedSetDocValuesField(name, binaryValue));
         }
-        translogWriter.writeValue(value);
+        docBuilder.translogWriter().writeValue(value);
     }
 
     @Override

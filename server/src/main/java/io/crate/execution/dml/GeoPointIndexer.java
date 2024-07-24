@@ -22,18 +22,13 @@
 package io.crate.execution.dml;
 
 import java.io.IOException;
-import java.util.Map;
-import java.util.function.Consumer;
 
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.LatLonDocValuesField;
 import org.apache.lucene.document.LatLonPoint;
-import org.apache.lucene.index.IndexableField;
 import org.jetbrains.annotations.NotNull;
 import org.locationtech.spatial4j.shape.Point;
 
-import io.crate.execution.dml.Indexer.ColumnConstraint;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
@@ -49,27 +44,23 @@ public class GeoPointIndexer implements ValueIndexer<Point> {
     }
 
     @Override
-    public void indexValue(@NotNull Point point,
-                           Consumer<? super IndexableField> addField,
-                           TranslogWriter translogWriter,
-                           Synthetics synthetics,
-                           Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
+    public void indexValue(@NotNull Point point, IndexDocumentBuilder docBuilder) throws IOException {
 
         if (ref.indexType() != IndexType.NONE) {
-            addField.accept(new LatLonPoint(name, point.getLat(), point.getLon()));
+            docBuilder.addField(new LatLonPoint(name, point.getLat(), point.getLon()));
         }
         if (ref.hasDocValues()) {
-            addField.accept(new LatLonDocValuesField(name, point.getLat(), point.getLon()));
+            docBuilder.addField(new LatLonDocValuesField(name, point.getLat(), point.getLon()));
         } else {
-            addField.accept(new Field(
+            docBuilder.addField(new Field(
                 DocSysColumns.FieldNames.NAME,
                 name,
                 DocSysColumns.FieldNames.FIELD_TYPE));
         }
-        translogWriter.startArray();
-        translogWriter.writeValue(point.getX());
-        translogWriter.writeValue(point.getY());
-        translogWriter.endArray();
+        docBuilder.translogWriter().startArray();
+        docBuilder.translogWriter().writeValue(point.getX());
+        docBuilder.translogWriter().writeValue(point.getY());
+        docBuilder.translogWriter().endArray();
     }
 
     @Override

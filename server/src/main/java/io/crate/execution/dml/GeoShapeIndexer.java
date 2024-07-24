@@ -44,10 +44,8 @@ import org.elasticsearch.common.unit.DistanceUnit;
 import org.jetbrains.annotations.NotNull;
 import org.locationtech.spatial4j.shape.Shape;
 
-import io.crate.execution.dml.Indexer.ColumnConstraint;
 import io.crate.geo.GeoJSONUtils;
 import io.crate.geo.LatLonShapeUtils;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.GeoReference;
 import io.crate.metadata.Reference;
@@ -89,17 +87,13 @@ public class GeoShapeIndexer implements ValueIndexer<Map<String, Object>> {
     }
 
     @Override
-    public void indexValue(@NotNull Map<String, Object> value,
-                           Consumer<? super IndexableField> addField,
-                           TranslogWriter translogWriter,
-                           Synthetics synthetics,
-                           Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
-        indexableFieldsFactory.create(value, addField);
-        addField.accept(new Field(
+    public void indexValue(@NotNull Map<String, Object> value, IndexDocumentBuilder docBuilder) throws IOException {
+        indexableFieldsFactory.create(value, docBuilder::addField);
+        docBuilder.addField(new Field(
             DocSysColumns.FieldNames.NAME,
             name,
             DocSysColumns.FieldNames.FIELD_TYPE));
-        translogWriter.writeValue(value);
+        docBuilder.translogWriter().writeValue(value);
     }
 
     @Override

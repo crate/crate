@@ -25,15 +25,12 @@ import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import org.apache.lucene.index.IndexableField;
 import org.jetbrains.annotations.NotNull;
 
-import io.crate.execution.dml.Indexer.ColumnConstraint;
 import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
@@ -121,11 +118,7 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
     }
 
     @Override
-    public void indexValue(@NotNull Object value,
-                           Consumer<? super IndexableField> addField,
-                           TranslogWriter translogWriter,
-                           Synthetics synthetics,
-                           Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
+    public void indexValue(@NotNull Object value, IndexDocumentBuilder docBuilder) throws IOException {
         if (type == null) {
             // At the second phase of indexing type is not null in almost all cases
             // except the case with array of nulls
@@ -136,7 +129,7 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
             if (handleEmptyArray(type, value)) {
                 type = null; // guess type again with next value
                 Collection<?> values = (Collection<?>) value;
-                translogWriter.writeNullArray(values.size());
+                docBuilder.translogWriter().writeNullArray(values.size());
                 return;
             }
             throw new IllegalArgumentException(
@@ -166,13 +159,7 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
             indexer = (ValueIndexer<Object>) storageSupport.valueIndexer(refIdent.tableIdent(), newColumn, getRef);
         }
         value = type.sanitizeValue(value);
-        indexer.indexValue(
-            value,
-            addField,
-            translogWriter,
-            synthetics,
-            toValidate
-        );
+        indexer.indexValue(value, docBuilder);
     }
 
     @Override

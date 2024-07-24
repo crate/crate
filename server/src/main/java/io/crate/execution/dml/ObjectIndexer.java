@@ -31,12 +31,10 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import org.apache.lucene.index.IndexableField;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
-import io.crate.execution.dml.Indexer.ColumnConstraint;
 import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
@@ -94,41 +92,29 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
     }
 
     @Override
-    public void indexValue(@NotNull Map<String, Object> value,
-                           Consumer<? super IndexableField> addField,
-                           TranslogWriter translogWriter,
-                           Synthetics synthetics,
-                           Map<ColumnIdent, Indexer.ColumnConstraint> checks) throws IOException {
+    public void indexValue(@NotNull Map<String, Object> value, IndexDocumentBuilder docBuilder) throws IOException {
+        TranslogWriter translogWriter = docBuilder.translogWriter();
         translogWriter.startObject();
         for (var entry : children.entrySet()) {
             String innerName = entry.getKey();
             Child child = entry.getValue();
             Object innerValue = null;
-            if (value == null || value.containsKey(innerName) == false) {
-                Input<Object> synthetic = synthetics.get(child.ident());
-                if (synthetic != null) {
-                    innerValue = synthetic.value();
-                }
+            if (value.containsKey(innerName) == false) {
+                innerValue = docBuilder.getSyntheticValue(child.ident());
             } else {
                 innerValue = value.get(innerName);
             }
-            ColumnConstraint check = checks.get(child.ident());
-            if (check != null) {
-                check.verify(innerValue);
-            }
+            docBuilder.checkColumnConstraint(child.ident(), innerValue);
             if (innerValue == null) {
                 continue;
             }
             var valueIndexer = child.indexer;
             // valueIndexer is null for partitioned columns
             if (valueIndexer != null) {
-                translogWriter.writeFieldName(child.reference.storageIdentLeafName());
+                docBuilder.translogWriter().writeFieldName(child.reference.storageIdentLeafName());
                 valueIndexer.indexValue(
                     child.reference.valueType().sanitizeValue(innerValue),
-                    addField,
-                    translogWriter,
-                    synthetics,
-                    checks
+                    docBuilder
                 );
             }
         }

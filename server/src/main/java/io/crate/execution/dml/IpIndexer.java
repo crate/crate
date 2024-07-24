@@ -23,19 +23,14 @@ package io.crate.execution.dml;
 
 import java.io.IOException;
 import java.net.InetAddress;
-import java.util.Map;
-import java.util.function.Consumer;
 
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.InetAddressPoint;
 import org.apache.lucene.document.SortedSetDocValuesField;
-import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.network.InetAddresses;
 import org.jetbrains.annotations.NotNull;
 
-import io.crate.execution.dml.Indexer.ColumnConstraint;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
@@ -51,24 +46,20 @@ public class IpIndexer implements ValueIndexer<String> {
     }
 
     @Override
-    public void indexValue(@NotNull String value,
-                           Consumer<? super IndexableField> addField,
-                           TranslogWriter translogWriter,
-                           Synthetics synthetics,
-                           Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
+    public void indexValue(@NotNull String value, IndexDocumentBuilder docBuilder) throws IOException {
         InetAddress address = InetAddresses.forString(value);
         if (ref.indexType() != IndexType.NONE) {
-            addField.accept(new InetAddressPoint(name, address));
+            docBuilder.addField(new InetAddressPoint(name, address));
         }
         if (ref.hasDocValues()) {
-            addField.accept(new SortedSetDocValuesField(name, new BytesRef(InetAddressPoint.encode(address))));
+            docBuilder.addField(new SortedSetDocValuesField(name, new BytesRef(InetAddressPoint.encode(address))));
         } else {
-            addField.accept(new Field(
+            docBuilder.addField(new Field(
                 DocSysColumns.FieldNames.NAME,
                 name,
                 DocSysColumns.FieldNames.FIELD_TYPE));
         }
-        translogWriter.writeValue(value);
+        docBuilder.translogWriter().writeValue(value);
     }
 
     @Override
