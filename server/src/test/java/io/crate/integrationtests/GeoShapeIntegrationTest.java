@@ -238,4 +238,17 @@ public class GeoShapeIntegrationTest extends IntegTestCase {
                 "-0.129089 51.536726))')");
         assertThat(response).hasRowCount(0);
     }
+
+    @Test
+    public void test_geo_shape_can_be_used_as_generated_column() throws Exception {
+        execute("create table tbl (o object, geo as o::geo_shape)");
+        execute(
+            "insert into tbl (o) values (?)",
+            new Object[] { Map.of("coordinates", List.of(10, 20), "type", "point")}
+        );
+        execute("refresh table tbl");
+        assertThat(execute("select geo from tbl")).hasRows(
+            "{coordinates=[10, 20], type=point}"
+        );
+    }
 }

@@ -48,6 +48,7 @@ import io.crate.execution.dml.Indexer.ColumnConstraint;
 import io.crate.geo.GeoJSONUtils;
 import io.crate.geo.LatLonShapeUtils;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.GeoReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
@@ -71,6 +72,9 @@ public class GeoShapeIndexer implements ValueIndexer<Map<String, Object>> {
     }
 
     public GeoShapeIndexer(Reference ref) {
+        if (ref instanceof GeneratedReference generatedRef) {
+            ref = generatedRef.reference();
+        }
         assert ref instanceof GeoReference : "GeoShapeIndexer requires GeoReference";
         GeoReference geoReference = (GeoReference) ref;
         this.name = ref.storageIdent();
