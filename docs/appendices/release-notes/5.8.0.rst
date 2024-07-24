@@ -82,7 +82,8 @@ SQL Statements
   :ref:`number_of_routing_shards <sql-create-table-number-of-routing-shards>` is
   now set during :ref:`table creation <sql-create-table>`, which allows to
   :ref:`increase the number of shards <alter-shard-number-increase>` for a
-  table. For more details see also :ref`version_5.8.0_breaking_changes`.
+  table.
+  For more details see also :ref:`Breaking Changes <version_5.8.0_breaking_changes>`.
 
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
