@@ -26,6 +26,7 @@ import static io.crate.types.GeoShapeType.Names.TREE_BKD;
 import static io.crate.types.GeoShapeType.Names.TREE_GEOHASH;
 import static io.crate.types.GeoShapeType.Names.TREE_LEGACY_QUADTREE;
 import static io.crate.types.GeoShapeType.Names.TREE_QUADTREE;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
@@ -1260,6 +1261,26 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
             assertTranslogParses(doc, table);
         }
+    }
+
+    @Test
+    public void test_can_index_generated_geo_shape() throws Exception {
+        var sqlExecutor = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (o object(ignored), geo generated always as o::geo_shape)");
+
+        DocTableInfo table = sqlExecutor.resolveTableInfo("tbl");
+        Indexer indexer = getIndexer(sqlExecutor, "tbl", "o");
+
+        Map<String, Object> obj = LinkedHashMap.newLinkedHashMap(2);
+        obj.put("coordinates", List.of(50, 50));
+        obj.put("type", "Point");
+        ParsedDocument doc = indexer.index(item(obj));
+
+        assertThat(doc.source().utf8ToString())
+            .isEqualToIgnoringWhitespace("""
+                {"1":{"_u_coordinates":[50,50],"_u_type":"Point"},"2":{"coordinates":[50,50],"type":"Point"}}
+                """);
+        assertTranslogParses(doc, table);
     }
 
     public static void assertTranslogParses(ParsedDocument doc, DocTableInfo info) throws Exception {

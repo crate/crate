@@ -48,6 +48,9 @@ See the :ref:`version_5.7.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that caused write operations to fail if the table contained
+  generated columns with a cast to ``geo_shape``.
+
 - Fixed a rare race condition that could lead to queries appearing stuck and
   eventually time out after 60 seconds if they were executed while a shard was
   being created. This could happen right after a table or a partition is
