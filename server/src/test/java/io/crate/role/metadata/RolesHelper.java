@@ -166,11 +166,11 @@ public final class RolesHelper {
     }
 
     public static Role userOf(String name, Set<Privilege> privileges, @Nullable SecureHash password) {
-        return new Role(name, true, privileges, Set.of(), password, null);
+        return new Role(name, true, privileges, Set.of(), password, null, Map.of());
     }
 
     public static Role userOf(String name, Set<Privilege> privileges, Set<GrantedRole> grantedRoles, @Nullable SecureHash password) {
-        return new Role(name, true, privileges, grantedRoles, password, null);
+        return new Role(name, true, privileges, grantedRoles, password, null, Map.of());
     }
 
     public static Role userOf(String name,
@@ -178,23 +178,29 @@ public final class RolesHelper {
                               Set<GrantedRole> grantedRoles,
                               @Nullable SecureHash password,
                               @Nullable JwtProperties jwtProperties) {
-        return new Role(name, true, privileges, grantedRoles, password, jwtProperties);
+        return new Role(name, true, privileges, grantedRoles, password, jwtProperties, Map.of());
+    }
+
+    public static Role userOf(String name,
+                              @Nullable SecureHash password,
+                              Map<String, Object> sessionSettings) {
+        return new Role(name, true, Set.of(), Set.of(), password, null, sessionSettings);
     }
 
     public static Role roleOf(String name) {
-        return new Role(name, false, Set.of(), Set.of(), null, null);
+        return new Role(name, false, Set.of(), Set.of(), null, null, Map.of());
     }
 
     public static Role roleOf(String name, Set<Privilege> privileges, List<String> grantedRoles) {
-        return new Role(name, false, privileges, buildGrantedRoles(grantedRoles), null, null);
+        return new Role(name, false, privileges, buildGrantedRoles(grantedRoles), null, null, Map.of());
     }
 
     public static Role roleOf(String name, Set<Privilege> privileges) {
-        return new Role(name, false, privileges, Set.of(), null, null);
+        return new Role(name, false, privileges, Set.of(), null, null, Map.of());
     }
 
     public static Role roleOf(String name, List<String> grantedRoles) {
-        return new Role(name, false, Set.of(), buildGrantedRoles(grantedRoles), null, null);
+        return new Role(name, false, Set.of(), buildGrantedRoles(grantedRoles), null, null, Map.of());
     }
 
     @NotNull

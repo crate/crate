@@ -90,7 +90,7 @@ public class RolesService implements Roles, ClusterStateListener {
                         privileges = oldPrivileges;
                     }
                 }
-                roles.put(userName, new Role(userName, true, privileges, Set.of(), user.getValue(), null));
+                roles.put(userName, new Role(userName, true, privileges, Set.of(), user.getValue(), null, Map.of()));
             }
         } else if (rolesMetadata != null) {
             roles.putAll(rolesMetadata.roles());

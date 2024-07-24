@@ -138,7 +138,8 @@ alterStmt
     | ALTER CLUSTER DECOMMISSION node=expr                                           #alterClusterDecommissionNode
     | ALTER CLUSTER GC DANGLING ARTIFACTS                                            #alterClusterGCDanglingArtifacts
     | ALTER (USER | ROLE) name=ident
-        SET OPEN_ROUND_BRACKET genericProperties CLOSE_ROUND_BRACKET                 #alterRole
+        SET OPEN_ROUND_BRACKET genericProperties CLOSE_ROUND_BRACKET                 #alterRoleSet
+    | ALTER (USER | ROLE) name=ident RESET (property=ident | ALL)                    #alterRoleReset
     | ALTER PUBLICATION name=ident
         ((ADD | SET | DROP) TABLE qname ASTERISK?  (COMMA qname ASTERISK? )*)        #alterPublication
     | ALTER SUBSCRIPTION name=ident alterSubscriptionMode                            #alterSubscription

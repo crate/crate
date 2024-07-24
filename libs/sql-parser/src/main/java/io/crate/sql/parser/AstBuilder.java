@@ -73,7 +73,8 @@ import io.crate.sql.tree.AliasedRelation;
 import io.crate.sql.tree.AllColumns;
 import io.crate.sql.tree.AlterClusterRerouteRetryFailed;
 import io.crate.sql.tree.AlterPublication;
-import io.crate.sql.tree.AlterRole;
+import io.crate.sql.tree.AlterRoleReset;
+import io.crate.sql.tree.AlterRoleSet;
 import io.crate.sql.tree.AlterSubscription;
 import io.crate.sql.tree.AlterTable;
 import io.crate.sql.tree.AlterTableAddColumn;
@@ -1487,11 +1488,18 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     }
 
     @Override
-    public Node visitAlterRole(SqlBaseParser.AlterRoleContext context) {
-        return new AlterRole<>(
+    public Node visitAlterRoleSet(SqlBaseParser.AlterRoleSetContext context) {
+        return new AlterRoleSet<>(
             getIdentText(context.name),
             extractGenericProperties(context.genericProperties())
         );
+    }
+
+    @Override
+    public Node visitAlterRoleReset(SqlBaseParser.AlterRoleResetContext context) {
+        return new AlterRoleReset(
+            getIdentText(context.name),
+            context.ALL() == null ? getIdentText(context.property) : null);
     }
 
     @Override

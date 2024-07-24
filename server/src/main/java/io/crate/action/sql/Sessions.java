@@ -21,6 +21,7 @@
 
 package io.crate.action.sql;
 
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -45,6 +46,8 @@ import io.crate.execution.jobs.transport.CancelRequest;
 import io.crate.execution.jobs.transport.TransportCancelAction;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
+import io.crate.metadata.settings.session.SessionSetting;
+import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Planner;
 import io.crate.planner.optimizer.LoadedRules;
@@ -82,6 +85,7 @@ public class Sessions {
     private final Provider<DependencyCarrier> executorProvider;
     private final JobsLogs jobsLogs;
     private final ClusterService clusterService;
+    private final SessionSettingRegistry sessionSettingRegistry;
     private final boolean isReadOnly;
     private final AtomicInteger nextSessionId = new AtomicInteger();
     private final ConcurrentMap<Integer, Session> sessions = new ConcurrentHashMap<>();
@@ -97,7 +101,8 @@ public class Sessions {
                     Provider<DependencyCarrier> executorProvider,
                     JobsLogs jobsLogs,
                     Settings settings,
-                    ClusterService clusterService) {
+                    ClusterService clusterService,
+                    SessionSettingRegistry sessionSettingRegistry) {
         this.nodeCtx = nodeCtx;
         this.analyzer = analyzer;
         this.planner = planner;
@@ -114,6 +119,7 @@ public class Sessions {
         clusterSettings.addSettingsUpdateConsumer(MEMORY_LIMIT, newLimit -> {
             this.memoryLimit = newLimit;
         });
+        this.sessionSettingRegistry = sessionSettingRegistry;
     }
 
     private Session newSession(CoordinatorSessionSettings sessionSettings) {
@@ -153,6 +159,13 @@ public class Sessions {
         }
         sessionSettings.statementTimeout(defaultStatementTimeout);
         sessionSettings.memoryLimit(memoryLimit);
+
+        for (Map.Entry<String, Object> entry : authenticatedUser.sessionSettings().entrySet()) {
+            SessionSetting<?> setting = sessionSettingRegistry.settings().get(entry.getKey());
+            assert setting != null : "setting would be null only if it's been removed from the registry";
+            setting.apply(sessionSettings, entry.getValue());
+        }
+
         return newSession(sessionSettings);
     }
 

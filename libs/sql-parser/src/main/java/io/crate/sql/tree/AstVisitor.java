@@ -468,7 +468,11 @@ public abstract class AstVisitor<R, C> {
         return visitStatement(node, context);
     }
 
-    public R visitAlterRole(AlterRole<?> node, C context) {
+    public R visitAlterRoleSet(AlterRoleSet<?> node, C context) {
+        return visitStatement(node, context);
+    }
+
+    public R visitAlterRoleReset(AlterRoleReset node, C context) {
         return visitStatement(node, context);
     }
 

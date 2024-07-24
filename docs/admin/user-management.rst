@@ -214,6 +214,7 @@ statement returns an error::
     cr> DROP USER "Custom User";
     DROP OK, 1 row affected (... sec)
 
+.. _administration_user_management_alter_user:
 
 ``ALTER USER``
 ==============
@@ -233,6 +234,30 @@ The password can be reset (cleared) if specified as ``NULL``::
 
     The built-in superuser ``crate`` has no password and it is not possible to
     set a new password for this user.
+
+To add or alter :ref:`session settings <conf-session>` use the following SQL
+statement::
+
+    cr> ALTER USER user_b SET (search_path = 'myschema', statement_timeout = '10m');
+    ALTER OK, 1 row affected (... sec)
+
+To reset a :ref:`session setting <conf-session>` to its default value use the
+following SQL statement::
+
+    cr> ALTER USER user_b RESET statement_timeout;
+    ALTER OK, 1 row affected (... sec)
+
+.. hide:
+
+   cr> ALTER USER user_a SET (search_path = 'new_schema', statement_timeout = '1h');
+    ALTER OK, 1 row affected (... sec)
+
+To reset all modified :ref:`session setting <conf-session>` for a user to their
+default values, use the following SQL statement::
+
+    cr> ALTER USER user_a RESET ALL;
+    ALTER OK, 1 row affected (... sec)
+
 
 ``DROP USER``
 =============
@@ -280,14 +305,14 @@ CrateDB clusters is also part of that list.
 
 To list all existing users query the table::
 
-    cr> SELECT name, granted_roles, password, superuser FROM sys.users order by name;
-    +--------+----------------------------------------------------------------------------------+----------+-----------+
-    | name   | granted_roles                                                                    | password | superuser |
-    +--------+----------------------------------------------------------------------------------+----------+-----------+
-    | crate  | []                                                                               | NULL     | TRUE      |
-    | user_a | [{"grantor": "crate", "role": "role_a"}, {"grantor": "crate", "role": "role_b"}] | NULL     | FALSE     |
-    | user_b | []                                                                               | ******** | FALSE     |
-    +--------+----------------------------------------------------------------------------------+----------+-----------+
+    cr> SELECT name, granted_roles, password, session_settings, superuser FROM sys.users order by name;
+    +--------+----------------------------------------------------------------------------------+----------+-----------------------------+-----------+
+    | name   | granted_roles                                                                    | password | session_settings            | superuser |
+    +--------+----------------------------------------------------------------------------------+----------+-----------------------------+-----------+
+    | crate  | []                                                                               | NULL     | {}                          | TRUE      |
+    | user_a | [{"grantor": "crate", "role": "role_a"}, {"grantor": "crate", "role": "role_b"}] | NULL     | {}                          | FALSE     |
+    | user_b | []                                                                               | ******** | {"search_path": "myschema"} | FALSE     |
+    +--------+----------------------------------------------------------------------------------+----------+-----------------------------+-----------+
     SELECT 3 rows in set (... sec)
 
 

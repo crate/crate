@@ -225,7 +225,6 @@ public class Session implements AutoCloseable {
         if (!analyzedStatement.isWriteOperation()) {
             resultReceiver = new RetryOnFailureResultReceiver<>(
                 executor.clusterService(),
-                clusterState,
                 // not using planner.currentClusterState().metadata()::hasIndex to make sure the *current*
                 // clusterState at the time of the index check is used
                 indexName -> clusterState.metadata().hasIndex(indexName),
@@ -733,7 +732,6 @@ public class Session implements AutoCloseable {
         if (!analyzedStmt.isWriteOperation()) {
             resultReceiver = new RetryOnFailureResultReceiver<>(
                 executor.clusterService(),
-                clusterState,
                 indexName -> executor.clusterService().state().metadata().hasIndex(indexName),
                 resultReceiver,
                 jobId,
