@@ -22,16 +22,13 @@
 package io.crate.execution.dml;
 
 import java.io.IOException;
-import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import org.apache.lucene.index.IndexableField;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
-import io.crate.execution.dml.Indexer.ColumnConstraint;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 
@@ -81,13 +78,7 @@ public interface ValueIndexer<T> {
     /**
      * Writes a value into an indexable document
      */
-    void indexValue(
-        @NotNull T value,
-        Consumer<? super IndexableField> addField,
-        TranslogWriter translogWriter,
-        Synthetics synthetics,
-        Map<ColumnIdent, ColumnConstraint> toValidate
-    ) throws IOException;
+    void indexValue(@NotNull T value, IndexDocumentBuilder docBuilder) throws IOException;
 
     String storageIdentLeafName();
 

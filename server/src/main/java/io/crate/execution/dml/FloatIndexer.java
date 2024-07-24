@@ -22,19 +22,14 @@
 package io.crate.execution.dml;
 
 import java.io.IOException;
-import java.util.Map;
-import java.util.function.Consumer;
 
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FloatField;
 import org.apache.lucene.document.FloatPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
-import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.NumericUtils;
 import org.jetbrains.annotations.NotNull;
 
-import io.crate.execution.dml.Indexer.ColumnConstraint;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
@@ -50,29 +45,25 @@ public class FloatIndexer implements ValueIndexer<Float> {
     }
 
     @Override
-    public void indexValue(@NotNull Float value,
-                           Consumer<? super IndexableField> addField,
-                           TranslogWriter translogWriter,
-                           Synthetics synthetics,
-                           Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
+    public void indexValue(@NotNull Float value, IndexDocumentBuilder docBuilder) throws IOException {
         if (ref.hasDocValues() && ref.indexType() != IndexType.NONE) {
-            addField.accept(new FloatField(name, value, Field.Store.NO));
+            docBuilder.addField(new FloatField(name, value, Field.Store.NO));
         } else {
             if (ref.indexType() != IndexType.NONE) {
-                addField.accept(new FloatPoint(name, value));
+                docBuilder.addField(new FloatPoint(name, value));
             }
             if (ref.hasDocValues()) {
-                addField.accept(
+                docBuilder.addField(
                         new SortedNumericDocValuesField(name, NumericUtils.floatToSortableInt(value))
                 );
             } else {
-                addField.accept(new Field(
+                docBuilder.addField(new Field(
                         DocSysColumns.FieldNames.NAME,
                         name,
                         DocSysColumns.FieldNames.FIELD_TYPE));
             }
         }
-        translogWriter.writeValue(value);
+        docBuilder.translogWriter().writeValue(value);
     }
 
     @Override

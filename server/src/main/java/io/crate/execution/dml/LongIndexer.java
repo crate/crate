@@ -22,17 +22,13 @@
 package io.crate.execution.dml;
 
 import java.io.IOException;
-import java.util.Map;
-import java.util.function.Consumer;
 
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.LongField;
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
-import org.apache.lucene.index.IndexableField;
 import org.jetbrains.annotations.NotNull;
 
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
@@ -48,28 +44,24 @@ public class LongIndexer implements ValueIndexer<Long> {
     }
 
     @Override
-    public void indexValue(@NotNull Long value,
-                           Consumer<? super IndexableField> addField,
-                           TranslogWriter translogWriter,
-                           Synthetics synthetics,
-                           Map<ColumnIdent, Indexer.ColumnConstraint> toValidate) throws IOException {
+    public void indexValue(@NotNull Long value, IndexDocumentBuilder docBuilder) throws IOException {
         long longValue = value;
         if (ref.hasDocValues() && ref.indexType() != IndexType.NONE) {
-            addField.accept(new LongField(name, longValue, Field.Store.NO));
+            docBuilder.addField(new LongField(name, longValue, Field.Store.NO));
         } else {
             if (ref.indexType() != IndexType.NONE) {
-                addField.accept(new LongPoint(name, longValue));
+                docBuilder.addField(new LongPoint(name, longValue));
             }
             if (ref.hasDocValues()) {
-                addField.accept(new SortedNumericDocValuesField(name, longValue));
+                docBuilder.addField(new SortedNumericDocValuesField(name, longValue));
             } else {
-                addField.accept(new Field(
+                docBuilder.addField(new Field(
                         DocSysColumns.FieldNames.NAME,
                         name,
                         DocSysColumns.FieldNames.FIELD_TYPE));
             }
         }
-        translogWriter.writeValue(longValue);
+        docBuilder.translogWriter().writeValue(longValue);
     }
 
     @Override

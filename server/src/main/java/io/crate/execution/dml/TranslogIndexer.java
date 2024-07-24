@@ -28,19 +28,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
-import org.apache.lucene.document.NumericDocValuesField;
-import org.apache.lucene.document.StoredField;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.index.mapper.ParsedDocument;
-import org.elasticsearch.index.mapper.SequenceIDFields;
-import org.elasticsearch.index.mapper.Uid;
 
 import io.crate.expression.reference.doc.lucene.SourceParser;
-import io.crate.metadata.doc.DocSysColumns;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
@@ -50,7 +43,8 @@ import io.crate.types.DataType;
  */
 public class TranslogIndexer {
 
-    private record ColumnIndexer<T>(DataType<T> dataType, ValueIndexer<Object> valueIndexer) {}
+    private record ColumnIndexer<T>(DataType<T> dataType, ValueIndexer<Object> valueIndexer) {
+    }
 
     private final Map<String, ColumnIndexer<?>> indexers = new HashMap<>();
     private final Map<String, List<String>> tableIndexSources = new HashMap<>();
@@ -82,48 +76,22 @@ public class TranslogIndexer {
 
     /**
      * Convert a transaction log entry to a ParsedDocument to be indexed
-     * @param id        the document ID
-     * @param source    the transaction log entry bytes
+     *
+     * @param id     the document ID
+     * @param source the transaction log entry bytes
      */
     public ParsedDocument index(String id, BytesReference source) {
-
-        Document doc = new Document();
-
         try {
-
-            populateLuceneFields(source, doc);
-
-            NumericDocValuesField version = new NumericDocValuesField(DocSysColumns.Names.VERSION, -1L);
-            doc.add(version);
-
-            doc.add(new StoredField("_source", source.toBytesRef()));
-
-            BytesRef idBytes = Uid.encodeId(id);
-            doc.add(new Field(DocSysColumns.Names.ID, idBytes, DocSysColumns.ID.FIELD_TYPE));
-
-            SequenceIDFields seqID = SequenceIDFields.emptySeqID();
-            // Actual values are set via ParsedDocument.updateSeqID
-            doc.add(seqID.seqNo);
-            doc.add(seqID.seqNoDocValue);
-            doc.add(seqID.primaryTerm);
-
-            return new ParsedDocument(
-                version,
-                seqID,
-                id,
-                doc,
-                source
-            );
-
+            return populateLuceneFields(source).build(id);
         } catch (IOException | UncheckedIOException e) {
             throw new MapperParsingException("Error parsing translog source", e);
         }
 
     }
 
-    private void populateLuceneFields(BytesReference source, Document doc) throws IOException {
+    private IndexDocumentBuilder populateLuceneFields(BytesReference source) throws IOException {
         Map<String, Object> docMap = sourceParser.parse(source, ignoreUnknownColumns == false);
-
+        IndexDocumentBuilder docBuilder = new IndexDocumentBuilder(new NoOpTranslogWriter(source), _ -> null, Map.of());
         for (var entry : docMap.entrySet()) {
             var column = entry.getKey();
             var indexer = indexers.get(column);
@@ -136,15 +104,17 @@ public class TranslogIndexer {
 
             Object castValue = valueForInsert(indexer.dataType, entry.getValue());
             if (castValue != null) {
-                indexer.valueIndexer.indexValue(castValue, doc::add, NO_OP_WRITER, _ -> null, Map.of());
+                indexer.valueIndexer.indexValue(castValue, docBuilder);
                 if (tableIndexSources.containsKey(column)) {
-                    addIndexField(doc, tableIndexSources.get(column), castValue);
+                    addIndexField(docBuilder, tableIndexSources.get(column), castValue);
                 }
             }
         }
+        return docBuilder;
     }
 
-    private static final TranslogWriter NO_OP_WRITER = new TranslogWriter() {
+    private record NoOpTranslogWriter(BytesReference source) implements TranslogWriter {
+
         @Override
         public void startArray() {
 
@@ -182,9 +152,11 @@ public class TranslogIndexer {
 
         @Override
         public BytesReference bytes() {
-            throw new UnsupportedOperationException();
+            return source;
         }
-    };
+    }
+
+    ;
 
     private static boolean isEmpty(Object value) {
         switch (value) {
@@ -214,7 +186,7 @@ public class TranslogIndexer {
         return valueType.valueForInsert(valueType.sanitizeValue(value));
     }
 
-    private static void addIndexField(Document doc, List<String> targetFields, Object value) {
+    private static void addIndexField(IndexDocumentBuilder docBuilder, List<String> targetFields, Object value) {
         if (value == null) {
             return;
         }
@@ -223,15 +195,15 @@ public class TranslogIndexer {
                 if (val == null) {
                     continue;
                 }
-                targetFields.forEach(field -> addIndexField(doc, field, val));
+                targetFields.forEach(field -> addIndexField(docBuilder, field, val));
             }
         } else {
-            targetFields.forEach(field -> addIndexField(doc, field, value));
+            targetFields.forEach(field -> addIndexField(docBuilder, field, value));
         }
     }
 
-    private static void addIndexField(Document doc, String field, Object value) {
-        doc.add(new Field(field, value.toString(), FulltextIndexer.FIELD_TYPE));
+    private static void addIndexField(IndexDocumentBuilder docBuilder, String field, Object value) {
+        docBuilder.addField(new Field(field, value.toString(), FulltextIndexer.FIELD_TYPE));
     }
 
 }

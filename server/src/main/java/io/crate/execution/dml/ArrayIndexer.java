@@ -23,11 +23,9 @@ package io.crate.execution.dml;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import org.apache.lucene.index.IndexableField;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -43,26 +41,16 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
     }
 
     @Override
-    public void indexValue(@NotNull List<T> values,
-                           Consumer<? super IndexableField> addField,
-                           TranslogWriter translogWriter,
-                           Synthetics synthetics,
-                           Map<ColumnIdent, Indexer.ColumnConstraint> toValidate) throws IOException {
-        translogWriter.startArray();
+    public void indexValue(@NotNull List<T> values, IndexDocumentBuilder docBuilder) throws IOException {
+        docBuilder.translogWriter().startArray();
         for (T value : values) {
             if (value == null) {
-                translogWriter.writeNull();
+                docBuilder.translogWriter().writeNull();
             } else {
-                innerIndexer.indexValue(
-                    value,
-                    addField,
-                    translogWriter,
-                    synthetics,
-                    toValidate
-                );
+                innerIndexer.indexValue(value, docBuilder);
             }
         }
-        translogWriter.endArray();
+        docBuilder.translogWriter().endArray();
     }
 
     @Override

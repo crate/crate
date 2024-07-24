@@ -22,18 +22,13 @@
 package io.crate.execution.dml;
 
 import java.io.IOException;
-import java.util.Map;
-import java.util.function.Consumer;
 
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.index.IndexOptions;
-import org.apache.lucene.index.IndexableField;
 import org.jetbrains.annotations.NotNull;
 
-import io.crate.execution.dml.Indexer.ColumnConstraint;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
@@ -58,23 +53,19 @@ public class BooleanIndexer implements ValueIndexer<Boolean> {
     }
 
     @Override
-    public void indexValue(@NotNull Boolean value,
-                           Consumer<? super IndexableField> addField,
-                           TranslogWriter translogWriter,
-                           Synthetics synthetics,
-                           Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
+    public void indexValue(@NotNull Boolean value, IndexDocumentBuilder docBuilder) throws IOException {
         if (ref.indexType() != IndexType.NONE) {
-            addField.accept(new Field(name, value ? "T" : "F", FIELD_TYPE));
+            docBuilder.addField(new Field(name, value ? "T" : "F", FIELD_TYPE));
         }
         if (ref.hasDocValues()) {
-            addField.accept(new SortedNumericDocValuesField(name, value ? 1 : 0));
+            docBuilder.addField(new SortedNumericDocValuesField(name, value ? 1 : 0));
         } else {
-            addField.accept(new Field(
+            docBuilder.addField(new Field(
                 DocSysColumns.FieldNames.NAME,
                 name,
                 DocSysColumns.FieldNames.FIELD_TYPE));
         }
-        translogWriter.writeValue(value);
+        docBuilder.translogWriter().writeValue(value);
     }
 
     @Override
