@@ -47,13 +47,7 @@ public class TypeSignatureParserTest extends ESTestCase {
     @Test
     public void testParsingOfPrimitiveDataTypes() {
         for (var type : DataTypes.PRIMITIVE_TYPES) {
-            if (type.id() == DataTypes.CHARACTER.id()) {
-                // Parametrized types with fixed length are registered with default length.
-                // bit and float_vector and not primitives, handle only char.
-                assertThat(TypeSignature.parse("character(1)")).isEqualTo(type.getTypeSignature());
-            } else {
-                assertThat(TypeSignature.parse(type.getName())).isEqualTo(type.getTypeSignature());
-            }
+            assertThat(TypeSignature.parse(type.getName())).isEqualTo(type.getTypeSignature());
         }
     }
 
