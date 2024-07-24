@@ -34,9 +34,6 @@ import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.XContentFactory;
 import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.SequenceIDFields;
@@ -92,10 +89,9 @@ public class TranslogIndexer {
 
         Document doc = new Document();
 
-        var stream = new BytesStreamOutput();
-        try (XContentBuilder xContentBuilder = XContentFactory.json(stream)) {
+        try {
 
-            populateLuceneFields(source, doc, xContentBuilder);
+            populateLuceneFields(source, doc);
 
             NumericDocValuesField version = new NumericDocValuesField(DocSysColumns.Names.VERSION, -1L);
             doc.add(version);
@@ -125,7 +121,7 @@ public class TranslogIndexer {
 
     }
 
-    private void populateLuceneFields(BytesReference source, Document doc, XContentBuilder xcontent) throws IOException {
+    private void populateLuceneFields(BytesReference source, Document doc) throws IOException {
         Map<String, Object> docMap = sourceParser.parse(source, ignoreUnknownColumns == false);
 
         for (var entry : docMap.entrySet()) {
@@ -140,13 +136,55 @@ public class TranslogIndexer {
 
             Object castValue = valueForInsert(indexer.dataType, entry.getValue());
             if (castValue != null) {
-                indexer.valueIndexer.indexValue(castValue, xcontent, doc::add, _ -> null, Map.of());
+                indexer.valueIndexer.indexValue(castValue, doc::add, NO_OP_WRITER, _ -> null, Map.of());
                 if (tableIndexSources.containsKey(column)) {
                     addIndexField(doc, tableIndexSources.get(column), castValue);
                 }
             }
         }
     }
+
+    private static final TranslogWriter NO_OP_WRITER = new TranslogWriter() {
+        @Override
+        public void startArray() {
+
+        }
+
+        @Override
+        public void endArray() {
+
+        }
+
+        @Override
+        public void startObject() {
+
+        }
+
+        @Override
+        public void endObject() {
+
+        }
+
+        @Override
+        public void writeNull() {
+
+        }
+
+        @Override
+        public void writeFieldName(String fieldName) {
+
+        }
+
+        @Override
+        public void writeValue(Object value) {
+
+        }
+
+        @Override
+        public BytesReference bytes() {
+            throw new UnsupportedOperationException();
+        }
+    };
 
     private static boolean isEmpty(Object value) {
         switch (value) {

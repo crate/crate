@@ -31,7 +31,7 @@ import org.apache.lucene.document.FloatPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.NumericUtils;
-import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.jetbrains.annotations.NotNull;
 
 import io.crate.execution.dml.Indexer.ColumnConstraint;
 import io.crate.metadata.ColumnIdent;
@@ -50,22 +50,20 @@ public class FloatIndexer implements ValueIndexer<Float> {
     }
 
     @Override
-    public void indexValue(Float value,
-                           XContentBuilder xcontentBuilder,
+    public void indexValue(@NotNull Float value,
                            Consumer<? super IndexableField> addField,
+                           TranslogWriter translogWriter,
                            Synthetics synthetics,
                            Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
-        xcontentBuilder.value(value);
-        float floatValue = value.floatValue();
         if (ref.hasDocValues() && ref.indexType() != IndexType.NONE) {
-            addField.accept(new FloatField(name, floatValue, Field.Store.NO));
+            addField.accept(new FloatField(name, value, Field.Store.NO));
         } else {
             if (ref.indexType() != IndexType.NONE) {
-                addField.accept(new FloatPoint(name, floatValue));
+                addField.accept(new FloatPoint(name, value));
             }
             if (ref.hasDocValues()) {
                 addField.accept(
-                        new SortedNumericDocValuesField(name, NumericUtils.floatToSortableInt(floatValue))
+                        new SortedNumericDocValuesField(name, NumericUtils.floatToSortableInt(value))
                 );
             } else {
                 addField.accept(new Field(
@@ -74,5 +72,11 @@ public class FloatIndexer implements ValueIndexer<Float> {
                         DocSysColumns.FieldNames.FIELD_TYPE));
             }
         }
+        translogWriter.writeValue(value);
+    }
+
+    @Override
+    public String storageIdentLeafName() {
+        return ref.storageIdentLeafName();
     }
 }

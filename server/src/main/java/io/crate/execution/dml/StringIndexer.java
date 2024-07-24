@@ -31,7 +31,7 @@ import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.jetbrains.annotations.NotNull;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
@@ -57,12 +57,11 @@ public class StringIndexer implements ValueIndexer<String> {
     }
 
     @Override
-    public void indexValue(String value,
-                           XContentBuilder xcontentBuilder,
+    public void indexValue(@NotNull String value,
                            Consumer<? super IndexableField> addField,
+                           TranslogWriter translogWriter,
                            Synthetics synthetics,
                            Map<ColumnIdent, Indexer.ColumnConstraint> toValidate) throws IOException {
-        xcontentBuilder.value(value);
         String name = ref.storageIdent();
         BytesRef binaryValue = new BytesRef(value);
         if (ref.indexType() != IndexType.NONE) {
@@ -78,5 +77,11 @@ public class StringIndexer implements ValueIndexer<String> {
         if (ref.hasDocValues()) {
             addField.accept(new SortedSetDocValuesField(name, binaryValue));
         }
+        translogWriter.writeValue(value);
+    }
+
+    @Override
+    public String storageIdentLeafName() {
+        return ref.storageIdentLeafName();
     }
 }

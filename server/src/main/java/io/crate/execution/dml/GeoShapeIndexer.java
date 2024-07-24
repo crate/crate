@@ -41,7 +41,7 @@ import org.elasticsearch.common.geo.GeoUtils;
 import org.elasticsearch.common.geo.builders.ShapeBuilder;
 import org.elasticsearch.common.geo.builders.ShapeBuilder.Orientation;
 import org.elasticsearch.common.unit.DistanceUnit;
-import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.jetbrains.annotations.NotNull;
 import org.locationtech.spatial4j.shape.Shape;
 
 import io.crate.execution.dml.Indexer.ColumnConstraint;
@@ -57,11 +57,13 @@ import io.crate.types.GeoShapeType.Names;
 public class GeoShapeIndexer implements ValueIndexer<Map<String, Object>> {
 
     private final IndexableFieldsFactory indexableFieldsFactory;
+    private final Reference ref;
     private final String name;
 
     public static final class Defaults {
 
-        private Defaults() {}
+        private Defaults() {
+        }
 
         public static final String TREE = Names.TREE_GEOHASH;
         public static final int GEOHASH_LEVELS = GeoUtils.geoHashLevelsForPrecision("50m");
@@ -83,20 +85,26 @@ public class GeoShapeIndexer implements ValueIndexer<Map<String, Object>> {
         } else {
             this.indexableFieldsFactory = new PrefixTreeIndexableFieldsFactory(geoReference);
         }
+        this.ref = ref;
     }
 
     @Override
-    public void indexValue(Map<String, Object> value,
-                           XContentBuilder xcontentBuilder,
+    public void indexValue(@NotNull Map<String, Object> value,
                            Consumer<? super IndexableField> addField,
+                           TranslogWriter translogWriter,
                            Synthetics synthetics,
                            Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
-        xcontentBuilder.map(value);
         indexableFieldsFactory.create(value, addField);
         addField.accept(new Field(
             DocSysColumns.FieldNames.NAME,
             name,
             DocSysColumns.FieldNames.FIELD_TYPE));
+        translogWriter.writeValue(value);
+    }
+
+    @Override
+    public String storageIdentLeafName() {
+        return ref.storageIdentLeafName();
     }
 
     private interface IndexableFieldsFactory {
