@@ -24,19 +24,14 @@ package io.crate.execution.dml;
 
 import java.io.IOException;
 import java.util.BitSet;
-import java.util.Map;
-import java.util.function.Consumer;
 
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.index.IndexOptions;
-import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
 import org.jetbrains.annotations.NotNull;
 
-import io.crate.execution.dml.Indexer.ColumnConstraint;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
@@ -63,28 +58,24 @@ public class BitStringIndexer implements ValueIndexer<BitString> {
     }
 
     @Override
-    public void indexValue(@NotNull BitString value,
-                           Consumer<? super IndexableField> addField,
-                           TranslogWriter translogWriter,
-                           Synthetics synthetics,
-                           Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
+    public void indexValue(@NotNull BitString value, IndexDocumentBuilder docBuilder) throws IOException {
         BitSet bitSet = value.bitSet();
         byte[] bytes = bitSet.toByteArray();
 
         BytesRef binaryValue = new BytesRef(bytes);
         if (ref.indexType() != IndexType.NONE) {
-            addField.accept(new Field(name, binaryValue, FIELD_TYPE));
+            docBuilder.addField(new Field(name, binaryValue, FIELD_TYPE));
         }
 
         if (ref.hasDocValues()) {
-            addField.accept(new SortedSetDocValuesField(name, binaryValue));
+            docBuilder.addField(new SortedSetDocValuesField(name, binaryValue));
         } else {
-            addField.accept(new Field(
+            docBuilder.addField(new Field(
                 DocSysColumns.FieldNames.NAME,
                 name,
                 DocSysColumns.FieldNames.FIELD_TYPE));
         }
-        translogWriter.writeValue(bytes);
+        docBuilder.translogWriter().writeValue(bytes);
     }
 
     @Override

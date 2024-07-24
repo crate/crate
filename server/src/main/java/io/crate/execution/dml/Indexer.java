@@ -39,15 +39,8 @@ import java.util.function.Function;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
-import org.apache.lucene.document.NumericDocValuesField;
-import org.apache.lucene.document.StoredField;
-import org.apache.lucene.index.IndexableField;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
-import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.index.mapper.ParsedDocument;
-import org.elasticsearch.index.mapper.SequenceIDFields;
-import org.elasticsearch.index.mapper.Uid;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.SymbolEvaluator;
@@ -293,7 +286,7 @@ public class Indexer {
         }
     }
 
-    interface ColumnConstraint {
+    public interface ColumnConstraint {
 
         void verify(Object providedValue);
     }
@@ -715,13 +708,10 @@ public class Indexer {
      * {@link #collectSchemaUpdates(IndexItem)}) have been added to the cluster
      * state.
      */
-    @SuppressWarnings("unchecked")
     public ParsedDocument index(IndexItem item) throws IOException {
         assert item.insertValues().length <= valueIndexers.size()
             : "Number of values must be less than or equal the number of targetColumns/valueIndexers";
 
-        Document doc = new Document();
-        Consumer<? super IndexableField> addField = doc::add;
         for (var expression : expressions) {
             expression.setNextRow(item);
         }
@@ -730,6 +720,7 @@ public class Indexer {
         }
 
         TranslogWriter translogWriter = new XContentTranslogWriter();
+        IndexDocumentBuilder docBuilder = new IndexDocumentBuilder(translogWriter, synthetics::get, columnConstraints);
         Object[] values = item.insertValues();
 
         for (int i = 0; i < values.length; i++) {
@@ -747,14 +738,9 @@ public class Indexer {
                 continue;
             }
             translogWriter.writeFieldName(valueIndexer.storageIdentLeafName());
-            valueIndexer.indexValue(
-                value,
-                addField,
-                translogWriter,
-                synthetics::get,
-                columnConstraints
-            );
+            valueIndexer.indexValue(value, docBuilder);
         }
+
         for (var entry : synthetics.entrySet()) {
             ColumnIdent column = entry.getKey();
             if (!column.isRoot()) {
@@ -768,13 +754,7 @@ public class Indexer {
             }
             ValueIndexer<Object> indexer = synthetic.indexer();
             translogWriter.writeFieldName(indexer.storageIdentLeafName());
-            indexer.indexValue(
-                value,
-                addField,
-                translogWriter,
-                synthetics::get,
-                columnConstraints
-            );
+            indexer.indexValue(value, docBuilder);
         }
 
         for (var indexColumn : indexColumns) {
@@ -790,11 +770,11 @@ public class Indexer {
                             continue;
                         }
                         Field field = new Field(fqn, val.toString(), FulltextIndexer.FIELD_TYPE);
-                        doc.add(field);
+                        docBuilder.addField(field);
                     }
                 } else {
                     Field field = new Field(fqn, value.toString(), FulltextIndexer.FIELD_TYPE);
-                    doc.add(field);
+                    docBuilder.addField(field);
                 }
             }
         }
@@ -803,29 +783,7 @@ public class Indexer {
             constraint.verify(item.insertValues());
         }
 
-        NumericDocValuesField version = new NumericDocValuesField(DocSysColumns.Names.VERSION, -1L);
-        doc.add(version);
-
-        BytesReference source = translogWriter.bytes();
-        BytesRef sourceRef = source.toBytesRef();
-        doc.add(new StoredField("_source", sourceRef.bytes, sourceRef.offset, sourceRef.length));
-
-        BytesRef idBytes = Uid.encodeId(item.id());
-        doc.add(new Field(DocSysColumns.Names.ID, idBytes, DocSysColumns.ID.FIELD_TYPE));
-
-        SequenceIDFields seqID = SequenceIDFields.emptySeqID();
-        // Actual values are set via ParsedDocument.updateSeqID
-        doc.add(seqID.seqNo);
-        doc.add(seqID.seqNoDocValue);
-        doc.add(seqID.primaryTerm);
-        return new ParsedDocument(
-            version,
-            seqID,
-            item.id(),
-            doc,
-            source
-        );
-
+        return docBuilder.build(item.id());
     }
 
     private static <T> T valueForInsert(DataType<T> valueType, Object value) {

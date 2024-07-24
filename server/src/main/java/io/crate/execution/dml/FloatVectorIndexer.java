@@ -24,7 +24,6 @@ package io.crate.execution.dml;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.util.Map;
 import java.util.function.Consumer;
 
 import org.apache.lucene.document.BinaryDocValuesField;
@@ -37,8 +36,6 @@ import org.apache.lucene.index.VectorEncoding;
 import org.apache.lucene.util.BytesRef;
 import org.jetbrains.annotations.NotNull;
 
-import io.crate.execution.dml.Indexer.ColumnConstraint;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
@@ -70,23 +67,19 @@ public class FloatVectorIndexer implements ValueIndexer<float[]> {
     }
 
     @Override
-    public void indexValue(float @NotNull [] values,
-                           Consumer<? super IndexableField> addField,
-                           TranslogWriter translogWriter,
-                           Synthetics synthetics,
-                           Map<ColumnIdent, ColumnConstraint> toValidate) throws IOException {
+    public void indexValue(float @NotNull [] values, IndexDocumentBuilder docBuilder) throws IOException {
         createFields(
             name,
             fieldType,
             ref.indexType() != IndexType.NONE,
             ref.hasDocValues(),
             values,
-            addField
+            docBuilder::addField
         );
         if (fieldType.stored()) {
             throw new UnsupportedOperationException("Cannot store float_vector as stored field");
         }
-        translogWriter.writeValue(values);
+        docBuilder.translogWriter().writeValue(values);
     }
 
     public static void createFields(String fqn,

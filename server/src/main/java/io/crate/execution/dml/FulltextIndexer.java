@@ -23,16 +23,12 @@
 package io.crate.execution.dml;
 
 import java.io.IOException;
-import java.util.Map;
-import java.util.function.Consumer;
 
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.index.IndexOptions;
-import org.apache.lucene.index.IndexableField;
 import org.jetbrains.annotations.NotNull;
 
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 
@@ -56,17 +52,12 @@ public class FulltextIndexer implements ValueIndexer<String> {
     }
 
     @Override
-    public void indexValue(@NotNull String value,
-                           Consumer<? super IndexableField> addField,
-                           TranslogWriter translogWriter,
-                           Synthetics synthetics,
-                           Map<ColumnIdent, Indexer.ColumnConstraint> toValidate) throws IOException {
+    public void indexValue(@NotNull String value, IndexDocumentBuilder docBuilder) throws IOException {
         String name = ref.storageIdent();
         if (ref.indexType() != IndexType.NONE) {
-            Field field = new Field(name, value, FIELD_TYPE);
-            addField.accept(field);
+            docBuilder.addField(new Field(name, value, FIELD_TYPE));
         }
-        translogWriter.writeValue(value);
+        docBuilder.translogWriter().writeValue(value);
     }
 
     @Override
