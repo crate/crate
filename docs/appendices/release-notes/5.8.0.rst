@@ -15,8 +15,14 @@ Released on 2024-07-17.
     We recommend that you upgrade to the latest 5.7 release before moving to
     5.8.0.
 
-    A rolling upgrade from 5.7.x to 5.8.0 is supported.
     Before upgrading, you should `back up your data`_.
+
+.. WARNING::
+
+    Due to various BWC issues, a rolling upgrade from 5.7.x to 5.8.0 can lead
+    to problems with aggregations, queries on ``sys.nodes`` table and
+    underreplicated shards for tables having setting ``warmer.enabled``.
+    Please do a rolling upgrade from 5.7.x to 5.8.1 or higher instead.
 
 .. WARNING::
 
