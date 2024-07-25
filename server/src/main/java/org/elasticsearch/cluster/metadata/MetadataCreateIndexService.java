@@ -371,6 +371,7 @@ public class MetadataCreateIndexService {
             final Version indexVersionCreated = idxSettings.getAsVersion(IndexMetadata.SETTING_VERSION_CREATED, null);
             final IndexMetadata sourceMetadata = recoverFromIndex == null ? null :
                 currentState.metadata().getIndexSafe(recoverFromIndex);
+            Version minNodeVersion = currentState.nodes().getMinNodeVersion();
             if (sourceMetadata == null || sourceMetadata.getNumberOfShards() == 1) {
                 // in this case we either have no index to recover from or
                 // we have a source index with 1 shard and without an explicit split factor
@@ -378,7 +379,7 @@ public class MetadataCreateIndexService {
                 if (IndexMetadata.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING.exists(idxSettings)) {
                     routingNumShards = IndexMetadata.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING.get(idxSettings);
                 } else {
-                    routingNumShards = calculateNumRoutingShards(numTargetShards, indexVersionCreated);
+                    routingNumShards = calculateNumRoutingShards(numTargetShards, indexVersionCreated, minNodeVersion);
                 }
             } else {
                 assert IndexMetadata.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING.exists(indexSettingsBuilder.build()) == false
@@ -716,9 +717,14 @@ public class MetadataCreateIndexService {
      * Returns a default number of routing shards based on the number of shards of the index. The default number of routing shards will
      * allow any index to be split at least once and at most 10 times by a factor of two. The closer the number or shards gets to 1024
      * the less default split operations are supported
+     *
+     * We don't apply dynamic calculation of the 'number_of_routing_shards' setting in the middle of a rolling upgrade.
+     * This is done to avoid incorrect results or "no such shard" error
+     * when running SELECT queries with WHERE clause on a PRIMARY KEY (GET operator).
+     * Hence, this feature is available only for tables created on a cluster with all nodes being on or after 5.8.0
      */
-    public static int calculateNumRoutingShards(int numShards, Version indexVersionCreated) {
-        if (indexVersionCreated.onOrAfter(Version.V_5_8_0)) {
+    public static int calculateNumRoutingShards(int numShards, Version indexVersionCreated, Version minNodeVersion) {
+        if (indexVersionCreated.onOrAfter(Version.V_5_8_0) && minNodeVersion.onOrAfter(Version.V_5_8_0)) {
             // only select this automatically for indices that are created on or after 5.8, this will prevent this new behaviour
             // until we have a fully upgraded cluster. Additionally, it will make integrating testing easier since mixed clusters
             // will always have the behavior of the min node in the cluster.

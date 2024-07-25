@@ -30,23 +30,23 @@ public class MetadataCreateIndexServiceTest extends ESTestCase {
 
     @Test
     public void testCalculateNumRoutingShards() {
-        assertThat(MetadataCreateIndexService.calculateNumRoutingShards(1, Version.CURRENT)).isEqualTo(1024);
-        assertThat(MetadataCreateIndexService.calculateNumRoutingShards(2, Version.CURRENT)).isEqualTo(1024);
-        assertThat(MetadataCreateIndexService.calculateNumRoutingShards(3, Version.CURRENT)).isEqualTo(768);
-        assertThat(MetadataCreateIndexService.calculateNumRoutingShards(9, Version.CURRENT)).isEqualTo(576);
-        assertThat(MetadataCreateIndexService.calculateNumRoutingShards(512, Version.CURRENT)).isEqualTo(1024);
-        assertThat(MetadataCreateIndexService.calculateNumRoutingShards(1024, Version.CURRENT)).isEqualTo(2048);
-        assertThat(MetadataCreateIndexService.calculateNumRoutingShards(2048, Version.CURRENT)).isEqualTo(4096);
+        assertThat(MetadataCreateIndexService.calculateNumRoutingShards(1, Version.CURRENT, Version.CURRENT)).isEqualTo(1024);
+        assertThat(MetadataCreateIndexService.calculateNumRoutingShards(2, Version.CURRENT, Version.CURRENT)).isEqualTo(1024);
+        assertThat(MetadataCreateIndexService.calculateNumRoutingShards(3, Version.CURRENT, Version.CURRENT)).isEqualTo(768);
+        assertThat(MetadataCreateIndexService.calculateNumRoutingShards(9, Version.CURRENT, Version.CURRENT)).isEqualTo(576);
+        assertThat(MetadataCreateIndexService.calculateNumRoutingShards(512, Version.CURRENT, Version.CURRENT)).isEqualTo(1024);
+        assertThat(MetadataCreateIndexService.calculateNumRoutingShards(1024, Version.CURRENT, Version.CURRENT)).isEqualTo(2048);
+        assertThat(MetadataCreateIndexService.calculateNumRoutingShards(2048, Version.CURRENT, Version.CURRENT)).isEqualTo(4096);
 
         Version latestBeforeChange = VersionUtils.getPreviousVersion(Version.V_5_8_0);
         int numShards = randomIntBetween(1, 1000);
-        assertThat(MetadataCreateIndexService.calculateNumRoutingShards(numShards, latestBeforeChange)).isEqualTo(numShards);
+        assertThat(MetadataCreateIndexService.calculateNumRoutingShards(numShards, latestBeforeChange, Version.CURRENT)).isEqualTo(numShards);
         assertThat(MetadataCreateIndexService.calculateNumRoutingShards(numShards,
-            VersionUtils.randomVersionBetween(random(), VersionUtils.getFirstVersion(), latestBeforeChange))).isEqualTo(numShards);
+            VersionUtils.randomVersionBetween(random(), VersionUtils.getFirstVersion(), latestBeforeChange), Version.CURRENT)).isEqualTo(numShards);
 
         for (int i = 0; i < 1000; i++) {
             int randomNumShards = randomIntBetween(1, 10000);
-            int numRoutingShards = MetadataCreateIndexService.calculateNumRoutingShards(randomNumShards, Version.CURRENT);
+            int numRoutingShards = MetadataCreateIndexService.calculateNumRoutingShards(randomNumShards, Version.CURRENT, Version.CURRENT);
             if (numRoutingShards <= 1024) {
                 assertThat(randomNumShards).isLessThanOrEqualTo(512);
                 assertThat(numRoutingShards).isGreaterThan(512);
@@ -62,5 +62,14 @@ public class MetadataCreateIndexServiceTest extends ESTestCase {
             assertThat(intRatio % 2).isZero();
             assertThat(intRatio).as("ratio is not a power of two").isEqualTo(Integer.highestOneBit(intRatio));
         }
+    }
+
+    @Test
+    public void test_calculation_of_num_routing_shards_is_ignored_during_rolling_upgrades() {
+        // 3 instead of 768
+        assertThat(MetadataCreateIndexService.calculateNumRoutingShards(3,
+            Version.V_5_8_0,
+            VersionUtils.getPreviousVersion(Version.V_5_8_0))
+        ).isEqualTo(3);
     }
 }

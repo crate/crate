@@ -73,6 +73,12 @@ Fixes
 - Fixed a regression introduced in 5.8.0 that lead to error when running an
   aggregations in a mixed cluster.
 
+- Fixed a regression introduced in 5.8.0 that lead to error when running a
+  query with ``WHERE`` clause on a ``PRIMARY KEY`` column during a rolling
+  upgrade. The setting
+  :ref:`number_of_routing_shards <sql-create-table-number-of-routing-shards>`
+  in not automatically set on tables in the middle of a rolling upgrade.
+
 - Fixed an issue that caused ``WHERE`` clause to fail to filter rows when
   the clause contained array scalar functions under ``NOT`` operator. The
   affected scalars include :ref:`scalar-array_min`, :ref:`scalar-array_max`,
