@@ -47,6 +47,11 @@ See the :ref:`version_5.8.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that would add a whitespace character at the beginning of some
+  lines in the files containing the rows which are exported by executing
+  :ref:`COPY TO<sql-copy-to>` using the local filesystem on a whole partitioned
+  table.
+
 - Changed the behavior of :ref:`LIKE and ILIKE <sql_dql_like>` operators to
   throw an error, when the pattern to match ends with the ``ESCAPE`` character.
   Previously, the ``ESCAPE`` character was ignored, and the result was computed
