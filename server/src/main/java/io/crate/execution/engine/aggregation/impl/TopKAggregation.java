@@ -65,9 +65,9 @@ import io.crate.statistics.SketchStreamer;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.DateType;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
-import io.crate.types.IntegerType;
 import io.crate.types.LongType;
 import io.crate.types.StringType;
 import io.crate.types.TypeSignature;
@@ -271,7 +271,6 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
         public List<Map<String, Object>> result() {
             return List.of();
         }
-
     }
 
     record TopKState(ItemsSketch<Object> sketch, int limit) implements State {
@@ -344,7 +343,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
             case LongType.ID -> { return value;}
             case DoubleType.ID -> {return NumericUtils.sortableLongToDouble(value);}
             case FloatType.ID -> {return NumericUtils.sortableIntToFloat((int) value);}
-            default -> throw new IllegalArgumentException("type not supprted");
+            default -> throw new IllegalArgumentException("type not supported");
         }
     }
 
@@ -353,7 +352,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
             case LongType.ID -> { return (long) value;}
             case DoubleType.ID -> {return NumericUtils.doubleToSortableLong((Double) value);}
             case FloatType.ID -> {return NumericUtils.floatToSortableInt((Float) value);}
-            default -> throw new IllegalArgumentException("type not supprted");
+            default -> throw new IllegalArgumentException("type not supported");
         }
     }
 
@@ -363,12 +362,13 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
                 "Limit parameter for topk must be between 0 and 10_000. Got: " + limit);
         }
         DataType<?> dataType = boundSignature.argTypes().getFirst();
-        if (dataType.id() == DataTypes.LONG.id() ||
-            dataType.id() == DataTypes.DOUBLE.id() ||
-            dataType.id() == DataTypes.FLOAT.id()) {
-            return topKLongState(ramAccounting, dataType, limit);
-        } else {
-            return topKState(ramAccounting, limit);
+        switch(dataType.id()) {
+            case LongType.ID, DateType.ID, FloatType.ID -> {
+                return topKLongState(ramAccounting, dataType, limit);
+            }
+            default -> {
+                return topKState(ramAccounting, limit);
+            }
         }
     }
 
