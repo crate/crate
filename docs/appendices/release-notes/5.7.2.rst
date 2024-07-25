@@ -54,7 +54,7 @@ Fixes
   download a blob via HTTPS.
 
 - Fixed an issue leading to slow query processing during the analysis phase,
-  when the ``WHERE``` clause of a query contains columns of a
+  when the ``WHERE`` clause of a query contains columns of a
   :ref:`PRIMARY KEY <constraints-primary-key>` and combines them using complex
   logical expressions, e.g.::
 
@@ -67,7 +67,7 @@ Fixes
   some of its outputs weren't used in the outer-query.
 
 - Fixed an issue leading to a ``ArrayIndexOutOfBoundsException``  instead of a
-  user friendly error message when the ``WHERE``` clause of a query contains
+  user friendly error message when the ``WHERE`` clause of a query contains
   all columns of a :ref:`PRIMARY KEY <constraints-primary-key>`, uses
   parameters for them, and binds less actual values than the required, e.g.::
 
@@ -76,8 +76,8 @@ Fixes
   and less than 3 values are provided.
 
 - Added memory accounting for multi-phase execution to prevent out-of-memory
-  errors caused by sub-queries such as ''SELECT * FROM t1 WHERE id IN
-  (SELECT id FROM t2)'' or lookup-joins with large intermediate results.
+  errors caused by sub-queries such as ``SELECT * FROM t1 WHERE id IN
+  (SELECT id FROM t2)`` or lookup-joins with large intermediate results.
 
 - Fixed an issue that caused ``WHERE`` clause to fail to filter rows when
   the clause contained ``CONCAT``, ``CURRENT_SETTING``,
