@@ -41,6 +41,8 @@ import java.util.Objects;
 import java.util.ServiceLoader;
 import java.util.function.UnaryOperator;
 
+import org.jetbrains.annotations.Nullable;
+
 /**
  * A utility to build XContent (ie json).
  */
@@ -152,8 +154,16 @@ public final class XContentBuilder implements Closeable, Flushable {
      * to call {@link #close()} when the builder is done with.
      */
     public XContentBuilder(XContent xContent, OutputStream bos) throws IOException {
+        this(xContent, bos, null);
+    }
+
+    /**
+     * Constructs a new builder using the provided XContent and an OutputStream. Make sure
+     * to call {@link #close()} when the builder is done with.
+     */
+    public XContentBuilder(XContent xContent, OutputStream bos, @Nullable String rootValueSeparator) throws IOException {
         this.bos = bos;
-        this.generator = xContent.createGenerator(bos);
+        this.generator = xContent.createGenerator(bos, rootValueSeparator);
     }
 
     public XContentType contentType() {
