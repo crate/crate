@@ -29,6 +29,7 @@ import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.SequenceIDFields;
@@ -47,6 +48,7 @@ public class IndexDocumentBuilder {
     private final TranslogWriter translogWriter;
     private final ValueIndexer.Synthetics synthetics;
     private final Map<ColumnIdent, Indexer.ColumnConstraint> constraints;
+    private final Version tableVersionCreated;
 
     /**
      * Builds a new IndexDocumentBuilder
@@ -54,11 +56,13 @@ public class IndexDocumentBuilder {
     public IndexDocumentBuilder(
         TranslogWriter translogWriter,
         ValueIndexer.Synthetics synthetics,
-        Map<ColumnIdent, Indexer.ColumnConstraint> constraints
+        Map<ColumnIdent, Indexer.ColumnConstraint> constraints,
+        Version tableVersionCreated
     ) {
         this.translogWriter = translogWriter;
         this.synthetics = synthetics;
         this.constraints = constraints;
+        this.tableVersionCreated = tableVersionCreated;
     }
 
     /**
@@ -117,4 +121,7 @@ public class IndexDocumentBuilder {
         return new ParsedDocument(version, seqID, id, doc, source);
     }
 
+    public Version getTableVersionCreated() {
+        return tableVersionCreated;
+    }
 }

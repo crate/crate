@@ -24,6 +24,7 @@ package io.crate.lucene;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
@@ -44,14 +45,55 @@ import io.crate.types.ObjectType;
 
 public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
 
-    private QueryTester tester;
+    protected QueryTester tester;
+
+    protected static final List<Integer> ARRAY_NULL;
+    protected static final List<Integer> ARRAY_NULL_NULL;
+    protected static final List<Integer> ARRAY_NULL_NULL_NULL;
+
+    protected static final List<Integer> ARRAY_NULL_1;
+    protected static final List<Integer> ARRAY_NULL_NULL_1;
+
+    protected static final List<Integer> ARRAY_NULL_1_1;
+
+    static {
+        ARRAY_NULL = new ArrayList<>();
+        ARRAY_NULL.add(null);
+
+        ARRAY_NULL_NULL = new ArrayList<>();
+        ARRAY_NULL_NULL.add(null);
+        ARRAY_NULL_NULL.add(null);
+
+        ARRAY_NULL_NULL_NULL = new ArrayList<>();
+        ARRAY_NULL_NULL_NULL.add(null);
+        ARRAY_NULL_NULL_NULL.add(null);
+        ARRAY_NULL_NULL_NULL.add(null);
+
+        ARRAY_NULL_1 = new ArrayList<>();
+        ARRAY_NULL_1.add(null);
+        ARRAY_NULL_1.add(1);
+
+        ARRAY_NULL_NULL_1 = new ArrayList<>();
+        ARRAY_NULL_NULL_1.add(null);
+        ARRAY_NULL_NULL_1.add(null);
+        ARRAY_NULL_NULL_1.add(1);
+
+        ARRAY_NULL_1_1 = new ArrayList<>();
+        ARRAY_NULL_1_1.add(null);
+        ARRAY_NULL_1_1.add(1);
+        ARRAY_NULL_1_1.add(1);
+    }
+
+    protected Version tableVersionCreatedToTest() {
+        return Version.CURRENT;
+    }
 
     @Before
     public void setUpTester() throws Exception {
         QueryTester.Builder builder = new QueryTester.Builder(
             THREAD_POOL,
             clusterService,
-            Version.CURRENT,
+            tableVersionCreatedToTest(),
             "create table t (xs array(integer))"
         );
         tester = builder
@@ -65,7 +107,13 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
                 List.of(10, 10),
                 List.of(10, 20),
                 List.of(10, 10, 20),
-                List.of(10, 20, 30)
+                List.of(10, 20, 30),
+                ARRAY_NULL,
+                ARRAY_NULL_NULL,
+                ARRAY_NULL_NULL_NULL,
+                ARRAY_NULL_1,
+                ARRAY_NULL_NULL_1,
+                ARRAY_NULL_1_1
             )
             .build();
     }
@@ -84,7 +132,13 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
             List.of(10, 10),
             List.of(10, 20),
             List.of(10, 10, 20),
-            List.of(10, 20, 30)
+            List.of(10, 20, 30),
+            ARRAY_NULL,
+            ARRAY_NULL_NULL,
+            ARRAY_NULL_NULL_NULL,
+            ARRAY_NULL_1,
+            ARRAY_NULL_NULL_1,
+            ARRAY_NULL_1_1
         );
     }
 
@@ -98,7 +152,13 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
             List.of(10, 10),
             List.of(10, 20),
             List.of(10, 10, 20),
-            List.of(10, 20, 30)
+            List.of(10, 20, 30),
+            ARRAY_NULL,
+            ARRAY_NULL_NULL,
+            ARRAY_NULL_NULL_NULL,
+            ARRAY_NULL_1,
+            ARRAY_NULL_NULL_1,
+            ARRAY_NULL_1_1
         );
     }
 
@@ -109,7 +169,12 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
             List.of(10, 10),
             List.of(10, 20),
             List.of(10, 10, 20),
-            List.of(10, 20, 30)
+            List.of(10, 20, 30),
+            ARRAY_NULL_NULL,
+            ARRAY_NULL_NULL_NULL,
+            ARRAY_NULL_1,
+            ARRAY_NULL_NULL_1,
+            ARRAY_NULL_1_1
         );
     }
 
@@ -122,7 +187,13 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
             List.of(10, 10),
             List.of(10, 20),
             List.of(10, 10, 20),
-            List.of(10, 20, 30)
+            List.of(10, 20, 30),
+            ARRAY_NULL,
+            ARRAY_NULL_NULL,
+            ARRAY_NULL_NULL_NULL,
+            ARRAY_NULL_1,
+            ARRAY_NULL_NULL_1,
+            ARRAY_NULL_1_1
         );
     }
 
@@ -131,7 +202,10 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
         List<Object> rows = tester.runQuery("xs", "array_length(xs, 1) > 2");
         assertThat(rows).containsExactlyInAnyOrder(
             List.of(10, 10, 20),
-            List.of(10, 20, 30)
+            List.of(10, 20, 30),
+            ARRAY_NULL_NULL_NULL,
+            ARRAY_NULL_NULL_1,
+            ARRAY_NULL_1_1
         );
     }
 
@@ -142,7 +216,12 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
             List.of(10, 10),
             List.of(10, 20),
             List.of(10, 10, 20),
-            List.of(10, 20, 30)
+            List.of(10, 20, 30),
+            ARRAY_NULL_NULL,
+            ARRAY_NULL_NULL_NULL,
+            ARRAY_NULL_1,
+            ARRAY_NULL_NULL_1,
+            ARRAY_NULL_1_1
         );
     }
 
@@ -171,7 +250,8 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
         List<Object> rows = tester.runQuery("xs", "array_length(xs, 1) <= 1");
         assertThat(rows).containsExactlyInAnyOrder(
             List.of(10),
-            List.of(20)
+            List.of(20),
+            ARRAY_NULL
         );
     }
 
@@ -184,7 +264,13 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
             List.of(10, 10),
             List.of(10, 20),
             List.of(10, 10, 20),
-            List.of(10, 20, 30)
+            List.of(10, 20, 30),
+            ARRAY_NULL,
+            ARRAY_NULL_NULL,
+            ARRAY_NULL_NULL_NULL,
+            ARRAY_NULL_1,
+            ARRAY_NULL_NULL_1,
+            ARRAY_NULL_1_1
         );
     }
 
@@ -195,7 +281,10 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
             List.of(10),
             List.of(20),
             List.of(10, 10),
-            List.of(10, 20)
+            List.of(10, 20),
+            ARRAY_NULL,
+            ARRAY_NULL_NULL,
+            ARRAY_NULL_1
         );
     }
 
@@ -204,7 +293,8 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
         List<Object> rows = tester.runQuery("xs", "array_length(xs, 1) = 1");
         assertThat(rows).containsExactlyInAnyOrder(
             List.of(10),
-            List.of(20)
+            List.of(20),
+            ARRAY_NULL
         );
     }
 
@@ -213,7 +303,9 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
         List<Object> rows = tester.runQuery("xs", "array_length(xs, 1) = 2");
         assertThat(rows).containsExactlyInAnyOrder(
             List.of(10, 10),
-            List.of(10, 20)
+            List.of(10, 20),
+            ARRAY_NULL_NULL,
+            ARRAY_NULL_1
         );
     }
 

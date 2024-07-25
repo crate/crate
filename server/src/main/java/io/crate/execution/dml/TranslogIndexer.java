@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.lucene.document.Field;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.index.mapper.ParsedDocument;
@@ -50,6 +51,7 @@ public class TranslogIndexer {
     private final Map<String, List<String>> tableIndexSources = new HashMap<>();
     private final boolean ignoreUnknownColumns;
     private final SourceParser sourceParser;
+    private final Version tableVersionCreated;
 
     /**
      * Creates a new TranslogIndexer backed by a DocTableInfo instance
@@ -72,6 +74,7 @@ public class TranslogIndexer {
         }
         this.ignoreUnknownColumns = table.columnPolicy() != ColumnPolicy.STRICT;
         this.sourceParser = new SourceParser(table);
+        this.tableVersionCreated = table.versionCreated();
     }
 
     /**
@@ -91,7 +94,7 @@ public class TranslogIndexer {
 
     private IndexDocumentBuilder populateLuceneFields(BytesReference source) throws IOException {
         Map<String, Object> docMap = sourceParser.parse(source, ignoreUnknownColumns == false);
-        IndexDocumentBuilder docBuilder = new IndexDocumentBuilder(new NoOpTranslogWriter(source), _ -> null, Map.of());
+        IndexDocumentBuilder docBuilder = new IndexDocumentBuilder(new NoOpTranslogWriter(source), _ -> null, Map.of(), tableVersionCreated);
         for (var entry : docMap.entrySet()) {
             var column = entry.getKey();
             var indexer = indexers.get(column);
