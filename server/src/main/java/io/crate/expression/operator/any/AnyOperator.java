@@ -51,7 +51,7 @@ import io.crate.types.TypeSignature;
 /**
  * Abstract base class for implementations of {@code <probe> <op> ANY(<candidates>)}
  **/
-public abstract sealed class AnyOperator extends Operator<Object>
+public abstract sealed class AnyOperator<T> extends Operator<T>
     permits AnyEqOperator, AnyNeqOperator, AnyRangeOperator, AnyLikeOperator, AnyNotLikeOperator {
 
     public static final String OPERATOR_PREFIX = "any_";
@@ -77,11 +77,11 @@ public abstract sealed class AnyOperator extends Operator<Object>
         ComparisonExpression.Type.GREATER_THAN_OR_EQUAL.getValue()
     );
 
-    protected final DataType<Object> leftType;
+    protected final DataType<T> leftType;
 
     public static void register(Functions.Builder builder) {
-        reg(builder, AnyEqOperator.NAME, (sig, boundSig) -> new AnyEqOperator(sig, boundSig));
-        reg(builder, AnyNeqOperator.NAME, (sig, boundSig) -> new AnyNeqOperator(sig, boundSig));
+        reg(builder, AnyEqOperator.NAME, AnyEqOperator::new);
+        reg(builder, AnyNeqOperator.NAME, AnyNeqOperator::new);
         regRange(builder, AnyRangeOperator.Comparison.GT);
         regRange(builder, AnyRangeOperator.Comparison.GTE);
         regRange(builder, AnyRangeOperator.Comparison.LT);
@@ -107,33 +107,37 @@ public abstract sealed class AnyOperator extends Operator<Object>
     @SuppressWarnings("unchecked")
     AnyOperator(Signature signature, BoundSignature boundSignature) {
         super(signature, boundSignature);
-        this.leftType = (DataType<Object>) boundSignature.argTypes().get(0);
+        this.leftType = (DataType<T>) boundSignature.argTypes().get(0);
     }
 
-    abstract boolean matches(Object probe, Object candidate);
+    abstract boolean matches(T probe, T candidate);
 
     protected abstract Query refMatchesAnyArrayLiteral(Function any, Reference probe, Literal<?> candidates, Context context);
 
     protected abstract Query literalMatchesAnyArrayRef(Function any, Literal<?> probe, Reference candidates, Context context);
 
+    protected void validateRightArg(T arg) {}
+
+    @SuppressWarnings("unchecked")
     @Override
     @SafeVarargs
-    public final Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object> ... args) {
+    public final Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<T> ... args) {
         assert args != null : "args must not be null";
         assert args.length == 2 : "number of args must be 2";
         assert args[0] != null : "1st argument must not be null";
 
-        Object item = args[0].value();
-        Object items = args[1].value();
+        T item = args[0].value();
+        T items = args[1].value();
         if (items == null || item == null) {
             return null;
         }
         boolean anyNulls = false;
-        for (Object rightValue : (Iterable<?>) items) {
+        for (T rightValue : (Iterable<T>) items) {
             if (rightValue == null) {
                 anyNulls = true;
                 continue;
             }
+            validateRightArg(rightValue);
             if (matches(item, rightValue)) {
                 return true;
             }
@@ -141,6 +145,7 @@ public abstract sealed class AnyOperator extends Operator<Object>
         return anyNulls ? null : false;
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public Query toQuery(Function function, Context context) {
         List<Symbol> args = function.arguments();
@@ -150,9 +155,9 @@ public abstract sealed class AnyOperator extends Operator<Object>
             candidates = fn.arguments().get(0);
         }
         if (probe instanceof Literal<?> literal && candidates instanceof Reference ref) {
-            return literalMatchesAnyArrayRef(function, literal, ref, context);
+            return literalMatchesAnyArrayRef(function, (Literal<T>) literal, ref, context);
         } else if (probe instanceof Reference ref && candidates instanceof Literal<?> literal) {
-            return refMatchesAnyArrayLiteral(function, ref, literal, context);
+            return refMatchesAnyArrayLiteral(function, ref, (Literal<T>) literal, context);
         } else {
             return null;
         }

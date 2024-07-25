@@ -47,7 +47,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 
-public final class AnyEqOperator extends AnyOperator {
+public final class AnyEqOperator extends AnyOperator<Object> {
 
     public static String NAME = OPERATOR_PREFIX + ComparisonExpression.Type.EQUAL.getValue();
 

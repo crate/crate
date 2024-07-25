@@ -36,7 +36,7 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.ComparisonExpression;
 
-public final class AnyRangeOperator extends AnyOperator {
+public final class AnyRangeOperator extends AnyOperator<Object> {
 
     public enum Comparison {
         GT(ComparisonExpression.Type.GREATER_THAN, ComparisonExpression.Type.LESS_THAN) {

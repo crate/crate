@@ -22,6 +22,7 @@
 package io.crate.expression.operator.any;
 
 import static io.crate.testing.Asserts.isLiteral;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
 
@@ -146,5 +147,15 @@ public class AnyLikeOperatorTest extends ScalarTestCase {
     public void test_wildcard_escaped_in_c_style_string() {
         assertEvaluate("'TextToMatch' LIKE ANY ([E'Te\\%tch'])", true);
         assertEvaluate("'TextToMatch' ILIKE ANY ([E'te\\%tch'])", true);
+    }
+
+    @Test
+    public void test_any_like_ilike_with_trailing_escape_character() {
+        assertThatThrownBy(() -> assertEvaluate("'TextToMatch' LIKE ANY (['a', 'b', 'ab\\'])", false))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("pattern 'ab\\' must not end with escape character '\\'");
+        assertThatThrownBy(() -> assertEvaluate("'TextToMatch' ILIKE ANY (['a', 'b', 'ab\\'])", false))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("pattern 'ab\\' must not end with escape character '\\'");
     }
 }
