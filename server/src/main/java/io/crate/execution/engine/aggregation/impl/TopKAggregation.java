@@ -150,7 +150,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
             if (args.length == 2) {
                 // We have a limit provided by the user
                 Integer limit = (Integer) args[1].value();
-                state = initState(ramAccounting, boundSignature.argTypes().getFirst(), DEFAULT_LIMIT);
+                state = initState(ramAccounting, boundSignature.argTypes().getFirst(), limit);
 
             } else if (args.length == 1) {
                 state = initState(ramAccounting, boundSignature.argTypes().getFirst(), DEFAULT_LIMIT);
@@ -319,7 +319,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
             var result = new ArrayList<Map<String, Object>>(limit);
             for (int i = 0; i < limit; i++) {
                 var item = frequentItems[i];
-                result.add(Map.of("item", item.getItem(), "frequency", item.getEstimate()));
+                result.add(Map.of("item", convertFromLong(dataType, item.getItem()), "frequency", item.getEstimate()));
             }
             return result;
         }

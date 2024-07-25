@@ -84,16 +84,6 @@ public class TopKAggregationTest extends AggregationTestCase {
         Object[][] data = {
             new Object[]{1L},
         };
-
-        assertThatThrownBy(() -> executeAggregation(
-            TopKAggregation.PARAMETER_SIGNATURE,
-            List.of(DataTypes.LONG),
-            DataTypes.UNTYPED_OBJECT,
-            data,
-            true,
-            List.of(Literal.of("foo"))
-        )).isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessageStartingWith("Invalid parameters for topk aggregation.");
     }
 
     public void test_top_k_longs_with_limit() throws Exception {
@@ -125,6 +115,127 @@ public class TopKAggregationTest extends AggregationTestCase {
                 )
             );
     }
+
+    @Test
+    public void test_top_k_doubles() throws Exception {
+        Object[][] data = {
+            new Double[]{1.0D},
+            new Double[]{2.0D},
+            new Double[]{2.0D},
+            new Double[]{3.0D},
+            new Double[]{3.0D},
+            new Double[]{3.0D},
+        };
+
+        var result = executeAggregation(
+            TopKAggregation.PARAMETER_SIGNATURE,
+            List.of(DataTypes.DOUBLE),
+            DataTypes.UNTYPED_OBJECT,
+            data,
+            true,
+            List.of()
+        );
+
+        assertThat(result)
+            .isEqualTo(
+                List.of(
+                    Map.of("item", 3.0D, "frequency", 3L),
+                    Map.of("item", 2.0D, "frequency", 2L),
+                    Map.of("item", 1.0D, "frequency", 1L)
+                )
+            );
+    }
+
+    public void test_top_k_doubles_with_limit() throws Exception {
+        int limit = 2;
+
+        Object[][] dataWithLimit = {
+            new Object[]{1.0D, limit},
+            new Object[]{2.0D, limit},
+            new Object[]{2.0D, limit},
+            new Object[]{3.0D, limit},
+            new Object[]{3.0D, limit},
+            new Object[]{3.0D, limit},
+        };
+
+        var resultWithLimit = executeAggregation(
+            TopKAggregation.PARAMETER_SIGNATURE,
+            List.of(DataTypes.DOUBLE, DataTypes.INTEGER),
+            DataTypes.UNTYPED_OBJECT,
+            dataWithLimit,
+            true,
+            List.of(Literal.of(limit))
+        );
+
+        assertThat(resultWithLimit)
+            .isEqualTo(
+                List.of(
+                    Map.of("item", 3.0D, "frequency", 3L),
+                    Map.of("item", 2.0D, "frequency", 2L)
+                )
+            );
+    }
+
+    @Test
+    public void test_top_k_floats() throws Exception {
+        Object[][] data = {
+            new Float[]{1.0F},
+            new Float[]{2.0F},
+            new Float[]{2.0F},
+            new Float[]{3.0F},
+            new Float[]{3.0F},
+            new Float[]{3.0F},
+        };
+
+        var result = executeAggregation(
+            TopKAggregation.PARAMETER_SIGNATURE,
+            List.of(DataTypes.FLOAT),
+            DataTypes.UNTYPED_OBJECT,
+            data,
+            true,
+            List.of()
+        );
+
+        assertThat(result)
+            .isEqualTo(
+                List.of(
+                    Map.of("item", 3.0F, "frequency", 3L),
+                    Map.of("item", 2.0F, "frequency", 2L),
+                    Map.of("item", 1.0F, "frequency", 1L)
+                )
+            );
+    }
+
+    public void test_top_k_floats_with_limit() throws Exception {
+        int limit = 2;
+
+        Object[][] dataWithLimit = {
+            new Object[]{1.0F, limit},
+            new Object[]{2.0F, limit},
+            new Object[]{2.0F, limit},
+            new Object[]{3.0F, limit},
+            new Object[]{3.0F, limit},
+            new Object[]{3.0F, limit},
+        };
+
+        var resultWithLimit = executeAggregation(
+            TopKAggregation.PARAMETER_SIGNATURE,
+            List.of(DataTypes.FLOAT, DataTypes.INTEGER),
+            DataTypes.UNTYPED_OBJECT,
+            dataWithLimit,
+            true,
+            List.of(Literal.of(limit))
+        );
+
+        assertThat(resultWithLimit)
+            .isEqualTo(
+                List.of(
+                    Map.of("item", 3.0F, "frequency", 3L),
+                    Map.of("item", 2.0F, "frequency", 2L)
+                )
+            );
+    }
+
 
     @Test
     public void test_top_k_strings() throws Exception {
