@@ -150,10 +150,10 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
             if (args.length == 2) {
                 // We have a limit provided by the user
                 Integer limit = (Integer) args[1].value();
-                state = initState(ramAccounting, boundSignature.argTypes().getFirst(), limit);
+                state = initState(ramAccounting, limit);
 
             } else if (args.length == 1) {
-                state = initState(ramAccounting, boundSignature.argTypes().getFirst(), DEFAULT_LIMIT);
+                state = initState(ramAccounting, DEFAULT_LIMIT);
             }
         }
 
@@ -355,18 +355,17 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
             case FloatType.ID -> {return NumericUtils.floatToSortableInt((Float) value);}
             default -> throw new IllegalArgumentException("type not supprted");
         }
-
     }
 
-    private State initState(RamAccounting ramAccounting, DataType dataType, int limit) {
+    private State initState(RamAccounting ramAccounting,int limit) {
         if (limit <= 0 || limit > MAX_LIMIT) {
             throw new IllegalArgumentException(
                 "Limit parameter for topk must be between 0 and 10_000. Got: " + limit);
         }
-        int id = boundSignature.argTypes().getFirst().id();
-        if (id == DataTypes.LONG.id() ||
-            id == DataTypes.DOUBLE.id() ||
-            id == DataTypes.FLOAT.id()) {
+        DataType<?> dataType = boundSignature.argTypes().getFirst();
+        if (dataType.id() == DataTypes.LONG.id() ||
+            dataType.id() == DataTypes.DOUBLE.id() ||
+            dataType.id() == DataTypes.FLOAT.id()) {
             return topKLongState(ramAccounting, dataType, limit);
         } else {
             return topKState(ramAccounting, limit);
