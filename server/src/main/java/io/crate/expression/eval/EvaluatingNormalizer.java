@@ -66,6 +66,7 @@ import io.crate.types.DataTypes;
  *  - Convert {@link ScopedSymbol} to {@link Reference} if {@link FieldResolver} is available.
  *  - Convert {@link MatchPredicate} to a {@link Function} if {@link FieldResolver} is available
  *  - Convert {@link Reference} into a Literal value if {@link ReferenceResolver} is available
+ *  - Drops aliases {@link AliasSymbol}
  *    and {@link NestableInput}s can be retrieved for the Reference.
  */
 public class EvaluatingNormalizer {

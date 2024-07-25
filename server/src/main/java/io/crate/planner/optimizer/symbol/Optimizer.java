@@ -30,7 +30,6 @@ import org.apache.logging.log4j.Logger;
 
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.exceptions.ConversionException;
-import io.crate.expression.symbol.AliasResolver;
 import io.crate.expression.symbol.FunctionCopyVisitor;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
@@ -134,7 +133,6 @@ public class Optimizer {
 
         @Override
         public Symbol visitFunction(io.crate.expression.symbol.Function symbol, Void context) {
-            symbol = (io.crate.expression.symbol.Function) symbol.accept(AliasResolver.INSTANCE, null);
             visitedFunctions.push(symbol);
             var maybeTransformedSymbol = tryApplyRules(symbol);
             if (symbol.equals(maybeTransformedSymbol) == false) {
