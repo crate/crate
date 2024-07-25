@@ -215,7 +215,10 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
 
     @VisibleForTesting
     static XContentBuilder createJsonBuilder(OutputStream outputStream) throws IOException {
-        XContentBuilder builder = XContentFactory.json(outputStream);
+        // Override the default rootValueSeparator to avoid whitespace characters added
+        // in the beginning of json data lines, when partitioned tables with multiple shards
+        // are exported.
+        XContentBuilder builder = XContentFactory.json(outputStream, "");
         builder.generator().configure(JsonGenerator.Feature.FLUSH_PASSED_TO_STREAM, false);
         return builder;
     }

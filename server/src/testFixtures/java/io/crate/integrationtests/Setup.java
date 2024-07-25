@@ -28,6 +28,8 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
 
@@ -259,11 +261,19 @@ public class Setup {
     }
 
     public void partitionTableSetup() {
-        transportExecutor.exec("create table parted (" +
-                               "id int primary key," +
-                               "date timestamp with time zone primary key," +
-                               "o object(ignored)" +
-                               ") partitioned by (date) with (number_of_replicas=0)");
+        partitionTableSetup(null);
+    }
+
+    public void partitionTableSetup(@Nullable Integer numberOfShards) {
+        String stmt = "create table parted (" +
+            "id int primary key," +
+            "date timestamp with time zone primary key," +
+            "o object(ignored)) ";
+        if (numberOfShards != null) {
+            stmt += "clustered into " + numberOfShards + " shards ";
+        }
+        stmt += "partitioned by (date) with (number_of_replicas=0)";
+        transportExecutor.exec(stmt);
         transportExecutor.ensureGreen();
         transportExecutor.exec("insert into parted (id, date) values (1, '2014-01-01')");
         transportExecutor.exec("insert into parted (id, date) values (2, '2014-01-01')");
