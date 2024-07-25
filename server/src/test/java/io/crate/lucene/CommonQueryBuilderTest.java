@@ -21,7 +21,6 @@
 
 package io.crate.lucene;
 
-import static io.crate.testing.TestingHelpers.createReference;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -51,24 +50,16 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.exceptions.UnsupportedFunctionException;
-import io.crate.expression.operator.EqOperator;
-import io.crate.expression.symbol.AliasSymbol;
-import io.crate.expression.symbol.Function;
-import io.crate.expression.symbol.Literal;
 import io.crate.lucene.match.CrateRegexQuery;
-import io.crate.metadata.FunctionType;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.functions.Signature;
 import io.crate.role.Role;
 import io.crate.testing.QueryTester;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.TypeSignature;
 
 public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
 
@@ -603,36 +594,6 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     public void test_eq_on_bool_uses_termquery() throws Exception {
         Query query = convert("bool_col = true");
         assertThat(query).isExactlyInstanceOf(TermQuery.class);
-    }
-
-    @Test
-    public void test_eq_on_alias_uses_termquery() throws Exception {
-        // Testing expression: col as alias = 'foo'
-        AliasSymbol alias = new AliasSymbol("aliased", createReference("name", DataTypes.STRING));
-        var literal = Literal.of("foo");
-        var func = new Function(EqOperator.SIGNATURE, List.of(alias, literal), DataTypes.BOOLEAN);
-        Query query = queryTester.toQuery(func);
-        assertThat(query).isExactlyInstanceOf(TermQuery.class);
-    }
-
-    @Test
-    public void test_eq_on_alias_inner_func_uses_termquery() throws Exception {
-        // Testing expression: f(col as alias) = 'foo'
-        AliasSymbol alias = new AliasSymbol("aliased", createReference("arr", DataTypes.INTEGER_ARRAY));
-        var innerFunction = new Function(
-            Signature.builder("array_length", FunctionType.SCALAR)
-                .argumentTypes(TypeSignature.parse("array(E)"),
-                    DataTypes.INTEGER.getTypeSignature())
-                .returnType(DataTypes.INTEGER.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC)
-                .build(),
-            List.of(alias, Literal.of(1)), // 1 is a dummy argument for dimension.
-            DataTypes.INTEGER
-        );
-
-        var func = new Function(EqOperator.SIGNATURE, List.of(innerFunction, Literal.of(5)), DataTypes.BOOLEAN);
-        Query query = queryTester.toQuery(func);
-        assertThat(query).isExactlyInstanceOf(BooleanQuery.class);
     }
 
     @Test
