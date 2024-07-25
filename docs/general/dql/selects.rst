@@ -300,6 +300,11 @@ Both ``LIKE`` and ``ILIKE`` support optional ``ESCAPE`` character. When no
 value is provided, backslash character ``\`` is used as the escape character.
 Providing an empty value disables escaping.
 
+.. NOTE::
+
+    The pattern for ``LIKE`` and ``ILIKE`` operators cannot end with the
+    ``ESCAPE`` character.
+
 Example of query with custom ESCAPE::
 
     cr> SELECT 'test' LIKE 'te%' escape 'e' as res;
