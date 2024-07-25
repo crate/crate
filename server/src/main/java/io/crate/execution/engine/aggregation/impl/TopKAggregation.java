@@ -35,6 +35,7 @@ import org.apache.datasketches.frequencies.ItemsSketch;
 import org.apache.datasketches.frequencies.LongsSketch;
 import org.apache.datasketches.memory.Memory;
 import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -64,6 +65,9 @@ import io.crate.statistics.SketchStreamer;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.DoubleType;
+import io.crate.types.FloatType;
+import io.crate.types.IntegerType;
 import io.crate.types.LongType;
 import io.crate.types.StringType;
 import io.crate.types.TypeSignature;
@@ -146,17 +150,18 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
             if (args.length == 2) {
                 // We have a limit provided by the user
                 Integer limit = (Integer) args[1].value();
-                state = initState(ramAccounting, limit);
+                state = initState(ramAccounting, boundSignature.argTypes().getFirst(), DEFAULT_LIMIT);
 
             } else if (args.length == 1) {
-                state = initState(ramAccounting, DEFAULT_LIMIT);
+                state = initState(ramAccounting, boundSignature.argTypes().getFirst(), DEFAULT_LIMIT);
             }
         }
 
         if (state instanceof TopKState topKState) {
             topKState.sketch.update(value);
         } else if (state instanceof TopKLongState topKLongState) {
-            topKLongState.sketch.update((Long) value);
+            long item = convertToLong(topKLongState.dataType, value);
+            topKLongState.sketch.update(item);
         }
 
         return state;
@@ -177,7 +182,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
     @Override
     public State reduce(RamAccounting ramAccounting, State state1, State state2) {
         if (state1 instanceof TopKLongState t1 && state2 instanceof TopKLongState t2) {
-            return new TopKLongState(t1.sketch.merge(t2.sketch), t1.limit);
+            return new TopKLongState(t1.sketch.merge(t2.sketch), t1.dataType, t1.limit);
         } else if (state1 instanceof TopKState t1 && state2 instanceof TopKState t2) {
             return new TopKState(t1.sketch.merge(t2.sketch), t1.limit);
         } else if (state1 instanceof Empty) {
@@ -230,9 +235,11 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
     @Nullable
     private DocValueAggregator<?> getDocValueAggregator(Reference ref, int limit) {
         return switch (ref.valueType().id()) {
-            case LongType.ID -> new SortedNumericDocValueAggregator<>(
+            case LongType.ID,
+                 DoubleType.ID,
+                 FloatType.ID -> new SortedNumericDocValueAggregator<>(
                 ref.storageIdent(),
-                (ramAccounting, _, _) -> topKLongState(ramAccounting, limit),
+                (ramAccounting, _, _) -> topKLongState(ramAccounting, boundSignature.argTypes().getFirst(), limit),
                 (values, state) -> {
                     state.sketch.update(values.nextValue());
                 }
@@ -255,6 +262,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
         State EMPTY = new Empty();
 
         List<Map<String, Object>> result();
+
     }
 
     record Empty() implements State {
@@ -263,6 +271,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
         public List<Map<String, Object>> result() {
             return List.of();
         }
+
     }
 
     record TopKState(ItemsSketch<Object> sketch, int limit) implements State {
@@ -297,7 +306,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
         }
     }
 
-    record TopKLongState(LongsSketch sketch, int limit) implements State {
+    record TopKLongState(LongsSketch sketch, DataType<?> dataType, int limit) implements State {
 
         static long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(TopKLongState.class);
 
@@ -327,15 +336,38 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
         public int hashCode() {
             return Objects.hash(result(), limit);
         }
+
     }
 
-    private State initState(RamAccounting ramAccounting, int limit) {
+    static Object convertFromLong(DataType dataType, long value) {
+        switch(dataType.id()) {
+            case LongType.ID -> { return value;}
+            case DoubleType.ID -> {return NumericUtils.sortableLongToDouble(value);}
+            case FloatType.ID -> {return NumericUtils.sortableIntToFloat((int) value);}
+            default -> throw new IllegalArgumentException("type not supprted");
+        }
+    }
+
+    static long convertToLong(DataType dataType, Object value) {
+        switch(dataType.id()) {
+            case LongType.ID -> { return (long) value;}
+            case DoubleType.ID -> {return NumericUtils.doubleToSortableLong((Double) value);}
+            case FloatType.ID -> {return NumericUtils.floatToSortableInt((Float) value);}
+            default -> throw new IllegalArgumentException("type not supprted");
+        }
+
+    }
+
+    private State initState(RamAccounting ramAccounting, DataType dataType, int limit) {
         if (limit <= 0 || limit > MAX_LIMIT) {
             throw new IllegalArgumentException(
                 "Limit parameter for topk must be between 0 and 10_000. Got: " + limit);
         }
-        if (boundSignature.argTypes().getFirst().id() == DataTypes.LONG.id()) {
-            return topKLongState(ramAccounting, limit);
+        int id = boundSignature.argTypes().getFirst().id();
+        if (id == DataTypes.LONG.id() ||
+            id == DataTypes.DOUBLE.id() ||
+            id == DataTypes.FLOAT.id()) {
+            return topKLongState(ramAccounting, dataType, limit);
         } else {
             return topKState(ramAccounting, limit);
         }
@@ -348,11 +380,11 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
         return new TopKState(new ItemsSketch<>(maxMapSize), limit);
     }
 
-    private TopKLongState topKLongState(RamAccounting ramAccounting, int limit) {
+    private TopKLongState topKLongState(RamAccounting ramAccounting, DataType dataType, int limit) {
         int maxMapSize = maxMapSize(limit);
         ramAccounting.addBytes(calculateRamUsage(maxMapSize));
         ramAccounting.addBytes(TopKState.SHALLOW_SIZE);
-        return new TopKLongState(new LongsSketch(maxMapSize), limit);
+        return new TopKLongState(new LongsSketch(maxMapSize), dataType, limit);
     }
 
     static final class StateType extends DataType<State> implements Streamer<State> {
@@ -410,7 +442,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
                 }
                 case 2 -> {
                     int limit = in.readInt();
-                    return new TopKLongState(LongsSketch.getInstance(Memory.wrap(in.readByteArray())), limit);
+                    return new TopKLongState(LongsSketch.getInstance(Memory.wrap(in.readByteArray())), innerType, limit);
                 }
                 default -> {
                     return State.EMPTY;
