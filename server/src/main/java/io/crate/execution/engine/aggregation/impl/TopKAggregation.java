@@ -68,6 +68,7 @@ import io.crate.types.DataTypes;
 import io.crate.types.DateType;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
+import io.crate.types.IntegerType;
 import io.crate.types.LongType;
 import io.crate.types.StringType;
 import io.crate.types.TypeSignature;
@@ -343,13 +344,15 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
             case LongType.ID -> { return value;}
             case DoubleType.ID -> {return NumericUtils.sortableLongToDouble(value);}
             case FloatType.ID -> {return NumericUtils.sortableIntToFloat((int) value);}
+            case IntegerType.ID -> {return (int) value;}
             default -> throw new IllegalArgumentException("type not supported");
         }
     }
 
     static long convertToLong(DataType dataType, Object value) {
         switch(dataType.id()) {
-            case LongType.ID -> { return (long) value;}
+            case LongType.ID,
+                 IntegerType.ID -> { return (long) value;}
             case DoubleType.ID -> {return NumericUtils.doubleToSortableLong((Double) value);}
             case FloatType.ID -> {return NumericUtils.floatToSortableInt((Float) value);}
             default -> throw new IllegalArgumentException("type not supported");
