@@ -109,6 +109,9 @@ SQL Standard and PostgreSQL Compatibility
   ``ms``, ``msec``, ``msecs``, ``millisecond`` or ``milliseconds`` can
   be used as the unit name as well.
 
+- `Martin Stein <https://github.com/marstein>`_ added support for the
+  IS DISTINCT FROM operator. The operator is not yet optimized for Lucene queries.
+
 Data Types
 ----------
 

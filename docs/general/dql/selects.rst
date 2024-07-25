@@ -509,6 +509,50 @@ does always return ``NULL`` when comparing ``NULL``.
    <scalar-null-or-empty>` scalar for improved performance.
 
 
+.. _sql_dql_is_distinct_from:
+
+``IS DISTINCT FROM``
+--------------------
+
+Returns ``TRUE`` if ``expr`` is not equal to :ref:`evaluate <gloss-evaluation>`.
+If both expressions are ``NULL`` the result is false. Comparing a non-NULL value
+to ``NULL`` returns ``TRUE`` - ``NULL`` is considered distinct from any value.
+
+Use this predicate to check for non-``NULL`` values as SQL's three-valued logic
+does always return ``NULL`` when comparing ``NULL``.
+
+.. vale off
+
+:expr:
+  :ref:`Expression <gloss-expression>` of one of the supported
+  :ref:`data types <data-types>` supported by CrateDB.
+
+.. vale on
+
+::
+
+    cr> SELECT
+    ...   name,
+    ...   name IS DISTINCT FROM 'Trillian' as is_distinct,
+    ...   name != 'Trillian' as not_eq
+    ... FROM unnest(['Arthur', 'Trillian', null]) as t(name)
+    ... ORDER BY 1;
+    +----------+-------------+--------+
+    | name     | is_distinct | not_eq |
+    +----------+-------------+--------+
+    | Arthur   | TRUE        | TRUE   |
+    | Trillian | FALSE       | FALSE  |
+    | NULL     | TRUE        | NULL   |
+    +----------+-------------+--------+
+    SELECT 3 rows in set (... sec)
+
+
+.. NOTE::
+
+   Using ``IS DISTINCT FROM`` can be slow because the expression is not using
+   index structures and is not suitable for use on larger tables.
+   
+   
 .. _sql_dql_array_comparisons:
 
 Array comparisons

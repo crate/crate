@@ -156,8 +156,6 @@ supported:
 
 - ``ENUM`` support functions
 
-- ``IS DISTINCT FROM``
-
 - Network address functions and :ref:`operators <gloss-operator>`
 
 - Mathematical functions
