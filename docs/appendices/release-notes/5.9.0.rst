@@ -60,7 +60,7 @@ Breaking Changes
   literal instead of an empty array when both arguments are ``NULL``.
 
 - Changed the implementation of the :ref:`scalar-array_cat` to return an empty
-  array of type `ARRAY(UNDEFINED)` when both arguments are an empty array
+  array of type ``ARRAY(UNDEFINED)`` when both arguments are an empty array
   instead of raising an exception.
 
 Deprecations
