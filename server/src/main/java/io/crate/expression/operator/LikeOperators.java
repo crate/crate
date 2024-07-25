@@ -21,6 +21,7 @@
 
 package io.crate.expression.operator;
 
+import java.util.Locale;
 import java.util.regex.Pattern;
 
 import org.apache.lucene.index.Term;
@@ -47,7 +48,12 @@ public class LikeOperators {
     public static final String ANY_NOT_LIKE = AnyOperator.OPERATOR_PREFIX + "not_like";
     public static final String ANY_NOT_ILIKE = AnyOperator.OPERATOR_PREFIX + "not_ilike";
 
-    public static final char DEFAULT_ESCAPE = '\\';
+    public static final Character DEFAULT_ESCAPE = '\\';
+    /**
+     *  To avoid creating a String out of {@link #DEFAULT_ESCAPE} every time
+     *  inside the {@link AnyOperator#validateRightArg(Object)}
+     */
+    public static final String DEFAULT_ESCAPE_STR = "\\";
 
     public static String likeOperatorName(boolean ignoreCase) {
         return ignoreCase ? OP_ILIKE : OP_LIKE;
@@ -265,6 +271,9 @@ public class LikeOperators {
                 }
             }
         }
+        if (escaped) {
+            throwErrorForTrailingEscapeChar(patternString, escapeChar);
+        }
         regex.append('$');
         return regex.toString();
     }
@@ -303,6 +312,15 @@ public class LikeOperators {
                 }
             }
         }
+        if (escaped) {
+            throwErrorForTrailingEscapeChar(wildcardString, LikeOperators.DEFAULT_ESCAPE);
+        }
         return regex.toString();
+    }
+
+    public static void throwErrorForTrailingEscapeChar(String pattern, Character escapeChar) {
+        throw new IllegalArgumentException(
+            String.format(Locale.ENGLISH, "pattern '%s' must not end with escape character '%s'",
+                pattern, escapeChar));
     }
 }

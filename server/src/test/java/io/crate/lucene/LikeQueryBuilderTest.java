@@ -23,6 +23,9 @@ package io.crate.lucene;
 
 import static io.crate.expression.operator.LikeOperators.convertSqlLikeToLuceneWildcard;
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+import java.util.List;
 
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
@@ -31,7 +34,12 @@ import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.WildcardQuery;
 import org.junit.Test;
 
+import io.crate.data.Input;
+import io.crate.expression.operator.any.AnyLikeOperatorTest;
+import io.crate.expression.operator.any.AnyNotLikeOperatorTest;
 import io.crate.lucene.match.CrateRegexQuery;
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.TransactionContext;
 
 public class LikeQueryBuilderTest extends LuceneQueryBuilderTest {
 
@@ -158,5 +166,40 @@ public class LikeQueryBuilderTest extends LuceneQueryBuilderTest {
         Query query = convert("name like ''");
         assertThat(query).hasToString("name:");
         assertThat(query).isExactlyInstanceOf(TermQuery.class);
+    }
+
+    @Test
+    public void test_like_ilike_with_trailing_escape_char() {
+        assertThatThrownBy(() -> convert("name like '\\'"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("pattern '\\' must not end with escape character '\\'");
+        assertThatThrownBy(() -> convert("name ilike '\\'"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("pattern '\\' must not end with escape character '\\'");
+
+        // no index
+        assertThatThrownBy(() -> convert("text_no_index like '\\'"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("pattern '\\' must not end with escape character '\\'");
+        assertThatThrownBy(() -> convert("text_no_index ilike '\\'"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("pattern '\\' must not end with escape character '\\'");
+    }
+
+    /**
+     * When a non-indexed column is used, like {@code text_no_index}
+     * {@link io.crate.expression.operator.any.AnyOperator#evaluate(TransactionContext, NodeContext, Input[])} is called
+     * and the behavior is tested with {@link AnyLikeOperatorTest#test_any_like_ilike_with_trailing_escape_character()}
+     * and {@link AnyNotLikeOperatorTest#test_any_not_like_ilike_with_trailing_escape_character()}
+     */
+    @Test
+    public void test_like_ilike_any_with_trailing_escape_char() {
+        for (var op : List.of("like", "ilike")) {
+            for (var not : List.of("", "not")) {
+                assertThatThrownBy(() -> convert("name " + not + " " + op + " any(['a', 'b', 'ab\\'])"))
+                    .isExactlyInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("pattern 'ab\\' must not end with escape character '\\'");
+            }
+        }
     }
 }
