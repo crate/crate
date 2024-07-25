@@ -21,6 +21,7 @@
 
 package io.crate.execution.dml;
 
+import static io.crate.execution.dml.ArrayIndexer.toArrayLengthFieldName;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.types.GeoShapeType.Names.TREE_BKD;
 import static io.crate.types.GeoShapeType.Names.TREE_GEOHASH;
@@ -274,7 +275,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         );
 
         assertThat(parsedDoc.doc().getFields())
-            .hasSize(10);
+            .hasSize(11);
 
         assertTranslogParses(parsedDoc, actualTable);
     }
@@ -799,6 +800,31 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             """
         );
         assertTranslogParses(doc, table);
+    }
+
+    @Test
+    public void test_array_length_is_indexed() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (xs int[] index off storage with (columnstore='false'))");
+        DocTableInfo table = e.resolveTableInfo("tbl");
+
+        var indexer = getIndexer(e, "tbl", "xs");
+        ParsedDocument doc = indexer.index(item(List.of()));
+        assertThat(doc.doc().getFields(toArrayLengthFieldName((Reference) e.asSymbol("xs")))[0].toString())
+            .isEqualTo("IntField <_array_length_1:0>");
+        assertTranslogParses(doc, table);
+    }
+
+    @Test
+    public void test_array_length_is_not_indexed_before_V_5_9_0() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (xs int[] index off storage with (columnstore='false'))",
+                Settings.builder().put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), Version.V_5_8_0).build());
+
+        var indexer = getIndexer(e, "tbl", "xs");
+        ParsedDocument doc = indexer.index(item(List.of()));
+        var arrayLengthField = doc.doc().getFields(toArrayLengthFieldName((Reference) e.asSymbol("xs")));
+        assertThat(arrayLengthField).isEmpty();
     }
 
     @Test

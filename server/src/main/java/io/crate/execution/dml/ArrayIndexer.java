@@ -26,6 +26,9 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.IntField;
+import org.elasticsearch.Version;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -34,10 +37,18 @@ import io.crate.metadata.Reference;
 
 public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
 
-    private final ValueIndexer<T> innerIndexer;
+    public static String toArrayLengthFieldName(Reference arrayRef) {
+        return ARRAY_LENGTH_FIELD_PREFIX + arrayRef.storageIdentLeafName();
+    }
 
-    public ArrayIndexer(ValueIndexer<T> innerIndexer) {
+    private static final String ARRAY_LENGTH_FIELD_PREFIX = "_array_length_";
+
+    private final ValueIndexer<T> innerIndexer;
+    private final String arrayLengthFieldName;
+
+    public ArrayIndexer(ValueIndexer<T> innerIndexer, Reference reference) {
         this.innerIndexer = innerIndexer;
+        this.arrayLengthFieldName = toArrayLengthFieldName(reference);
     }
 
     @Override
@@ -49,6 +60,12 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
             } else {
                 innerIndexer.indexValue(value, docBuilder);
             }
+        }
+        if (docBuilder.getTableVersionCreated().onOrAfter(Version.V_5_9_0)) {
+            // map '[]' to '_array_length_ = 0'
+            // map '[null]' to '_array_length_ = 1'
+            // 'null' is not mapped; can utilize 'FieldExistsQuery' for 'IS NULL' filtering
+            docBuilder.addField(new IntField(arrayLengthFieldName, values.size(), Field.Store.NO));
         }
         docBuilder.translogWriter().endArray();
     }

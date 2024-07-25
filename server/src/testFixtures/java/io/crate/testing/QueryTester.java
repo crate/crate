@@ -36,7 +36,9 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -100,7 +102,7 @@ public final class QueryTester implements AutoCloseable {
             var sqlExecutor = SQLExecutor
                 .of(clusterService)
                 .setColumnOidSupplier(columnOidSupplier)
-                .addTable(createTableStmt);
+                .addTable(createTableStmt, Settings.builder().put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), indexVersion).build());
             plannerContext = sqlExecutor.getPlannerContext();
 
             var createTable = (CreateTable<?>) SqlParser.createStatement(createTableStmt);

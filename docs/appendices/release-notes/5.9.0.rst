@@ -53,6 +53,12 @@ Breaking Changes
 
   It is a breaking change because the fix causes performance degradations.
 
+- Fixed an issue that caused ``WHERE`` clause containing
+  :ref:`scalar-array_length` under ``<``, ``<=`` or ``=`` to return invalid
+  results. It is a breaking change because the fix causes performance
+  regressions on tables created before 5.9.0. For tables created on and after
+  5.9.0, the fix has positive impact on the performance.
+
 - Changed the return value of the concat operator to return a ``NULL`` literal
   instead of an empty string when any of the operand is ``NULL``.
 
