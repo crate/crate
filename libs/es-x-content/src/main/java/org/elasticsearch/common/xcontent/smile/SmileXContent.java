@@ -31,6 +31,7 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentGenerator;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.jetbrains.annotations.Nullable;
 
 import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.StreamReadFeature;
@@ -72,7 +73,7 @@ public class SmileXContent implements XContent {
     }
 
     @Override
-    public XContentGenerator createGenerator(OutputStream os) throws IOException {
+    public XContentGenerator createGenerator(OutputStream os, @Nullable String rootValueSeparator) throws IOException {
         return new SmileXContentGenerator(SMILE_FACTORY.createGenerator(os, JsonEncoding.UTF8), os);
     }
 
