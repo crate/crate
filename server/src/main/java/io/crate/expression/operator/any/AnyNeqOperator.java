@@ -40,7 +40,7 @@ import io.crate.sql.tree.ComparisonExpression;
 import io.crate.types.EqQuery;
 import io.crate.types.StorageSupport;
 
-public final class AnyNeqOperator extends AnyOperator {
+public final class AnyNeqOperator extends AnyOperator<Object> {
 
     public static String NAME = OPERATOR_PREFIX + ComparisonExpression.Type.NOT_EQUAL.getValue();
 

@@ -223,4 +223,14 @@ public class LikeOperatorTest extends ScalarTestCase {
     public void test_like_with_empty_escape_disables_escaping() {
         assertEvaluate("'Test' LIKE 'T\\%' ESCAPE ''", false);
     }
+
+    @Test
+    public void test_like_ilike_with_trailing_escape_char_throws_error() {
+        assertThatThrownBy(() -> assertEvaluate("'Test' LIKE 'abc' ESCAPE 'c'", false))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("pattern 'abc' must not end with escape character 'c'");
+        assertThatThrownBy(() -> assertEvaluate("'Test' ILIKE 'abc' ESCAPE 'c'", false))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("pattern 'abc' must not end with escape character 'c'");
+    }
 }
