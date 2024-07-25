@@ -395,7 +395,9 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
 
     @Test
     public void testCopyToDirectoryOnPartitionedTableWithoutPartitionClause() throws Exception {
-        new Setup(sqlExecutor).partitionTableSetup();
+        // Use 2 shards to ensure that each partition's documents go into different shards and hence each
+        // partition will have more than one shard.
+        new Setup(sqlExecutor).partitionTableSetup(2);
         String uriTemplate = Paths.get(folder.getRoot().toURI()).toUri().toString();
         SQLResponse response = execute("copy parted to DIRECTORY ?", $(uriTemplate));
         assertThat(response.rowCount(), is(4L));

@@ -23,6 +23,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.common.Booleans;
 
 /**
@@ -62,8 +64,9 @@ public interface XContent {
      * Creates a new generator using the provided output stream.
      *
      * @param os       the output stream
+     * @param rootValueSeparator set the root value separator, if null the default single whitespace(" ") is used
      */
-    XContentGenerator createGenerator(OutputStream os) throws IOException;
+    XContentGenerator createGenerator(OutputStream os, @Nullable String rootValueSeparator) throws IOException;
 
     /**
      * Creates a parser over the provided string content.
