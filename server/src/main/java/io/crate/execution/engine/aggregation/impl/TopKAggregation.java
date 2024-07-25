@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.Function;
 
 import org.apache.datasketches.frequencies.ErrorType;
 import org.apache.datasketches.frequencies.ItemsSketch;
@@ -36,6 +37,7 @@ import org.apache.datasketches.frequencies.LongsSketch;
 import org.apache.datasketches.memory.Memory;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.RamUsageEstimator;
+import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -63,6 +65,8 @@ import io.crate.statistics.SketchStreamer;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.DoubleType;
+import io.crate.types.FloatType;
 import io.crate.types.LongType;
 import io.crate.types.StringType;
 import io.crate.types.TypeSignature;
@@ -151,13 +155,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
                 state = initState(ramAccounting, DEFAULT_LIMIT);
             }
         }
-
-        if (state instanceof TopKState topKState) {
-            topKState.sketch.update(value);
-        } else if (state instanceof TopKLongState topKLongState) {
-            topKLongState.sketch.update((Long) value);
-        }
-
+        state.update(value);
         return state;
     }
 
@@ -219,25 +217,26 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
 
     @Nullable
     private DocValueAggregator<?> getDocValueAggregator(Reference ref, int limit) {
-        return switch (ref.valueType().id()) {
-            case LongType.ID -> new SortedNumericDocValueAggregator<>(
+        DataType<?> type = ref.valueType();
+        LongConversion longConversion = longConversions(type);
+        if (longConversion != null) {
+            return new SortedNumericDocValueAggregator<>(
                 ref.storageIdent(),
-                (ramAccounting, _, _) -> topKLongState(ramAccounting, limit),
+                (ramAccounting, _, _) -> topKLongState(ramAccounting, longConversion, limit),
                 (values, state) -> {
                     state.sketch.update(values.nextValue());
-                }
-            );
-            case StringType.ID -> new BinaryDocValueAggregator<>(
+                });
+        } else if (type.id() == StringType.ID) {
+            new BinaryDocValueAggregator<>(
                 ref.storageIdent(),
                 (ramAccounting, _, _) -> topKState(ramAccounting, limit),
                 (values, state) -> {
                     long ord = values.nextOrd();
                     BytesRef value = values.lookupOrd(ord);
                     state.sketch.update(value.utf8ToString());
-                }
-            );
-            default -> null;
-        };
+                });
+        }
+        return null;
     }
 
     abstract static sealed class State {
@@ -252,6 +251,8 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
 
         abstract State merge(State other);
 
+        abstract void update(Object value);
+
         void writeTo(StreamOutput out, DataType<?> innerType) throws IOException {
             out.writeByte((byte) id());
         }
@@ -263,7 +264,9 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
                     return new TopKState(in, innerType);
                 }
                 case TopKLongState.ID -> {
-                    return new TopKLongState(in);
+                    LongConversion longConversion = longConversions(innerType);
+                    assert longConversion != null : "Long Conversion must not null";
+                    return new TopKLongState(in, longConversion);
                 }
                 default -> {
                     return State.EMPTY;
@@ -308,6 +311,11 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
         @Override
         State merge(State other) {
             return other;
+        }
+
+        @Override
+        void update(Object value) {
+            throw new UnsupportedOperationException("Emoty state does not support updates");
         }
     }
 
@@ -366,6 +374,11 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
         }
 
         @Override
+        void update(Object value) {
+            sketch.update(value);
+        }
+
+        @Override
         @SuppressWarnings({"rawtypes", "unchecked"})
         void writeTo(StreamOutput out, DataType<?> innerType) throws IOException {
             super.writeTo(out, innerType);
@@ -382,16 +395,19 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
         static final int ID = 2;
 
         private final LongsSketch sketch;
+        private final LongConversion longConversion;
         private final int limit;
 
-        TopKLongState(LongsSketch sketch, int limit) {
+        TopKLongState(LongsSketch sketch, LongConversion longConversion, int limit) {
             this.sketch = sketch;
+            this.longConversion = longConversion;
             this.limit = limit;
         }
 
-        TopKLongState(StreamInput in) throws IOException {
+        TopKLongState(StreamInput in, LongConversion longConversion) throws IOException {
             this.limit = in.readInt();
             this.sketch = LongsSketch.getInstance(Memory.wrap(in.readByteArray()));
+            this.longConversion = longConversion;
         }
 
         public List<Map<String, Object>> result() {
@@ -401,9 +417,10 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
             LongsSketch.Row[] frequentItems = sketch.getFrequentItems(ErrorType.NO_FALSE_NEGATIVES);
             int limit = Math.min(frequentItems.length, this.limit);
             var result = new ArrayList<Map<String, Object>>(limit);
+            Function<Long, Object> fromLong = longConversion.toObject;
             for (int i = 0; i < limit; i++) {
                 var item = frequentItems[i];
-                result.add(Map.of("item", item.getItem(), "frequency", item.getEstimate()));
+                result.add(Map.of("item", fromLong.apply(item.getItem()), "frequency", item.getEstimate()));
             }
             return result;
         }
@@ -413,9 +430,14 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
             if (other instanceof Empty) {
                 return this;
             } else if (other instanceof TopKLongState otherTopK) {
-                return new TopKLongState(this.sketch.merge(otherTopK.sketch), limit);
+                return new TopKLongState(this.sketch.merge(otherTopK.sketch), longConversion, limit);
             }
             throw new IllegalArgumentException("Cannot merge state");
+        }
+
+        @Override
+        void update(Object value) {
+            sketch.update(longConversion.toLong.apply(value));
         }
 
         @Override
@@ -436,15 +458,36 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
         }
     }
 
+    record LongConversion(Function<Long, Object> toObject, Function<Object, Long> toLong) { }
+
+    @Nullable
+    static LongConversion longConversions(DataType<?> type) {
+        return switch (type.id()) {
+            case LongType.ID -> new LongConversion(l -> l, o -> (Long) o);
+            case DoubleType.ID ->
+                new LongConversion(
+                    NumericUtils::sortableLongToDouble,
+                    o -> NumericUtils.doubleToSortableLong((Double) o)
+                );
+            case FloatType.ID ->
+                new LongConversion(
+                    l -> NumericUtils.sortableIntToFloat(l.intValue()),
+                    o -> (long) NumericUtils.floatToSortableInt((Float) o)
+                );
+            default -> null;
+        };
+    }
+
     private State initState(RamAccounting ramAccounting, int limit) {
         if (limit <= 0 || limit > MAX_LIMIT) {
             throw new IllegalArgumentException(
                 "Limit parameter for topk must be between 0 and 10_000. Got: " + limit);
         }
-        if (boundSignature.argTypes().getFirst().id() == DataTypes.LONG.id()) {
-            return topKLongState(ramAccounting, limit);
-        } else {
+        var longConversion = longConversions(boundSignature.argTypes().getFirst());
+        if (longConversion == null) {
             return topKState(ramAccounting, limit);
+        } else {
+            return topKLongState(ramAccounting, longConversion, limit);
         }
     }
 
@@ -454,10 +497,10 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
         return new TopKState(new ItemsSketch<>(maxMapSize), limit);
     }
 
-    private TopKLongState topKLongState(RamAccounting ramAccounting, int limit) {
+    private TopKLongState topKLongState(RamAccounting ramAccounting, LongConversion conversion, int limit) {
         int maxMapSize = maxMapSize(limit);
         ramAccounting.addBytes(calculateRamUsage(maxMapSize) + TopKLongState.SHALLOW_SIZE);
-        return new TopKLongState(new LongsSketch(maxMapSize), limit);
+        return new TopKLongState(new LongsSketch(maxMapSize), conversion, limit);
     }
 
     static final class StateType extends DataType<State> implements Streamer<State> {
