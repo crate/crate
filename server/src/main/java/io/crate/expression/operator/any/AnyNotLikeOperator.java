@@ -39,7 +39,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 
-public final class AnyNotLikeOperator extends AnyOperator {
+public final class AnyNotLikeOperator extends AnyOperator<String> {
 
     private final CaseSensitivity caseSensitivity;
 
@@ -55,10 +55,10 @@ public final class AnyNotLikeOperator extends AnyOperator {
     }
 
     @Override
-    boolean matches(Object probe, Object candidate) {
+    boolean matches(String probe, String candidate) {
         // Accept both sides of arguments to be patterns
-        return !LikeOperators.matches((String) probe, (String) candidate, LikeOperators.DEFAULT_ESCAPE, caseSensitivity) &&
-               !LikeOperators.matches((String) candidate, (String) probe, LikeOperators.DEFAULT_ESCAPE, caseSensitivity);
+        return !LikeOperators.matches(probe, candidate, LikeOperators.DEFAULT_ESCAPE, caseSensitivity) &&
+               !LikeOperators.matches(candidate, probe, LikeOperators.DEFAULT_ESCAPE, caseSensitivity);
     }
 
     @Override
@@ -96,5 +96,12 @@ public final class AnyNotLikeOperator extends AnyOperator {
             notLike),
             RegexpFlag.COMPLEMENT.value()
         );
+    }
+
+    @Override
+    protected void validateRightArg(String arg) {
+        if (arg.endsWith(LikeOperators.DEFAULT_ESCAPE_STR)) {
+            LikeOperators.throwErrorForTrailingEscapeChar(arg, LikeOperators.DEFAULT_ESCAPE);
+        }
     }
 }

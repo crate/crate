@@ -40,7 +40,7 @@ import io.crate.types.DataType;
 import io.crate.types.ObjectType;
 
 
-public final class AnyLikeOperator extends AnyOperator {
+public final class AnyLikeOperator extends AnyOperator<String> {
 
     private final CaseSensitivity caseSensitivity;
 
@@ -56,10 +56,10 @@ public final class AnyLikeOperator extends AnyOperator {
     }
 
     @Override
-    boolean matches(Object probe, Object candidate) {
+    boolean matches(String probe, String candidate) {
         // Accept both sides of arguments to be patterns
-        return LikeOperators.matches((String) probe, (String) candidate, LikeOperators.DEFAULT_ESCAPE, caseSensitivity) ||
-               LikeOperators.matches((String) candidate, (String) probe, LikeOperators.DEFAULT_ESCAPE, caseSensitivity);
+        return LikeOperators.matches(probe, candidate, LikeOperators.DEFAULT_ESCAPE, caseSensitivity) ||
+               LikeOperators.matches(candidate, probe, LikeOperators.DEFAULT_ESCAPE, caseSensitivity);
     }
 
     @Override
@@ -85,5 +85,12 @@ public final class AnyLikeOperator extends AnyOperator {
     @Override
     protected Query literalMatchesAnyArrayRef(Function any, Literal<?> probe, Reference candidates, Context context) {
         return caseSensitivity.likeQuery(candidates.storageIdent(), (String) probe.value(), LikeOperators.DEFAULT_ESCAPE, candidates.indexType() != IndexType.NONE);
+    }
+
+    @Override
+    protected void validateRightArg(String arg) {
+        if (arg.endsWith(LikeOperators.DEFAULT_ESCAPE_STR)) {
+            LikeOperators.throwErrorForTrailingEscapeChar(arg, LikeOperators.DEFAULT_ESCAPE);
+        }
     }
 }
