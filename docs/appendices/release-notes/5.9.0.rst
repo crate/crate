@@ -69,6 +69,18 @@ Breaking Changes
   regressions on tables created before 5.9.0. For tables created on and after
   5.9.0, the fix has positive impact on the performance.
 
+- Fixed an issue that caused ``WHERE`` clause containing ``NOT`` operator on
+  an array type against an empty array to incorrectly filter array of nulls. It
+  is a breaking change because the fix causes performance regressions on tables
+  created before 5.9.0. For tables created on and after 5.9.0, the fix has
+  positive impact on the performance.
+
+- Fixed an issue that caused ``WHERE`` clause containing ``NOT`` operator on
+  an array type without doc-values against a non-empty array to incorrectly
+  un-filter null rows. It is a breaking change because the fix causes
+  performance regressions on tables created before 5.9.0. For tables created on
+  and after 5.9.0, the fix has positive impact on the performance.
+
 - Changed the return value of the concat operator to return a ``NULL`` literal
   instead of an empty string when any of the operand is ``NULL``.
 
