@@ -204,7 +204,7 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
                 if (!ref.isNullable()) {
                     return new MatchAllDocsQuery();
                 }
-                return IsNullPredicate.refExistsQuery(ref, context, true);
+                return IsNullPredicate.refExistsQuery(ref, context);
             }
         }
 
@@ -229,10 +229,16 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
                 // result set of the query
                 var refExistsQuery = IsNullPredicate.refExistsQuery(
                     nullableRef,
-                    context,
-                    countEmptyArrays(context.parentQuery(), nullableRef, context));
+                    context
+                );
                 if (refExistsQuery != null) {
                     builder.add(refExistsQuery, BooleanClause.Occur.MUST);
+                } else {
+                    // fall back
+                    return new BooleanQuery.Builder()
+                        .add(notX, Occur.MUST)
+                        .add(LuceneQueryBuilder.genericFunctionFilter(input, context), Occur.FILTER)
+                        .build();
                 }
             }
             return builder.build();

@@ -42,6 +42,7 @@ import io.crate.types.DataTypes;
 import io.crate.types.FloatVectorType;
 import io.crate.types.GeoPointType;
 import io.crate.types.GeoShapeType;
+import io.crate.types.StorageSupport;
 
 public class NotPredicateTest extends ScalarTestCase {
 
@@ -91,9 +92,9 @@ public class NotPredicateTest extends ScalarTestCase {
             if (type instanceof FloatVectorType) {
                 continue;
             }
-            var listOfNulls = new ArrayList<Integer>();
-            listOfNulls.add(null);
-            Object[] values = new Object[] {List.of(), listOfNulls};
+            var arrayOfNulls = new ArrayList<Integer>();
+            arrayOfNulls.add(null);
+            Object[] values = new Object[] {List.of(), arrayOfNulls, null}; // 3 rows to be indexed: empty array, array of nulls, null
 
             // ensure the test is operating on a fresh, empty cluster state (no tables)
             resetClusterService();
@@ -107,6 +108,8 @@ public class NotPredicateTest extends ScalarTestCase {
                 randomData = Literal.ofUnchecked(type, getDataGenerator(type).get()).toString();
             }
             String query = "xs != [" + randomData + "]";
+
+            // with default columnstore
             try (QueryTester tester = new QueryTester.Builder(
                 THREAD_POOL,
                 clusterService,
@@ -116,7 +119,71 @@ public class NotPredicateTest extends ScalarTestCase {
                 List<Object> result = tester.runQuery("xs", query);
                 Asserts.assertThat(result)
                     .as("QUERY: " + query + "; TYPE: " + type + " ; expects '[]' and '[null]' returned")
-                    .containsExactlyInAnyOrder(List.of(), listOfNulls);
+                    .containsExactlyInAnyOrder(List.of(), arrayOfNulls);
+            }
+
+            // storage with (columnstore = false)
+            StorageSupport<?> storageSupport = type.storageSupport();
+            if (storageSupport == null || !storageSupport.supportsDocValuesOff()) {
+                continue;
+            }
+            try (QueryTester tester = new QueryTester.Builder(
+                THREAD_POOL,
+                clusterService,
+                Version.CURRENT,
+                "create table \"t_" + type.getName() + "\" (xs array(\"" + type.getName() + "\") storage with (columnstore = false))"
+            ).indexValues("xs", values).build()) {
+                List<Object> result = tester.runQuery("xs", query);
+                Asserts.assertThat(result)
+                    .as("QUERY: " + query + "; TYPE: " + type + " ; expects '[]' and '[null]' returned")
+                    .containsExactlyInAnyOrder(List.of(), arrayOfNulls);
+            }
+        }
+    }
+
+    @Test
+    public void test_neq_on_array_types_with_empty_array_does_not_filter_array_of_nulls() throws Exception {
+        for (DataType<?> type : ALL_STORED_TYPES_EXCEPT_ARRAYS) {
+            if (type instanceof FloatVectorType) {
+                continue;
+            }
+            var arrayOfNulls = new ArrayList<Integer>();
+            arrayOfNulls.add(null);
+            Object[] values = new Object[] {List.of(), arrayOfNulls};
+
+            // ensure the test is operating on a fresh, empty cluster state (no tables)
+            resetClusterService();
+
+            String query = "xs != []";
+
+            // with default columnstore
+            try (QueryTester tester = new QueryTester.Builder(
+                THREAD_POOL,
+                clusterService,
+                Version.CURRENT,
+                "create table \"t_" + type.getName() + "\" (xs array(\"" + type.getName() + "\"))"
+            ).indexValues("xs", values).build()) {
+                List<Object> result = tester.runQuery("xs", query);
+                Asserts.assertThat(result)
+                    .as("QUERY: " + query + "; TYPE: " + type + " ; expects '[null]' returned")
+                    .containsExactlyInAnyOrder(arrayOfNulls);
+            }
+
+            // storage with (columnstore = false)
+            StorageSupport<?> storageSupport = type.storageSupport();
+            if (storageSupport == null || !storageSupport.supportsDocValuesOff()) {
+                continue;
+            }
+            try (QueryTester tester = new QueryTester.Builder(
+                THREAD_POOL,
+                clusterService,
+                Version.CURRENT,
+                "create table \"t_" + type.getName() + "\" (xs array(\"" + type.getName() + "\") storage with (columnstore = false))"
+            ).indexValues("xs", values).build()) {
+                List<Object> result = tester.runQuery("xs", query);
+                Asserts.assertThat(result)
+                    .as("QUERY: " + query + "; TYPE: " + type + " ; expects '[null]' returned")
+                    .containsExactlyInAnyOrder(arrayOfNulls);
             }
         }
     }
