@@ -109,7 +109,7 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
             if (!ref.isNullable()) {
                 return new MatchNoDocsQuery("`x IS NULL` on column that is NOT NULL can't match");
             }
-            Query refExistsQuery = refExistsQuery(ref, context, true);
+            Query refExistsQuery = refExistsQuery(ref, context);
             return refExistsQuery == null ? null : Queries.not(refExistsQuery);
         }
         return null;
@@ -117,24 +117,20 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
 
 
     @Nullable
-    public static Query refExistsQuery(Reference ref, Context context, boolean countEmptyArrays) {
+    public static Query refExistsQuery(Reference ref, Context context) {
         String field = ref.storageIdent();
         DataType<?> valueType = ref.valueType();
         boolean canUseFieldsExist = ref.hasDocValues() || ref.indexType() == IndexType.FULLTEXT;
         if (valueType instanceof ArrayType<?>) {
-            if (countEmptyArrays) {
-                if (canUseFieldsExist) {
-                    return new BooleanQuery.Builder()
-                        .setMinimumNumberShouldMatch(1)
-                        .add(new FieldExistsQuery(field), Occur.SHOULD)
-                        .add(Queries.not(isNullFuncToQuery(ref, context)), Occur.SHOULD)
-                        .build();
-                } else {
-                    return null;
-                }
+            if (canUseFieldsExist) {
+                return new BooleanQuery.Builder()
+                    .setMinimumNumberShouldMatch(1)
+                    .add(new FieldExistsQuery(field), Occur.SHOULD)
+                    .add(Queries.not(isNullFuncToQuery(ref, context)), Occur.SHOULD)
+                    .build();
+            } else {
+                return null;
             }
-            // An empty array has no dimension, array_length([]) = NULL, thus we don't count [] as existing.
-            valueType = ArrayType.unnest(valueType);
         }
         StorageSupport<?> storageSupport = valueType.storageSupport();
         if (ref instanceof DynamicReference) {
@@ -161,7 +157,7 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
                     if (childRef == null) {
                         return null;
                     }
-                    Query refExistsQuery = refExistsQuery(childRef, context, true);
+                    Query refExistsQuery = refExistsQuery(childRef, context);
                     if (refExistsQuery == null) {
                         return null;
                     }
