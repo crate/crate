@@ -47,6 +47,14 @@ See the :ref:`version_5.8.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Changed behavior to partitioned tables by automatically calculating
+  :ref:`number_of_routing_shards <sql-create-table-number-of-routing-shards>`,
+  so that they behave the same as simple tables, for which the
+  :ref:`change<version_5.8.0_break_ch_no_route_shards>` was already introduced
+  in :ref:`version_5.8.0`. With this fix, it's possible to
+  :ref:`alter the number_of_shards<partitioned-alter-single>` for a single
+  partition of a partitioned table.
+
 - Fixed an issue that would cause the
   :ref:`number_of_replicas <sql-create-table-number-of-replicas>` setting of a
   table to be reset to ``1``, when the number of shards for that table is

@@ -31,7 +31,6 @@ import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.rtsp.RtspResponseStatuses.BAD_REQUEST;
 import static io.netty.handler.codec.rtsp.RtspResponseStatuses.INTERNAL_SERVER_ERROR;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -1745,6 +1744,28 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             "{p=2}| 1",
             "{p=1}| 2"
         );
+    }
+
+    @Test
+    public void test_increase_number_of_shards_for_existing_partition() throws Exception {
+        execute("CREATE TABLE tbl_parted (x int, p int) PARTITIONED BY(p) " +
+            "CLUSTERED INTO 2 SHARDS WITH (number_of_replicas = 0)");
+
+        execute("INSERT INTO tbl_parted(x, p) SELECT g, 1 FROM generate_series(1, 4, 1) AS g");
+        execute("refresh table tbl_parted");
+
+        execute("SELECT count(*) FROM sys.shards WHERE table_name = 'tbl_parted'");
+        assertThat(response).hasRows("2");
+
+        execute("ALTER TABLE tbl_parted PARTITION (p=1) SET (\"blocks.write\" = true)");
+        execute("ALTER TABLE tbl_parted PARTITION (p=1) SET (number_of_shards = 4)");
+        execute("ALTER TABLE tbl_parted PARTITION (p=1) SET (\"blocks.write\" = false)");
+
+        execute("INSERT INTO tbl_parted(x, p) SELECT g, 1 FROM generate_series(5, 10, 1) AS g");
+        execute("refresh table tbl_parted");
+
+        execute("SELECT count(*) FROM sys.shards WHERE table_name = 'tbl_parted'");
+        assertThat(response).hasRows("4");
     }
 
     @Test

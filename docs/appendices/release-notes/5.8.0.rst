@@ -45,14 +45,20 @@ Released on 2024-07-17.
 Breaking Changes
 ================
 
+.. _version_5.8.0_break_ch_remove_warmer_enabled:
+
 - Removed the ``index.warmer.enabled`` setting and its corresponding column
   within the ``settings`` column of ``information_schema.tables`` and
   ``information_schema.table_partitions``. The setting had been deprecated in
   CrateDB 4.2.0.
 
+.. _version_5.8.0_break_ch_remove_network_col:
+
 - Removed ``network`` column from :ref:`sys.nodes <sys-nodes>` table. The column
   was deprecated since :ref:`version_2.3.0` and all of the sub-columns where
   returning 0.
+
+.. _version_5.8.0_break_ch_no_route_shards:
 
 - Tables created with version :ref:`version_5.8.0` onwards will have an
   automatic

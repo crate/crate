@@ -34,6 +34,7 @@ import java.util.Locale;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ResourceAlreadyExistsException;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.ActiveShardsObserver;
@@ -207,7 +208,18 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
                     e.addValidationError(err);
                     throw e;
                 });
-            int routingNumShards = IndexMetadata.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING.get(commonIndexSettings);
+
+            int numTargetShards = IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.get(commonIndexSettings);
+            final int routingNumShards;
+            final Version indexVersionCreated = commonIndexSettings.getAsVersion(IndexMetadata.SETTING_VERSION_CREATED, null);
+
+            if (IndexMetadata.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING.exists(commonIndexSettings)) {
+                routingNumShards = numTargetShards;
+            } else {
+                routingNumShards = MetadataCreateIndexService.calculateNumRoutingShards(
+                    numTargetShards, indexVersionCreated);
+            }
+
             IndexMetadata.Builder tmpImdBuilder = IndexMetadata.builder(firstIndex)
                 .setRoutingNumShards(routingNumShards);
 
