@@ -327,8 +327,8 @@ public class MetadataCreateIndexService {
                 }
             } else {
                 List<Reference> references = DocReferences.applyOid(
-                        createTableRequest.references(),
-                        metadataBuilder.columnOidSupplier()
+                    createTableRequest.references(),
+                    metadataBuilder.columnOidSupplier()
                 );
 
                 mapping = new MappingMetadata(Map.of("default", MappingUtil.createMapping(
@@ -349,13 +349,14 @@ public class MetadataCreateIndexService {
             if (indexSettingsBuilder.get(SETTING_NUMBER_OF_SHARDS) == null) {
                 throw new IllegalArgumentException("Number of shards must be supplied");
             }
-            if (indexSettingsBuilder.get(SETTING_NUMBER_OF_REPLICAS) == null) {
-                indexSettingsBuilder.put(SETTING_NUMBER_OF_REPLICAS, settings.getAsInt(SETTING_NUMBER_OF_REPLICAS, 1));
+            if (request.resizeType() == null && request.copySettings() == false) {
+                if (indexSettingsBuilder.get(SETTING_NUMBER_OF_REPLICAS) == null) {
+                    indexSettingsBuilder.put(SETTING_NUMBER_OF_REPLICAS, settings.getAsInt(SETTING_NUMBER_OF_REPLICAS, 1));
+                }
+                if (settings.get(AutoExpandReplicas.SETTING_KEY) != null && indexSettingsBuilder.get(AutoExpandReplicas.SETTING_KEY) == null) {
+                    indexSettingsBuilder.put(AutoExpandReplicas.SETTING_KEY, settings.get(AutoExpandReplicas.SETTING_KEY));
+                }
             }
-            if (settings.get(AutoExpandReplicas.SETTING_KEY) != null && indexSettingsBuilder.get(AutoExpandReplicas.SETTING_KEY) == null) {
-                indexSettingsBuilder.put(AutoExpandReplicas.SETTING_KEY, settings.get(AutoExpandReplicas.SETTING_KEY));
-            }
-
             setIndexVersionCreatedSetting(indexSettingsBuilder, currentState);
             validateSoftDeletesSetting(indexSettingsBuilder.build());
 
@@ -364,6 +365,7 @@ public class MetadataCreateIndexService {
             }
             indexSettingsBuilder.put(IndexMetadata.SETTING_INDEX_PROVIDED_NAME, request.getProvidedName());
             indexSettingsBuilder.put(SETTING_INDEX_UUID, UUIDs.randomBase64UUID());
+
             final IndexMetadata.Builder tmpImdBuilder = IndexMetadata.builder(request.index());
             final Settings idxSettings = indexSettingsBuilder.build();
             int numTargetShards = IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.get(idxSettings);
