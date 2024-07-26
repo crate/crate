@@ -41,6 +41,7 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
 
 import io.crate.exceptions.SQLExceptions;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 import io.crate.testing.UseRandomizedSchema;
 
 @UseRandomizedSchema(random = false)
@@ -72,6 +73,12 @@ public class TransportCreatePartitionsActionTest extends IntegTestCase {
 
         Metadata updatedMetadata = cluster().clusterService().state().metadata();
         assertThat(updatedMetadata.indices()).hasSize(3); // 1 table with 3 partitions.
+
+        // Assert number of routing shards is calculated properly to
+        // allow for future shard number increase on existing partitions.
+        String partitionName = new PartitionName(new RelationName(sqlExecutor.getCurrentSchema(), "test"),
+                                                 List.of(String.valueOf(1))).asIndexName();
+        assertThat(updatedMetadata.index(partitionName).getRoutingNumShards()).isEqualTo(1024);
 
         // CREATE TABLE statement assigns specific names to partitioned tables indices, all having template name as a prefix.
         // See BoundCreateTable.templateName
