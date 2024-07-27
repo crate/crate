@@ -297,12 +297,12 @@
 
     <versions.jdk>22.0.2+9</versions.jdk>
     <versions.annotations>24.1.0</versions.annotations>
-    <versions.log4j>2.22.0</versions.log4j>
-    <versions.assertj>3.26.0</versions.assertj>
-    <versions.junit5>5.10.2</versions.junit5>
+    <versions.log4j>2.23.1</versions.log4j>
+    <versions.assertj>3.26.3</versions.assertj>
+    <versions.junit5>5.10.3</versions.junit5>
     <versions.junit>4.13.2</versions.junit>
     <versions.randomizedrunner>2.8.1</versions.randomizedrunner>
-    <versions.jackson>2.17.1</versions.jackson>
+    <versions.jackson>2.17.2</versions.jackson>
     <versions.jopt_simple>6.0-alpha-3</versions.jopt_simple>
     <versions.antlr>4.13.1</versions.antlr>
     <versions.quickcheck>1.0</versions.quickcheck>
@@ -311,17 +311,17 @@
     <versions.lucene>9.11.1</versions.lucene>
     <versions.spatial4j>0.8</versions.spatial4j>
     <versions.jts>1.19.0</versions.jts>
-    <versions.jna>5.13.0</versions.jna>
+    <versions.jna>5.14.0</versions.jna>
     <versions.tdigest>3.3</versions.tdigest>
     <versions.datasketches>5.0.2</versions.datasketches>
-    <versions.hdrhistogram>2.1.12</versions.hdrhistogram>
+    <versions.hdrhistogram>2.2.2</versions.hdrhistogram>
     <versions.caffeine>3.1.8</versions.caffeine>
-    <versions.jodatime>2.12.5</versions.jodatime>
+    <versions.jodatime>2.12.7</versions.jodatime>
     <versions.aws>1.12.353</versions.aws>
     <versions.commonsmath>3.6.1</versions.commonsmath>
-    <versions.commonscodec>1.17.0</versions.commonscodec>
+    <versions.commonscodec>1.17.1</versions.commonscodec>
     <versions.jaxb_api>2.3.1</versions.jaxb_api>
-    <versions.graalvm>24.0.1</versions.graalvm>
+    <versions.graalvm>24.0.2</versions.graalvm>
     <versions.jwt>4.4.0</versions.jwt>
     <versions.jwks-rsa>0.22.1</versions.jwks-rsa>
 
@@ -358,7 +358,7 @@
     <versions.plugin.install>3.1.2</versions.plugin.install>
     <versions.plugin.compiler>3.13.0</versions.plugin.compiler>
     <versions.plugin.jar>3.3.0</versions.plugin.jar>
-    <versions.plugin.surefire>3.3.0</versions.plugin.surefire>
+    <versions.plugin.surefire>3.3.1</versions.plugin.surefire>
     <versions.plugin.checkstyle>3.4.0</versions.plugin.checkstyle>
     <versions.plugin.puppycrawl>10.17.0</versions.plugin.puppycrawl>
     <versions.plugin.toolchains>4.5.0</versions.plugin.toolchains>
