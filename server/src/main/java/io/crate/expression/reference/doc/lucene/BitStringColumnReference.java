@@ -21,56 +21,25 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
 import java.util.BitSet;
 
-import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.util.BytesRef;
 
-import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
-import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.sql.tree.BitString;
 
-public class BitStringColumnReference extends LuceneCollectorExpression<BitString> {
+public class BitStringColumnReference extends BinaryColumnReference<BitString> {
 
-    private final String columnName;
     private final int length;
-    private int docId;
-    private SortedSetDocValues values;
 
     public BitStringColumnReference(String columnName, int length) {
-        this.columnName = columnName;
+        super(columnName);
         this.length = length;
     }
 
     @Override
-    public BitString value() {
-        try {
-            if (values.advanceExact(docId)) {
-                long ord = values.nextOrd();
-                if (values.docValueCount() > 1) {
-                    throw new ArrayViaDocValuesUnsupportedException(columnName);
-                }
-                var bytesRef = values.lookupOrd(ord);
-                var buffer = ByteBuffer.wrap(bytesRef.bytes, bytesRef.offset, bytesRef.length);
-                return new BitString(BitSet.valueOf(buffer), length);
-            } else {
-                return null;
-            }
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
-    }
-
-    @Override
-    public void setNextDocId(int docId) {
-        this.docId = docId;
-    }
-
-    @Override
-    public void setNextReader(ReaderContext context) throws IOException {
-        values = DocValues.getSortedSet(context.reader(), columnName);
+    protected BitString convert(BytesRef input) {
+        var buffer = ByteBuffer.wrap(input.bytes, input.offset, input.length);
+        return new BitString(BitSet.valueOf(buffer), length);
     }
 }
