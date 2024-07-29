@@ -22,12 +22,8 @@
 package io.crate.expression.reference.doc.lucene;
 
 
-import java.net.InetAddress;
-import java.util.Arrays;
-
-import org.apache.lucene.document.InetAddressPoint;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.common.network.NetworkAddress;
+import org.elasticsearch.common.network.NetworkUtils;
 
 public class IpColumnReference extends BinaryColumnReference<String> {
 
@@ -44,8 +40,6 @@ public class IpColumnReference extends BinaryColumnReference<String> {
      * Formats a byte-encoded IP address as a String
      */
     public static String format(BytesRef value) {
-        byte[] bytes = Arrays.copyOfRange(value.bytes, value.offset, value.offset + value.length);
-        InetAddress inet = InetAddressPoint.decode(bytes);
-        return NetworkAddress.format(inet);
+        return NetworkUtils.formatIPBytes(value);
     }
 }

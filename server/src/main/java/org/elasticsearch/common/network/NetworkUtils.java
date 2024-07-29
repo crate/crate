@@ -25,6 +25,7 @@ import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Enumeration;
@@ -32,9 +33,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
 
-import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.Constants;
-
+import org.apache.lucene.document.InetAddressPoint;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.Constants;
 
@@ -102,6 +101,15 @@ public abstract class NetworkUtils {
         }
 
         return key;
+    }
+
+    /**
+     * Return a string representation of a byte-encoded IP address
+     */
+    public static String formatIPBytes(BytesRef value) {
+        byte[] bytes = Arrays.copyOfRange(value.bytes, value.offset, value.offset + value.length);
+        InetAddress inet = InetAddressPoint.decode(bytes);
+        return NetworkAddress.format(inet);
     }
 
     /**

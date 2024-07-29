@@ -32,7 +32,7 @@ import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.NumericUtils;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
-import org.elasticsearch.search.DocValueFormat;
+import org.elasticsearch.common.network.NetworkUtils;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.MutableObject;
@@ -355,7 +355,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
                 if (!state.hasValue()) {
                     long ord = values.nextOrd();
                     BytesRef encoded = values.lookupOrd(ord);
-                    String value = (String) DocValueFormat.IP.format(encoded);
+                    String value = NetworkUtils.formatIPBytes(encoded);
                     ramAccounting.addBytes(RamUsageEstimator.sizeOf(value));
                     state.setValue(value);
                 }
