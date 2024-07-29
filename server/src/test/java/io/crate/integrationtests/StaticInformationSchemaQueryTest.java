@@ -29,8 +29,12 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
+import com.carrotsearch.randomizedtesting.annotations.Seed;
+
 import io.crate.testing.Asserts;
 
+@Seed("B37AA2673C72CDDE")
 public class StaticInformationSchemaQueryTest extends IntegTestCase {
 
     @Before
@@ -83,6 +87,7 @@ public class StaticInformationSchemaQueryTest extends IntegTestCase {
     }
 
     @Test
+    @Repeat(iterations = 20)
     public void testIsNotNull() throws Exception {
         execute("select * from information_schema.tables where table_name is not null and table_schema = ?", new Object[]{sqlExecutor.getCurrentSchema()});
         assertThat(response.rowCount()).isEqualTo(3L);
