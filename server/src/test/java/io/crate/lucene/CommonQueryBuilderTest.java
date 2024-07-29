@@ -21,6 +21,7 @@
 
 package io.crate.lucene;
 
+import static io.crate.testing.TestingHelpers.createReference;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -50,6 +51,10 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.exceptions.UnsupportedFunctionException;
+import io.crate.expression.operator.EqOperator;
+import io.crate.expression.symbol.AliasSymbol;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Literal;
 import io.crate.lucene.match.CrateRegexQuery;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocSchemaInfo;
@@ -594,6 +599,17 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     public void test_eq_on_bool_uses_termquery() throws Exception {
         Query query = convert("bool_col = true");
         assertThat(query).isExactlyInstanceOf(TermQuery.class);
+    }
+
+    @Test
+    public void test_function_arguments_are_unaliased() throws Exception {
+        // Testing expression: col as alias = 'foo'
+        AliasSymbol alias = new AliasSymbol("aliased", createReference("name", DataTypes.STRING));
+        var literal = Literal.of("foo");
+        var func = new Function(EqOperator.SIGNATURE, List.of(alias, literal), DataTypes.BOOLEAN);
+        Query query = queryTester.toQuery(func);
+        assertThat(query).isNotExactlyInstanceOf(GenericFunctionQuery.class);
+        assertThat(query.toString()).doesNotContainIgnoringCase("aliased");
     }
 
     @Test

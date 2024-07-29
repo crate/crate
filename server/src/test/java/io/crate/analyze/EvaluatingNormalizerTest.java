@@ -24,6 +24,7 @@ package io.crate.analyze;
 import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.createNodeContext;
+import static io.crate.testing.TestingHelpers.createReference;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -41,6 +42,7 @@ import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.OrOperator;
 import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.reference.ReferenceResolver;
+import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -161,5 +163,24 @@ public class EvaluatingNormalizerTest extends ESTestCase {
         Function op_or = prepareFunctionTree();
         Symbol query = visitor.normalize(op_or, coordinatorTxnCtx);
         assertThat(query).isExactlyInstanceOf(Function.class);
+    }
+
+    // Supersedes https://github.com/crate/crate/commit/7f763496099d2daa51fa1734da2fada32bad265f
+    // Un-aliasing AliasSymbols is done by EvaluatingNormalizer https://github.com/crate/crate/pull/12474/commits/b2a5b01c6deefe93cdbf0c0005e29422e7838887
+    @Test
+    public void test_normalize_function_with_alias_symbol_as_argument() {
+        EvaluatingNormalizer visitor = new EvaluatingNormalizer(nodeCtx, RowGranularity.CLUSTER, null, null);
+
+        // (col AS alias) = 1
+        Function func = new Function(
+            EqOperator.SIGNATURE,
+            List.of(
+                new AliasSymbol("alias", createReference("col", DataTypes.INTEGER)),
+                Literal.of(1)
+            ),
+            DataTypes.BOOLEAN
+        );
+        Function normalized = (Function) visitor.normalize(func, coordinatorTxnCtx);
+        assertThat(normalized.toString()).isEqualTo("(col = 1)");
     }
 }
