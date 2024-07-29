@@ -35,10 +35,12 @@ import org.apache.lucene.search.FieldExistsQuery;
 import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
+import io.crate.execution.dml.ArrayIndexer;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
@@ -122,14 +124,20 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
         DataType<?> valueType = ref.valueType();
         boolean canUseFieldsExist = ref.hasDocValues() || ref.indexType() == IndexType.FULLTEXT;
         if (valueType instanceof ArrayType<?>) {
-            if (canUseFieldsExist) {
-                return new BooleanQuery.Builder()
-                    .setMinimumNumberShouldMatch(1)
-                    .add(new FieldExistsQuery(field), Occur.SHOULD)
-                    .add(Queries.not(isNullFuncToQuery(ref, context)), Occur.SHOULD)
-                    .build();
+            if (context.tableInfo().versionCreated().onOrAfter(Version.V_5_9_0)) {
+                // Array columns in tables on and after 5.9 indexes _array_length_ fields. For null rows, nothing is indexed
+                // such that FieldExistsQuery can be used.
+                return ArrayIndexer.arrayLengthExistsQuery(ref, context.tableInfo()::getReference);
             } else {
-                return null;
+                if (canUseFieldsExist) {
+                    return new BooleanQuery.Builder()
+                        .setMinimumNumberShouldMatch(1)
+                        .add(new FieldExistsQuery(field), Occur.SHOULD)
+                        .add(Queries.not(isNullFuncToQuery(ref, context)), Occur.SHOULD)
+                        .build();
+                } else {
+                    return null;
+                }
             }
         }
         StorageSupport<?> storageSupport = valueType.storageSupport();
