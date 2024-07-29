@@ -124,6 +124,44 @@
         </dependencies>
       </plugin>
       <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>versions-maven-plugin</artifactId>
+        <version>${versions.plugin.versions}</version>
+        <configuration>
+          <ruleSet>
+            <!-- ignore alpha, beta and M versions -->
+            <ignoreVersions>
+              <ignoreVersion>
+                <type>regex</type>
+                <version>.+[\.|-][a|A]lpha.+</version>
+              </ignoreVersion>
+              <ignoreVersion>
+                <type>regex</type>
+                <version>.+[\.|-][b|B]eta.+</version>
+              </ignoreVersion>
+              <ignoreVersion>
+                <type>regex</type>
+                <version>.+[\.|-]M.+</version>
+              </ignoreVersion>
+            </ignoreVersions>
+            <rules>
+              <!-- ignore jlink 3.2.0 since there issues that make it unusable, see: -->
+              <!-- https://issues.apache.org/jira/projects/MJLINK/issues/MJLINK-84 -->
+              <!-- https://issues.apache.org/jira/projects/MJLINK/issues/MJLINK-85 -->
+              <rule>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jlink-plugin</artifactId>
+                <ignoreVersions>
+                  <ignoreVersion>
+                    <version>3.2.0</version>
+                  </ignoreVersion>
+                </ignoreVersions>
+              </rule>
+            </rules>
+          </ruleSet>
+        </configuration>
+      </plugin>
+      <plugin>
         <groupId>org.mvnsearch</groupId>
         <artifactId>toolchains-maven-plugin</artifactId>
         <version>${versions.plugin.toolchains}</version>
@@ -313,6 +351,7 @@
     <versions.min_maven>3.6.3</versions.min_maven>
     <!-- Maven Plugins -->
     <versions.plugin.dependency>3.7.1</versions.plugin.dependency>
+    <versions.plugin.versions>2.17.1</versions.plugin.versions>
     <versions.plugin.enforcer>3.5.0</versions.plugin.enforcer>
     <versions.plugin.clean>3.4.0</versions.plugin.clean>
     <versions.plugin.resources>3.3.1</versions.plugin.resources>
