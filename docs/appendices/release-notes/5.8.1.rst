@@ -47,6 +47,12 @@ See the :ref:`version_5.8.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that would cause the
+  :ref:`number_of_replicas <sql-create-table-number-of-replicas>` setting of a
+  table to be reset to ``1``, when the number of shards for that table is
+  :ref:`increased <alter-shard-number-increase>` or
+  :ref:`decreased <alter-shard-number-decrease>`.
+
 - Fixed an issue that would add a whitespace character at the beginning of some
   lines in the files containing the rows which are exported by executing
   :ref:`COPY TO<sql-copy-to>` using the local filesystem on a whole partitioned
