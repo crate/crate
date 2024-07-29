@@ -34,24 +34,12 @@ import io.crate.testing.IndexVersionCreated;
 import io.crate.testing.QueryTester;
 
 @IndexVersionCreated(value = 8_08_00_99) // V_5_8_0
-public class ArrayLengthQueryBuilderBeforeV590Test extends LuceneQueryBuilderTest {
-
-    @Test
-    public void testArrayLengthGtColumnIsNotOptimized() {
-        Query query = convert("array_length(y_array, 1) > x");
-        assertThat(query).hasToString("(x < array_length(y_array, 1))");
-    }
+public class ArrayLengthQueryBuilderBeforeV590Test extends ArrayLengthQueryBuilderTest {
 
     @Test
     public void testArrayLengthGt0UsesExistsQuery() {
         Query query = convert("array_length(y_array, 1) > 0");
         assertThat(query).hasToString("(NumTermsPerDoc: y_array (array_length(y_array, 1) > 0))~1");
-    }
-
-    @Test
-    public void testArrayLengthGtNULLDoesNotMatch() {
-        Query query = convert("array_length(y_array, 1) > NULL");
-        assertThat(query).hasToString("MatchNoDocsQuery(\"WHERE null -> no match\")");
     }
 
     @Test
@@ -64,20 +52,6 @@ public class ArrayLengthQueryBuilderBeforeV590Test extends LuceneQueryBuilderTes
     public void testArrayLengthGt1UsesNumTermsPerOrAndGenericFunction() {
         Query query = convert("array_length(y_array, 1) > 1");
         assertThat(query).hasToString("(NumTermsPerDoc: y_array (array_length(y_array, 1) > 1))~1");
-    }
-
-    @Test
-    public void testArrayLengthLt1IsNoMatch() {
-        Query query = convert("array_length(y_array, 1) < 1");
-        assertThat(query).hasToString(
-            "MatchNoDocsQuery(\"array_length([], 1) is NULL, so array_length([], 1) < 0 or < 1 can't match\")");
-    }
-
-    @Test
-    public void testArrayLengthLte0IsNoMatch() {
-        Query query = convert("array_length(y_array, 1) <= 0");
-        assertThat(query).hasToString(
-            "MatchNoDocsQuery(\"array_length([], 1) is NULL, so array_length([], 1) <= 0 can't match\")");
     }
 
     @Test
