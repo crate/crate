@@ -38,7 +38,7 @@ import org.elasticsearch.common.hash.MurmurHash3;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.search.DocValueFormat;
+import org.elasticsearch.common.network.NetworkUtils;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
@@ -259,7 +259,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                     public void apply(RamAccounting ramAccounting, int doc, HllState state) throws IOException {
                         if (super.values.advanceExact(doc) && super.values.docValueCount() == 1) {
                             BytesRef ref = super.values.lookupOrd(super.values.nextOrd());
-                            byte[] bytes = ((String) DocValueFormat.IP.format(ref)).getBytes(StandardCharsets.UTF_8);
+                            byte[] bytes = NetworkUtils.formatIPBytes(ref).getBytes(StandardCharsets.UTF_8);
 
                             var hash = state.isAllOn4_1() ?
                                 MurmurHash3.hash64(bytes, 0, bytes.length)
