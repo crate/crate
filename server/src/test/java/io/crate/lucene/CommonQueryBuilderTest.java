@@ -357,16 +357,6 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     }
 
     @Test
-    public void testIsNullOnObjectArray() throws Exception {
-        Query isNull = convert("o_array IS NULL");
-        assertThat(isNull).hasToString(
-            "(o_array IS NULL)");
-        Query isNotNull = convert("o_array IS NOT NULL");
-        assertThat(isNotNull).hasToString(
-            "(NOT (o_array IS NULL))");
-    }
-
-    @Test
     public void testRewriteDocReferenceInWhereClause() throws Exception {
         Query query = convert("_doc['name'] = 'foo'");
         assertThat(query)
@@ -770,12 +760,5 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     public void test_not_operator_on_query_equivalent_to_null() {
         Query query = convert("(y % null != 1)");
         assertThat(query).hasToString("+(+*:* -((y % NULL) = 1)) #(NOT ((y % NULL) = 1))");
-    }
-
-    @Test
-    public void test_neq_on_array() {
-        Query query = convert("(y_array != [1])");
-        // (+*:* -(y_array IS NULL)))~1) is required to make sure empty arrays are not filtered by the FieldExistsQuery
-        assertThat(query).hasToString("+(+*:* -(+y_array:{1} +(y_array = [1::bigint]))) +((FieldExistsQuery [field=y_array] (+*:* -(y_array IS NULL)))~1)");
     }
 }

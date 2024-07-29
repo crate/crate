@@ -21,6 +21,7 @@
 
 package io.crate.expression.predicate;
 
+import static io.crate.execution.dml.ArrayIndexer.toArrayLengthFieldName;
 import static io.crate.lucene.LuceneQueryBuilder.genericFunctionFilter;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 
@@ -35,6 +36,7 @@ import org.apache.lucene.search.FieldExistsQuery;
 import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermQuery;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.jetbrains.annotations.Nullable;
 
@@ -52,6 +54,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.ColumnPolicy;
@@ -122,14 +125,21 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
         DataType<?> valueType = ref.valueType();
         boolean canUseFieldsExist = ref.hasDocValues() || ref.indexType() == IndexType.FULLTEXT;
         if (valueType instanceof ArrayType<?>) {
-            if (canUseFieldsExist) {
-                return new BooleanQuery.Builder()
-                    .setMinimumNumberShouldMatch(1)
-                    .add(new FieldExistsQuery(field), Occur.SHOULD)
-                    .add(Queries.not(isNullFuncToQuery(ref, context)), Occur.SHOULD)
-                    .build();
+            if (context.nodeContext().schemas().getTableInfo((ref).ident().tableIdent()) instanceof DocTableInfo tableInfo &&
+                tableInfo.versionCreated().onOrAfter(Version.V_5_9_0)) {
+                // Array columns in tables on and after 5.9 indexes _array_length_ fields. For null rows, nothing is indexed
+                // such that FieldExistsQuery can be used.
+                return new FieldExistsQuery(toArrayLengthFieldName(ref));
             } else {
-                return null;
+                if (canUseFieldsExist) {
+                    return new BooleanQuery.Builder()
+                        .setMinimumNumberShouldMatch(1)
+                        .add(new FieldExistsQuery(field), Occur.SHOULD)
+                        .add(Queries.not(isNullFuncToQuery(ref, context)), Occur.SHOULD)
+                        .build();
+                } else {
+                    return null;
+                }
             }
         }
         StorageSupport<?> storageSupport = valueType.storageSupport();
