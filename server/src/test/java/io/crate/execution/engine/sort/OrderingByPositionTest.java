@@ -77,10 +77,11 @@ public class OrderingByPositionTest extends ESTestCase {
 
     @Test
     public void testMultipleOrderBy() throws Exception {
-        Comparator<Object[]> ordering = Ordering.compound(Arrays.asList(
+        var orderings = Arrays.asList(
             OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 1, false, false),
             OrderingByPosition.arrayOrdering(DataTypes.INTEGER, 0, false, false)
-        ));
+        );
+        Comparator<Object[]> ordering = Ordering.compound(orderings);
 
         assertThat(ordering.compare(new Object[]{0, 0}, new Object[]{4, 0})).isEqualTo(-1);
         assertThat(ordering.compare(new Object[]{4, 0}, new Object[]{1, 1})).isEqualTo(-1);
