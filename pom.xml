@@ -157,6 +157,17 @@
                   </ignoreVersion>
                 </ignoreVersions>
               </rule>
+              <!-- ignore hppc new version, since our decision to inline its structures with ram accounting -->
+              <rule>
+                <groupId>com.carrotsearch</groupId>
+                <artifactId>hppc</artifactId>
+                <ignoreVersions>
+                  <ignoreVersion>
+                    <version>.*</version>
+                    <type>regex</type>
+                  </ignoreVersion>
+                </ignoreVersions>
+              </rule>
             </rules>
           </ruleSet>
         </configuration>
