@@ -87,7 +87,7 @@ public class StaticInformationSchemaQueryTest extends IntegTestCase {
     }
 
     @Test
-    @Repeat(iterations = 20)
+    @Repeat(iterations = 100)
     public void testIsNotNull() throws Exception {
         execute("select * from information_schema.tables where table_name is not null and table_schema = ?", new Object[]{sqlExecutor.getCurrentSchema()});
         assertThat(response.rowCount()).isEqualTo(3L);
