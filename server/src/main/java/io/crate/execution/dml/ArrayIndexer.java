@@ -30,6 +30,7 @@ import java.util.function.Function;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.IntField;
 import org.apache.lucene.document.IntPoint;
+import org.apache.lucene.search.FieldExistsQuery;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.Version;
 import org.jetbrains.annotations.NotNull;
@@ -49,6 +50,10 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
 
     public static Query arrayLengthRangeQuery(Reference arrayRef, int includeLower, int includeUpper, Function<ColumnIdent, Reference> getRef) {
         return IntPoint.newRangeQuery(toArrayLengthFieldName(arrayRef, getRef), includeLower, includeUpper);
+    }
+
+    public static Query arrayLengthExistsQuery(Reference arrayRef, Function<ColumnIdent, Reference> getRef) {
+        return new FieldExistsQuery(toArrayLengthFieldName(arrayRef, getRef));
     }
 
     static String toArrayLengthFieldName(Reference arrayRef, Function<ColumnIdent, Reference> getRef) {

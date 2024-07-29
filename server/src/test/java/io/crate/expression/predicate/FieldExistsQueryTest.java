@@ -30,13 +30,14 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 import org.assertj.core.api.InstanceOfAssertFactories;
+import org.apache.lucene.search.Query;
 import org.elasticsearch.Version;
 import org.junit.Test;
 
 import io.crate.analyze.TableElementsAnalyzer;
+import io.crate.lucene.LuceneQueryBuilderTest;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.tree.ColumnPolicy;
-import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.DataTypeTesting;
 import io.crate.testing.QueryTester;
 import io.crate.types.DataType;
@@ -44,7 +45,7 @@ import io.crate.types.DataTypes;
 import io.crate.types.FloatVectorType;
 import io.crate.types.StorageSupport;
 
-public class FieldExistsQueryTest extends CrateDummyClusterServiceUnitTest {
+public class FieldExistsQueryTest extends LuceneQueryBuilderTest {
 
 
     private static final Object[] ARRAY_VALUES = new Object[] {List.of(), null};
@@ -257,5 +258,20 @@ public class FieldExistsQueryTest extends CrateDummyClusterServiceUnitTest {
                     .isEqualTo("+*:* -ConstantScore(_field_names:x)");
             }
         }
+    }
+
+    @Test
+    public void testIsNullOnObjectArray() throws Exception {
+        Query isNull = convert("o_array IS NULL");
+        assertThat(isNull).hasToString("+*:* -FieldExistsQuery [field=_array_length_o_array]");
+        Query isNotNull = convert("o_array IS NOT NULL");
+        assertThat(isNotNull).hasToString("FieldExistsQuery [field=_array_length_o_array]");
+    }
+
+    @Test
+    public void test_neq_on_array() {
+        Query query = convert("(y_array != [1])");
+        // (+*:* -(y_array IS NULL)))~1) is required to make sure empty arrays are not filtered by the FieldExistsQuery
+        assertThat(query).hasToString("+(+*:* -(+y_array:{1} +(y_array = [1::bigint]))) +FieldExistsQuery [field=_array_length_y_array]");
     }
 }
