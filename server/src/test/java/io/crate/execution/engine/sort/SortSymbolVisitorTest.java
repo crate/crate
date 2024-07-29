@@ -25,7 +25,6 @@ import static io.crate.testing.TestingHelpers.createReference;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.apache.lucene.search.SortedSetSortField;
-import org.elasticsearch.index.fielddata.NullValueOrder;
 import org.junit.Test;
 
 import io.crate.expression.reference.doc.lucene.NullSentinelValues;

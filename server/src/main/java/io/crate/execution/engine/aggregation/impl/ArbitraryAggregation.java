@@ -32,8 +32,6 @@ import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.NumericUtils;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
-import org.elasticsearch.index.fielddata.FieldData;
-import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
 import org.elasticsearch.search.DocValueFormat;
 import org.jetbrains.annotations.Nullable;
 
@@ -291,7 +289,7 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
         private final String columnName;
         private final DataType<T> dataType;
 
-        private SortedBinaryDocValues values;
+        private SortedSetDocValues values;
 
         public ArbitraryBinaryDocValueAggregator(String columnName, DataType<T> dataType) {
             this.columnName = columnName;
@@ -305,14 +303,15 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
 
         @Override
         public void loadDocValues(LeafReaderContext reader) throws IOException {
-            values = FieldData.toString(DocValues.getSortedSet(reader.reader(), columnName));
+            values = DocValues.getSortedSet(reader.reader(), columnName);
         }
 
         @Override
         public void apply(RamAccounting ramAccounting, int doc, MutableObject state) throws IOException {
             if (values.advanceExact(doc) && values.docValueCount() == 1) {
                 if (!state.hasValue()) {
-                    var value = dataType.sanitizeValue(values.nextValue().utf8ToString());
+                    var rawValue = values.lookupOrd(values.nextOrd());
+                    var value = dataType.sanitizeValue(rawValue.utf8ToString());
                     ramAccounting.addBytes(dataType.valueBytes(value));
                     state.setValue(value);
                 }
