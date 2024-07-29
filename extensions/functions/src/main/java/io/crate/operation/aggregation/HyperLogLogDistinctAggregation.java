@@ -29,6 +29,7 @@ import java.util.List;
 
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
@@ -37,15 +38,13 @@ import org.elasticsearch.common.hash.MurmurHash3;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.index.fielddata.FieldData;
-import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
 import org.elasticsearch.search.DocValueFormat;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import com.carrotsearch.hppc.BitMixer;
 
 import io.crate.Streamer;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
@@ -245,7 +244,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                     @Override
                     public void apply(RamAccounting ramAccounting, int doc, HllState state) throws IOException {
                         if (super.values.advanceExact(doc) && super.values.docValueCount() == 1) {
-                            BytesRef ref = super.values.nextValue();
+                            BytesRef ref = super.values.lookupOrd(super.values.nextOrd());
                             var hash = state.isAllOn4_1() ?
                                 MurmurHash3.hash64(ref.bytes, ref.offset, ref.length)
                                 : MurmurHash3.hash128(ref.bytes, ref.offset, ref.length, 0, super.hash128).h1;
@@ -259,7 +258,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                     @Override
                     public void apply(RamAccounting ramAccounting, int doc, HllState state) throws IOException {
                         if (super.values.advanceExact(doc) && super.values.docValueCount() == 1) {
-                            BytesRef ref = super.values.nextValue();
+                            BytesRef ref = super.values.lookupOrd(super.values.nextOrd());
                             byte[] bytes = ((String) DocValueFormat.IP.format(ref)).getBytes(StandardCharsets.UTF_8);
 
                             var hash = state.isAllOn4_1() ?
@@ -280,7 +279,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
         private final DataType<?> dataType;
         private final Integer precision;
         private final MurmurHash3.Hash128 hash128 = new MurmurHash3.Hash128();
-        private SortedBinaryDocValues values;
+        private SortedSetDocValues values;
 
         public HllAggregator(String columnName, DataType<?> dataType, Integer precision) {
             this.columnName = columnName;
@@ -296,7 +295,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
 
         @Override
         public void loadDocValues(LeafReaderContext reader) throws IOException {
-            values = FieldData.toString(DocValues.getSortedSet(reader.reader(), columnName));
+            values = DocValues.getSortedSet(reader.reader(), columnName);
         }
 
         @Override

@@ -21,7 +21,11 @@
 
 package io.crate.expression.reference.doc.lucene;
 
+import org.apache.lucene.search.SortField;
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.analyze.OrderBy;
+import io.crate.execution.engine.sort.NullValueOrder;
 import io.crate.types.BooleanType;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
@@ -31,11 +35,6 @@ import io.crate.types.IntegerType;
 import io.crate.types.LongType;
 import io.crate.types.ShortType;
 import io.crate.types.TimestampType;
-
-import org.apache.lucene.search.SortField;
-import org.elasticsearch.index.fielddata.NullValueOrder;
-
-import org.jetbrains.annotations.Nullable;
 
 public class NullSentinelValues {
 
