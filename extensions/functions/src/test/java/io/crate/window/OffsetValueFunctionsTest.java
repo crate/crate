@@ -28,18 +28,12 @@ import java.util.List;
 import org.assertj.core.api.Assertions;
 import org.junit.Test;
 
-import com.carrotsearch.hppc.RamUsageEstimator;
-
-import io.crate.data.RowN;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.window.AbstractWindowFunctionTest;
 import io.crate.metadata.ColumnIdent;
 import io.crate.testing.PlainRamAccounting;
 
 public class OffsetValueFunctionsTest extends AbstractWindowFunctionTest {
-
-    private static long SHALLOW_ROW_N_SIZE = RamUsageEstimator.shallowSizeOfInstance(RowN.class);
-
 
     @Test
     public void testLagWithSingleArgumentAndEmptyOver() throws Throwable {
