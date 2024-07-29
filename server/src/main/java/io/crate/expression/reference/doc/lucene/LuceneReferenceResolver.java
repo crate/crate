@@ -161,7 +161,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             case ByteType.ID -> new ByteColumnReference(fqn);
             case ShortType.ID -> new ShortColumnReference(fqn);
             case IpType.ID -> new IpColumnReference(fqn);
-            case StringType.ID, CharacterType.ID -> new BytesRefColumnReference(fqn);
+            case StringType.ID, CharacterType.ID -> new StringColumnReference(fqn);
             case DoubleType.ID -> new DoubleColumnReference(fqn);
             case BooleanType.ID -> new BooleanColumnReference(fqn);
             case FloatType.ID -> new FloatColumnReference(fqn);

@@ -22,54 +22,30 @@
 package io.crate.expression.reference.doc.lucene;
 
 
-import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
-import io.crate.execution.engine.fetch.ReaderContext;
-import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.SortedSetDocValues;
+import java.net.InetAddress;
+import java.util.Arrays;
+
+import org.apache.lucene.document.InetAddressPoint;
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.search.DocValueFormat;
+import org.elasticsearch.common.network.NetworkAddress;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-
-public class IpColumnReference extends LuceneCollectorExpression<String> {
-
-    private final String columnName;
-    private SortedSetDocValues values;
-    private int docId;
+public class IpColumnReference extends BinaryColumnReference<String> {
 
     public IpColumnReference(String columnName) {
-        this.columnName = columnName;
+        super(columnName);
     }
 
     @Override
-    public String value() {
-        try {
-            if (values.advanceExact(docId)) {
-                long ord = values.nextOrd();
-                if (values.docValueCount() > 1) {
-                    throw new ArrayViaDocValuesUnsupportedException(columnName);
-                }
-                BytesRef encoded = values.lookupOrd(ord);
-                return (String) DocValueFormat.IP.format(encoded);
-            } else {
-                return null;
-            }
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+    protected String convert(BytesRef input) {
+        return format(input);
     }
 
-    @Override
-    public void setNextDocId(int docId) {
-        this.docId = docId;
-    }
-
-    @Override
-    public void setNextReader(ReaderContext context) throws IOException {
-        values = context.reader().getSortedSetDocValues(columnName);
-        if (values == null) {
-            values = DocValues.emptySortedSet();
-        }
+    /**
+     * Formats a byte-encoded IP address as a String
+     */
+    public static String format(BytesRef value) {
+        byte[] bytes = Arrays.copyOfRange(value.bytes, value.offset, value.offset + value.length);
+        InetAddress inet = InetAddressPoint.decode(bytes);
+        return NetworkAddress.format(inet);
     }
 }

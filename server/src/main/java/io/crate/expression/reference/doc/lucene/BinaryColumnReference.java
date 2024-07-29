@@ -24,49 +24,48 @@ package io.crate.expression.reference.doc.lucene;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 
-import io.crate.execution.engine.fetch.ReaderContext;
 import org.apache.lucene.index.DocValues;
-import org.elasticsearch.index.fielddata.FieldData;
-import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
+import org.apache.lucene.index.SortedSetDocValues;
+import org.apache.lucene.util.BytesRef;
 
 import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
+import io.crate.execution.engine.fetch.ReaderContext;
 
-public class BytesRefColumnReference extends LuceneCollectorExpression<String> {
+public abstract class BinaryColumnReference<T> extends LuceneCollectorExpression<T> {
 
     private final String columnName;
-    private SortedBinaryDocValues values;
+    private SortedSetDocValues values;
     private int docId;
 
-    public BytesRefColumnReference(String columnName) {
+    public BinaryColumnReference(String columnName) {
         this.columnName = columnName;
     }
 
+    protected abstract T convert(BytesRef input);
+
     @Override
-    public String value() throws ArrayViaDocValuesUnsupportedException {
+    public final T value() throws ArrayViaDocValuesUnsupportedException {
         try {
-            if (values.advanceExact(docId)) {
-                if (values.docValueCount() == 1) {
-                    return values.nextValue().utf8ToString();
-                } else {
-                    throw new ArrayViaDocValuesUnsupportedException(columnName);
-                }
-            } else {
+            if (values.advanceExact(docId) == false) {
                 return null;
             }
+            if (values.docValueCount() > 1) {
+                throw new ArrayViaDocValuesUnsupportedException(columnName);
+            }
+            return convert(values.lookupOrd(values.nextOrd()));
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
     }
 
     @Override
-    public void setNextDocId(int docId) {
+    public final void setNextDocId(int docId) {
         this.docId = docId;
     }
 
     @Override
-    public void setNextReader(ReaderContext context) throws IOException {
-        super.setNextReader(context);
-        values = FieldData.toString(DocValues.getSortedSet(context.reader(), columnName));
+    public final void setNextReader(ReaderContext context) throws IOException {
+        values = DocValues.getSortedSet(context.reader(), columnName);
     }
 }
 

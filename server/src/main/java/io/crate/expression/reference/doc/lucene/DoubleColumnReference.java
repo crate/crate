@@ -21,56 +21,18 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
+import org.apache.lucene.util.NumericUtils;
 
-import io.crate.execution.engine.fetch.ReaderContext;
-import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.SortedNumericDocValues;
-import org.elasticsearch.index.fielddata.FieldData;
-import org.elasticsearch.index.fielddata.SortedNumericDoubleValues;
-
-import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
-
-public class DoubleColumnReference extends LuceneCollectorExpression<Double> {
-
-    private final String columnName;
-    private SortedNumericDoubleValues values;
-    private int docId;
+public class DoubleColumnReference extends NumericColumnReference<Double> {
 
     public DoubleColumnReference(String columnName) {
-        this.columnName = columnName;
+        super(columnName);
     }
 
     @Override
-    public Double value() {
-        try {
-            if (values.advanceExact(docId)) {
-                switch (values.docValueCount()) {
-                    case 1:
-                        return values.nextValue();
-
-                    default:
-                        throw new ArrayViaDocValuesUnsupportedException(columnName);
-                }
-            } else {
-                return null;
-            }
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
+    protected Double convert(long input) {
+        return NumericUtils.sortableLongToDouble(input);
     }
 
-    @Override
-    public void setNextDocId(int docId) {
-        this.docId = docId;
-    }
-
-    @Override
-    public void setNextReader(ReaderContext context) throws IOException {
-        super.setNextReader(context);
-        SortedNumericDocValues raw = DocValues.getSortedNumeric(context.reader(), columnName);
-        values = FieldData.sortableLongBitsToDoubles(raw);
-    }
 }
 
