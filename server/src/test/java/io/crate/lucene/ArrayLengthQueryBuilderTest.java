@@ -100,4 +100,10 @@ public class ArrayLengthQueryBuilderTest extends LuceneQueryBuilderTest {
         Query query = convert("array_length(o_array['xs'], 1) > 0");
         assertThat(query).hasToString("_array_length_xs:[1 TO 2147483647]");
     }
+
+    public void test_array_length_on_object_array() {
+        Query query = convert("array_length(o_array, 1) >= 1");
+        assertThat(query).hasToString(
+            "_array_length_o_array:[1 TO 2147483647]");
+    }
 }
