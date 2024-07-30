@@ -227,7 +227,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
                     state.update(values.nextValue());
                 });
         } else if (type.id() == StringType.ID) {
-            new BinaryDocValueAggregator<>(
+            return new BinaryDocValueAggregator<>(
                 ref.storageIdent(),
                 (ramAccounting, _, _) -> topKState(ramAccounting, limit),
                 (values, state) -> {
