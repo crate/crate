@@ -470,7 +470,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
         }
     }
 
-    static boolean supportedByLongSketch(DataType<?> type) {
+    private static boolean supportedByLongSketch(DataType<?> type) {
         return switch (type.id()) {
             case LongType.ID -> true;
             case DoubleType.ID -> true;
@@ -479,7 +479,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
         };
     }
 
-    static long toLong(DataType<?> type, Object o) {
+    private static long toLong(DataType<?> type, Object o) {
         return switch (type.id()) {
             case LongType.ID -> (Long) o;
             case DoubleType.ID -> NumericUtils.doubleToSortableLong((Double) o);
@@ -488,7 +488,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
         };
     }
 
-    static Object toObject(DataType<?> type, long o) {
+    private static Object toObject(DataType<?> type, long o) {
         return switch (type.id()) {
             case LongType.ID -> o;
             case DoubleType.ID -> NumericUtils.sortableLongToDouble(o);
