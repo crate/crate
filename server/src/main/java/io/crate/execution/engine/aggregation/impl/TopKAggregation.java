@@ -417,10 +417,10 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
             LongsSketch.Row[] frequentItems = sketch.getFrequentItems(ErrorType.NO_FALSE_NEGATIVES);
             int limit = Math.min(frequentItems.length, this.limit);
             var result = new ArrayList<Map<String, Object>>(limit);
-            Function<Long, Object> fromLong = longConversion.toObject;
+            Function<Long, Object> toObject = longConversion.toObject;
             for (int i = 0; i < limit; i++) {
                 var item = frequentItems[i];
-                result.add(Map.of("item", fromLong.apply(item.getItem()), "frequency", item.getEstimate()));
+                result.add(Map.of("item", toObject.apply(item.getItem()), "frequency", item.getEstimate()));
             }
             return result;
         }
