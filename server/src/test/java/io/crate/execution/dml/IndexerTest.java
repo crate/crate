@@ -810,7 +810,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
         var indexer = getIndexer(e, "tbl", "xs");
         ParsedDocument doc = indexer.index(item(List.of()));
-        assertThat(doc.doc().getFields(toArrayLengthFieldName((Reference) e.asSymbol("xs")))[0].toString())
+        assertThat(doc.doc().getFields(toArrayLengthFieldName((Reference) e.asSymbol("xs"), table::getReference))[0].toString())
             .isEqualTo("IntField <_array_length_1:0>");
         assertTranslogParses(doc, table);
     }
@@ -820,10 +820,11 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (xs int[] index off storage with (columnstore='false'))",
                 Settings.builder().put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), Version.V_5_8_0).build());
+        DocTableInfo table = e.resolveTableInfo("tbl");
 
         var indexer = getIndexer(e, "tbl", "xs");
         ParsedDocument doc = indexer.index(item(List.of()));
-        var arrayLengthField = doc.doc().getFields(toArrayLengthFieldName((Reference) e.asSymbol("xs")));
+        var arrayLengthField = doc.doc().getFields(toArrayLengthFieldName((Reference) e.asSymbol("xs"), table::getReference));
         assertThat(arrayLengthField).isEmpty();
     }
 
