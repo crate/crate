@@ -171,13 +171,7 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
             // Storage of the multidimensional arrays is not supported.
             return null;
         }
-        DataType<?> elementType = ArrayType.unnest(arrayRef.valueType());
-        if (elementType.id() == ObjectType.ID || elementType.equals(DataTypes.GEO_SHAPE)) {
-            // No doc-values for these, can't utilize doc-value-count
-            return null;
-        }
         int cmpVal = cmpNumber.intValue();
-
         // If the array col is from a table created on or after 5.9, we can utilize '_array_length_' indexes,
         // see ArrayIndexer for details
         if (context.nodeContext().schemas().getTableInfo((arrayRef).ident().tableIdent()) instanceof DocTableInfo tableInfo &&
@@ -190,7 +184,11 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
             // Cannot utilize `_array_length_` index for arrays in tables created before 5.9
             return null;
         }
-
+        DataType<?> elementType = ArrayType.unnest(arrayRef.valueType());
+        if (elementType.id() == ObjectType.ID || elementType.equals(DataTypes.GEO_SHAPE)) {
+            // No doc-values for these, can't utilize doc-value-count
+            return null;
+        }
         // For numeric types all values are stored, so the doc-value-count represents the number of not-null values
         // Only unique values are stored for IP and TEXT types, so the doc-value-count represents the number of unique not-null  values
         // [a, a, a]
