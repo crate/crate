@@ -41,6 +41,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.search.DocValueFormat;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.Streamer;
@@ -66,6 +67,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
+import io.crate.types.IpType;
 import io.crate.types.LongType;
 import io.crate.types.StringType;
 import io.crate.types.TypeSignature;
@@ -231,7 +233,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
                 (values, state) -> {
                     long ord = values.nextOrd();
                     BytesRef value = values.lookupOrd(ord);
-                    state.update(value.utf8ToString());
+                    state.update(value);
                 });
         }
         return null;
@@ -351,7 +353,8 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
             var result = new ArrayList<Map<String, Object>>(limit);
             for (int i = 0; i < limit; i++) {
                 var item = frequentItems[i];
-                result.add(Map.of("item", item.getItem(), "frequency", item.getEstimate()));
+                BytesRef item1 = (BytesRef) item.getItem();
+                result.add(Map.of("item", item1.utf8ToString(), "frequency", item.getEstimate()));
             }
             return result;
         }
@@ -427,7 +430,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
             var result = new ArrayList<Map<String, Object>>(limit);
             for (int i = 0; i < limit; i++) {
                 var item = frequentItems[i];
-                result.add(Map.of("item", toObject(dataType, item.getItem()), "frequency", item.getEstimate()));
+                result.add(Map.of("item", longToObject(dataType, item.getItem()), "frequency", item.getEstimate()));
             }
             return result;
         }
@@ -444,7 +447,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
 
         @Override
         void update(Object value) {
-            sketch.update(toLong(dataType, value));
+            sketch.update(objectToLong(dataType, value));
         }
 
         @Override
@@ -479,7 +482,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
         };
     }
 
-    private static long toLong(DataType<?> type, Object o) {
+    private static long objectToLong(DataType<?> type, Object o) {
         return switch (type.id()) {
             case LongType.ID -> (Long) o;
             case DoubleType.ID -> NumericUtils.doubleToSortableLong((Double) o);
@@ -488,7 +491,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
         };
     }
 
-    private static Object toObject(DataType<?> type, long o) {
+    private static Object longToObject(DataType<?> type, long o) {
         return switch (type.id()) {
             case LongType.ID -> o;
             case DoubleType.ID -> NumericUtils.sortableLongToDouble(o);
@@ -496,6 +499,14 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
             default -> throw new IllegalArgumentException("Long value cannot be converted");
         };
     }
+
+//    private static Object byteRefToObject(DataType<?> type, BytesRef ref) {
+//        return switch (type.id()) {
+//            case StringType.ID -> ref.utf8ToString();
+//            case IpType.ID -> DocValueFormat.IP.format(ref);
+//            default -> throw new IllegalArgumentException("ByteRef cannot be converted");
+//        };
+//    }
 
     private State initState(RamAccounting ramAccounting, int limit) {
         if (limit <= 0 || limit > MAX_LIMIT) {
