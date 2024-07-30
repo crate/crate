@@ -47,6 +47,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.lucene.LuceneQueryBuilder.Context;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
@@ -176,7 +177,7 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
         // see ArrayIndexer for details
         if (context.nodeContext().schemas().getTableInfo((arrayRef).ident().tableIdent()) instanceof DocTableInfo tableInfo &&
             tableInfo.versionCreated().onOrAfter(Version.V_5_9_0)) {
-            return toQueryUsingArrayLengthIndex(parentName, arrayRef, cmpVal);
+            return toQueryUsingArrayLengthIndex(parentName, arrayRef, cmpVal, tableInfo::getReference);
         }
 
         DataType<?> innerType = ((ArrayType<?>) arrayRef.valueType()).innerType();
@@ -300,35 +301,35 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
         }
     }
 
-    private static Query toQueryUsingArrayLengthIndex(String operator, Reference arrayRef, int cmpVal) {
+    private static Query toQueryUsingArrayLengthIndex(String operator, Reference arrayRef, int cmpVal, java.util.function.Function<ColumnIdent, Reference> getRef) {
         switch (operator) {
             case EqOperator.NAME:
                 if (cmpVal == 0) {
                     return new MatchNoDocsQuery("array_length([], 1) is NULL, so array_length([], 1) = 0 can't match");
                 }
-                return new IntEqQuery().termQuery(toArrayLengthFieldName(arrayRef), cmpVal, true, true);
+                return new IntEqQuery().termQuery(toArrayLengthFieldName(arrayRef, getRef), cmpVal, true, true);
 
             case GtOperator.NAME:
-                return new IntEqQuery().rangeQuery(toArrayLengthFieldName(arrayRef), cmpVal, null, false, false, true, true);
+                return new IntEqQuery().rangeQuery(toArrayLengthFieldName(arrayRef, getRef), cmpVal, null, false, false, true, true);
 
             case GteOperator.NAME:
                 if (cmpVal == 0) {
-                    return new IntEqQuery().rangeQuery(toArrayLengthFieldName(arrayRef), 0, null, false, false, true, true);
+                    return new IntEqQuery().rangeQuery(toArrayLengthFieldName(arrayRef, getRef), 0, null, false, false, true, true);
                 } else {
-                    return new IntEqQuery().rangeQuery(toArrayLengthFieldName(arrayRef), cmpVal, null, true, false, true, true);
+                    return new IntEqQuery().rangeQuery(toArrayLengthFieldName(arrayRef, getRef), cmpVal, null, true, false, true, true);
                 }
 
             case LtOperator.NAME:
                 if (cmpVal == 0 || cmpVal == 1) {
                     return new MatchNoDocsQuery("array_length([], 1) is NULL, so array_length([], 1) < 0 or < 1 can't match");
                 }
-                return new IntEqQuery().rangeQuery(toArrayLengthFieldName(arrayRef), 0, cmpVal, false, false, true, true);
+                return new IntEqQuery().rangeQuery(toArrayLengthFieldName(arrayRef, getRef), 0, cmpVal, false, false, true, true);
 
             case LteOperator.NAME:
                 if (cmpVal == 0) {
                     return new MatchNoDocsQuery("array_length([], 1) is NULL, so array_length([], 1) <= 0 can't match");
                 }
-                return new IntEqQuery().rangeQuery(toArrayLengthFieldName(arrayRef), 0, cmpVal, false, true, true, true);
+                return new IntEqQuery().rangeQuery(toArrayLengthFieldName(arrayRef, getRef), 0, cmpVal, false, true, true, true);
 
             default:
                 throw new IllegalArgumentException("Illegal operator: " + operator);
