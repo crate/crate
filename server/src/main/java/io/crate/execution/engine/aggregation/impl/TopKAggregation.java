@@ -330,9 +330,10 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
         private final ItemsSketch<Object> sketch;
         private final int limit;
 
-        TopKState(ItemsSketch<Object> sketch, int limit) {
+        TopKState(ItemsSketch<Object> sketch, int limit, boolean hasByteRef) {
             this.sketch = sketch;
             this.limit = limit;
+            this.hasByteRef = hasByteRef;
         }
 
         @SuppressWarnings({"rawtypes", "unchecked"})
@@ -351,6 +352,9 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
             var result = new ArrayList<Map<String, Object>>(limit);
             for (int i = 0; i < limit; i++) {
                 var item = frequentItems[i];
+                if (hasByteRef) {
+                    item = fromByteRef(type)
+                }
                 result.add(Map.of("item", item.getItem(), "frequency", item.getEstimate()));
             }
             return result;
@@ -500,7 +504,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
         };
     }
 
-    private static Object toObject(DataType<?> type, BytesRef b) {
+    private static Object fromByteRef(DataType<?> type, BytesRef b) {
         return switch (type.id()) {
             case StringType.ID -> b.utf8ToString();
             default -> throw new IllegalArgumentException("ByteRef value cannot be converted");
