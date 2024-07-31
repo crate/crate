@@ -231,8 +231,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
                 (ramAccounting, _, _) -> topKState(ramAccounting, limit),
                 (values, state) -> {
                     long ord = values.nextOrd();
-                    BytesRef value = values.lookupOrd(ord);
-                    state.update(value.utf8ToString());
+                    state.update(values.lookupOrd(ord));
                 });
         }
         return null;
@@ -498,6 +497,13 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
             case FloatType.ID -> NumericUtils.sortableIntToFloat((int) o);
             case IntegerType.ID -> (int) o;
             default -> throw new IllegalArgumentException("Long value cannot be converted");
+        };
+    }
+
+    private static Object toObject(DataType<?> type, BytesRef b) {
+        return switch (type.id()) {
+            case StringType.ID -> b.utf8ToString();
+            default -> throw new IllegalArgumentException("ByteRef value cannot be converted");
         };
     }
 
