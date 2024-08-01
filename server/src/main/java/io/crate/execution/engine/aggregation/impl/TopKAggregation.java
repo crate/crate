@@ -406,6 +406,13 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
             out.writeByteArray(sketch.toByteArray(streamer));
         }
 
+        @Override
+        public String toString() {
+            return "TopKState{" +
+                " result=" + result() +
+                '}';
+        }
+
     }
 
     static final class TopKByteRefState extends State {
@@ -436,6 +443,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
             int limit = Math.min(frequentItems.length, this.limit);
             var result = new ArrayList<Map<String, Object>>(limit);
             for (int i = 0; i < limit; i++) {
+                System.out.println("i = " + i);
                 var item = frequentItems[i];
                 BytesRef value = item.getItem();
                 String v1 = value.utf8ToString();
@@ -484,6 +492,13 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
             out.writeInt(limit);
             SketchStreamer streamer = new SketchStreamer(new ByteRefStreamer());
             out.writeByteArray(sketch.toByteArray(streamer));
+        }
+
+        @Override
+        public String toString() {
+            return "TopKByteRefState{" +
+                " result=" + result() +
+                '}';
         }
 
         final static class ByteRefStreamer implements Streamer<BytesRef> {
