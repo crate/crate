@@ -131,11 +131,11 @@ public final class MetadataTracker implements Closeable {
     }
 
     private void stop() {
+        isActive = false;
         Cancellable currentCancellable = cancellable;
         if (currentCancellable != null) {
             currentCancellable.cancel();
         }
-        isActive = false;
     }
 
     private void schedule() {
