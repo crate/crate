@@ -64,6 +64,16 @@ public class TopKAggregationTest extends AggregationTestCase {
     }
 
     @Test
+    public void test_top_k_shorts() throws Exception {
+        execute_top_k_without_and_with_doc_values(DataTypes.SHORT);
+    }
+
+    @Test
+    public void test_top_k_byte() throws Exception {
+        execute_top_k_without_and_with_doc_values(DataTypes.BYTE);
+    }
+
+    @Test
     public void test_top_k_invalid_limit_parameters() throws Exception {
         Object[][] dataWithInvalidLimit = {
             new Object[]{1L, -1},
