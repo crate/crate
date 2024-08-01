@@ -23,6 +23,7 @@ package io.crate.operation.language;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
@@ -43,6 +44,7 @@ import io.crate.types.BitStringType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.FloatVectorType;
+import io.crate.types.NumericType;
 
 public class PolyglotValuesTest extends ESTestCase {
 
@@ -95,7 +97,32 @@ public class PolyglotValuesTest extends ESTestCase {
                     type.implicitCast(3.14)
                 );
             }
+
+            NumericType type = NumericType.of(18, 9);
+            assertEvaluatesTo(
+                context,
+                "function getValue() { return 42; }",
+                type,
+                type.implicitCast(42)
+            );
+            assertEvaluatesTo(
+                context,
+                "function getValue() { return 3.14; }",
+                type,
+                type.implicitCast(3.14)
+            );
+            assertEvaluatesTo(
+                context,
+                """
+                function getValue() {
+                    return "123456789.123456789";
+                }
+                """,
+                type,
+                new BigDecimal("123456789.123456789")
+            );
         }
+
     }
 
 
