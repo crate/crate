@@ -67,6 +67,7 @@ import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
 import io.crate.types.IntegerType;
+import io.crate.types.IpType;
 import io.crate.types.LongType;
 import io.crate.types.StringType;
 import io.crate.types.TypeSignature;
@@ -225,16 +226,18 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
                 (values, state) -> {
                     state.update(values.nextValue());
                 });
-        } else if (type.id() == StringType.ID) {
-            return new BinaryDocValueAggregator<>(
+        }
+        return switch(type.id()) {
+            case IpType.ID, StringType.ID ->  new BinaryDocValueAggregator<>(
                 ref.storageIdent(),
                 (ramAccounting, _, _) -> topKState(ramAccounting, limit),
                 (values, state) -> {
                     long ord = values.nextOrd();
-                    state.update(values.lookupOrd(ord));
+                    BytesRef value = values.lookupOrd(ord);
+                    state.update(value);
                 });
-        }
-        return null;
+            default -> null;
+        };
     }
 
     abstract static sealed class State {
@@ -330,10 +333,9 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
         private final ItemsSketch<Object> sketch;
         private final int limit;
 
-        TopKState(ItemsSketch<Object> sketch, int limit, boolean hasByteRef) {
+        TopKState(ItemsSketch<Object> sketch, int limit) {
             this.sketch = sketch;
             this.limit = limit;
-            this.hasByteRef = hasByteRef;
         }
 
         @SuppressWarnings({"rawtypes", "unchecked"})
@@ -352,10 +354,11 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
             var result = new ArrayList<Map<String, Object>>(limit);
             for (int i = 0; i < limit; i++) {
                 var item = frequentItems[i];
-                if (hasByteRef) {
-                    item = fromByteRef(type)
+                Object value = item.getItem();
+                if (value instanceof BytesRef b) {
+                    value = b.utf8ToString();
                 }
-                result.add(Map.of("item", item.getItem(), "frequency", item.getEstimate()));
+                result.add(Map.of("item", value, "frequency", item.getEstimate()));
             }
             return result;
         }
@@ -401,10 +404,106 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
 
     }
 
+    static final class TopKByteRefState extends State {
+
+        static long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(TopKByteRefState.class);
+        static final int ID = 2;
+
+        private final ItemsSketch<BytesRef> sketch;
+        private final int limit;
+
+        TopKByteRefState(ItemsSketch<BytesRef> sketch, int limit) {
+            this.sketch = sketch;
+            this.limit = limit;
+        }
+
+        @SuppressWarnings({"rawtypes", "unchecked"})
+        TopKByteRefState(StreamInput in, DataType<?> innerType) throws IOException {
+            this.limit = in.readInt();
+            SketchStreamer streamer = new SketchStreamer(new ByteRefStreamer());
+            this.sketch = ItemsSketch.getInstance(Memory.wrap(in.readByteArray()), streamer);
+        }
+
+        public List<Map<String, Object>> result() {
+            if (sketch.isEmpty()) {
+                return List.of();
+            }
+            ItemsSketch.Row<BytesRef>[] frequentItems = sketch.getFrequentItems(ErrorType.NO_FALSE_NEGATIVES);
+            int limit = Math.min(frequentItems.length, this.limit);
+            var result = new ArrayList<Map<String, Object>>(limit);
+            for (int i = 0; i < limit; i++) {
+                var item = frequentItems[i];
+                BytesRef value = item.getItem();
+                result.add(Map.of("item", value.utf8ToString(), "frequency", item.getEstimate()));
+            }
+            return result;
+        }
+
+        @Override
+        int limit() {
+            return limit;
+        }
+
+        @Override
+        int id() {
+            return ID;
+        }
+
+        @Override
+        State merge(State other) {
+            if (other instanceof Empty) {
+                return this;
+            } else if (other instanceof TopKByteRefState otherTopk) {
+                return new TopKByteRefState(this.sketch.merge(otherTopk.sketch), limit);
+            }
+            throw new IllegalArgumentException("Cannot merge state");
+        }
+
+        @Override
+        void update(Object value) {
+            if (value instanceof BytesRef b) {
+                sketch.update(b);
+            }
+        }
+
+        @Override
+        void update(long value) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        @SuppressWarnings({"rawtypes", "unchecked"})
+        void writeTo(StreamOutput out, DataType<?> innerType) throws IOException {
+            super.writeTo(out, innerType);
+            out.writeInt(limit);
+            SketchStreamer streamer = new SketchStreamer(new ByteRefStreamer());
+            out.writeByteArray(sketch.toByteArray(streamer));
+        }
+
+        final static class ByteRefStreamer implements Streamer<BytesRef> {
+
+            @Override
+            public BytesRef readValueFrom(StreamInput in) throws IOException {
+                int offset = in.readInt();
+                int length = in.readInt();
+                byte[] bytes = new byte[length];
+                in.read(bytes, offset, length);
+                return new BytesRef(bytes, offset, length);
+            }
+
+            @Override
+            public void writeValueTo(StreamOutput out, BytesRef v) throws IOException {
+                out.writeInt(v.offset);
+                out.writeInt(v.length);
+                out.write(v.bytes);
+            }
+        }
+    }
+
     static final class TopKLongState extends State {
 
         static long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(TopKLongState.class);
-        static final int ID = 2;
+        static final int ID = 3;
 
         private final LongsSketch sketch;
         private final DataType<?> dataType;
@@ -504,13 +603,6 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
         };
     }
 
-    private static Object fromByteRef(DataType<?> type, BytesRef b) {
-        return switch (type.id()) {
-            case StringType.ID -> b.utf8ToString();
-            default -> throw new IllegalArgumentException("ByteRef value cannot be converted");
-        };
-    }
-
     private State initState(RamAccounting ramAccounting, int limit) {
         if (limit <= 0 || limit > MAX_LIMIT) {
             throw new IllegalArgumentException(
@@ -534,6 +626,12 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
         int maxMapSize = maxMapSize(limit);
         ramAccounting.addBytes(calculateRamUsage(maxMapSize) + TopKLongState.SHALLOW_SIZE);
         return new TopKLongState(new LongsSketch(maxMapSize), dataType, limit);
+    }
+
+    private TopKByteRefState topKByteRefState(RamAccounting ramAccounting, DataType<?> dataType, int limit) {
+        int maxMapSize = maxMapSize(limit);
+        ramAccounting.addBytes(calculateRamUsage(maxMapSize) + TopKByteRefState.SHALLOW_SIZE);
+        return new TopKByteRefState(new ItemsSketch<BytesRef>(maxMapSize), limit);
     }
 
     static final class StateType extends DataType<State> implements Streamer<State> {
