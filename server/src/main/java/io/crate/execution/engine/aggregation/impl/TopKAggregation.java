@@ -228,12 +228,14 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
                 });
         }
         return switch(type.id()) {
-            case IpType.ID, StringType.ID ->  new BinaryDocValueAggregator<>(
+            case StringType.ID ->  new BinaryDocValueAggregator<>(
                 ref.storageIdent(),
-                (ramAccounting, _, _) -> topKState(ramAccounting, limit),
+                (ramAccounting, _, _) -> topKByteRefState(ramAccounting, type, limit),
                 (values, state) -> {
                     long ord = values.nextOrd();
                     BytesRef value = values.lookupOrd(ord);
+                    System.out.println("insert = " + value.utf8ToString());
+                    System.out.println("hash = " + value.hashCode());
                     state.update(value);
                 });
             default -> null;
@@ -266,6 +268,9 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
                 case TopKState.ID -> {
                     return new TopKState(in, innerType);
                 }
+                case TopKByteRefState.ID -> {
+                    return new TopKByteRefState(in, innerType);
+                }
                 case TopKLongState.ID -> {
                     return new TopKLongState(in, innerType);
                 }
@@ -278,14 +283,16 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
+            if (!(o instanceof State)) return false;
             State state = (State) o;
-            return id() == state.id() && limit() == state.limit() && Objects.equals(result(), state.result());
+            List<Map<String, Object>> result = result();
+            List<Map<String, Object>> result1 = state.result();
+            return limit() == state.limit() && Objects.equals(result, result1);
         }
 
         @Override
         public int hashCode() {
-            return Objects.hash(id(), result(), limit());
+            return Objects.hash(result(), limit());
         }
 
     }
@@ -355,9 +362,6 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
             for (int i = 0; i < limit; i++) {
                 var item = frequentItems[i];
                 Object value = item.getItem();
-                if (value instanceof BytesRef b) {
-                    value = b.utf8ToString();
-                }
                 result.add(Map.of("item", value, "frequency", item.getEstimate()));
             }
             return result;
@@ -434,7 +438,9 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
             for (int i = 0; i < limit; i++) {
                 var item = frequentItems[i];
                 BytesRef value = item.getItem();
-                result.add(Map.of("item", value.utf8ToString(), "frequency", item.getEstimate()));
+                String v1 = value.utf8ToString();
+                System.out.println("out = " + v1);
+                result.add(Map.of("item", v1, "frequency", item.getEstimate()));
             }
             return result;
         }
@@ -631,7 +637,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
     private TopKByteRefState topKByteRefState(RamAccounting ramAccounting, DataType<?> dataType, int limit) {
         int maxMapSize = maxMapSize(limit);
         ramAccounting.addBytes(calculateRamUsage(maxMapSize) + TopKByteRefState.SHALLOW_SIZE);
-        return new TopKByteRefState(new ItemsSketch<BytesRef>(maxMapSize), limit);
+        return new TopKByteRefState(new ItemsSketch<>(maxMapSize), limit);
     }
 
     static final class StateType extends DataType<State> implements Streamer<State> {

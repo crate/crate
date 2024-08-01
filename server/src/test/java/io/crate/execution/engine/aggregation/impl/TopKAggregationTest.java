@@ -144,7 +144,13 @@ public class TopKAggregationTest extends AggregationTestCase {
         var generator = DataTypeTesting.getDataGenerator(dataType);
         var first = generator.get();
         var second = generator.get();
+        while (second.equals(first)) {
+            second = generator.get();
+        }
         var third = generator.get();
+        while (third.equals(first) || third.equals(second)) {
+            third = generator.get();
+        }
 
         Object[][] data = {
             new Object[]{first},
