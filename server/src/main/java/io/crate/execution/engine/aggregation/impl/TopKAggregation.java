@@ -226,20 +226,17 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
                 (values, state) -> {
                     state.update(values.nextValue());
                 });
-        }
-        return switch(type.id()) {
-            case StringType.ID ->  new BinaryDocValueAggregator<>(
+        } else if (type.id() == StringType.ID){
+            return new BinaryDocValueAggregator<>(
                 ref.storageIdent(),
                 (ramAccounting, _, _) -> topKByteRefState(ramAccounting, type, limit),
                 (values, state) -> {
                     long ord = values.nextOrd();
                     BytesRef value = values.lookupOrd(ord);
-                    System.out.println("insert = " + value.utf8ToString());
-                    System.out.println("hash = " + value.hashCode());
-                    state.update(value);
+                    state.insert(BytesRef.deepCopyOf(value));
                 });
-            default -> null;
         };
+        return null;
     }
 
     abstract static sealed class State {
@@ -284,10 +281,10 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
         public boolean equals(Object o) {
             if (this == o) return true;
             if (!(o instanceof State)) return false;
-            State state = (State) o;
+            State other = (State) o;
             List<Map<String, Object>> result = result();
-            List<Map<String, Object>> result1 = state.result();
-            return limit() == state.limit() && Objects.equals(result, result1);
+            List<Map<String, Object>> result1 = other.result();
+            return limit() == other.limit() && Objects.equals(result, result1);
         }
 
         @Override
@@ -412,7 +409,6 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
                 " result=" + result() +
                 '}';
         }
-
     }
 
     static final class TopKByteRefState extends State {
@@ -443,11 +439,9 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
             int limit = Math.min(frequentItems.length, this.limit);
             var result = new ArrayList<Map<String, Object>>(limit);
             for (int i = 0; i < limit; i++) {
-                System.out.println("i = " + i);
                 var item = frequentItems[i];
                 BytesRef value = item.getItem();
                 String v1 = value.utf8ToString();
-                System.out.println("out = " + v1);
                 result.add(Map.of("item", v1, "frequency", item.getEstimate()));
             }
             return result;
@@ -473,11 +467,13 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
             throw new IllegalArgumentException("Cannot merge state");
         }
 
+        void insert(BytesRef value) {
+            sketch.update(value);
+        }
+
         @Override
         void update(Object value) {
-            if (value instanceof BytesRef b) {
-                sketch.update(b);
-            }
+            throw new UnsupportedOperationException();
         }
 
         @Override
