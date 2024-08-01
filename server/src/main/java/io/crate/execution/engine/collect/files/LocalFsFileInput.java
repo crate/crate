@@ -47,6 +47,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static io.crate.execution.engine.collect.files.FileReadingIterator.toURI;
+import io.crate.execution.engine.collect.files.Globs.GlobPredicate;
 import static java.nio.file.FileVisitOption.FOLLOW_LINKS;
 
 public class LocalFsFileInput implements FileInput {
@@ -59,7 +60,7 @@ public class LocalFsFileInput implements FileInput {
     @VisibleForTesting
     final URI preGlobUri;
     @NotNull
-    private final Predicate<URI> uriPredicate;
+    private final Predicate<String> uriPredicate;
 
     public LocalFsFileInput(URI uri) throws IOException {
         Matcher hasGlobMatcher = HAS_GLOBS_PATTERN.matcher(uri.toString());
@@ -80,7 +81,7 @@ public class LocalFsFileInput implements FileInput {
             this.uri = uri;
             this.preGlobUri = null;
         }
-        this.uriPredicate = new GlobPredicate(this.uri);
+        this.uriPredicate = new GlobPredicate(this.uri.toString());
     }
 
     @Override
@@ -133,7 +134,7 @@ public class LocalFsFileInput implements FileInput {
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
                 URI uri = file.toUri();
-                if (uriPredicate.test(uri)) {
+                if (uriPredicate.test(uri.toString())) {
                     uris.add(uri);
                 }
                 return FileVisitResult.CONTINUE;
@@ -159,19 +160,6 @@ public class LocalFsFileInput implements FileInput {
             return Math.toIntExact(str.chars().filter(ch -> ch == c).count());
         } catch (ArithmeticException e) {
             throw new IOException("Provided URI is too long");
-        }
-    }
-
-    private static class GlobPredicate implements Predicate<URI> {
-        private final Pattern globPattern;
-
-        GlobPredicate(URI fileUri) {
-            this.globPattern = Pattern.compile(Globs.toUnixRegexPattern(fileUri.toString()));
-        }
-
-        @Override
-        public boolean test(@Nullable URI input) {
-            return input != null && globPattern.matcher(input.toString()).matches();
         }
     }
 }
