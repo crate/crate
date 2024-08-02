@@ -62,12 +62,14 @@ import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.statistics.SketchStreamer;
 import io.crate.types.ArrayType;
+import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
 import io.crate.types.IntegerType;
 import io.crate.types.LongType;
+import io.crate.types.ShortType;
 import io.crate.types.StringType;
 import io.crate.types.TypeSignature;
 
@@ -477,6 +479,8 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
             case DoubleType.ID -> true;
             case FloatType.ID -> true;
             case IntegerType.ID -> true;
+            case ShortType.ID -> true;
+            case ByteType.ID -> true;
             default -> false;
         };
     }
@@ -487,6 +491,8 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
             case DoubleType.ID -> NumericUtils.doubleToSortableLong((Double) o);
             case FloatType.ID -> (long) NumericUtils.floatToSortableInt((Float) o);
             case IntegerType.ID -> ((Integer) o).longValue();
+            case ShortType.ID -> ((Short) o).longValue();
+            case ByteType.ID -> ((Byte) o).longValue();
             default -> throw new IllegalArgumentException("Type cannot be converted to long");
         };
     }
@@ -497,6 +503,8 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
             case DoubleType.ID -> NumericUtils.sortableLongToDouble(o);
             case FloatType.ID -> NumericUtils.sortableIntToFloat((int) o);
             case IntegerType.ID -> (int) o;
+            case ShortType.ID -> (short) o;
+            case ByteType.ID -> (byte) o;
             default -> throw new IllegalArgumentException("Long value cannot be converted");
         };
     }
