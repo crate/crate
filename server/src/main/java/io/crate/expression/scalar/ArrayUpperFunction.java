@@ -185,6 +185,12 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
             return toQueryUsingArrayLengthIndex(parentName, arrayRef, cmpVal);
         }
 
+        DataType<?> innerType = ((ArrayType<?>) arrayRef.valueType()).innerType();
+        if (innerType instanceof ArrayType<?>) {
+            // Cannot utilize `_array_length_` index for arrays in tables created before 5.9
+            return null;
+        }
+
         // For numeric types all values are stored, so the doc-value-count represents the number of not-null values
         // Only unique values are stored for IP and TEXT types, so the doc-value-count represents the number of unique not-null  values
         // [a, a, a]
