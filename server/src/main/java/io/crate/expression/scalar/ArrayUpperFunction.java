@@ -168,6 +168,10 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
             return null;
         }
         Reference arrayRef = (Reference) arraySymbol;
+        DataType<?> innerType = ((ArrayType<?>) arrayRef.valueType()).innerType();
+        if (innerType instanceof ArrayType<?>) {
+            return null;
+        }
         DataType<?> elementType = ArrayType.unnest(arrayRef.valueType());
         if (elementType.id() == ObjectType.ID || elementType.equals(DataTypes.GEO_SHAPE)) {
             // No doc-values for these, can't utilize doc-value-count
