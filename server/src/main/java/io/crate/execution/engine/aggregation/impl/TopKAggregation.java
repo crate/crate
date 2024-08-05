@@ -41,6 +41,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.network.NetworkUtils;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.Streamer;
@@ -68,6 +69,7 @@ import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
 import io.crate.types.IntegerType;
+import io.crate.types.IpType;
 import io.crate.types.LongType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
@@ -236,6 +238,15 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
                     long ord = values.nextOrd();
                     BytesRef value = values.lookupOrd(ord);
                     state.update(value.utf8ToString());
+                });
+        } else if (type.id() == IpType.ID) {
+            return new BinaryDocValueAggregator<>(
+                ref.storageIdent(),
+                (ramAccounting, _, _) -> topKState(ramAccounting, limit),
+                (values, state) -> {
+                    long ord = values.nextOrd();
+                    BytesRef value = values.lookupOrd(ord);
+                    state.update(NetworkUtils.formatIPBytes(value));
                 });
         }
         return null;
