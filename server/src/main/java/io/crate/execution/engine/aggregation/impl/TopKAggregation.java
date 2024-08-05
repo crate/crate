@@ -71,6 +71,7 @@ import io.crate.types.IntegerType;
 import io.crate.types.LongType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
+import io.crate.types.TimestampType;
 import io.crate.types.TypeSignature;
 
 public class TopKAggregation extends AggregationFunction<TopKAggregation.State, List<Map<String, Object>>> {
@@ -481,13 +482,15 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
             case IntegerType.ID -> true;
             case ShortType.ID -> true;
             case ByteType.ID -> true;
+            case TimestampType.ID_WITHOUT_TZ -> true;
+            case TimestampType.ID_WITH_TZ -> true;
             default -> false;
         };
     }
 
     private static long toLong(DataType<?> type, Object o) {
         return switch (type.id()) {
-            case LongType.ID -> (Long) o;
+            case LongType.ID, TimestampType.ID_WITHOUT_TZ, TimestampType.ID_WITH_TZ -> (Long) o;
             case DoubleType.ID -> NumericUtils.doubleToSortableLong((Double) o);
             case FloatType.ID -> (long) NumericUtils.floatToSortableInt((Float) o);
             case IntegerType.ID -> ((Integer) o).longValue();
@@ -499,7 +502,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
 
     private static Object toObject(DataType<?> type, long o) {
         return switch (type.id()) {
-            case LongType.ID -> o;
+            case LongType.ID, TimestampType.ID_WITHOUT_TZ, TimestampType.ID_WITH_TZ -> o;
             case DoubleType.ID -> NumericUtils.sortableLongToDouble(o);
             case FloatType.ID -> NumericUtils.sortableIntToFloat((int) o);
             case IntegerType.ID -> (int) o;
