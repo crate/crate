@@ -27,18 +27,18 @@ import io.crate.execution.engine.fetch.ReaderContext;
 
 public class RawCollectorExpression extends LuceneCollectorExpression<String> {
 
-    private SourceLookup sourceLookup;
-    private Source source;
+    private StoredRowLookup storedRowLookup;
+    private StoredRow storedRow;
     private ReaderContext context;
 
     @Override
     public void startCollect(CollectorContext context) {
-        this.sourceLookup = context.sourceLookup();
+        this.storedRowLookup = context.storedRowLookup();
     }
 
     @Override
     public void setNextDocId(int doc) {
-        this.source = sourceLookup.getSource(context, doc);
+        this.storedRow = storedRowLookup.getStoredRow(context, doc);
     }
 
     @Override
@@ -48,6 +48,6 @@ public class RawCollectorExpression extends LuceneCollectorExpression<String> {
 
     @Override
     public String value() {
-        return source.rawSource();
+        return storedRow.asString();
     }
 }

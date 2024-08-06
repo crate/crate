@@ -28,14 +28,14 @@ import java.util.RandomAccess;
 
 import io.crate.metadata.ColumnIdent;
 
-public interface Source {
+public interface StoredRow {
 
-    Map<String, Object> sourceAsMap();
+    Map<String, Object> asMap();
 
-    String rawSource();
+    String asString();
 
     default Object get(List<String> path) {
-        return extractValue(sourceAsMap(), path, 0);
+        return extractValue(asMap(), path, 0);
     }
 
     static Object extractValue(final Map<?, ?> map, ColumnIdent columnIdent) {
