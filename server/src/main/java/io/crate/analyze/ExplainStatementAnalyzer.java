@@ -92,6 +92,10 @@ public class ExplainStatementAnalyzer {
             return null;
         }
 
+        public Void visitInsert(io.crate.sql.tree.Insert<?> node, Void context) {
+            return node.insertSource().accept(this, context);
+        }
+
         @Override
         protected Void visitNode(Node node, Void context) {
             throw new UnsupportedFeatureException("EXPLAIN is not supported for " + node);

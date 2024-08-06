@@ -81,7 +81,8 @@ Changes
 SQL Statements
 --------------
 
-None
+- Extended :ref:`ref-explain` with initial support for ``INSERT INTO``. Using
+  ``VERBOSE`` is still not supported.
 
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
