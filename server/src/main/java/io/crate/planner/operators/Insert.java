@@ -38,6 +38,7 @@ import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.MergeCountProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.execution.engine.pipeline.LimitAndOffset;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RelationName;
@@ -45,6 +46,7 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.ResultDescription;
 
 public class Insert implements LogicalPlan {
 
@@ -90,12 +92,24 @@ public class Insert implements LogicalPlan {
         var boundIndexWriterProjection = writeToTable
             .bind(x -> SubQueryAndParamBinder.convert(x, params, subQueryResults));
 
-        if (sourcePlan.resultDescription().hasRemainingLimitOrOffset()) {
+        ResultDescription resultDescription = sourcePlan.resultDescription();
+        if (resultDescription.hasRemainingLimitOrOffset()) {
             ExecutionPlan localMerge = Merge.ensureOnHandler(sourcePlan, plannerContext);
             localMerge.addProjection(boundIndexWriterProjection);
             return localMerge;
         } else {
-            sourcePlan.addProjection(boundIndexWriterProjection);
+            // this also clears the positional order by if it is present.
+            // Otherwise the following `ensureOnHandler` would try to do a sorted-merge
+            // which doesn't work after boundIndexWriterProjection becuase it returns only
+            // rowcounts in the first column
+            //
+            // Ignoring the ordering is safe as long as there is no limit (which is implied, given `hasRemainingLimitOrOffset` was false)
+            sourcePlan.addProjection(
+                boundIndexWriterProjection,
+                LimitAndOffset.NO_LIMIT,
+                LimitAndOffset.NO_OFFSET,
+                null
+            );
             ExecutionPlan localMerge = Merge.ensureOnHandler(sourcePlan, plannerContext);
             if (sourcePlan != localMerge) {
                 localMerge.addProjection(MergeCountProjection.INSTANCE);
