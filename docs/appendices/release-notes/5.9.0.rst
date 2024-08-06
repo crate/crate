@@ -125,7 +125,8 @@ Scalar and Aggregation Functions
 Performance and Resilience Improvements
 ---------------------------------------
 
-None
+- Added an optimization rule to drop unnecessary ``ORDER BY`` operations from
+  queries in ``INSERT INTO``.
 
 Administration and Operations
 -----------------------------

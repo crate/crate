@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -252,6 +253,7 @@ public class PgCatalogITest extends IntegTestCase {
             "optimizer_move_order_beneath_rename| true| Indicates if the optimizer rule MoveOrderBeneathRename is activated.| NULL| NULL",
             "optimizer_move_order_beneath_union| true| Indicates if the optimizer rule MoveOrderBeneathUnion is activated.| NULL| NULL",
             "optimizer_optimize_collect_where_clause_access| true| Indicates if the optimizer rule OptimizeCollectWhereClauseAccess is activated.| NULL| NULL",
+            "optimizer_remove_order_beneath_insert| true| Indicates if the optimizer rule RemoveOrderBeneathInsert is activated.| NULL| NULL",
             "optimizer_remove_redundant_eval| true| Indicates if the optimizer rule RemoveRedundantEval is activated.| NULL| NULL",
             "optimizer_reorder_hash_join| true| Indicates if the optimizer rule ReorderHashJoin is activated.| NULL| NULL",
             "optimizer_reorder_nested_loop_join| true| Indicates if the optimizer rule ReorderNestedLoopJoin is activated.| NULL| NULL",

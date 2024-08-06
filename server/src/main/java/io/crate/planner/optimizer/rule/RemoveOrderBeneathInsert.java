@@ -19,31 +19,32 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.planner.operators;
+package io.crate.planner.optimizer.rule;
 
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import static io.crate.planner.optimizer.matcher.Patterns.source;
 
-import io.crate.expression.tablefunctions.ValuesFunction;
+import io.crate.planner.operators.Insert;
+import io.crate.planner.operators.LogicalPlan;
+import io.crate.planner.operators.Order;
 import io.crate.planner.optimizer.Rule;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
 
-public class RewriteInsertFromSubQueryToInsertFromValues implements Rule<Insert> {
+/**
+ * Transform `Insert -> Order -> X` into `Insert -> X`
+ * Ordering without limit/offset doesn't affect result set for insert
+ */
+public class RemoveOrderBeneathInsert implements Rule<Insert> {
 
-    private final Capture<TableFunction> capture;
     private final Pattern<Insert> pattern;
+    private final Capture<Order> orderCapture;
 
-    public RewriteInsertFromSubQueryToInsertFromValues() {
-        this.capture = new Capture<>();
+    public RemoveOrderBeneathInsert() {
+        this.orderCapture = new Capture<>();
         this.pattern = typeOf(Insert.class)
-            .with(source(), typeOf(TableFunction.class).capturedAs(capture));
-    }
-
-    @Override
-    public boolean mandatory() {
-        return true;
+            .with(source(), typeOf(Order.class).capturedAs(orderCapture));
     }
 
     @Override
@@ -52,15 +53,8 @@ public class RewriteInsertFromSubQueryToInsertFromValues implements Rule<Insert>
     }
 
     @Override
-    public LogicalPlan apply(Insert plan,
-                             Captures captures,
-                             Rule.Context context) {
-        TableFunction tableFunction = captures.get(this.capture);
-        var relation = tableFunction.relation();
-        if (relation.function().name().equals(ValuesFunction.NAME)) {
-            return new InsertFromValues(tableFunction.relation(), plan.columnIndexWriterProjection());
-        } else {
-            return null;
-        }
+    public LogicalPlan apply(Insert insert, Captures captures, Context context) {
+        Order order = captures.get(orderCapture);
+        return insert.replaceSources(order.sources());
     }
 }
