@@ -32,7 +32,7 @@ public class CollectorContext {
     private final Set<Reference> droppedColumns;
     private final UnaryOperator<String> lookupNameBySourceKey;
 
-    private SourceLookup sourceLookup;
+    private StoredRowLookup storedRowLookup;
 
     public CollectorContext(Set<Reference> droppedColumns, UnaryOperator<String> lookupNameBySourceKey) {
         this(-1, droppedColumns, lookupNameBySourceKey);
@@ -48,17 +48,17 @@ public class CollectorContext {
         return readerId;
     }
 
-    public SourceLookup sourceLookup() {
-        if (sourceLookup == null) {
-            sourceLookup = new SourceLookup(droppedColumns, lookupNameBySourceKey);
+    public StoredRowLookup storedRowLookup() {
+        if (storedRowLookup == null) {
+            storedRowLookup = new StoredRowLookup(droppedColumns, lookupNameBySourceKey);
         }
-        return sourceLookup;
+        return storedRowLookup;
     }
 
-    public SourceLookup sourceLookup(Reference ref) {
-        if (sourceLookup == null) {
-            sourceLookup = new SourceLookup(droppedColumns, lookupNameBySourceKey);
+    public StoredRowLookup storedRowLookup(Reference ref) {
+        if (storedRowLookup == null) {
+            storedRowLookup = new StoredRowLookup(droppedColumns, lookupNameBySourceKey);
         }
-        return sourceLookup.registerRef(ref);
+        return storedRowLookup.registerRef(ref);
     }
 }

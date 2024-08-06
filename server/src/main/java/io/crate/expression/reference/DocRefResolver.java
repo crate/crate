@@ -28,7 +28,7 @@ import java.util.List;
 import io.crate.common.collections.Maps;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.NestableCollectExpression;
-import io.crate.expression.reference.doc.lucene.Source;
+import io.crate.expression.reference.doc.lucene.StoredRow;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
@@ -94,7 +94,7 @@ public final class DocRefResolver implements ReferenceResolver<CollectExpression
                             var partitionValue = partitionName.values().get(idx);
                             var source = response.getSource();
                             Maps.mergeInto(source, pColumn.name(), pColumn.path(), partitionValue);
-                            Object value = Source.extractValue(source, column);
+                            Object value = StoredRow.extractValue(source, column);
                             return ref.valueType().implicitCast(value);
                         });
                     }
@@ -104,7 +104,7 @@ public final class DocRefResolver implements ReferenceResolver<CollectExpression
                     if (response == null) {
                         return null;
                     }
-                    return ref.valueType().sanitizeValue(Source.extractValue(response.getSource(), column));
+                    return ref.valueType().sanitizeValue(StoredRow.extractValue(response.getSource(), column));
                 });
 
         }

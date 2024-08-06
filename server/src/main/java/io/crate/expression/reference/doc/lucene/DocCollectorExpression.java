@@ -30,8 +30,8 @@ import io.crate.metadata.doc.DocSysColumns;
 
 public class DocCollectorExpression extends LuceneCollectorExpression<Map<String, Object>> {
 
-    private SourceLookup sourceLookup;
-    private Source source;
+    private StoredRowLookup storedRowLookup;
+    private StoredRow source;
     private ReaderContext context;
 
     public DocCollectorExpression() {
@@ -40,13 +40,13 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
 
     @Override
     public void startCollect(CollectorContext context) {
-        sourceLookup = context.sourceLookup();
+        storedRowLookup = context.storedRowLookup();
     }
 
 
     @Override
     public void setNextDocId(int doc) {
-        this.source = sourceLookup.getSource(context, doc);
+        this.source = storedRowLookup.getStoredRow(context, doc);
     }
 
     @Override
@@ -56,7 +56,7 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
 
     @Override
     public Map<String, Object> value() {
-        return source.sourceAsMap();
+        return source.asMap();
     }
 
     public static LuceneCollectorExpression<?> create(final Reference reference) {
@@ -71,8 +71,8 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
     static final class ChildDocCollectorExpression extends LuceneCollectorExpression<Object> {
 
         private final Reference ref;
-        private SourceLookup sourceLookup;
-        private Source source;
+        private StoredRowLookup storedRowLookup;
+        private StoredRow source;
         private ReaderContext context;
 
         ChildDocCollectorExpression(Reference ref) {
@@ -81,7 +81,7 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
 
         @Override
         public void setNextDocId(int doc) {
-            this.source = sourceLookup.getSource(context, doc);
+            this.source = storedRowLookup.getStoredRow(context, doc);
         }
 
         @Override
@@ -91,7 +91,7 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
 
         @Override
         public void startCollect(CollectorContext context) {
-            sourceLookup = context.sourceLookup(ref);
+            storedRowLookup = context.storedRowLookup(ref);
         }
 
         @Override

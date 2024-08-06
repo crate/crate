@@ -32,12 +32,12 @@ import java.util.Map;
 
 import org.junit.Test;
 
-public class SourceLookupTest {
+public class StoredRowLookupTest {
 
     @Test
     public void testExtractValueFromNestedObject() {
         Map<String, Map<String, Integer>> map = singletonMap("x", singletonMap("y", 10));
-        Object o = Source.extractValue(map, Arrays.asList("x", "y"), 0);
+        Object o = StoredRow.extractValue(map, Arrays.asList("x", "y"), 0);
         assertThat(o).isEqualTo(10);
     }
 
@@ -48,7 +48,7 @@ public class SourceLookupTest {
             singletonMap("y", singletonMap("z", 10)),
             singletonMap("y", singletonMap("z", 20))
         ));
-        Object o = Source.extractValue(m, Arrays.asList("x", "y", "z"), 0);
+        Object o = StoredRow.extractValue(m, Arrays.asList("x", "y", "z"), 0);
         assertThat((Collection<Integer>) o).containsExactly(10, 20);
     }
 
@@ -56,13 +56,13 @@ public class SourceLookupTest {
     @Test
     public void testExtractValueFromNestedObjectWithListAsLeaf() {
         Map<String, List<Integer>> m = singletonMap("x", Arrays.asList(10, 20));
-        Object o = Source.extractValue(m, singletonList("x"), 0);
+        Object o = StoredRow.extractValue(m, singletonList("x"), 0);
         assertThat((Collection<Integer>) o).containsExactly(10, 20);
     }
 
     @Test
     public void test_extractValue_from_object_with_unknown_subscript_returns_null() {
         Map<String, Map<String, Integer>> m = singletonMap("x", singletonMap("a", 1)); // such that x['a'] = 1
-        assertThat(Source.extractValue(m, Arrays.asList("x", "a", "a"), 0)).isNull(); // x['a']['a'] should return null
+        assertThat(StoredRow.extractValue(m, Arrays.asList("x", "a", "a"), 0)).isNull(); // x['a']['a'] should return null
     }
 }

@@ -33,18 +33,19 @@ import org.elasticsearch.common.compress.CompressorFactory;
 import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.metadata.Reference;
 
-public final class SourceLookup {
+public final class StoredRowLookup {
 
     private final SourceFieldVisitor fieldsVisitor = new SourceFieldVisitor();
     private final SourceParser sourceParser;
+
     private int doc;
     private ReaderContext readerContext;
     private boolean docVisited = false;
     private Map<String, Object> parsedSource = null;
 
-    private final Source source = new Source() {
+    private final StoredRow storedRow = new StoredRow() {
         @Override
-        public Map<String, Object> sourceAsMap() {
+        public Map<String, Object> asMap() {
             if (parsedSource == null) {
                 ensureDocVisited();
                 parsedSource = sourceParser.parse(fieldsVisitor.source());
@@ -53,7 +54,7 @@ public final class SourceLookup {
         }
 
         @Override
-        public String rawSource() {
+        public String asString() {
             ensureDocVisited();
             try {
                 return CompressorFactory.uncompressIfNeeded(fieldsVisitor.source()).utf8ToString();
@@ -63,23 +64,23 @@ public final class SourceLookup {
         }
     };
 
-    SourceLookup(Set<Reference> droppedColumns, UnaryOperator<String> lookupNameBySourceKey) {
+    StoredRowLookup(Set<Reference> droppedColumns, UnaryOperator<String> lookupNameBySourceKey) {
         sourceParser = new SourceParser(droppedColumns, lookupNameBySourceKey);
     }
 
-    public Source getSource(ReaderContext context, int doc) {
+    public StoredRow getStoredRow(ReaderContext context, int doc) {
         if (this.doc == doc
                 && this.readerContext != null
                 && this.readerContext.reader() == context.reader()) {
             // Don't invalidate source
-            return source;
+            return storedRow;
         }
         fieldsVisitor.reset();
         this.docVisited = false;
         this.doc = doc;
         this.readerContext = context;
         this.parsedSource = null;
-        return this.source;
+        return this.storedRow;
     }
 
     private void ensureDocVisited() {
@@ -94,7 +95,7 @@ public final class SourceLookup {
         }
     }
 
-    public SourceLookup registerRef(Reference ref) {
+    public StoredRowLookup registerRef(Reference ref) {
         sourceParser.register(ref.column(), ref.valueType());
         return this;
     }
