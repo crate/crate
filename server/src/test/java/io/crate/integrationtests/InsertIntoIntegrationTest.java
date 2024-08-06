@@ -57,7 +57,7 @@ import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
 
-@IntegTestCase.ClusterScope(numDataNodes = 2)
+@IntegTestCase.ClusterScope(minNumDataNodes = 2)
 public class InsertIntoIntegrationTest extends IntegTestCase {
 
     private final Setup setup = new Setup(sqlExecutor);
@@ -2057,5 +2057,18 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
 
         execute("SELECT underreplicated_shards FROM sys.health WHERE table_name = 'tbl'");
         assertThat(response).hasRows("0"); // Used to be > 0 because of class cast exception caused by column->value mismatch in the request
+    }
+
+    @Test
+    public void test_insert_into_from_query_with_order_by() throws Exception {
+        execute("CREATE TABLE tsrc (x int, y int) CLUSTERED INTO 6 SHARDS");
+        execute("insert into tsrc (x, y) values (1, 1), (2, 2), (3, 3)");
+        execute("refresh table tsrc");
+
+        execute("create table tdst (x long, y long)");
+        // ordering on the second column is important here; ordering on the first happened to
+        // work by coincidence. See commit msg for details
+        execute("insert into tdst (x, y) (select x, y from tsrc order by y)");
+        assertThat(response).hasRowCount(3);
     }
 }
