@@ -68,6 +68,7 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
+import io.crate.types.GeoPointType;
 import io.crate.types.IntegerType;
 import io.crate.types.IpType;
 import io.crate.types.LongType;
@@ -223,7 +224,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
     @Nullable
     private DocValueAggregator<?> getDocValueAggregator(Reference ref, int limit) {
         DataType<?> type = ref.valueType();
-        if (supportedByLongSketch(type)) {
+        if (supportedByLongSketch(type) || type.id() == GeoPointType.ID) {
             return new SortedNumericDocValueAggregator<>(
                 ref.storageIdent(),
                 (ramAccounting, _, _) -> topKLongState(ramAccounting, type, limit),
@@ -519,6 +520,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
             case IntegerType.ID -> (int) o;
             case ShortType.ID -> (short) o;
             case ByteType.ID -> (byte) o;
+            case GeoPointType.ID -> GeoPointType.fromLong(o);
             default -> throw new IllegalArgumentException("Long value cannot be converted");
         };
     }

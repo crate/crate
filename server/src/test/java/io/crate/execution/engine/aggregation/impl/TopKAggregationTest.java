@@ -27,7 +27,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.util.List;
 import java.util.Map;
 
+import org.elasticsearch.common.geo.GeoPoint;
 import org.junit.Test;
+import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
+import org.locationtech.spatial4j.shape.impl.PointImpl;
 
 import io.crate.expression.symbol.Literal;
 import io.crate.operation.aggregation.AggregationTestCase;
@@ -81,6 +84,37 @@ public class TopKAggregationTest extends AggregationTestCase {
     @Test
     public void test_top_k_ip() throws Exception {
         execute_top_k_without_and_with_doc_values(DataTypes.IP);
+    }
+
+    @Test
+    public void test_top_k_geo() throws Exception {
+        var data = new Object[][]{
+            new Object[]{new PointImpl(1, 1, JtsSpatialContext.GEO)},
+            new Object[]{new PointImpl(2, 2, JtsSpatialContext.GEO)},
+            new Object[]{new PointImpl(2, 2, JtsSpatialContext.GEO)},
+            new Object[]{new PointImpl(3, 3, JtsSpatialContext.GEO)},
+            new Object[]{new PointImpl(3, 3, JtsSpatialContext.GEO)},
+            new Object[]{new PointImpl(3, 3, JtsSpatialContext.GEO)},
+
+        };
+
+        var result = executeDocValueAggregation(
+            TopKAggregation.PARAMETER_SIGNATURE,
+            List.of(DataTypes.GEO_POINT),
+            DataTypes.UNTYPED_OBJECT,
+            data,
+            true,
+            List.of()
+        );
+
+        assertThat(result)
+            .isEqualTo(
+                List.of(
+                    Map.of("item", new PointImpl(2.999999988824129, 2.999999988824129, JtsSpatialContext.GEO), "frequency", 3L),
+                    Map.of("item", new PointImpl(1.9999999646097422, 1.9999999646097422, JtsSpatialContext.GEO), "frequency", 2L),
+                    Map.of("item", new PointImpl(0.9999999403953552, 0.9999999823048711, JtsSpatialContext.GEO), "frequency", 1L)
+                )
+            );
     }
 
     @Test

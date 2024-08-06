@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.function.Function;
 
+import org.apache.lucene.geo.GeoEncodingUtils;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
@@ -218,5 +219,13 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
     @Override
     public StorageSupport<Point> storageSupport() {
         return STORAGE;
+    }
+
+    public static Point fromLong(long input) {
+        return new PointImpl(
+            GeoEncodingUtils.decodeLongitude((int) input),
+            GeoEncodingUtils.decodeLatitude((int) (input >>> 32)),
+            JtsSpatialContext.GEO
+        );
     }
 }

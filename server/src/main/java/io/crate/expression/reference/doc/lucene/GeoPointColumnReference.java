@@ -21,10 +21,9 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import org.apache.lucene.geo.GeoEncodingUtils;
-import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.Point;
-import org.locationtech.spatial4j.shape.impl.PointImpl;
+
+import io.crate.types.GeoPointType;
 
 public class GeoPointColumnReference extends NumericColumnReference<Point> {
 
@@ -34,11 +33,7 @@ public class GeoPointColumnReference extends NumericColumnReference<Point> {
 
     @Override
     protected Point convert(long input) {
-        return new PointImpl(
-            GeoEncodingUtils.decodeLongitude((int) input),
-            GeoEncodingUtils.decodeLatitude((int) (input >>> 32)),
-            JtsSpatialContext.GEO
-        );
+        return GeoPointType.fromLong(input);
     }
 
 }

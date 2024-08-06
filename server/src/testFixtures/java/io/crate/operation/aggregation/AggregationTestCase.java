@@ -176,6 +176,65 @@ public abstract class AggregationTestCase extends ESTestCase {
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
+    public Object executeDocValueAggregation(Signature maybeUnboundSignature,
+                                             List<DataType<?>> actualArgumentTypes,
+                                             DataType<?> actualReturnType,
+                                             Object[][] data,
+                                             boolean randomExtraStates,
+                                             List<Literal<?>> optionalParams) throws Exception {
+        var aggregationFunction = (AggregationFunction) nodeCtx.functions().get(
+            null,
+            maybeUnboundSignature.getName().name(),
+            Lists.map(actualArgumentTypes, t -> new InputColumn(0, t)),
+            SearchPath.pathWithPGCatalogAndDoc()
+        );
+        Version minNodeVersion = randomBoolean()
+            ? Version.CURRENT
+            : Version.V_4_0_9;
+        Object partialResultWithoutDocValues = execPartialAggregationWithoutDocValues(
+            aggregationFunction,
+            data,
+            randomExtraStates,
+            minNodeVersion
+        );
+        for (var argType : actualArgumentTypes) {
+            if (argType.storageSupport() == null) {
+                return aggregationFunction.terminatePartial(
+                    RAM_ACCOUNTING,
+                    partialResultWithoutDocValues
+                );
+            }
+        }
+        List<Reference> targetColumns = toReference(actualArgumentTypes);
+        var shard = newStartedPrimaryShard(nodeCtx, targetColumns, threadPool);
+        var refResolver = new LuceneReferenceResolver(
+            shard.shardId().getIndexName(),
+            List.of()
+        );
+
+        try {
+            insertDataIntoShard(shard, data, targetColumns);
+            shard.refresh("test");
+
+            List<Row> partialResultWithDocValues = execPartialAggregationWithDocValues(
+                refResolver,
+                aggregationFunction.signature(),
+                actualArgumentTypes,
+                actualReturnType,
+                shard,
+                minNodeVersion,
+                optionalParams
+            );
+            return aggregationFunction.terminatePartial(
+                RAM_ACCOUNTING,
+                partialResultWithDocValues.get(0).get(0)
+            );
+        } finally {
+            closeShard(shard);
+        }
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public Object executeAggregation(Signature maybeUnboundSignature,
                                      List<DataType<?>> actualArgumentTypes,
                                      DataType<?> actualReturnType,
