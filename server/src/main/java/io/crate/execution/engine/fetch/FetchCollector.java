@@ -38,6 +38,7 @@ import io.crate.execution.engine.distribution.StreamBucket;
 import io.crate.expression.InputRow;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
+import io.crate.expression.reference.doc.lucene.StoredRowLookup;
 import io.netty.util.collection.IntObjectHashMap;
 
 class FetchCollector {
@@ -61,7 +62,7 @@ class FetchCollector {
         this.ramAccounting = ramAccounting;
         this.readerId = readerId;
         var table = fetchTask.table(readerId);
-        CollectorContext collectorContext = new CollectorContext(readerId, table.droppedColumns(), table.lookupNameBySourceKey());
+        CollectorContext collectorContext = new CollectorContext(readerId, () -> StoredRowLookup.create(table));
         for (LuceneCollectorExpression<?> collectorExpression : this.collectorExpressions) {
             collectorExpression.startCollect(collectorContext);
         }

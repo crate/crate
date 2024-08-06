@@ -21,27 +21,24 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import java.util.Set;
-import java.util.function.UnaryOperator;
+import java.util.function.Supplier;
 
 import io.crate.metadata.Reference;
 
 public class CollectorContext {
 
     private final int readerId;
-    private final Set<Reference> droppedColumns;
-    private final UnaryOperator<String> lookupNameBySourceKey;
+    private final Supplier<StoredRowLookup> storedRowLookupSupplier;
 
     private StoredRowLookup storedRowLookup;
 
-    public CollectorContext(Set<Reference> droppedColumns, UnaryOperator<String> lookupNameBySourceKey) {
-        this(-1, droppedColumns, lookupNameBySourceKey);
+    public CollectorContext(Supplier<StoredRowLookup> storedRowLookupSupplier) {
+        this(-1, storedRowLookupSupplier);
     }
 
-    public CollectorContext(int readerId, Set<Reference> droppedColumns, UnaryOperator<String> lookupNameBySourceKey) {
+    public CollectorContext(int readerId, Supplier<StoredRowLookup> storedRowLookupSupplier) {
         this.readerId = readerId;
-        this.droppedColumns = droppedColumns;
-        this.lookupNameBySourceKey = lookupNameBySourceKey;
+        this.storedRowLookupSupplier = storedRowLookupSupplier;
     }
 
     public int readerId() {
@@ -50,14 +47,14 @@ public class CollectorContext {
 
     public StoredRowLookup storedRowLookup() {
         if (storedRowLookup == null) {
-            storedRowLookup = new StoredRowLookup(droppedColumns, lookupNameBySourceKey);
+            storedRowLookup = storedRowLookupSupplier.get();
         }
         return storedRowLookup;
     }
 
     public StoredRowLookup storedRowLookup(Reference ref) {
         if (storedRowLookup == null) {
-            storedRowLookup = new StoredRowLookup(droppedColumns, lookupNameBySourceKey);
+            storedRowLookup = storedRowLookupSupplier.get();
         }
         return storedRowLookup.registerRef(ref);
     }

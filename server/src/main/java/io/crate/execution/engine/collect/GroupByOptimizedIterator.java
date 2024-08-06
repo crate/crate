@@ -76,6 +76,7 @@ import io.crate.expression.InputFactory;
 import io.crate.expression.InputRow;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
+import io.crate.expression.reference.doc.lucene.StoredRowLookup;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
@@ -161,7 +162,7 @@ final class GroupByOptimizedIterator {
 
         RamAccounting ramAccounting = collectTask.getRamAccounting();
 
-        CollectorContext collectorContext = new CollectorContext(sharedShardContext.readerId(), table.droppedColumns(), table.lookupNameBySourceKey());
+        CollectorContext collectorContext = new CollectorContext(sharedShardContext.readerId(), () -> StoredRowLookup.create(table));
         InputRow inputRow = new InputRow(docCtx.topLevelInputs());
 
         LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(
