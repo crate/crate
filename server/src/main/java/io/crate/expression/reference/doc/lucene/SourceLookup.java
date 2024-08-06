@@ -23,17 +23,14 @@ package io.crate.expression.reference.doc.lucene;
 
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.io.UncheckedIOException;
 import java.util.Map;
-import java.util.RandomAccess;
 import java.util.Set;
 import java.util.function.UnaryOperator;
 
-import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.compress.CompressorFactory;
 
 import io.crate.execution.engine.fetch.ReaderContext;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 
 public final class SourceLookup {
@@ -42,52 +39,47 @@ public final class SourceLookup {
     private final SourceParser sourceParser;
     private int doc;
     private ReaderContext readerContext;
-    private Map<String, Object> source;
     private boolean docVisited = false;
+    private Map<String, Object> parsedSource = null;
+
+    private final Source source = new Source() {
+        @Override
+        public Map<String, Object> sourceAsMap() {
+            if (parsedSource == null) {
+                ensureDocVisited();
+                parsedSource = sourceParser.parse(fieldsVisitor.source());
+            }
+            return parsedSource;
+        }
+
+        @Override
+        public String rawSource() {
+            ensureDocVisited();
+            try {
+                return CompressorFactory.uncompressIfNeeded(fieldsVisitor.source()).utf8ToString();
+            } catch (IOException e) {
+                throw new UncheckedIOException("Failed to decompress source", e);
+            }
+        }
+    };
 
     SourceLookup(Set<Reference> droppedColumns, UnaryOperator<String> lookupNameBySourceKey) {
         sourceParser = new SourceParser(droppedColumns, lookupNameBySourceKey);
     }
 
-    public void setSegmentAndDocument(ReaderContext context, int doc) {
+    public Source getSource(ReaderContext context, int doc) {
         if (this.doc == doc
                 && this.readerContext != null
                 && this.readerContext.reader() == context.reader()) {
             // Don't invalidate source
-            return;
+            return source;
         }
         fieldsVisitor.reset();
         this.docVisited = false;
-        this.source = null;
         this.doc = doc;
         this.readerContext = context;
-    }
-
-    public Object get(List<String> path) {
-        ensureSourceParsed();
-        return extractValue(source, path, 0);
-    }
-
-    public Map<String, Object> sourceAsMap() {
-        ensureSourceParsed();
-        return source;
-    }
-
-    public BytesReference rawSource() {
-        ensureDocVisited();
-        return fieldsVisitor.source();
-    }
-
-    public void source(Map<String, Object> source) {
-        this.source = source;
-        docVisited = true;
-    }
-
-    private void ensureSourceParsed() {
-        if (source == null) {
-            ensureDocVisited();
-            source = sourceParser.parse(fieldsVisitor.source());
-        }
+        this.parsedSource = null;
+        return this.source;
     }
 
     private void ensureDocVisited() {
@@ -100,44 +92,6 @@ public final class SourceLookup {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    public static Object extractValue(final Map<?, ?> map, ColumnIdent columnIdent) {
-        List<String> fullPath = new ArrayList<>();
-        fullPath.add(columnIdent.name());
-        fullPath.addAll(columnIdent.path());
-        return SourceLookup.extractValue(map, fullPath, 0);
-    }
-
-    public static Object extractValue(final Map<?, ?> map, List<String> path, int pathStartIndex) {
-        assert path instanceof RandomAccess : "path should support RandomAccess for fast index optimized loop";
-        Map<?, ?> m = map;
-        Object tmp = null;
-        for (int i = pathStartIndex; i < path.size(); i++) {
-            tmp = m.get(path.get(i));
-            if (tmp instanceof Map) {
-                m = (Map<?, ?>) tmp;
-            } else if (tmp instanceof List<?> list) {
-                if (i + 1 == path.size()) {
-                    return list;
-                }
-                ArrayList<Object> newList = new ArrayList<>(list.size());
-                for (Object o : list) {
-                    if (o instanceof Map) {
-                        newList.add(extractValue((Map<?, ?>) o, path, i + 1));
-                    } else {
-                        newList.add(o);
-                    }
-                }
-                return newList;
-            } else {
-                if (i + 1 != path.size()) {
-                    return null;
-                }
-                break;
-            }
-        }
-        return tmp;
     }
 
     public SourceLookup registerRef(Reference ref) {

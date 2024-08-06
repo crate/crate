@@ -21,14 +21,14 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import io.crate.execution.engine.fetch.ReaderContext;
-import org.elasticsearch.common.compress.CompressorFactory;
-
 import java.io.IOException;
+
+import io.crate.execution.engine.fetch.ReaderContext;
 
 public class RawCollectorExpression extends LuceneCollectorExpression<String> {
 
     private SourceLookup sourceLookup;
+    private Source source;
     private ReaderContext context;
 
     @Override
@@ -38,7 +38,7 @@ public class RawCollectorExpression extends LuceneCollectorExpression<String> {
 
     @Override
     public void setNextDocId(int doc) {
-        sourceLookup.setSegmentAndDocument(context, doc);
+        this.source = sourceLookup.getSource(context, doc);
     }
 
     @Override
@@ -48,10 +48,6 @@ public class RawCollectorExpression extends LuceneCollectorExpression<String> {
 
     @Override
     public String value() {
-        try {
-            return CompressorFactory.uncompressIfNeeded(sourceLookup.rawSource()).utf8ToString();
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to uncompress source", e);
-        }
+        return source.rawSource();
     }
 }
