@@ -47,6 +47,9 @@ See the :ref:`version_5.8.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Added a ``schema`` property to the ``NodeInfo/ShardInfo`` JMX property to fix
+  an issue with Prometheus 2.52.0 rejecting values due to duplicate entries.
+
 - Fixed an issue that led to a ``IllegalStateException`` or
   ``SQLParseException`` when trying to use a user defined function which returns
   a value of type ``GEO_SHAPE`` within a ``MATCH`` predicate.

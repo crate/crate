@@ -21,19 +21,20 @@
 
 package io.crate.beans;
 
-import io.crate.common.collections.Tuple;
-import io.crate.metadata.IndexParts;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.function.Function;
+import java.util.function.Supplier;
+
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.index.shard.IndexShardState;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.function.Function;
-import java.util.function.Supplier;
+import io.crate.common.collections.Tuple;
+import io.crate.metadata.IndexParts;
 
 public class NodeInfo implements NodeInfoMXBean {
 
@@ -97,12 +98,14 @@ public class NodeInfo implements NodeInfoMXBean {
                 var shardStateAndSize = shardStateAndSizeProvider.apply(shardId);
                 if (shardStateAndSize != null) {
                     var indexParts = new IndexParts(shardId.getIndexName());
-                    result.add(new ShardInfo(shardId.id(),
-                                             indexParts.getTable(),
-                                             indexParts.getPartitionIdent(),
-                                             shardRouting.state().name(),
-                                             shardStateAndSize.v1().name(),
-                                             shardStateAndSize.v2())
+                    result.add(new ShardInfo(
+                        shardId.id(),
+                        indexParts.getSchema(),
+                        indexParts.getTable(),
+                        indexParts.getPartitionIdent(),
+                        shardRouting.state().name(),
+                        shardStateAndSize.v1().name(),
+                        shardStateAndSize.v2())
                     );
                 }
             }
