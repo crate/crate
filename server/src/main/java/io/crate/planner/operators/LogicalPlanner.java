@@ -114,6 +114,7 @@ import io.crate.planner.optimizer.rule.MoveOrderBeneathNestedLoop;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathRename;
 import io.crate.planner.optimizer.rule.MoveOrderBeneathUnion;
 import io.crate.planner.optimizer.rule.OptimizeCollectWhereClauseAccess;
+import io.crate.planner.optimizer.rule.RemoveOrderBeneathInsert;
 import io.crate.planner.optimizer.rule.RemoveRedundantEval;
 import io.crate.planner.optimizer.rule.ReorderHashJoin;
 import io.crate.planner.optimizer.rule.ReorderNestedLoopJoin;
@@ -182,11 +183,10 @@ public class LogicalPlanner {
         new RewriteToQueryThenFetch()
     );
 
-    // This rule is private because the RewriteInsertFromSubQueryToInsertFromValues
-    // rule is mandatory to make inserts from a sub-query work correctly
-    // and should therefore not be exposed to be configurable
-    private static final List<Rule<?>> WRITE_OPTIMIZER_RULES =
-        List.of(new RewriteInsertFromSubQueryToInsertFromValues());
+    public static final List<Rule<?>> WRITE_OPTIMIZER_RULES = List.of(
+        new RewriteInsertFromSubQueryToInsertFromValues(),
+        new RemoveOrderBeneathInsert()
+    );
 
     public LogicalPlanner(NodeContext nodeCtx,
                           ForeignDataWrappers foreignDataWrappers,

@@ -24,6 +24,7 @@ package io.crate.planner;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isReference;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -59,6 +60,7 @@ import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.Join;
 import io.crate.planner.operators.InsertFromValues;
+import io.crate.planner.operators.LogicalPlan;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -462,5 +464,14 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void test_insert_into_partitioned_table_with_less_columns_than_the_partition_by_ones() {
         Plan plan = e.logicalPlan("insert into double_parted (x) VALUES (1)");
         assertThat(plan).isExactlyInstanceOf(InsertFromValues.class);
+    }
+
+    @Test
+    public void test_insert_from_select_with_order_by_no_limit_or_offset_gets_removed() throws Exception {
+        LogicalPlan plan = e.logicalPlan("insert into users (id) (select id from users order by 1)");
+        assertThat(plan).hasOperators(
+            "Insert[INPUT(0)]",
+            "  └ Collect[doc.users | [id] | true]"
+        );
     }
 }
