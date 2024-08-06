@@ -21,6 +21,7 @@
 
 package io.crate.execution.dml;
 
+import static io.crate.execution.dml.ArrayIndexer.ARRAY_LENGTH_FIELD_PREFIX;
 import static io.crate.execution.dml.ArrayIndexer.toArrayLengthFieldName;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.types.GeoShapeType.Names.TREE_BKD;
@@ -812,6 +813,23 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         ParsedDocument doc = indexer.index(item(List.of()));
         assertThat(doc.doc().getFields(toArrayLengthFieldName((Reference) e.asSymbol("xs"), table::getReference))[0].toString())
             .isEqualTo("IntField <_array_length_1:0>");
+        assertTranslogParses(doc, table);
+    }
+
+    @Test
+    public void test_array_length_is_indexed_for_child_arrays() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (o_array array(object as (xs int[], o_array_2 array(object as (xs int[])))))");
+        DocTableInfo table = e.resolveTableInfo("tbl");
+
+        var indexer = getIndexer(e, "tbl", "o_array");
+        ParsedDocument doc = indexer.index(item(List.of(Map.of("xs", List.of(), "o_array_2", List.of(Map.of("xs", List.of()))))));
+        assertThat(doc.doc().getField(ARRAY_LENGTH_FIELD_PREFIX + ((Reference) e.asSymbol("o_array['xs']")).storageIdentLeafName()).toString())
+            .isEqualTo("IntField <_array_length_2:0>"); // o_array['xs'] is empty
+        assertThat(doc.doc().getField(ARRAY_LENGTH_FIELD_PREFIX + ((Reference) e.asSymbol("o_array['o_array_2']")).storageIdentLeafName()).toString())
+            .isEqualTo("IntField <_array_length_3:1>"); // 1 element of o_array['o_array_2']
+        assertThat(doc.doc().getField(ARRAY_LENGTH_FIELD_PREFIX + ((Reference) e.asSymbol("o_array['o_array_2']['xs']")).storageIdentLeafName()).toString())
+            .isEqualTo("IntField <_array_length_4:0>"); // o_array['o_array_2']['xs'] is empty
         assertTranslogParses(doc, table);
     }
 
