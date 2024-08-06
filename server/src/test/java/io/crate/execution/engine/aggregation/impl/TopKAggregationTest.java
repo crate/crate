@@ -50,7 +50,6 @@ public class TopKAggregationTest extends AggregationTestCase {
     @Test
     public void test_top_k_floats() throws Exception {
         execute_top_k_without_and_with_doc_values(DataTypes.FLOAT);
-        ;
     }
 
     @Test
@@ -99,10 +98,6 @@ public class TopKAggregationTest extends AggregationTestCase {
             List.of()
         )).isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessageStartingWith("Limit parameter for topk must be between 0 and 10_000. Got: -1");
-
-        Object[][] data = {
-            new Object[]{1L},
-        };
     }
 
     @Test
