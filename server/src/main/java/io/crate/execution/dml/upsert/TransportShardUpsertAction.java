@@ -71,7 +71,7 @@ import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.execution.engine.collect.PKLookupOperation;
 import io.crate.execution.jobs.TasksService;
 import io.crate.expression.reference.Doc;
-import io.crate.expression.reference.doc.lucene.SourceParser;
+import io.crate.expression.reference.doc.lucene.StoredRowLookup;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
@@ -424,32 +424,25 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                         ? Versions.MATCH_ANY
                         : Versions.MATCH_DELETED;
                 } else {
-                    SourceParser sourceParser;
                     DocTableInfo actualTable = tableInfo;
                     if (isRetry) {
                         // Get most-recent table info, could have changed (new columns, dropped columns)
                         actualTable = schemas.getTableInfo(tableInfo.ident());
                     }
-                    if (item.updateAssignments() != null && item.updateAssignments().length > 0) {
-                        // Use the source parser without registering any concrete column to get the complete
-                        // source which is required to write a new document with the updated values
-                        sourceParser = new SourceParser(actualTable.droppedColumns(), actualTable.lookupNameBySourceKey());
-                    } else {
-                        // No source is required for simple inserts and duplicate detection
-                        sourceParser = null;
-                    }
+                    assert updatingIndexer != null : "Dedicated indexer must be created for UPDATE or UPSERT";
+                    assert updateToInsert != null;
+                    assert item.updateAssignments() != null && item.updateAssignments().length > 0;
                     Doc doc = getDocument(
                         indexShard,
                         item.id(),
                         item.version(),
                         item.seqNo(),
                         item.primaryTerm(),
-                        sourceParser);
+                        StoredRowLookup.create(actualTable));
                     version = doc.getVersion();
                     IndexItem indexItem = updateToInsert.convert(doc, item.updateAssignments(), insertValues);
                     item.pkValues(indexItem.pkValues());
                     item.insertValues(indexItem.insertValues());
-                    assert updatingIndexer != null : "Dedicated indexer must be created for UPDATE or UPSERT";
                     request.insertColumns(updatingIndexer.insertColumns(updatingIndexer.columns()));
                 }
                 return insert(
@@ -585,10 +578,10 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                    long version,
                                    long seqNo,
                                    long primaryTerm,
-                                   @Nullable SourceParser sourceParser) {
+                                   StoredRowLookup storedRowLookup) {
         // when sequence versioning is used, this lookup will throw VersionConflictEngineException
         Doc doc = PKLookupOperation.lookupDoc(
-                indexShard, id, Versions.MATCH_ANY, VersionType.INTERNAL, seqNo, primaryTerm, sourceParser);
+                indexShard, id, Versions.MATCH_ANY, VersionType.INTERNAL, seqNo, primaryTerm, storedRowLookup);
         if (doc == null) {
             throw new DocumentMissingException(indexShard.shardId(), Constants.DEFAULT_MAPPING_TYPE, id);
         }

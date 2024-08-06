@@ -22,12 +22,12 @@
 package io.crate.expression.reference;
 
 import java.util.Map;
-import java.util.function.Supplier;
+
+import io.crate.expression.reference.doc.lucene.StoredRow;
 
 public final class Doc {
 
-    private final Map<String, Object> source;
-    private final Supplier<String> raw;
+    private final StoredRow storedRow;
     private final int docId;
     private final String index;
     private final String id;
@@ -41,14 +41,12 @@ public final class Doc {
                long version,
                long seqNo,
                long primaryTerm,
-               Map<String, Object> source,
-               Supplier<String> raw) {
+               StoredRow storedRow) {
         this.docId = docId;
         this.index = index;
         this.id = id;
         this.version = version;
-        this.source = source;
-        this.raw = raw;
+        this.storedRow = storedRow;
         this.seqNo = seqNo;
         this.primaryTerm = primaryTerm;
     }
@@ -74,11 +72,11 @@ public final class Doc {
     }
 
     public String getRaw() {
-        return raw.get();
+        return storedRow.asString();
     }
 
     public Map<String, Object> getSource() {
-        return source;
+        return storedRow.asMap();
     }
 
     public String getIndex() {
@@ -87,6 +85,6 @@ public final class Doc {
 
     @Override
     public String toString() {
-        return source != null ? source.toString() : null;
+        return storedRow != null ? storedRow.toString() : null;
     }
 }

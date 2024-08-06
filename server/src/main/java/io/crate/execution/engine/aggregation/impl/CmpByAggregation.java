@@ -42,6 +42,7 @@ import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
+import io.crate.expression.reference.doc.lucene.StoredRowLookup;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionType;
@@ -181,14 +182,14 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
                         searchField.storageIdent(),
                         searchType,
                         resultExpression,
-                        new CollectorContext(table.droppedColumns(), table.lookupNameBySourceKey())
+                        new CollectorContext(() -> StoredRowLookup.create(table))
                     );
                 } else {
                     return new MaxByLong(
                         searchField.storageIdent(),
                         searchType,
                         resultExpression,
-                        new CollectorContext(table.droppedColumns(), table.lookupNameBySourceKey())
+                        new CollectorContext(() -> StoredRowLookup.create(table))
                     );
                 }
             default:

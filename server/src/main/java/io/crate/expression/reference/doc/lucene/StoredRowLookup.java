@@ -24,6 +24,7 @@ package io.crate.expression.reference.doc.lucene;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.UnaryOperator;
@@ -31,7 +32,9 @@ import java.util.function.UnaryOperator;
 import org.elasticsearch.common.compress.CompressorFactory;
 
 import io.crate.execution.engine.fetch.ReaderContext;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
+import io.crate.metadata.doc.DocTableInfo;
 
 public final class StoredRowLookup {
 
@@ -64,7 +67,11 @@ public final class StoredRowLookup {
         }
     };
 
-    StoredRowLookup(Set<Reference> droppedColumns, UnaryOperator<String> lookupNameBySourceKey) {
+    public static StoredRowLookup create(DocTableInfo table) {
+        return new StoredRowLookup(table.droppedColumns(), table.lookupNameBySourceKey());
+    }
+
+    private StoredRowLookup(Set<Reference> droppedColumns, UnaryOperator<String> lookupNameBySourceKey) {
         sourceParser = new SourceParser(droppedColumns, lookupNameBySourceKey);
     }
 
@@ -98,5 +105,9 @@ public final class StoredRowLookup {
     public StoredRowLookup registerRef(Reference ref) {
         sourceParser.register(ref.column(), ref.valueType());
         return this;
+    }
+
+    public void register(List<Symbol> symbols) {
+        sourceParser.register(symbols);
     }
 }

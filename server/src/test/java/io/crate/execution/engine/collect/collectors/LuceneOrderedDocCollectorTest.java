@@ -28,8 +28,6 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
-import java.util.function.UnaryOperator;
 import java.util.stream.StreamSupport;
 
 import org.apache.lucene.analysis.core.KeywordAnalyzer;
@@ -380,7 +378,7 @@ public class LuceneOrderedDocCollectorTest extends RandomizedTest {
             doDocScores,
             2,
             RamAccounting.NO_ACCOUNTING,
-            new CollectorContext(Set.of(), UnaryOperator.identity()),
+            new CollectorContext(() -> null),
             f -> null,
             new Sort(SortField.FIELD_SCORE),
             columnReferences,
