@@ -279,6 +279,24 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_explain_insert() throws Exception {
+        TestingRowConsumer consumer = e.execute(
+            "explain insert into doc.users (id, name) values (1, 'Arthur')");
+        assertThat(consumer.getResult()).containsExactly(
+            new Object[] { "InsertFromValues[] (rows=unknown)" }
+        );
+
+        consumer = e.execute(
+            "explain insert into doc.users (id, name) (select id, name from doc.users limit 3)");
+        assertThat(consumer.getResult().get(0)[0].toString().split("\n")).containsExactly(
+            "Insert[INPUT(0)] (rows=1)",
+            "  └ Fetch[id, name] (rows=unknown)",
+            "    └ Limit[3::bigint;0] (rows=unknown)",
+            "      └ Collect[doc.users | [_fetchid] | true] (rows=unknown)"
+        );
+    }
+
+    @Test
     public void test_explain_verbose_costs_adds_estimated_rows_to_output() throws Exception {
         var e = SQLExecutor.of(clusterService)
             .addTable("CREATE TABLE doc.a (x int)")
