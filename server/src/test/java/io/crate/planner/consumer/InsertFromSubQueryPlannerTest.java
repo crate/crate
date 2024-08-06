@@ -32,11 +32,13 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.analyze.OrderBy;
 import io.crate.analyze.TableDefinitions;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.planner.Merge;
 import io.crate.planner.node.dql.Collect;
+import io.crate.planner.optimizer.rule.RemoveOrderBeneathInsert;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
@@ -85,10 +87,13 @@ public class InsertFromSubQueryPlannerTest extends CrateDummyClusterServiceUnitT
     @Test
     public void test_insert_from_subquery_with_order_by_symbols_match_collect_symbols() {
         // Ensures that order by symbols may also be rewritten to source lookup refs if collect symbols are rewritten
+        e.getSessionSettings().excludedOptimizerRules().add(RemoveOrderBeneathInsert.class);
         Merge localMerge = e.plan("insert into target (id, name) " +
                                   "select id, name from users order by id, name");
         Collect collect = (Collect) localMerge.subPlan();
+
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) collect.collectPhase();
-        assertThat(collectPhase.orderBy().orderBySymbols()).isEqualTo(collectPhase.toCollect());
+        OrderBy orderBy = collectPhase.orderBy();
+        assertThat(orderBy.orderBySymbols()).isEqualTo(collectPhase.toCollect());
     }
 }

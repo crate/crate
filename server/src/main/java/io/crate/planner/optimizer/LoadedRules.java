@@ -48,7 +48,8 @@ public class LoadedRules implements SessionSettingProvider {
         List<Collection<Rule<?>>> rules = List.of(
             LogicalPlanner.ITERATIVE_OPTIMIZER_RULES,
             LogicalPlanner.JOIN_ORDER_OPTIMIZER_RULES,
-            LogicalPlanner.FETCH_OPTIMIZER_RULES
+            LogicalPlanner.FETCH_OPTIMIZER_RULES,
+            LogicalPlanner.WRITE_OPTIMIZER_RULES
         );
         this.rules = new ArrayList<>();
         this.disabledRules = new HashSet<>();
