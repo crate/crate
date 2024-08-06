@@ -31,6 +31,7 @@ import io.crate.metadata.doc.DocSysColumns;
 public class DocCollectorExpression extends LuceneCollectorExpression<Map<String, Object>> {
 
     private SourceLookup sourceLookup;
+    private Source source;
     private ReaderContext context;
 
     public DocCollectorExpression() {
@@ -45,7 +46,7 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
 
     @Override
     public void setNextDocId(int doc) {
-        sourceLookup.setSegmentAndDocument(context, doc);
+        this.source = sourceLookup.getSource(context, doc);
     }
 
     @Override
@@ -55,7 +56,7 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
 
     @Override
     public Map<String, Object> value() {
-        return sourceLookup.sourceAsMap();
+        return source.sourceAsMap();
     }
 
     public static LuceneCollectorExpression<?> create(final Reference reference) {
@@ -71,6 +72,7 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
 
         private final Reference ref;
         private SourceLookup sourceLookup;
+        private Source source;
         private ReaderContext context;
 
         ChildDocCollectorExpression(Reference ref) {
@@ -79,7 +81,7 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
 
         @Override
         public void setNextDocId(int doc) {
-            sourceLookup.setSegmentAndDocument(context, doc);
+            this.source = sourceLookup.getSource(context, doc);
         }
 
         @Override
@@ -95,7 +97,7 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
         @Override
         public Object value() {
             // correct type detection is ensured by the source parser
-            return sourceLookup.get(ref.column().path());
+            return source.get(ref.column().path());
         }
     }
 }
