@@ -24,18 +24,21 @@ package io.crate.beans;
 import java.beans.ConstructorProperties;
 
 public class ShardInfo {
+
     final int shardId;
     final String routingState;
     final String state;
+    final String schema;
     final String table;
     final String partitionIdent;
     final long size;
 
-    @ConstructorProperties({"shardId", "table", "partitionIdent", "routingState", "state", "size"})
-    public ShardInfo(int shardId, String table, String partitionIdent, String routingState, String state, long size) {
+    @ConstructorProperties({"shardId", "schema", "table", "partitionIdent", "routingState", "state", "size"})
+    public ShardInfo(int shardId, String schema, String table, String partitionIdent, String routingState, String state, long size) {
         this.shardId = shardId;
         this.routingState = routingState;
         this.state = state;
+        this.schema = schema;
         this.table = table;
         this.partitionIdent = partitionIdent;
         this.size = size;
@@ -44,6 +47,10 @@ public class ShardInfo {
     @SuppressWarnings("unused")
     public int getShardId() {
         return shardId;
+    }
+
+    public String getSchema() {
+        return schema;
     }
 
     @SuppressWarnings("unused")
