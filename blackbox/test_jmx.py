@@ -179,6 +179,13 @@ class JmxIntegrationTest(unittest.TestCase):
                 'ShardInfo'
             )
             self.assertNotEqual(stdout.rstrip(), '', 'ShardInfo must not be empty')
+            self.assertIn("partitionIdent", stdout)
+            self.assertIn("routingState", stdout)
+            self.assertIn("shardId", stdout)
+            self.assertIn("size", stdout)
+            self.assertIn("state", stdout)
+            self.assertIn("schema", stdout)
+            self.assertIn("table", stdout)
             self.assertEqual(stderr, '')
             c.execute('''drop table test''')
 
