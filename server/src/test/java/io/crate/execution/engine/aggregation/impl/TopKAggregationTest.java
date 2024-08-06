@@ -183,6 +183,8 @@ public class TopKAggregationTest extends AggregationTestCase {
             new Object[]{third},
         };
 
+        assertHasDocValueAggregator(TopKAggregation.NAME, List.of(dataType));
+
         var result = executeAggregation(
             TopKAggregation.PARAMETER_SIGNATURE,
             List.of(dataType),
