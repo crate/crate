@@ -23,23 +23,19 @@ package io.crate.execution.dml.upsert;
 
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Supplier;
 
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.junit.Test;
 
 import io.crate.analyze.Id;
 import io.crate.execution.dml.IndexItem;
 import io.crate.expression.reference.Doc;
+import io.crate.expression.reference.doc.lucene.StoredRow;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -53,14 +49,7 @@ import io.crate.testing.SQLExecutor;
 public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
 
     private static Doc doc(String id, String index, Map<String, Object> source) {
-        Supplier<String> rawSource = () -> {
-            try {
-                return Strings.toString(JsonXContent.builder().map(source));
-            } catch (IOException e1) {
-                throw new RuntimeException(e1);
-            }
-        };
-        return new Doc(1, index, id, 1, 1, 1, source, rawSource);
+        return new Doc(1, index, id, 1, 1, 1, StoredRow.wrap(source));
     }
 
     @Test

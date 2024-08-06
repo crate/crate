@@ -27,7 +27,6 @@ import static io.crate.testing.Asserts.assertThat;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Set;
 import java.util.function.Supplier;
 
 import org.apache.lucene.index.DirectoryReader;
@@ -52,6 +51,7 @@ import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
+import io.crate.expression.reference.doc.lucene.StoredRowLookup;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
@@ -139,7 +139,7 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
             );
 
             Scorer scorer = weight.scorer(leafReader);
-            CollectorContext collectorContext = new CollectorContext(1, Set.of(), table.lookupNameBySourceKey());
+            CollectorContext collectorContext = new CollectorContext(1, () -> StoredRowLookup.create(table));
             ReaderContext readerContext = new ReaderContext(leafReader);
             DocIdSetIterator iterator = scorer.iterator();
             int nextDoc = iterator.nextDoc();
