@@ -66,6 +66,7 @@ import io.crate.types.FloatVectorType;
 import io.crate.types.GeoPointType;
 import io.crate.types.IntegerType;
 import io.crate.types.LongType;
+import io.crate.types.NumericType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
 import io.crate.types.TimestampType;
@@ -153,7 +154,8 @@ public class LuceneSort extends SymbolVisitor<LuceneSort.SortSymbolContext, Sort
 
         if (ref.valueType().equals(DataTypes.IP)
                 || ref.valueType().id() == BitStringType.ID
-                || ref.valueType().id() == FloatVectorType.ID) {
+                || ref.valueType().id() == FloatVectorType.ID
+                || ref.valueType().id() == NumericType.ID) {
             return customSortField(ref.toString(), ref, context);
         } else {
             NullValueOrder nullValueOrder = NullValueOrder.fromFlag(context.nullFirst);

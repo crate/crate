@@ -553,7 +553,7 @@ public class SignatureBinderTest extends ESTestCase {
 
     @Test
     public void testNumericParameters() {
-        NumericType dt = NumericType.of(10, 2);
+        NumericType dt = new NumericType(10, 2);
         assertThatSignature(NumericSumAggregation.SIGNATURE)
             .boundTo(dt)
             .hasReturnType(dt);
@@ -566,13 +566,14 @@ public class SignatureBinderTest extends ESTestCase {
             .argumentTypes(TypeSignature.parse("numeric"), TypeSignature.parse("numeric"))
             .build();
 
+        NumericType numericType = new NumericType(10, 2);
         BoundSignature expected = new BoundSignature(
             List.of(NumericType.INSTANCE, NumericType.INSTANCE),
-            NumericType.of(10, 2)
+            numericType
         );
 
         assertThatSignature(foo)
-            .boundTo(NumericType.INSTANCE, NumericType.of(10, 2))
+            .boundTo(NumericType.INSTANCE, numericType)
             .hasBoundSignature(expected);
     }
 

@@ -112,7 +112,7 @@ SQL Standard and PostgreSQL Compatibility
 Data Types
 ----------
 
-None
+- Added storage support for the :ref:`NUMERIC <type-numeric>` data type.
 
 Scalar and Aggregation Functions
 --------------------------------
