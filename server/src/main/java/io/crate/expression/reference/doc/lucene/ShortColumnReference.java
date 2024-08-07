@@ -21,7 +21,7 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-public class ShortColumnReference extends NumericColumnReference<Short> {
+public class ShortColumnReference extends NumericDocValueExpression<Short> {
 
     public ShortColumnReference(String columnName) {
         super(columnName);

@@ -21,7 +21,7 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-public class ByteColumnReference extends NumericColumnReference<Byte> {
+public class ByteColumnReference extends NumericDocValueExpression<Byte> {
 
     public ByteColumnReference(String columnName) {
         super(columnName);

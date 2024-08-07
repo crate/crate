@@ -21,7 +21,7 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-public class BooleanColumnReference extends NumericColumnReference<Boolean> {
+public class BooleanColumnReference extends NumericDocValueExpression<Boolean> {
 
     public BooleanColumnReference(String columnName) {
         super(columnName);

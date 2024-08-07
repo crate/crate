@@ -23,7 +23,7 @@ package io.crate.expression.reference.doc.lucene;
 
 import org.apache.lucene.util.NumericUtils;
 
-public class DoubleColumnReference extends NumericColumnReference<Double> {
+public class DoubleColumnReference extends NumericDocValueExpression<Double> {
 
     public DoubleColumnReference(String columnName) {
         super(columnName);

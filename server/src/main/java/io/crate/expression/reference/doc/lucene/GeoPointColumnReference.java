@@ -26,7 +26,7 @@ import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.Point;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 
-public class GeoPointColumnReference extends NumericColumnReference<Point> {
+public class GeoPointColumnReference extends NumericDocValueExpression<Point> {
 
     public GeoPointColumnReference(String columnName) {
         super(columnName);

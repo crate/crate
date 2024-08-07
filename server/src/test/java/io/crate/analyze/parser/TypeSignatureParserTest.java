@@ -174,7 +174,7 @@ public class TypeSignatureParserTest extends ESTestCase {
         var signature = TypeSignature.parse("numeric(1)");
         assertThat(signature.getBaseTypeName()).isEqualTo("numeric");
         assertThat(signature.getParameters()).containsExactly(new IntegerLiteralTypeSignature(1));
-        assertThat(signature.createType()).isEqualTo(NumericType.of(1));
+        assertThat(signature.createType()).isEqualTo(new NumericType(1, 0));
     }
 
     @Test
@@ -183,7 +183,7 @@ public class TypeSignatureParserTest extends ESTestCase {
         assertThat(signature.getBaseTypeName()).isEqualTo("numeric");
         assertThat(signature.getParameters()).containsExactly(
             new IntegerLiteralTypeSignature(1), new IntegerLiteralTypeSignature(2));
-        assertThat(signature.createType()).isEqualTo(NumericType.of(1, 2));
+        assertThat(signature.createType()).isEqualTo(new NumericType(1, 2));
     }
 
     @Test

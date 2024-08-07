@@ -50,6 +50,7 @@ public class SemanticSortValidator {
         Stream.of(
             DataTypes.REGCLASS,
             DataTypes.REGPROC,
+            DataTypes.NUMERIC,
             BitStringType.INSTANCE_ONE,
             FloatVectorType.INSTANCE_ONE
         )

@@ -21,15 +21,16 @@
 
 package io.crate.execution.engine.aggregation.impl.average.numeric;
 
+import java.io.IOException;
+import java.math.BigDecimal;
+
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+
 import io.crate.Streamer;
 import io.crate.execution.engine.aggregation.impl.util.BigDecimalValueWrapper;
 import io.crate.types.DataType;
 import io.crate.types.NumericType;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
-import java.io.IOException;
-import java.math.BigDecimal;
 
 @SuppressWarnings("rawtypes")
 public class NumericAverageStateType extends DataType<NumericAverageState> implements Streamer<NumericAverageState> {
@@ -74,7 +75,7 @@ public class NumericAverageStateType extends DataType<NumericAverageState> imple
         // Cannot use NumericType.INSTANCE as it has default precision and scale values
         // which might not be equal to written BigDecimal's precision and scale.
         return new NumericAverageState<>(
-            new BigDecimalValueWrapper(NumericType.of(in.readInt(), in.readInt()).readValueFrom(in)),
+            new BigDecimalValueWrapper(new NumericType(in.readInt(), in.readInt()).readValueFrom(in)),
             in.readVLong()
         );
     }

@@ -23,7 +23,7 @@ package io.crate.expression.reference.doc.lucene;
 
 import org.apache.lucene.util.NumericUtils;
 
-public class FloatColumnReference extends NumericColumnReference<Float> {
+public class FloatColumnReference extends NumericDocValueExpression<Float> {
 
     public FloatColumnReference(String columnName) {
         super(columnName);

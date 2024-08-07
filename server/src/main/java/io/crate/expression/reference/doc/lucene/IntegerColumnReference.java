@@ -21,7 +21,7 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-public class IntegerColumnReference extends NumericColumnReference<Integer> {
+public class IntegerColumnReference extends NumericDocValueExpression<Integer> {
 
     public IntegerColumnReference(String columnName) {
         super(columnName);
@@ -31,6 +31,4 @@ public class IntegerColumnReference extends NumericColumnReference<Integer> {
     protected Integer convert(long input) {
         return (int) input;
     }
-
 }
-

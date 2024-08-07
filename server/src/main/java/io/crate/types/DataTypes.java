@@ -510,6 +510,7 @@ public final class DataTypes {
         entry(GEO_POINT.id(), "geo_point"),
         entry(INTERVAL.id(), "interval"),
         entry(BitStringType.ID, "bit"),
+        entry(NumericType.ID, "numeric"),
         entry(FloatVectorType.ID, FloatVectorType.INSTANCE_ONE.getName())
     );
 
