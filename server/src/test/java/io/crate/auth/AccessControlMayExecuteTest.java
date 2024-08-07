@@ -199,11 +199,9 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void testAlterOtherUsersNotAllowedAsNormalUser() {
-        assertThatThrownBy(() -> analyze("alter user ford set (password = 'pass')"))
-            .isExactlyInstanceOf(UnauthorizedException.class)
-            .hasMessage("A regular user can use ALTER USER only on himself. " +
-                        "To modify other users superuser permissions are required.");
+    public void test_alter_other_user_requires_al_permission() {
+        analyze("alter user ford set (password = 'pass')");
+        assertAskedForCluster(Permission.AL);
     }
 
     @Test
