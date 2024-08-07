@@ -98,7 +98,7 @@ public class PolyglotValuesTest extends ESTestCase {
                 );
             }
 
-            NumericType type = NumericType.of(18, 9);
+            NumericType type = new NumericType(18, 9);
             assertEvaluatesTo(
                 context,
                 "function getValue() { return 42; }",

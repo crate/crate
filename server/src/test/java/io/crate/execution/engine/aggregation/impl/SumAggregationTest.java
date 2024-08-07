@@ -255,7 +255,7 @@ public class SumAggregationTest extends AggregationTestCase {
 
     @Test
     public void test_sum_numeric_with_precision_and_scale_on_double_non_doc_values_field() {
-        var type = NumericType.of(16, 2);
+        var type = new NumericType(16, 2);
         var expected = type.implicitCast(12.4357);
         assertThat(expected.toString()).isEqualTo("12.44");
 

@@ -221,7 +221,7 @@ public class AverageAggregationTest extends AggregationTestCase {
 
     @Test
     public void test_avg_numeric_with_precision_and_scale_on_double_non_doc_values() {
-        var type = NumericType.of(16, 2);
+        var type = new NumericType(16, 2);
         var expected = type.implicitCast(12.4357);
         assertThat(expected).hasToString("12.44");
 

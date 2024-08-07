@@ -281,7 +281,7 @@ public class ArrayLengthQueryTest extends CrateDummyClusterServiceUnitTest {
     @Test
     @SuppressWarnings({"rawtypes", "unchecked"})
     public void testArrayLengthWithAllSupportedTypes() throws Exception {
-        for (DataType<?> type : DataTypeTesting.ALL_STORED_TYPES_EXCEPT_ARRAYS) {
+        for (DataType<?> type : DataTypeTesting.getStorableTypesExceptArrays(random())) {
             // This is temporary as long as interval is not fully implemented
             if (type.storageSupport() == null || type instanceof FloatVectorType) {
                 continue;

@@ -25,6 +25,7 @@ import static java.util.Map.entry;
 import static java.util.stream.Collectors.toSet;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -307,24 +308,22 @@ public final class DataTypes {
         entry(TimeTZ.class, TimeTZType.INSTANCE)
     );
 
-    @SuppressWarnings({"unchecked"})
     public static DataType<?> guessType(Object value) {
-        if (value == null) {
-            return UNDEFINED;
-        } else if (value instanceof Map) {
-            return UNTYPED_OBJECT;
-        } else if (value instanceof List list) {
-            return valueFromList(list);
-        } else if (value instanceof Object[] objectArray) {
-            return valueFromList(Arrays.asList(objectArray));
-        } else if (value instanceof float[] values) {
-            return new FloatVectorType(values.length);
-        }
-        DataType<?> dataType = POJO_TYPE_MAPPING.get(value.getClass());
-        if (dataType == null) {
-            throw new IllegalArgumentException("Cannot detect the type of the value: " + value);
-        }
-        return dataType;
+        return switch (value) {
+            case null -> UNDEFINED;
+            case Map<?, ?> map -> UNTYPED_OBJECT;
+            case List<?> list -> valueFromList(list);
+            case Object[] array -> valueFromList(Arrays.asList(array));
+            case float[] values -> new FloatVectorType(values.length);
+            case BigDecimal bigDecimal -> new NumericType(bigDecimal.precision(), bigDecimal.scale());
+            default -> {
+                DataType<?> dataType = POJO_TYPE_MAPPING.get(value.getClass());
+                if (dataType == null) {
+                    throw new IllegalArgumentException("Cannot detect the type of the value: " + value);
+                }
+                yield dataType;
+            }
+        };
     }
 
     /**
@@ -348,7 +347,7 @@ public final class DataTypes {
         }
     }
 
-    private static DataType<?> valueFromList(List<Object> value) {
+    private static DataType<?> valueFromList(List<?> value) {
         DataType<?> highest = DataTypes.UNDEFINED;
         for (Object o : value) {
             if (o == null) {
@@ -510,6 +509,7 @@ public final class DataTypes {
         entry(GEO_POINT.id(), "geo_point"),
         entry(INTERVAL.id(), "interval"),
         entry(BitStringType.ID, "bit"),
+        entry(NumericType.ID, "numeric"),
         entry(FloatVectorType.ID, FloatVectorType.INSTANCE_ONE.getName())
     );
 

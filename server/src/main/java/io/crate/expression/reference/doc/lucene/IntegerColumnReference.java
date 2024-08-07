@@ -31,6 +31,4 @@ public class IntegerColumnReference extends NumericColumnReference<Integer> {
     protected Integer convert(long input) {
         return (int) input;
     }
-
 }
-

@@ -74,19 +74,33 @@ import io.crate.types.UndefinedType;
 
 public class DataTypeTesting {
 
-    public static final Set<DataType<?>> ALL_STORED_TYPES_EXCEPT_ARRAYS = DataTypes.TYPES_BY_NAME_OR_ALIAS
-        .values().stream()
-        .filter(x -> x.storageSupport() != null && x.id() != ArrayType.ID && x.id() != UndefinedType.ID)
-        .collect(Collectors.toSet());
+    public static Set<DataType<?>> getStorableTypesExceptArrays(Random random) {
+        return DataTypes.TYPES_BY_NAME_OR_ALIAS
+            .values().stream()
+            .map(type -> {
+                // Numeric needs precision to support storage
+                if (type instanceof NumericType) {
+                    int precision = random.nextInt(2, 39);
+                    int scale = random.nextInt(0, precision - 1);
+                    return new NumericType(precision, scale);
+                }
+                return type;
+            })
+            .filter(x -> x.storageSupport() != null && x.id() != ArrayType.ID && x.id() != UndefinedType.ID)
+            .collect(Collectors.toSet());
+    }
 
     public static DataType<?> randomType() {
-        return RandomPicks.randomFrom(RandomizedContext.current().getRandom(), ALL_STORED_TYPES_EXCEPT_ARRAYS);
+        Random random = RandomizedContext.current().getRandom();
+        return RandomPicks.randomFrom(random, getStorableTypesExceptArrays(random));
     }
 
     public static DataType<?> randomTypeExcluding(Set<DataType<?>> excluding) {
-        Set<DataType<?>> pickFrom = ALL_STORED_TYPES_EXCEPT_ARRAYS
-            .stream().filter(t -> excluding.contains(t) == false).collect(Collectors.toSet());
-        return RandomPicks.randomFrom(RandomizedContext.current().getRandom(), pickFrom);
+        Random random = RandomizedContext.current().getRandom();
+        Set<DataType<?>> pickFrom = getStorableTypesExceptArrays(random).stream()
+            .filter(t -> excluding.contains(t) == false)
+            .collect(Collectors.toSet());
+        return RandomPicks.randomFrom(random, pickFrom);
     }
 
     @SuppressWarnings("unchecked")
@@ -191,8 +205,15 @@ public class DataTypeTesting {
                 return () -> (T) new Period().withSeconds(RandomNumbers.randomIntBetween(random, 0, Integer.MAX_VALUE));
 
             case NumericType.ID:
-                return () -> (T) new BigDecimal(random.nextDouble());
-
+                return () -> {
+                    var numericType = (NumericType) type;
+                    var mathContext = numericType.mathContext();
+                    var result = new BigDecimal(random.nextDouble(), mathContext);
+                    if (numericType.scale() != null) {
+                        return (T) result.setScale(numericType.scale(), mathContext.getRoundingMode());
+                    }
+                    return (T) result;
+                };
             case BitStringType.ID:
                 return () -> {
                     int length = ((BitStringType) type).length();
