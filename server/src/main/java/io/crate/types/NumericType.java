@@ -34,9 +34,9 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.Streamer;
-import org.jetbrains.annotations.VisibleForTesting;
 
 public class NumericType extends DataType<BigDecimal> implements Streamer<BigDecimal> {
 
@@ -106,31 +106,21 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
             return null;
         }
 
-        var mathContext = mathContextOrDefault();
+        var mathContext = mathContext();
         BigDecimal bd;
-        if (value instanceof Long
-            || value instanceof Byte
-            || value instanceof Integer
-            || value instanceof Short) {
-            bd = new BigDecimal(
-                BigInteger.valueOf(((Number) value).longValue()),
-                mathContext
-            );
-        } else if (value instanceof String
-                   || value instanceof Float
-                   || value instanceof Double
-                   || value instanceof BigDecimal) {
-            bd = new BigDecimal(
-                value.toString(),
-                mathContext
-            );
+        if (value instanceof BigDecimal bigDecimal) {
+            bd = bigDecimal.round(mathContext);
+        } else if (value instanceof String || value instanceof Float || value instanceof Double) {
+            bd = new BigDecimal(value.toString(), mathContext);
+        } else if (value instanceof Number number) {
+            bd = new BigDecimal(BigInteger.valueOf(number.longValue()), mathContext);
         } else {
             throw new ClassCastException("Can't cast '" + value + "' to " + getName());
         }
-        if (scale != null) {
-            bd = bd.setScale(scale, mathContext.getRoundingMode());
+        if (scale == null) {
+            return bd;
         }
-        return bd;
+        return bd.setScale(scale, mathContext.getRoundingMode());
     }
 
     @Override
@@ -173,7 +163,7 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
         return scale;
     }
 
-    private MathContext mathContextOrDefault() {
+    private MathContext mathContext() {
         if (precision == null) {
             return MathContext.UNLIMITED;
         } else {
@@ -224,7 +214,7 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
             return new BigDecimal(
                 new BigInteger(bytes),
                 scale == null ? 0 : scale,
-                mathContextOrDefault()
+                mathContext()
             );
         } else {
             return null;
