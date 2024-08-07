@@ -94,4 +94,10 @@ public class ArrayLengthQueryBuilderTest extends LuceneQueryBuilderTest {
                 .containsExactly(List.of(1));
         }
     }
+
+    @Test
+    public void test_array_length_on_array_sub_columns_of_array_of_objects() {
+        Query query = convert("array_length(o_array['xs'], 1) > 0");
+        assertThat(query).hasToString("_array_length_xs:[1 TO 2147483647]");
+    }
 }

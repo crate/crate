@@ -81,7 +81,8 @@ Changes
 SQL Statements
 --------------
 
-None
+- Extended :ref:`ref-explain` with initial support for ``INSERT INTO``. Using
+  ``VERBOSE`` is still not supported.
 
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
@@ -124,7 +125,8 @@ Scalar and Aggregation Functions
 Performance and Resilience Improvements
 ---------------------------------------
 
-None
+- Added an optimization rule to drop unnecessary ``ORDER BY`` operations from
+  queries in ``INSERT INTO``.
 
 Administration and Operations
 -----------------------------
