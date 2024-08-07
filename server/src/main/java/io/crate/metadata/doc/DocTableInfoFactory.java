@@ -82,6 +82,7 @@ import io.crate.types.CharacterType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.FloatVectorType;
+import io.crate.types.NumericType;
 import io.crate.types.ObjectType;
 import io.crate.types.StorageSupport;
 import io.crate.types.StringType;
@@ -728,6 +729,11 @@ public class DocTableInfoFactory {
                 Integer length = (Integer) columnProperties.get("length");
                 assert length != null : "Length is required for bit string type";
                 yield new BitStringType(length);
+            }
+            case NumericType.NAME -> {
+                Integer precision = (Integer) columnProperties.get("precision");
+                Integer scale = (Integer) columnProperties.get("scale");
+                yield new NumericType(precision, scale);
             }
             case FloatVectorType.NAME -> {
                 Integer dimensions = (Integer) columnProperties.get("dimensions");

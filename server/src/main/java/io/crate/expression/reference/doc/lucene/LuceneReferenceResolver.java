@@ -46,6 +46,7 @@ import io.crate.types.BitStringType;
 import io.crate.types.BooleanType;
 import io.crate.types.ByteType;
 import io.crate.types.CharacterType;
+import io.crate.types.DataType;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
 import io.crate.types.FloatVectorType;
@@ -53,6 +54,8 @@ import io.crate.types.GeoPointType;
 import io.crate.types.IntegerType;
 import io.crate.types.IpType;
 import io.crate.types.LongType;
+import io.crate.types.NumericStorage;
+import io.crate.types.NumericType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
 import io.crate.types.TimestampType;
@@ -156,8 +159,9 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
         if (ref.hasDocValues() == false) {
             return DocCollectorExpression.create(toSourceLookup(ref));
         }
-        return switch (ref.valueType().id()) {
-            case BitStringType.ID -> new BitStringColumnReference(fqn, ((BitStringType) ref.valueType()).length());
+        DataType<?> valueType = ref.valueType();
+        return switch (valueType.id()) {
+            case BitStringType.ID -> new BitStringColumnReference(fqn, ((BitStringType) valueType).length());
             case ByteType.ID -> new ByteColumnReference(fqn);
             case ShortType.ID -> new ShortColumnReference(fqn);
             case IpType.ID -> new IpColumnReference(fqn);
@@ -170,7 +174,8 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             case GeoPointType.ID -> new GeoPointColumnReference(fqn);
             case ArrayType.ID -> DocCollectorExpression.create(toSourceLookup(ref));
             case FloatVectorType.ID -> new FloatVectorColumnReference(fqn);
-            default -> throw new UnhandledServerException("Unsupported type: " + ref.valueType().getName());
+            case NumericType.ID -> NumericStorage.getCollectorExpression(fqn, (NumericType) valueType);
+            default -> throw new UnhandledServerException("Unsupported type: " + valueType.getName());
         };
     }
 

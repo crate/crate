@@ -30,14 +30,14 @@ import org.apache.lucene.index.SortedNumericDocValues;
 import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
 import io.crate.execution.engine.fetch.ReaderContext;
 
-public abstract class NumericColumnReference<T> extends LuceneCollectorExpression<T> {
+public abstract class NumericDocValueExpression<T> extends LuceneCollectorExpression<T> {
 
     private final String luceneField;
 
     private SortedNumericDocValues docValues;
     private int docId;
 
-    protected NumericColumnReference(String luceneField) {
+    protected NumericDocValueExpression(String luceneField) {
         this.luceneField = luceneField;
     }
 

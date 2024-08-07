@@ -191,8 +191,15 @@ public class DataTypeTesting {
                 return () -> (T) new Period().withSeconds(RandomNumbers.randomIntBetween(random, 0, Integer.MAX_VALUE));
 
             case NumericType.ID:
-                return () -> (T) new BigDecimal(random.nextDouble());
-
+                return () -> {
+                    var numericType = (NumericType) type;
+                    var mathContext = numericType.mathContext();
+                    var result = new BigDecimal(random.nextDouble(), mathContext);
+                    if (numericType.scale() != null) {
+                        return (T) result.setScale(numericType.scale(), mathContext.getRoundingMode());
+                    }
+                    return (T) result;
+                };
             case BitStringType.ID:
                 return () -> {
                     int length = ((BitStringType) type).length();

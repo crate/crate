@@ -27,7 +27,9 @@ import java.math.BigInteger;
 import java.math.MathContext;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.function.Supplier;
 
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -36,20 +38,16 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.Streamer;
-import org.jetbrains.annotations.VisibleForTesting;
+import io.crate.sql.tree.ColumnDefinition;
+import io.crate.sql.tree.ColumnPolicy;
+import io.crate.sql.tree.ColumnType;
+import io.crate.sql.tree.Expression;
 
 public class NumericType extends DataType<BigDecimal> implements Streamer<BigDecimal> {
 
     public static final int ID = 22;
+    public static final String NAME = "numeric";
     public static final NumericType INSTANCE = new NumericType(null, null); // unscaled
-
-    public static NumericType of(int precision) {
-        return new NumericType(precision, 0);
-    }
-
-    public static NumericType of(int precision, int scale) {
-        return new NumericType(precision, scale);
-    }
 
     public static DataType<?> of(List<Integer> parameters) {
         if (parameters.isEmpty() || parameters.size() > 2) {
@@ -59,18 +57,20 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
             );
         }
         if (parameters.size() == 1) {
-            return of(parameters.get(0));
+            return new NumericType(parameters.get(0), 0);
         } else {
-            return of(parameters.get(0), parameters.get(1));
+            return new NumericType(parameters.get(0), parameters.get(1));
         }
     }
+
+    private static final StorageSupport<BigDecimal> STORAGE = new NumericStorage();
 
     @Nullable
     private final Integer scale;
     @Nullable
     private final Integer precision;
 
-    private NumericType(@Nullable Integer precision, @Nullable Integer scale) {
+    public NumericType(@Nullable Integer precision, @Nullable Integer scale) {
         this.precision = precision;
         this.scale = scale;
     }
@@ -92,7 +92,7 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
 
     @Override
     public String getName() {
-        return "numeric";
+        return NAME;
     }
 
     @Override
@@ -106,7 +106,7 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
             return null;
         }
 
-        var mathContext = mathContextOrDefault();
+        var mathContext = mathContext();
         BigDecimal bd;
         if (value instanceof Long
             || value instanceof Byte
@@ -137,16 +137,34 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
     public BigDecimal sanitizeValue(Object value) {
         if (value == null) {
             return null;
-        } else {
-            return (BigDecimal) value;
         }
+        if (value instanceof String str) {
+            MathContext mathContext = mathContext();
+            BigDecimal bigDecimal = new BigDecimal(str, mathContext);
+            return scale == null
+                ? bigDecimal
+                : bigDecimal.setScale(scale, mathContext.getRoundingMode());
+        }
+        return (BigDecimal) value;
     }
 
     @Override
     public BigDecimal valueForInsert(BigDecimal value) {
-        throw new UnsupportedOperationException(
-            getName() + " type cannot be used in insert statements");
+        return value;
     }
+
+    @Override
+    public ColumnType<Expression> toColumnType(ColumnPolicy columnPolicy,
+                                               @Nullable Supplier<List<ColumnDefinition<Expression>>> convertChildColumn) {
+        if (scale == null) {
+            if (precision == null) {
+                return new ColumnType<>(getName());
+            }
+            return new ColumnType<>(getName(), List.of(precision));
+        }
+        return new ColumnType<>(getName(), List.of(precision, scale));
+    }
+
 
     /**
      * Returns the size of {@link BigDecimal} in bytes
@@ -167,13 +185,12 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
         return precision;
     }
 
-    @VisibleForTesting
     @Nullable
-    Integer scale() {
+    public Integer scale() {
         return scale;
     }
 
-    private MathContext mathContextOrDefault() {
+    public MathContext mathContext() {
         if (precision == null) {
             return MathContext.UNLIMITED;
         } else {
@@ -224,7 +241,7 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
             return new BigDecimal(
                 new BigInteger(bytes),
                 scale == null ? 0 : scale,
-                mathContextOrDefault()
+                mathContext()
             );
         } else {
             return null;
@@ -274,6 +291,18 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
             return RamUsageEstimator.NUM_BYTES_OBJECT_HEADER;
         }
         return size(value);
+    }
+
+    @Override
+    @Nullable
+    public StorageSupport<? super BigDecimal> storageSupport() {
+        return STORAGE;
+    }
+
+    @Override
+    public void addMappingOptions(Map<String, Object> mapping) {
+        mapping.put("precision", precision);
+        mapping.put("scale", scale);
     }
 
     @Override
