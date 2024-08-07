@@ -56,6 +56,14 @@ public abstract class DefaultTraversalVisitor<R, C> extends AstVisitor<R, C> {
     }
 
     @Override
+    protected R visitDistinctFrom(DistinctFromPredicate node, C context) {
+        node.getLeft().accept(this, context);
+        node.getRight().accept(this, context);
+
+        return null;
+    }
+
+    @Override
     protected R visitComparisonExpression(ComparisonExpression node, C context) {
         node.getLeft().accept(this, context);
         node.getRight().accept(this, context);

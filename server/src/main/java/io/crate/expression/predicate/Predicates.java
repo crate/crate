@@ -23,6 +23,7 @@ package io.crate.expression.predicate;
 
 import org.elasticsearch.common.settings.Settings;
 
+import io.crate.expression.operator.DistinctFromPredicate;
 import io.crate.metadata.Functions.Builder;
 import io.crate.metadata.FunctionsProvider;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
@@ -36,5 +37,6 @@ public class Predicates implements FunctionsProvider {
         IsNullPredicate.register(builder);
         NotPredicate.register(builder);
         MatchPredicate.register(builder);
+        DistinctFromPredicate.register(builder);
     }
 }

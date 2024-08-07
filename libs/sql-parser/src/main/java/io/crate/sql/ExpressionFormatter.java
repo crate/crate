@@ -52,6 +52,7 @@ import io.crate.sql.tree.CollectionColumnType;
 import io.crate.sql.tree.ColumnType;
 import io.crate.sql.tree.ComparisonExpression;
 import io.crate.sql.tree.CurrentTime;
+import io.crate.sql.tree.DistinctFromPredicate;
 import io.crate.sql.tree.DoubleLiteral;
 import io.crate.sql.tree.EscapedCharStringLiteral;
 import io.crate.sql.tree.ExistsPredicate;
@@ -673,6 +674,12 @@ public final class ExpressionFormatter {
             return "(" + node.getValue().accept(this, parameters) + " BETWEEN " +
                    node.getMin().accept(this, parameters) + " AND " +
                    node.getMax().accept(this, parameters) + ")";
+        }
+
+        @Override
+        protected String visitDistinctFrom(DistinctFromPredicate node, @Nullable List<Expression> parameters) {
+            return "(" + node.getLeft().accept(this, parameters) + " IS DISTINCT FROM " +
+                   node.getRight().accept(this, parameters) + ")";
         }
 
         @Override

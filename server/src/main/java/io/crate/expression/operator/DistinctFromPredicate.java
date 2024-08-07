@@ -1,0 +1,339 @@
+/*
+ * Licensed to Crate.io GmbH ("Crate") under one or more contributor
+ * license agreements.  See the NOTICE file distributed with this work for
+ * additional information regarding copyright ownership.  Crate licenses
+ * this file to you under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ *
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial agreement.
+ */
+
+package io.crate.expression.operator;
+
+import static io.crate.lucene.LuceneQueryBuilder.genericFunctionFilter;
+import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.ConstantScoreQuery;
+import org.apache.lucene.search.MatchNoDocsQuery;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.TermInSetQuery;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.index.mapper.Uid;
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.data.Input;
+import io.crate.expression.scalar.NumTermsPerDocQuery;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
+import io.crate.lucene.LuceneQueryBuilder.Context;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.FunctionType;
+import io.crate.metadata.Functions;
+import io.crate.metadata.IndexType;
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.Reference;
+import io.crate.metadata.TransactionContext;
+import io.crate.metadata.doc.DocSysColumns;
+import io.crate.metadata.functions.BoundSignature;
+import io.crate.metadata.functions.Signature;
+import io.crate.types.ArrayType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.EqQuery;
+import io.crate.types.ObjectType;
+import io.crate.types.StorageSupport;
+import io.crate.types.TypeSignature;
+import io.crate.types.UndefinedType;
+
+public class DistinctFromPredicate<T> extends Operator<Object> {
+
+    public static final String NAME = "op_isdistinctfrom";
+    public static final Signature SIGNATURE = Signature.builder(NAME, FunctionType.SCALAR)
+        .argumentTypes(TypeSignature.parse("E"), TypeSignature.parse("E"))
+        .returnType(Operator.RETURN_TYPE.getTypeSignature())
+        .features(Feature.DETERMINISTIC, Feature.NOTNULL)
+        .typeVariableConstraints(typeVariable("E"))
+        .build();
+
+    public static void register(Functions.Builder builder) {
+        builder.add(
+            SIGNATURE,
+            DistinctFromPredicate::new
+        );
+    }
+
+    private final DataType<Object> argType;
+
+    @SuppressWarnings("unchecked")
+    private DistinctFromPredicate(Signature signature, BoundSignature boundSignature) {
+        super(signature, boundSignature);
+        this.argType = (DataType<Object>) boundSignature.argTypes().getFirst();
+    }
+
+    @Override
+    public Symbol normalizeSymbol(Function function, TransactionContext txnCtx, NodeContext nodeCtx) {
+        // this operator does not evaluate to NULL if one argument is NULL! If both are NULL it evaluates to FALSE.
+        if (allArgsAreNull(function)) {
+            return Literal.of(RETURN_TYPE, false);
+        }
+        if (oneArgIsNull(function) && bothArgsAreLiteral(function)) {
+            return Literal.of(RETURN_TYPE, true);
+        }
+        // copied this from Scalar#normalizeSymbol.
+        try {
+            return evaluateIfLiterals(this, txnCtx, nodeCtx, function);
+        } catch (Throwable t) {
+            return function;
+        }
+    }
+
+    private static boolean allArgsAreNull(Function function) {
+        return function.arguments().stream().allMatch(arg -> arg instanceof Input<?> && ((Input<?>) arg).value() == null);
+    }
+
+    private static boolean oneArgIsNull(Function function) {
+        return function.arguments().stream().anyMatch(arg -> arg instanceof Input<?> && ((Input<?>) arg).value() == null);
+    }
+
+    private static boolean bothArgsAreLiteral(Function function) {
+        return function.arguments().stream().allMatch(arg -> arg instanceof Literal<?>);
+    }
+
+    @Override
+    @SafeVarargs
+    public final Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>... args) {
+        assert args.length == 2 : "number of arguments must be 2";
+        Object arg1 = args[0].value();
+        Object arg2 = args[1].value();
+
+        // two ``NULL`` values are not distinct from one other
+        if (arg1 == null && arg2 == null)
+            return false;
+
+        // Any non-null Literal is distinct from null
+        if (arg1 == null || arg2 == null)
+            return true;
+
+        return argType.compare(arg1, arg2) != 0;
+    }
+
+    //
+    //    Copied from io.crate.expression.operator.EqOperator
+    //
+
+    @Override
+    public Query toQuery(Function function, Context context) {
+        // TODO: this is a copy of EqOperator#toQuery and does not work for IS DISTINCT FROM!
+        if (true)
+            return null; // temp fix to make it work
+
+        List<Symbol> args = function.arguments();
+        if (!(args.get(0) instanceof Reference ref && args.get(1) instanceof Literal<?> literal)) {
+            return null;
+        }
+        String fqn = ref.column().fqn();
+        String storageIdentifier = ref.storageIdent();
+        Object value = literal.value();
+        if (value == null) {
+            return new MatchNoDocsQuery("`" + fqn + "` = null is always null"); // todo: also for is distinct?
+        }
+        DataType<?> dataType = ref.valueType();
+        return switch (dataType.id()) {
+            case ObjectType.ID -> refDistinctObject(
+                function,
+                ref.column(),
+                (ObjectType) dataType,
+                (Map<String, Object>) value,
+                context
+            );
+            case ArrayType.ID -> termsAndGenericFilter(
+                function,
+                storageIdentifier,
+                ArrayType.unnest(dataType),
+                (Collection<?>) value,
+                context,
+                ref.hasDocValues(),
+                ref.indexType());
+            default -> fromPrimitive(dataType, storageIdentifier, value, ref.hasDocValues(), ref.indexType());
+        };
+    }
+
+    @Nullable
+    @SuppressWarnings("unchecked")
+    public static Query termsQuery(String column, DataType<?> type, Collection<?> values, boolean hasDocValues, IndexType indexType) {
+        if (column.equals(DocSysColumns.ID.COLUMN.name())) {
+            ArrayList<BytesRef> bytesRefs = new ArrayList<>(values.size());
+            for (Object value : values) {
+                if (value != null) {
+                    bytesRefs.add(Uid.encodeId(value.toString()));
+                }
+            }
+            return bytesRefs.isEmpty() ? null : new TermInSetQuery(column, bytesRefs);
+        }
+        List<?> nonNullValues = values.stream().filter(Objects::nonNull).toList();
+        if (nonNullValues.isEmpty()) {
+            return null;
+        }
+        StorageSupport<?> storageSupport = type.storageSupport();
+        EqQuery<?> eqQuery = storageSupport == null ? null : storageSupport.eqQuery();
+        if (eqQuery == null) {
+            return booleanShould(column, type, nonNullValues, hasDocValues, indexType);
+        }
+        return ((EqQuery<Object>) eqQuery).termsQuery(column, (List<Object>) nonNullValues, hasDocValues, indexType != IndexType.NONE);
+    }
+
+    @Nullable
+    private static Query booleanShould(String column,
+                                       DataType<?> type,
+                                       Collection<?> values,
+                                       boolean hasDocValues,
+                                       IndexType indexType) {
+        BooleanQuery.Builder builder = new BooleanQuery.Builder();
+        for (var term : values) {
+            var fromPrimitive = EqOperator.fromPrimitive(type, column, term, hasDocValues, indexType);
+            if (fromPrimitive == null) {
+                return null;
+            }
+            builder.add(fromPrimitive, BooleanClause.Occur.SHOULD);
+        }
+        return new ConstantScoreQuery(builder.build());
+    }
+
+    public static Function of(Symbol first, Symbol second) {
+        return new Function(SIGNATURE, List.of(first, second), Operator.RETURN_TYPE);
+    }
+
+    private static Query termsAndGenericFilter(Function function,
+                                               String column,
+                                               DataType<?> elementType,
+                                               Collection<?> values,
+                                               Context context,
+                                               boolean hasDocValues,
+                                               IndexType indexType) {
+
+        BooleanQuery.Builder filterClauses = new BooleanQuery.Builder();
+        Query genericFunctionFilter = genericFunctionFilter(function, context);
+        if (values.isEmpty()) {
+            // `arrayRef = []` - termsQuery would be null
+
+            if (hasDocValues == false) {
+                //  Cannot use NumTermsPerDocQuery if column store is disabled, for example, ARRAY(GEO_SHAPE).
+                return genericFunctionFilter;
+            }
+
+            filterClauses.add(
+                NumTermsPerDocQuery.forColumn(column, elementType, numDocs -> numDocs == 0),
+                BooleanClause.Occur.MUST
+            );
+            // Still need the genericFunctionFilter to avoid a match where the array contains NULL values.
+            // NULL values are not in the index.
+            filterClauses.add(genericFunctionFilter, BooleanClause.Occur.MUST);
+        } else {
+            // wrap boolTermsFilter and genericFunction filter in an additional BooleanFilter to control the ordering of the filters
+            // termsFilter is applied first
+            // afterwards the more expensive genericFunctionFilter
+            Query termsQuery = termsQuery(column, elementType, values, hasDocValues, indexType);
+            if (termsQuery == null) {
+                return genericFunctionFilter;
+            }
+            filterClauses.add(termsQuery, BooleanClause.Occur.MUST);
+            filterClauses.add(genericFunctionFilter, BooleanClause.Occur.MUST);
+        }
+        return filterClauses.build();
+    }
+
+    @Nullable
+    @SuppressWarnings("unchecked")
+    public static Query fromPrimitive(DataType<?> type, String column, Object value, boolean hasDocValues, IndexType indexType) {
+        if (column.equals(DocSysColumns.ID.COLUMN.name())) {
+            return new TermQuery(new Term(column, Uid.encodeId((String) value)));
+        }
+        StorageSupport<?> storageSupport = type.storageSupport();
+        EqQuery<?> eqQuery = storageSupport == null ? null : storageSupport.eqQuery();
+        if (eqQuery == null) {
+            return null;
+        }
+        return ((EqQuery<Object>) eqQuery).termQuery(column, value, hasDocValues, indexType != IndexType.NONE);
+    }
+
+    /**
+     * Query for object columns that tries to utilize efficient termQueries for the objects children.
+     * <pre>
+     * {@code
+     *      // If x and y are known columns
+     *      o = {x=10, y=20}    -> o.x=10 and o.y=20
+     *
+     *      // Only x is known:
+     *      o = {x=10, y=20}    -> o.x=10 and generic(o == {x=10, y=20})
+     *
+     *      // No column is known:
+     *      o = {x=10, y=20}    -> generic(o == {x=10, y=20})
+     * }
+     * </pre>
+     **/
+    private static Query refDistinctObject(Function distinctFunction,
+                                           ColumnIdent columnIdent,
+                                           ObjectType type,
+                                           Map<String, Object> value,
+                                           Context context) {
+        BooleanQuery.Builder boolBuilder = new BooleanQuery.Builder();
+        int preFilters = 0;
+        for (Map.Entry<String, Object> entry : value.entrySet()) {
+            String key = entry.getKey();
+            DataType<?> innerType = type.innerType(key);
+            if (innerType == UndefinedType.INSTANCE) {
+                // could be a nested object or not part of meta data; skip pre-filtering
+                continue;
+            }
+            ColumnIdent childColumn = columnIdent.getChild(key);
+            var childRef = context.getRef(childColumn);
+            var nestedStorageIdentifier = childRef != null ? childRef.storageIdent() : childColumn.fqn();
+            Query innerQuery;
+            if (DataTypes.isArray(innerType)) {
+                innerQuery = termsAndGenericFilter(
+                    distinctFunction, nestedStorageIdentifier, innerType, (Collection<?>) entry.getValue(), context, childRef.hasDocValues(), childRef.indexType());
+            } else {
+                innerQuery = fromPrimitive(innerType, nestedStorageIdentifier, entry.getValue(), childRef.hasDocValues(), childRef.indexType());
+            }
+            if (innerQuery == null) {
+                continue;
+            }
+
+            preFilters++;
+            boolBuilder.add(innerQuery, BooleanClause.Occur.MUST);
+        }
+        if (preFilters > 0 && preFilters == value.size()) {
+            return boolBuilder.build();
+        } else {
+            Query genericEqFilter = genericFunctionFilter(distinctFunction, context);
+            if (preFilters == 0) {
+                return genericEqFilter;
+            } else {
+                boolBuilder.add(genericFunctionFilter(distinctFunction, context), BooleanClause.Occur.FILTER);
+                return boolBuilder.build();
+            }
+        }
+    }
+}

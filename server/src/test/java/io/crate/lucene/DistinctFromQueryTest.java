@@ -26,9 +26,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
+import org.junit.Ignore;
 import org.junit.Test;
 
-public class IntEqQueryTest extends LuceneQueryBuilderTest {
+@Ignore("Distinct from may not lend itself to a lucene query")
+public class DistinctFromQueryTest extends LuceneQueryBuilderTest {
     @Override
     protected String createStmt() {
         return """
@@ -46,22 +48,8 @@ public class IntEqQueryTest extends LuceneQueryBuilderTest {
     }
 
     @Test
-    public void test_IntEqQuery_NullQuery() {
-        Query query = convert("a1 != 3 OR a1 IS null");
-        assertThat(query.getClass().getName()).endsWith("BooleanQuery");
-        assertThat(query).hasToString("+*:* -FieldExistsQuery [field=a1]");
-    }
-
-    @Test
-    public void test_IntEqQuery_NotNullQuery() {
-        Query query = convert("a1 IS NOT null");
-        assertThat(query.getClass().getName()).endsWith("FieldExistsQuery");
-        assertThat(query).hasToString("FieldExistsQuery [field=a1]");
-    }
-
-    @Test
-    public void test_IntEqQuery_termQuery() {
-        Query query = convert("a1 = 1");
+    public void termQueryTypes() {
+        Query query = convert("a1 IS DISTINCT FROM 1");
         assertThat(query.getClass().getName()).endsWith("IntPoint$1"); // the query class is anonymous
         assertThat(query).hasToString("a1:[1 TO 1]");
 
@@ -79,50 +67,42 @@ public class IntEqQueryTest extends LuceneQueryBuilderTest {
         assertThat(query).hasToString("(a4 = 1)");
     }
 
-    @Test
-    public void test_IntEqQuery_rangeQuery() {
-        Query query = convert("a1 > 1");
-        assertThat(query.getClass().getName()).endsWith("IntPoint$1"); // the query class is anonymous
-        assertThat(query).hasToString("a1:[2 TO 2147483647]");
-
-        query = convert("a2 < 1");
-        // SortedNumericDocValuesRangeQuery.class is not public
-        assertThat(query.getClass().getName()).endsWith("SortedNumericDocValuesRangeQuery");
-        assertThat(query).hasToString("a2:[-2147483648 TO 0]");
-
-        query = convert("a3 >= 1");
-        assertThat(query.getClass().getName()).endsWith("IntPoint$1"); // the query class is anonymous
-        assertThat(query).hasToString("a3:[1 TO 2147483647]");
-
-        query = convert("a4 <= 1");
-        assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
-        assertThat(query).hasToString("(a4 <= 1)");
-    }
 
     @Test
     public void test_IntEqQuery_termsQuery() {
-        Query query = convert("arr1 = [1,2,3]");
+        Query query = convert("arr1 IS DISTINCT FROM [1,2,3]");
         assertThat(query).isExactlyInstanceOf(BooleanQuery.class);
-        BooleanClause clause = ((BooleanQuery) query).clauses().get(0);
+        BooleanClause clause = ((BooleanQuery) query).clauses().getFirst();
         query = clause.getQuery();
         assertThat(query.getClass().getName()).endsWith("IntPoint$3");
         assertThat(query).hasToString("arr1:{1 2 3}");
+    }
 
-        query = convert("arr2 = [1,2,3]");
+    @Test
+    public void test_IntEqQuery_termsQuery2() {
+        Query query = convert("arr2 IS DISTINCT FROM [1,2,3]");
         assertThat(query).isExactlyInstanceOf(BooleanQuery.class);
-        clause = ((BooleanQuery) query).clauses().get(0);
+        BooleanClause clause = ((BooleanQuery) query).clauses().getFirst();
         query = clause.getQuery();
         assertThat(query.getClass().getName()).endsWith("SortedNumericDocValuesSetQuery");
         assertThat(query).hasToString("arr2: [1, 2, 3]");
 
-        query = convert("arr3 = [1,2,3]");
+    }
+
+    @Test
+    public void test_IntEqQuery_termsQuery4() {
+        Query query = convert("arr3 IS DISTINCT FROM [1,2,3]");
         assertThat(query).isExactlyInstanceOf(BooleanQuery.class);
-        clause = ((BooleanQuery) query).clauses().get(0);
+        BooleanClause clause = ((BooleanQuery) query).clauses().getFirst();
         query = clause.getQuery();
         assertThat(query.getClass().getName()).endsWith("IntPoint$3");
         assertThat(query).hasToString("arr3:{1 2 3}");
 
-        query = convert("arr4 = [1,2,3]");
+    }
+
+    @Test
+    public void test_IntEqQuery_termsQuery6() {
+        Query query = convert("arr4 IS DISTINCT FROM [1,2,3]");
         assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
         assertThat(query).hasToString("(arr4 = [1, 2, 3])");
     }

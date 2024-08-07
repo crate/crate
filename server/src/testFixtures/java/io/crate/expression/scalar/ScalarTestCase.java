@@ -23,7 +23,6 @@ package io.crate.expression.scalar;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isNull;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 import java.util.LinkedList;

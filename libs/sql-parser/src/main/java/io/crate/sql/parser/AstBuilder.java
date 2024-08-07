@@ -138,6 +138,7 @@ import io.crate.sql.tree.DefaultConstraint;
 import io.crate.sql.tree.Delete;
 import io.crate.sql.tree.DenyPrivilege;
 import io.crate.sql.tree.DiscardStatement;
+import io.crate.sql.tree.DistinctFromPredicate;
 import io.crate.sql.tree.DoubleLiteral;
 import io.crate.sql.tree.DropAnalyzer;
 import io.crate.sql.tree.DropBlobTable;
@@ -1841,11 +1842,9 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
     @Override
     public Node visitDistinctFrom(SqlBaseParser.DistinctFromContext context) {
-        Expression expression = new ComparisonExpression(
-            ComparisonExpression.Type.IS_DISTINCT_FROM,
+        Expression expression = new DistinctFromPredicate(
             (Expression) visit(context.value),
             (Expression) visit(context.right));
-
         if (context.NOT() != null) {
             expression = new NotExpression(expression);
         }
@@ -2089,8 +2088,8 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
     @Override
     public Node visitPosition(SqlBaseParser.PositionContext context) {
-        Expression substr = (Expression) visit(context.expr(0)); 
-        Expression str = (Expression) visit(context.expr(1)); 
+        Expression substr = (Expression) visit(context.expr(0));
+        Expression str = (Expression) visit(context.expr(1));
         return new FunctionCall(QualifiedName.of("strpos"), List.of(str, substr));
     }
 
@@ -2544,6 +2543,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
             case SqlBaseLexer.GT -> ComparisonExpression.Type.GREATER_THAN;
             case SqlBaseLexer.GTE -> ComparisonExpression.Type.GREATER_THAN_OR_EQUAL;
             case SqlBaseLexer.LLT -> ComparisonExpression.Type.CONTAINED_WITHIN;
+            case SqlBaseLexer.DISTINCT -> ComparisonExpression.Type.IS_DISTINCT_FROM;
             case SqlBaseLexer.REGEX_MATCH -> ComparisonExpression.Type.REGEX_MATCH;
             case SqlBaseLexer.REGEX_NO_MATCH -> ComparisonExpression.Type.REGEX_NO_MATCH;
             case SqlBaseLexer.REGEX_MATCH_CI -> ComparisonExpression.Type.REGEX_MATCH_CI;

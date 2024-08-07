@@ -123,6 +123,7 @@ import io.crate.sql.tree.Cast;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.ComparisonExpression;
 import io.crate.sql.tree.CurrentTime;
+import io.crate.sql.tree.DistinctFromPredicate;
 import io.crate.sql.tree.DoubleLiteral;
 import io.crate.sql.tree.EscapedCharStringLiteral;
 import io.crate.sql.tree.ExistsPredicate;
@@ -1092,6 +1093,18 @@ public class ExpressionAnalyzer {
             );
 
             return allocateFunction(AndOperator.NAME, List.of(gteFunc, lteFunc), context);
+        }
+
+        @Override
+        protected Symbol visitDistinctFrom(DistinctFromPredicate node, ExpressionAnalysisContext context) {
+            // <left> is distinct from <right>
+            // -> (<left> != null && <right != null && <left> != <right>) || !(<left> == null && <right> == null) ||
+            Symbol left = node.getLeft().accept(this, context);
+            Symbol right = node.getRight().accept(this, context);
+            return allocateFunction(
+                io.crate.expression.operator.DistinctFromPredicate.NAME,
+                List.of(left, right),
+                context);
         }
 
         @Override
