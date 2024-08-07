@@ -25,9 +25,9 @@ Synopsis
 Description
 ===========
 
-``ALTER ROLE SET`` applies a change to an existing database user or role. Only
-existing superusers or the user itself have the privilege to alter an existing
-database user.
+``ALTER ROLE SET`` applies a change to an existing database user or role.
+Superusers and users with ``AL`` privileges can modify other roles. Every role
+has permission to modify themselves.
 
 ``ALTER ROLE RESET`` resets modifiable
 :ref:`session settings <conf-session>` to their default value.
