@@ -23,6 +23,7 @@ package io.crate.planner.statement;
 
 import static io.crate.analyze.CopyStatementSettings.COMPRESSION_SETTING;
 import static io.crate.analyze.CopyStatementSettings.OUTPUT_FORMAT_SETTING;
+import static io.crate.analyze.CopyStatementSettings.WAIT_FOR_COMPLETION_SETTING;
 import static io.crate.analyze.CopyStatementSettings.settingAsEnum;
 
 import java.util.ArrayList;
@@ -137,7 +138,8 @@ public final class CopyToPlan implements Plan {
         jobLauncher.execute(
             consumer,
             plannerContext.transactionContext(),
-            boundedCopyTo.withClauseOptions().getAsBoolean("wait_for_completion", true));
+            WAIT_FOR_COMPLETION_SETTING.get(boundedCopyTo.withClauseOptions())
+        );
     }
 
     @VisibleForTesting

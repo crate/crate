@@ -35,6 +35,11 @@ public final class CopyStatementSettings {
     private CopyStatementSettings() {
     }
 
+    public static final Setting<Boolean> WAIT_FOR_COMPLETION_SETTING = Setting.boolSetting(
+        "wait_for_completion",
+        true
+    );
+
     public static final Setting<String> COMPRESSION_SETTING = Setting.simpleString(
         "compression",
         Validators.stringValidator("compression", "gzip"),
