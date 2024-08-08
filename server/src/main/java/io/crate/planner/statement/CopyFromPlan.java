@@ -23,6 +23,7 @@ package io.crate.planner.statement;
 
 import static io.crate.analyze.CopyStatementSettings.COMPRESSION_SETTING;
 import static io.crate.analyze.CopyStatementSettings.INPUT_FORMAT_SETTING;
+import static io.crate.analyze.CopyStatementSettings.WAIT_FOR_COMPLETION_SETTING;
 import static io.crate.analyze.CopyStatementSettings.settingAsEnum;
 
 import java.util.ArrayList;
@@ -141,7 +142,8 @@ public final class CopyFromPlan implements Plan {
         jobLauncher.execute(
             consumer,
             plannerContext.transactionContext(),
-            boundedCopyFrom.settings().getAsBoolean("wait_for_completion", true));
+            WAIT_FOR_COMPLETION_SETTING.get(boundedCopyFrom.settings())
+        );
     }
 
     @VisibleForTesting
@@ -172,7 +174,7 @@ public final class CopyFromPlan implements Plan {
                 "Using (validation = ?) in COPY FROM is no longer supported. Validation is always enforced");
         }
         boolean returnSummary = copyFrom instanceof AnalyzedCopyFromReturnSummary;
-        boolean waitForCompletion = settings.getAsBoolean("wait_for_completion", true);
+        boolean waitForCompletion = WAIT_FOR_COMPLETION_SETTING.get(settings);
         if (!waitForCompletion && returnSummary) {
             throw new UnsupportedOperationException(
                 "Cannot use RETURN SUMMARY with wait_for_completion=false. Either set wait_for_completion=true, or remove RETURN SUMMARY");
