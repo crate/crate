@@ -148,10 +148,9 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCopyToPlanWithParameters() {
-        Merge merge = plan("copy users to directory '/path/to' with (protocol='http', wait_for_completion=false)");
+        Merge merge = plan("copy users to directory '/path/to' with (wait_for_completion=false)");
         Collect collect = (Collect) merge.subPlan();
         WriterProjection writerProjection = (WriterProjection) collect.collectPhase().projections().getFirst();
-        assertThat(writerProjection.withClauseOptions().get("protocol")).isEqualTo("http");
         assertThat(writerProjection.withClauseOptions().getAsBoolean(
             "wait_for_completion", true)).isFalse();
 
@@ -174,5 +173,23 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
         collect = (Collect) merge.subPlan();
         writerProjection = (WriterProjection) collect.collectPhase().projections().getFirst();
         assertThat(writerProjection.withClauseOptions()).isEqualTo(Settings.EMPTY);
+    }
+
+    @Test
+    public void copy_to_protocol_in_with_clause_is_not_rejected() {
+        // We do unknown or irrelevant property validation for "file" scheme in the server module.
+        // Verify that properties of a non-file scheme are not rejected.
+        // They are supposed to be validated later in a plugin, implementing the scheme.
+        Merge merge = plan("COPY users to DIRECTORY 's3://bucket' WITH (protocol='http')");
+        Collect collect = (Collect) merge.subPlan();
+        WriterProjection writerProjection = (WriterProjection) collect.collectPhase().projections().getFirst();
+        assertThat(writerProjection.withClauseOptions().get("protocol")).isEqualTo("http");
+    }
+
+    @Test
+    public void copy_to_unknown_property_in_with_clause_is_rejected() {
+        assertThatThrownBy(() -> plan("COPY users TO DIRECTORY '/some/distant/file.ext' WITH (dummy='dummy')"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Setting 'dummy' is not supported");
     }
 }

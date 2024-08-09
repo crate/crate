@@ -21,14 +21,17 @@
 
 package io.crate.analyze;
 
+import static io.crate.execution.dsl.projection.AbstractIndexWriterProjection.BULK_SIZE_SETTING;
 import static org.elasticsearch.common.settings.Setting.parseInt;
 
+import java.util.List;
 import java.util.Locale;
 
 import org.elasticsearch.common.settings.Setting;
 
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 
+import io.crate.analyze.copy.NodeFilters;
 import io.crate.metadata.settings.Validators;
 import io.crate.types.DataTypes;
 
@@ -117,4 +120,32 @@ public final class CopyStatementSettings {
         }
         return Enum.valueOf(settingsEnum, settingValue.toUpperCase(Locale.ENGLISH));
     }
+
+    public static List<String> commonCopyToSettings = List.of(
+        COMPRESSION_SETTING.getKey(),
+        OUTPUT_FORMAT_SETTING.getKey(),
+        WAIT_FOR_COMPLETION_SETTING.getKey()
+    );
+
+    public static List<String> commonCopyFromSettings = List.of(
+        COMPRESSION_SETTING.getKey(),
+        INPUT_FORMAT_SETTING.getKey(),
+        WAIT_FOR_COMPLETION_SETTING.getKey(),
+        OVERWRITE_DUPLICATES_SETTING.getKey(),
+        FAIL_FAST_SETTING.getKey(),
+        SHARED_SETTING.getKey(),
+        NUM_READERS_SETTING.getKey(),
+        BULK_SIZE_SETTING.getKey(),
+        NodeFilters.NAME
+    );
+
+    // CSV specific settings.
+    // We keep them separate from common settings because
+    // we don't want '... FROM S3://... WITH (some_csv_setting)...' to pass "known setting" validation.
+    public static List<String> csvSettings = List.of(
+        EMPTY_STRING_AS_NULL.getKey(),
+        CSV_COLUMN_SEPARATOR.getKey(),
+        INPUT_HEADER_SETTINGS.getKey(),
+        CSV_COLUMN_SEPARATOR.getKey()
+    );
 }
