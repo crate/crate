@@ -57,11 +57,10 @@ public final class AnyEqOperator extends AnyOperator<Object> {
     }
 
     @Override
-    protected Query refMatchesAnyArrayLiteral(Function any, Reference probe, Literal<?> candidates, Context context) {
+    protected Query refMatchesAnyArrayLiteral(Function any, Reference probe, List<?> nonNullValues, Context context) {
         String columnName = probe.storageIdent();
-        List<?> values = (List<?>) candidates.value();
         DataType<?> innerType = ArrayType.unnest(probe.valueType());
-        return EqOperator.termsQuery(columnName, innerType, values, probe.hasDocValues(), probe.indexType());
+        return EqOperator.termsQuery(columnName, innerType, nonNullValues, probe.hasDocValues(), probe.indexType());
     }
 
     @Override

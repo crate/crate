@@ -61,3 +61,7 @@ Fixes
 - Fixed an issue that caused ``WHERE`` clause containing ``ARRAY_LENGTH``
   scalar on an array type that is a child of an object array to match and
   return a wrong result set.
+
+- Fixed an issue that caused ``WHERE`` clause to fail to filter rows when the
+  clause contained :ref:`ANY <sql_any_array_comparison>` over array literals
+  that are empty or containing only nulls.
