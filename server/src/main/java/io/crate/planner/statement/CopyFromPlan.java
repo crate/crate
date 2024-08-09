@@ -39,11 +39,8 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.common.logging.DeprecationLogger;
 import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
@@ -96,8 +93,6 @@ import io.crate.types.DataTypes;
 
 public final class CopyFromPlan implements Plan {
 
-    private static final Logger LOGGER = LogManager.getLogger(CopyFromPlan.class);
-    static final DeprecationLogger DEPRECATION_LOGGER = new DeprecationLogger(LOGGER);
     private final AnalyzedCopyFrom copyFrom;
 
     public CopyFromPlan(AnalyzedCopyFrom copyFrom) {
@@ -171,9 +166,7 @@ public final class CopyFromPlan implements Plan {
         final var settings = Settings.builder().put(properties).build();
 
         if (properties.contains("validation")) {
-            DEPRECATION_LOGGER.deprecatedAndMaybeLog(
-                "copy_from.validation",
-                "Using (validation = ?) in COPY FROM is no longer supported. Validation is always enforced");
+            throw new IllegalArgumentException("Setting 'validation' is not supported");
         }
         boolean returnSummary = copyFrom instanceof AnalyzedCopyFromReturnSummary;
         boolean waitForCompletion = WAIT_FOR_COMPLETION_SETTING.get(settings);

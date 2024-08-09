@@ -162,10 +162,10 @@ public class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_logs_deprecation_on_validation_false() throws Exception {
-        CopyFromPlan.DEPRECATION_LOGGER.resetLRU();
-        plan("copy users from '/path' with (validation = false)");
-        assertWarnings("Using (validation = ?) in COPY FROM is no longer supported. Validation is always enforced");
+    public void test_validation_is_not_supported() throws Exception {
+        assertThatThrownBy(() -> plan("copy users from '/path' with (validation = false)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Setting 'validation' is not supported");
     }
 
     @Test

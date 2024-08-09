@@ -45,6 +45,8 @@ Version 5.9.0 - Unreleased
 Breaking Changes
 ================
 
+- Removed deprecated ``validation`` parameter from ``COPY FROM``.
+
 - Fixed an issue that caused ``WHERE`` clause containing ``NOT`` operator on
   an array type against a non-empty array to incorrectly filter empty arrays,
   e.g.::
