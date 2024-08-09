@@ -21,6 +21,8 @@
 
 package io.crate.analyze;
 
+import static org.elasticsearch.common.settings.Setting.parseInt;
+
 import java.util.Locale;
 
 import org.elasticsearch.common.settings.Setting;
@@ -38,6 +40,31 @@ public final class CopyStatementSettings {
     public static final Setting<Boolean> WAIT_FOR_COMPLETION_SETTING = Setting.boolSetting(
         "wait_for_completion",
         true
+    );
+
+    public static final Setting<Boolean> OVERWRITE_DUPLICATES_SETTING = Setting.boolSetting(
+        "overwrite_duplicates",
+        false
+    );
+
+    public static final Setting<Boolean> FAIL_FAST_SETTING = Setting.boolSetting(
+        "fail_fast",
+        false
+    );
+
+    // "false" is not an actual default.
+    // We use getOrNull and in case of NULL(not specified by a user) we take schema specific default.
+    public static final Setting<Boolean> SHARED_SETTING = Setting.boolSetting(
+        "shared",
+        false
+    );
+
+    public static final Setting<Integer> NUM_READERS_SETTING = new Setting<>(
+        "num_readers",
+        _ -> "1", // Dummy default to pass NULL/minValue check in parseInt, actually defaults to the number of nodes.
+        (s) -> parseInt(s, 1, "num_readers"),
+        DataTypes.INTEGER,
+        Setting.Property.Dynamic
     );
 
     public static final Setting<String> COMPRESSION_SETTING = Setting.simpleString(
