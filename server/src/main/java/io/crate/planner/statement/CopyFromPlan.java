@@ -23,6 +23,8 @@ package io.crate.planner.statement;
 
 import static io.crate.analyze.CopyStatementSettings.COMPRESSION_SETTING;
 import static io.crate.analyze.CopyStatementSettings.INPUT_FORMAT_SETTING;
+import static io.crate.analyze.CopyStatementSettings.NUM_READERS_SETTING;
+import static io.crate.analyze.CopyStatementSettings.SHARED_SETTING;
 import static io.crate.analyze.CopyStatementSettings.WAIT_FOR_COMPLETION_SETTING;
 import static io.crate.analyze.CopyStatementSettings.settingAsEnum;
 
@@ -317,20 +319,22 @@ public final class CopyFromPlan implements Plan {
             rewriteToCollectToUsePartitionValues(table.partitionedByColumns(), partitionValues, toCollect);
         }
 
+        Integer numReaders = NUM_READERS_SETTING.getOrNull(boundedCopyFrom.settings());
+        numReaders = numReaders == null ? allNodes.getSize() : numReaders;
         FileUriCollectPhase collectPhase = new FileUriCollectPhase(
             context.jobId(),
             context.nextExecutionPhaseId(),
             "copyFrom",
             getExecutionNodes(
                 allNodes,
-                boundedCopyFrom.settings().getAsInt("num_readers", allNodes.getSize()),
+                numReaders,
                 boundedCopyFrom.nodePredicate()),
             boundedCopyFrom.uri(),
             boundedCopyFrom.targetColumns(),
             toCollect,
             Collections.emptyList(),
             COMPRESSION_SETTING.getOrNull(boundedCopyFrom.settings()),
-            boundedCopyFrom.settings().getAsBoolean("shared", null),
+            SHARED_SETTING.getOrNull(boundedCopyFrom.settings()),
             CopyFromParserProperties.of(boundedCopyFrom.settings()),
             boundedCopyFrom.inputFormat(),
             boundedCopyFrom.settings()

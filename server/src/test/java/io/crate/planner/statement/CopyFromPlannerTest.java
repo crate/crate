@@ -23,7 +23,6 @@ package io.crate.planner.statement;
 
 import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -146,7 +145,7 @@ public class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testCopyFromPlanWithInvalidParameters() {
         assertThatThrownBy(() -> plan("copy users from '/path/to/file.ext' with (bulk_size=-28)"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("\"bulk_size\" must be greater than 0.");
+            .hasMessage("Failed to parse value [-28] for setting [bulk_size] must be >= 1");
     }
 
     @Test
@@ -167,5 +166,13 @@ public class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
         CopyFromPlan.DEPRECATION_LOGGER.resetLRU();
         plan("copy users from '/path' with (validation = false)");
         assertWarnings("Using (validation = ?) in COPY FROM is no longer supported. Validation is always enforced");
+    }
+
+    @Test
+    public void test_num_readers_minimal_value_must_be_greater_than_0() {
+        assertThatThrownBy(
+            () -> plan("copy users from '/path/to/file.extension' with (num_readers = 0)")
+        ).isExactlyInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Failed to parse value [0] for setting [num_readers] must be >= 1");
     }
 }

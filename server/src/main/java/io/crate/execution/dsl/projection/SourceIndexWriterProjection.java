@@ -21,6 +21,9 @@
 
 package io.crate.execution.dsl.projection;
 
+import static io.crate.analyze.CopyStatementSettings.FAIL_FAST_SETTING;
+import static io.crate.analyze.CopyStatementSettings.OVERWRITE_DUPLICATES_SETTING;
+
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
@@ -43,10 +46,6 @@ import io.crate.metadata.RelationName;
  * IndexWriterProjector that gets its values from a source input
  */
 public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
-
-    private static final String OVERWRITE_DUPLICATES = "overwrite_duplicates";
-    private static final boolean OVERWRITE_DUPLICATES_DEFAULT = false;
-    private static final String FAIL_FAST = "fail_fast";
 
     private final boolean failFast;
     private final Boolean overwriteDuplicates;
@@ -78,8 +77,8 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
         this.clusteredBySymbol = clusteredBySymbol;
         this.rawSourceSymbol = rawSourcePtr;
         this.outputs = outputs;
-        overwriteDuplicates = settings.getAsBoolean(OVERWRITE_DUPLICATES, OVERWRITE_DUPLICATES_DEFAULT);
-        this.failFast = settings.getAsBoolean(FAIL_FAST, false);
+        this.overwriteDuplicates = OVERWRITE_DUPLICATES_SETTING.get(settings);
+        this.failFast = FAIL_FAST_SETTING.get(settings);
     }
 
     SourceIndexWriterProjection(StreamInput in) throws IOException {
