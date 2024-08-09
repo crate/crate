@@ -106,7 +106,7 @@ public class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testCopyFromPlanWithParameters() {
         Collect collect = plan("copy users " +
                                "from '/path/to/file.ext' with (bulk_size=30, compression='gzip', shared=true, " +
-                               "fail_fast=true, protocol='http', wait_for_completion=false)");
+                               "fail_fast=true, wait_for_completion=false)");
         assertThat(collect.collectPhase()).isExactlyInstanceOf(FileUriCollectPhase.class);
 
         FileUriCollectPhase collectPhase = (FileUriCollectPhase) collect.collectPhase();
@@ -115,7 +115,6 @@ public class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(collectPhase.compression()).isEqualTo("gzip");
         assertThat(collectPhase.sharedStorage()).isTrue();
         assertThat(indexWriterProjection.failFast()).isTrue();
-        assertThat(collectPhase.withClauseOptions().get("protocol")).isEqualTo("http");
         assertThat(collectPhase.withClauseOptions().getAsBoolean("wait_for_completion", true)).isFalse();
 
         // verify defaults:
@@ -174,5 +173,23 @@ public class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
             () -> plan("copy users from '/path/to/file.extension' with (num_readers = 0)")
         ).isExactlyInstanceOf(IllegalArgumentException.class)
         .hasMessage("Failed to parse value [0] for setting [num_readers] must be >= 1");
+    }
+
+    @Test
+    public void copy_from_protocol_in_with_clause_is_not_rejected() {
+        // We do unknown or irrelevant property validation for "file" scheme in the server module.
+        // Verify that properties of a non-file scheme are not rejected.
+        // They are supposed to be validated later in a plugin, implementing the scheme.
+        Collect collect = plan("COPY users FROM 's3://bucket' WITH (protocol='http')");
+        assertThat(collect.collectPhase()).isExactlyInstanceOf(FileUriCollectPhase.class);
+        FileUriCollectPhase collectPhase = (FileUriCollectPhase) collect.collectPhase();
+        assertThat(collectPhase.withClauseOptions().get("protocol")).isEqualTo("http");
+    }
+
+    @Test
+    public void copy_from_unknown_property_in_with_clause_is_rejected() {
+        assertThatThrownBy(() -> plan("COPY users FROM '/some/distant/file.ext' WITH (dummy='dummy')"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Setting 'dummy' is not supported");
     }
 }

@@ -47,6 +47,9 @@ Breaking Changes
 
 - Removed deprecated ``validation`` parameter from ``COPY FROM``.
 
+- Added validation of unknown or irrelevant for the ``file`` scheme properties
+  for the ``COPY FROM`` and ``COPY TO`` statements.
+
 - Fixed an issue that caused ``WHERE`` clause containing ``NOT`` operator on
   an array type against a non-empty array to incorrectly filter empty arrays,
   e.g.::

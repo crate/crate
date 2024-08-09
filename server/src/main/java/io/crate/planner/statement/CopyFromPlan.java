@@ -51,6 +51,7 @@ import io.crate.analyze.AnalyzedCopyFrom;
 import io.crate.analyze.AnalyzedCopyFromReturnSummary;
 import io.crate.analyze.BoundCopyFrom;
 import io.crate.analyze.CopyFromParserProperties;
+import io.crate.analyze.CopyStatementSettings;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.copy.NodeFilters;
 import io.crate.common.collections.Lists;
@@ -89,6 +90,7 @@ import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.sql.tree.GenericProperties;
 import io.crate.types.DataTypes;
 
 public final class CopyFromPlan implements Plan {
@@ -165,9 +167,6 @@ public final class CopyFromPlan implements Plan {
         final var nodeFiltersPredicate = discoveryNodePredicate(properties.get(NodeFilters.NAME, null));
         final var settings = Settings.builder().put(properties).build();
 
-        if (properties.contains("validation")) {
-            throw new IllegalArgumentException("Setting 'validation' is not supported");
-        }
         boolean returnSummary = copyFrom instanceof AnalyzedCopyFromReturnSummary;
         boolean waitForCompletion = WAIT_FOR_COMPLETION_SETTING.get(settings);
         if (!waitForCompletion && returnSummary) {
@@ -180,7 +179,7 @@ public final class CopyFromPlan implements Plan {
         // TODO make FileUriCollectPhase ctor accept an uri of the List<String>
         // instead of the Symbol type, such as the uri can be evaluated and converted
         // to the required type already at this stage, but not later on in FileCollectSource.
-        var boundedURI = validateAndConvertToLiteral(eval.apply(copyFrom.uri()));
+        var boundedURI = validateAndConvertToLiteral(eval.apply(copyFrom.uri()), properties);
         var header = settings.getAsBoolean("header", true);
         var targetColumns = copyFrom.targetColumns();
         if (!header && copyFrom.targetColumns().isEmpty()) {
@@ -425,13 +424,39 @@ public final class CopyFromPlan implements Plan {
         return nodes;
     }
 
-    private static Symbol validateAndConvertToLiteral(Object uri) {
+    /**
+     * Validates that uri is either String or List<String>.
+     *
+     * If schema is "file" also validates that properties
+     * belong to CSV specific settings and scheme independent settings set.
+     *
+     * Properties of other schemes are validated later in plugins
+     * as only plugins are aware of scheme specific properties.
+     */
+    private static Literal<?> validateAndConvertToLiteral(Object uri, GenericProperties<Object> properties) {
         if (uri instanceof String) {
-            return Literal.of(DataTypes.STRING.sanitizeValue(uri));
+            String uriAsString = DataTypes.STRING.sanitizeValue(uri);
+            if (uriAsString.startsWith("/") || uriAsString.startsWith("file:")) {
+                properties.ensureContainsOnly(
+                    Lists.concat(
+                        CopyStatementSettings.commonCopyFromSettings,
+                        CopyStatementSettings.csvSettings
+                    )
+                );
+            }
+            return Literal.of(uriAsString);
         } else if (uri instanceof List<?> uris) {
             Object value = uris.get(0);
-            if (!(value instanceof String)) {
+            if (!(value instanceof String uriAsString)) {
                 throw AnalyzedCopyFrom.raiseInvalidType(DataTypes.guessType(uri));
+            }
+            if (uriAsString.startsWith("/") || uriAsString.startsWith("file:")) {
+                properties.ensureContainsOnly(
+                    Lists.concat(
+                        CopyStatementSettings.commonCopyFromSettings,
+                        CopyStatementSettings.csvSettings
+                    )
+                );
             }
             return Literal.of(DataTypes.STRING_ARRAY, DataTypes.STRING_ARRAY.sanitizeValue(uri));
         }
