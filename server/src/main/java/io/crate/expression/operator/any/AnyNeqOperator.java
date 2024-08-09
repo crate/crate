@@ -73,7 +73,7 @@ public final class AnyNeqOperator extends AnyOperator<Object> {
             }
             andBuilder.add(fromPrimitive, BooleanClause.Occur.MUST);
         }
-        Query exists = IsNullPredicate.refExistsQuery(probe, context, false);
+        Query exists = IsNullPredicate.refExistsQuery(probe, context);
         return new BooleanQuery.Builder()
             .add(Queries.not(andBuilder.build()), Occur.MUST)
             .add(exists, Occur.FILTER)

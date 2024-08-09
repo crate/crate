@@ -110,7 +110,7 @@ public final class NullOrEmptyFunction extends Scalar<Boolean, Object> {
                 if (childRef == null) {
                     return null;
                 }
-                Query refExistsQuery = IsNullPredicate.refExistsQuery(childRef, context, true);
+                Query refExistsQuery = IsNullPredicate.refExistsQuery(childRef, context);
                 if (refExistsQuery == null) {
                     return null;
                 }
