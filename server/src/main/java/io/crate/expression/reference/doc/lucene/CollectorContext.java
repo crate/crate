@@ -21,44 +21,41 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import java.util.Set;
-import java.util.function.UnaryOperator;
+import java.util.function.Supplier;
 
 import io.crate.metadata.Reference;
 
 public class CollectorContext {
 
     private final int readerId;
-    private final Set<Reference> droppedColumns;
-    private final UnaryOperator<String> lookupNameBySourceKey;
+    private final Supplier<StoredRowLookup> storedRowLookupSupplier;
 
-    private SourceLookup sourceLookup;
+    private StoredRowLookup storedRowLookup;
 
-    public CollectorContext(Set<Reference> droppedColumns, UnaryOperator<String> lookupNameBySourceKey) {
-        this(-1, droppedColumns, lookupNameBySourceKey);
+    public CollectorContext(Supplier<StoredRowLookup> storedRowLookupSupplier) {
+        this(-1, storedRowLookupSupplier);
     }
 
-    public CollectorContext(int readerId, Set<Reference> droppedColumns, UnaryOperator<String> lookupNameBySourceKey) {
+    public CollectorContext(int readerId, Supplier<StoredRowLookup> storedRowLookupSupplier) {
         this.readerId = readerId;
-        this.droppedColumns = droppedColumns;
-        this.lookupNameBySourceKey = lookupNameBySourceKey;
+        this.storedRowLookupSupplier = storedRowLookupSupplier;
     }
 
     public int readerId() {
         return readerId;
     }
 
-    public SourceLookup sourceLookup() {
-        if (sourceLookup == null) {
-            sourceLookup = new SourceLookup(droppedColumns, lookupNameBySourceKey);
+    public StoredRowLookup storedRowLookup() {
+        if (storedRowLookup == null) {
+            storedRowLookup = storedRowLookupSupplier.get();
         }
-        return sourceLookup;
+        return storedRowLookup;
     }
 
-    public SourceLookup sourceLookup(Reference ref) {
-        if (sourceLookup == null) {
-            sourceLookup = new SourceLookup(droppedColumns, lookupNameBySourceKey);
+    public StoredRowLookup storedRowLookup(Reference ref) {
+        if (storedRowLookup == null) {
+            storedRowLookup = storedRowLookupSupplier.get();
         }
-        return sourceLookup.registerRef(ref);
+        return storedRowLookup.registerRef(ref);
     }
 }

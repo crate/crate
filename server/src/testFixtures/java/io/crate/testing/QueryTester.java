@@ -52,6 +52,7 @@ import io.crate.execution.engine.collect.collectors.LuceneBatchIterator;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
+import io.crate.expression.reference.doc.lucene.StoredRowLookup;
 import io.crate.expression.symbol.FunctionCopyVisitor;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.ParameterSymbol;
@@ -177,7 +178,7 @@ public final class QueryTester implements AutoCloseable {
                 query,
                 null,
                 false,
-                new CollectorContext(table.droppedColumns(), table.lookupNameBySourceKey()),
+                new CollectorContext(() -> StoredRowLookup.create(table)),
                 Collections.singletonList(input),
                 ctx.expressions()
             );

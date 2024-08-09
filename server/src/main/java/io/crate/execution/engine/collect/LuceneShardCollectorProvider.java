@@ -54,6 +54,7 @@ import io.crate.expression.InputFactory;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
+import io.crate.expression.reference.doc.lucene.StoredRowLookup;
 import io.crate.expression.reference.sys.shard.ShardRowContext;
 import io.crate.expression.symbol.Symbols;
 import io.crate.lucene.LuceneQueryBuilder;
@@ -142,7 +143,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             queryContext.query(),
             queryContext.minScore(),
             Symbols.hasColumn(collectPhase.toCollect(), DocSysColumns.SCORE),
-            new CollectorContext(sharedShardContext.readerId(), table.droppedColumns(), table.lookupNameBySourceKey()),
+            new CollectorContext(sharedShardContext.readerId(), () -> StoredRowLookup.create(table)),
             docCtx.topLevelInputs(),
             docCtx.expressions()
         );
@@ -209,7 +210,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             indexService.cache()
         );
         ctx = docInputFactory.extractImplementations(collectTask.txnCtx(), phase);
-        collectorContext = new CollectorContext(sharedShardContext.readerId(), table.droppedColumns(), table.lookupNameBySourceKey());
+        collectorContext = new CollectorContext(sharedShardContext.readerId(), () -> StoredRowLookup.create(table));
         int batchSize = phase.shardQueueSize(localNodeId.get());
         if (LOGGER.isTraceEnabled()) {
             LOGGER.trace("[{}][{}] creating LuceneOrderedDocCollector. Expected number of rows to be collected: {}",

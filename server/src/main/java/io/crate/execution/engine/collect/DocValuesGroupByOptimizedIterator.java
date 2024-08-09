@@ -68,6 +68,7 @@ import io.crate.expression.InputFactory;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
+import io.crate.expression.reference.doc.lucene.StoredRowLookup;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
@@ -159,7 +160,7 @@ final class DocValuesGroupByOptimizedIterator {
                 collectTask.memoryManager(),
                 collectTask.minNodeVersion(),
                 queryContext.query(),
-                new CollectorContext(sharedShardContext.readerId(), table.droppedColumns(), table.lookupNameBySourceKey())
+                new CollectorContext(sharedShardContext.readerId(), () -> StoredRowLookup.create(table))
             );
         } else {
             return GroupByIterator.forManyKeys(
@@ -171,7 +172,7 @@ final class DocValuesGroupByOptimizedIterator {
                 collectTask.memoryManager(),
                 collectTask.minNodeVersion(),
                 queryContext.query(),
-                new CollectorContext(sharedShardContext.readerId(), table.droppedColumns(), table.lookupNameBySourceKey())
+                new CollectorContext(sharedShardContext.readerId(), () -> StoredRowLookup.create(table))
             );
         }
     }

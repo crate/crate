@@ -51,6 +51,7 @@ import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
+import io.crate.expression.reference.doc.lucene.StoredRowLookup;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -370,7 +371,7 @@ public class LuceneQueryBuilder {
         @SuppressWarnings("unchecked")
         final Input<Boolean> condition = (Input<Boolean>) ctx.add(function);
         final Collection<? extends LuceneCollectorExpression<?>> expressions = ctx.expressions();
-        final CollectorContext collectorContext = new CollectorContext(context.table.droppedColumns(), context.table.lookupNameBySourceKey());
+        final CollectorContext collectorContext = new CollectorContext(() -> StoredRowLookup.create(context.table));
         for (LuceneCollectorExpression<?> expression : expressions) {
             expression.startCollect(collectorContext);
         }
