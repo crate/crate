@@ -427,22 +427,16 @@ public final class CopyFromPlan implements Plan {
     /**
      * Validates that uri is either String or List<String>.
      *
-     * If schema is "file" also validates that properties
-     * belong to CSV specific settings and scheme independent settings set.
+     * If schema is "file" also validates scheme independent settings.
      *
-     * Properties of other schemes are validated later in plugins
+     * Settings of other schemes are validated later in plugins
      * as only plugins are aware of scheme specific properties.
      */
     private static Literal<?> validateAndConvertToLiteral(Object uri, GenericProperties<Object> properties) {
         if (uri instanceof String) {
             String uriAsString = DataTypes.STRING.sanitizeValue(uri);
             if (uriAsString.startsWith("/") || uriAsString.startsWith("file:")) {
-                properties.ensureContainsOnly(
-                    Lists.concat(
-                        CopyStatementSettings.commonCopyFromSettings,
-                        CopyStatementSettings.csvSettings
-                    )
-                );
+                properties.ensureContainsOnly(CopyStatementSettings.commonCopyFromSettings);
             }
             return Literal.of(uriAsString);
         } else if (uri instanceof List<?> uris) {
@@ -451,12 +445,7 @@ public final class CopyFromPlan implements Plan {
                 throw AnalyzedCopyFrom.raiseInvalidType(DataTypes.guessType(uri));
             }
             if (uriAsString.startsWith("/") || uriAsString.startsWith("file:")) {
-                properties.ensureContainsOnly(
-                    Lists.concat(
-                        CopyStatementSettings.commonCopyFromSettings,
-                        CopyStatementSettings.csvSettings
-                    )
-                );
+                properties.ensureContainsOnly(CopyStatementSettings.commonCopyFromSettings);
             }
             return Literal.of(DataTypes.STRING_ARRAY, DataTypes.STRING_ARRAY.sanitizeValue(uri));
         }

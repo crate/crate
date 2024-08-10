@@ -274,12 +274,9 @@ public final class CopyToPlan implements Plan {
         WhereClause whereClause = new WhereClause(copyTo.whereClause(), partitions, Collections.emptySet());
         String uri = DataTypes.STRING.sanitizeValue(eval.apply(copyTo.uri()));
         if (uri.startsWith("/") || uri.startsWith("file:")) {
-            properties.ensureContainsOnly(
-                Lists.concat(
-                    CopyStatementSettings.commonCopyFromSettings,
-                    CopyStatementSettings.csvSettings
-                )
-            );
+            // Settings of other schemes are validated later in plugins
+            // as only plugins are aware of scheme specific properties.
+            properties.ensureContainsOnly(CopyStatementSettings.commonCopyToSettings);
         }
         return new BoundCopyTo(
             outputs,
