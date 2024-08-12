@@ -65,8 +65,8 @@ public final class NumericStorage extends StorageSupport<BigDecimal> {
 
     public static final int COMPACT_PRECISION = 18;
 
-    public NumericStorage() {
-        super(true, true, new NumericEqQuery());
+    public NumericStorage(NumericType numericType) {
+        super(true, true, NumericEqQuery.of(numericType));
     }
 
     @Override

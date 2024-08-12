@@ -24,38 +24,109 @@ package io.crate.types;
 import java.math.BigDecimal;
 import java.util.List;
 
+import org.apache.lucene.document.LongPoint;
+import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.search.Query;
 import org.jetbrains.annotations.Nullable;
 
-public class NumericEqQuery implements EqQuery<BigDecimal> {
+import io.crate.common.collections.Lists;
 
-    @Override
-    @Nullable
-    public Query termQuery(String field,
-                           BigDecimal value,
-                           boolean hasDocValues,
-                           boolean isIndexed) {
-        return null;
+public class NumericEqQuery {
+
+    static EqQuery<BigDecimal> of(NumericType type) {
+        Integer precision = type.numericPrecision();
+        if (precision == null) {
+            return new Unoptimized();
+        } else if (precision <= NumericStorage.COMPACT_PRECISION) {
+            return new Compact();
+        } else {
+            return new Unoptimized();
+        }
     }
 
-    @Override
-    @Nullable
-    public Query rangeQuery(String field,
-                            BigDecimal lowerTerm,
-                            BigDecimal upperTerm,
-                            boolean includeLower,
-                            boolean includeUpper,
-                            boolean hasDocValues,
-                            boolean isIndexed) {
-        return null;
+    static class Compact implements EqQuery<BigDecimal> {
+
+        static long MIN_VALUE = -999999999999999999L;
+        static long MAX_VALUE = 999999999999999999L;
+
+        @Override
+        @Nullable
+        public Query termQuery(String field, BigDecimal value, boolean hasDocValues, boolean isIndexed) {
+            if (isIndexed) {
+                long longValue = value.unscaledValue().longValueExact();
+                return LongPoint.newExactQuery(field, longValue);
+            }
+            if (hasDocValues) {
+                long longValue = value.unscaledValue().longValueExact();
+                return SortedNumericDocValuesField.newSlowExactQuery(field, longValue);
+            }
+            return null;
+        }
+
+        @Override
+        @Nullable
+        public Query rangeQuery(String field,
+                                BigDecimal lowerTerm,
+                                BigDecimal upperTerm,
+                                boolean includeLower,
+                                boolean includeUpper,
+                                boolean hasDocValues,
+                                boolean isIndexed) {
+            long lower = lowerTerm == null
+                ? MIN_VALUE
+                : lowerTerm.unscaledValue().longValueExact() + (includeLower ? 0 : + 1);
+            long upper = upperTerm == null
+                ? MAX_VALUE
+                : upperTerm.unscaledValue().longValueExact() + (includeUpper ? 0 : - 1);
+            return LongPoint.newRangeQuery(field, lower, upper);
+        }
+
+        @Override
+        @Nullable
+        public Query termsQuery(String field,
+                                List<BigDecimal> nonNullValues,
+                                boolean hasDocValues,
+                                boolean isIndexed) {
+            if (isIndexed) {
+                return LongPoint.newSetQuery(field, Lists.mapLazy(nonNullValues, x -> x.unscaledValue().longValueExact()));
+            }
+            if (hasDocValues) {
+                return SortedNumericDocValuesField.newSlowSetQuery(
+                    field,
+                    nonNullValues.stream().mapToLong(x -> x.unscaledValue().longValueExact()).toArray()
+                );
+            }
+            return null;
+        }
     }
 
-    @Override
-    @Nullable
-    public Query termsQuery(String field,
-                            List<BigDecimal> nonNullValues,
-                            boolean hasDocValues,
-                            boolean isIndexed) {
-        return null;
+    static class Unoptimized implements EqQuery<BigDecimal> {
+
+        @Override
+        @Nullable
+        public Query termQuery(String field, BigDecimal value, boolean hasDocValues, boolean isIndexed) {
+            return null;
+        }
+
+        @Override
+        @Nullable
+        public Query rangeQuery(String field,
+                                BigDecimal lowerTerm,
+                                BigDecimal upperTerm,
+                                boolean includeLower,
+                                boolean includeUpper,
+                                boolean hasDocValues,
+                                boolean isIndexed) {
+            return null;
+        }
+
+        @Override
+        @Nullable
+        public Query termsQuery(String field,
+                                List<BigDecimal> nonNullValues,
+                                boolean hasDocValues,
+                                boolean isIndexed) {
+            return null;
+        }
     }
 }

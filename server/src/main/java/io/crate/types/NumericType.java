@@ -63,8 +63,6 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
         }
     }
 
-    private static final StorageSupport<BigDecimal> STORAGE = new NumericStorage();
-
     @Nullable
     private final Integer scale;
     @Nullable
@@ -286,7 +284,7 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
     @Override
     @Nullable
     public StorageSupport<? super BigDecimal> storageSupport() {
-        return STORAGE;
+        return new NumericStorage(this);
     }
 
     @Override
