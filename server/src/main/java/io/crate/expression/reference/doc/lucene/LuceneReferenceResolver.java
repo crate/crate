@@ -21,8 +21,6 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import static io.crate.metadata.DocReferences.toSourceLookup;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -37,6 +35,7 @@ import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.VoidReference;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.DocReferences;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocSysColumns;
@@ -154,7 +153,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
         }
         assert ref instanceof DynamicReference == false || ref.columnPolicy() == ColumnPolicy.IGNORED;
         if (ref.hasDocValues() == false) {
-            return DocCollectorExpression.create(toSourceLookup(ref));
+            return DocCollectorExpression.create(DocReferences.toDocLookup(ref));
         }
         return switch (ref.valueType().id()) {
             case BitStringType.ID -> new BitStringColumnReference(fqn, ((BitStringType) ref.valueType()).length());
@@ -168,7 +167,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             case LongType.ID, TimestampType.ID_WITH_TZ, TimestampType.ID_WITHOUT_TZ -> new LongColumnReference(fqn);
             case IntegerType.ID -> new IntegerColumnReference(fqn);
             case GeoPointType.ID -> new GeoPointColumnReference(fqn);
-            case ArrayType.ID -> DocCollectorExpression.create(toSourceLookup(ref));
+            case ArrayType.ID -> DocCollectorExpression.create(DocReferences.toDocLookup(ref));
             case FloatVectorType.ID -> new FloatVectorColumnReference(fqn);
             default -> throw new UnhandledServerException("Unsupported type: " + ref.valueType().getName());
         };

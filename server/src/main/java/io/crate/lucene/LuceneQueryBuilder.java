@@ -363,7 +363,7 @@ public class LuceneQueryBuilder {
         // - no docValues are available for the related column, currently only on objects defined as `ignored`
         // - docValues value differs from source, currently happening on GeoPoint types as lucene's internal format
         //   results in precision changes (e.g. longitude 11.0 will be 10.999999966)
-        function = (Function) DocReferences.toSourceLookup(function,
+        function = (Function) DocReferences.toDocLookup(function,
             r -> r.columnPolicy() == ColumnPolicy.IGNORED
                  || r.valueType() == DataTypes.GEO_POINT);
 

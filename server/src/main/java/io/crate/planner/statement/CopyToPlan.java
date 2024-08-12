@@ -227,7 +227,7 @@ public final class CopyToPlan implements Plan {
             for (Symbol symbol : copyTo.columns()) {
                 assert symbol instanceof Reference : "Only references are expected here";
                 symbol.visit(Reference.class, r -> outputNames.add(r.column().sqlFqn()));
-                outputs.add(DocReferences.toSourceLookup(symbol));
+                outputs.add(DocReferences.toDocLookup(symbol));
             }
             columnsDefined = true;
         } else {
