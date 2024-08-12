@@ -438,7 +438,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                         item.version(),
                         item.seqNo(),
                         item.primaryTerm(),
-                        StoredRowLookup.create(actualTable));
+                        StoredRowLookup.create(actualTable, indexShard.shardId().getIndexName()));
                     version = doc.getVersion();
                     IndexItem indexItem = updateToInsert.convert(doc, item.updateAssignments(), insertValues);
                     item.pkValues(indexItem.pkValues());

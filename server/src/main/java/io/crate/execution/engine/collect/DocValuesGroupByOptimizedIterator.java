@@ -137,6 +137,7 @@ final class DocValuesGroupByOptimizedIterator {
 
         InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx
             = docInputFactory.getCtx(collectTask.txnCtx());
+        String indexName = indexShard.shardId().getIndexName();
         List<LuceneCollectorExpression<?>> keyExpressions = new ArrayList<>();
         for (var keyRef : columnKeyRefs) {
             keyExpressions.add((LuceneCollectorExpression<?>) docCtx.add(keyRef));
@@ -144,7 +145,7 @@ final class DocValuesGroupByOptimizedIterator {
         LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(
             collectPhase.where(),
             collectTask.txnCtx(),
-            indexShard.shardId().getIndexName(),
+            indexName,
             indexService.indexAnalyzers(),
             table,
             indexService.cache()
@@ -160,7 +161,7 @@ final class DocValuesGroupByOptimizedIterator {
                 collectTask.memoryManager(),
                 collectTask.minNodeVersion(),
                 queryContext.query(),
-                new CollectorContext(sharedShardContext.readerId(), () -> StoredRowLookup.create(table))
+                new CollectorContext(sharedShardContext.readerId(), () -> StoredRowLookup.create(table, indexName))
             );
         } else {
             return GroupByIterator.forManyKeys(
@@ -172,7 +173,7 @@ final class DocValuesGroupByOptimizedIterator {
                 collectTask.memoryManager(),
                 collectTask.minNodeVersion(),
                 queryContext.query(),
-                new CollectorContext(sharedShardContext.readerId(), () -> StoredRowLookup.create(table))
+                new CollectorContext(sharedShardContext.readerId(), () -> StoredRowLookup.create(table, indexName))
             );
         }
     }

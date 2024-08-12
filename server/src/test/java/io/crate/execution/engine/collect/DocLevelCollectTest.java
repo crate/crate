@@ -101,7 +101,7 @@ public class DocLevelCollectTest extends IntegTestCase {
                                               "  id integer," +
                                               "  name string," +
                                               "  date timestamp with time zone" +
-                                              ") clustered into 2 shards partitioned by (date) with(number_of_replicas=0)", PARTITIONED_TABLE_NAME));
+                                              ") clustered into 2 shards partitioned by (date, name) with(number_of_replicas=0)", PARTITIONED_TABLE_NAME));
         ensureGreen();
         execute(String.format(Locale.ENGLISH, "insert into %s (id, name, date) values (?, ?, ?)",
             PARTITIONED_TABLE_NAME),

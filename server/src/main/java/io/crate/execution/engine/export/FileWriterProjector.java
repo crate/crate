@@ -21,6 +21,13 @@
 
 package io.crate.execution.engine.export;
 
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Executor;
+
+import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Input;
@@ -28,20 +35,12 @@ import io.crate.data.Projector;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.metadata.ColumnIdent;
-import org.elasticsearch.common.settings.Settings;
-
-import org.jetbrains.annotations.Nullable;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Executor;
 
 public class FileWriterProjector implements Projector {
 
     private final String uri;
     private final Iterable<CollectExpression<Row, ?>> collectExpressions;
     private final List<Input<?>> inputs;
-    private final Map<ColumnIdent, Object> overwrites;
     @Nullable
     private final List<String> outputNames;
     private final WriterProjection.OutputFormat outputFormat;
@@ -63,7 +62,6 @@ public class FileWriterProjector implements Projector {
                                @Nullable WriterProjection.CompressionType compressionType,
                                @Nullable List<Input<?>> inputs,
                                Iterable<CollectExpression<Row, ?>> collectExpressions,
-                               Map<ColumnIdent, Object> overwrites,
                                @Nullable List<String> outputNames,
                                WriterProjection.OutputFormat outputFormat,
                                Map<String, FileOutputFactory> fileOutputFactoryMap,
@@ -71,7 +69,6 @@ public class FileWriterProjector implements Projector {
         this.collectExpressions = collectExpressions;
         this.executor = executor;
         this.inputs = inputs;
-        this.overwrites = overwrites;
         this.outputNames = outputNames;
         this.outputFormat = outputFormat;
         this.compressionType = compressionType;
@@ -90,7 +87,6 @@ public class FileWriterProjector implements Projector {
                 compressionType,
                 inputs,
                 collectExpressions,
-                overwrites,
                 outputNames,
                 outputFormat,
                 fileOutputFactoryMap,

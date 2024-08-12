@@ -143,7 +143,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             queryContext.query(),
             queryContext.minScore(),
             Symbols.hasColumn(collectPhase.toCollect(), DocSysColumns.SCORE),
-            new CollectorContext(sharedShardContext.readerId(), () -> StoredRowLookup.create(table)),
+            new CollectorContext(sharedShardContext.readerId(), () -> StoredRowLookup.create(table, indexShard.shardId().getIndexName())),
             docCtx.topLevelInputs(),
             docCtx.expressions()
         );
@@ -210,7 +210,10 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             indexService.cache()
         );
         ctx = docInputFactory.extractImplementations(collectTask.txnCtx(), phase);
-        collectorContext = new CollectorContext(sharedShardContext.readerId(), () -> StoredRowLookup.create(table));
+        collectorContext = new CollectorContext(
+            sharedShardContext.readerId(),
+            () -> StoredRowLookup.create(table, indexShard.shardId().getIndexName())
+        );
         int batchSize = phase.shardQueueSize(localNodeId.get());
         if (LOGGER.isTraceEnabled()) {
             LOGGER.trace("[{}][{}] creating LuceneOrderedDocCollector. Expected number of rows to be collected: {}",

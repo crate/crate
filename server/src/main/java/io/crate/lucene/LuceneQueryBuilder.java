@@ -128,6 +128,7 @@ public class LuceneQueryBuilder {
         final QueryCache queryCache;
         private final TransactionContext txnCtx;
         private final IndexAnalyzers indexAnalyzers;
+        private final String indexName;
 
         final NodeContext nodeContext;
         private final Symbol parentQuery;
@@ -153,6 +154,7 @@ public class LuceneQueryBuilder {
             );
             this.queryCache = queryCache;
             this.parentQuery = parentQuery;
+            this.indexName = indexName;
         }
 
         public Query query() {
@@ -371,7 +373,8 @@ public class LuceneQueryBuilder {
         @SuppressWarnings("unchecked")
         final Input<Boolean> condition = (Input<Boolean>) ctx.add(function);
         final Collection<? extends LuceneCollectorExpression<?>> expressions = ctx.expressions();
-        final CollectorContext collectorContext = new CollectorContext(() -> StoredRowLookup.create(context.table));
+        final CollectorContext collectorContext
+            = new CollectorContext(() -> StoredRowLookup.create(context.table, context.indexName));
         for (LuceneCollectorExpression<?> expression : expressions) {
             expression.startCollect(collectorContext);
         }

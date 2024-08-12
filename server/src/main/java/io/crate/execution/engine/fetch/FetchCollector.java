@@ -51,6 +51,7 @@ class FetchCollector {
     private final FetchTask fetchTask;
 
     FetchCollector(List<LuceneCollectorExpression<?>> collectorExpressions,
+                   String indexName,
                    Streamer<?>[] streamers,
                    FetchTask fetchTask,
                    RamAccounting ramAccounting,
@@ -62,7 +63,7 @@ class FetchCollector {
         this.ramAccounting = ramAccounting;
         this.readerId = readerId;
         var table = fetchTask.table(readerId);
-        CollectorContext collectorContext = new CollectorContext(readerId, () -> StoredRowLookup.create(table));
+        CollectorContext collectorContext = new CollectorContext(readerId, () -> StoredRowLookup.create(table, indexName));
         for (LuceneCollectorExpression<?> collectorExpression : this.collectorExpressions) {
             collectorExpression.startCollect(collectorContext);
         }

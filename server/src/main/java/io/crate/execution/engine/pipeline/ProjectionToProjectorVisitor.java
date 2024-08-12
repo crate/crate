@@ -398,37 +398,17 @@ public class ProjectionToProjectorVisitor
         }
         uri = sb.toString();
 
-        Map<ColumnIdent, Object> overwrites =
-            symbolMapToObject(projection.overwrites(), ctx, context.txnCtx);
-
         return new FileWriterProjector(
             threadPool.generic(),
             uri,
             projection.compressionType(),
             inputs,
             ctx.expressions(),
-            overwrites,
             projection.outputNames(),
             projection.outputFormat(),
             fileOutputFactoryMap,
             projection.withClauseOptions()
         );
-    }
-
-    private Map<ColumnIdent, Object> symbolMapToObject(
-            Map<ColumnIdent, Symbol> symbolMap,
-            InputFactory.Context<CollectExpression<Row, ?>> symbolContext,
-            TransactionContext txnCtx) {
-        Map<ColumnIdent, Object> objectMap = new HashMap<>(symbolMap.size());
-        for (Map.Entry<ColumnIdent, Symbol> entry : symbolMap.entrySet()) {
-            Symbol symbol = entry.getValue();
-            assert symbol != null : "symbol must not be null";
-            objectMap.put(
-                entry.getKey(),
-                symbolContext.add(normalizer.normalize(symbol, txnCtx)).value()
-            );
-        }
-        return objectMap;
     }
 
     @Override

@@ -21,16 +21,10 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 
-import org.apache.lucene.search.Scorable;
-
-import io.crate.common.collections.Maps;
 import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
-import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.VoidReference;
@@ -67,6 +61,10 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
         this.partitionColumns = partitionColumns;
     }
 
+    public String getIndexName() {
+        return indexName;
+    }
+
     @Override
     public LuceneCollectorExpression<?> getImplementation(final Reference ref) {
         final ColumnIdent column = ref.column();
@@ -100,13 +98,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
                 return new PrimaryTermCollectorExpression();
 
             case DocSysColumns.Names.DOC: {
-                var result = DocCollectorExpression.create(ref);
-                return maybeInjectPartitionValue(
-                    result,
-                    indexName,
-                    partitionColumns,
-                    column.isRoot() ? column : column.shiftRight()  // Remove `_doc` prefix so that it can match the column against partitionColumns
-                );
+                return DocCollectorExpression.create(ref);
             }
 
             default: {
@@ -116,33 +108,9 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
                         ref.valueType().implicitCast(PartitionName.fromIndexOrTemplate(indexName).values().get(partitionPos))
                     );
                 }
-                return maybeInjectPartitionValue(
-                    typeSpecializedExpression(ref),
-                    indexName,
-                    partitionColumns,
-                    column
-                );
+                return typeSpecializedExpression(ref);
             }
         }
-    }
-
-    private static LuceneCollectorExpression<?> maybeInjectPartitionValue(LuceneCollectorExpression<?> result,
-                                                                          String indexName,
-                                                                          List<Reference> partitionColumns,
-                                                                          ColumnIdent column) {
-        for (int i = 0; i < partitionColumns.size(); i++) {
-            final Reference partitionColumn = partitionColumns.get(i);
-            final var partitionColumnIdent = partitionColumn.column();
-            if (partitionColumnIdent.isChildOf(column)) {
-                return new PartitionValueInjectingExpression(
-                    PartitionName.fromIndexOrTemplate(indexName),
-                    i,
-                    partitionColumnIdent.shiftRight(),
-                    result
-                );
-            }
-        }
-        return result;
     }
 
     private static LuceneCollectorExpression<?> typeSpecializedExpression(final Reference ref) {
@@ -187,56 +155,4 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
         }
     }
 
-
-    static class PartitionValueInjectingExpression extends LuceneCollectorExpression<Object> {
-
-        private final LuceneCollectorExpression<?> inner;
-        private final ColumnIdent partitionPath;
-        private final int partitionPos;
-        private final PartitionName partitionName;
-
-        public PartitionValueInjectingExpression(PartitionName partitionName,
-                                                 int partitionPos,
-                                                 ColumnIdent partitionPath,
-                                                 LuceneCollectorExpression<?> inner) {
-            this.inner = inner;
-            this.partitionName = partitionName;
-            this.partitionPos = partitionPos;
-            this.partitionPath = partitionPath;
-        }
-
-        @SuppressWarnings("unchecked")
-        @Override
-        public Object value() {
-            final var object = (Map<String, Object>) inner.value();
-            final var partitionValue = partitionName.values().get(partitionPos);
-            Maps.mergeInto(
-                object,
-                partitionPath.name(),
-                partitionPath.path(),
-                partitionValue
-            );
-            return object;
-        }
-
-        @Override
-        public void startCollect(final CollectorContext context) {
-            inner.startCollect(context);
-        }
-
-        @Override
-        public void setNextDocId(final int doc) {
-            inner.setNextDocId(doc);
-        }
-
-        @Override
-        public void setNextReader(ReaderContext context) throws IOException {
-            inner.setNextReader(context);
-        }
-
-        @Override
-        public void setScorer(final Scorable scorer) {
-            inner.setScorer(scorer);
-        }
-    }
 }

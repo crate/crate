@@ -182,14 +182,14 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
                         searchField.storageIdent(),
                         searchType,
                         resultExpression,
-                        new CollectorContext(() -> StoredRowLookup.create(table))
+                        new CollectorContext(() -> StoredRowLookup.create(table, referenceResolver.getIndexName()))
                     );
                 } else {
                     return new MaxByLong(
                         searchField.storageIdent(),
                         searchType,
                         resultExpression,
-                        new CollectorContext(() -> StoredRowLookup.create(table))
+                        new CollectorContext(() -> StoredRowLookup.create(table, referenceResolver.getIndexName()))
                     );
                 }
             default:
