@@ -23,7 +23,6 @@ package io.crate.planner.statement;
 
 import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -107,7 +106,7 @@ public class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testCopyFromPlanWithParameters() {
         Collect collect = plan("copy users " +
                                "from '/path/to/file.ext' with (bulk_size=30, compression='gzip', shared=true, " +
-                               "fail_fast=true, protocol='http', wait_for_completion=false)");
+                               "fail_fast=true, wait_for_completion=false)");
         assertThat(collect.collectPhase()).isExactlyInstanceOf(FileUriCollectPhase.class);
 
         FileUriCollectPhase collectPhase = (FileUriCollectPhase) collect.collectPhase();
@@ -116,7 +115,6 @@ public class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(collectPhase.compression()).isEqualTo("gzip");
         assertThat(collectPhase.sharedStorage()).isTrue();
         assertThat(indexWriterProjection.failFast()).isTrue();
-        assertThat(collectPhase.withClauseOptions().get("protocol")).isEqualTo("http");
         assertThat(collectPhase.withClauseOptions().getAsBoolean("wait_for_completion", true)).isFalse();
 
         // verify defaults:
@@ -146,7 +144,7 @@ public class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
     public void testCopyFromPlanWithInvalidParameters() {
         assertThatThrownBy(() -> plan("copy users from '/path/to/file.ext' with (bulk_size=-28)"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("\"bulk_size\" must be greater than 0.");
+            .hasMessage("Failed to parse value [-28] for setting [bulk_size] must be >= 1");
     }
 
     @Test
@@ -163,9 +161,35 @@ public class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_logs_deprecation_on_validation_false() throws Exception {
-        CopyFromPlan.DEPRECATION_LOGGER.resetLRU();
-        plan("copy users from '/path' with (validation = false)");
-        assertWarnings("Using (validation = ?) in COPY FROM is no longer supported. Validation is always enforced");
+    public void test_validation_is_not_supported() throws Exception {
+        assertThatThrownBy(() -> plan("copy users from '/path' with (validation = false)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Setting 'validation' is not supported");
+    }
+
+    @Test
+    public void test_num_readers_minimal_value_must_be_greater_than_0() {
+        assertThatThrownBy(
+            () -> plan("copy users from '/path/to/file.extension' with (num_readers = 0)")
+        ).isExactlyInstanceOf(IllegalArgumentException.class)
+        .hasMessage("Failed to parse value [0] for setting [num_readers] must be >= 1");
+    }
+
+    @Test
+    public void copy_from_protocol_in_with_clause_is_not_rejected() {
+        // We do unknown or irrelevant property validation for "file" scheme in the server module.
+        // Verify that properties of a non-file scheme are not rejected.
+        // They are supposed to be validated later in a plugin, implementing the scheme.
+        Collect collect = plan("COPY users FROM 's3://bucket' WITH (protocol='http')");
+        assertThat(collect.collectPhase()).isExactlyInstanceOf(FileUriCollectPhase.class);
+        FileUriCollectPhase collectPhase = (FileUriCollectPhase) collect.collectPhase();
+        assertThat(collectPhase.withClauseOptions().get("protocol")).isEqualTo("http");
+    }
+
+    @Test
+    public void copy_from_unknown_property_in_with_clause_is_rejected() {
+        assertThatThrownBy(() -> plan("COPY users FROM '/some/distant/file.ext' WITH (dummy='dummy')"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Setting 'dummy' is not supported");
     }
 }

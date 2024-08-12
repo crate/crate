@@ -23,6 +23,7 @@ package io.crate.planner.statement;
 
 import static io.crate.analyze.CopyStatementSettings.COMPRESSION_SETTING;
 import static io.crate.analyze.CopyStatementSettings.OUTPUT_FORMAT_SETTING;
+import static io.crate.analyze.CopyStatementSettings.WAIT_FOR_COMPLETION_SETTING;
 import static io.crate.analyze.CopyStatementSettings.settingAsEnum;
 
 import java.util.ArrayList;
@@ -40,6 +41,7 @@ import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.AnalyzedCopyTo;
 import io.crate.analyze.BoundCopyTo;
+import io.crate.analyze.CopyStatementSettings;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
@@ -79,6 +81,7 @@ import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Match;
 import io.crate.planner.optimizer.rule.OptimizeCollectWhereClauseAccess;
 import io.crate.sql.tree.Assignment;
+import io.crate.sql.tree.GenericProperties;
 import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
 
@@ -137,7 +140,8 @@ public final class CopyToPlan implements Plan {
         jobLauncher.execute(
             consumer,
             plannerContext.transactionContext(),
-            boundedCopyTo.withClauseOptions().getAsBoolean("wait_for_completion", true));
+            WAIT_FOR_COMPLETION_SETTING.get(boundedCopyTo.withClauseOptions())
+        );
     }
 
     @VisibleForTesting
@@ -255,7 +259,8 @@ public final class CopyToPlan implements Plan {
             outputs = List.of(toCollect);
         }
 
-        Settings settings = Settings.builder().put(copyTo.properties().map(eval)).build();
+        GenericProperties<Object> properties = copyTo.properties().map(eval);
+        Settings settings = Settings.builder().put(properties).build();
 
         WriterProjection.CompressionType compressionType =
             settingAsEnum(WriterProjection.CompressionType.class, COMPRESSION_SETTING.get(settings));
@@ -267,11 +272,20 @@ public final class CopyToPlan implements Plan {
         }
 
         WhereClause whereClause = new WhereClause(copyTo.whereClause(), partitions, Collections.emptySet());
+        String uri = DataTypes.STRING.sanitizeValue(eval.apply(copyTo.uri()));
+        if (uri.startsWith("/") || uri.startsWith("file:")) {
+            properties.ensureContainsOnly(
+                Lists.concat(
+                    CopyStatementSettings.commonCopyFromSettings,
+                    CopyStatementSettings.csvSettings
+                )
+            );
+        }
         return new BoundCopyTo(
             outputs,
             table,
             whereClause,
-            Literal.of(DataTypes.STRING.sanitizeValue(eval.apply(copyTo.uri()))),
+            Literal.of(uri),
             compressionType,
             outputFormat,
             outputNames.isEmpty() ? null : outputNames,

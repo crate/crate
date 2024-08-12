@@ -23,6 +23,9 @@ package io.crate.planner.statement;
 
 import static io.crate.analyze.CopyStatementSettings.COMPRESSION_SETTING;
 import static io.crate.analyze.CopyStatementSettings.INPUT_FORMAT_SETTING;
+import static io.crate.analyze.CopyStatementSettings.NUM_READERS_SETTING;
+import static io.crate.analyze.CopyStatementSettings.SHARED_SETTING;
+import static io.crate.analyze.CopyStatementSettings.WAIT_FOR_COMPLETION_SETTING;
 import static io.crate.analyze.CopyStatementSettings.settingAsEnum;
 
 import java.util.ArrayList;
@@ -36,11 +39,8 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
-import org.elasticsearch.common.logging.DeprecationLogger;
 import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
@@ -51,6 +51,7 @@ import io.crate.analyze.AnalyzedCopyFrom;
 import io.crate.analyze.AnalyzedCopyFromReturnSummary;
 import io.crate.analyze.BoundCopyFrom;
 import io.crate.analyze.CopyFromParserProperties;
+import io.crate.analyze.CopyStatementSettings;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.analyze.copy.NodeFilters;
 import io.crate.common.collections.Lists;
@@ -89,12 +90,11 @@ import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.sql.tree.GenericProperties;
 import io.crate.types.DataTypes;
 
 public final class CopyFromPlan implements Plan {
 
-    private static final Logger LOGGER = LogManager.getLogger(CopyFromPlan.class);
-    static final DeprecationLogger DEPRECATION_LOGGER = new DeprecationLogger(LOGGER);
     private final AnalyzedCopyFrom copyFrom;
 
     public CopyFromPlan(AnalyzedCopyFrom copyFrom) {
@@ -141,7 +141,8 @@ public final class CopyFromPlan implements Plan {
         jobLauncher.execute(
             consumer,
             plannerContext.transactionContext(),
-            boundedCopyFrom.settings().getAsBoolean("wait_for_completion", true));
+            WAIT_FOR_COMPLETION_SETTING.get(boundedCopyFrom.settings())
+        );
     }
 
     @VisibleForTesting
@@ -166,13 +167,8 @@ public final class CopyFromPlan implements Plan {
         final var nodeFiltersPredicate = discoveryNodePredicate(properties.get(NodeFilters.NAME, null));
         final var settings = Settings.builder().put(properties).build();
 
-        if (properties.contains("validation")) {
-            DEPRECATION_LOGGER.deprecatedAndMaybeLog(
-                "copy_from.validation",
-                "Using (validation = ?) in COPY FROM is no longer supported. Validation is always enforced");
-        }
         boolean returnSummary = copyFrom instanceof AnalyzedCopyFromReturnSummary;
-        boolean waitForCompletion = settings.getAsBoolean("wait_for_completion", true);
+        boolean waitForCompletion = WAIT_FOR_COMPLETION_SETTING.get(settings);
         if (!waitForCompletion && returnSummary) {
             throw new UnsupportedOperationException(
                 "Cannot use RETURN SUMMARY with wait_for_completion=false. Either set wait_for_completion=true, or remove RETURN SUMMARY");
@@ -183,7 +179,7 @@ public final class CopyFromPlan implements Plan {
         // TODO make FileUriCollectPhase ctor accept an uri of the List<String>
         // instead of the Symbol type, such as the uri can be evaluated and converted
         // to the required type already at this stage, but not later on in FileCollectSource.
-        var boundedURI = validateAndConvertToLiteral(eval.apply(copyFrom.uri()));
+        var boundedURI = validateAndConvertToLiteral(eval.apply(copyFrom.uri()), properties);
         var header = settings.getAsBoolean("header", true);
         var targetColumns = copyFrom.targetColumns();
         if (!header && copyFrom.targetColumns().isEmpty()) {
@@ -315,20 +311,22 @@ public final class CopyFromPlan implements Plan {
             rewriteToCollectToUsePartitionValues(table.partitionedByColumns(), partitionValues, toCollect);
         }
 
+        Integer numReaders = NUM_READERS_SETTING.getOrNull(boundedCopyFrom.settings());
+        numReaders = numReaders == null ? allNodes.getSize() : numReaders;
         FileUriCollectPhase collectPhase = new FileUriCollectPhase(
             context.jobId(),
             context.nextExecutionPhaseId(),
             "copyFrom",
             getExecutionNodes(
                 allNodes,
-                boundedCopyFrom.settings().getAsInt("num_readers", allNodes.getSize()),
+                numReaders,
                 boundedCopyFrom.nodePredicate()),
             boundedCopyFrom.uri(),
             boundedCopyFrom.targetColumns(),
             toCollect,
             Collections.emptyList(),
             COMPRESSION_SETTING.getOrNull(boundedCopyFrom.settings()),
-            boundedCopyFrom.settings().getAsBoolean("shared", null),
+            SHARED_SETTING.getOrNull(boundedCopyFrom.settings()),
             CopyFromParserProperties.of(boundedCopyFrom.settings()),
             boundedCopyFrom.inputFormat(),
             boundedCopyFrom.settings()
@@ -426,13 +424,39 @@ public final class CopyFromPlan implements Plan {
         return nodes;
     }
 
-    private static Symbol validateAndConvertToLiteral(Object uri) {
+    /**
+     * Validates that uri is either String or List<String>.
+     *
+     * If schema is "file" also validates that properties
+     * belong to CSV specific settings and scheme independent settings set.
+     *
+     * Properties of other schemes are validated later in plugins
+     * as only plugins are aware of scheme specific properties.
+     */
+    private static Literal<?> validateAndConvertToLiteral(Object uri, GenericProperties<Object> properties) {
         if (uri instanceof String) {
-            return Literal.of(DataTypes.STRING.sanitizeValue(uri));
+            String uriAsString = DataTypes.STRING.sanitizeValue(uri);
+            if (uriAsString.startsWith("/") || uriAsString.startsWith("file:")) {
+                properties.ensureContainsOnly(
+                    Lists.concat(
+                        CopyStatementSettings.commonCopyFromSettings,
+                        CopyStatementSettings.csvSettings
+                    )
+                );
+            }
+            return Literal.of(uriAsString);
         } else if (uri instanceof List<?> uris) {
             Object value = uris.get(0);
-            if (!(value instanceof String)) {
+            if (!(value instanceof String uriAsString)) {
                 throw AnalyzedCopyFrom.raiseInvalidType(DataTypes.guessType(uri));
+            }
+            if (uriAsString.startsWith("/") || uriAsString.startsWith("file:")) {
+                properties.ensureContainsOnly(
+                    Lists.concat(
+                        CopyStatementSettings.commonCopyFromSettings,
+                        CopyStatementSettings.csvSettings
+                    )
+                );
             }
             return Literal.of(DataTypes.STRING_ARRAY, DataTypes.STRING_ARRAY.sanitizeValue(uri));
         }

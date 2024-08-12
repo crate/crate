@@ -95,9 +95,38 @@ public class ArrayLengthQueryBuilderTest extends LuceneQueryBuilderTest {
         }
     }
 
+    public void test_array_length_on_object_array() {
+        Query query = convert("array_length(o_array, 1) >= 1");
+        assertThat(query).hasToString(
+            "_array_length_o_array:[1 TO 2147483647]");
+    }
+
     @Test
-    public void test_array_length_on_array_sub_columns_of_array_of_objects() {
-        Query query = convert("array_length(o_array['xs'], 1) > 0");
-        assertThat(query).hasToString("_array_length_xs:[1 TO 2147483647]");
+    public void test_array_length_on_object_arrays_subcolumn() {
+        // 'o_array' is indexed but 'o_array['xs']' is not indexed. We can use the fact that
+        // for every element of 'o_array' there exists its sub-column 'xs' such that
+        // array_length(o_array, 1) = array_length(o_array['xs'], 1)
+        Query query = convert("array_length(o_array['xs'], 1) >= 1");
+        assertThat(query).hasToString("_array_length_o_array:[1 TO 2147483647]");
+
+        query = convert("array_length(o_array['obj']['x'], 1) >= 1");
+        assertThat(query).hasToString("_array_length_o_array:[1 TO 2147483647]");
+
+        query = convert("array_length(o_array['o_array_2']['x'], 1) >= 1");
+        assertThat(query).hasToString("_array_length_o_array:[1 TO 2147483647]");
+
+        // 'obj' is not array(object)
+        query = convert("array_length(obj['o_array']['x'], 1) >= 1");
+        assertThat(query).hasToString("_array_length_o_array:[1 TO 2147483647]");
+
+        // when the dimension argument is > 1, then fall back to GenericFunctionQuery
+        query = convert("array_length(o_array['xs'], 2) >= 1");
+        assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
+        assertThat(query).hasToString("(array_length(o_array['xs'], 2) >= 1)");
+
+        // when the ref symbol is not a Reference but a function(subscript function in this case), then fall back to GenericFunctionQuery
+        query = convert("array_length(o_array['xs'][1], 1) >= 1");
+        assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
+        assertThat(query).hasToString("(array_length(o_array[1]['xs'], 1) >= 1)");
     }
 }
