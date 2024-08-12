@@ -2349,4 +2349,24 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("SELECT b FROM doc.t2 order by 1");
         assertThat(printedTable(response.rows())).isEqualTo("1\n2\n");
     }
+
+    @Test
+    public void selecting_doc_returns_partition_column_values() {
+        execute("create table part (id integer, name string, date timestamp with time zone) partitioned by (name, date)");
+        execute("insert into part (id, name, date) values (1, 'Ford', 0)");
+        execute("insert into part (id, name, date) values (2, 'Trillian', 1)");
+        execute("refresh table part");
+        execute("select _doc from part order by id");
+        assertThat(response.rows()[0][0]).isEqualTo(Map.of("date", "0", "id", 1, "name", "Ford"));
+    }
+
+    @Test
+    public void nested_partition_column_in_doc() {
+        execute("create table part (id integer, name string, obj object as (x string)) partitioned by (name, obj['x'])");
+        execute("insert into part (id, name, obj) values (1, 'Ford', {x='a'})");
+        execute("insert into part (id, name, obj) values (2, 'Trillian', {x='a'})");
+        execute("refresh table part");
+        execute("select _doc from part order by id");
+        assertThat(response.rows()[0][0]).isEqualTo(Map.of("id", 1, "name", "Ford", "obj", Map.of("x", "a")));
+    }
 }

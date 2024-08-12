@@ -32,6 +32,11 @@ Version 5.9.0 - Unreleased
     You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
     `inserting the data into a new table`_.
 
+    The output of ``COPY TO`` when writing to a file from shards on 5.9 nodes now
+    includes partition values.  We recommend waiting until the entire cluster is
+    upgraded before running ``COPY TO`` with file output to ensure that the output
+    across different shards is consistent.
+
 .. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
 .. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
 
@@ -73,6 +78,9 @@ Breaking Changes
 - Changed the implementation of the :ref:`scalar-array_cat` to return an empty
   array of type ``ARRAY(UNDEFINED)`` when both arguments are an empty array
   instead of raising an exception.
+
+- The output of ``COPY TO`` against a partitioned table now includes
+  partition columns.
 
 Deprecations
 ============

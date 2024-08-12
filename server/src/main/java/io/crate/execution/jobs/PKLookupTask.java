@@ -109,8 +109,9 @@ public final class PKLookupTask extends AbstractTask {
 
         var shardIt = idsByShard.keySet().iterator();
         if (shardIt.hasNext()) {
-            var relationName = RelationName.fromIndexName(shardIt.next().getIndexName());
-            this.storedRowLookup = StoredRowLookup.create(schemas.getTableInfo(relationName));
+            String indexName = shardIt.next().getIndexName();
+            var relationName = RelationName.fromIndexName(indexName);
+            this.storedRowLookup = StoredRowLookup.create(schemas.getTableInfo(relationName), indexName);
             this.storedRowLookup.register(toCollect);
         } else {
             this.storedRowLookup = null;

@@ -26,9 +26,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
 
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.test.ESTestCase;
@@ -36,20 +33,7 @@ import org.junit.Test;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 
-import io.crate.metadata.ColumnIdent;
-
 public class FileWriterCountCollectorTest extends ESTestCase {
-
-    @Test
-    public void testToNestedStringObjectMap() {
-        Map<ColumnIdent, Object> columnIdentMap = new HashMap<>();
-        columnIdentMap.put(ColumnIdent.of("some", Arrays.asList("nested", "column")), "foo");
-        Map<String, Object> convertedMap = FileWriterCountCollector.toNestedStringObjectMap(columnIdentMap);
-
-        Map<?, ?> someMap = (Map<?, ?>) convertedMap.get("some");
-        Map<?, ?> nestedMap = (Map<?, ?>) someMap.get("nested");
-        assertThat(nestedMap.get("column")).isEqualTo("foo");
-    }
 
     @Test
     public void testJsonBuilderDoesNotPassFlushToStream() throws Exception {

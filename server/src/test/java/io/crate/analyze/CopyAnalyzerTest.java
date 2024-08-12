@@ -258,7 +258,6 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testCopyToFileWithPartitionedTable() throws Exception {
         BoundCopyTo analysis = analyze("COPY parted TO DIRECTORY '/blah'");
         assertThat(analysis.table().ident().name()).isEqualTo("parted");
-        assertThat(analysis.overwrites()).hasSize(1);
     }
 
     @Test

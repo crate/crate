@@ -27,7 +27,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -69,7 +68,7 @@ public class FileWriterProjectorTest extends ESTestCase {
         Path file = createTempFile("out", "json");
 
         FileWriterProjector fileWriterProjector = new FileWriterProjector(executorService, file.toUri().toString(),
-            null, null, Set.of(), new HashMap<>(),
+            null, null, Set.of(),
             null, WriterProjection.OutputFormat.JSON_OBJECT,
             Map.of(LocalFsFileOutputFactory.NAME, new LocalFsFileOutputFactory()), Settings.EMPTY);
 
@@ -89,7 +88,7 @@ public class FileWriterProjectorTest extends ESTestCase {
 
         FileWriterProjector fileWriterProjector = new FileWriterProjector(
                 executorService, directory.toUri().toString(),
-                null, null, Set.of(), new HashMap<>(),
+                null, null, Set.of(),
                 null, WriterProjection.OutputFormat.JSON_OBJECT,
                 Map.of(LocalFsFileOutputFactory.NAME, new LocalFsFileOutputFactory()), Settings.EMPTY);
         assertThatThrownBy(() -> new TestingRowConsumer().accept(fileWriterProjector.apply(sourceSupplier.get()), null))
@@ -102,7 +101,7 @@ public class FileWriterProjectorTest extends ESTestCase {
         String uri = Paths.get(folder.newFile().toURI()).resolve("out.json").toUri().toString();
 
         FileWriterProjector fileWriterProjector = new FileWriterProjector(executorService, uri,
-                null, null, Set.of(), new HashMap<>(),
+                null, null, Set.of(),
                 null, WriterProjection.OutputFormat.JSON_OBJECT,
                 Map.of(LocalFsFileOutputFactory.NAME, new LocalFsFileOutputFactory()), Settings.EMPTY);
 

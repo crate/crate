@@ -142,16 +142,6 @@ partition to export.
     of partition columns specified by the
     :ref:`sql-create-table-partitioned-by` clause.
 
-.. CAUTION::
-
-    The exported data doesn't contain the partition columns or the
-    corresponding values because they are not part of the partitioned tables.
-
-    If ``COPY TO`` is used on a partitioned table without the ``PARTITION``
-    clause, the partition columns and values will be included in the rows of
-    the exported files. If a partition column is a generated column, it will
-    not be included even if the ``PARTITION`` clause is missing.
-
 
 .. _sql-copy-to-where:
 

@@ -243,8 +243,9 @@ public final class ReservoirSampler {
         DocTableInfo docTable,
         List<Reference> columns
     ) {
+        String indexName = indexService.index().getName();
         LuceneReferenceResolver referenceResolver = new LuceneReferenceResolver(
-            indexService.index().getName(),
+            indexName,
             docTable.partitionedByColumns()
         );
         List<? extends LuceneCollectorExpression<?>> expressions = Lists.map(
@@ -252,7 +253,8 @@ public final class ReservoirSampler {
             x -> referenceResolver.getImplementation(DocReferences.toDocLookup(x))
         );
 
-        CollectorContext collectorContext = new CollectorContext(() -> StoredRowLookup.create(docTable));
+        CollectorContext collectorContext
+            = new CollectorContext(() -> StoredRowLookup.create(docTable, indexName));
         for (LuceneCollectorExpression<?> expression : expressions) {
             expression.startCollect(collectorContext);
         }

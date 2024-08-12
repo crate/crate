@@ -34,10 +34,6 @@ public class DocCollectorExpression extends LuceneCollectorExpression<Map<String
     private StoredRow source;
     private ReaderContext context;
 
-    public DocCollectorExpression() {
-        super();
-    }
-
     @Override
     public void startCollect(CollectorContext context) {
         storedRowLookup = context.storedRowLookup();
