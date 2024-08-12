@@ -225,12 +225,19 @@ public abstract class AggregationTestCase extends ESTestCase {
                 minNodeVersion,
                 optionalParams
             );
+            var resultWithoutDocValues = aggregationFunction.terminatePartial(
+                RAM_ACCOUNTING,
+                partialResultWithoutDocValues
+            );
             // assert that aggregations with/-out doc values yield the
             // same result, if a doc value aggregator exists.
             if (partialResultWithDocValues != null) {
                 assertThat(partialResultWithDocValues).hasSize(1);
-                assertThat(partialResultWithoutDocValues).isEqualTo(
-                    partialResultWithDocValues.get(0).get(0));
+                var resultWithDocValues = aggregationFunction.terminatePartial(
+                    RAM_ACCOUNTING,
+                    partialResultWithDocValues.get(0).get(0)
+                );
+                assertThat(resultWithoutDocValues).isEqualTo(resultWithDocValues);
             } else {
                 var docValueAggregator = aggregationFunction.getDocValueAggregator(
                     refResolver,
@@ -242,13 +249,10 @@ public abstract class AggregationTestCase extends ESTestCase {
                     throw new IllegalStateException("DocValueAggregator is implemented but partialResultWithDocValues is null.");
                 }
             }
+            return resultWithoutDocValues;
         } finally {
             closeShard(shard);
         }
-        return aggregationFunction.terminatePartial(
-            RAM_ACCOUNTING,
-            partialResultWithoutDocValues
-        );
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})

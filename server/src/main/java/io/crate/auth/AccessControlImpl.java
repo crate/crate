@@ -364,10 +364,16 @@ public final class AccessControlImpl implements AccessControl {
         @Override
         public Void visitAnalyzedAlterRole(AnalyzedAlterRole analysis, Role user) {
             // user is allowed to change it's own properties
-            if (!analysis.roleName().equals(user.name())) {
-                throw new UnauthorizedException("A regular user can use ALTER USER only on himself. " +
-                                                "To modify other users superuser permissions are required.");
+            if (analysis.roleName().equals(user.name())) {
+                return null;
             }
+            Privileges.ensureUserHasPrivilege(
+                relationVisitor.roles,
+                user,
+                Permission.AL,
+                Securable.CLUSTER,
+                null
+            );
             return null;
         }
 

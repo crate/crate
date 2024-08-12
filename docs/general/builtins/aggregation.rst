@@ -315,6 +315,11 @@ number of distinct values in this column that are not ``NULL``::
     +----------+
     SELECT 1 row in set (... sec)
 
+.. SEEALSO::
+
+    :ref:`aggregation-hyperloglog-distinct` for an alternative that trades some
+    accuracy for improved performance.
+
 
 .. _aggregation-count-star:
 

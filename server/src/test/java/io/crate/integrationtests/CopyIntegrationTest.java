@@ -26,7 +26,6 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.File;
@@ -962,7 +961,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    public void testCopyFromWithValidationSetToTrueDoesTypeValidation() throws Exception {
+    public void test_copy_from_does_type_validation() throws Exception {
 
         // copying an empty string to a boolean column
 
@@ -972,7 +971,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         File file = folder.newFile(UUID.randomUUID().toString());
         Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
 
-        execute("copy t from ? with (shared = true, validation = true) return summary",
+        execute("copy t from ? with (shared = true) return summary",
                 new Object[]{Paths.get(file.toURI()).toUri().toString()});
         assertThat(printedTable(response.rows())).contains("Cannot cast value `` to type `boolean`");
         execute("refresh table t");
@@ -981,14 +980,14 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    public void testCopyFromWithValidationSetToFalseStillValidatesIfGeneratedColumnsInvolved() throws Exception {
+    public void test_copy_from_validates_generated_columns() throws Exception {
         execute("create table t (a boolean, b int generated always as 1)");
 
         List<String> lines = List.of("{\"a\": \"\"}");
         File file = folder.newFile(UUID.randomUUID().toString());
         Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
 
-        execute("copy t from ? with (shared = true, validation = false) return summary",
+        execute("copy t from ? with (shared = true) return summary",
                 new Object[]{Paths.get(file.toURI()).toUri().toString()});
         assertThat(printedTable(response.rows())).contains("Cannot cast value `` to type `boolean`");
         execute("refresh table t");
@@ -997,7 +996,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    public void testCopyFromWithValidationSetToFalseAndInsertingToPartitionedByColumn() throws Exception {
+    public void test_copy_from_validates_inserts_into_partitioned_by_column() throws Exception {
         // copying an empty string to a boolean column
 
         execute("create table t (a boolean, b boolean) partitioned by (b)");
@@ -1006,7 +1005,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         File file = folder.newFile(UUID.randomUUID().toString());
         Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
 
-        execute("copy t from ? with (shared = true, validation = false) return summary",
+        execute("copy t from ? with (shared = true) return summary",
                 new Object[]{Paths.get(file.toURI()).toUri().toString()});
         assertThat(printedTable(response.rows())).contains(
             // The validation should be skipped but since it is partitioned by column, that is used to create shards,
@@ -1020,30 +1019,14 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     }
 
     @Test
-    public void test_validation_set_to_false_has_no_effect_and_results_in_validation_errors() throws Exception {
-        // copying an empty string to a boolean column
-
-        execute("create table t (a boolean, b boolean) partitioned by (b)");
-
-        List<String> lines = List.of("{\"a\": \"\"}"); // a
-        File file = folder.newFile(UUID.randomUUID().toString());
-        Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
-
-        execute("copy t from ? with (shared = true, validation = false) return summary",
-                new Object[]{Paths.get(file.toURI()).toUri().toString()});
-
-        assertThat(response.rows()[0][4].toString()).contains("Cannot cast value `` to type `boolean`");
-    }
-
-    @Test
-    public void testCopyFromWithValidationSetToFalseStillValidatesIfDefaultExpressionsInvolved() throws Exception {
+    public void test_copy_from_validates_default_expressions() throws Exception {
         execute("create table t (a boolean, b int default 1)");
 
         List<String> lines = List.of("{\"a\": \"\"}");
         File file = folder.newFile(UUID.randomUUID().toString());
         Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
 
-        execute("copy t from ? with (shared = true, validation = false) return summary",
+        execute("copy t from ? with (shared = true) return summary",
                 new Object[]{Paths.get(file.toURI()).toUri().toString()});
         assertThat(printedTable(response.rows())).contains("Cannot cast value `` to type `boolean`");
         execute("refresh table t");

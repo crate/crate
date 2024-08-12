@@ -21,12 +21,17 @@
 
 package io.crate.analyze;
 
+import static io.crate.execution.dsl.projection.AbstractIndexWriterProjection.BULK_SIZE_SETTING;
+import static org.elasticsearch.common.settings.Setting.parseInt;
+
+import java.util.List;
 import java.util.Locale;
 
 import org.elasticsearch.common.settings.Setting;
 
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 
+import io.crate.analyze.copy.NodeFilters;
 import io.crate.metadata.settings.Validators;
 import io.crate.types.DataTypes;
 
@@ -34,6 +39,36 @@ public final class CopyStatementSettings {
 
     private CopyStatementSettings() {
     }
+
+    public static final Setting<Boolean> WAIT_FOR_COMPLETION_SETTING = Setting.boolSetting(
+        "wait_for_completion",
+        true
+    );
+
+    public static final Setting<Boolean> OVERWRITE_DUPLICATES_SETTING = Setting.boolSetting(
+        "overwrite_duplicates",
+        false
+    );
+
+    public static final Setting<Boolean> FAIL_FAST_SETTING = Setting.boolSetting(
+        "fail_fast",
+        false
+    );
+
+    // "false" is not an actual default.
+    // We use getOrNull and in case of NULL(not specified by a user) we take schema specific default.
+    public static final Setting<Boolean> SHARED_SETTING = Setting.boolSetting(
+        "shared",
+        false
+    );
+
+    public static final Setting<Integer> NUM_READERS_SETTING = new Setting<>(
+        "num_readers",
+        _ -> "1", // Dummy default to pass NULL/minValue check in parseInt, actually defaults to the number of nodes.
+        (s) -> parseInt(s, 1, "num_readers"),
+        DataTypes.INTEGER,
+        Setting.Property.Dynamic
+    );
 
     public static final Setting<String> COMPRESSION_SETTING = Setting.simpleString(
         "compression",
@@ -85,4 +120,32 @@ public final class CopyStatementSettings {
         }
         return Enum.valueOf(settingsEnum, settingValue.toUpperCase(Locale.ENGLISH));
     }
+
+    public static List<String> commonCopyToSettings = List.of(
+        COMPRESSION_SETTING.getKey(),
+        OUTPUT_FORMAT_SETTING.getKey(),
+        WAIT_FOR_COMPLETION_SETTING.getKey()
+    );
+
+    public static List<String> commonCopyFromSettings = List.of(
+        COMPRESSION_SETTING.getKey(),
+        INPUT_FORMAT_SETTING.getKey(),
+        WAIT_FOR_COMPLETION_SETTING.getKey(),
+        OVERWRITE_DUPLICATES_SETTING.getKey(),
+        FAIL_FAST_SETTING.getKey(),
+        SHARED_SETTING.getKey(),
+        NUM_READERS_SETTING.getKey(),
+        BULK_SIZE_SETTING.getKey(),
+        NodeFilters.NAME
+    );
+
+    // CSV specific settings.
+    // We keep them separate from common settings because
+    // we don't want '... FROM S3://... WITH (some_csv_setting)...' to pass "known setting" validation.
+    public static List<String> csvSettings = List.of(
+        EMPTY_STRING_AS_NULL.getKey(),
+        CSV_COLUMN_SEPARATOR.getKey(),
+        INPUT_HEADER_SETTINGS.getKey(),
+        CSV_COLUMN_SEPARATOR.getKey()
+    );
 }

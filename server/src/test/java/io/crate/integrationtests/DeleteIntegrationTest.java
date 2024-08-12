@@ -26,6 +26,7 @@ import static io.crate.testing.Asserts.assertThat;
 
 import java.util.List;
 
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
@@ -231,7 +232,7 @@ public class DeleteIntegrationTest extends IntegTestCase {
     @Test
     public void testDeleteExceedingInternalDefaultBulkSize() throws Exception {
         execute("create table t1 (x int) clustered into 1 shards with (number_of_replicas = 0)");
-        Object[][] bulkArgs = new Object[AbstractIndexWriterProjection.BULK_SIZE_DEFAULT + 10][];
+        Object[][] bulkArgs = new Object[AbstractIndexWriterProjection.BULK_SIZE_SETTING.getDefault(Settings.EMPTY) + 10][];
         for (int i = 0; i < bulkArgs.length; i++) {
             bulkArgs[i] = new Object[] { i };
         }

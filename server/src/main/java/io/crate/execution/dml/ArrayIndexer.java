@@ -23,6 +23,7 @@ package io.crate.execution.dml;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -31,24 +32,50 @@ import org.apache.lucene.document.IntField;
 import org.elasticsearch.Version;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
+import io.crate.metadata.table.TableInfo;
+import io.crate.types.DataType;
 
 public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
 
-    public static String toArrayLengthFieldName(Reference arrayRef) {
+    public static String toArrayLengthFieldName(Reference arrayRef, Function<ColumnIdent, Reference> getRef) {
+        // If the arrayRef is a descendant of an object array its type can be a readType. i.e. the type of
+        // obj_array['int_col'] is 'int' BUT its readType is 'array(int)'. If so, there is no '_array_length_' indexed
+        // for obj_array['int_col']. Imagine indexing obj_array = [{int_col = 1}, {int_col = 2}], '_array_length_obj_array'
+        // will be indexed but NOT '_array_length_int_col' since its type is an int.
+        // However, queries like array_length(obj_array['int_col'], 1) are valid since the readType of obj_array['int_col']
+        // is an array(int) - [1, 2]. In such cases we can simply use the fact that every element of 'obj_array' there
+        // exists its sub-column 'int_col' such that array_length(obj_array, 1) = array_length(obj_array['int_col'], 1)
+        DataType<?> valueType = Optional
+            .ofNullable(getRef.apply(arrayRef.column())) // null if the arrayRef is dynamically added
+            .orElse(arrayRef).valueType();
+
+        // if the arrayRef is a ReadReference
+        if (!arrayRef.valueType().equals(valueType)) {
+            ColumnIdent topMostObjectArray = null;
+            for (var columnIdent = arrayRef.column(); columnIdent != null; columnIdent = columnIdent.getParent()) {
+                if (TableInfo.IS_OBJECT_ARRAY.test(getRef.apply(columnIdent).valueType())) {
+                    topMostObjectArray = columnIdent;
+                }
+            }
+            assert topMostObjectArray != null : "When the arrayRef is a ReadReference it must be a child of an object array type";
+            return ARRAY_LENGTH_FIELD_PREFIX + getRef.apply(topMostObjectArray).storageIdentLeafName();
+        }
         return ARRAY_LENGTH_FIELD_PREFIX + arrayRef.storageIdentLeafName();
     }
 
-    private static final String ARRAY_LENGTH_FIELD_PREFIX = "_array_length_";
+    @VisibleForTesting
+    static final String ARRAY_LENGTH_FIELD_PREFIX = "_array_length_";
 
     private final ValueIndexer<T> innerIndexer;
     private final String arrayLengthFieldName;
 
-    public ArrayIndexer(ValueIndexer<T> innerIndexer, Reference reference) {
+    public ArrayIndexer(ValueIndexer<T> innerIndexer, Function<ColumnIdent, Reference> getRef, Reference reference) {
         this.innerIndexer = innerIndexer;
-        this.arrayLengthFieldName = toArrayLengthFieldName(reference);
+        this.arrayLengthFieldName = toArrayLengthFieldName(reference, getRef);
     }
 
     @Override

@@ -28,7 +28,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 import org.apache.datasketches.frequencies.ErrorType;
 import org.apache.datasketches.frequencies.ItemsSketch;
@@ -115,6 +114,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
 
     private final Signature signature;
     private final BoundSignature boundSignature;
+    private final DataType<?> argumentType;
 
     private static final int DEFAULT_LIMIT = 8;
     private static final int MAX_LIMIT = 10_000;
@@ -122,6 +122,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
     private TopKAggregation(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
+        this.argumentType = boundSignature.argTypes().getFirst();
     }
 
     @Override
@@ -160,7 +161,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
                 state = initState(ramAccounting, DEFAULT_LIMIT);
             }
         }
-        state.update(value);
+        state.update(value, argumentType);
         return state;
     }
 
@@ -183,11 +184,11 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
 
     @Override
     public List<Map<String, Object>> terminatePartial(RamAccounting ramAccounting, State state) {
-        return state.result();
+        return state.result(argumentType);
     }
 
     public DataType<?> partialType() {
-        return new StateType(boundSignature.argTypes().getFirst());
+        return new StateType(argumentType);
     }
 
     @Nullable
@@ -226,9 +227,9 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
         if (supportedByLongSketch(type)) {
             return new SortedNumericDocValueAggregator<>(
                 ref.storageIdent(),
-                (ramAccounting, _, _) -> topKLongState(ramAccounting, type, limit),
+                (ramAccounting, _, _) -> topKLongState(ramAccounting, limit),
                 (values, state) -> {
-                    state.update(values.nextValue());
+                    state.update(values.nextValue(), type);
                 });
         } else if (type.id() == StringType.ID) {
             return new BinaryDocValueAggregator<>(
@@ -237,7 +238,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
                 (values, state) -> {
                     long ord = values.nextOrd();
                     BytesRef value = values.lookupOrd(ord);
-                    state.update(value.utf8ToString());
+                    state.update(value.utf8ToString(), type);
                 });
         } else if (type.id() == IpType.ID) {
             return new BinaryDocValueAggregator<>(
@@ -246,31 +247,25 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
                 (values, state) -> {
                     long ord = values.nextOrd();
                     BytesRef value = values.lookupOrd(ord);
-                    state.update(NetworkUtils.formatIPBytes(value));
+                    state.update(NetworkUtils.formatIPBytes(value), type);
                 });
         }
         return null;
     }
 
-    abstract static sealed class State {
+    sealed interface State {
 
-        static final Empty EMPTY = new Empty();
+        Empty EMPTY = new Empty();
 
-        abstract List<Map<String, Object>> result();
+        List<Map<String, Object>> result(DataType<?> dataType);
 
-        abstract int limit();
+        State merge(State other);
 
-        abstract int id();
+        void update(Object value, DataType<?> dataType);
 
-        abstract State merge(State other);
+        void update(long value, DataType<?> dataType);
 
-        abstract void update(Object value);
-
-        abstract void update(long value);
-
-        void writeTo(StreamOutput out, DataType<?> innerType) throws IOException {
-            out.writeByte((byte) id());
-        }
+        void writeTo(StreamOutput out, DataType<?> innerType) throws IOException;
 
         static State fromStream(StreamInput in, DataType<?> innerType) throws IOException {
             int id = in.readByte();
@@ -279,65 +274,46 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
                     return new TopKState(in, innerType);
                 }
                 case TopKLongState.ID -> {
-                    return new TopKLongState(in, innerType);
+                    return new TopKLongState(in);
                 }
                 default -> {
                     return State.EMPTY;
                 }
             }
         }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
-            State state = (State) o;
-            return id() == state.id() && limit() == state.limit() && Objects.equals(result(), state.result());
-        }
-
-        @Override
-        public int hashCode() {
-            return Objects.hash(id(), result(), limit());
-        }
-
     }
 
-    static final class Empty extends State {
+    static final class Empty implements State {
 
         static final int ID = 0;
 
         @Override
-        List<Map<String, Object>> result() {
+        public List<Map<String, Object>> result(DataType<?> datatype) {
             return List.of();
         }
 
         @Override
-        int limit() {
-            return -1;
-        }
-
-        @Override
-        int id() {
-            return ID;
-        }
-
-        @Override
-        State merge(State other) {
+        public State merge(State other) {
             return other;
         }
 
         @Override
-        void update(Object value) {
+        public void update(Object value, DataType<?> dataType) {
             throw new UnsupportedOperationException("Empty state does not support updates");
         }
 
         @Override
-        void update(long value) {
+        public void update(long value, DataType<?> dataType) {
             throw new UnsupportedOperationException("Empty state does not support updates");
+        }
+
+        @Override
+        public void writeTo(StreamOutput out, DataType<?> innerType) throws IOException {
+            out.writeByte((byte) ID);
         }
     }
 
-    static final class TopKState extends State {
+    static final class TopKState implements State {
 
         static long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(TopKState.class);
         static final int ID = 1;
@@ -357,7 +333,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
             this.sketch = ItemsSketch.getInstance(Memory.wrap(in.readByteArray()), streamer);
         }
 
-        public List<Map<String, Object>> result() {
+        public List<Map<String, Object>> result(DataType<?> dataType) {
             if (sketch.isEmpty()) {
                 return List.of();
             }
@@ -372,17 +348,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
         }
 
         @Override
-        int limit() {
-            return limit;
-        }
-
-        @Override
-        int id() {
-            return ID;
-        }
-
-        @Override
-        State merge(State other) {
+        public State merge(State other) {
             if (other instanceof Empty) {
                 return this;
             } else if (other instanceof TopKState otherTopk) {
@@ -392,19 +358,19 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
         }
 
         @Override
-        void update(Object value) {
+        public void update(Object value, DataType<?> dataType) {
             sketch.update(value);
         }
 
         @Override
-        void update(long value) {
+        public void update(long value, DataType<?> dataType) {
             sketch.update(value);
         }
 
         @Override
         @SuppressWarnings({"rawtypes", "unchecked"})
-        void writeTo(StreamOutput out, DataType<?> innerType) throws IOException {
-            super.writeTo(out, innerType);
+        public void writeTo(StreamOutput out, DataType<?> innerType) throws IOException {
+            out.writeByte((byte) ID);
             out.writeInt(limit);
             SketchStreamer streamer = new SketchStreamer(innerType.streamer());
             out.writeByteArray(sketch.toByteArray(streamer));
@@ -412,28 +378,25 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
 
     }
 
-    static final class TopKLongState extends State {
+    static final class TopKLongState implements State {
 
         static long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(TopKLongState.class);
         static final int ID = 2;
 
         private final LongsSketch sketch;
-        private final DataType<?> dataType;
         private final int limit;
 
-        TopKLongState(LongsSketch sketch, DataType<?> dataType, int limit) {
+        TopKLongState(LongsSketch sketch, int limit) {
             this.sketch = sketch;
-            this.dataType = dataType;
             this.limit = limit;
         }
 
-        TopKLongState(StreamInput in, DataType<?> dataType) throws IOException {
+        TopKLongState(StreamInput in) throws IOException {
             this.limit = in.readInt();
             this.sketch = LongsSketch.getInstance(Memory.wrap(in.readByteArray()));
-            this.dataType = dataType;
         }
 
-        public List<Map<String, Object>> result() {
+        public List<Map<String, Object>> result(DataType<?> dataType) {
             if (sketch.isEmpty()) {
                 return List.of();
             }
@@ -448,53 +411,44 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
         }
 
         @Override
-        State merge(State other) {
+        public State merge(State other) {
             if (other instanceof Empty) {
                 return this;
             } else if (other instanceof TopKLongState otherTopK) {
-                return new TopKLongState(this.sketch.merge(otherTopK.sketch), dataType, limit);
+                return new TopKLongState(this.sketch.merge(otherTopK.sketch), limit);
             }
             throw new IllegalArgumentException("Cannot merge state");
         }
 
         @Override
-        void update(Object value) {
+        public void update(Object value, DataType<?> dataType) {
             sketch.update(toLong(dataType, value));
         }
 
         @Override
-        void update(long value) {
+        public void update(long value, DataType<?> dataType) {
             sketch.update(value);
         }
 
         @Override
-        void writeTo(StreamOutput out, DataType<?> innerType) throws IOException {
-            super.writeTo(out, innerType);
+        public void writeTo(StreamOutput out, DataType<?> innerType) throws IOException {
+            out.writeByte((byte) ID);
             out.writeInt(limit);
             out.writeByteArray(sketch.toByteArray());
         }
 
-        @Override
-        int limit() {
-            return limit;
-        }
-
-        @Override
-        int id() {
-            return ID;
-        }
     }
 
     private static boolean supportedByLongSketch(DataType<?> type) {
         return switch (type.id()) {
-            case LongType.ID -> true;
-            case DoubleType.ID -> true;
-            case FloatType.ID -> true;
-            case IntegerType.ID -> true;
-            case ShortType.ID -> true;
-            case ByteType.ID -> true;
-            case TimestampType.ID_WITHOUT_TZ -> true;
-            case TimestampType.ID_WITH_TZ -> true;
+            case LongType.ID,
+                 DoubleType.ID,
+                 FloatType.ID,
+                 IntegerType.ID,
+                 ShortType.ID,
+                 ByteType.ID,
+                 TimestampType.ID_WITHOUT_TZ,
+                 TimestampType.ID_WITH_TZ -> true;
             default -> false;
         };
     }
@@ -523,14 +477,14 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
         };
     }
 
+
     private State initState(RamAccounting ramAccounting, int limit) {
         if (limit <= 0 || limit > MAX_LIMIT) {
             throw new IllegalArgumentException(
                 "Limit parameter for topk must be between 0 and 10_000. Got: " + limit);
         }
-        DataType<?> dataType = boundSignature.argTypes().getFirst();
-        if (supportedByLongSketch(dataType)) {
-            return topKLongState(ramAccounting, dataType, limit);
+        if (supportedByLongSketch(argumentType)) {
+            return topKLongState(ramAccounting, limit);
         } else {
             return topKState(ramAccounting, limit);
         }
@@ -542,10 +496,10 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
         return new TopKState(new ItemsSketch<>(maxMapSize), limit);
     }
 
-    private TopKLongState topKLongState(RamAccounting ramAccounting, DataType<?> dataType, int limit) {
+    private TopKLongState topKLongState(RamAccounting ramAccounting, int limit) {
         int maxMapSize = maxMapSize(limit);
         ramAccounting.addBytes(calculateRamUsage(maxMapSize) + TopKLongState.SHALLOW_SIZE);
-        return new TopKLongState(new LongsSketch(maxMapSize), dataType, limit);
+        return new TopKLongState(new LongsSketch(maxMapSize), limit);
     }
 
     static final class StateType extends DataType<State> implements Streamer<State> {
