@@ -249,7 +249,7 @@ public final class ReservoirSampler {
         );
         List<? extends LuceneCollectorExpression<?>> expressions = Lists.map(
             columns,
-            x -> referenceResolver.getImplementation(DocReferences.toSourceLookup(x))
+            x -> referenceResolver.getImplementation(DocReferences.toDocLookup(x))
         );
 
         CollectorContext collectorContext = new CollectorContext(() -> StoredRowLookup.create(docTable));

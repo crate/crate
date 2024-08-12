@@ -146,7 +146,7 @@ public class Collect implements LogicalPlan {
         PositionalOrderBy positionalOrderBy = getPositionalOrderBy(order, outputs);
         if (positionalOrderBy != null) {
             if (hints.contains(PlanHint.PREFER_SOURCE_LOOKUP)) {
-                order = order.map(DocReferences::toSourceLookup);
+                order = order.map(DocReferences::toDocLookup);
             }
             collectPhase.orderBy(
                 order.map(binder)
@@ -293,7 +293,7 @@ public class Collect implements LogicalPlan {
                 sessionSettings),
             tableInfo.rowGranularity(),
             planHints.contains(PlanHint.PREFER_SOURCE_LOOKUP) && tableInfo instanceof DocTableInfo
-                ? Lists.map(boundOutputs, DocReferences::toSourceLookup)
+                ? Lists.map(boundOutputs, DocReferences::toDocLookup)
                 : boundOutputs,
             Collections.emptyList(),
             Optimizer.optimizeCasts(mutableBoundWhere.queryOrFallback(), plannerContext),
@@ -369,7 +369,7 @@ public class Collect implements LogicalPlan {
                 replacedOutputs.put(output, output);
             } else {
                 Symbol outputWithFetchStub = RefReplacer.replaceRefs(output, ref -> {
-                    Reference sourceLookup = DocReferences.toSourceLookup(ref);
+                    Reference sourceLookup = DocReferences.toDocLookup(ref);
                     refsToFetch.add(sourceLookup);
                     return new FetchStub(fetchMarker, sourceLookup);
                 });
