@@ -75,6 +75,7 @@ import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
+import io.crate.expression.reference.doc.lucene.StoredRowLookup;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
@@ -248,10 +249,10 @@ public final class ReservoirSampler {
         );
         List<? extends LuceneCollectorExpression<?>> expressions = Lists.map(
             columns,
-            x -> referenceResolver.getImplementation(DocReferences.toSourceLookup(x))
+            x -> referenceResolver.getImplementation(DocReferences.toDocLookup(x))
         );
 
-        CollectorContext collectorContext = new CollectorContext(docTable.droppedColumns(), docTable.lookupNameBySourceKey());
+        CollectorContext collectorContext = new CollectorContext(() -> StoredRowLookup.create(docTable));
         for (LuceneCollectorExpression<?> expression : expressions) {
             expression.startCollect(collectorContext);
         }

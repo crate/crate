@@ -60,8 +60,8 @@ public final class DocReferences {
      *     x -> _doc['x']
      * </pre>
      */
-    public static Symbol toSourceLookup(Symbol tree) {
-        return RefReplacer.replaceRefs(tree, DocReferences::toSourceLookup);
+    public static Symbol toDocLookup(Symbol tree) {
+        return RefReplacer.replaceRefs(tree, DocReferences::toDocLookup);
     }
 
     /**
@@ -71,23 +71,23 @@ public final class DocReferences {
      *     x -> _doc['x']
      * </pre>
      */
-    public static Symbol toSourceLookup(Symbol tree, Predicate<Reference> condition) {
-        return RefReplacer.replaceRefs(tree, r -> toSourceLookup(r, condition));
+    public static Symbol toDocLookup(Symbol tree, Predicate<Reference> condition) {
+        return RefReplacer.replaceRefs(tree, r -> toDocLookup(r, condition));
     }
 
     /**
-     * Rewrite the reference to do a source lookup if possible.
-     * @see #toSourceLookup(Symbol)
+     * Rewrite the reference to do a _doc lookup if possible.
+     * @see #toDocLookup(Symbol)
      *
      * <pre>
      *     x -> _doc['x']
      * </pre>
      */
-    public static Reference toSourceLookup(Reference reference) {
-        return toSourceLookup(reference, r -> true);
+    public static Reference toDocLookup(Reference reference) {
+        return toDocLookup(reference, r -> true);
     }
 
-    private static Reference toSourceLookup(Reference reference, Predicate<Reference> condition) {
+    private static Reference toDocLookup(Reference reference, Predicate<Reference> condition) {
         ReferenceIdent ident = reference.ident();
         if (ident.columnIdent().isSystemColumn()) {
             return reference;
