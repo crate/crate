@@ -582,3 +582,10 @@ Parameters
 .. _IAM roles: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles.html
 .. _plugins: https://github.com/crate/crate/blob/master/devs/docs/plugins.rst
 .. _regional endpoint: https://docs.aws.amazon.com/general/latest/gr/rande.html#regional-endpoints
+<<<<<<< HEAD
+=======
+.. _Google Cloud Storage: https://cloud.google.com/storage/
+.. _Google Service account: https://cloud.google.com/iam/docs/overview#service-account
+.. _Google Service account credentials: https://cloud.google.com/storage/docs/authentication?hl=en
+.. _PKCS 8: https://en.wikipedia.org/wiki/PKCS_8
+>>>>>>> 9ecf9b8151 (Fix link to google service account docs)
