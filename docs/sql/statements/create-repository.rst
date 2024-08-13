@@ -796,6 +796,6 @@ Parameters
 .. _plugins: https://github.com/crate/crate/blob/master/devs/docs/plugins.rst
 .. _regional endpoint: https://docs.aws.amazon.com/general/latest/gr/rande.html#regional-endpoints
 .. _Google Cloud Storage: https://cloud.google.com/storage/
-.. _Google Service account: https://cloud.google.com/iam/docs/overview#service_account
+.. _Google Service account: https://cloud.google.com/iam/docs/overview#service-account
 .. _Google Service account credentials: https://cloud.google.com/storage/docs/authentication?hl=en
 .. _PKCS 8: https://en.wikipedia.org/wiki/PKCS_8
