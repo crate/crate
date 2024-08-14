@@ -32,9 +32,9 @@ import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.document.SortedSetDocValuesField;
-import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.search.PointRangeQuery;
 import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.NumericUtils;
 import org.jetbrains.annotations.NotNull;
 
 import io.crate.execution.dml.IndexDocumentBuilder;
@@ -84,7 +84,7 @@ public final class NumericStorage extends StorageSupport<BigDecimal> {
         } else if (precision <= COMPACT_PRECISION) {
             return new CompactNumericIndexer(ref);
         } else {
-            return new FixedNumericIndexer(ref, precision);
+            return new LargeNumericIndexer(ref, numericType, precision);
         }
     }
 
@@ -131,29 +131,29 @@ public final class NumericStorage extends StorageSupport<BigDecimal> {
         }
     }
 
-    private static class FixedNumericIndexer extends BaseNumericIndexer {
+    private static class LargeNumericIndexer extends BaseNumericIndexer {
 
         private final FieldType fieldType;
+        private final int maxBytes;
 
-        private FixedNumericIndexer(Reference ref, int precision) {
+        private LargeNumericIndexer(Reference ref, NumericType type, int precision) {
             super(ref);
+            this.maxBytes = type.maxBytes();
             this.fieldType = new FieldType();
-            this.fieldType.setOmitNorms(true);
-            this.fieldType.setIndexOptions(IndexOptions.DOCS);
-            this.fieldType.setTokenized(false);
-            this.fieldType.setStored(false);
+            this.fieldType.setDimensions(1, maxBytes);
             this.fieldType.freeze();
         }
 
         @Override
         public void indexValue(@NotNull BigDecimal value, IndexDocumentBuilder docBuilder) throws IOException {
             BigInteger unscaled = value.unscaledValue();
-            BytesRef binaryValue = new BytesRef(unscaled.toByteArray());
+            byte[] bytes = new byte[maxBytes];
+            NumericUtils.bigIntToSortableBytes(unscaled, maxBytes, bytes, 0);
             if (this.ref.indexType() != IndexType.NONE) {
-                docBuilder.addField(new Field(name, binaryValue, fieldType));
+                docBuilder.addField(new Field(name, bytes, fieldType));
             }
             if (ref.hasDocValues()) {
-                docBuilder.addField(new SortedSetDocValuesField(name, binaryValue));
+                docBuilder.addField(new SortedSetDocValuesField(name, new BytesRef(bytes)));
             } else {
                 docBuilder.addField(new Field(
                     DocSysColumns.FieldNames.NAME,
@@ -173,7 +173,7 @@ public final class NumericStorage extends StorageSupport<BigDecimal> {
 
                 @Override
                 protected BigDecimal convert(BytesRef input) {
-                    BigInteger bigInt = new BigInteger(input.bytes, input.offset, input.length);
+                    var bigInt = NumericUtils.sortableBytesToBigInt(input.bytes, input.offset, input.length);
                     Integer scale = type.scale();
                     return new BigDecimal(bigInt, scale == null ? 0 : scale, mathContext);
                 }

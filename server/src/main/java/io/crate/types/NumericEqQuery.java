@@ -22,11 +22,16 @@
 package io.crate.types;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.List;
 
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
+import org.apache.lucene.search.PointInSetQuery;
+import org.apache.lucene.search.PointRangeQuery;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.NumericUtils;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.collections.Lists;
@@ -40,7 +45,7 @@ public class NumericEqQuery {
         } else if (precision <= NumericStorage.COMPACT_PRECISION) {
             return new Compact();
         } else {
-            return new Unoptimized();
+            return new Large(type);
         }
     }
 
@@ -88,7 +93,9 @@ public class NumericEqQuery {
                                 boolean hasDocValues,
                                 boolean isIndexed) {
             if (isIndexed) {
-                return LongPoint.newSetQuery(field, Lists.mapLazy(nonNullValues, x -> x.unscaledValue().longValueExact()));
+                return LongPoint.newSetQuery(
+                    field,
+                    Lists.mapLazy(nonNullValues, x -> x.unscaledValue().longValueExact()));
             }
             if (hasDocValues) {
                 return SortedNumericDocValuesField.newSlowSetQuery(
@@ -98,6 +105,93 @@ public class NumericEqQuery {
             }
             return null;
         }
+    }
+
+    static class Large implements EqQuery<BigDecimal> {
+
+        private final NumericType type;
+
+        private Large(NumericType type) {
+            this.type = type;
+        }
+
+        @Override
+        @Nullable
+        public Query termQuery(String field, BigDecimal value, boolean hasDocValues, boolean isIndexed) {
+            return rangeQuery(field, value, value, true, true, hasDocValues, isIndexed);
+        }
+
+        @Override
+        @Nullable
+        public Query rangeQuery(String field,
+                                BigDecimal lowerTerm,
+                                BigDecimal upperTerm,
+                                boolean includeLower,
+                                boolean includeUpper,
+                                boolean hasDocValues,
+                                boolean isIndexed) {
+            if (isIndexed) {
+                int maxBytes = type.maxBytes();
+                byte[] lower = new byte[maxBytes];
+                byte[] upper = new byte[maxBytes];
+
+                BigInteger lowerInt = lowerTerm == null
+                    ? type.minValue()
+                    : (lowerTerm.unscaledValue().add(includeLower ? BigInteger.ZERO : BigInteger.ONE));
+                BigInteger upperInt = upperTerm == null
+                    ? type.maxValue()
+                    : (upperTerm.unscaledValue().subtract(includeUpper ? BigInteger.ZERO : BigInteger.ONE));
+                NumericUtils.bigIntToSortableBytes(lowerInt, maxBytes, lower, 0);
+                NumericUtils.bigIntToSortableBytes(upperInt, maxBytes, upper, 0);
+                return new PointRangeQuery(field, lower, upper, 1) {
+
+                    @Override
+                    protected String toString(int dimension, byte[] value) {
+                        return NumericUtils.sortableBytesToBigInt(value, 0, maxBytes).toString();
+                    }
+                };
+            }
+            return null;
+        }
+
+        @Override
+        @Nullable
+        public Query termsQuery(String field,
+                                List<BigDecimal> nonNullValues,
+                                boolean hasDocValues,
+                                boolean isIndexed) {
+            if (isIndexed) {
+                int maxBytes = type.maxBytes();
+                BytesRef encoded = new BytesRef(new byte[maxBytes]);
+                return new PointInSetQuery(
+                    field,
+                    1,
+                    maxBytes,
+                    new PointInSetQuery.Stream() {
+
+                        int idx = 0;
+
+                        @Override
+                        public BytesRef next() {
+                            if (idx == nonNullValues.size()) {
+                                return null;
+                            }
+                            BigDecimal bigDecimal = nonNullValues.get(idx);
+                            idx++;
+                            NumericUtils.bigIntToSortableBytes(bigDecimal.unscaledValue(), maxBytes, encoded.bytes, 0);
+                            return encoded;
+                        }
+                    }) {
+
+                        @Override
+                        protected String toString(byte[] value) {
+                            return NumericUtils.sortableBytesToBigInt(value, 0, maxBytes).toString();
+                        }
+                };
+            }
+            return null;
+        }
+
     }
 
     static class Unoptimized implements EqQuery<BigDecimal> {
