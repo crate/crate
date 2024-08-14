@@ -2273,12 +2273,16 @@ public class TransportSQLActionTest extends IntegTestCase {
         Asserts.assertSQLError(() -> execute("create table tbl (x numeric)"))
             .hasMessageContaining("NUMERIC storage is only supported if precision and scale are specified");
 
+        Asserts.assertSQLError(() -> execute("create table tbl (x numeric(40))"))
+            .hasMessageContaining("Precision for NUMERIC(40) is too large. Only up to 38 can be stored");
+
         execute("create table tbl (x numeric(18, 9), y numeric(38, 2))");
         execute(
             """
             insert into tbl (x, y) values
                 ('123456789.123456789', '778941863531215726456187232788659941.79'),
                 ('999999999.999999999', '512885724621369365291419674621839399.84'),
+                (null, null),
                 ('-999999999.999999999', '8395855172541624311941.11')
             """
         );
@@ -2287,7 +2291,8 @@ public class TransportSQLActionTest extends IntegTestCase {
         assertThat(response).hasRows(
             "-999999999.999999999| 8395855172541624311941.11",
             "123456789.123456789| 778941863531215726456187232788659941.79",
-            "999999999.999999999| 512885724621369365291419674621839399.84"
+            "999999999.999999999| 512885724621369365291419674621839399.84",
+            "NULL| NULL"
         );
 
         execute("select * from tbl where x > 42 and y <= '778941863531215726456187232788659941.79' order by x");
@@ -2297,6 +2302,12 @@ public class TransportSQLActionTest extends IntegTestCase {
         );
 
         execute("select x from tbl where x = '123456789.123456789' and y = '778941863531215726456187232788659941.79'");
+        assertThat(response).hasRows("123456789.123456789");
+
+        execute("select x from tbl where x in ('123456789.123456789', '455456789.123456789')");
+        assertThat(response).hasRows("123456789.123456789");
+
+        execute("select x from tbl where y in ('123456789.123456789', '778941863531215726456187232788659941.79')");
         assertThat(response).hasRows("123456789.123456789");
     }
 }

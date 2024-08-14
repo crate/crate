@@ -1002,8 +1002,10 @@ Example:
 An exact `fixed-point fractional number`_ with an arbitrary, user-specified
 precision.
 
-Variable size, with up to 131072 digits before the decimal point and up to
-16383 digits after the decimal point.
+Variable size, with up to 38 digits for storage.
+
+If using ``NUMERIC`` only for type casts up to 131072 digits before the decimal
+point and up to 16383 digits after the decimal point are supported.
 
 For example, using a :ref:`cast from a string literal
 <data-types-casting-str>`::

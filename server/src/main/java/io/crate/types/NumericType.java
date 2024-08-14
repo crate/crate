@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
 
+import org.apache.lucene.index.PointValues;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -296,6 +297,10 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
             throw new UnsupportedOperationException(
                 "NUMERIC storage is only supported if precision and scale are specified");
         }
+        if (maxBytes() > PointValues.MAX_NUM_BYTES) {
+            throw new UnsupportedOperationException(
+                "Precision for NUMERIC(" + precision + ") is too large. Only up to 38 can be stored");
+        }
         mapping.put("precision", precision);
         mapping.put("scale", scale);
     }
@@ -309,5 +314,27 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
             return "numeric(" + precision + ")";
         }
         return "numeric(" + precision + "," + scale + ")";
+    }
+
+    public int maxBytes() {
+        if (precision == null) {
+            return Integer.MAX_VALUE;
+        } else {
+            return (new BigInteger("9".repeat(precision)).bitLength() / 8) + 1;
+        }
+    }
+
+    public BigInteger minValue() {
+        if (precision == null) {
+            throw new UnsupportedOperationException("Can't get min value for numeric type without precision");
+        }
+        return maxValue().negate();
+    }
+
+    public BigInteger maxValue() {
+        if (precision == null) {
+            throw new UnsupportedOperationException("Can't get max value for numeric type without precision");
+        }
+        return new BigInteger("9".repeat(precision));
     }
 }
