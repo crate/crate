@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.NoSuchElementException;
@@ -99,6 +100,21 @@ public final class Lists {
         for (T item : list2) {
             if (!list1.contains(item)) {
                 result.add(item);
+            }
+        }
+        return result;
+    }
+
+    public static Collection<?> flattenUnique(Collection<?> list) {
+        if (!(list instanceof List<?>)) {
+            throw new IllegalArgumentException("Cannot flatten unless it is a nested array");
+        }
+        LinkedHashSet<Object> result = new LinkedHashSet<>();
+        for (var element : list) {
+            if (element instanceof Collection<?> l) {
+                result.addAll(flattenUnique(l));
+            } else {
+                result.add(element);
             }
         }
         return result;

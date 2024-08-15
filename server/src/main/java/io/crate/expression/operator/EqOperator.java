@@ -21,6 +21,7 @@
 
 package io.crate.expression.operator;
 
+import static io.crate.common.collections.Lists.flattenUnique;
 import static io.crate.lucene.LuceneQueryBuilder.genericFunctionFilter;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 
@@ -192,7 +193,7 @@ public final class EqOperator extends Operator<Object> {
                                                Context context,
                                                boolean hasDocValues,
                                                IndexType indexType) {
-
+        values = flattenUnique(values);
         BooleanQuery.Builder filterClauses = new BooleanQuery.Builder();
         Query genericFunctionFilter = genericFunctionFilter(function, context);
         if (values.isEmpty()) {
