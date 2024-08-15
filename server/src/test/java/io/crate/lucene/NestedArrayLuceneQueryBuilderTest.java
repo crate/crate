@@ -55,4 +55,11 @@ public class NestedArrayLuceneQueryBuilderTest extends LuceneQueryBuilderTest {
         // pre-filter by a terms query with 1 and 2 then a generic function query to make sure an exact match
         assertThat(query.toString()).isEqualTo("+a:{1 2} #(a[1] = [1, 2])");
     }
+
+    @Test
+    public void test_any_equals_nested_array_literal() {
+        var query = convert("a = any([ [ [1], [1, 2] ], [ [3], [4, 5] ] ])");
+        // pre-filter by a terms query with 1, 2, 3, 4, 5 then a generic function query to make sure an exact match
+        assertThat(query.toString()).isEqualTo("+a:{1 2 3 4 5} #(a = ANY([[[1], [1, 2]], [[3], [4, 5]]]))");
+    }
 }
