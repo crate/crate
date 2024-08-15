@@ -214,11 +214,18 @@ public final class EqOperator extends Operator<Object> {
             // wrap boolTermsFilter and genericFunction filter in an additional BooleanFilter to control the ordering of the filters
             // termsFilter is applied first
             // afterwards the more expensive genericFunctionFilter
-            Query termsQuery = termsQuery(column, elementType, values, hasDocValues, indexType);
-            if (termsQuery == null) {
-                return genericFunctionFilter;
+            var termQueries = new BooleanQuery.Builder();
+            for (var v : values) {
+                if (v == null) {
+                    continue;
+                }
+                var termQuery = fromPrimitive(elementType, column, v, hasDocValues, indexType);
+                if (termQuery == null) {
+                    return genericFunctionFilter;
+                }
+                termQueries.add(termQuery, Occur.MUST);
             }
-            filterClauses.add(termsQuery, BooleanClause.Occur.MUST);
+            filterClauses.add(termQueries.build(), BooleanClause.Occur.MUST);
             filterClauses.add(genericFunctionFilter, BooleanClause.Occur.MUST);
         }
         return filterClauses.build();
