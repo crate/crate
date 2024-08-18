@@ -23,7 +23,6 @@ package io.crate.expression.operator.any;
 
 import java.util.List;
 
-import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
@@ -71,7 +70,7 @@ public final class AnyNeqOperator extends AnyOperator<Object> {
             if (fromPrimitive == null) {
                 return null;
             }
-            andBuilder.add(fromPrimitive, BooleanClause.Occur.MUST);
+            andBuilder.add(fromPrimitive, Occur.MUST);
         }
         Query exists = IsNullPredicate.refExistsQuery(probe, context, false);
         return new BooleanQuery.Builder()
@@ -81,8 +80,12 @@ public final class AnyNeqOperator extends AnyOperator<Object> {
     }
 
     @Override
-    @SuppressWarnings({"unchecked", "rawtypes"})
     protected Query literalMatchesAnyArrayRef(Function any, Literal<?> probe, Reference candidates, Context context) {
+        return literalMatchesAnyArrayRef(probe, candidates);
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public static Query literalMatchesAnyArrayRef(Literal<?> probe, Reference candidates) {
         // 1 != any ( col ) -->  gt 1 or lt 1
         String columnName = candidates.storageIdent();
         StorageSupport<?> storageSupport = probe.valueType().storageSupport();
@@ -116,8 +119,8 @@ public final class AnyNeqOperator extends AnyOperator<Object> {
             assert lt != null || gt == null : "If lt is null, gt must be null";
             return null;
         }
-        query.add(gt, BooleanClause.Occur.SHOULD);
-        query.add(lt, BooleanClause.Occur.SHOULD);
+        query.add(gt, Occur.SHOULD);
+        query.add(lt, Occur.SHOULD);
         return query.build();
     }
 }

@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.function.IntPredicate;
 
 import io.crate.data.Input;
+import io.crate.expression.operator.all.AllEqOperator;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
@@ -37,12 +38,11 @@ import io.crate.sql.tree.ComparisonExpression;
 import io.crate.types.DataType;
 import io.crate.types.TypeSignature;
 
-public final class AllOperator extends Operator<Object> {
+public class AllOperator extends Operator<Object> {
 
     public static final String OPERATOR_PREFIX = "_all_";
 
     private enum Type {
-        EQ(ComparisonExpression.Type.EQUAL, result -> result == 0),
         NEQ(ComparisonExpression.Type.NOT_EQUAL, result -> result != 0),
         GTE(ComparisonExpression.Type.GREATER_THAN_OR_EQUAL, result -> result >= 0),
         GT(ComparisonExpression.Type.GREATER_THAN, result -> result > 0),
@@ -76,6 +76,15 @@ public final class AllOperator extends Operator<Object> {
                     )
             );
         }
+        builder.add(
+            AllEqOperator.SIGNATURE,
+            (signature, boundSignature) ->
+                new AllEqOperator(
+                    signature,
+                    boundSignature,
+                    result -> result == 0
+                )
+        );
     }
 
     private final IntPredicate cmp;
