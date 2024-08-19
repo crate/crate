@@ -51,9 +51,6 @@ public class NumericEqQuery {
 
     static class Compact implements EqQuery<BigDecimal> {
 
-        static long MIN_VALUE = -999999999999999999L;
-        static long MAX_VALUE = 999999999999999999L;
-
         @Override
         @Nullable
         public Query termQuery(String field, BigDecimal value, boolean hasDocValues, boolean isIndexed) {
@@ -78,10 +75,10 @@ public class NumericEqQuery {
                                 boolean hasDocValues,
                                 boolean isIndexed) {
             long lower = lowerTerm == null
-                ? MIN_VALUE
+                ? NumericStorage.COMPACT_MIN_VALUE
                 : lowerTerm.unscaledValue().longValueExact() + (includeLower ? 0 : + 1);
             long upper = upperTerm == null
-                ? MAX_VALUE
+                ? NumericStorage.COMPACT_MAX_VALUE
                 : upperTerm.unscaledValue().longValueExact() + (includeUpper ? 0 : - 1);
             return LongPoint.newRangeQuery(field, lower, upper);
         }

@@ -66,6 +66,7 @@ import io.crate.types.FloatVectorType;
 import io.crate.types.GeoPointType;
 import io.crate.types.IntegerType;
 import io.crate.types.LongType;
+import io.crate.types.NumericStorage;
 import io.crate.types.NumericType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
@@ -152,10 +153,26 @@ public class LuceneSort extends SymbolVisitor<LuceneSort.SortSymbolContext, Sort
             return customSortField(ref.toString(), ref, context);
         }
 
+        if (ref.valueType() instanceof NumericType numericType) {
+            Integer precision = numericType.numericPrecision();
+            if (precision == null || precision > NumericStorage.COMPACT_PRECISION) {
+                return customSortField(ref.toString(), ref, context);
+            }
+            var sortField = new SortedNumericSortField(
+                ref.storageIdent(),
+                SortField.Type.LONG,
+                context.reverseFlag,
+                context.reverseFlag ? SortedNumericSelector.Type.MAX : SortedNumericSelector.Type.MIN
+            );
+            boolean min = NullValueOrder.fromFlag(context.nullFirst) == NullValueOrder.FIRST ^ context.reverseFlag;
+            sortField.setMissingValue(
+                min ? NumericStorage.COMPACT_MIN_VALUE - 1 : NumericStorage.COMPACT_MAX_VALUE + 1);
+            return sortField;
+        }
+
         if (ref.valueType().equals(DataTypes.IP)
                 || ref.valueType().id() == BitStringType.ID
-                || ref.valueType().id() == FloatVectorType.ID
-                || ref.valueType().id() == NumericType.ID) {
+                || ref.valueType().id() == FloatVectorType.ID) {
             return customSortField(ref.toString(), ref, context);
         } else {
             NullValueOrder nullValueOrder = NullValueOrder.fromFlag(context.nullFirst);
@@ -169,7 +186,8 @@ public class LuceneSort extends SymbolVisitor<LuceneSort.SortSymbolContext, Sort
                                      NullValueOrder nullValueOrder) {
         String fieldName = symbol.storageIdent();
         MultiValueMode sortMode = reverse ? MultiValueMode.MAX : MultiValueMode.MIN;
-        switch (symbol.valueType().id()) {
+        DataType<?> valueType = symbol.valueType();
+        switch (valueType.id()) {
             case StringType.ID, CharacterType.ID -> {
                 SortField sortField = new SortedSetSortField(
                     fieldName,
@@ -225,7 +243,7 @@ public class LuceneSort extends SymbolVisitor<LuceneSort.SortSymbolContext, Sort
             }
             case GeoPointType.ID -> throw new IllegalArgumentException(
                 "can't sort on geo_point field without using specific sorting feature, like geo_distance");
-            default -> throw new UnsupportedOperationException("Cannot order on " + symbol + "::" + symbol.valueType());
+            default -> throw new UnsupportedOperationException("Cannot order on " + symbol + "::" + valueType);
         }
     }
 
