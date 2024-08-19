@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,28 +19,33 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.execution.engine.export;
+package io.crate.lucene;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.FileOutputStream;
-import java.io.OutputStream;
-import java.nio.file.Path;
-
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import com.fasterxml.jackson.core.JsonGenerator;
+public class NestedArrayLuceneQueryBuilderTest extends LuceneQueryBuilderTest {
 
-public class FileWriterCountCollectorTest extends ESTestCase {
+    @Override
+    protected String createStmt() {
+        return """
+            create table t (
+                a int[][]
+            )
+            """;
+    }
 
     @Test
-    public void testJsonBuilderDoesNotPassFlushToStream() throws Exception {
-        Path file = createTempFile("out", "json");
-        try (OutputStream os = new FileOutputStream(file.toFile())) {
-            XContentBuilder xContentBuilder = FileWriterCountCollector.createJsonBuilder(os);
-            assertThat(xContentBuilder.generator().isEnabled(JsonGenerator.Feature.FLUSH_PASSED_TO_STREAM)).isFalse();
-        }
+    public void test_nested_array_equals() {
+        var query = convert("a = [[1], [1, 2], null]");
+        // pre-filter by a terms query with 1 and 2 then a generic function query to make sure an exact match
+        assertThat(query.toString()).isEqualTo("+a:{1 2} +(a = [[1], [1, 2], NULL])");
+    }
+
+    @Test
+    public void test_empty_nested_array_equals() {
+        var query = convert("a = [[]]");
+        assertThat(query.toString()).isEqualTo("+NumTermsPerDoc: a +(a = [[]])");
     }
 }

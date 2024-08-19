@@ -28,7 +28,6 @@ import static io.crate.analyze.CopyStatementSettings.settingAsEnum;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -61,7 +60,6 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.DocReferences;
-import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
@@ -226,7 +224,7 @@ public final class CopyToPlan implements Plan {
         Map<ColumnIdent, Symbol> overwrites = null;
         boolean columnsDefined = false;
         final List<String> outputNames = new ArrayList<>(copyTo.columns().size());
-        if (!copyTo.columns().isEmpty()) {
+        if (copyTo.columns().isEmpty() == false) {
             // TODO: remove outputNames?
             for (Symbol symbol : copyTo.columns()) {
                 assert symbol instanceof Reference : "Only references are expected here";
@@ -235,28 +233,9 @@ public final class CopyToPlan implements Plan {
             }
             columnsDefined = true;
         } else {
-            Symbol toCollect;
-            if (table.isPartitioned() && partitions.isEmpty()) {
-                // table is partitioned, insert partitioned columns into the output
-                overwrites = new HashMap<>();
-                for (Reference reference : table.partitionedByColumns()) {
-                    if (!(reference instanceof GeneratedReference)) {
-                        overwrites.put(reference.column(), reference);
-                    }
-                }
-                if (overwrites.size() > 0) {
-                    toCollect = table.getReference(DocSysColumns.DOC);
-                } else {
-                    var docRef = table.getReference(DocSysColumns.DOC);
-                    assert docRef != null : "_doc reference must be resolvable";
-                    toCollect = docRef.cast(DataTypes.STRING, CastMode.EXPLICIT);
-                }
-            } else {
-                var docRef = table.getReference(DocSysColumns.DOC);
-                assert docRef != null : "_doc reference must be resolvable";
-                toCollect = docRef.cast(DataTypes.STRING, CastMode.EXPLICIT);
-            }
-            outputs = List.of(toCollect);
+            var docRef = table.getReference(DocSysColumns.DOC);
+            assert docRef != null : "_doc reference must be resolvable";
+            outputs = List.of(docRef.cast(DataTypes.STRING, CastMode.EXPLICIT));
         }
 
         GenericProperties<Object> properties = copyTo.properties().map(eval);
@@ -274,12 +253,9 @@ public final class CopyToPlan implements Plan {
         WhereClause whereClause = new WhereClause(copyTo.whereClause(), partitions, Collections.emptySet());
         String uri = DataTypes.STRING.sanitizeValue(eval.apply(copyTo.uri()));
         if (uri.startsWith("/") || uri.startsWith("file:")) {
-            properties.ensureContainsOnly(
-                Lists.concat(
-                    CopyStatementSettings.commonCopyFromSettings,
-                    CopyStatementSettings.csvSettings
-                )
-            );
+            // Settings of other schemes are validated later in plugins
+            // as only plugins are aware of scheme specific properties.
+            properties.ensureContainsOnly(CopyStatementSettings.commonCopyToSettings);
         }
         return new BoundCopyTo(
             outputs,

@@ -162,13 +162,15 @@ final class GroupByOptimizedIterator {
 
         RamAccounting ramAccounting = collectTask.getRamAccounting();
 
-        CollectorContext collectorContext = new CollectorContext(sharedShardContext.readerId(), () -> StoredRowLookup.create(table));
+        String indexName = indexShard.shardId().getIndexName();
+        CollectorContext collectorContext
+            = new CollectorContext(sharedShardContext.readerId(), () -> StoredRowLookup.create(table, indexName));
         InputRow inputRow = new InputRow(docCtx.topLevelInputs());
 
         LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(
             collectPhase.where(),
             collectTask.txnCtx(),
-            indexShard.shardId().getIndexName(),
+            indexName,
             indexService.indexAnalyzers(),
             table,
             indexService.cache()

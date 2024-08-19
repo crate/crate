@@ -136,13 +136,9 @@ public final class CopyStatementSettings {
         SHARED_SETTING.getKey(),
         NUM_READERS_SETTING.getKey(),
         BULK_SIZE_SETTING.getKey(),
-        NodeFilters.NAME
-    );
-
-    // CSV specific settings.
-    // We keep them separate from common settings because
-    // we don't want '... FROM S3://... WITH (some_csv_setting)...' to pass "known setting" validation.
-    public static List<String> csvSettings = List.of(
+        NodeFilters.NAME,
+        // Settings below are ignored
+        // if INPUT_FORMAT_SETTING value is not 'CSV'.
         EMPTY_STRING_AS_NULL.getKey(),
         CSV_COLUMN_SEPARATOR.getKey(),
         INPUT_HEADER_SETTINGS.getKey(),

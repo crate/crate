@@ -26,8 +26,6 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.function.UnaryOperator;
 
 import org.elasticsearch.common.compress.CompressorFactory;
 
@@ -40,6 +38,7 @@ public final class StoredRowLookup {
 
     private final SourceFieldVisitor fieldsVisitor = new SourceFieldVisitor();
     private final SourceParser sourceParser;
+    private final PartitionValueInjector partitionValueInjector;
 
     private int doc;
     private ReaderContext readerContext;
@@ -51,7 +50,7 @@ public final class StoredRowLookup {
         public Map<String, Object> asMap() {
             if (parsedSource == null) {
                 ensureDocVisited();
-                parsedSource = sourceParser.parse(fieldsVisitor.source());
+                parsedSource = partitionValueInjector.injectValues(parseSource());
             }
             return parsedSource;
         }
@@ -67,12 +66,13 @@ public final class StoredRowLookup {
         }
     };
 
-    public static StoredRowLookup create(DocTableInfo table) {
-        return new StoredRowLookup(table.droppedColumns(), table.lookupNameBySourceKey());
+    public static StoredRowLookup create(DocTableInfo table, String indexName) {
+        return new StoredRowLookup(table, indexName);
     }
 
-    private StoredRowLookup(Set<Reference> droppedColumns, UnaryOperator<String> lookupNameBySourceKey) {
-        sourceParser = new SourceParser(droppedColumns, lookupNameBySourceKey);
+    private StoredRowLookup(DocTableInfo table, String indexName) {
+        sourceParser = new SourceParser(table.droppedColumns(), table.lookupNameBySourceKey());
+        this.partitionValueInjector = PartitionValueInjector.create(indexName, table.partitionedByColumns());
     }
 
     public StoredRow getStoredRow(ReaderContext context, int doc) {
@@ -109,5 +109,9 @@ public final class StoredRowLookup {
 
     public void register(List<Symbol> symbols) {
         sourceParser.register(symbols);
+    }
+
+    private Map<String, Object> parseSource() {
+        return sourceParser.parse(fieldsVisitor.source());
     }
 }

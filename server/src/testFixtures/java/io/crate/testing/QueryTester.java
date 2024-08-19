@@ -178,7 +178,7 @@ public final class QueryTester implements AutoCloseable {
                 query,
                 null,
                 false,
-                new CollectorContext(() -> StoredRowLookup.create(table)),
+                new CollectorContext(() -> StoredRowLookup.create(table, indexEnv.luceneReferenceResolver().getIndexName())),
                 Collections.singletonList(input),
                 ctx.expressions()
             );
