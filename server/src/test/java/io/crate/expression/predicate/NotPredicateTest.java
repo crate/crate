@@ -23,7 +23,6 @@ package io.crate.expression.predicate;
 
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
-import static io.crate.testing.DataTypeTesting.ALL_STORED_TYPES_EXCEPT_ARRAYS;
 import static io.crate.testing.DataTypeTesting.getDataGenerator;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -35,7 +34,10 @@ import org.junit.Test;
 
 import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.expression.symbol.Literal;
+import io.crate.sql.SqlFormatter;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.testing.Asserts;
+import io.crate.testing.DataTypeTesting;
 import io.crate.testing.QueryTester;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -87,7 +89,7 @@ public class NotPredicateTest extends ScalarTestCase {
 
     @Test
     public void test_neq_on_array_types_with_non_empty_array_does_not_filter_empty_array() throws Exception {
-        for (DataType<?> type : ALL_STORED_TYPES_EXCEPT_ARRAYS) {
+        for (DataType<?> type : DataTypeTesting.getStorableTypesExceptArrays(random())) {
             if (type instanceof FloatVectorType) {
                 continue;
             }
@@ -106,12 +108,13 @@ public class NotPredicateTest extends ScalarTestCase {
             } else {
                 randomData = Literal.ofUnchecked(type, getDataGenerator(type).get()).toString();
             }
+            String typeDefinition = SqlFormatter.formatSql(type.toColumnType(ColumnPolicy.STRICT, null));
             String query = "xs != [" + randomData + "]";
             try (QueryTester tester = new QueryTester.Builder(
                 THREAD_POOL,
                 clusterService,
                 Version.CURRENT,
-                "create table \"t_" + type.getName() + "\" (xs array(\"" + type.getName() + "\"))"
+                "create table \"t_" + type.getName() + "\" (xs array(" + typeDefinition + "))"
             ).indexValues("xs", values).build()) {
                 List<Object> result = tester.runQuery("xs", query);
                 Asserts.assertThat(result)

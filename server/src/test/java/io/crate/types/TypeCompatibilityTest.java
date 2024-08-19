@@ -39,9 +39,9 @@ public class TypeCompatibilityTest {
 
     @Test
     public void test_numeric_highest_precision_wins() {
-        assertCommonType(NumericType.INSTANCE, NumericType.of(2, 1), NumericType.of(2, 1));
-        assertCommonType(NumericType.of(2, 1), NumericType.INSTANCE, NumericType.of(2, 1));
-        assertCommonType(NumericType.of(2, 1), NumericType.of(3, 1), NumericType.of(3, 1));
+        assertCommonType(NumericType.INSTANCE, new NumericType(2, 1), new NumericType(2, 1));
+        assertCommonType(new NumericType(2, 1), NumericType.INSTANCE, new NumericType(2, 1));
+        assertCommonType(new NumericType(2, 1), new NumericType(3, 1), new NumericType(3, 1));
     }
 
     private static void assertCommonType(DataType<?> first, DataType<?> second, DataType<?> expected) {

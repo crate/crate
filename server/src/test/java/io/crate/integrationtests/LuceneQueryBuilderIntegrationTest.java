@@ -36,6 +36,8 @@ import org.elasticsearch.search.SearchModule;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
+import io.crate.sql.SqlFormatter;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.testing.DataTypeTesting;
 import io.crate.types.DataType;
 
@@ -350,7 +352,8 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
     @Test
     public void testNullOperators() throws Exception {
         DataType<?> type = randomType();
-        execute("create table t1 (c " + type.getName() + ") with (number_of_replicas = 0)");
+        String typeDefinition = SqlFormatter.formatSql(type.toColumnType(ColumnPolicy.STRICT, null));
+        execute("create table t1 (c " + typeDefinition + ") with (number_of_replicas = 0)");
         Supplier<?> dataGenerator = DataTypeTesting.getDataGenerator(type);
 
         Object[][] bulkArgs = $$($(dataGenerator.get()), $(dataGenerator.get()), new Object[]{null});

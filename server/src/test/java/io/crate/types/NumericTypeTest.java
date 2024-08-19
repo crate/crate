@@ -21,7 +21,7 @@
 
 package io.crate.types;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -31,10 +31,9 @@ import java.util.Map;
 
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-public class NumericTypeTest extends ESTestCase {
+public class NumericTypeTest extends DataTypeTestCase<BigDecimal> {
 
     @Test
     public void test_implicit_cast_text_to_unscaled_numeric() {
@@ -60,42 +59,42 @@ public class NumericTypeTest extends ESTestCase {
 
     @Test
     public void test_implicit_cast_text_types_to_numeric_with_precision() {
-        assertThat(NumericType.of(5).implicitCast("12345")).isEqualTo(BigDecimal.valueOf(12345));
-        assertThat(NumericType.of(6).implicitCast("12345")).isEqualTo(BigDecimal.valueOf(12345));
+        assertThat(new NumericType(5, 0).implicitCast("12345")).isEqualTo(BigDecimal.valueOf(12345));
+        assertThat(new NumericType(6, null).implicitCast("12345")).isEqualTo(BigDecimal.valueOf(12345));
     }
 
     @Test
     public void test_implicit_cast_text_types_to_numeric_with_precision_and_scale() {
-        assertThat(NumericType.of(16, 0).implicitCast("12345")).isEqualTo(BigDecimal.valueOf(12345));
-        assertThat(NumericType.of(16, 2).implicitCast("12345").toString()).isEqualTo("12345.00");
-        assertThat(NumericType.of(10, 4).implicitCast("12345").toString()).isEqualTo("12345.0000");
+        assertThat(new NumericType(16, 0).implicitCast("12345")).isEqualTo(BigDecimal.valueOf(12345));
+        assertThat(new NumericType(16, 2).implicitCast("12345").toString()).isEqualTo("12345.00");
+        assertThat(new NumericType(10, 4).implicitCast("12345").toString()).isEqualTo("12345.0000");
     }
 
     @Test
     public void test_implicit_cast_decimal_types_to_numeric_with_precision() {
-        assertThat(NumericType.of(5).implicitCast(12345)).isEqualTo(BigDecimal.valueOf(12345));
-        assertThat(NumericType.of(6).implicitCast(12345)).isEqualTo(BigDecimal.valueOf(12345));
+        assertThat(new NumericType(5, null).implicitCast(12345)).isEqualTo(BigDecimal.valueOf(12345));
+        assertThat(new NumericType(6, null).implicitCast(12345)).isEqualTo(BigDecimal.valueOf(12345));
     }
 
     @Test
     public void test_implicit_cast_decimal_types_to_numeric_with_precision_and_scale() {
-        assertThat(NumericType.of(16, 0).implicitCast(12345)).isEqualTo(BigDecimal.valueOf(12345));
-        assertThat(NumericType.of(16, 2).implicitCast(12345).toString()).isEqualTo("12345.00");
-        assertThat(NumericType.of(10, 4).implicitCast(12345).toString()).isEqualTo("12345.0000");
+        assertThat(new NumericType(16, 0).implicitCast(12345)).isEqualTo(BigDecimal.valueOf(12345));
+        assertThat(new NumericType(16, 2).implicitCast(12345).toString()).isEqualTo("12345.00");
+        assertThat(new NumericType(10, 4).implicitCast(12345).toString()).isEqualTo("12345.0000");
     }
 
     @Test
     public void test_implicit_cast_floating_point_to_numeric_with_precision() {
-        assertThat(NumericType.of(2).implicitCast(10.1234d)).isEqualTo(BigDecimal.valueOf(10));
-        assertThat(NumericType.of(3).implicitCast(10.1234d)).isEqualTo(BigDecimal.valueOf(10));
-        assertThat(NumericType.of(3).implicitCast(10.9234d)).isEqualTo(BigDecimal.valueOf(11));
+        assertThat(new NumericType(2, 0).implicitCast(10.1234d)).isEqualTo(BigDecimal.valueOf(10));
+        assertThat(new NumericType(3, 0).implicitCast(10.1234d)).isEqualTo(BigDecimal.valueOf(10));
+        assertThat(new NumericType(3, 0).implicitCast(10.9234d)).isEqualTo(BigDecimal.valueOf(11));
     }
 
     @Test
     public void test_implicit_cast_floating_point_to_numeric_with_precision_and_scale() {
-        assertThat(NumericType.of(6, 0).implicitCast(10.1235d)).isEqualTo(BigDecimal.valueOf(10));
-        assertThat(NumericType.of(6, 2).implicitCast(10.1235d)).isEqualTo(BigDecimal.valueOf(10.12));
-        assertThat(NumericType.of(6, 3).implicitCast(10.1235d)).isEqualTo(BigDecimal.valueOf(10.124));
+        assertThat(new NumericType(6, 0).implicitCast(10.1235d)).isEqualTo(BigDecimal.valueOf(10));
+        assertThat(new NumericType(6, 2).implicitCast(10.1235d)).isEqualTo(BigDecimal.valueOf(10.12));
+        assertThat(new NumericType(6, 3).implicitCast(10.1235d)).isEqualTo(BigDecimal.valueOf(10.124));
     }
 
     @Test
@@ -178,7 +177,7 @@ public class NumericTypeTest extends ESTestCase {
     @Test
     public void test_numeric_with_precision_and_scale_serialization_round_trip() throws IOException {
         var out = new BytesStreamOutput();
-        var expected = NumericType.of(1, 2);
+        var expected = new NumericType(1, 2);
         DataTypes.toStream(expected, out);
 
         var in = out.bytes().streamInput();
@@ -186,5 +185,13 @@ public class NumericTypeTest extends ESTestCase {
 
         assertThat(actual.numericPrecision()).isEqualTo(1);
         assertThat(actual.scale()).isEqualTo(2);
+    }
+
+    @Override
+    public DataType<BigDecimal> getType() {
+        var random = random();
+        int precision = random.nextInt(2, 39);
+        int scale = random.nextInt(0, precision - 1);
+        return new NumericType(precision, scale);
     }
 }

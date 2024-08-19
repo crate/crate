@@ -1002,8 +1002,10 @@ Example:
 An exact `fixed-point fractional number`_ with an arbitrary, user-specified
 precision.
 
-Variable size, with up to 131072 digits before the decimal point and up to
-16383 digits after the decimal point.
+Variable size, with up to 38 digits for storage.
+
+If using ``NUMERIC`` only for type casts up to 131072 digits before the decimal
+point and up to 16383 digits after the decimal point are supported.
 
 For example, using a :ref:`cast from a string literal
 <data-types-casting-str>`::
@@ -1016,13 +1018,6 @@ For example, using a :ref:`cast from a string literal
     +--------+
     SELECT 1 row in set (... sec)
 
-.. NOTE::
-
-    The ``NUMERIC`` type is only supported as a type literal (i.e., for use in
-    SQL :ref:`expressions <gloss-expression>`, like a :ref:`type cast
-    <data-types-casting-exp>`, as above).
-
-    You cannot create table columns of type ``NUMERIC``.
 
 This type is usually used when it is important to preserve exact precision
 or handle values that exceed the range of the numeric types of the fixed
@@ -1049,6 +1044,12 @@ Without configuring the precision and scale the ``NUMERIC`` type value will be
 represented by an unscaled value of the unlimited precision::
 
     NUMERIC
+
+.. NOTE::
+
+    ``NUMERIC`` without precision and scale cannot be used in CREATE TABLE
+    statements. To store values of type NUMERIC it is required to define the
+    precision and scale.
 
 The ``NUMERIC`` type is internally backed by the Java ``BigDecimal`` class. For
 more detailed information about its behaviour, see `BigDecimal documentation`_.

@@ -36,6 +36,8 @@ import io.crate.expression.scalar.ScalarTestCase;
 import io.crate.lucene.GenericFunctionQuery;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.doc.DocSysColumns;
+import io.crate.sql.SqlFormatter;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.testing.Asserts;
 import io.crate.testing.DataTypeTesting;
 import io.crate.testing.QueryTester;
@@ -113,7 +115,7 @@ public class EqOperatorTest extends ScalarTestCase {
 
     @Test
     public void test_array_equals_empty_array_on_all_types() throws Exception {
-        for (DataType<?> type : DataTypeTesting.ALL_STORED_TYPES_EXCEPT_ARRAYS) {
+        for (DataType<?> type : DataTypeTesting.getStorableTypesExceptArrays(random())) {
             if (type instanceof FloatVectorType) {
                 continue;
             }
@@ -124,11 +126,12 @@ public class EqOperatorTest extends ScalarTestCase {
             // ensure the test is operating on a fresh, empty cluster state (no tables)
             resetClusterService();
 
+            String typeDefinition = SqlFormatter.formatSql(type.toColumnType(ColumnPolicy.STRICT, null));
             try (QueryTester tester = new QueryTester.Builder(
                 THREAD_POOL,
                 clusterService,
                 Version.CURRENT,
-                "create table \"t_" + type.getName() + "\" (xs array(\"" + type.getName() + "\"))"
+                "create table \"t_" + type.getName() + "\" (xs array(" + typeDefinition + "))"
             ).indexValues("xs", values).build()) {
                 List<Object> result = tester.runQuery("xs", "xs = []");
                 Asserts.assertThat(result)

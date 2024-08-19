@@ -28,6 +28,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 
@@ -1830,7 +1831,7 @@ public class TransportSQLActionTest extends IntegTestCase {
         StringBuilder selectInlineValues = new StringBuilder("SELECT 1 FROM tbl WHERE ");
         StringBuilder selectParams = new StringBuilder("SELECT 1 FROM tbl WHERE ");
         for (int i = 0; i < args.length; i++) {
-            var arg = args[i];
+            final var arg = args[i];
             selectInlineValues.append("col");
             selectParams.append("col");
 
@@ -1933,7 +1934,7 @@ public class TransportSQLActionTest extends IntegTestCase {
     @UseJdbc(0)
     @SuppressWarnings({"unchecked", "rawtypes"})
     public void test_types_with_storage_can_be_inserted_and_queried() {
-        for (var type : DataTypeTesting.ALL_STORED_TYPES_EXCEPT_ARRAYS) {
+        for (var type : DataTypeTesting.getStorableTypesExceptArrays(random())) {
             if (type.equals(DataTypes.GEO_POINT)) {
                 // source and doc-value values don't match exactly
                 continue;
@@ -2265,5 +2266,48 @@ public class TransportSQLActionTest extends IntegTestCase {
                 );
             assertThat(execute(stmt, session)).isEmpty();
         }
+    }
+
+    @Test
+    public void test_numeric_storage_support() throws Exception {
+        Asserts.assertSQLError(() -> execute("create table tbl (x numeric)"))
+            .hasMessageContaining("NUMERIC storage is only supported if precision and scale are specified");
+
+        Asserts.assertSQLError(() -> execute("create table tbl (x numeric(40))"))
+            .hasMessageContaining("Precision for NUMERIC(40) is too large. Only up to 38 can be stored");
+
+        execute("create table tbl (x numeric(18, 9), y numeric(38, 2))");
+        execute(
+            """
+            insert into tbl (x, y) values
+                ('123456789.123456789', '778941863531215726456187232788659941.79'),
+                ('999999999.999999999', '512885724621369365291419674621839399.84'),
+                (null, null),
+                ('-999999999.999999999', '8395855172541624311941.11')
+            """
+        );
+        execute("refresh table tbl");
+        execute("select * from tbl order by x");
+        assertThat(response).hasRows(
+            "-999999999.999999999| 8395855172541624311941.11",
+            "123456789.123456789| 778941863531215726456187232788659941.79",
+            "999999999.999999999| 512885724621369365291419674621839399.84",
+            "NULL| NULL"
+        );
+
+        execute("select * from tbl where x > 42 and y <= '778941863531215726456187232788659941.79' order by x");
+        assertThat(response).hasRows(
+            "123456789.123456789| 778941863531215726456187232788659941.79",
+            "999999999.999999999| 512885724621369365291419674621839399.84"
+        );
+
+        execute("select x from tbl where x = '123456789.123456789' and y = '778941863531215726456187232788659941.79'");
+        assertThat(response).hasRows("123456789.123456789");
+
+        execute("select x from tbl where x in ('123456789.123456789', '455456789.123456789')");
+        assertThat(response).hasRows("123456789.123456789");
+
+        execute("select x from tbl where y in ('123456789.123456789', '778941863531215726456187232788659941.79')");
+        assertThat(response).hasRows("123456789.123456789");
     }
 }
