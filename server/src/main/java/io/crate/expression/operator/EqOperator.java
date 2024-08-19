@@ -133,6 +133,7 @@ public final class EqOperator extends Operator<Object> {
                 function,
                 storageIdentifier,
                 ArrayType.unnest(dataType),
+                ArrayType.dimensions(dataType),
                 (Collection<?>) value,
                 context,
                 ref.hasDocValues(),
@@ -189,13 +190,16 @@ public final class EqOperator extends Operator<Object> {
     private static Query termsAndGenericFilter(Function function,
                                                String column,
                                                DataType<?> elementType,
+                                               int dimensions,
                                                Collection<?> values,
                                                Context context,
                                                boolean hasDocValues,
                                                IndexType indexType) {
-        values = flattenUnique(values);
         BooleanQuery.Builder filterClauses = new BooleanQuery.Builder();
         Query genericFunctionFilter = genericFunctionFilter(function, context);
+        if (dimensions > 1) {
+            values = flattenUnique(values);
+        }
         if (values.isEmpty()) {
             // `arrayRef = []` - termsQuery would be null
 
@@ -274,7 +278,15 @@ public final class EqOperator extends Operator<Object> {
             Query innerQuery;
             if (DataTypes.isArray(innerType)) {
                 innerQuery = termsAndGenericFilter(
-                    eq, nestedStorageIdentifier, innerType, (Collection<?>) entry.getValue(), context, childRef.hasDocValues(), childRef.indexType());
+                    eq,
+                    nestedStorageIdentifier,
+                    innerType,
+                    ArrayType.dimensions(innerType),
+                    (Collection<?>) entry.getValue(),
+                    context,
+                    childRef.hasDocValues(),
+                    childRef.indexType()
+                );
             } else {
                 innerQuery = fromPrimitive(innerType, nestedStorageIdentifier, entry.getValue(), childRef.hasDocValues(), childRef.indexType());
             }
