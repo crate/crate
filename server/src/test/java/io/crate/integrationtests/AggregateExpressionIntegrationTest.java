@@ -23,6 +23,9 @@ package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
 
+import java.util.List;
+import java.util.Map;
+
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
@@ -304,5 +307,34 @@ public class AggregateExpressionIntegrationTest extends IntegTestCase {
         execute("refresh table tbl");
         execute("select max_by(name, 1) from tbl;");
         assertThat(response).hasRows("foo");
+    }
+
+    @SuppressWarnings("unchecked")
+    public void test_topk_agg() {
+        execute("create table tbl (l long, l_no_doc_values long storage with(columnstore = false))");
+        execute("insert into tbl(l, l_no_doc_values) values (1, 1), (1, 1), (1, 2), (2, 2), (2, 2)");
+        execute("refresh table tbl");
+
+        // Use this very verbose style of assertion, since the return type is an Array<Object(UNDEFINED)>,
+        // and while HTTP returns Long for the item and frequency values, PG converts them to Integer
+        execute("select topk(l) tl from tbl");
+        List<Map<String, Number>> resultRows = (List<Map<String, Number>>) response.rows()[0][0];
+        assertThat(resultRows).hasSize(2);
+        assertThat(resultRows.get(0)).containsOnlyKeys("item", "frequency");
+        assertThat(resultRows.get(0).get("item").longValue()).isEqualTo(1L);
+        assertThat(resultRows.get(0).get("frequency").longValue()).isEqualTo(3L);
+        assertThat(resultRows.get(1)).containsOnlyKeys("item", "frequency");
+        assertThat(resultRows.get(1).get("item").longValue()).isEqualTo(2L);
+        assertThat(resultRows.get(1).get("frequency").longValue()).isEqualTo(2L);
+
+        execute("select topk(l_no_doc_values) tl from tbl");
+        resultRows = (List<Map<String, Number>>) response.rows()[0][0];
+        assertThat(resultRows).hasSize(2);
+        assertThat(resultRows.get(0)).containsOnlyKeys("item", "frequency");
+        assertThat(resultRows.get(0).get("item").longValue()).isEqualTo(2L);
+        assertThat(resultRows.get(0).get("frequency").longValue()).isEqualTo(3L);
+        assertThat(resultRows.get(1)).containsOnlyKeys("item", "frequency");
+        assertThat(resultRows.get(1).get("item").longValue()).isEqualTo(1L);
+        assertThat(resultRows.get(1).get("frequency").longValue()).isEqualTo(2L);
     }
 }

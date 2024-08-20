@@ -34,8 +34,8 @@ import org.apache.datasketches.frequencies.ItemsSketch;
 import org.apache.datasketches.frequencies.LongsSketch;
 import org.apache.datasketches.memory.Memory;
 import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.RamUsageEstimator;
 import org.apache.lucene.util.NumericUtils;
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -122,7 +122,16 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
     private TopKAggregation(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
-        this.argumentType = boundSignature.argTypes().getFirst();
+        DataType<?> type = boundSignature.argTypes().getFirst();
+
+        // in `ProjectionBuilder#getAggregations()` a signature is built with argument of type: StateType
+        // (when in AggregationMode: ITER_PARTIAL). In this case we need to extract and use the actual type
+        // on which the topK runs on
+        if (type instanceof StateType st) {
+            this.argumentType = st.innerType;
+        } else {
+            this.argumentType = type;
+        }
     }
 
     @Override
@@ -228,9 +237,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
             return new SortedNumericDocValueAggregator<>(
                 ref.storageIdent(),
                 (ramAccounting, _, _) -> topKLongState(ramAccounting, limit),
-                (values, state) -> {
-                    state.update(values.nextValue(), type);
-                });
+                (values, state) -> state.update(values.nextValue(), type));
         } else if (type.id() == StringType.ID) {
             return new BinaryDocValueAggregator<>(
                 ref.storageIdent(),
@@ -396,6 +403,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
             this.sketch = LongsSketch.getInstance(Memory.wrap(in.readByteArray()));
         }
 
+        @Override
         public List<Map<String, Object>> result(DataType<?> dataType) {
             if (sketch.isEmpty()) {
                 return List.of();
@@ -437,6 +445,29 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
             out.writeByteArray(sketch.toByteArray());
         }
 
+        private static long toLong(DataType<?> type, Object o) {
+            return switch (type.id()) {
+                case LongType.ID, TimestampType.ID_WITHOUT_TZ, TimestampType.ID_WITH_TZ -> (Long) o;
+                case DoubleType.ID -> NumericUtils.doubleToSortableLong((Double) o);
+                case FloatType.ID -> (long) NumericUtils.floatToSortableInt((Float) o);
+                case IntegerType.ID -> ((Integer) o).longValue();
+                case ShortType.ID -> ((Short) o).longValue();
+                case ByteType.ID -> ((Byte) o).longValue();
+                default -> throw new IllegalArgumentException("Type cannot be converted to long");
+            };
+        }
+
+        private static Object toObject(DataType<?> type, long o) {
+            return switch (type.id()) {
+                case LongType.ID, TimestampType.ID_WITHOUT_TZ, TimestampType.ID_WITH_TZ -> o;
+                case DoubleType.ID -> NumericUtils.sortableLongToDouble(o);
+                case FloatType.ID -> NumericUtils.sortableIntToFloat((int) o);
+                case IntegerType.ID -> (int) o;
+                case ShortType.ID -> (short) o;
+                case ByteType.ID -> (byte) o;
+                default -> throw new IllegalArgumentException("Long value cannot be converted");
+            };
+        }
     }
 
     private static boolean supportedByLongSketch(DataType<?> type) {
@@ -452,31 +483,6 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
             default -> false;
         };
     }
-
-    private static long toLong(DataType<?> type, Object o) {
-        return switch (type.id()) {
-            case LongType.ID, TimestampType.ID_WITHOUT_TZ, TimestampType.ID_WITH_TZ -> (Long) o;
-            case DoubleType.ID -> NumericUtils.doubleToSortableLong((Double) o);
-            case FloatType.ID -> (long) NumericUtils.floatToSortableInt((Float) o);
-            case IntegerType.ID -> ((Integer) o).longValue();
-            case ShortType.ID -> ((Short) o).longValue();
-            case ByteType.ID -> ((Byte) o).longValue();
-            default -> throw new IllegalArgumentException("Type cannot be converted to long");
-        };
-    }
-
-    private static Object toObject(DataType<?> type, long o) {
-        return switch (type.id()) {
-            case LongType.ID, TimestampType.ID_WITHOUT_TZ, TimestampType.ID_WITH_TZ -> o;
-            case DoubleType.ID -> NumericUtils.sortableLongToDouble(o);
-            case FloatType.ID -> NumericUtils.sortableIntToFloat((int) o);
-            case IntegerType.ID -> (int) o;
-            case ShortType.ID -> (short) o;
-            case ByteType.ID -> (byte) o;
-            default -> throw new IllegalArgumentException("Long value cannot be converted");
-        };
-    }
-
 
     private State initState(RamAccounting ramAccounting, int limit) {
         if (limit <= 0 || limit > MAX_LIMIT) {
@@ -565,5 +571,4 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
             return 0;
         }
     }
-
 }
