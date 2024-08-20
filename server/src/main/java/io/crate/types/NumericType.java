@@ -134,6 +134,12 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
                 ? bigDecimal
                 : bigDecimal.setScale(scale, mathContext.getRoundingMode());
         }
+        // Can be long if the value comes from ScoreDoc/sort-field
+        // See NumericStorage+LuceneSort+OrderByCollectorExpression
+        if (value instanceof Long longValue) {
+            BigInteger bigInt = BigInteger.valueOf(longValue);
+            return new BigDecimal(bigInt, scale == null ? 0 : scale, mathContext());
+        }
         return (BigDecimal) value;
     }
 

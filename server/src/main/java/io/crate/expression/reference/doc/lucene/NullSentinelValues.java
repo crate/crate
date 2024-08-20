@@ -33,6 +33,8 @@ import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
 import io.crate.types.IntegerType;
 import io.crate.types.LongType;
+import io.crate.types.NumericStorage;
+import io.crate.types.NumericType;
 import io.crate.types.ShortType;
 import io.crate.types.TimestampType;
 
@@ -91,6 +93,9 @@ public class NullSentinelValues {
 
             case DoubleType.ID:
                 return min ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
+
+            case NumericType.ID:
+                return min ? NumericStorage.COMPACT_MIN_VALUE - 1 : NumericStorage.COMPACT_MAX_VALUE + 1;
 
             default:
                 return null;
