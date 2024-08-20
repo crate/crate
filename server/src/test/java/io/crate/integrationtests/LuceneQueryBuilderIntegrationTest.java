@@ -352,7 +352,7 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
     @Test
     public void testNullOperators() throws Exception {
         DataType<?> type = randomType();
-        String typeDefinition = SqlFormatter.formatSql(type.toColumnType(ColumnPolicy.STRICT, null));
+        String typeDefinition = SqlFormatter.formatSql(type.toColumnType(ColumnPolicy.DYNAMIC, null));
         execute("create table t1 (c " + typeDefinition + ") with (number_of_replicas = 0)");
         Supplier<?> dataGenerator = DataTypeTesting.getDataGenerator(type);
 
