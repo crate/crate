@@ -32,6 +32,7 @@ import java.util.ListIterator;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.RandomAccess;
+import java.util.SequencedSet;
 import java.util.StringJoiner;
 import java.util.function.Function;
 import java.util.stream.Collector;
@@ -105,13 +106,10 @@ public final class Lists {
         return result;
     }
 
-    public static Collection<?> flattenUnique(Collection<?> list) {
-        if (!(list instanceof List<?>)) {
-            throw new IllegalArgumentException("Cannot flatten unless it is a nested array");
-        }
+    public static SequencedSet<?> flattenUnique(Iterable<?> items) {
         LinkedHashSet<Object> result = new LinkedHashSet<>();
-        for (var element : list) {
-            if (element instanceof Collection<?> l) {
+        for (var element : items) {
+            if (element instanceof Iterable<?> l) {
                 result.addAll(flattenUnique(l));
             } else {
                 result.add(element);

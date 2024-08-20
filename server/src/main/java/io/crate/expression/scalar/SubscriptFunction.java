@@ -23,6 +23,7 @@ package io.crate.expression.scalar;
 
 import static io.crate.expression.scalar.SubscriptObjectFunction.tryToInferReturnTypeFromObjectTypeAndArguments;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.types.ArrayType.unnest;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -54,7 +55,6 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
-import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.EqQuery;
@@ -226,20 +226,25 @@ public class SubscriptFunction extends Scalar<Object, Object> {
     }
 
     private interface PreFilterQueryBuilder {
-        Query buildQuery(String field, EqQuery<Object> eqQuery, Object value, boolean hasDocValues, boolean isIndexed);
+        Query buildQuery(Reference field, EqQuery<Object> eqQuery, Object value);
     }
 
     private static final Map<String, PreFilterQueryBuilder> PRE_FILTER_QUERY_BUILDER_BY_OP = Map.of(
-        EqOperator.NAME, (field, eqQuery, value, haDocValues, isIndexed) ->
-            eqQuery.termQuery(field, value, haDocValues, isIndexed),
-        GteOperator.NAME, (field, eqQuery, value, hasDocValues, isIndexed) ->
-                eqQuery.rangeQuery(field, value, null, true, false, hasDocValues, isIndexed),
-        GtOperator.NAME, (field, eqQuery, value, hasDocValues, isIndexed) ->
-                eqQuery.rangeQuery(field, value, null, false, false, hasDocValues, isIndexed),
-        LteOperator.NAME, (field, eqQuery, value, hasDocValues, isIndexed) ->
-                eqQuery.rangeQuery(field, null, value, false, true, hasDocValues, isIndexed),
-        LtOperator.NAME, (field, eqQuery, value, hasDocValues, isIndexed) ->
-                eqQuery.rangeQuery(field, null, value, false, false, hasDocValues, isIndexed)
+        EqOperator.NAME, (field, eqQuery, value) -> {
+            if (value instanceof List<?> l) {
+                return EqOperator.termsQuery(field.storageIdent(), unnest(field.valueType()), l, field.hasDocValues(),field.indexType());
+            } else {
+                return eqQuery.termQuery(field.storageIdent(), value, field.hasDocValues(), field.indexType() != IndexType.NONE);
+            }
+        },
+        GteOperator.NAME, (field, eqQuery, value) ->
+            eqQuery.rangeQuery(field.storageIdent(), value, null, true, false, field.hasDocValues(), field.indexType() != IndexType.NONE),
+        GtOperator.NAME, (field, eqQuery, value) ->
+            eqQuery.rangeQuery(field.storageIdent(), value, null, false, false, field.hasDocValues(), field.indexType() != IndexType.NONE),
+        LteOperator.NAME, (field, eqQuery, value) ->
+            eqQuery.rangeQuery(field.storageIdent(), null, value, false, true, field.hasDocValues(), field.indexType() != IndexType.NONE),
+        LtOperator.NAME, (field, eqQuery, value) ->
+            eqQuery.rangeQuery(field.storageIdent(), null, value, false, false, field.hasDocValues(), field.indexType() != IndexType.NONE)
     );
 
     @Override
@@ -258,7 +263,7 @@ public class SubscriptFunction extends Scalar<Object, Object> {
             if (preFilterQueryBuilder == null) {
                 return null;
             }
-            DataType<?> innerType = ArrayType.unnest(ref.valueType());
+            DataType<?> innerType = unnest(ref.valueType());
             StorageSupport<?> storageSupport = innerType.storageSupport();
             //noinspection unchecked
             EqQuery<Object> eqQuery = storageSupport == null ? null : (EqQuery<Object>) storageSupport.eqQuery();
@@ -266,8 +271,7 @@ public class SubscriptFunction extends Scalar<Object, Object> {
                 return null;
             }
             BooleanQuery.Builder builder = new BooleanQuery.Builder();
-            var preFilterQuery = preFilterQueryBuilder.buildQuery(
-                ref.storageIdent(), eqQuery, cmpLiteral.value(), ref.hasDocValues(), ref.indexType() != IndexType.NONE);
+            var preFilterQuery = preFilterQueryBuilder.buildQuery(ref, eqQuery, cmpLiteral.value());
             if (preFilterQuery == null) {
                 return null;
             }

@@ -60,7 +60,12 @@ public final class AnyEqOperator extends AnyOperator<Object> {
     @Override
     protected Query refMatchesAnyArrayLiteral(Function any, Reference probe, @NotNull List<?> nonNullValues, Context context) {
         String columnName = probe.storageIdent();
-        DataType<?> innerType = ArrayType.unnest(probe.valueType());
+        DataType<?> type = probe.valueType();
+        DataType<?> innerType = ArrayType.unnest(type);
+        if (ArrayType.dimensions(type) > 1) {
+            // nested_array_ref = any([[1], [1,2]])
+            return termsAndGenericFilter(any, probe, nonNullValues, context);
+        }
         return EqOperator.termsQuery(columnName, innerType, nonNullValues, probe.hasDocValues(), probe.indexType());
     }
 
@@ -68,7 +73,7 @@ public final class AnyEqOperator extends AnyOperator<Object> {
     protected Query literalMatchesAnyArrayRef(Function any, Literal<?> probe, Reference candidates, Context context) {
         if (DataTypes.isArray(probe.valueType())) {
             // [1, 2] = any(nested_array_ref)
-            return arrayLiteralEqAnyArray(any, candidates, probe.value(), context);
+            return termsAndGenericFilter(any, candidates, probe.value(), context);
         }
         return EqOperator.fromPrimitive(
             ArrayType.unnest(candidates.valueType()),
@@ -78,10 +83,10 @@ public final class AnyEqOperator extends AnyOperator<Object> {
             candidates.indexType());
     }
 
-    private static Query arrayLiteralEqAnyArray(Function function,
-                                                Reference candidates,
-                                                Object candidate,
-                                                LuceneQueryBuilder.Context context) {
+    private static Query termsAndGenericFilter(Function function,
+                                               Reference candidates,
+                                               Object candidate,
+                                               LuceneQueryBuilder.Context context) {
         ArrayList<Object> terms = new ArrayList<>();
         gatherLeafs((Iterable<?>) candidate, terms::add);
         Query termsQuery = EqOperator.termsQuery(
