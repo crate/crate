@@ -43,15 +43,13 @@ public final class PrimaryKeyColumnConstraint<T> extends ColumnConstraint<T> {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        PrimaryKeyColumnConstraint<?> that = (PrimaryKeyColumnConstraint<?>) o;
-        return Objects.equals(constraintName, that.constraintName);
+        return o instanceof PrimaryKeyColumnConstraint<?> that
+            && Objects.equals(constraintName, that.constraintName);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(constraintName, NAME);
+        return Objects.hashCode(constraintName);
     }
 
     @Override

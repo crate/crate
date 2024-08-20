@@ -59,21 +59,15 @@ public class SubscriptExpression extends Expression {
 
     @Override
     public int hashCode() {
-        int result = base != null ? base.hashCode() : 0;
-        result = 31 * result + (index != null ? index.hashCode() : 0);
+        int result = base.hashCode();
+        result = 31 * result + index.hashCode();
         return result;
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        SubscriptExpression that = (SubscriptExpression) o;
-
-        if (index != null ? !index.equals(that.index) : that.index != null) return false;
-        if (base != null ? !base.equals(that.base) : that.base != null) return false;
-
-        return true;
+        return o instanceof SubscriptExpression that
+            && index.equals(that.index)
+            && base.equals(that.base);
     }
 }

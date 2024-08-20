@@ -22,7 +22,6 @@
 package io.crate.sql.tree;
 
 import java.util.List;
-import java.util.Objects;
 
 public class With extends Statement {
 
@@ -50,14 +49,12 @@ public class With extends Statement {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        With with = (With) o;
-        return withQueries.equals(with.withQueries);
+        return o instanceof With that
+            && withQueries.equals(that.withQueries);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(withQueries);
+        return withQueries.hashCode();
     }
 }

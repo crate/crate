@@ -42,10 +42,8 @@ public class ArraySubQueryExpression extends Expression {
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null || getClass() != obj.getClass()) return false;
-        ArraySubQueryExpression that = (ArraySubQueryExpression) obj;
-        return Objects.equals(subqueryExpression, that.subqueryExpression);
+        return obj instanceof ArraySubQueryExpression other
+            && Objects.equals(subqueryExpression, other.subqueryExpression);
     }
 
     @Override

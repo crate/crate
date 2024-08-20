@@ -21,8 +21,9 @@
 
 package io.crate.sql.tree;
 
-import org.jetbrains.annotations.Nullable;
 import java.util.Objects;
+
+import org.jetbrains.annotations.Nullable;
 
 public class FunctionArgument extends Node {
 
@@ -51,12 +52,9 @@ public class FunctionArgument extends Node {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        final FunctionArgument that = (FunctionArgument) o;
-        return Objects.equals(this.name, that.name)
-            && Objects.equals(this.type, that.type);
+        return o instanceof FunctionArgument that
+            && Objects.equals(name, that.name)
+            && Objects.equals(type, that.type);
     }
 
     @Override

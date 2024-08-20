@@ -54,14 +54,10 @@ public class WindowFrame extends Node {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        WindowFrame that = (WindowFrame) o;
-
-        if (mode != that.mode) return false;
-        if (!start.equals(that.start)) return false;
-        return end.equals(that.end);
+        return o instanceof WindowFrame that
+            && mode == that.mode
+            && start.equals(that.start)
+            && end.equals(that.end);
     }
 
     @Override
