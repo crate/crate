@@ -71,9 +71,8 @@ public final class GeneratedExpressionConstraint<T> extends ColumnConstraint<T> 
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof GeneratedExpressionConstraint<?> that)) return false;
-        return Objects.equals(name, that.name)
+        return o instanceof GeneratedExpressionConstraint<?> that
+            && Objects.equals(name, that.name)
             && Objects.equals(expression, that.expression)
             && Objects.equals(expressionStr, that.expressionStr);
     }

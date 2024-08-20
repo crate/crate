@@ -30,8 +30,7 @@ public final class NotNullColumnConstraint<T> extends ColumnConstraint<T> {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        return !(o == null || getClass() != o.getClass());
+        return o instanceof NotNullColumnConstraint<?>;
     }
 
     @Override

@@ -78,11 +78,8 @@ public class CreateFunction<T> extends Statement {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        final CreateFunction<?> that = (CreateFunction<?>) o;
-        return Objects.equals(this.name, that.name)
+        return o instanceof CreateFunction<?> that
+            && Objects.equals(this.name, that.name)
             && Objects.equals(this.replace, that.replace)
             && Objects.equals(this.arguments, that.arguments)
             && Objects.equals(this.returnType, that.returnType)

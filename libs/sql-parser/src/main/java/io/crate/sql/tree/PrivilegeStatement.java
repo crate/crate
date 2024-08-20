@@ -72,17 +72,17 @@ public abstract sealed class PrivilegeStatement extends Statement
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        PrivilegeStatement that = (PrivilegeStatement) o;
-        return all == that.all &&
-               Objects.equals(userNames, that.userNames) &&
-               Objects.equals(permissions, that.permissions);
+        return o instanceof PrivilegeStatement that
+            && all == that.all
+            && Objects.equals(userNames, that.userNames)
+            && Objects.equals(permissions, that.permissions)
+            && Objects.equals(securable, that.securable)
+            && Objects.equals(tableOrSchemaNames, that.tableOrSchemaNames);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(userNames, permissions, all);
+        return Objects.hash(all, userNames, permissions, securable, tableOrSchemaNames);
     }
 
 }

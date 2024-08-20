@@ -47,14 +47,10 @@ public final class CreateView extends Statement {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        CreateView that = (CreateView) o;
-
-        if (replaceExisting != that.replaceExisting) return false;
-        if (!name.equals(that.name)) return false;
-        return query.equals(that.query);
+        return o instanceof CreateView that
+            && replaceExisting == that.replaceExisting
+            && name.equals(that.name)
+            && query.equals(that.query);
     }
 
     @Override

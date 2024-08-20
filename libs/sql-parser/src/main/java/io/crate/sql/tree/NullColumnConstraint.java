@@ -38,8 +38,7 @@ public final class NullColumnConstraint<T> extends ColumnConstraint<T> {
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj) return true;
-        return !(obj == null || getClass() != obj.getClass());
+        return obj instanceof NullColumnConstraint<?>;
     }
 
     @Override

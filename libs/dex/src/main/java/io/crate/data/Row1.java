@@ -40,8 +40,9 @@ public class Row1 extends Row {
 
     @Override
     public Object get(int index) {
-        if (index != 0)
+        if (index != 0) {
             throw new IndexOutOfBoundsException("Index: " + index + ", Size: 1");
+        }
         return value;
     }
 
