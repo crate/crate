@@ -33,7 +33,6 @@ import org.apache.lucene.search.SortedNumericSelector;
 import org.apache.lucene.search.SortedNumericSortField;
 import org.apache.lucene.search.SortedSetSelector;
 import org.apache.lucene.search.SortedSetSortField;
-import org.elasticsearch.search.MultiValueMode;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
@@ -66,6 +65,7 @@ import io.crate.types.FloatVectorType;
 import io.crate.types.GeoPointType;
 import io.crate.types.IntegerType;
 import io.crate.types.LongType;
+import io.crate.types.NumericStorage;
 import io.crate.types.NumericType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
@@ -152,10 +152,26 @@ public class LuceneSort extends SymbolVisitor<LuceneSort.SortSymbolContext, Sort
             return customSortField(ref.toString(), ref, context);
         }
 
+        if (ref.valueType() instanceof NumericType numericType) {
+            Integer precision = numericType.numericPrecision();
+            if (precision == null || precision > NumericStorage.COMPACT_PRECISION) {
+                return customSortField(ref.toString(), ref, context);
+            }
+            var sortField = new SortedNumericSortField(
+                ref.storageIdent(),
+                SortField.Type.LONG,
+                context.reverseFlag,
+                context.reverseFlag ? SortedNumericSelector.Type.MAX : SortedNumericSelector.Type.MIN
+            );
+            boolean min = NullValueOrder.fromFlag(context.nullFirst) == NullValueOrder.FIRST ^ context.reverseFlag;
+            sortField.setMissingValue(
+                min ? NumericStorage.COMPACT_MIN_VALUE - 1 : NumericStorage.COMPACT_MAX_VALUE + 1);
+            return sortField;
+        }
+
         if (ref.valueType().equals(DataTypes.IP)
                 || ref.valueType().id() == BitStringType.ID
-                || ref.valueType().id() == FloatVectorType.ID
-                || ref.valueType().id() == NumericType.ID) {
+                || ref.valueType().id() == FloatVectorType.ID) {
             return customSortField(ref.toString(), ref, context);
         } else {
             NullValueOrder nullValueOrder = NullValueOrder.fromFlag(context.nullFirst);
@@ -168,15 +184,13 @@ public class LuceneSort extends SymbolVisitor<LuceneSort.SortSymbolContext, Sort
                                      boolean reverse,
                                      NullValueOrder nullValueOrder) {
         String fieldName = symbol.storageIdent();
-        MultiValueMode sortMode = reverse ? MultiValueMode.MAX : MultiValueMode.MIN;
-        switch (symbol.valueType().id()) {
+        DataType<?> valueType = symbol.valueType();
+        switch (valueType.id()) {
             case StringType.ID, CharacterType.ID -> {
                 SortField sortField = new SortedSetSortField(
                     fieldName,
                     reverse,
-                    sortMode == MultiValueMode.MAX
-                        ? SortedSetSelector.Type.MAX
-                        : SortedSetSelector.Type.MIN
+                    reverse ? SortedSetSelector.Type.MAX : SortedSetSelector.Type.MIN
                 );
                 sortField.setMissingValue(
                     nullValueOrder == NullValueOrder.LAST ^ reverse
@@ -186,10 +200,7 @@ public class LuceneSort extends SymbolVisitor<LuceneSort.SortSymbolContext, Sort
                 return sortField;
             }
             case BooleanType.ID, ByteType.ID, ShortType.ID, IntegerType.ID, LongType.ID, TimestampType.ID_WITHOUT_TZ, TimestampType.ID_WITH_TZ -> {
-                SortedNumericSelector.Type selectorType = sortMode == MultiValueMode.MAX
-                    ? SortedNumericSelector.Type.MAX
-                    : SortedNumericSelector.Type.MIN;
-                var reducedType = SortField.Type.LONG;
+                var selectorType = reverse ? SortedNumericSelector.Type.MAX : SortedNumericSelector.Type.MIN;
                 var sortField = new SortedNumericSortField(fieldName, SortField.Type.LONG, reverse, selectorType);
 
                 /*  https://github.com/apache/lucene/commit/cc58c5194129e213877f11e002f7670d4f4bdf63
@@ -200,32 +211,26 @@ public class LuceneSort extends SymbolVisitor<LuceneSort.SortSymbolContext, Sort
                 sortField.setOptimizeSortWithPoints(false);
 
                 sortField.setMissingValue(
-                    NullSentinelValues.nullSentinelForReducedType(reducedType, nullValueOrder, reverse));
+                    NullSentinelValues.nullSentinel(DataTypes.LONG, nullValueOrder, reverse));
                 return sortField;
             }
             case FloatType.ID -> {
-                SortedNumericSelector.Type selectorType = sortMode == MultiValueMode.MAX
-                    ? SortedNumericSelector.Type.MAX
-                    : SortedNumericSelector.Type.MIN;
-                var reducedType = SortField.Type.FLOAT;
+                var selectorType = reverse ? SortedNumericSelector.Type.MAX : SortedNumericSelector.Type.MIN;
                 var sortField = new SortedNumericSortField(fieldName, SortField.Type.FLOAT, reverse, selectorType);
                 sortField.setMissingValue(
-                    NullSentinelValues.nullSentinelForReducedType(reducedType, nullValueOrder, reverse));
+                    NullSentinelValues.nullSentinel(DataTypes.FLOAT, nullValueOrder, reverse));
                 return sortField;
             }
             case DoubleType.ID -> {
-                SortedNumericSelector.Type selectorType = sortMode == MultiValueMode.MAX
-                    ? SortedNumericSelector.Type.MAX
-                    : SortedNumericSelector.Type.MIN;
-                var reducedType = SortField.Type.DOUBLE;
+                var selectorType = reverse ? SortedNumericSelector.Type.MAX : SortedNumericSelector.Type.MIN;
                 var sortField = new SortedNumericSortField(fieldName, SortField.Type.DOUBLE, reverse, selectorType);
                 sortField.setMissingValue(
-                    NullSentinelValues.nullSentinelForReducedType(reducedType, nullValueOrder, reverse));
+                    NullSentinelValues.nullSentinel(DataTypes.DOUBLE, nullValueOrder, reverse));
                 return sortField;
             }
             case GeoPointType.ID -> throw new IllegalArgumentException(
                 "can't sort on geo_point field without using specific sorting feature, like geo_distance");
-            default -> throw new UnsupportedOperationException("Cannot order on " + symbol + "::" + symbol.valueType());
+            default -> throw new UnsupportedOperationException("Cannot order on " + symbol + "::" + valueType);
         }
     }
 

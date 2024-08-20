@@ -21,7 +21,6 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import org.apache.lucene.search.SortField;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
@@ -33,6 +32,8 @@ import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
 import io.crate.types.IntegerType;
 import io.crate.types.LongType;
+import io.crate.types.NumericStorage;
+import io.crate.types.NumericType;
 import io.crate.types.ShortType;
 import io.crate.types.TimestampType;
 
@@ -45,27 +46,6 @@ public class NullSentinelValues {
             orderBy.reverseFlags()[orderIndex],
             orderBy.nullsFirst()[orderIndex]
         );
-    }
-
-    public static Object nullSentinelForReducedType(SortField.Type reducedType,
-                                                    NullValueOrder nullValueOrder,
-                                                    boolean reversed) {
-        final boolean min = nullValueOrder == NullValueOrder.FIRST ^ reversed;
-        switch (reducedType) {
-            case INT:
-                return min ? Integer.MIN_VALUE : Integer.MAX_VALUE;
-            case LONG:
-                return min ? Long.MIN_VALUE : Long.MAX_VALUE;
-            case FLOAT:
-                return min ? Float.NEGATIVE_INFINITY : Float.POSITIVE_INFINITY;
-            case DOUBLE:
-                return min ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
-            case STRING:
-            case STRING_VAL:
-                return null;
-            default:
-                throw new UnsupportedOperationException("Unsupported reduced type: " + reducedType);
-        }
     }
 
     /**
@@ -91,6 +71,9 @@ public class NullSentinelValues {
 
             case DoubleType.ID:
                 return min ? Double.NEGATIVE_INFINITY : Double.POSITIVE_INFINITY;
+
+            case NumericType.ID:
+                return min ? NumericStorage.COMPACT_MIN_VALUE - 1 : NumericStorage.COMPACT_MAX_VALUE + 1;
 
             default:
                 return null;
