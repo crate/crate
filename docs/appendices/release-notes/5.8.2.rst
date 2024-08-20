@@ -65,3 +65,6 @@ Fixes
 - Fixed an issue that caused ``WHERE`` clause to fail to filter rows when the
   clause contained :ref:`ANY <sql_any_array_comparison>` over array literals
   that are empty or containing only nulls.
+
+- Fixed an issue that caused queries with nested arrays, compared with `=` and
+  `= ANY` operators in the ``WHERE`` clause to throw ``ClassCastException``.
