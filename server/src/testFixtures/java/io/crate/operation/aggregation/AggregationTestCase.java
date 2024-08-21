@@ -188,6 +188,20 @@ public abstract class AggregationTestCase extends ESTestCase {
             Lists.map(actualArgumentTypes, t -> new InputColumn(0, t)),
             SearchPath.pathWithPGCatalogAndDoc()
         );
+
+        // Lookup the flavor of the aggregation function which operates on partial states and executes the final merge.
+        // Especially useful for aggregations like TopkAggregation where the final result is different from the partial
+        // states.
+        AggregationFunction terminatePartialAggFunction = (AggregationFunction) nodeCtx.functions().getQualified(
+            maybeUnboundSignature,
+            List.of(aggregationFunction.partialType()),
+            actualReturnType);
+
+        // For ArbitraryAggregationTest, where the signature with partial type is not defined
+        if (terminatePartialAggFunction == null) {
+            terminatePartialAggFunction = aggregationFunction;
+        }
+
         Version minNodeVersion = randomBoolean()
             ? Version.CURRENT
             : Version.V_4_0_9;
@@ -199,7 +213,7 @@ public abstract class AggregationTestCase extends ESTestCase {
         );
         for (var argType : actualArgumentTypes) {
             if (argType.storageSupport() == null) {
-                return aggregationFunction.terminatePartial(
+                return terminatePartialAggFunction.terminatePartial(
                     RAM_ACCOUNTING,
                     partialResultWithoutDocValues
                 );
@@ -225,7 +239,7 @@ public abstract class AggregationTestCase extends ESTestCase {
                 minNodeVersion,
                 optionalParams
             );
-            var resultWithoutDocValues = aggregationFunction.terminatePartial(
+            var resultWithoutDocValues = terminatePartialAggFunction.terminatePartial(
                 RAM_ACCOUNTING,
                 partialResultWithoutDocValues
             );
@@ -233,7 +247,7 @@ public abstract class AggregationTestCase extends ESTestCase {
             // same result, if a doc value aggregator exists.
             if (partialResultWithDocValues != null) {
                 assertThat(partialResultWithDocValues).hasSize(1);
-                var resultWithDocValues = aggregationFunction.terminatePartial(
+                var resultWithDocValues = terminatePartialAggFunction.terminatePartial(
                     RAM_ACCOUNTING,
                     partialResultWithDocValues.get(0).get(0)
                 );
