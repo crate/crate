@@ -158,8 +158,7 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
                 aggregates,
                 paramBinder,
                 AggregateMode.ITER_FINAL,
-                source.preferShardProjections() ? RowGranularity.SHARD : RowGranularity.CLUSTER,
-                plannerContext.transactionContext().sessionSettings().searchPath()
+                source.preferShardProjections() ? RowGranularity.SHARD : RowGranularity.CLUSTER
             );
             executionPlan.addProjection(groupProjection, NO_LIMIT, 0, null);
             return executionPlan;
@@ -174,8 +173,7 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
                         aggregates,
                         paramBinder,
                         AggregateMode.ITER_PARTIAL,
-                        RowGranularity.SHARD,
-                        plannerContext.transactionContext().sessionSettings().searchPath()
+                        RowGranularity.SHARD
                     )
                 );
                 executionPlan.addProjection(
@@ -185,8 +183,7 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
                         aggregates,
                         paramBinder,
                         AggregateMode.PARTIAL_FINAL,
-                        RowGranularity.NODE,
-                        plannerContext.transactionContext().sessionSettings().searchPath()
+                        RowGranularity.NODE
                     ),
                     NO_LIMIT,
                     0,
@@ -201,8 +198,7 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
                         aggregates,
                         paramBinder,
                         AggregateMode.ITER_FINAL,
-                        RowGranularity.NODE,
-                        plannerContext.transactionContext().sessionSettings().searchPath()
+                        RowGranularity.NODE
                     ),
                     NO_LIMIT,
                     0,
@@ -218,8 +214,7 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
             aggregates,
             paramBinder,
             AggregateMode.ITER_PARTIAL,
-            source.preferShardProjections() ? RowGranularity.SHARD : RowGranularity.NODE,
-            plannerContext.transactionContext().sessionSettings().searchPath()
+            source.preferShardProjections() ? RowGranularity.SHARD : RowGranularity.NODE
         );
         executionPlan.addProjection(toPartial);
         executionPlan.setDistributionInfo(DistributionInfo.DEFAULT_MODULO);
@@ -230,8 +225,7 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
             aggregates,
             paramBinder,
             AggregateMode.PARTIAL_FINAL,
-            RowGranularity.CLUSTER,
-            plannerContext.transactionContext().sessionSettings().searchPath()
+            RowGranularity.CLUSTER
         );
         return createMerge(
             plannerContext,
@@ -304,11 +298,11 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
      *         Each shard has "group or row authority"
      */
     private boolean shardsContainAllGroupKeyValues() {
-        return source instanceof Collect &&
-               ((Collect) source).tableInfo instanceof DocTableInfo &&
+        return source instanceof Collect collect &&
+               collect.tableInfo instanceof DocTableInfo docTableInfo &&
                GroupByConsumer.groupedByClusteredColumnOrPrimaryKeys(
-                   ((DocTableInfo) ((Collect) source).tableInfo),
-                   ((Collect) source).mutableBoundWhere,
+                   docTableInfo,
+                   collect.mutableBoundWhere,
                    groupKeys);
     }
 

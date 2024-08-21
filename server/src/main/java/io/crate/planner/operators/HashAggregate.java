@@ -101,8 +101,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
                         aggregates,
                         paramBinder,
                         AggregateMode.ITER_PARTIAL,
-                        RowGranularity.SHARD,
-                        plannerContext.transactionContext().sessionSettings().searchPath()
+                        RowGranularity.SHARD
                     )
                 );
                 executionPlan.addProjection(
@@ -111,8 +110,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
                         aggregates,
                         paramBinder,
                         AggregateMode.PARTIAL_FINAL,
-                        RowGranularity.CLUSTER,
-                        plannerContext.transactionContext().sessionSettings().searchPath()
+                        RowGranularity.CLUSTER
                     )
                 );
                 return executionPlan;
@@ -122,8 +120,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
                 aggregates,
                 paramBinder,
                 AggregateMode.ITER_FINAL,
-                RowGranularity.CLUSTER,
-                plannerContext.transactionContext().sessionSettings().searchPath()
+                RowGranularity.CLUSTER
             );
             executionPlan.addProjection(fullAggregation);
             return executionPlan;
@@ -133,8 +130,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
             aggregates,
             paramBinder,
             AggregateMode.ITER_PARTIAL,
-            source.preferShardProjections() ? RowGranularity.SHARD : RowGranularity.NODE,
-            plannerContext.transactionContext().sessionSettings().searchPath()
+            source.preferShardProjections() ? RowGranularity.SHARD : RowGranularity.NODE
         );
         executionPlan.addProjection(toPartial);
 
@@ -143,8 +139,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
             aggregates,
             paramBinder,
             AggregateMode.PARTIAL_FINAL,
-            RowGranularity.CLUSTER,
-            plannerContext.transactionContext().sessionSettings().searchPath()
+            RowGranularity.CLUSTER
         );
         return new Merge(
             executionPlan,
