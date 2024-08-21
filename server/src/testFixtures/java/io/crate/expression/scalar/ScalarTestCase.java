@@ -179,11 +179,12 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
      * </code>
      */
     public void assertEvaluate(String functionExpression, Object expectedValue, Literal<?>... literals) {
-        assertEvaluate(functionExpression, s -> assertThat(s).isEqualTo(expectedValue), literals);
-    }
-
-    public void assertEvaluate(String functionExpression, Object expectedValue, String errorMessage, Literal<?>... literals) {
-        assertEvaluate(functionExpression, s -> assertThat(s).withFailMessage(errorMessage).isEqualTo(expectedValue), literals);
+        assertEvaluate(
+            functionExpression,
+            s -> assertThat(s)
+                .as("`" + functionExpression + "` must evaluate to %s (literals=%s)", expectedValue, Arrays.toString(literals))
+                .isEqualTo(expectedValue),
+            literals);
     }
 
     /**
