@@ -43,12 +43,27 @@ public class NumericTypeTest extends DataTypeTestCase<BigDecimal> {
     }
 
     @Test
+    public void test_scale_cant_be_negative() throws Exception {
+        assertThatThrownBy(() -> new NumericType(2, -4))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Scale of NUMERIC must not be negative");
+    }
+
+    @Test
+    public void test_precision_is_required_if_scale_is_set() throws Exception {
+        assertThatThrownBy(() -> new NumericType(null, 4))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("If scale is set for NUMERIC, precision must be set too");
+    }
+
+    @Test
     public void test_implicit_cast_text_to_unscaled_numeric() {
         assertThat(NumericType.INSTANCE.implicitCast("12839")).isEqualTo(BigDecimal.valueOf(12839));
         assertThat(NumericType.INSTANCE.implicitCast("-12839")).isEqualTo(BigDecimal.valueOf(-12839));
         assertThat(NumericType.INSTANCE.implicitCast("+2147483647111")).isEqualTo(BigDecimal.valueOf(2147483647111L));
         assertThat(NumericType.INSTANCE.implicitCast("+214748364711119475")).isEqualTo(new BigDecimal("214748364711119475"));
     }
+
 
     @Test
     public void test_implicit_cast_floating_point_to_unscaled_numeric() {
