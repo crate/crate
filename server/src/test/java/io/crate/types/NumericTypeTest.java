@@ -36,6 +36,13 @@ import org.junit.Test;
 public class NumericTypeTest extends DataTypeTestCase<BigDecimal> {
 
     @Test
+    public void test_scale_must_be_lt_precision() throws Exception {
+        assertThatThrownBy(() -> new NumericType(2, 4))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Scale of numeric must be less than the precision. NUMERIC(2, 4) is unsupported.");
+    }
+
+    @Test
     public void test_implicit_cast_text_to_unscaled_numeric() {
         assertThat(NumericType.INSTANCE.implicitCast("12839")).isEqualTo(BigDecimal.valueOf(12839));
         assertThat(NumericType.INSTANCE.implicitCast("-12839")).isEqualTo(BigDecimal.valueOf(-12839));
@@ -177,14 +184,14 @@ public class NumericTypeTest extends DataTypeTestCase<BigDecimal> {
     @Test
     public void test_numeric_with_precision_and_scale_serialization_round_trip() throws IOException {
         var out = new BytesStreamOutput();
-        var expected = new NumericType(1, 2);
+        var expected = new NumericType(3, 1);
         DataTypes.toStream(expected, out);
 
         var in = out.bytes().streamInput();
         NumericType actual = (NumericType) DataTypes.fromStream(in);
 
-        assertThat(actual.numericPrecision()).isEqualTo(1);
-        assertThat(actual.scale()).isEqualTo(2);
+        assertThat(actual.numericPrecision()).isEqualTo(3);
+        assertThat(actual.scale()).isEqualTo(1);
     }
 
     @Override

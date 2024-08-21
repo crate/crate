@@ -1030,6 +1030,7 @@ significant digits in the unscaled numeric value. The ``scale`` value of a
 numeric is the count of decimal digits in the fractional part, to the right of
 the decimal point. For example, the number 123.45 has a precision of ``5`` and
 a scale of ``2``. Integers have a scale of zero.
+The scale must be smaller than the precision.
 
 To declare the ``NUMERIC`` type with the precision and scale, use the syntax::
 
