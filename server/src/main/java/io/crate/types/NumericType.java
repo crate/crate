@@ -71,13 +71,21 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
     private final Integer precision;
 
     public NumericType(@Nullable Integer precision, @Nullable Integer scale) {
-        if (precision != null && scale != null && scale >= precision) {
-            throw new IllegalArgumentException(String.format(
-                Locale.ENGLISH,
-                "Scale of numeric must be less than the precision. NUMERIC(%d, %d) is unsupported.",
-                precision,
-                scale
-            ));
+        if (scale != null) {
+            if (precision == null) {
+                throw new IllegalArgumentException("If scale is set for NUMERIC, precision must be set too");
+            }
+            if (scale >= precision) {
+                throw new IllegalArgumentException(String.format(
+                    Locale.ENGLISH,
+                    "Scale of numeric must be less than the precision. NUMERIC(%d, %d) is unsupported.",
+                    precision,
+                    scale
+                ));
+            }
+            if (scale < 0) {
+                throw new IllegalArgumentException("Scale of NUMERIC must not be negative");
+            }
         }
         this.precision = precision;
         this.scale = scale;
