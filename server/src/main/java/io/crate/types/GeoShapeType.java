@@ -26,9 +26,11 @@ import java.util.Map;
 import java.util.function.Function;
 
 import org.apache.lucene.util.RamUsageEstimator;
+import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.lucene.BytesRefs;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.locationtech.spatial4j.context.SpatialContext;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.Point;
@@ -41,6 +43,7 @@ import io.crate.geo.GeoJSONUtils;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.server.xcontent.XContentHelper;
 
 public class GeoShapeType extends DataType<Map<String, Object>> implements Streamer<Map<String, Object>> {
 
@@ -116,6 +119,10 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
         } else if (value instanceof Map<?, ?> map) {
             GeoJSONUtils.validateGeoJson(map);
             return (Map<String, Object>) value;
+        } else if (value instanceof byte[] bytes) {
+            var map = XContentHelper.toMap(new BytesArray(bytes), XContentType.JSON);
+            GeoJSONUtils.validateGeoJson(map);
+            return map;
         } else {
             return GeoJSONUtils.shape2Map((Shape) value);
         }

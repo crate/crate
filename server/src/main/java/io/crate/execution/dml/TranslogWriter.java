@@ -24,7 +24,7 @@ package io.crate.execution.dml;
 import org.elasticsearch.common.bytes.BytesReference;
 
 /**
- * Builds a transaction log entry for an indexed document
+ * Builds a document map for an indexed row
  */
 public interface TranslogWriter {
 
@@ -65,4 +65,48 @@ public interface TranslogWriter {
      * on the TranslogWriter
      */
     BytesReference bytes();
+
+    static TranslogWriter wrapBytes(BytesReference source) {
+        return new TranslogWriter() {
+            @Override
+            public void startArray() {
+
+            }
+
+            @Override
+            public void endArray() {
+
+            }
+
+            @Override
+            public void startObject() {
+
+            }
+
+            @Override
+            public void endObject() {
+
+            }
+
+            @Override
+            public void writeFieldName(String fieldName) {
+
+            }
+
+            @Override
+            public void writeNull() {
+
+            }
+
+            @Override
+            public void writeValue(Object value) {
+
+            }
+
+            @Override
+            public BytesReference bytes() {
+                return source;
+            }
+        };
+    }
 }

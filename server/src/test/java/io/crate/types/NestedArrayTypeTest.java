@@ -23,7 +23,6 @@ package io.crate.types;
 
 import static io.crate.execution.dml.IndexerTest.getIndexer;
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -32,9 +31,12 @@ import java.util.Set;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.IntField;
+import org.apache.lucene.document.StoredField;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.junit.Test;
 
+import io.crate.execution.dml.ArrayIndexer;
 import io.crate.execution.dml.IndexItem;
 import io.crate.execution.dml.Indexer;
 import io.crate.metadata.ColumnIdent;
@@ -117,11 +119,28 @@ public class NestedArrayTypeTest extends DataTypeTestCase<List<List<Object>>> {
         // Leaf values are stored as individual int points + docvalues
         Document expected = new Document();
         String resolvedField = table.getReference(ColumnIdent.fromPath("x")).storageIdent();
+        String arrayValuesField = ArrayIndexer.ARRAY_VALUES_FIELD_PREFIX + resolvedField;
         expected.add(new IntField(resolvedField, 1, Field.Store.NO));
         expected.add(new IntField(resolvedField, 2, Field.Store.NO));
         expected.add(new IntField(resolvedField, 3, Field.Store.NO));
         expected.add(new IntField(resolvedField, 4, Field.Store.NO));
+
+        BytesStreamOutput bytes = new BytesStreamOutput();
+        bytes.writeVInt(3);
+        bytes.writeVInt(3);
+        bytes.writeBoolean(false);
+        bytes.writeInt(1);
+        bytes.writeBoolean(false);
+        bytes.writeInt(2);
+        bytes.writeVInt(3);
+        bytes.writeBoolean(false);
+        bytes.writeInt(3);
+        bytes.writeBoolean(false);
+        bytes.writeInt(4);
+        expected.add(new StoredField(arrayValuesField, bytes.bytes().toBytesRef()));
+
         assertThat(doc).hasSameResolvedFields(expected, resolvedField);
+        assertThat(doc).hasSameResolvedFields(expected, arrayValuesField);
 
         // Source stores the original nested array structure
         assertThat(doc.source().utf8ToString()).isEqualTo("{\"" + resolvedField + "\":[[1,2],[3,4]]}");

@@ -27,6 +27,7 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FloatField;
 import org.apache.lucene.document.FloatPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
+import org.apache.lucene.document.StoredField;
 import org.apache.lucene.util.NumericUtils;
 import org.jetbrains.annotations.NotNull;
 
@@ -57,6 +58,9 @@ public class FloatIndexer implements ValueIndexer<Float> {
                         new SortedNumericDocValuesField(name, NumericUtils.floatToSortableInt(value))
                 );
             } else {
+                if (docBuilder.maybeAddStoredField()) {
+                    docBuilder.addField(new StoredField(name, value));
+                }
                 docBuilder.addField(new Field(
                         DocSysColumns.FieldNames.NAME,
                         name,

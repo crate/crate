@@ -46,7 +46,6 @@ import org.elasticsearch.common.xcontent.XContentType;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.Reference;
@@ -94,15 +93,13 @@ public final class SourceParser {
     }
 
     public void register(List<? extends Symbol> symbols) {
-        if (!Symbols.hasColumn(symbols, DocSysColumns.DOC)) {
-            Consumer<Reference> register = ref -> {
-                if (ref.column().isSystemColumn() == false && ref.granularity() == RowGranularity.DOC) {
-                    register(DocReferences.toDocLookup(ref).column(), ref.valueType());
-                }
-            };
-            for (Symbol symbol : symbols) {
-                symbol.visit(Reference.class, register);
+        Consumer<Reference> register = ref -> {
+            if (ref.granularity() == RowGranularity.DOC) {
+                register(DocReferences.toDocLookup(ref).column(), ref.valueType());
             }
+        };
+        for (Symbol symbol : symbols) {
+            symbol.visit(Reference.class, register);
         }
     }
 

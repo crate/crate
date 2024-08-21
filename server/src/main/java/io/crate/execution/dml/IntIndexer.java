@@ -27,6 +27,7 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.document.IntField;
 import org.apache.lucene.document.IntPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
+import org.apache.lucene.document.StoredField;
 import org.jetbrains.annotations.NotNull;
 
 import io.crate.metadata.IndexType;
@@ -55,6 +56,9 @@ public class IntIndexer implements ValueIndexer<Number> {
             if (ref.hasDocValues()) {
                 docBuilder.addField(new SortedNumericDocValuesField(name, intValue));
             } else {
+                if (docBuilder.maybeAddStoredField()) {
+                    docBuilder.addField(new StoredField(name, intValue));
+                }
                 docBuilder.addField(new Field(
                     DocSysColumns.FieldNames.NAME,
                     name,

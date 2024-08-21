@@ -22,6 +22,7 @@
 package io.crate.execution.dml;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -30,13 +31,17 @@ import java.util.function.Function;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.IntField;
 import org.apache.lucene.document.IntPoint;
+import org.apache.lucene.document.StoredField;
 import org.apache.lucene.search.FieldExistsQuery;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.Version;
+import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
+import io.crate.Streamer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.table.TableInfo;
@@ -84,23 +89,29 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
 
     @VisibleForTesting
     static final String ARRAY_LENGTH_FIELD_PREFIX = "_array_length_";
+    public static final String ARRAY_VALUES_FIELD_PREFIX = "_array_values_";
 
     private final ValueIndexer<T> innerIndexer;
+    private final Streamer<List<T>> streamer;
     private final String arrayLengthFieldName;
+    private final Reference reference;
 
-    public ArrayIndexer(ValueIndexer<T> innerIndexer, Function<ColumnIdent, Reference> getRef, Reference reference) {
+    public ArrayIndexer(ValueIndexer<T> innerIndexer, Streamer<List<T>> streamer, Function<ColumnIdent, Reference> getRef, Reference reference) {
         this.innerIndexer = innerIndexer;
+        this.streamer = streamer;
+        this.reference = reference;
         this.arrayLengthFieldName = toArrayLengthFieldName(reference, getRef);
     }
 
     @Override
     public void indexValue(@NotNull List<T> values, IndexDocumentBuilder docBuilder) throws IOException {
         docBuilder.translogWriter().startArray();
+        var nestedDocBuilder = docBuilder.noStoredField();
         for (T value : values) {
             if (value == null) {
                 docBuilder.translogWriter().writeNull();
             } else {
-                innerIndexer.indexValue(value, docBuilder);
+                innerIndexer.indexValue(value, nestedDocBuilder);
             }
         }
         if (docBuilder.getTableVersionCreated().onOrAfter(Version.V_5_9_0)) {
@@ -110,6 +121,22 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
             docBuilder.addField(new IntField(arrayLengthFieldName, values.size(), Field.Store.NO));
         }
         docBuilder.translogWriter().endArray();
+        if (docBuilder.maybeAddStoredField()) {
+            // we use a prefix here so that there is no confusion between StoredField and IntField, as using
+            // both can result in inconsistent docvalues types across documents.
+            var storedField = ARRAY_VALUES_FIELD_PREFIX + reference.storageIdent();
+            var arrayBytes = arrayToBytes(values).toBytesRef();
+            docBuilder.addField(new StoredField(storedField, arrayBytes));
+        }
+    }
+
+    private BytesReference arrayToBytes(List<T> values) {
+        try (BytesStreamOutput output = new BytesStreamOutput()) {
+            streamer.writeValueTo(output, values);
+            return output.bytes();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     @Override

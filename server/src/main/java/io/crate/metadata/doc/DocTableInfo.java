@@ -92,6 +92,7 @@ import io.crate.metadata.PartitionInfo;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.ReferenceTree;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
@@ -201,6 +202,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     private final boolean closed;
     private final ColumnPolicy columnPolicy;
     private TranslogIndexer translogIndexer; // lazily initialised
+    private ReferenceTree refTree;     // lazily initialised
     private final long tableVersion;
 
     public DocTableInfo(RelationName ident,
@@ -328,6 +330,25 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         } catch (NumberFormatException ex) {
             return getReference(ColumnIdent.fromPath(storageIdent));
         }
+    }
+
+    public List<Reference> getChildReferences(Reference parent) {
+        return referenceTree().getChildren(parent);
+    }
+
+    public List<Reference> getLeafReferences(Reference parent) {
+        return referenceTree().findDescendants(parent);
+    }
+
+    public Reference findParentReferenceMatching(Reference child, Predicate<Reference> test) {
+        return referenceTree().findFirstParentMatching(child, test);
+    }
+
+    private ReferenceTree referenceTree() {
+        if (refTree == null) {
+            refTree = ReferenceTree.of(references.values());
+        }
+        return refTree;
     }
 
     @Override

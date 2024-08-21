@@ -183,6 +183,9 @@ public final class BitStringType extends DataType<BitString> implements Streamer
     public BitString explicitCast(Object value, SessionSettings sessionSettings) throws IllegalArgumentException, ClassCastException {
         // explicit cast is allowed to trim or extend the bitstring
         if (value instanceof String str) {
+            if (str.startsWith("B'")) {
+                str = str.substring(2);
+            }
             return BitString.ofRawBits(str, length);
         }
         BitString bs = (BitString) value;

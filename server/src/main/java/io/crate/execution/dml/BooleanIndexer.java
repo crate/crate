@@ -26,6 +26,7 @@ import java.io.IOException;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.SortedNumericDocValuesField;
+import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexOptions;
 import org.jetbrains.annotations.NotNull;
 
@@ -60,6 +61,9 @@ public class BooleanIndexer implements ValueIndexer<Boolean> {
         if (ref.hasDocValues()) {
             docBuilder.addField(new SortedNumericDocValuesField(name, value ? 1 : 0));
         } else {
+            if (docBuilder.maybeAddStoredField()) {
+                docBuilder.addField(new StoredField(name, value ? 1 : 0));
+            }
             docBuilder.addField(new Field(
                 DocSysColumns.FieldNames.NAME,
                 name,

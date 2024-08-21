@@ -37,6 +37,7 @@ import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.ToXContent;
 import org.elasticsearch.common.xcontent.ToXContent.Params;
+import org.elasticsearch.common.xcontent.ToXContentObject;
 import org.elasticsearch.common.xcontent.XContent;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
@@ -257,5 +258,10 @@ public class XContentHelper {
             }
             return BytesReference.bytes(builder);
         }
+    }
+
+    public static BytesReference toXContent(Map<String, Object> map, XContentType xContentType) throws IOException {
+        ToXContentObject x = (builder, _) -> builder.map(map);
+        return toXContent(x, xContentType, ToXContent.EMPTY_PARAMS, false);
     }
 }

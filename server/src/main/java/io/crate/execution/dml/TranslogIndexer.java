@@ -94,7 +94,7 @@ public class TranslogIndexer {
 
     private IndexDocumentBuilder populateLuceneFields(BytesReference source) throws IOException {
         Map<String, Object> docMap = sourceParser.parse(source, ignoreUnknownColumns == false);
-        IndexDocumentBuilder docBuilder = new IndexDocumentBuilder(new NoOpTranslogWriter(source), _ -> null, Map.of(), tableVersionCreated);
+        IndexDocumentBuilder docBuilder = new IndexDocumentBuilder(TranslogWriter.wrapBytes(source), _ -> null, Map.of(), tableVersionCreated);
         for (var entry : docMap.entrySet()) {
             var column = entry.getKey();
             var indexer = indexers.get(column);
@@ -115,51 +115,6 @@ public class TranslogIndexer {
         }
         return docBuilder;
     }
-
-    private record NoOpTranslogWriter(BytesReference source) implements TranslogWriter {
-
-        @Override
-        public void startArray() {
-
-        }
-
-        @Override
-        public void endArray() {
-
-        }
-
-        @Override
-        public void startObject() {
-
-        }
-
-        @Override
-        public void endObject() {
-
-        }
-
-        @Override
-        public void writeNull() {
-
-        }
-
-        @Override
-        public void writeFieldName(String fieldName) {
-
-        }
-
-        @Override
-        public void writeValue(Object value) {
-
-        }
-
-        @Override
-        public BytesReference bytes() {
-            return source;
-        }
-    }
-
-    ;
 
     private static boolean isEmpty(Object value) {
         switch (value) {

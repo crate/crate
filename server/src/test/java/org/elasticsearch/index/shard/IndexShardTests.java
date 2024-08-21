@@ -111,7 +111,7 @@ import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.engine.CommitStats;
-import org.elasticsearch.index.engine.DocIdSeqNoAndSource;
+import org.elasticsearch.index.engine.DocIdAndSeqNo;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.EngineTestCase;
 import org.elasticsearch.index.engine.InternalEngine;
@@ -3645,7 +3645,7 @@ public class IndexShardTests extends IndexShardTestCase {
             while (done.get() == false) {
                 try {
                     List<String> exposedDocIds = EngineTestCase.getDocIds(getEngine(shard), rarely())
-                        .stream().map(DocIdSeqNoAndSource::getId).collect(Collectors.toList());
+                        .stream().map(DocIdAndSeqNo::id).collect(Collectors.toList());
                     assertThat(docBelowGlobalCheckpoint)
                         .as("every operations before the global checkpoint must be reserved")
                         .isSubsetOf(exposedDocIds);

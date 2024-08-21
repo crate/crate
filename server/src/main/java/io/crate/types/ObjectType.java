@@ -25,6 +25,8 @@ import static io.crate.types.DataTypes.ALLOWED_CONVERSIONS;
 import static io.crate.types.DataTypes.UNDEFINED;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -38,6 +40,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.apache.lucene.util.RamUsageEstimator;
+import org.elasticsearch.common.io.stream.ByteBufferStreamInput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
@@ -66,15 +69,6 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     public static final ObjectType UNTYPED = new ObjectType();
     public static final int ID = 12;
     public static final String NAME = "object";
-    private static final StorageSupport<Map<String, Object>> STORAGE = new StorageSupport<>(false, false, null) {
-
-        @Override
-        public ValueIndexer<Map<String, Object>> valueIndexer(RelationName table,
-                                                              Reference ref,
-                                                              Function<ColumnIdent, Reference> getRef) {
-            return new ObjectIndexer(table, ref, getRef);
-        }
-    };
 
     public static class Builder {
 
@@ -175,6 +169,13 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
                                         BiFunction<DataType<?>, Object, Object> innerType) {
         if (value instanceof String str) {
             value = mapFromJSONString(str);
+        }
+        if (value instanceof byte[] bytes) {
+            try {
+                value = streamer().readValueFrom(new ByteBufferStreamInput(ByteBuffer.wrap(bytes)));
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
+            }
         }
         Map<String, Object> map = (Map<String, Object>) value;
         if (map == null || innerTypes == null) {
@@ -384,7 +385,15 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
 
     @Override
     public StorageSupport<Map<String, Object>> storageSupport() {
-        return STORAGE;
+        return new StorageSupport<>(false, false, null) {
+
+            @Override
+            public ValueIndexer<Map<String, Object>> valueIndexer(RelationName table,
+                                                                  Reference ref,
+                                                                  Function<ColumnIdent, Reference> getRef) {
+                return new ObjectIndexer(table, ref, getRef, streamer());
+            }
+        };
     }
 
     @Override

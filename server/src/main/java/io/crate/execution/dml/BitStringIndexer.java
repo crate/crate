@@ -28,6 +28,7 @@ import java.util.BitSet;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.SortedSetDocValuesField;
+import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.util.BytesRef;
 import org.jetbrains.annotations.NotNull;
@@ -70,6 +71,9 @@ public class BitStringIndexer implements ValueIndexer<BitString> {
         if (ref.hasDocValues()) {
             docBuilder.addField(new SortedSetDocValuesField(name, binaryValue));
         } else {
+            if (docBuilder.maybeAddStoredField()) {
+                docBuilder.addField(new StoredField(name, binaryValue));
+            }
             docBuilder.addField(new Field(
                 DocSysColumns.FieldNames.NAME,
                 name,
