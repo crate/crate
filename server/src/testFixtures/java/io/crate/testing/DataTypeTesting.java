@@ -22,6 +22,7 @@
 package io.crate.testing;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
@@ -207,12 +208,19 @@ public class DataTypeTesting {
             case NumericType.ID:
                 return () -> {
                     var numericType = (NumericType) type;
-                    var mathContext = numericType.mathContext();
-                    var result = new BigDecimal(random.nextDouble(), mathContext);
-                    if (numericType.scale() != null) {
-                        return (T) result.setScale(numericType.scale(), mathContext.getRoundingMode());
+                    Integer precision = numericType.numericPrecision();
+                    int maxDigits = precision == null ? 131072 : precision;
+                    int numDigits = random.nextInt(1, maxDigits + 1);
+                    StringBuilder sb = new StringBuilder(numDigits);
+                    for (int i = 0; i < numDigits; i++) {
+                        sb.append(random.nextInt(10));
                     }
-                    return (T) result;
+                    Integer scale = numericType.scale();
+                    BigInteger bigInt = new BigInteger(sb.toString());
+                    if (scale == null) {
+                        return (T) new BigDecimal(bigInt, numericType.mathContext());
+                    }
+                    return (T) new BigDecimal(bigInt, scale, numericType.mathContext());
                 };
             case BitStringType.ID:
                 return () -> {
