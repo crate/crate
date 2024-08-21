@@ -22,15 +22,10 @@
 package io.crate.expression.scalar.bitwise;
 
 
-import io.crate.expression.scalar.ScalarTestCase;
-import io.crate.sql.tree.BitString;
-import io.crate.testing.DataTypeTesting;
-import io.crate.types.BitStringType;
-import io.crate.types.DataType;
-
-import org.assertj.core.api.Assertions;
-import org.elasticsearch.common.TriFunction;
-import org.junit.Test;
+import static io.crate.types.DataTypes.BYTE;
+import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.LONG;
+import static io.crate.types.DataTypes.SHORT;
 
 import java.util.HashMap;
 import java.util.List;
@@ -39,10 +34,15 @@ import java.util.Map;
 import java.util.function.BinaryOperator;
 import java.util.function.Supplier;
 
-import static io.crate.types.DataTypes.BYTE;
-import static io.crate.types.DataTypes.INTEGER;
-import static io.crate.types.DataTypes.LONG;
-import static io.crate.types.DataTypes.SHORT;
+import org.assertj.core.api.Assertions;
+import org.elasticsearch.common.TriFunction;
+import org.junit.Test;
+
+import io.crate.expression.scalar.ScalarTestCase;
+import io.crate.sql.tree.BitString;
+import io.crate.testing.DataTypeTesting;
+import io.crate.types.BitStringType;
+import io.crate.types.DataType;
 
 public class BitwiseFunctionsTest extends ScalarTestCase {
 
@@ -81,8 +81,7 @@ public class BitwiseFunctionsTest extends ScalarTestCase {
                     "%d::%s %s %d::%s",
                     a, type.getName(), entry.getKey(), b, type.getName()
                 );
-                String errorMessage = String.format(Locale.ENGLISH, "Error on computing expression %s", expression);
-                assertEvaluate(expression, entry.getValue().apply(type, a, b), errorMessage);
+                assertEvaluate(expression, entry.getValue().apply(type, a, b));
             }
         }
     }
@@ -115,8 +114,7 @@ public class BitwiseFunctionsTest extends ScalarTestCase {
                 "%s %s %s",
                 a.asPrefixedBitString(), entry.getKey(), b.asPrefixedBitString()
             );
-            String errorMessage = String.format(Locale.ENGLISH, "Error on computing expression %s", expression);
-            assertEvaluate(expression, entry.getValue().apply(a, b), errorMessage);
+            assertEvaluate(expression, entry.getValue().apply(a, b));
         }
     }
 }
