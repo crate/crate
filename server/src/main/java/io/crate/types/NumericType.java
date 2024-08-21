@@ -27,6 +27,7 @@ import java.math.BigInteger;
 import java.math.MathContext;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Supplier;
@@ -70,6 +71,14 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
     private final Integer precision;
 
     public NumericType(@Nullable Integer precision, @Nullable Integer scale) {
+        if (precision != null && scale != null && scale >= precision) {
+            throw new IllegalArgumentException(String.format(
+                Locale.ENGLISH,
+                "Scale of numeric must be less than the precision. NUMERIC(%d, %d) is unsupported.",
+                precision,
+                scale
+            ));
+        }
         this.precision = precision;
         this.scale = scale;
     }

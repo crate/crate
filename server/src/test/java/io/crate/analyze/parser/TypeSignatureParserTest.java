@@ -179,11 +179,11 @@ public class TypeSignatureParserTest extends ESTestCase {
 
     @Test
     public void test_parse_numeric_type_signature_with_precision_and_scale_round_trip() {
-        var signature = TypeSignature.parse("numeric(1, 2)");
+        var signature = TypeSignature.parse("numeric(3, 1)");
         assertThat(signature.getBaseTypeName()).isEqualTo("numeric");
         assertThat(signature.getParameters()).containsExactly(
-            new IntegerLiteralTypeSignature(1), new IntegerLiteralTypeSignature(2));
-        assertThat(signature.createType()).isEqualTo(new NumericType(1, 2));
+            new IntegerLiteralTypeSignature(3), new IntegerLiteralTypeSignature(1));
+        assertThat(signature.createType()).isEqualTo(new NumericType(3, 1));
     }
 
     @Test
