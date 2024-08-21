@@ -50,7 +50,6 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.SearchPath;
 import io.crate.types.DataType;
 
 public class ProjectionBuilder {
@@ -65,14 +64,12 @@ public class ProjectionBuilder {
                                                        Collection<Function> aggregates,
                                                        UnaryOperator<Symbol> subQueryAndParamBinder,
                                                        AggregateMode mode,
-                                                       RowGranularity granularity,
-                                                       SearchPath searchPath) {
+                                                       RowGranularity granularity) {
         InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(inputs);
         ArrayList<Aggregation> aggregations = getAggregations(
             aggregates,
             mode,
             sourceSymbols,
-            searchPath,
             subQueryAndParamBinder
         );
         return new AggregationProjection(aggregations, granularity, mode);
@@ -84,15 +81,13 @@ public class ProjectionBuilder {
         Collection<Function> values,
         UnaryOperator<Symbol> subQueryAndParamBinder,
         AggregateMode mode,
-        RowGranularity requiredGranularity,
-        SearchPath searchPath) {
+        RowGranularity requiredGranularity) {
 
         InputColumns.SourceSymbols sourceSymbols = new InputColumns.SourceSymbols(inputs);
         ArrayList<Aggregation> aggregations = getAggregations(
             values,
             mode,
             sourceSymbols,
-            searchPath,
             subQueryAndParamBinder
         );
         return new GroupProjection(
@@ -106,7 +101,6 @@ public class ProjectionBuilder {
     private ArrayList<Aggregation> getAggregations(Collection<Function> functions,
                                                    AggregateMode mode,
                                                    InputColumns.SourceSymbols sourceSymbols,
-                                                   SearchPath searchPath,
                                                    UnaryOperator<Symbol> subQueryAndParamBinder) {
         ArrayList<Aggregation> aggregations = new ArrayList<>(functions.size());
         for (Function function : functions) {
@@ -120,8 +114,7 @@ public class ProjectionBuilder {
             List<Symbol> aggregationInputs;
             Symbol filterInput;
             switch (mode) {
-                case ITER_FINAL:
-                case ITER_PARTIAL:
+                case ITER_PARTIAL, ITER_FINAL:
                     // ITER means that there is no aggregation part upfront, therefore the input
                     // symbols need to be in arguments
                     aggregationInputs = InputColumns.create(function.arguments(), sourceSymbols);
