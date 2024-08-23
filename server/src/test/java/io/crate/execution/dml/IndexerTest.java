@@ -1177,6 +1177,33 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_empty_arrays_together_with_another_field_added_as_new_cols_with_dynamic_policy() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (i int) with (column_policy='dynamic')");
+        DocTableInfo table = e.resolveTableInfo("tbl");
+
+        var indexer = getIndexer(e, "tbl", "i", "empty_arr", "a");
+        indexer.updateTargets(table::getReference);
+        IndexItem item = item(1, List.of(), "foo");
+        List<Reference> newColumns = indexer.collectSchemaUpdates(item);
+        assertThat(newColumns).satisfiesExactly(
+            x -> assertThat(x.column()).isEqualTo(ColumnIdent.of("a"))
+        );
+        ParsedDocument doc = indexer.index(item);
+        assertThat(doc.source().utf8ToString()).isEqualToIgnoringWhitespace(
+            """
+            {"1":1,"_u_empty_arr":[],"_u_a":"foo"}
+            """
+        );
+        // prefix is stripped on non _raw lookups
+        assertThat(source(doc, table)).isEqualToIgnoringWhitespace(
+            """
+            {"a":"foo","i":1,"empty_arr":[]}
+            """
+        );
+    }
+
+    @Test
     public void test_empty_arrays_are_prefixed_as_unknown() throws Exception {
         SQLExecutor e = SQLExecutor.of(clusterService)
                 .addTable("create table tbl (i int) with (column_policy='dynamic')");
