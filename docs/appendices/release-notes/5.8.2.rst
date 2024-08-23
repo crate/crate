@@ -47,6 +47,14 @@ See the :ref:`version_5.8.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that would cause rows to not be inserted, on a table with
+  :ref:`dynamic column policy <sql-create-table-column-policy>`, when the row
+  contained an empty array (``[]``) for a new column (to be added dynamically),
+  together with one or more new columns (also to be added dynamically), e.g.::
+
+    CREATE TABLE t (id TEXT PRIMARY KEY) WITH (column_policy = 'dynamic');
+    INSERT INTO t (id, a ,b) VALUES ('abc',[],'Text');
+
 - Fixed an issue that could lead to a ``SQLParseException[Couldn't create
   executionContexts from ...`` error if using ``INSERT INTO`` with a ``SELECT``
   query containing a trailing ``ORDER BY``.
