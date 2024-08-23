@@ -209,17 +209,14 @@ public class DataTypeTesting {
                 return () -> {
                     var numericType = (NumericType) type;
                     Integer precision = numericType.numericPrecision();
+                    int scale = numericType.scale() == null ? 0 : numericType.scale();
                     int maxDigits = precision == null ? 131072 : precision;
-                    int numDigits = random.nextInt(1, maxDigits + 1);
+                    int numDigits = random.nextInt(scale == 0 ? 1 : scale, maxDigits + 1);
                     StringBuilder sb = new StringBuilder(numDigits);
                     for (int i = 0; i < numDigits; i++) {
                         sb.append(random.nextInt(10));
                     }
-                    Integer scale = numericType.scale();
                     BigInteger bigInt = new BigInteger(sb.toString());
-                    if (scale == null) {
-                        return (T) new BigDecimal(bigInt, numericType.mathContext());
-                    }
                     return (T) new BigDecimal(bigInt, scale, numericType.mathContext());
                 };
             case BitStringType.ID:
