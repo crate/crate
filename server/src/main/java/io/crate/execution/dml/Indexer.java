@@ -584,10 +584,9 @@ public class Indexer {
                 // the reference may be invalid
                 Reference newRef = getRef.apply(oldRef.column());
                 if (newRef == null) {
-                    // column was dropped or new column is invalid
-                    it.remove();
-                    valueIndexers.remove(idx);
-                    // don't increase idx, since we removed the current element
+                    // column can be of an undetermined type, e.g. `[]` (array with undefined inner type)
+                    valueIndexers.get(idx).updateTargets(getRef);
+                    idx++;
                     continue;
                 }
                 if (oldRef.equals(newRef) == false) {
