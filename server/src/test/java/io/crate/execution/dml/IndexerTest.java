@@ -26,7 +26,6 @@ import static io.crate.types.GeoShapeType.Names.TREE_BKD;
 import static io.crate.types.GeoShapeType.Names.TREE_GEOHASH;
 import static io.crate.types.GeoShapeType.Names.TREE_LEGACY_QUADTREE;
 import static io.crate.types.GeoShapeType.Names.TREE_QUADTREE;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
@@ -1135,6 +1134,33 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         assertThatThrownBy(() -> indexer.index(item(Map.of("x", 5))))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessageContainingAll("Failed CONSTRAINT", "CHECK (\"obj\"['x'] > 10) for values: [{x=5}]");
+    }
+
+    @Test
+    public void test_empty_arrays_together_with_another_field_added_as_new_cols_with_dynamic_policy() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (i int) with (column_policy='dynamic')");
+        DocTableInfo table = e.resolveTableInfo("tbl");
+
+        var indexer = getIndexer(e, "tbl", "i", "empty_arr", "a");
+        indexer.updateTargets(table::getReference);
+        IndexItem item = item(1, List.of(), "foo");
+        List<Reference> newColumns = indexer.collectSchemaUpdates(item);
+        assertThat(newColumns).satisfiesExactly(
+            x -> assertThat(x.column()).isEqualTo(ColumnIdent.of("a"))
+        );
+        ParsedDocument doc = indexer.index(item);
+        assertThat(doc.source().utf8ToString()).isEqualToIgnoringWhitespace(
+            """
+            {"1":1,"_u_empty_arr":[],"a":"foo"}
+            """
+        );
+        // prefix is stripped on non _raw lookups
+        assertThat(source(doc, table)).isEqualToIgnoringWhitespace(
+            """
+            {"a":"foo","i":1,"empty_arr":[]}
+            """
+        );
     }
 
     @Test
