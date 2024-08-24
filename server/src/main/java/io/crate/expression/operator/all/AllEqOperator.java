@@ -72,25 +72,21 @@ public class AllEqOperator extends AllOperator {
         if (uniqueValues.contains(null)) {
             return new MatchNoDocsQuery("Cannot match nulls");
         }
+        if (uniqueValues.isEmpty()) {
+            return new MatchNoDocsQuery("Cannot match unless there is at least one non-null candidate");
+        }
         if (uniqueValues.size() > 1) {
             // `col=x and col=y` evaluates to `false` unless `x == y`
             return new MatchNoDocsQuery("A single value cannot match more than one unique values");
         }
-        String columnName = probe.storageIdent();
-        BooleanQuery.Builder builder = new BooleanQuery.Builder();
         var value = uniqueValues.getFirst();
-        var fromPrimitive = EqOperator.fromPrimitive(
-            probe.valueType(),
-            columnName,
-            value,
-            probe.hasDocValues(),
-            probe.indexType());
-        if (fromPrimitive == null) {
-            return null;
-        }
-        builder.add(fromPrimitive, BooleanClause.Occur.MUST);
-        Query exists = IsNullPredicate.refExistsQuery(probe, context, false);
-        return builder.add(exists, BooleanClause.Occur.FILTER).build();
+        // col = all([1]) --> col = 1
+        Function eq = new Function(
+            EqOperator.SIGNATURE,
+            List.of(probe, Literal.ofUnchecked(probe.valueType(), value)),
+            EqOperator.RETURN_TYPE
+        );
+        return context.visitor().visitFunction(eq, context);
     }
 
     public static Query literalMatchesAllArrayRef(Literal<?> probe, Reference candidates, LuceneQueryBuilder.Context context) {
