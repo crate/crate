@@ -21,15 +21,17 @@
 
 package io.crate.expression.operator.any;
 
+import static io.crate.expression.operator.all.AllEqOperator.refMatchesAllArrayLiteral;
+
 import java.util.List;
 
+import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.jetbrains.annotations.NotNull;
 
-import io.crate.expression.operator.EqOperator;
 import io.crate.expression.predicate.IsNullPredicate;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
@@ -58,24 +60,9 @@ public final class AnyNeqOperator extends AnyOperator<Object> {
     @Override
     protected Query refMatchesAnyArrayLiteral(Function any, Reference probe, @NotNull List<?> nonNullValues, Context context) {
         //  col != ANY ([1,2,3]) --> not(col=1 and col=2 and col=3)
-        String columnName = probe.storageIdent();
-        BooleanQuery.Builder andBuilder = new BooleanQuery.Builder();
-        for (Object value : nonNullValues) {
-            var fromPrimitive = EqOperator.fromPrimitive(
-                probe.valueType(),
-                columnName,
-                value,
-                probe.hasDocValues(),
-                probe.indexType());
-            if (fromPrimitive == null) {
-                return null;
-            }
-            andBuilder.add(fromPrimitive, Occur.MUST);
-        }
-        Query exists = IsNullPredicate.refExistsQuery(probe, context, false);
         return new BooleanQuery.Builder()
-            .add(Queries.not(andBuilder.build()), Occur.MUST)
-            .add(exists, Occur.FILTER)
+            .add(Queries.not(refMatchesAllArrayLiteral(probe, nonNullValues, context)), BooleanClause.Occur.MUST)
+            .add(IsNullPredicate.refExistsQuery(probe, context, false), BooleanClause.Occur.FILTER)
             .build();
     }
 

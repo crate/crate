@@ -83,10 +83,10 @@ public final class AnyEqOperator extends AnyOperator<Object> {
             candidates.indexType());
     }
 
-    private static Query termsAndGenericFilter(Function function,
-                                               Reference candidates,
-                                               Object candidate,
-                                               LuceneQueryBuilder.Context context) {
+    static Query termsAndGenericFilter(Function function,
+                                       Reference candidates,
+                                       Object candidate,
+                                       LuceneQueryBuilder.Context context) {
         ArrayList<Object> terms = new ArrayList<>();
         gatherLeafs((Iterable<?>) candidate, terms::add);
         Query termsQuery = EqOperator.termsQuery(
