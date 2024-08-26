@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -71,7 +72,7 @@ public class FetchTask implements Task {
     private final SharedShardContexts sharedShardContexts;
     private final TreeMap<Integer, RelationName> tableIdents = new TreeMap<>();
     private final Metadata metadata;
-    private final Iterable<? extends Routing> routingIterable;
+    private final List<? extends Routing> routings;
     private final Map<RelationName, Collection<Reference>> toFetch;
     private final UUID jobId;
     private final Function<RelationName, DocTableInfo> getTableInfo;
@@ -91,14 +92,14 @@ public class FetchTask implements Task {
                      SharedShardContexts sharedShardContexts,
                      Metadata metadata,
                      Function<RelationName, DocTableInfo> getTableInfo,
-                     Iterable<? extends Routing> routingIterable) {
+                     List<? extends Routing> routings) {
         this.jobId = jobId;
         this.phase = phase;
         this.memoryLimitInBytes = memoryLimitInBytes;
         this.localNodeId = localNodeId;
         this.sharedShardContexts = sharedShardContexts;
         this.metadata = metadata;
-        this.routingIterable = routingIterable;
+        this.routings = routings;
         this.toFetch = new HashMap<>(phase.tableIndices().size());
         this.getTableInfo = getTableInfo;
     }
@@ -231,8 +232,8 @@ public class FetchTask implements Task {
                 return null;
             }
 
-            ArrayList<CompletableFuture<Void>> refreshActions = new ArrayList<>();
-            for (Routing routing : routingIterable) {
+            ArrayList<CompletableFuture<Void>> refreshActions = new ArrayList<>(routings.size());
+            for (Routing routing : routings) {
                 Map<String, Map<String, IntIndexedContainer>> locations = routing.locations();
                 Map<String, IntIndexedContainer> indexShards = locations.get(localNodeId);
                 try {
@@ -266,7 +267,7 @@ public class FetchTask implements Task {
             tablesWithFetchRefs.add(reference.ident().tableIdent());
         }
         String source = "fetch-task: " + jobId.toString() + '-' + phase.phaseId() + '-' + phase.name();
-        for (Routing routing : routingIterable) {
+        for (Routing routing : routings) {
             Map<String, Map<String, IntIndexedContainer>> locations = routing.locations();
             Map<String, IntIndexedContainer> indexShards = locations.get(localNodeId);
 
