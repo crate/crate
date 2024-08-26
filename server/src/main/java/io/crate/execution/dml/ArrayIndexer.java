@@ -29,6 +29,8 @@ import java.util.function.Function;
 
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.IntField;
+import org.apache.lucene.document.IntPoint;
+import org.apache.lucene.search.Query;
 import org.elasticsearch.Version;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -41,7 +43,15 @@ import io.crate.types.DataType;
 
 public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
 
-    public static String toArrayLengthFieldName(Reference arrayRef, Function<ColumnIdent, Reference> getRef) {
+    public static Query arrayLengthTermQuery(Reference arrayRef, int length, Function<ColumnIdent, Reference> getRef) {
+        return IntPoint.newExactQuery(toArrayLengthFieldName(arrayRef, getRef), length);
+    }
+
+    public static Query arrayLengthRangeQuery(Reference arrayRef, int includeLower, int includeUpper, Function<ColumnIdent, Reference> getRef) {
+        return IntPoint.newRangeQuery(toArrayLengthFieldName(arrayRef, getRef), includeLower, includeUpper);
+    }
+
+    static String toArrayLengthFieldName(Reference arrayRef, Function<ColumnIdent, Reference> getRef) {
         // If the arrayRef is a descendant of an object array its type can be a readType. i.e. the type of
         // obj_array['int_col'] is 'int' BUT its readType is 'array(int)'. If so, there is no '_array_length_' indexed
         // for obj_array['int_col']. Imagine indexing obj_array = [{int_col = 1}, {int_col = 2}], '_array_length_obj_array'
