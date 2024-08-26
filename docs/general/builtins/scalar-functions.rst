@@ -2341,7 +2341,7 @@ value to the closest integer for ``real`` and ``integer`` data types with ties
 rounding up, and to the closest ``bigint`` value for ``double precision`` and
 ``bigint`` data types with ties rounding up.
 
-When it is specified, the result's type is ``double precision``. Notice that
+When it is specified, the result's type is ``numeric``. Notice that
 ``round(number)`` and ``round(number, 0)`` return different result types.
 
 

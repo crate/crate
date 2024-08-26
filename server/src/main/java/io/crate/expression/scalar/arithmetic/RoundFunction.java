@@ -74,7 +74,7 @@ public final class RoundFunction {
                 Signature.builder(NAME, FunctionType.SCALAR)
                     .argumentTypes(DataTypes.DOUBLE.getTypeSignature(),
                         DataTypes.INTEGER.getTypeSignature())
-                    .returnType(DataTypes.DOUBLE.getTypeSignature())
+                    .returnType(DataTypes.NUMERIC.getTypeSignature())
                     .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.STRICTNULL)
                     .build(),
                 RoundFunction::roundWithPrecision
@@ -94,8 +94,10 @@ public final class RoundFunction {
                 }
                 double val = n.doubleValue();
                 int numDecimals = nd.intValue();
-
-                return BigDecimal.valueOf(val).setScale(numDecimals, RoundingMode.HALF_UP).doubleValue();
+                if (numDecimals < 0) {
+                    return BigDecimal.valueOf(val).movePointRight(numDecimals).setScale(0, RoundingMode.HALF_UP).movePointLeft(numDecimals);
+                }
+                return BigDecimal.valueOf(val).setScale(numDecimals, RoundingMode.HALF_UP);
             }
         };
     }

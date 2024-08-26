@@ -24,6 +24,8 @@ package io.crate.expression.scalar.arithmetic;
 import static io.crate.testing.Asserts.isFunction;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.math.BigDecimal;
+
 import org.junit.Test;
 
 import io.crate.exceptions.ConversionException;
@@ -45,24 +47,24 @@ public class RoundFunctionTest extends ScalarTestCase {
 
     @Test
     public void test_round_with_precision() throws Exception {
-        assertEvaluate("round(123.123,0)", 123.0d);
-        assertEvaluate("round(123.123,1)", 123.1d);
-        assertEvaluate("round(123.123,4)", 123.123d);
-        assertEvaluate("round(123.123,-1)", 120.0d);
-        assertEvaluate("round(123.123,-4)", 0.0d);
+        assertEvaluate("round(123.123,0)", BigDecimal.valueOf(123));
+        assertEvaluate("round(123.123,1)", BigDecimal.valueOf(1231,1));
+        assertEvaluate("round(123.123,4)", BigDecimal.valueOf(1231230,4));
+        assertEvaluate("round(123.123,-1)", BigDecimal.valueOf(120,0));
+        assertEvaluate("round(123.123,-4)", BigDecimal.valueOf(0));
 
-        assertEvaluate("round(987.987,0)", 988.0d);
-        assertEvaluate("round(987.987,1)", 988.0d);
-        assertEvaluate("round(987.987,-1)", 990.0d);
+        assertEvaluate("round(987.987,0)", BigDecimal.valueOf(988));
+        assertEvaluate("round(987.987,1)", BigDecimal.valueOf(9880,1));
+        assertEvaluate("round(987.987,-1)", BigDecimal.valueOf(990));
 
-        assertEvaluate("round(1000.0, 17)", 1000.0d);
-        assertEvaluate("round(260.775, 2)", 260.78d);
+        assertEvaluate("round(1000.0, 17)", new BigDecimal("1000.00000000000000000"));
+        assertEvaluate("round(260.775, 2)", BigDecimal.valueOf(26078,2));
 
-        assertEvaluate("round(-123.123,0)", -123.0d);
-        assertEvaluate("round(-123.123,1)", -123.1d);
-        assertEvaluate("round(-123.123,4)", -123.123d);
-        assertEvaluate("round(-123.123,-1)", -120.0d);
-        assertEvaluate("round(-123.123,-4)", 0.0d);
+        assertEvaluate("round(-123.123,0)", BigDecimal.valueOf(-123));
+        assertEvaluate("round(-123.123,1)", BigDecimal.valueOf(-1231,1));
+        assertEvaluate("round(-123.123,4)", BigDecimal.valueOf(-1231230,4));
+        assertEvaluate("round(-123.123,-1)", BigDecimal.valueOf(-120));
+        assertEvaluate("round(-123.123,-4)", BigDecimal.valueOf(0));
 
         assertEvaluateNull("round(1,null)");
         assertEvaluateNull("round(null,null)");
