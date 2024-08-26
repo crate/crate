@@ -22,7 +22,7 @@
 package io.crate.metadata.doc;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
+import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
@@ -34,10 +34,14 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.assertj.core.api.Assertions;
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.xcontent.NamedXContentRegistry;
+import org.elasticsearch.index.MapperTestUtils;
 import org.junit.Test;
 
 import com.carrotsearch.hppc.IntArrayList;
@@ -49,6 +53,7 @@ import io.crate.expression.symbol.VoidReference;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.IndexType;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
@@ -61,6 +66,7 @@ import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.IndexEnv;
 import io.crate.testing.SQLExecutor;
+import io.crate.testing.UseRandomizedSchema;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
@@ -579,5 +585,52 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         assertThat(table.getReference(oo)).isReference().hasName("o['o']")
             .hasType(ooType);
         assertThat(table.getReference(o)).isReference().hasName("o").hasType(oType);
+    }
+
+
+    /**
+     * Tests a regression introduced by https://github.com/crate/crate/commit/111ffe166e523a4a5cd3278975772ce365112b64
+     * where the number of shards of a partitioned table was not preserved when writing the table info to metadata.
+     */
+    @UseRandomizedSchema(random = false)
+    @Test
+    public void test_write_to_preserves_number_of_shards_of_partitions() throws Exception {
+        var partitionIndexName = new PartitionName(new RelationName("doc", "tbl"), singletonList("1")).asIndexName();
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addPartitionedTable(
+                """
+                create table tbl (
+                    id int,
+                    p int
+                ) clustered into 2 shards partitioned by (p) with (number_of_replicas=0)
+                """,
+                partitionIndexName
+            );
+
+        ClusterState state = clusterService.state();
+        Metadata metadata = state.metadata();
+
+        // Change the number of shards of the partition table/template aka. ALTER TABLE tbl SET (number_of_shards=3)
+        var oldTemplate = metadata.templates().get(PartitionName.templateName("doc", "tbl"));
+        var newTemplate = new IndexTemplateMetadata.Builder(oldTemplate);
+        newTemplate.settings(Settings.builder().put(oldTemplate.settings()).put("index.number_of_shards", 3));
+
+        Metadata.Builder builder = new Metadata.Builder(metadata);
+        builder.put(newTemplate);
+        var newMetadata = builder.build();
+
+        DocTableInfoFactory docTableInfoFactory = new DocTableInfoFactory(e.nodeCtx);
+        DocTableInfo tbl = docTableInfoFactory.create(RelationName.fromIndexName("tbl"), newMetadata);
+
+        var newBuilder = new Metadata.Builder(metadata);
+        tbl.writeTo(imd -> MapperTestUtils.newMapperService(
+                new NamedXContentRegistry(ClusterModule.getNamedXWriteables()),
+                createTempDir(),
+                Settings.EMPTY,
+                "tbl"),
+            newMetadata, newBuilder);
+
+        var partitionIndex = newBuilder.build().index(partitionIndexName);
+        assertThat(partitionIndex.getNumberOfShards()).isEqualTo(2);
     }
 }
