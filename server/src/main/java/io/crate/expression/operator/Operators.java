@@ -41,7 +41,8 @@ public class Operators implements FunctionsProvider {
         EqOperator.NAME,
         GtOperator.NAME, GteOperator.NAME,
         LtOperator.NAME, LteOperator.NAME,
-        CIDROperator.CONTAINED_WITHIN
+        CIDROperator.CONTAINED_WITHIN,
+        DistinctFrom.NAME
     );
 
     @Override
@@ -63,5 +64,6 @@ public class Operators implements FunctionsProvider {
         AllOperator.register(builder);
         LikeOperators.register(builder);
         ExistsOperator.register(builder);
+        DistinctFrom.register(builder);
     }
 }

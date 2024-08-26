@@ -1094,6 +1094,7 @@ public class ExpressionAnalyzer {
             return allocateFunction(AndOperator.NAME, List.of(gteFunc, lteFunc), context);
         }
 
+
         @Override
         public Symbol visitMatchPredicate(MatchPredicate node, ExpressionAnalysisContext context) {
             Map<Symbol, Symbol> identBoostMap = HashMap.newHashMap(node.idents().size());
