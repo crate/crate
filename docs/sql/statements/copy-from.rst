@@ -643,6 +643,6 @@ inserted records.
 .. _URI Scheme: https://en.wikipedia.org/wiki/URI_scheme
 .. _URL encoded: https://en.wikipedia.org/wiki/Percent-encoding
 .. _URL: https://docs.oracle.com/javase/8/docs/api/java/net/URL.html
-.. _well-formed URI: https://www.ietf.org/rfc/rfc2396.txt
+.. _well-formed URI: https://www.rfc-editor.org/rfc/rfc2396
 .. _Windows documentation: https://docs.microsoft.com/en-us/dotnet/standard/io/file-path-formats
 .. _WKT: https://en.wikipedia.org/wiki/Well-known_text
