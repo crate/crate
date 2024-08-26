@@ -1190,6 +1190,9 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             x -> assertThat(x.column()).isEqualTo(ColumnIdent.of("a"))
         );
         ParsedDocument doc = indexer.index(item);
+        // `_u_a` is not a valid real-world scenario, as column `a` would have been
+        // added implicitly with an `AddColumnRequest` in `TransportShardUpsertAction`,
+        // and therefore would be assigned an oid.
         assertThat(doc.source().utf8ToString()).isEqualToIgnoringWhitespace(
             """
             {"1":1,"_u_empty_arr":[],"_u_a":"foo"}
