@@ -213,10 +213,8 @@ public abstract class AggregationTestCase extends ESTestCase {
         );
         for (var argType : actualArgumentTypes) {
             if (argType.storageSupport() == null) {
-                return terminatePartialAggFunction.terminatePartial(
-                    RAM_ACCOUNTING,
-                    partialResultWithoutDocValues
-                );
+                return assertAndGetMergedIterAndPartial(
+                    aggregationFunction, terminatePartialAggFunction, partialResultWithoutDocValues);
             }
         }
         List<Reference> targetColumns = toReference(actualArgumentTypes);
@@ -239,18 +237,16 @@ public abstract class AggregationTestCase extends ESTestCase {
                 minNodeVersion,
                 optionalParams
             );
-            var resultWithoutDocValues = terminatePartialAggFunction.terminatePartial(
-                RAM_ACCOUNTING,
-                partialResultWithoutDocValues
-            );
+            var resultWithoutDocValues = assertAndGetMergedIterAndPartial(
+                aggregationFunction, terminatePartialAggFunction, partialResultWithoutDocValues);
+
             // assert that aggregations with/-out doc values yield the
             // same result, if a doc value aggregator exists.
             if (partialResultWithDocValues != null) {
                 assertThat(partialResultWithDocValues).hasSize(1);
-                var resultWithDocValues = terminatePartialAggFunction.terminatePartial(
-                    RAM_ACCOUNTING,
-                    partialResultWithDocValues.get(0).get(0)
-                );
+                var resultWithDocValues = assertAndGetMergedIterAndPartial(
+                    aggregationFunction, terminatePartialAggFunction, partialResultWithDocValues.get(0).get(0));
+
                 assertThat(resultWithoutDocValues).isEqualTo(resultWithDocValues);
             } else {
                 var docValueAggregator = aggregationFunction.getDocValueAggregator(
@@ -267,6 +263,22 @@ public abstract class AggregationTestCase extends ESTestCase {
         } finally {
             closeShard(shard);
         }
+    }
+
+    private static <T> Object assertAndGetMergedIterAndPartial(AggregationFunction<T, ?> aggregationFunction,
+                                                               AggregationFunction<T ,?> terminatePartialAggFunction,
+                                                               T partialResultWithoutDocValues) {
+        Object result1 = terminatePartialAggFunction.terminatePartial(
+            RAM_ACCOUNTING,
+            partialResultWithoutDocValues
+        );
+        Object result2 = aggregationFunction.terminatePartial(
+            RAM_ACCOUNTING,
+            partialResultWithoutDocValues
+        );
+        assertThat(result2).as("iter->final should have the same result as partial->final")
+            .isEqualTo(result1);
+        return result1;
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
