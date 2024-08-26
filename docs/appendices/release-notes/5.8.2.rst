@@ -76,3 +76,7 @@ Fixes
 
 - Fixed an issue that caused queries with nested arrays, compared with `=` and
   `= ANY` operators in the ``WHERE`` clause to throw ``ClassCastException``.
+
+- Fixed a regression introduced with :ref:`version_5.6.0` that caused an
+  exception when altering a partitioned table where the current number of shards
+  differs from the number of shards of existing partitions.
