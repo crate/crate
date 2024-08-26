@@ -32,7 +32,6 @@ import java.util.Map;
 import java.util.Objects;
 
 import org.apache.lucene.index.Term;
-import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.ConstantScoreQuery;
@@ -41,10 +40,12 @@ import org.apache.lucene.search.Query;
 import org.apache.lucene.search.TermInSetQuery;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.util.BytesRef;
+import org.elasticsearch.Version;
 import org.elasticsearch.index.mapper.Uid;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
+import io.crate.execution.dml.ArrayIndexer;
 import io.crate.expression.scalar.NumTermsPerDocQuery;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
@@ -132,7 +133,7 @@ public final class EqOperator extends Operator<Object> {
             case ArrayType.ID -> termsAndGenericFilter(
                 function,
                 storageIdentifier,
-                ArrayType.unnest(dataType),
+                dataType,
                 (Collection<?>) value,
                 context,
                 ref.hasDocValues(),
@@ -188,39 +189,58 @@ public final class EqOperator extends Operator<Object> {
 
     private static Query termsAndGenericFilter(Function function,
                                                String column,
-                                               DataType<?> elementType,
+                                               DataType<?> arrayType,
                                                Collection<?> values,
                                                Context context,
                                                boolean hasDocValues,
                                                IndexType indexType) {
-        values = flattenUnique(values);
+        var flatUniqueValues = flattenUnique(values);
+        var canUseArrayLengthIndex = context.tableInfo().versionCreated().onOrAfter(Version.V_5_9_0);
         BooleanQuery.Builder filterClauses = new BooleanQuery.Builder();
         Query genericFunctionFilter = genericFunctionFilter(function, context);
-        if (values.isEmpty()) {
-            // `arrayRef = []` - termsQuery would be null
+        if (flatUniqueValues.isEmpty()) { // using flatUnique to catch nested empty arrays
+            if (canUseArrayLengthIndex) {
+                var arrayLengthTermQuery = ArrayIndexer.arrayLengthTermQuery(
+                    context.tableInfo().getReference(column),
+                    0,
+                    context.tableInfo()::getReference);
+                if (ArrayType.dimensions(arrayType) > 1) { // need generic function filter to differentiate [[]] and []
+                    return new BooleanQuery.Builder()
+                        .add(arrayLengthTermQuery, Occur.MUST)
+                        .add(genericFunctionFilter, Occur.MUST)
+                        .build();
+                } else {
+                    return arrayLengthTermQuery;
+                }
+            } else {
+                // `arrayRef = []` - termsQuery would be null
 
-            if (hasDocValues == false) {
-                //  Cannot use NumTermsPerDocQuery if column store is disabled, for example, ARRAY(GEO_SHAPE).
-                return genericFunctionFilter;
+                if (hasDocValues == false) {
+                    //  Cannot use NumTermsPerDocQuery if column store is disabled, for example, ARRAY(GEO_SHAPE).
+                    return genericFunctionFilter;
+                }
+
+                filterClauses.add(
+                    NumTermsPerDocQuery.forColumn(column, arrayType, numDocs -> numDocs == 0),
+                    Occur.MUST
+                );
+                // Still need the genericFunctionFilter to avoid a match where the array contains NULL values.
+                // NULL values are not in the index.
+                filterClauses.add(genericFunctionFilter, Occur.MUST);
             }
-
-            filterClauses.add(
-                NumTermsPerDocQuery.forColumn(column, elementType, numDocs -> numDocs == 0),
-                BooleanClause.Occur.MUST
-            );
-            // Still need the genericFunctionFilter to avoid a match where the array contains NULL values.
-            // NULL values are not in the index.
-            filterClauses.add(genericFunctionFilter, BooleanClause.Occur.MUST);
         } else {
+            // There is no benefit of using array length queries for eqOperator on non-empty arrays,
+            // see https://github.com/crate/crate/pull/16479#issuecomment-2310825868
+
             // wrap boolTermsFilter and genericFunction filter in an additional BooleanFilter to control the ordering of the filters
             // termsFilter is applied first
             // afterwards the more expensive genericFunctionFilter
-            Query termsQuery = termsQuery(column, elementType, values, hasDocValues, indexType);
+            Query termsQuery = termsQuery(column, arrayType, flatUniqueValues, hasDocValues, indexType);
             if (termsQuery == null) {
                 return genericFunctionFilter;
             }
-            filterClauses.add(termsQuery, BooleanClause.Occur.MUST);
-            filterClauses.add(genericFunctionFilter, BooleanClause.Occur.MUST);
+            filterClauses.add(termsQuery, Occur.MUST);
+            filterClauses.add(genericFunctionFilter, Occur.MUST);
         }
         return filterClauses.build();
     }
@@ -283,7 +303,7 @@ public final class EqOperator extends Operator<Object> {
             }
 
             preFilters++;
-            boolBuilder.add(innerQuery, BooleanClause.Occur.MUST);
+            boolBuilder.add(innerQuery, Occur.MUST);
         }
         if (preFilters > 0 && preFilters == value.size()) {
             return boolBuilder.build();
@@ -292,7 +312,7 @@ public final class EqOperator extends Operator<Object> {
             if (preFilters == 0) {
                 return genericEqFilter;
             } else {
-                boolBuilder.add(genericFunctionFilter(eq, context), BooleanClause.Occur.FILTER);
+                boolBuilder.add(genericFunctionFilter(eq, context), Occur.FILTER);
                 return boolBuilder.build();
             }
         }
