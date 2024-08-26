@@ -23,11 +23,15 @@ package io.crate.expression.operator.any;
 
 import static io.crate.expression.operator.all.AllEqOperator.refMatchesAllArrayLiteral;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.jetbrains.annotations.NotNull;
@@ -60,8 +64,19 @@ public final class AnyNeqOperator extends AnyOperator<Object> {
     @Override
     protected Query refMatchesAnyArrayLiteral(Function any, Reference probe, @NotNull List<?> nonNullValues, Context context) {
         //  col != ANY ([1,2,3]) --> not(col=1 and col=2 and col=3)
+        LinkedHashSet<?> uniqueNonNullValues = new LinkedHashSet<>(nonNullValues);
+        if (uniqueNonNullValues.isEmpty()) {
+            return new MatchNoDocsQuery("Cannot match unless there is at least one non-null candidate");
+        }
+        if (uniqueNonNullValues.size() > 1) {
+            // if col = 1, not(col=1 and col=2 and col=3) evaluates to true
+            // if col = 2, not(col=1 and col=2 and col=3) evaluates to true
+            // if col = 3, not(col=1 and col=2 and col=3) evaluates to true
+            // if col = 4, not(col=1 and col=2 and col=3) evaluates to true
+            return new MatchAllDocsQuery();
+        }
         return new BooleanQuery.Builder()
-            .add(Queries.not(refMatchesAllArrayLiteral(probe, nonNullValues, context)), BooleanClause.Occur.MUST)
+            .add(Queries.not(refMatchesAllArrayLiteral(probe, new ArrayList<>(uniqueNonNullValues), context)), BooleanClause.Occur.MUST)
             .add(IsNullPredicate.refExistsQuery(probe, context, false), BooleanClause.Occur.FILTER)
             .build();
     }
