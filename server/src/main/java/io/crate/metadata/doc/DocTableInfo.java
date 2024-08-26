@@ -88,6 +88,7 @@ import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.GeneratedReference;
+import io.crate.metadata.IndexParts;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
@@ -963,12 +964,20 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             if (indexMetadata == null) {
                 throw new UnsupportedOperationException("Cannot create index via DocTableInfo.writeTo");
             }
+
+            var indexNumberOfShards = numberOfShards;
+            if (isPartitioned && IndexParts.isPartitioned(indexName)) {
+                // if the index is a part of a partitioned table,
+                // the actual value of the index must be used as the value for the whole partitioned table may have changed
+                indexNumberOfShards = indexMetadata.getNumberOfShards();
+            }
+
             MapperService mapperService = createMapperService.apply(indexMetadata);
             DocumentMapper mapper = mapperService.merge(mapping, MapperService.MergeReason.MAPPING_UPDATE);
             metadataBuilder.put(
                 IndexMetadata.builder(indexMetadata)
                     .putMapping(new MappingMetadata(mapper.mappingSource()))
-                    .numberOfShards(numberOfShards)
+                    .numberOfShards(indexNumberOfShards)
                     .mappingVersion(indexMetadata.getMappingVersion() + 1)
             );
         }
