@@ -46,7 +46,7 @@ public class NestedArrayLuceneQueryBuilderTest extends LuceneQueryBuilderTest {
     @Test
     public void test_empty_nested_array_equals() {
         var query = convert("a = [[]]");
-        assertThat(query.toString()).isEqualTo("+NumTermsPerDoc: a +(a = [[]])");
+        assertThat(query.toString()).isEqualTo("+_array_length_a:[0 TO 0] +(a = [[]])");
     }
 
     @Test

@@ -217,6 +217,10 @@ public class LuceneQueryBuilder {
             return table.getReadReference(column);
         }
 
+        public DocTableInfo tableInfo() {
+            return table;
+        }
+
         public TransactionContext transactionContext() {
             return txnCtx;
         }

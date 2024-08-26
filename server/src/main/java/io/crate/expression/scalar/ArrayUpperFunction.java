@@ -54,7 +54,6 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
@@ -177,9 +176,8 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
         int cmpVal = cmpNumber.intValue();
         // If the array col is from a table created on or after 5.9, we can utilize '_array_length_' indexes,
         // see ArrayIndexer for details
-        if (context.nodeContext().schemas().getTableInfo((arrayRef).ident().tableIdent()) instanceof DocTableInfo tableInfo &&
-            tableInfo.versionCreated().onOrAfter(Version.V_5_9_0)) {
-            return toQueryUsingArrayLengthIndex(parentName, arrayRef, cmpVal, tableInfo::getReference);
+        if (context.tableInfo().versionCreated().onOrAfter(Version.V_5_9_0)) {
+            return toQueryUsingArrayLengthIndex(parentName, arrayRef, cmpVal, context.tableInfo()::getReference);
         }
 
         DataType<?> innerType = ((ArrayType<?>) arrayRef.valueType()).innerType();
