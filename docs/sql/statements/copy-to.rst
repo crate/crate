@@ -374,5 +374,5 @@ Defaults to ``true``.
 .. _gzip: https://www.gzip.org/
 .. _NFS: https://en.wikipedia.org/wiki/Network_File_System
 .. _URL encoded: https://en.wikipedia.org/wiki/Percent-encoding
-.. _well-formed URI: https://www.ietf.org/rfc/rfc2396.txt
+.. _well-formed URI: https://www.rfc-editor.org/rfc/rfc2396
 .. _Windows documentation: https://docs.microsoft.com/en-us/dotnet/standard/io/file-path-formats
