@@ -34,12 +34,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
-import org.apache.logging.log4j.Logger;
-
 import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.concurrent.CompletionListenable;
 import io.crate.exceptions.JobKilledException;
 import io.crate.exceptions.SQLExceptions;
@@ -202,7 +201,11 @@ public class RootTask implements CompletionListenable<Void> {
             try {
                 logger.trace("Starting task job={} phase={} name={}", jobId, phaseId, task.name());
                 CompletableFuture<Void> started = task.start();
-                if (started != null) {
+                if (started == null || (started.isDone() && !started.isCompletedExceptionally())) {
+                    continue;
+                } else if (started.isCompletedExceptionally()) {
+                    return started;
+                } else {
                     return started.thenCompose(ignored -> start(taskIndex + 1));
                 }
             } catch (Throwable t) {
