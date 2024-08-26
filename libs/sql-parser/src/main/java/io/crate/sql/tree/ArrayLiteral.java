@@ -42,14 +42,7 @@ public class ArrayLiteral extends Literal {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        ArrayLiteral that = (ArrayLiteral) o;
-
-        if (!values.equals(that.values)) return false;
-
-        return true;
+        return o instanceof ArrayLiteral other && values.equals(other.values);
     }
 
     @Override

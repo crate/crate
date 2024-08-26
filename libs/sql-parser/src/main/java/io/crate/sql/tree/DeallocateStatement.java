@@ -21,8 +21,9 @@
 
 package io.crate.sql.tree;
 
-import org.jetbrains.annotations.Nullable;
 import java.util.Objects;
+
+import org.jetbrains.annotations.Nullable;
 
 public class DeallocateStatement extends Statement {
 
@@ -44,15 +45,13 @@ public class DeallocateStatement extends Statement {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        DeallocateStatement that = (DeallocateStatement) o;
-        return Objects.equals(preparedStmt, that.preparedStmt);
+        return o instanceof DeallocateStatement that
+            && Objects.equals(preparedStmt, that.preparedStmt);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(preparedStmt);
+        return Objects.hashCode(preparedStmt);
     }
 
     @Override

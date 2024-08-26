@@ -21,8 +21,9 @@
 
 package io.crate.sql.tree;
 
-import org.jetbrains.annotations.Nullable;
 import java.util.Objects;
+
+import org.jetbrains.annotations.Nullable;
 
 public class ShowSessionParameter extends Statement {
 
@@ -45,15 +46,13 @@ public class ShowSessionParameter extends Statement {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        ShowSessionParameter that = (ShowSessionParameter) o;
-        return Objects.equals(parameter, that.parameter);
+        return o instanceof ShowSessionParameter that
+            && Objects.equals(parameter, that.parameter);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(parameter);
+        return Objects.hashCode(parameter);
     }
 
     @Override

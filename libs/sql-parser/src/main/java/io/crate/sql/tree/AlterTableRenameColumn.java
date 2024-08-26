@@ -49,10 +49,10 @@ public class AlterTableRenameColumn<T> extends Statement {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        AlterTableRenameColumn<?> that = (AlterTableRenameColumn<?>) o;
-        return table.equals(that.table) && column.equals(that.column) && newName.equals(that.newName);
+        return o instanceof AlterTableRenameColumn<?> that
+            && table.equals(that.table)
+            && column.equals(that.column)
+            && newName.equals(that.newName);
     }
 
     @Override

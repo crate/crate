@@ -54,14 +54,10 @@ public class DropFunction extends Statement {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        DropFunction that = (DropFunction) o;
-
-        if (exists != that.exists) return false;
-        if (!name.equals(that.name)) return false;
-        return arguments.equals(that.arguments);
+        return o instanceof DropFunction that
+            && exists == that.exists
+            && name.equals(that.name)
+            && arguments.equals(that.arguments);
     }
 
     @Override

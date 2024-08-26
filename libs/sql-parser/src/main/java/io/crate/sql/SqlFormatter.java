@@ -1192,7 +1192,9 @@ public final class SqlFormatter {
                 int max = node.tables().size();
                 for (Table<?> table : node.tables()) {
                     table.accept(this, indent);
-                    if (++count < max) builder.append(",");
+                    if (++count < max) {
+                        builder.append(",");
+                    }
                 }
             } else {
                 builder.append(" ALL");
@@ -1528,7 +1530,9 @@ public final class SqlFormatter {
                 }
                 builder.append(key).append(" = ");
                 propertyEntry.getValue().accept(this, indent);
-                if (++count < properties.size()) builder.append(",");
+                if (++count < properties.size()) {
+                    builder.append(",");
+                }
                 builder.append("\n");
             }
         }
@@ -1600,7 +1604,9 @@ public final class SqlFormatter {
             builder.append("(");
             for (Node node : nodes) {
                 node.accept(this, indent);
-                if (++count < max) builder.append(", ");
+                if (++count < max) {
+                    builder.append(", ");
+                }
             }
             builder.append(")");
         }
@@ -1612,7 +1618,9 @@ public final class SqlFormatter {
             for (Node node : nodes) {
                 builder.append(indentString(indent + 1));
                 node.accept(this, indent + 1);
-                if (++count < max) builder.append(",");
+                if (++count < max) {
+                    builder.append(",");
+                }
                 builder.append("\n");
             }
             append(indent, ")");
