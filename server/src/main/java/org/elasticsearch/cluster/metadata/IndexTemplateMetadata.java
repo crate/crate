@@ -219,7 +219,7 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
 
         private List<String> indexPatterns;
 
-        private Settings settings = Settings.Builder.EMPTY_SETTINGS;
+        private Settings settings = Settings.EMPTY;
 
         private CompressedXContent mapping;
 

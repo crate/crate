@@ -21,7 +21,6 @@ package org.elasticsearch.action.admin.indices.create;
 
 import static org.elasticsearch.common.settings.Settings.readSettingsFromStream;
 import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
-import static org.elasticsearch.common.settings.Settings.Builder.EMPTY_SETTINGS;
 
 import java.io.IOException;
 import java.util.HashSet;
@@ -56,7 +55,7 @@ public class CreateIndexRequest extends AcknowledgedRequest<CreateIndexRequest> 
 
     private String index;
 
-    private Settings settings = EMPTY_SETTINGS;
+    private Settings settings = Settings.EMPTY;
 
     private final Set<Alias> aliases = new HashSet<>();
 
@@ -66,7 +65,7 @@ public class CreateIndexRequest extends AcknowledgedRequest<CreateIndexRequest> 
      * Constructs a new request to create an index with the specified name.
      */
     public CreateIndexRequest(String index) {
-        this(index, EMPTY_SETTINGS);
+        this(index, Settings.EMPTY);
     }
 
     /**

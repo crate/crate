@@ -629,8 +629,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata>, To
         private long version;
         private ColumnOidSupplier columnOidSupplier;
         private CoordinationMetadata coordinationMetadata = CoordinationMetadata.EMPTY_METADATA;
-        private Settings transientSettings = Settings.Builder.EMPTY_SETTINGS;
-        private Settings persistentSettings = Settings.Builder.EMPTY_SETTINGS;
+        private Settings transientSettings = Settings.EMPTY;
+        private Settings persistentSettings = Settings.EMPTY;
 
         private final ImmutableOpenMap.Builder<String, IndexMetadata> indices;
         private final ImmutableOpenMap.Builder<String, IndexTemplateMetadata> templates;
