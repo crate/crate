@@ -415,6 +415,11 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(symbol).isExactlyInstanceOf(Literal.class);
         assertThat(symbol.valueType()).isExactlyInstanceOf(NumericType.class);
         assertThat(((Literal<?>) symbol).value()).isEqualTo(new BigDecimal(expression));
+
+        symbol = executor.asSymbol("- " + expression);
+        assertThat(symbol).isExactlyInstanceOf(Literal.class);
+        assertThat(symbol.valueType()).isExactlyInstanceOf(NumericType.class);
+        assertThat(((Literal<?>) symbol).value()).isEqualTo(new BigDecimal(expression).negate());
     }
 
     @Test
@@ -427,6 +432,11 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(numericType.scale()).isEqualTo(4);
         assertThat(numericType.numericPrecision()).isEqualTo(24);
         assertThat(((Literal<?>) symbol).value()).isEqualTo(new BigDecimal(expression));
+
+        symbol = executor.asSymbol("- " + expression);
+        assertThat(symbol).isExactlyInstanceOf(Literal.class);
+        assertThat(symbol.valueType()).isExactlyInstanceOf(NumericType.class);
+        assertThat(((Literal<?>) symbol).value()).isEqualTo(new BigDecimal(expression).negate());
     }
 
     @Test
