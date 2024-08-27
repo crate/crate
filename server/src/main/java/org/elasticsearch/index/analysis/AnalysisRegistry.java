@@ -483,7 +483,7 @@ public final class AnalysisRegistry implements Closeable {
         }
 
         if (!analyzers.containsKey("default")) {
-            processAnalyzerFactory(indexSettings, "default", new StandardAnalyzerProvider(indexSettings, null, "default", Settings.Builder.EMPTY_SETTINGS),
+            processAnalyzerFactory(indexSettings, "default", new StandardAnalyzerProvider(indexSettings, null, "default", Settings.EMPTY),
                 analyzers, tokenFilterFactoryFactories, charFilterFactoryFactories, tokenizerFactoryFactories);
         }
         Index index = indexSettings.getIndex();

@@ -21,38 +21,33 @@
 
 package io.crate.sql.tree;
 
-public class DoubleLiteral extends Literal {
+import java.math.BigDecimal;
 
-    private final double value;
+public final class NumericLiteral extends Literal {
 
-    public DoubleLiteral(double value) {
+    private final BigDecimal value;
+
+    public NumericLiteral(BigDecimal value) {
         this.value = value;
     }
 
-    public double getValue() {
+    public BigDecimal value() {
         return value;
     }
 
     @Override
     public <R, C> R accept(AstVisitor<R, C> visitor, C context) {
-        return visitor.visitDoubleLiteral(this, context);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        DoubleLiteral that = (DoubleLiteral) o;
-        return Double.compare(that.value, value) == 0;
+        return visitor.visitNumericLiteral(this, context);
     }
 
     @Override
     public int hashCode() {
-        long temp = value != +0.0d ? Double.doubleToLongBits(value) : 0L;
-        return (int) (temp ^ (temp >>> 32));
+        return value.hashCode();
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        return obj instanceof NumericLiteral num
+            && value.equals(num.value);
     }
 }

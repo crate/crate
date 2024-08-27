@@ -133,24 +133,24 @@ public class TestSqlParser {
 
     @Test
     public void testDouble() {
-        assertExpression("123.", new DoubleLiteral("123"));
-        assertExpression("123.0", new DoubleLiteral("123"));
-        assertExpression(".5", new DoubleLiteral(".5"));
-        assertExpression("123.5", new DoubleLiteral("123.5"));
+        assertExpression("123.", new DoubleLiteral(123));
+        assertExpression("123.0", new DoubleLiteral(123));
+        assertExpression(".5", new DoubleLiteral(.5));
+        assertExpression("123.5", new DoubleLiteral(123.5));
 
-        assertExpression("123E7", new DoubleLiteral("123E7"));
-        assertExpression("123.E7", new DoubleLiteral("123E7"));
-        assertExpression("123.0E7", new DoubleLiteral("123E7"));
-        assertExpression("123E+7", new DoubleLiteral("123E7"));
-        assertExpression("123E-7", new DoubleLiteral("123E-7"));
+        assertExpression("123E7", new DoubleLiteral(123E7));
+        assertExpression("123.E7", new DoubleLiteral(123E7));
+        assertExpression("123.0E7", new DoubleLiteral(123E7));
+        assertExpression("123E+7", new DoubleLiteral(123E7));
+        assertExpression("123E-7", new DoubleLiteral(123E-7));
 
-        assertExpression("123.456E7", new DoubleLiteral("123.456E7"));
-        assertExpression("123.456E+7", new DoubleLiteral("123.456E7"));
-        assertExpression("123.456E-7", new DoubleLiteral("123.456E-7"));
+        assertExpression("123.456E7", new DoubleLiteral(123.456E7));
+        assertExpression("123.456E+7", new DoubleLiteral(123.456E7));
+        assertExpression("123.456E-7", new DoubleLiteral(123.456E-7));
 
-        assertExpression(".4E42", new DoubleLiteral(".4E42"));
-        assertExpression(".4E+42", new DoubleLiteral(".4E42"));
-        assertExpression(".4E-42", new DoubleLiteral(".4E-42"));
+        assertExpression(".4E42", new DoubleLiteral(.4E42));
+        assertExpression(".4E+42", new DoubleLiteral(.4E42));
+        assertExpression(".4E-42", new DoubleLiteral(.4E-42));
     }
 
     @Test
@@ -167,7 +167,7 @@ public class TestSqlParser {
             new Query(
                 Optional.empty(),
                 new QuerySpecification(
-                    selectList(new DoubleLiteral("123.456E7")),
+                    selectList(new DoubleLiteral(123.456E7)),
                     table(QualifiedName.of("dual")),
                     Optional.empty(),
                     List.of(),

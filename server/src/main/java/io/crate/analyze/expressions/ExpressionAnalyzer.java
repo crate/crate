@@ -28,6 +28,7 @@ import static io.crate.sql.tree.IntervalLiteral.IntervalField.MONTH;
 import static io.crate.sql.tree.IntervalLiteral.IntervalField.SECOND;
 import static io.crate.sql.tree.IntervalLiteral.IntervalField.YEAR;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -146,6 +147,7 @@ import io.crate.sql.tree.NegativeExpression;
 import io.crate.sql.tree.Node;
 import io.crate.sql.tree.NotExpression;
 import io.crate.sql.tree.NullLiteral;
+import io.crate.sql.tree.NumericLiteral;
 import io.crate.sql.tree.ObjectLiteral;
 import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.QualifiedName;
@@ -164,6 +166,7 @@ import io.crate.types.ArrayType;
 import io.crate.types.BitStringType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.NumericType;
 import io.crate.types.UndefinedType;
 
 /**
@@ -1000,6 +1003,13 @@ public class ExpressionAnalyzer {
         @Override
         protected Symbol visitIntegerLiteral(IntegerLiteral node, ExpressionAnalysisContext context) {
             return Literal.of(node.getValue());
+        }
+
+        @Override
+        public Symbol visitNumericLiteral(NumericLiteral numericLiteral, ExpressionAnalysisContext context) {
+            BigDecimal value = numericLiteral.value();
+            NumericType numericType = new NumericType(value.precision(), value.scale());
+            return Literal.of(numericType, value);
         }
 
         @Override

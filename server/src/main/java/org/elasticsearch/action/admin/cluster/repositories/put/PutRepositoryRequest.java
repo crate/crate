@@ -21,7 +21,6 @@ package org.elasticsearch.action.admin.cluster.repositories.put;
 
 import static org.elasticsearch.common.settings.Settings.readSettingsFromStream;
 import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
-import static org.elasticsearch.common.settings.Settings.Builder.EMPTY_SETTINGS;
 
 import java.io.IOException;
 import java.util.Map;
@@ -51,7 +50,7 @@ public class PutRepositoryRequest extends AcknowledgedRequest<PutRepositoryReque
 
     private boolean verify = true;
 
-    private Settings settings = EMPTY_SETTINGS;
+    private Settings settings = Settings.EMPTY;
 
     public PutRepositoryRequest() {
     }

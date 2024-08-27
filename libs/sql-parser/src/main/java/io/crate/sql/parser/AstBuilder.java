@@ -23,6 +23,8 @@ package io.crate.sql.parser;
 
 import static java.util.Collections.emptyList;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -202,6 +204,7 @@ import io.crate.sql.tree.NotExpression;
 import io.crate.sql.tree.NotNullColumnConstraint;
 import io.crate.sql.tree.NullColumnConstraint;
 import io.crate.sql.tree.NullLiteral;
+import io.crate.sql.tree.NumericLiteral;
 import io.crate.sql.tree.ObjectColumnType;
 import io.crate.sql.tree.ObjectLiteral;
 import io.crate.sql.tree.OptimizeStatement;
@@ -2290,17 +2293,24 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     @Override
     public Node visitIntegerLiteral(SqlBaseParser.IntegerLiteralContext context) {
         String text = context.getText().replace("_", "");
-        long value = Long.parseLong(text);
-        if (value < Integer.MAX_VALUE + 1L) {
-            return new IntegerLiteral((int) value);
+        BigInteger bigInteger = new BigInteger(text);
+        int bitLength = bigInteger.bitLength();
+        if (bitLength <= 31) {
+            return new IntegerLiteral(bigInteger.intValueExact());
+        } else if (bitLength <= 63) {
+            return new LongLiteral(bigInteger.longValueExact());
         }
-        return new LongLiteral(value);
+        return new NumericLiteral(new BigDecimal(bigInteger, 0));
     }
 
     @Override
     public Node visitDecimalLiteral(SqlBaseParser.DecimalLiteralContext context) {
         String text = context.getText().replace("_", "");
-        return new DoubleLiteral(text);
+        BigDecimal bigDecimal = new BigDecimal(text);
+        if (bigDecimal.precision() <= 18 || bigDecimal.scale() < 0) {
+            return new DoubleLiteral(bigDecimal.doubleValue());
+        }
+        return new NumericLiteral(bigDecimal);
     }
 
     @Override
