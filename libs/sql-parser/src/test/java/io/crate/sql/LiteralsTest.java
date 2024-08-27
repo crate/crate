@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Test;
 
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.IntegerLiteral;
+import io.crate.sql.tree.Literal;
 import io.crate.sql.tree.NumericLiteral;
 
 public class LiteralsTest {
@@ -299,5 +300,13 @@ public class LiteralsTest {
     public void test_number_exceeding_long_range() throws Exception {
         var literal = SqlParser.createExpression("34533365386010436550");
         assertThat(literal).isEqualTo(new NumericLiteral(new BigDecimal("34533365386010436550")));
+    }
+
+    @Test
+    public void test_literal_from_bigdecimal() throws Exception {
+        var v = new BigDecimal("34533365386010436550");
+        Literal literal = Literal.fromObject(v);
+        assertThat(literal).isExactlyInstanceOf(NumericLiteral.class);
+        assertThat(((NumericLiteral) literal).value()).isEqualTo(v);
     }
 }

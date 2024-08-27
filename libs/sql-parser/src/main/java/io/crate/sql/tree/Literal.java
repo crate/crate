@@ -21,9 +21,9 @@
 
 package io.crate.sql.tree;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public abstract class Literal
@@ -35,35 +35,31 @@ public abstract class Literal
     }
 
     public static Literal fromObject(Object value) {
-        Literal literal = null;
-        if (value == null) {
-            literal = NullLiteral.INSTANCE;
-        } else if (value instanceof Number n) {
-            if (value instanceof Float || value instanceof Double) {
-                literal = new DoubleLiteral(value.toString());
-            } else if (value instanceof Short || value instanceof Integer) {
-                literal = new IntegerLiteral(n.intValue());
-            } else if (value instanceof Long l) {
-                literal = new LongLiteral(l);
+        return switch (value) {
+            case null -> NullLiteral.INSTANCE;
+            case BigDecimal val -> new NumericLiteral(val);
+            case Double val -> new DoubleLiteral(val);
+            case Float val -> new DoubleLiteral(val.doubleValue());
+            case Short val -> new IntegerLiteral(val.intValue());
+            case Integer val -> new IntegerLiteral(val.intValue());
+            case Long val -> new LongLiteral(val);
+            case Boolean val -> val ? BooleanLiteral.TRUE_LITERAL : BooleanLiteral.FALSE_LITERAL;
+            case Object[] arr -> {
+                ArrayList<Expression> expressions = new ArrayList<>(arr.length);
+                for (Object o : arr) {
+                    expressions.add(fromObject(o));
+                }
+                yield new ArrayLiteral(expressions);
             }
-        } else if (value instanceof Boolean b) {
-            literal = b ? BooleanLiteral.TRUE_LITERAL : BooleanLiteral.FALSE_LITERAL;
-        } else if (value instanceof Object[] oArray) {
-            List<Expression> expressions = new ArrayList<>();
-            for (Object o : oArray) {
-                expressions.add(fromObject(o));
+            case Map<?, ?> m -> {
+                @SuppressWarnings("unchecked") Map<String, Object> valueMap = (Map<String, Object>) m;
+                HashMap<String, Expression> map = HashMap.newHashMap(valueMap.size());
+                for (Map.Entry<String, Object> entry : valueMap.entrySet()) {
+                    map.put(entry.getKey(), fromObject(entry.getValue()));
+                }
+                yield new ObjectLiteral(map);
             }
-            literal = new ArrayLiteral(expressions);
-        } else if (value instanceof Map) {
-            HashMap<String, Expression> map = new HashMap<>();
-            @SuppressWarnings("unchecked") Map<String, Object> valueMap = (Map<String, Object>) value;
-            for (Map.Entry<String, Object> entry : valueMap.entrySet()) {
-                map.put(entry.getKey(), fromObject(entry.getValue()));
-            }
-            literal = new ObjectLiteral(map);
-        } else {
-            literal = new StringLiteral(value.toString());
-        }
-        return literal;
+            default -> new StringLiteral(value.toString());
+        };
     }
 }
