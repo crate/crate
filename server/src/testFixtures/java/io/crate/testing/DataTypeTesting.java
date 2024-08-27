@@ -211,7 +211,7 @@ public class DataTypeTesting {
                     Integer precision = numericType.numericPrecision();
                     int scale = numericType.scale() == null ? 0 : numericType.scale();
                     int maxDigits = precision == null ? 131072 : precision;
-                    int numDigits = random.nextInt(scale == 0 ? 1 : scale, maxDigits + 1);
+                    int numDigits = random.nextInt(scale == 0 ? 1 : scale + 1, maxDigits + 1);
                     StringBuilder sb = new StringBuilder(numDigits);
                     for (int i = 0; i < numDigits; i++) {
                         sb.append(random.nextInt(10));
