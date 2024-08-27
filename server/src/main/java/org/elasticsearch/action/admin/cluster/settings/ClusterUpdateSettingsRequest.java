@@ -21,7 +21,6 @@ package org.elasticsearch.action.admin.cluster.settings;
 
 import static org.elasticsearch.common.settings.Settings.readSettingsFromStream;
 import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
-import static org.elasticsearch.common.settings.Settings.Builder.EMPTY_SETTINGS;
 
 import java.io.IOException;
 import java.util.Map;
@@ -46,8 +45,8 @@ public class ClusterUpdateSettingsRequest extends AcknowledgedRequest<ClusterUpd
     private static final ParseField PERSISTENT = new ParseField("persistent");
     private static final ParseField TRANSIENT = new ParseField("transient");
 
-    private Settings transientSettings = EMPTY_SETTINGS;
-    private Settings persistentSettings = EMPTY_SETTINGS;
+    private Settings transientSettings = Settings.EMPTY;
+    private Settings persistentSettings = Settings.EMPTY;
 
     public ClusterUpdateSettingsRequest() {
     }

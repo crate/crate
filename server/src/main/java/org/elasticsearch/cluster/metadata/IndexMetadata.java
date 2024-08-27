@@ -787,7 +787,7 @@ public class IndexMetadata implements Diffable<IndexMetadata>, ToXContentFragmen
         private long mappingVersion = 1;
         private long settingsVersion = 1;
         private long[] primaryTerms = null;
-        private Settings settings = Settings.Builder.EMPTY_SETTINGS;
+        private Settings settings = Settings.EMPTY;
         private MappingMetadata mapping;
         private final ImmutableOpenMap.Builder<String, AliasMetadata> aliases;
         private final ImmutableOpenIntMap.Builder<Set<String>> inSyncAllocationIds;
