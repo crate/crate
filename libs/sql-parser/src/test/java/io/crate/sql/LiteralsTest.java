@@ -25,10 +25,13 @@ package io.crate.sql;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.math.BigDecimal;
+
 import org.junit.jupiter.api.Test;
 
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.IntegerLiteral;
+import io.crate.sql.tree.NumericLiteral;
 
 public class LiteralsTest {
 
@@ -290,5 +293,11 @@ public class LiteralsTest {
     public void test_integer_literal() {
         var literal = SqlParser.createExpression("2147483647");
         assertThat(literal).isEqualTo(new IntegerLiteral(Integer.MAX_VALUE));
+    }
+
+    @Test
+    public void test_number_exceeding_long_range() throws Exception {
+        var literal = SqlParser.createExpression("34533365386010436550");
+        assertThat(literal).isEqualTo(new NumericLiteral(new BigDecimal("34533365386010436550")));
     }
 }

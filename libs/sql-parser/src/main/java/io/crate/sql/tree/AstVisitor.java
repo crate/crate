@@ -739,4 +739,8 @@ public abstract class AstVisitor<R, C> {
     public R visitDropUserMapping(DropUserMapping dropUserMapping, C context) {
         return visitStatement(dropUserMapping, context);
     }
+
+    public R visitNumericLiteral(NumericLiteral numericLiteral, C context) {
+        return visitLiteral(numericLiteral, context);
+    }
 }

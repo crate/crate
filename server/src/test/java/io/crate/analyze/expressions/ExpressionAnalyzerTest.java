@@ -30,6 +30,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -73,6 +74,7 @@ import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
 import io.crate.types.BitStringType;
 import io.crate.types.DataTypes;
+import io.crate.types.NumericType;
 
 /**
  * Additional tests for the ExpressionAnalyzer.
@@ -403,6 +405,15 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThatThrownBy(() -> executor.asSymbol("\"\"\"a[1]\"\"\""))
             .isExactlyInstanceOf(ColumnUnknownException.class)
             .hasMessage("Column \"a[1]\" unknown");
+    }
+
+    @Test
+    public void test_can_handle_large_numbers() throws Exception {
+        String expression = "34533365386010436550";
+        Symbol symbol = executor.asSymbol(expression);
+        assertThat(symbol).isExactlyInstanceOf(Literal.class);
+        assertThat(symbol.valueType()).isExactlyInstanceOf(NumericType.class);
+        assertThat(((Literal<?>) symbol).value()).isEqualTo(new BigDecimal(expression));
     }
 
     @Test

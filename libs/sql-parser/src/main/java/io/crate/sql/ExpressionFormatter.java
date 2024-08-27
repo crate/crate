@@ -76,6 +76,7 @@ import io.crate.sql.tree.NegativeExpression;
 import io.crate.sql.tree.Node;
 import io.crate.sql.tree.NotExpression;
 import io.crate.sql.tree.NullLiteral;
+import io.crate.sql.tree.NumericLiteral;
 import io.crate.sql.tree.ObjectColumnType;
 import io.crate.sql.tree.ObjectLiteral;
 import io.crate.sql.tree.ParameterExpression;
@@ -265,6 +266,11 @@ public final class ExpressionFormatter {
         @Override
         protected String visitIntegerLiteral(IntegerLiteral node, @Nullable List<Expression> parameters) {
             return Integer.toString(node.getValue());
+        }
+
+        @Override
+        public String visitNumericLiteral(NumericLiteral numericLiteral, List<Expression> context) {
+            return numericLiteral.value().toString();
         }
 
         @Override
