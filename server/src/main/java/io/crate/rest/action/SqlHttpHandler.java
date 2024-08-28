@@ -59,11 +59,11 @@ import io.crate.auth.AuthSettings;
 import io.crate.auth.Credentials;
 import io.crate.auth.HttpAuthUpstreamHandler;
 import io.crate.breaker.TypedRowAccounting;
+import io.crate.common.collections.Lists;
 import io.crate.data.breaker.BlockBasedRamAccounting;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.protocols.http.Headers;
 import io.crate.role.Role;
 import io.crate.role.Roles;
@@ -249,7 +249,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
                 resultFields,
                 startTimeInNs,
                 new TypedRowAccounting(
-                    Symbols.typeView(resultFields),
+                    Lists.map(resultFields, Symbol::valueType),
                     ramAccounting
                 ),
                 includeTypes
