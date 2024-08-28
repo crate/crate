@@ -208,9 +208,11 @@ public class TransportResizeAction extends TransportMasterNodeAction<ResizeReque
         }
         String cause = resizeRequest.getResizeType().name().toLowerCase(Locale.ROOT) + "_index";
         targetIndex.cause(cause);
-        Settings.Builder settingsBuilder = Settings.builder().put(targetIndexSettings);
-        settingsBuilder.put("index.number_of_shards", numShards);
-        targetIndex.settings(settingsBuilder);
+        Settings settings = Settings.builder()
+            .put(targetIndexSettings)
+            .put("index.number_of_shards", numShards)
+            .build();
+        targetIndex.settings(settings);
 
         return new CreateIndexClusterStateUpdateRequest(cause, targetIndex.index(), targetIndexName)
                 // mappings are updated on the node when creating in the shards, this prevents race-conditions since all mapping must be

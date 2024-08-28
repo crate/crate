@@ -29,6 +29,7 @@ import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.settings.Settings;
 
 
 /**
@@ -42,7 +43,7 @@ public class ResizeRequest extends AcknowledgedRequest<ResizeRequest> implements
     private Boolean copySettings;
 
     public ResizeRequest(String targetIndex, String sourceIndex) {
-        this.targetIndexRequest = new CreateIndexRequest(targetIndex);
+        this.targetIndexRequest = new CreateIndexRequest(targetIndex, Settings.EMPTY);
         this.sourceIndex = sourceIndex;
     }
 
