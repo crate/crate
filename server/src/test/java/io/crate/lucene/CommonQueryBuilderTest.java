@@ -805,4 +805,10 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         Query query = convert("(y % null != 1)");
         assertThat(query).hasToString("+(+*:* -((y % NULL) = 1)) #(NOT ((y % NULL) = 1))");
     }
+
+    @Test
+    public void test_neq_on_object_literal() {
+        Query query = convert("(obj_no_sub_columns != {})");
+        assertThat(query).hasToString("+(+*:* -(obj_no_sub_columns = {})) #(NOT (obj_no_sub_columns = {}))");
+    }
 }
