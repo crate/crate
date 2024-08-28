@@ -24,6 +24,7 @@ package org.elasticsearch.indices.recovery;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.biasedDoubleBetween;
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonMap;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.node.RecoverySettingsChunkSizePlugin.CHUNK_SIZE_SETTING;
 
 import java.io.IOException;
@@ -40,7 +41,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import org.apache.lucene.analysis.TokenStream;
@@ -1255,7 +1255,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         ensureGreen(indexName);
         // Recovery should keep syncId if no indexing activity on the primary after synced-flush.
         indicesStats = client().admin().indices().stats(new IndicesStatsRequest().indices(indexName)).get();
-        Set<String> syncIds = Stream.of(indicesStats.getIndex(indexName).getShards())
+        Set<String> syncIds = indicesStats.getIndex(indexName).getShards().stream()
             .map(shardStats -> shardStats.getCommitStats().syncId())
             .collect(Collectors.toSet());
         assertThat(syncIds).hasSize(1);
