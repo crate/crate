@@ -315,7 +315,7 @@
     <versions.randomizedrunner>2.8.1</versions.randomizedrunner>
     <versions.jackson>2.17.2</versions.jackson>
     <versions.jopt_simple>6.0-alpha-3</versions.jopt_simple>
-    <versions.antlr>4.13.1</versions.antlr>
+    <versions.antlr>4.13.2</versions.antlr>
     <versions.quickcheck>1.0</versions.quickcheck>
     <versions.hppc>0.8.2</versions.hppc>
     <versions.netty>4.1.112.Final</versions.netty>
@@ -351,7 +351,7 @@
     <versions.grpc>1.55.1</versions.grpc>
 
     <versions.hamcrest>2.2</versions.hamcrest>
-    <versions.mockito>5.12.0</versions.mockito>
+    <versions.mockito>5.13.0</versions.mockito>
     <versions.jdbc>42.7.3</versions.jdbc>
 
     <versions.azure_storage>8.6.6</versions.azure_storage>
@@ -371,7 +371,7 @@
     <versions.plugin.jar>3.3.0</versions.plugin.jar>
     <versions.plugin.surefire>3.5.0</versions.plugin.surefire>
     <versions.plugin.checkstyle>3.5.0</versions.plugin.checkstyle>
-    <versions.plugin.puppycrawl>10.17.0</versions.plugin.puppycrawl>
+    <versions.plugin.puppycrawl>10.18.0</versions.plugin.puppycrawl>
     <versions.plugin.toolchains>4.5.0</versions.plugin.toolchains>
     <versions.plugin.jacoco>0.8.12</versions.plugin.jacoco>
     <versions.plugin.forbiddenapis>3.7</versions.plugin.forbiddenapis>
