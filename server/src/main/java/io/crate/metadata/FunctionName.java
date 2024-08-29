@@ -66,10 +66,16 @@ public record FunctionName(@Nullable String schema, String name)
     }
 
     public String displayName() {
-        if (schema == null) {
-            return name;
+        String functionName;
+        if (isBuiltin()) {
+            functionName = name;
+        } else {
+            functionName = Identifiers.quoteIfNeeded(name);
         }
-        return Identifiers.quoteIfNeeded(schema) + "." + name;
+        if (schema == null) {
+            return functionName;
+        }
+        return Identifiers.quoteIfNeeded(schema) + "." + functionName;
     }
 
     public boolean isBuiltin() {
