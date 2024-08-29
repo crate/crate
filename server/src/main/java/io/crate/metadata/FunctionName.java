@@ -34,7 +34,7 @@ import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.sql.Identifiers;
 
-public final record FunctionName(@Nullable String schema, String name)
+public record FunctionName(@Nullable String schema, String name)
         implements Writeable, Accountable {
 
     public FunctionName(String name) {

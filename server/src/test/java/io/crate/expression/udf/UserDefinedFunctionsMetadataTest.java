@@ -45,18 +45,18 @@ import io.crate.types.DataTypes;
 
 public class UserDefinedFunctionsMetadataTest extends ESTestCase {
 
-    private static String definition = "function(a, b) {return a - b;}";
-    private static List<FunctionArgumentDefinition> args = List.of(
+    private static final String DEFINITION = "function(a, b) {return a - b;}";
+    private static final List<FunctionArgumentDefinition> ARGS = List.of(
         FunctionArgumentDefinition.of(DataTypes.DOUBLE_ARRAY),
         FunctionArgumentDefinition.of("my_named_arg", DataTypes.DOUBLE)
     );
     private static final UserDefinedFunctionMetadata FUNCTION_METADATA = new UserDefinedFunctionMetadata(
         "my_schema",
         "my_add",
-        args,
+        ARGS,
         DataTypes.FLOAT,
         "dummy_lang",
-        definition
+        DEFINITION
     );
 
     public static final UserDefinedFunctionsMetadata DUMMY_UDF_METADATA = UserDefinedFunctionsMetadata.of(FUNCTION_METADATA);
@@ -68,7 +68,7 @@ public class UserDefinedFunctionsMetadataTest extends ESTestCase {
 
         StreamInput in = out.bytes().streamInput();
         UserDefinedFunctionMetadata udfMeta2 = new UserDefinedFunctionMetadata(in);
-        assertThat(FUNCTION_METADATA).isEqualTo(udfMeta2);
+        assertThat(udfMeta2).isEqualTo(FUNCTION_METADATA);
 
         assertThat(udfMeta2.schema()).isEqualTo("my_schema");
         assertThat(udfMeta2.name()).isEqualTo("my_add");
@@ -80,7 +80,7 @@ public class UserDefinedFunctionsMetadataTest extends ESTestCase {
         assertThat(udfMeta2.argumentTypes().get(1)).isEqualTo(DataTypes.DOUBLE);
         assertThat(udfMeta2.returnType()).isEqualTo(DataTypes.FLOAT);
         assertThat(udfMeta2.language()).isEqualTo("dummy_lang");
-        assertThat(udfMeta2.definition()).isEqualTo(definition);
+        assertThat(udfMeta2.definition()).isEqualTo(DEFINITION);
     }
 
     @Test
@@ -125,15 +125,15 @@ public class UserDefinedFunctionsMetadataTest extends ESTestCase {
         XContentParser parser = JsonXContent.JSON_XCONTENT.createParser(
             xContentRegistry(), DeprecationHandler.THROW_UNSUPPORTED_OPERATION, BytesReference.toBytes(BytesReference.bytes(builder)));
         parser.nextToken();  // enter START_OBJECT
-        ArrayType type2 = (ArrayType) UserDefinedFunctionMetadata.DataTypeXContent.fromXContent(parser);
+        ArrayType<?> type2 = (ArrayType<?>) UserDefinedFunctionMetadata.DataTypeXContent.fromXContent(parser);
         assertThat(type.equals(type2)).isTrue();
     }
 
     @Test
     public void testSameSignature() throws Exception {
-        assertThat(FUNCTION_METADATA.sameSignature("my_schema", "my_add", argumentTypesFrom(args))).isTrue();
-        assertThat(FUNCTION_METADATA.sameSignature("different_schema", "my_add", argumentTypesFrom(args))).isFalse();
-        assertThat(FUNCTION_METADATA.sameSignature("my_schema", "different_name", argumentTypesFrom(args))).isFalse();
+        assertThat(FUNCTION_METADATA.sameSignature("my_schema", "my_add", argumentTypesFrom(ARGS))).isTrue();
+        assertThat(FUNCTION_METADATA.sameSignature("different_schema", "my_add", argumentTypesFrom(ARGS))).isFalse();
+        assertThat(FUNCTION_METADATA.sameSignature("my_schema", "different_name", argumentTypesFrom(ARGS))).isFalse();
         assertThat(FUNCTION_METADATA.sameSignature("my_schema", "my_add", List.of())).isFalse();
     }
 
