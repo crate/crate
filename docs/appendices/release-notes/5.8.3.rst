@@ -47,4 +47,6 @@ See the :ref:`version_5.8.0` release notes for a full list of changes in the
 Fixes
 =====
 
-None
+- Fixed an issue that caused failure of ``ALTER ROLE`` statements updating or
+  resetting password of a user with specified :ref:`JWT <create-user-jwt>`
+  properties.
