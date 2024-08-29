@@ -342,6 +342,64 @@ public class TransportRoleActionTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_alter_user_change_or_reset_password_and_keep_jwt() {
+        Map<String, Role> roleWithJwtAndPassword = new HashMap<>();
+        var oldJwtProperties = new JwtProperties("https:dummy.org", "test", null);
+        roleWithJwtAndPassword.put("John", userOf(
+            "John",
+            Set.of(),
+            new HashSet<>(),
+            getSecureHash("old-pwd"),
+            oldJwtProperties
+           )
+        );
+        var oldRolesMetadata = new RolesMetadata(roleWithJwtAndPassword);
+        Metadata.Builder mdBuilder = Metadata.builder()
+            .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
+        var newPwd = getSecureHash("new-pwd");
+
+        // Update password
+        boolean exists = TransportAlterRoleAction.alterRole(
+            mdBuilder,
+            "John",
+            newPwd,
+            null,
+            false,
+            false // No reset, keep jwt
+        );
+        assertThat(exists).isTrue();
+        assertThat(roles(mdBuilder)).containsExactlyInAnyOrderEntriesOf(
+            Map.of("John", userOf(
+                "John",
+                Set.of(),
+                new HashSet<>(),
+                newPwd,
+                oldJwtProperties)
+            )
+        );
+
+        // Reset password
+        exists = TransportAlterRoleAction.alterRole(
+            mdBuilder,
+            "John",
+            null,
+            null,
+            true, // Reset password
+            false // No reset, keep jwt
+        );
+        assertThat(exists).isTrue();
+        assertThat(roles(mdBuilder)).containsExactlyInAnyOrderEntriesOf(
+            Map.of("John", userOf(
+                "John",
+                Set.of(),
+                new HashSet<>(),
+                null, // Password has been reset
+                oldJwtProperties)
+            )
+        );
+    }
+
+    @Test
     public void test_alter_user_reset_jwt_and_password() throws Exception {
         Map<String, Role> roleWithJwtAndPassword = new HashMap<>();
         var oldPassword = getSecureHash("johns-pwd"); // Has randomness, keep it for assertions.
@@ -410,6 +468,6 @@ public class TransportRoleActionTest extends CrateDummyClusterServiceUnitTest {
 
 
     private static Map<String, Role> roles(Metadata.Builder mdBuilder) {
-        return ((RolesMetadata) mdBuilder.build().custom(RolesMetadata.TYPE)).roles();
+        return ((RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE)).roles();
     }
 }
