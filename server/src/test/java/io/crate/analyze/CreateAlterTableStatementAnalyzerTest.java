@@ -1240,7 +1240,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         Map<String, String> generatedColumnsMapping = (Map<String, String>) metaMapping.get("generated_columns");
         assertThat(generatedColumnsMapping).hasSize(1);
         // current_timestamp used to get evaluated and then this contained the actual timestamp instead of the function name
-        assertThat(generatedColumnsMapping.get("ts")).isEqualTo("\"current_timestamp\"(3)");
+        assertThat(generatedColumnsMapping.get("ts")).isEqualTo("current_timestamp(3)");
     }
 
     @Test
@@ -1371,7 +1371,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         Map<String, Object> mappingProperties = Maps.get(mapping, "properties");
         assertThat(mappingProperties).isEqualTo(Map.of(
             "ts", Map.of(
-                "default_expr", "\"current_timestamp\"(3)",
+                "default_expr", "current_timestamp(3)",
                 "format", "epoch_millis||strict_date_optional_time",
                 "position", 1,
                 "type", "date"
