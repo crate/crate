@@ -21,14 +21,12 @@
 
 package io.crate.expression.operator.any;
 
-import java.util.List;
-
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
 import org.elasticsearch.common.lucene.search.Queries;
-import org.jetbrains.annotations.NotNull;
 
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.predicate.IsNullPredicate;
@@ -40,6 +38,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.ComparisonExpression;
+import io.crate.types.ArrayType;
 import io.crate.types.EqQuery;
 import io.crate.types.StorageSupport;
 
@@ -57,7 +56,14 @@ public final class AnyNeqOperator extends AnyOperator<Object> {
     }
 
     @Override
-    protected Query refMatchesAnyArrayLiteral(Function any, Reference probe, @NotNull List<?> nonNullValues, Context context) {
+    protected Query refMatchesAnyArrayLiteral(Function any, Reference probe, Literal<?> candidates, Context context) {
+        if (ArrayType.dimensions(candidates.valueType()) > 1) {
+            return null;
+        }
+        var nonNullValues = filterNullValues(candidates);
+        if (nonNullValues.isEmpty()) {
+            return new MatchNoDocsQuery("Cannot match unless there is at least one non-null candidate");
+        }
         //  col != ANY ([1,2,3]) --> not(col=1 and col=2 and col=3)
         String columnName = probe.storageIdent();
         BooleanQuery.Builder andBuilder = new BooleanQuery.Builder();
