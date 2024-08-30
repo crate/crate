@@ -70,3 +70,7 @@ Fixes
 
 - Fixed an integer overflow issue when the total shards (shards and replicas)
   configured for a table are greater than ``Integer.MAX_VALUE``.
+
+- Fixed an issue that caused ``=`` :ref:`ANY <sql_any_array_comparison>`
+  operator to throw a ``ClassCastException`` when the right hand side argument
+  was more than 1 dimensions higher than the left hand side argument.
