@@ -168,3 +168,8 @@ Administration and Operations
 
 - Added ``id``, ``reason``, ``total_shards`` and ``include_global_state``
   columns to the :ref:`sys.snapshots <sys-snapshots>` table.
+
+- Added support to use the ``EXPLAIN ANALYZE`` statement on queries which
+  contain sub-queries, e.g.::
+
+    EXPLAIN ANALYZE SELECT * FROM t1 WHERE c = (SELECT count(*) FROM t2);
