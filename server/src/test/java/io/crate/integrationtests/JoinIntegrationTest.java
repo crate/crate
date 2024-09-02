@@ -1634,4 +1634,48 @@ public class JoinIntegrationTest extends IntegTestCase {
         assertThat(response).hasRows("1| 2| 1| 2| 1");
     }
 
+    /**
+     * See https://github.com/crate/crate/issues/16555
+     **/
+    @Test
+    @UseRandomizedOptimizerRules(0)
+    public void test_join_with_ambiguios_column_lookups() throws Exception {
+        execute(
+            """
+            CREATE TABLE t1 (
+                id text PRIMARY KEY,
+                doc OBJECT (DYNAMIC) AS (
+                    "t_id" text,
+                    "id" text
+                ),
+                anotherobj OBJECT (DYNAMIC) AS (
+                    "id" text
+                )
+            )
+            """
+        );
+        execute("CREATE TABLE t2 (b_id INTEGER NOT NULL)");
+        execute("INSERT INTO t2 VALUES (1)");
+        execute("INSERT INTO t1 values ('a1', {t_id = 'abc', id = 'def'}, { id = 'd1' })");
+        execute("INSERT INTO t1 values ('a2', {t_id = '1', id = 'xyz'}, { id = 'd2' })");
+        execute("refresh table t1, t2");
+        execute(
+            """
+            SELECT
+                a.*,
+                b.b_id
+            FROM (
+                SELECT
+                    *,
+                    try_cast(doc['t_id'] AS INTEGER) AS bId,
+                    doc['id'] AS id
+                FROM
+                    t1
+                LIMIT 5
+            ) AS a
+            INNER JOIN t2 AS b ON b.b_id = a.bId;
+            """
+        );
+        assertThat(response).hasRows("a2| {id=xyz, t_id=1}| {id=d2}| 1| xyz| 1");
+    }
 }
