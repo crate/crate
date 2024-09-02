@@ -47,6 +47,9 @@ See the :ref:`version_5.8.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that could cause errors like ``ClassCastException`` if using
+  column aliases in a Subquery that lead to ambiguous column names.
+
 - Fixed issue which caused :ref:`User Defined Functions<user-defined-functions>`
   with mixed case function names (e.g. ``mYfUncTIOn``) to throw errors when used
   in :ref:`generated columns<ddl-generated-columns>`.
