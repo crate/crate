@@ -86,7 +86,7 @@ public class TransportResizeActionTest extends ESTestCase {
 
 
         ResizeRequest req = new ResizeRequest("target", "source");
-        req.getTargetIndexRequest().settings(Settings.builder().put("index.number_of_shards", 4));
+        req.getTargetIndexRequest().settings(Settings.builder().put("index.number_of_shards", 4).build());
         final ClusterState cs = createClusterState("source", 8, 1,
             Settings.builder().put("index.blocks.write", true).build());
         assertThatThrownBy(() -> TransportResizeAction.prepareCreateIndexRequest(req, cs,

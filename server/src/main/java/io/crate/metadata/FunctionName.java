@@ -34,7 +34,7 @@ import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.sql.Identifiers;
 
-public final record FunctionName(@Nullable String schema, String name)
+public record FunctionName(@Nullable String schema, String name)
         implements Writeable, Accountable {
 
     public FunctionName(String name) {
@@ -66,10 +66,16 @@ public final record FunctionName(@Nullable String schema, String name)
     }
 
     public String displayName() {
-        if (schema == null) {
-            return name;
+        String functionName;
+        if (isBuiltin()) {
+            functionName = name;
+        } else {
+            functionName = Identifiers.quoteIfNeeded(name);
         }
-        return Identifiers.quoteIfNeeded(schema) + "." + name;
+        if (schema == null) {
+            return functionName;
+        }
+        return Identifiers.quoteIfNeeded(schema) + "." + functionName;
     }
 
     public boolean isBuiltin() {

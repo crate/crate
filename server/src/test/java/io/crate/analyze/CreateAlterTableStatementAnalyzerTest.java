@@ -26,7 +26,6 @@ import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.ANALYZER;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_ROUTING_EXCLUDE_GROUP_SETTING;
 import static org.elasticsearch.index.engine.EngineConfig.INDEX_CODEC_SETTING;
@@ -884,7 +883,6 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         Map<String, Object> mapping = TestingHelpers.toMapping(analysis);
         Map<String, Object> meta = (Map<String, Object>) mapping.get("_meta");
         List<String> primaryKeys = (List<String>) meta.get("primary_keys");
-        assertThat(primaryKeys).hasSize(2);
         assertThat(primaryKeys).containsExactly("id1", "id2");
     }
 
@@ -1296,7 +1294,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
                     day as date_trunc('day', ts),
                     date_string as cast(day as string)
                 )
-                    """))
+                """))
             .isExactlyInstanceOf(ColumnValidationException.class)
             .hasMessage("Validation failed for date_string: Generated column cannot be based on generated column `day`");
     }
