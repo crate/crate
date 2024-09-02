@@ -50,7 +50,7 @@ public class RoundFunctionTest extends ScalarTestCase {
         assertEvaluate("round(123.123,0)", BigDecimal.valueOf(123));
         assertEvaluate("round(123.123,1)", BigDecimal.valueOf(1231,1));
         assertEvaluate("round(123.123,4)", BigDecimal.valueOf(1231230,4));
-        assertEvaluate("round(123.123,-1)", BigDecimal.valueOf(120,0));
+        assertEvaluate("round(123.123,-1)", BigDecimal.valueOf(120));
         assertEvaluate("round(123.123,-4)", BigDecimal.valueOf(0));
 
         assertEvaluate("round(987.987,0)", BigDecimal.valueOf(988));
@@ -65,6 +65,10 @@ public class RoundFunctionTest extends ScalarTestCase {
         assertEvaluate("round(-123.123,4)", BigDecimal.valueOf(-1231230,4));
         assertEvaluate("round(-123.123,-1)", BigDecimal.valueOf(-120));
         assertEvaluate("round(-123.123,-4)", BigDecimal.valueOf(0));
+
+        assertEvaluate("round(2147483647, -1)", new BigDecimal("2147483650"));
+        assertEvaluate("round(9223372036854775807, -1)", new BigDecimal("9223372036854775810"));
+        assertEvaluate("round('92233720368547758070.123'::NUMERIC, 1)", new BigDecimal("92233720368547758070.1"));
 
         assertEvaluateNull("round(1,null)");
         assertEvaluateNull("round(null,null)");
