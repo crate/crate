@@ -98,7 +98,7 @@ public class AzureHttpHandler implements HttpHandler {
                 final String ifNoneMatch = exchange.getRequestHeaders().getFirst("If-None-Match");
                 if ("*".equals(ifNoneMatch)) {
                     if (blobs.putIfAbsent(exchange.getRequestURI().getPath(),
-                                          Streams.readFully(exchange.getRequestBody())) != null) {
+                        Streams.readFully(exchange.getRequestBody())) != null) {
                         sendError(exchange, RestStatus.CONFLICT);
                         return;
                     }
@@ -220,8 +220,8 @@ public class AzureHttpHandler implements HttpHandler {
             exchange.sendResponseHeaders(status.getStatus(), -1L);
         } else {
             final byte[] response = ("<?xml version=\"1.0\" encoding=\"UTF-8\"?><Error><Code>" + errorCode +
-                                     "</Code><Message>"
-                                     + status + "</Message></Error>").getBytes(StandardCharsets.UTF_8);
+                "</Code><Message>"
+                + status + "</Message></Error>").getBytes(StandardCharsets.UTF_8);
             exchange.sendResponseHeaders(status.getStatus(), response.length);
             exchange.getResponseBody().write(response);
         }
@@ -249,3 +249,4 @@ public class AzureHttpHandler implements HttpHandler {
         };
     }
 }
+
