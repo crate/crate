@@ -47,6 +47,14 @@ See the :ref:`version_5.8.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that caused ``WHERE`` clause to fail to filter rows when
+  the clause contained casts on null object columns under ``NOT`` operator.
+  e.g.::
+
+    CREATE  TABLE  t1(c0 OBJECT NULL);
+    INSERT INTO t1(c0) VALUES (NULL);
+    SELECT * FROM t1 WHERE NOT (CAST(t1.c0 AS STRING) ='');
+
 - Fixed an issue that could cause errors like ``ClassCastException`` if using
   column aliases in a Subquery that lead to ambiguous column names.
 
