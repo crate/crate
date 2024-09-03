@@ -98,10 +98,9 @@ public class FieldExistsQueryTest extends CrateDummyClusterServiceUnitTest {
             if (values == null) {
                 assertThat(results).isEmpty();
             } else {
-                assertThat(results).hasSize(2);
+                assertThat(results).hasSize(1);
                 assertThat(results.get(0)).isInstanceOf(Map.class);
                 assertThat((Map<?, ?>) results.get(0)).isEmpty();
-                assertThat(results.get(1)).isNull();
             }
         }
     }

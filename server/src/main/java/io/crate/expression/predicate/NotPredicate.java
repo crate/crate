@@ -149,6 +149,7 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
                 var b = function.arguments().get(1);
                 if (a instanceof Reference ref && b instanceof Literal<?>) {
                     if (ref.valueType().id() == DataTypes.UNTYPED_OBJECT.id()) {
+                        context.enforceThreeValuedLogic = true;
                         return null;
                     }
                 }
