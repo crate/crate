@@ -71,8 +71,8 @@ public class LikeOperator extends Operator<String> {
             };
         } else {
             // BWC branch for pre-5.6 signature without ESCAPE.
-            escapeFromInputs = (ignored) -> LikeOperators.DEFAULT_ESCAPE;
-            escapeFromSymbols = (ignored) -> LikeOperators.DEFAULT_ESCAPE;
+            escapeFromInputs = ignored -> LikeOperators.DEFAULT_ESCAPE;
+            escapeFromSymbols = ignored -> LikeOperators.DEFAULT_ESCAPE;
         }
     }
 

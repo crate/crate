@@ -150,7 +150,6 @@ public abstract sealed class AnyOperator<T> extends Operator<T>
         return anyNulls ? null : false;
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public Query toQuery(Function function, Context context) {
         List<Symbol> args = function.arguments();
@@ -160,7 +159,7 @@ public abstract sealed class AnyOperator<T> extends Operator<T>
             candidates = fn.arguments().get(0);
         }
         if (probe instanceof Literal<?> literal && candidates instanceof Reference ref) {
-            return literalMatchesAnyArrayRef(function, (Literal<T>) literal, ref, context);
+            return literalMatchesAnyArrayRef(function, literal, ref, context);
         } else if (probe instanceof Reference ref && candidates instanceof Literal<?> literal) {
             var nonNullValues = StreamSupport
                 .stream(((Iterable<?>) literal.value()).spliterator(), false)
