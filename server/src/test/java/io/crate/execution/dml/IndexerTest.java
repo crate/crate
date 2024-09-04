@@ -70,7 +70,6 @@ import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
@@ -1378,18 +1377,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             x -> assertThat(x).hasName("o['name']['a']")
         );
 
-        NodeContext nodeCtx = sqlExecutor.nodeCtx;
-        RelationName tableName = table.ident();
-        var addColumnTask = new AlterTableTask<>(
-            nodeCtx, tableName, TransportAddColumnAction.ADD_COLUMN_OPERATOR);
-        var request = new AddColumnRequest(
-            tableName,
-            newColumns,
-            Map.of(),
-            new IntArrayList()
-        );
-        ClusterState newState = addColumnTask.execute(clusterService.state(), request);
-        DocTableInfo newTable = new DocTableInfoFactory(nodeCtx).create(tableName, newState.metadata());
+        DocTableInfo newTable = addColumns(sqlExecutor, table, newColumns);
 
         indexer.updateTargets(newTable::getReference);
         newColumns = indexer.collectSchemaUpdates(item(value2));
