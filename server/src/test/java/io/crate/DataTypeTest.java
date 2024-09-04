@@ -88,7 +88,17 @@ public class DataTypeTest extends ESTestCase {
 
         List<Object> objects = List.of(objA, objB);
         DataType<?> dataType = DataTypes.guessType(objects);
-        assertThat(dataType).isEqualTo(new ArrayType<>(DataTypes.UNTYPED_OBJECT));
+        var expectedObjectType = ObjectType.builder()
+            .setInnerType("a", DataTypes.INTEGER)
+            .setInnerType(
+                "b",
+                ObjectType.builder()
+                    .setInnerType("bn1", DataTypes.INTEGER)
+                    .setInnerType("bn2", DataTypes.INTEGER)
+                    .build()
+            )
+            .build();
+        assertThat(dataType).isEqualTo(new ArrayType<>(expectedObjectType));
     }
 
     @Test
@@ -108,7 +118,7 @@ public class DataTypeTest extends ESTestCase {
 
     @Test
     public void testForValueMixedDataTypeInList() {
-        List<Object> objects = Arrays.<Object>asList("foo", 1);
+        List<Object> objects = Arrays.<Object>asList("foo", List.of(1));
         assertThatThrownBy(() -> DataTypes.guessType(objects))
             .isExactlyInstanceOf(IllegalArgumentException.class);
     }

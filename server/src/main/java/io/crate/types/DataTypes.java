@@ -49,6 +49,7 @@ import org.locationtech.spatial4j.shape.jts.JtsPoint;
 
 import io.crate.Streamer;
 import io.crate.sql.tree.BitString;
+import io.crate.types.ObjectType.Builder;
 
 public final class DataTypes {
 
@@ -249,17 +250,6 @@ public final class DataTypes {
         entry(JsonType.ID, Set.of(ObjectType.ID))
     );
 
-    /**
-     * Contains number conversions which are "safe" (= a conversion would not reduce the number of bytes
-     * used to store the value)
-     */
-    private static final Map<Integer, Set<DataType<?>>> SAFE_CONVERSIONS = Map.of(
-        BYTE.id(), Set.of(SHORT, INTEGER, LONG, TIMESTAMPZ, TIMESTAMP, DATE, FLOAT, DOUBLE),
-        SHORT.id(), Set.of(INTEGER, LONG, TIMESTAMPZ, TIMESTAMP, DATE, FLOAT, DOUBLE),
-        INTEGER.id(), Set.of(LONG, TIMESTAMPZ, TIMESTAMP, DATE, FLOAT, DOUBLE),
-        LONG.id(), Set.of(TIMESTAMPZ, TIMESTAMP, DATE, DOUBLE),
-        FLOAT.id(), Set.of(DOUBLE));
-
     public static boolean isArray(DataType<?> type) {
         return type.id() == ArrayType.ID;
     }
@@ -311,9 +301,17 @@ public final class DataTypes {
     public static DataType<?> guessType(Object value) {
         return switch (value) {
             case null -> UNDEFINED;
-            case Map<?, ?> map -> UNTYPED_OBJECT;
-            case List<?> list -> valueFromList(list);
-            case Object[] array -> valueFromList(Arrays.asList(array));
+            case Map<?, ?> map -> {
+                Builder builder = ObjectType.builder();
+                for (var entry : map.entrySet()) {
+                    Object key = entry.getKey();
+                    Object val = entry.getValue();
+                    builder.setInnerType(key.toString(), guessType(val));
+                }
+                yield builder.build();
+            }
+            case List<?> list -> typeFromList(list);
+            case Object[] array -> typeFromList(Arrays.asList(array));
             case float[] values -> new FloatVectorType(values.length);
             case BigDecimal bigDecimal -> new NumericType(bigDecimal.precision(), bigDecimal.scale());
             default -> {
@@ -347,41 +345,22 @@ public final class DataTypes {
         }
     }
 
-    private static DataType<?> valueFromList(List<?> value) {
+    private static ArrayType<?> typeFromList(List<?> value) {
         DataType<?> highest = DataTypes.UNDEFINED;
+        int idx = 0;
         for (Object o : value) {
             if (o == null) {
                 continue;
             }
             DataType<?> current = guessType(o);
-            // JSON libraries tend to optimize things like [ 0.0, 1.2 ] to [ 0, 1.2 ]; so we allow mixed types
-            // in such cases.
-            if (!current.equals(highest) && !safeConversionPossible(current, highest)) {
-                throw new IllegalArgumentException(
-                    "Mixed dataTypes inside a list are not supported. Found " + highest + " and " + current);
-            }
-            if (current.precedes(highest)) {
+            if (idx == 0) {
                 highest = current;
+            } else {
+                highest = DataTypes.merge(highest, current);
             }
+            idx++;
         }
         return new ArrayType<>(highest);
-    }
-
-    private static boolean safeConversionPossible(DataType<?> type1, DataType<?> type2) {
-        final DataType<?> source;
-        final DataType<?> target;
-        if (type1.precedes(type2)) {
-            source = type2;
-            target = type1;
-        } else {
-            source = type1;
-            target = type2;
-        }
-        if (source.id() == DataTypes.UNDEFINED.id()) {
-            return true;
-        }
-        Set<DataType<?>> conversions = SAFE_CONVERSIONS.get(source.id());
-        return conversions != null && conversions.contains(target);
     }
 
     public static final Map<String, DataType<?>> TYPES_BY_NAME_OR_ALIAS = Map.ofEntries(

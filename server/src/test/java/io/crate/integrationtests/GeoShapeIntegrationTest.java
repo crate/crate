@@ -41,18 +41,18 @@ import io.crate.types.JsonType;
 
 public class GeoShapeIntegrationTest extends IntegTestCase {
 
-    private static final Map<String, Object> GEO_SHAPE1 = Map.of(
-        "coordinates", new double[][]{
-            {0, 0},
-            {1, 1}
-        },
+    private final Map<String, Object> geoShape1 = Map.of(
+        "coordinates", List.of(
+            List.of(0.0, 0.0),
+            List.of(1.0, 1.0)
+        ),
         "type", "LineString"
     );
-    private static final Map<String, Object> GEO_SHAPE2 = Map.of(
-        "coordinates", new double[][]{
-            {2, 2},
-            {3, 3}
-        },
+    private final Map<String, Object> geoShape2 = Map.of(
+        "coordinates", List.of(
+            List.of(2.0, 2.0),
+            List.of(3.0, 3.0)
+        ),
         "type", "LineString"
     );
 
@@ -69,11 +69,11 @@ public class GeoShapeIntegrationTest extends IntegTestCase {
         execute("INSERT INTO shaped (id, shape, bkd_shape) VALUES (?, ?, ?)",
             $$(
                 $(1L, "POINT (13.0 52.4)", "POINT (13.0 52.4)"),
-                $(2L, GEO_SHAPE1, GEO_SHAPE1)
+                $(2L, geoShape1, geoShape1)
             )
         );
         execute("INSERT INTO shaped (id, shapes, bkd_shapes) VALUES (?, ?, ?)",
-            $(3, new Object[]{GEO_SHAPE1, GEO_SHAPE2}, new Object[]{GEO_SHAPE1, GEO_SHAPE2})
+            $(3, new Object[]{geoShape1, geoShape2}, new Object[]{geoShape1, geoShape2})
         );
         execute("REFRESH TABLE shaped");
     }
