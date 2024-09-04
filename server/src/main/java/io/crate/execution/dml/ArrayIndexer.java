@@ -187,7 +187,7 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
     private void handleNullArrayUpcast(List<?> values,
                                        Consumer<? super Reference> onDynamicColumn,
                                        Synthetics synthetics) throws IOException {
-        DataType<?> type = DataTypes.valueFromList(values, true);
+        DataType<?> type = DataTypes.typeFromList(values, true);
         if (DataTypes.isArrayOfNulls(type)) {
             return;
         }
