@@ -28,6 +28,7 @@ import static io.crate.types.GeoShapeType.Names.TREE_BKD;
 import static io.crate.types.GeoShapeType.Names.TREE_GEOHASH;
 import static io.crate.types.GeoShapeType.Names.TREE_LEGACY_QUADTREE;
 import static io.crate.types.GeoShapeType.Names.TREE_QUADTREE;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
@@ -69,6 +70,7 @@ import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
@@ -1350,6 +1352,51 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 {"1":{"_u_coordinates":[50,50],"_u_type":"Point"},"2":{"coordinates":[50,50],"type":"Point"}}
                 """);
         assertTranslogParses(doc, table);
+    }
+
+    @Test
+    public void test_handles_type_conflicts_in_dynamic_nested_objects() throws Exception {
+        var sqlExecutor = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (o object(dynamic))");
+        DocTableInfo table = sqlExecutor.resolveTableInfo("tbl");
+        Indexer indexer = getIndexer(sqlExecutor, "tbl", "o");
+
+        Map<String, List<Map<String, Integer>>> value1 = Map.of("name", List.of(Map.of("a", 1)));
+        Map<String, Map<String, Integer>> value2 = Map.of("name", Map.of("a", 1));
+
+        List<Reference> newColumns = indexer.collectSchemaUpdates(item(value1));
+
+        assertThat(newColumns).satisfiesExactly(
+            x -> assertThat(x).hasName("o['name']"),
+            x -> assertThat(x).hasName("o['name']['a']")
+        );
+
+
+        newColumns = indexer.collectSchemaUpdates(item(value2));
+        assertThat(newColumns).as("collectSchemaUpdates must not apply the updates immediately").satisfiesExactly(
+            x -> assertThat(x).hasName("o['name']"),
+            x -> assertThat(x).hasName("o['name']['a']")
+        );
+
+        NodeContext nodeCtx = sqlExecutor.nodeCtx;
+        RelationName tableName = table.ident();
+        var addColumnTask = new AlterTableTask<>(
+            nodeCtx, tableName, TransportAddColumnAction.ADD_COLUMN_OPERATOR);
+        var request = new AddColumnRequest(
+            tableName,
+            newColumns,
+            Map.of(),
+            new IntArrayList()
+        );
+        ClusterState newState = addColumnTask.execute(clusterService.state(), request);
+        DocTableInfo newTable = new DocTableInfoFactory(nodeCtx).create(tableName, newState.metadata());
+
+        indexer.updateTargets(newTable::getReference);
+        newColumns = indexer.collectSchemaUpdates(item(value2));
+        assertThat(newColumns).isEmpty();
+
+        assertThatThrownBy(() -> indexer.index(item(value1)))
+            .isExactlyInstanceOf(ClassCastException.class);
     }
 
     public static void assertTranslogParses(ParsedDocument doc, DocTableInfo info) throws Exception {
