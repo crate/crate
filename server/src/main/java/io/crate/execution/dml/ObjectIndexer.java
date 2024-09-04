@@ -179,6 +179,9 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
 
     @Override
     public void updateTargets(Function<ColumnIdent, Reference> getRef) {
+        ColumnIdent objectColumn = ref.column();
+        Reference updatedSelf = getRef.apply(objectColumn);
+        ObjectType objectType = (ObjectType) ArrayType.unnest(updatedSelf.valueType());
         for (Map.Entry<String, Reference> entry : childColumns.entrySet()) {
             var innerName = entry.getKey();
             var oldChildRef = entry.getValue();
@@ -198,6 +201,19 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
         }
         for (var indexer : innerIndexers.values()) {
             indexer.updateTargets(getRef);
+        }
+        for (String innerColumn : objectType.innerTypes().keySet()) {
+            if (!innerIndexers.containsKey(innerColumn)) {
+                Reference childRef = getRef.apply(objectColumn.getChild(innerColumn));
+                @SuppressWarnings("unchecked")
+                ValueIndexer<Object> childIndexer = (ValueIndexer<Object>) childRef.valueType().valueIndexer(
+                    table,
+                    childRef,
+                    getRef
+                );
+                innerIndexers.put(innerColumn, childIndexer);
+                childColumns.put(innerColumn, childRef);
+            }
         }
     }
 
@@ -261,8 +277,6 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                 newColumn,
                 getRef
             );
-            innerIndexers.put(innerName, valueIndexer);
-            childColumns.put(innerName, newColumn);
             valueIndexer.collectSchemaUpdates(
                 innerValue,
                 onDynamicColumn,
