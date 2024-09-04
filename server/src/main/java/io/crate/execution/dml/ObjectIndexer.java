@@ -159,15 +159,33 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
 
     @Override
     public void updateTargets(Function<ColumnIdent, Reference> getRef) {
+        ColumnIdent objectColumn = ref.column();
+        Reference updatedSelf = getRef.apply(objectColumn);
+        ObjectType objectType = (ObjectType) ArrayType.unnest(updatedSelf.valueType());
         for (var entry : children.entrySet()) {
-            var newChildRef = getRef.apply(entry.getValue().ident());
-            if (Objects.equals(entry.getValue().reference, newChildRef) == false) {
-                // noinspection unchecked
+            Child child = entry.getValue();
+            var newChildRef = getRef.apply(child.ident());
+            if (Objects.equals(child.reference, newChildRef) == false) {
+                @SuppressWarnings("unchecked")
                 ValueIndexer<Object> indexer = newChildRef.granularity() == RowGranularity.PARTITION
-                    ? null : (ValueIndexer<Object>) newChildRef.valueType().valueIndexer(newChildRef.ident().tableIdent(), newChildRef, getRef);
+                    ? null
+                    : (ValueIndexer<Object>) newChildRef.valueType().valueIndexer(table, newChildRef, getRef);
+
                 children.put(entry.getKey(), new Child(newChildRef, indexer));
             }
-            entry.getValue().indexer.updateTargets(getRef);
+            child.indexer.updateTargets(getRef);
+        }
+        for (String innerColumn : objectType.innerTypes().keySet()) {
+            if (!children.containsKey(innerColumn)) {
+                Reference childRef = getRef.apply(objectColumn.getChild(innerColumn));
+                @SuppressWarnings("unchecked")
+                ValueIndexer<Object> childIndexer = (ValueIndexer<Object>) childRef.valueType().valueIndexer(
+                    table,
+                    childRef,
+                    getRef
+                );
+                children.put(innerColumn, new Child(childRef, childIndexer));
+            }
         }
     }
 
@@ -234,7 +252,6 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                 newColumn,
                 getRef
             );
-            children.put(innerName, new Child(newColumn, valueIndexer));
             valueIndexer.collectSchemaUpdates(
                 innerValue,
                 onDynamicColumn,
