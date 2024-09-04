@@ -140,6 +140,12 @@ public class LikeQueryBuilderTest extends LuceneQueryBuilderTest {
         assertThat(query)
             .hasToString("(text_no_index LIKE '%abc%')")
             .isExactlyInstanceOf(GenericFunctionQuery.class);
+
+        // When pattern is empty string, if follows a different code path
+        query = convert("text_no_index LIKE ''");
+        assertThat(query)
+            .hasToString("(text_no_index LIKE '')")
+            .isExactlyInstanceOf(GenericFunctionQuery.class);
     }
 
     @Test
@@ -147,6 +153,12 @@ public class LikeQueryBuilderTest extends LuceneQueryBuilderTest {
         Query query = convert("text_no_index ILIKE '%abc%'");
         assertThat(query)
             .hasToString("(text_no_index ILIKE '%abc%')")
+            .isExactlyInstanceOf(GenericFunctionQuery.class);
+
+        // When pattern is empty string, if follows a different code path
+        query = convert("text_no_index ILIKE ''");
+        assertThat(query)
+            .hasToString("(text_no_index ILIKE '')")
             .isExactlyInstanceOf(GenericFunctionQuery.class);
     }
 
