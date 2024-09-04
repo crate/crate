@@ -35,6 +35,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.jetbrains.annotations.Nullable;
@@ -463,5 +464,30 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
         assertThatThrownBy(
             () -> execute("insert into t (n) values ([[1, 2], [3, 4]])")
         ).hasMessageContaining("Dynamic nested arrays are not supported");
+    }
+
+    @Test
+    public void test_conflicting_object_updates_do_not_allow_inserting_incompatible_values() throws Exception {
+        execute("""
+            CREATE TABLE exp1 (id TEXT PRIMARY KEY, doc OBJECT(dynamic))
+            """);
+        execute(
+            """
+            INSERT INTO exp1 (id, doc)
+            VALUES
+                ('4', {"name" = [{ "a" = 1 }]}),
+                ('1', {"name" = { "a" = 1 }}),
+                ('2', {"name" = { "a" = 2 }}),
+                ('3', {"name" = { "a" = null }})
+            ;
+              """
+        );
+        execute("REFRESH TABLE exp1");
+        execute("SELECT id FROM exp1 order by id");
+        List<Integer> ids = Stream.of(response.rows()).map(row -> Integer.parseInt(row[0].toString())).toList();
+        assertThat(ids).satisfiesAnyOf(
+            xs -> assertThat(xs).isEqualTo(List.of(1, 2, 3)),
+            xs -> assertThat(xs).isEqualTo(List.of(4))
+        );
     }
 }

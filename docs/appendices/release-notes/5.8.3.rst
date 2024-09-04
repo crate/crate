@@ -47,6 +47,10 @@ See the :ref:`version_5.8.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed a race condition that could allow ``INSERT INTO`` statements to write
+  values with conflicting types into a table within an ``OBJECT (DYNAMIC)``
+  column if the insert needed to create a new sub-column dynamically.
+
 - Fixed an issue that caused ``WHERE`` clause to filter out all rows when the
   clause contained a :ref:`LIKE or ILIKE<sql_dql_like>` operator on a column
   declared with :ref:`INDEX OFF<sql_ddl_index_off>` and the pattern was an empty
