@@ -101,23 +101,45 @@ public class Literal<T> implements Symbol, Input<T>, Comparable<Literal<T>> {
         if (value == null) {
             return true;
         }
-        if (type.id() == ObjectType.ID) {
-            //noinspection unchecked
-            Map<String, Object> mapValue = (Map<String, Object>) value;
-            ObjectType objectType = ((ObjectType) type);
-            for (var entry : mapValue.entrySet()) {
-                DataType<?> innerType = objectType.innerType(entry.getKey());
+        switch (type.id()) {
+            case ObjectType.ID:
                 //noinspection unchecked
-                if (typeMatchesValue((DataType<Object>) innerType, entry.getValue()) == false) {
+                Map<String, Object> mapValue = (Map<String, Object>) value;
+                ObjectType objectType = ((ObjectType) type);
+                for (var entry : mapValue.entrySet()) {
+                    DataType<?> innerType = objectType.innerType(entry.getKey());
+                    //noinspection unchecked
+                    if (typeMatchesValue((DataType<Object>) innerType, entry.getValue()) == false) {
+                        return false;
+                    }
+                }
+                // let's do the expensive "deep" map value conversion only after everything else succeeded
+                Map<String, Object> safeValue = objectType.sanitizeValue(value);
+                return safeValue.size() == mapValue.size();
+
+            case ArrayType.ID:
+                List<?> listValue;
+                if (value instanceof Object[] arr) {
+                    listValue = Arrays.asList(arr);
+                } else if (value instanceof List<?> list) {
+                    listValue = list;
+                } else {
                     return false;
                 }
-            }
-            // lets do the expensive "deep" map value conversion only after everything else succeeded
-            Map<String, Object> safeValue = objectType.sanitizeValue(value);
-            return safeValue.size() == mapValue.size();
-        }
+                ArrayType<?> arrayType = (ArrayType<?>) type;
+                for (Object innerValue : listValue) {
+                    //noinspection unchecked
+                    if (typeMatchesValue((DataType<Object>) arrayType.innerType(), innerValue) == false) {
+                        return false;
+                    }
+                }
+                // let's do the expensive "deep" list value conversion only after everything else succeeded
+                List<?> safeValueArr = arrayType.sanitizeValue(value);
+                return safeValueArr.size() == listValue.size();
 
-        return Objects.equals(type.sanitizeValue(value), value);
+            default:
+                return Objects.equals(type.sanitizeValue(value), value);
+        }
     }
 
     @Override
@@ -216,7 +238,8 @@ public class Literal<T> implements Symbol, Input<T>, Comparable<Literal<T>> {
     }
 
     public static Literal<Map<String, Object>> of(Map<String, Object> value) {
-        return new Literal<>(DataTypes.UNTYPED_OBJECT, value);
+        ObjectType type = (ObjectType) DataTypes.guessType(value);
+        return new Literal<>(type, value);
     }
 
     public static <T> Literal<List<T>> of(List<T> value, DataType<List<T>> dataType) {
