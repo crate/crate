@@ -180,6 +180,11 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
     private void addNewColumns(Map<String, Object> value,
                                Consumer<? super Reference> onDynamicColumn,
                                Synthetics synthetics) throws IOException {
+        ColumnPolicy columnPolicy = ref.columnPolicy();
+        if (columnPolicy == ColumnPolicy.IGNORED) {
+            return;
+        }
+        boolean isStrict = columnPolicy == ColumnPolicy.STRICT;
         int position = -1;
         for (var entry : value.entrySet()) {
             String innerName = entry.getKey();
@@ -187,16 +192,13 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
             if (children.containsKey(innerName) || innerValue == null) {
                 continue;
             }
-            if (ref.columnPolicy() == ColumnPolicy.STRICT) {
+            if (isStrict) {
                 throw new IllegalArgumentException(String.format(
                     Locale.ENGLISH,
                     "Cannot add column `%s` to strict object `%s`",
                     innerName,
                     ref.column()
                 ));
-            }
-            if (ref.columnPolicy() == ColumnPolicy.IGNORED) {
-                continue;
             }
             var type = DynamicIndexer.guessType(innerValue);
             DynamicIndexer.throwOnNestedArray(type);
@@ -216,7 +218,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                 new ReferenceIdent(table, column.getChild(innerName)),
                 RowGranularity.DOC,
                 type,
-                ref.columnPolicy(),
+                columnPolicy,
                 IndexType.PLAIN,
                 nullable,
                 storageSupport.docValuesDefault(),
