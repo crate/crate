@@ -86,7 +86,9 @@ public abstract class DocCollectorExpression<T> extends LuceneCollectorExpressio
         @Override
         public Object value() {
             // correct type detection is ensured by the source parser
-            return source.get(ref.column().path());
+            var v = source.get(ref.column().path());
+            System.out.println("Loaded value " + v + " for column " + ref);
+            return v;
         }
     }
 }

@@ -24,6 +24,7 @@ package io.crate.execution.dml;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -92,13 +93,11 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
     public static final String ARRAY_VALUES_FIELD_PREFIX = "_array_values_";
 
     private final ValueIndexer<T> innerIndexer;
-    private final Streamer<List<T>> streamer;
     private final String arrayLengthFieldName;
-    private final Reference reference;
+    private Reference reference;    // may be updated in updateTargets
 
-    public ArrayIndexer(ValueIndexer<T> innerIndexer, Streamer<List<T>> streamer, Function<ColumnIdent, Reference> getRef, Reference reference) {
+    public ArrayIndexer(ValueIndexer<T> innerIndexer, Function<ColumnIdent, Reference> getRef, Reference reference) {
         this.innerIndexer = innerIndexer;
-        this.streamer = streamer;
         this.reference = reference;
         this.arrayLengthFieldName = toArrayLengthFieldName(reference, getRef);
     }
@@ -131,6 +130,7 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
     }
 
     private BytesReference arrayToBytes(List<T> values) {
+        Streamer<List<T>> streamer = (Streamer<List<T>>) reference.valueType().streamer();
         try (BytesStreamOutput output = new BytesStreamOutput()) {
             streamer.writeValueTo(output, values);
             return output.bytes();
@@ -154,6 +154,10 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
 
     @Override
     public void updateTargets(Function<ColumnIdent, Reference> getRef) {
+        var newRef = getRef.apply(reference.column());
+        if (Objects.equals(reference, newRef) == false) {
+            this.reference = newRef;
+        }
         innerIndexer.updateTargets(getRef);
     }
 

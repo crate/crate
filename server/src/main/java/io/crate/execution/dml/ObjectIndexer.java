@@ -33,7 +33,6 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.apache.lucene.document.StoredField;
-import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.jetbrains.annotations.NotNull;
@@ -55,6 +54,7 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.ObjectType;
 import io.crate.types.StorageSupport;
+import io.crate.types.UndefinedType;
 
 public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
 
@@ -64,7 +64,6 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
     private final RelationName table;
     private final Reference ref;
     private final String unknownColumnPrefix;
-    private final Streamer<Map<String, Object>> streamer;
 
     private record Child(Reference reference, ValueIndexer<Object> indexer) {
         ColumnIdent ident() {
@@ -75,12 +74,10 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
     @SuppressWarnings("unchecked")
     public ObjectIndexer(RelationName table,
                          Reference ref,
-                         Function<ColumnIdent, Reference> getRef,
-                         Streamer<Map<String, Object>> streamer) {
+                         Function<ColumnIdent, Reference> getRef) {
         this.table = table;
         this.ref = ref;
         this.getRef = getRef;
-        this.streamer = streamer;
         this.unknownColumnPrefix = ref.oid() != COLUMN_OID_UNASSIGNED ? SourceParser.UNKNOWN_COLUMN_PREFIX : "";
         this.column = ref.column();
         ObjectType objectType = (ObjectType) ArrayType.unnest(ref.valueType());
@@ -142,16 +139,34 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
             if (ignoredColumns.isEmpty() == false) {
                 docBuilder.addField(new StoredField(ref.storageIdentLeafName(), toBytes(ignoredColumns).toBytesRef()));
             } else if (value.isEmpty()) {
-                docBuilder.addField(new StoredField(ref.storageIdentLeafName(), new BytesRef("{}")));
+                docBuilder.addField(new StoredField(ref.storageIdentLeafName(), toBytes(value).toBytesRef()));
             }
         }
         translogWriter.endObject();
     }
 
-    private BytesReference toBytes(Map<String, Object> map) {
-        try (BytesStreamOutput output = new BytesStreamOutput()) {
-            streamer.writeValueTo(output, map);
-            return output.bytes();
+    private BytesReference toBytes(Map<String, Object> v) {
+        try (BytesStreamOutput out = new BytesStreamOutput()) {
+            if (v == null) {
+                out.writeBoolean(false);
+            } else {
+                out.writeBoolean(true);
+                out.writeInt(v.size());
+                for (Map.Entry<String, Object> entry : v.entrySet()) {
+                    String key = entry.getKey();
+                    out.writeString(key);
+                    Child child = children.get(key);
+                    if (child == null) {
+                        UndefinedType.INSTANCE.streamer().writeValueTo(out, entry.getValue());
+                    } else {
+                        DataType<?> innerType = child.reference.valueType();
+                        Streamer<Object> streamer = (Streamer<Object>) innerType.streamer();
+                        var sv = innerType.implicitCast(entry.getValue());
+                        streamer.writeValueTo(out, sv);
+                    }
+                }
+            }
+            return out.bytes();
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }

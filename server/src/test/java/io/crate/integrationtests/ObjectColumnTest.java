@@ -399,7 +399,7 @@ public class ObjectColumnTest extends IntegTestCase {
         execute("refresh table tbl");
         assertThat(execute("select id, o, os, complex from tbl order by 1 asc")).hasRows(
             "1| {key=synth}| NULL| {x=synth}",
-            "2| {key=synth}| [{x=synth}, null, {x=synth, y=10}, {x=1, y=2}]| {x=synth}",
+            "2| {key=synth}| [{x=synth}, null, {y=10, x=synth}, {x=1, y=2}]| {x=synth}",
             "3| {key=synth}| NULL| {os=[{key=synth}, null], x=synth}"
         );
     }

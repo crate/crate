@@ -49,7 +49,7 @@ public class ColumnFieldVisitor extends StoredFieldVisitor {
         if (column.name().equals(DocSysColumns.Names.DOC)) {
             column = column.shiftRight();
         }
-        var storageName = ref.storageIdent();
+        var storageName = ref.storageIdentLeafName();
         if (ref.valueType() instanceof ArrayType<?>) {
             storageName = ArrayIndexer.ARRAY_VALUES_FIELD_PREFIX + storageName;
         }
@@ -72,7 +72,8 @@ public class ColumnFieldVisitor extends StoredFieldVisitor {
     @Override
     public void binaryField(FieldInfo fieldInfo, byte[] value) throws IOException {
         var field = fields.get(fieldInfo.name);
-        Maps.mergeInto(this.doc, field.column.name(), field.column.path(), field.dataType.sanitizeValue(value));
+        var v = field.dataType.sanitizeValue(value);
+        Maps.mergeInto(this.doc, field.column.name(), field.column.path(), v);
     }
 
     @Override

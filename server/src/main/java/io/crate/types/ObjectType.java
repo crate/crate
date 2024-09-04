@@ -391,7 +391,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
             public ValueIndexer<Map<String, Object>> valueIndexer(RelationName table,
                                                                   Reference ref,
                                                                   Function<ColumnIdent, Reference> getRef) {
-                return new ObjectIndexer(table, ref, getRef, streamer());
+                return new ObjectIndexer(table, ref, getRef);
             }
         };
     }
