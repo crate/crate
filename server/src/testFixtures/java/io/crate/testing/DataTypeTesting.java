@@ -211,10 +211,11 @@ public class DataTypeTesting {
                     Integer precision = numericType.numericPrecision();
                     int scale = numericType.scale() == null ? 0 : numericType.scale();
                     int maxDigits = precision == null ? 131072 : precision;
-                    int numDigits = random.nextInt(scale == 0 ? 1 : scale + 1, maxDigits + 1);
+                    int numDigits = random.nextInt(scale + 1, maxDigits + 1);
                     StringBuilder sb = new StringBuilder(numDigits);
                     for (int i = 0; i < numDigits; i++) {
-                        sb.append(random.nextInt(10));
+                        int lowBound = (i == 0) ? 1 : 0; // don't allow leading zeros
+                        sb.append(random.nextInt(lowBound, 10));
                     }
                     BigInteger bigInt = new BigInteger(sb.toString());
                     return (T) new BigDecimal(bigInt, scale, numericType.mathContext());
