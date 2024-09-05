@@ -248,7 +248,7 @@ public class DiskThresholdDeciderIT extends IntegTestCase {
             ensureGreen();
             execute("optimize table " + tableName + " with (max_num_segments=1)");
 
-            refresh();
+            execute("refresh table " + tableName);
 
             var indicesStats = client().admin().indices().stats(new IndicesStatsRequest().indices(indexName).store(true)).get();
             final List<ShardStats> shardStatses = indicesStats.getIndex(indexName).getShards();

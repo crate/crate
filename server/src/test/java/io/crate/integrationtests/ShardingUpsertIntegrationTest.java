@@ -64,7 +64,7 @@ public class ShardingUpsertIntegrationTest extends IntegTestCase {
             new Object[]{ copyFilePath + "data_import.json"}
         );
         assertThat(response.rowCount()).isEqualTo(150L);
-        refresh();
+        execute("refresh table contributors");
         execute("select id, day_joined, name from contributors");
         assertThat(response.rowCount()).isEqualTo(150L);
     }

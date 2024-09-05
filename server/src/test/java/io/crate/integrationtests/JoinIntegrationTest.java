@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Arrays;
@@ -253,7 +252,6 @@ public class JoinIntegrationTest extends IntegTestCase {
     public void testOutputFromOnlyOneTable() throws Exception {
         createColorsAndSizes();
         execute("select colors.name from colors, sizes order by colors.name");
-        assertThat(response).hasRowCount(6L);
         assertThat(response).hasRows(
             "blue",
             "blue",
@@ -271,7 +269,6 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("refresh table t");
 
         execute("select shards.id, t.name from sys.shards, t where shards.table_name = 't' order by shards.id, t.name");
-        assertThat(response).hasRowCount(6L);
         assertThat(response).hasRows(
             "0| bar",
             "0| foo",
@@ -291,7 +288,6 @@ public class JoinIntegrationTest extends IntegTestCase {
                 "and tables.table_name = columns.table_name " +
                 "order by columns.column_name " +
                 "limit 5");
-        assertThat(response).hasRowCount(5L);
         assertThat(response).hasRows(
             "strict| blob_path",
                "strict| closed",
@@ -306,8 +302,6 @@ public class JoinIntegrationTest extends IntegTestCase {
         ensureYellow();
 
         execute("select s1.id, s2.id, s1.table_name from sys.shards s1, sys.shards s2 order by s1.id asc, s2.id desc");
-        assertThat(response).hasRowCount(9L);
-
         assertThat(response).hasRows(
             "0| 2| t",
             "0| 1| t",
@@ -350,7 +344,7 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("create table t2 (id int)");
         execute("insert into t1 (id, a) values (1, {b=1})");
         execute("insert into t2 (id) values (1)");
-        refresh();
+        execute("refresh table t1, t2");
         execute("select t.id, tt.id from t1 as t, t2 as tt where tt.id = t.a['b']");
         assertThat(response).hasRows("1| 1");
     }
@@ -360,7 +354,6 @@ public class JoinIntegrationTest extends IntegTestCase {
         // sys table with doc granularity on single node
         execute("select * from information_schema.schemata t1, information_schema.schemata t2 " +
                 "order by t1.schema_name, t2.schema_name");
-        assertThat(response).hasRowCount(25L);
         assertThat(response).hasRows(
                "blob| blob",
                "blob| doc",
@@ -396,7 +389,6 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("insert into t (x) values (1), (2)");
         execute("refresh table t");
         execute("select * from t as t1, t as t2");
-        assertThat(response).hasRowCount(4L);
         assertThat(response).hasRowsInAnyOrder(
             new Object[]{1, 1},
             new Object[]{1, 2},
@@ -525,8 +517,9 @@ public class JoinIntegrationTest extends IntegTestCase {
     public void testJoinTableWithEmptyRouting() throws Exception {
         // no shards in sys.shards -> empty routing
         execute("SELECT s.id, n.id, n.name FROM sys.shards s, sys.nodes n");
-        assertThat(response).hasColumns("id", "id", "name");
-        assertThat(response).hasRowCount(0L);
+        assertThat(response)
+            .hasColumns("id", "id", "name")
+            .hasRowCount(0L);
     }
 
     @Test
@@ -588,7 +581,6 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("refresh table t1, t2, t3");
 
         execute("select * from t1, t2, t3");
-        assertThat(response).hasRowCount(1L);
         assertThat(response).hasRows("1| 2| 3");
     }
 
@@ -788,7 +780,7 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("insert into t2 (id, t3) values (1, 1), (2, 1), (3, 2), (3, 4)");
         execute("insert into t1 (id, t2, val) values (1, 1, 0.12), (2, 2, 1.23), (3, 3, 2.34), (4, 4, 3.45)");
 
-        refresh();
+        execute("refresh table t1, t2, t3");
         execute("select sum(t1.val), avg(t2.id), min(t3.id) from t1 inner join t2 on t1.t2 = t2.id inner join t3 on t2.t3 = t3.id");
         assertThat(response).hasRows("3.69| 2.0| 1");
     }
@@ -1365,7 +1357,7 @@ public class JoinIntegrationTest extends IntegTestCase {
 
         execute("INSERT INTO t1 VALUES (1), (2)");
         execute("INSERT INTO t2 VALUES (1)");
-        refresh();
+        execute("refresh table t1, t2");
 
         var stmt =
             """

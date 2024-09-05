@@ -96,7 +96,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
         execute("copy quotes from ?", new Object[] {copyFilePath + "test_copy_from.json"});
         assertThat(response).hasRowCount(3L);
-        refresh();
+        execute("refresh table quotes");
 
         execute("select * from quotes");
         assertThat(response).hasRowCount(3L);
@@ -113,7 +113,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
         execute("copy quotes from ? with (format='csv')", new Object[]{copyFilePath + "test_copy_from_csv.ext"});
         assertThat(response).hasRowCount(3L);
-        refresh();
+        execute("refresh table quotes");
 
         execute("select * from quotes");
         assertThat(response).hasRowCount(3L);
@@ -130,7 +130,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
         execute("copy quotes from ? with (format='csv')", new Object[]{copyFilePath + "test_copy_from_csv_extra_column.ext"});
         assertThat(response).hasRowCount(3L);
-        refresh();
+        execute("refresh table quotes");
 
         execute("select * from quotes");
         assertThat(response).hasRowCount(3L);
@@ -148,7 +148,7 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
 
         execute("copy quotes(id, quote, comment) from ? with (format='csv')", new Object[]{copyFilePath + "test_copy_from_csv_extra_column.ext"});
         assertThat(response).hasRowCount(3L);
-        refresh();
+        execute("refresh table quotes");
 
         execute("select * from quotes");
         assertThat(response).hasRowCount(3L);

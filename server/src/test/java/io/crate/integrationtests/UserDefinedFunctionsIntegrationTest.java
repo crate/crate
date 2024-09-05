@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Locale;
@@ -125,7 +124,7 @@ public class UserDefinedFunctionsIntegrationTest extends IntegTestCase {
             rows[i] = new Object[]{(long) i, String.valueOf(i)};
         }
         execute("insert into test (id, str) values (?, ?)", rows);
-        refresh();
+        execute("refresh table test");
         try {
             execute("create function foo(long)" +
                 " returns string language dummy_lang as 'function foo(x) { return \"1\"; }'");

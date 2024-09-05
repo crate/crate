@@ -23,7 +23,6 @@ package io.crate.integrationtests;
 
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.sql.DriverManager;
@@ -456,7 +455,7 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
     public void test_can_mix_correlated_qubquery_and_sub_select() {
         execute("CREATE TABLE tbl(x int)");
         execute("INSERT INTO tbl(x) VALUES (1)");
-        refresh();
+        execute("refresh table tbl");
         execute(
             """
            SELECT (
