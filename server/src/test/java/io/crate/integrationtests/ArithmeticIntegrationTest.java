@@ -185,9 +185,8 @@ public class ArithmeticIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("insert into t (i, l, d) values (1, 2, 90.5), (-1, 4, 90.5), (193384, 31234594433, 99.0)");
         execute("insert into t (i, l, d) values (1, 2, 99.0), (-1, 4, 99.0)");
-        refresh();
+        execute("refresh table t");
         execute("select l, log(d,l) from t order by l, log(d,l) desc");
-        assertThat(response).hasRowCount(5L);
         assertThat(response).hasRows(
             "2| 6.6293566200796095",
             "2| 6.499845887083206",
@@ -205,7 +204,7 @@ public class ArithmeticIntegrationTest extends IntegTestCase {
             new Object[]{2, "bar"},
             new Object[]{3, "foobar"}
         });
-        refresh();
+        execute("refresh table regex_noindex");
         execute("select regexp_replace(s, 'foo', 'crate') from regex_noindex order by i");
         assertThat(response).hasRowCount(3L);
         assertThat((String) response.rows()[0][0]).isEqualTo("crate");
@@ -226,7 +225,7 @@ public class ArithmeticIntegrationTest extends IntegTestCase {
             new Object[]{3, "foobar is great"},
             new Object[]{4, "crate is greater"}
         });
-        refresh();
+        execute("refresh table regex_fulltext");
 
         execute("select regexp_replace(s, 'is', 'was') from regex_fulltext order by i");
         assertThat(response).hasRowCount(4L);
@@ -262,11 +261,9 @@ public class ArithmeticIntegrationTest extends IntegTestCase {
         execute("create table t (i integer, l long, d double) clustered into 3 shards with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into t (i, l, d) values (1, 2, 90.5), (2, 5, 90.5), (193384, 31234594433, 99.0), (10, 21, 99.0), (-1, 4, 99.0)");
-        refresh();
+        execute("refresh table t");
 
         execute("select i from t where i%2 = 0 order by i");
-        assertThat(response).hasRowCount(3L);
-
         assertThat(response).hasRows(
             "2",
             "10",
@@ -289,7 +286,7 @@ public class ArithmeticIntegrationTest extends IntegTestCase {
         execute("create table t (i integer, l long, d double) clustered into 3 shards with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into t (i, l, d) values (1, 2, 90.5), (2, 5, 90.5), (193384, 31234594433, 99.0), (10, 21, 99.0), (-1, 4, 99.0)");
-        refresh();
+        execute("refresh table t");
 
         execute("select i, i%3 from t order by i%3, l");
         assertThat(response).hasRows(
@@ -305,7 +302,7 @@ public class ArithmeticIntegrationTest extends IntegTestCase {
         execute("create table t (i integer, l long, d double) clustered into 1 shards with (number_of_replicas=0)");
         ensureYellow();
         execute("insert into t (i, l, d) values (1, 2, 90.5)");
-        refresh();
+        execute("refresh table t");
         Asserts.assertSQLError(() -> execute("select log(d, l) from t where log(d, -1) >= 0"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
@@ -339,7 +336,7 @@ public class ArithmeticIntegrationTest extends IntegTestCase {
                 "   t timestamp without time zone " +
                 ") with (number_of_replicas=0)");
         execute("insert into t (b, s, i, l, f, d, tz, t) values (1, 2, 3, 4, 5.7, 6.3, '2014-07-30', '2018-07-30')");
-        refresh();
+        execute("refresh table t");
 
         String[] functionCalls = new String[]{
             "abs(%s)",
@@ -395,7 +392,7 @@ public class ArithmeticIntegrationTest extends IntegTestCase {
     public void test_floating_point_arithmetic() {
         execute("create table t1 (i int, bi bigint, d double, f float)");
         execute("insert into t1 (i, bi, d, f) values (1, 1, 1, 1)");
-        refresh();
+        execute("refresh table t1");
         execute(
             """
             select

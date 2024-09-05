@@ -27,7 +27,6 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -155,7 +154,7 @@ public class CreateTableIntegrationTest extends IntegTestCase {
     public void test_intervals_in_generated_column() {
         execute("create table test(t timestamp, calculated timestamp generated always as DATE_BIN('15 minutes'::INTERVAL, t, '2001-01-01'))");
         execute("insert into test(t) values('2020-02-11 15:44:17')");
-        refresh();
+        execute("refresh table test");
         execute("select date_format('%Y-%m-%d %H:%i:%s', calculated) from test");
         assertThat(printedTable(response.rows())).isEqualTo("2020-02-11 15:30:00\n");
     }

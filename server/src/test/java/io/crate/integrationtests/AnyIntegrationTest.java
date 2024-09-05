@@ -127,7 +127,7 @@ public class AnyIntegrationTest extends IntegTestCase {
                 "(2, ['two', 'three'])," +
                 "(3, ['three', 'four'])," +
                 "(4, [])");
-        refresh();
+        execute("refresh table t");
 
         execute("select b from t where not 'two' = ANY(labels) order by b");
         assertThat(response).hasRows("3", "4");
