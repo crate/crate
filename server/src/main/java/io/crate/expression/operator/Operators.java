@@ -25,6 +25,7 @@ import java.util.Set;
 
 import org.elasticsearch.common.settings.Settings;
 
+import io.crate.expression.operator.all.AllOperator;
 import io.crate.expression.operator.any.AnyOperator;
 import io.crate.expression.predicate.NotPredicate;
 import io.crate.metadata.Functions;
