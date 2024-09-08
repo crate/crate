@@ -27,6 +27,7 @@ import java.util.List;
 import org.apache.lucene.search.Query;
 
 import io.crate.data.Input;
+import io.crate.expression.operator.LikeOperators;
 import io.crate.expression.operator.Operator;
 import io.crate.expression.scalar.ArrayUnnestFunction;
 import io.crate.expression.symbol.Function;
@@ -44,7 +45,7 @@ import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.types.DataType;
 import io.crate.types.TypeSignature;
 
-public abstract sealed class AllOperator<T> extends Operator<T> permits AllEqOperator, AllNeqOperator, AllRangeOperator {
+public abstract sealed class AllOperator<T> extends Operator<T> permits AllEqOperator, AllLikeOperator, AllNeqOperator, AllNotLikeOperator, AllRangeOperator {
 
     public static final String OPERATOR_PREFIX = "_all_";
     public static final List<String> OPERATOR_NAMES = List.of(
@@ -53,7 +54,11 @@ public abstract sealed class AllOperator<T> extends Operator<T> permits AllEqOpe
         AllRangeOperator.Comparison.GT.opName(),
         AllRangeOperator.Comparison.GTE.opName(),
         AllRangeOperator.Comparison.LT.opName(),
-        AllRangeOperator.Comparison.LTE.opName()
+        AllRangeOperator.Comparison.LTE.opName(),
+        LikeOperators.ALL_LIKE,
+        LikeOperators.ALL_ILIKE,
+        LikeOperators.ALL_NOT_LIKE,
+        LikeOperators.ALL_NOT_ILIKE
     );
 
     protected final DataType<Object> leftType;
@@ -114,11 +119,11 @@ public abstract sealed class AllOperator<T> extends Operator<T> permits AllEqOpe
             if (rightValue == null) {
                 anyNulls = true;
                 matches++;
-                continue;
-            }
-            validateRightArg(rightValue);
-            if (matches(leftValue, rightValue)) {
-                matches++;
+            } else {
+                validateRightArg(rightValue);
+                if (matches(leftValue, rightValue)) {
+                    matches++;
+                }
             }
         }
         if (matches == rightValues.size()) {
@@ -128,17 +133,16 @@ public abstract sealed class AllOperator<T> extends Operator<T> permits AllEqOpe
         }
     }
 
-    @SuppressWarnings("unchecked")
     @Override
     public Query toQuery(Function function, LuceneQueryBuilder.Context context) {
         List<Symbol> args = function.arguments();
         Symbol probe = args.get(0);
         Symbol candidates = args.get(1);
         while (candidates instanceof Function fn && fn.signature().equals(ArrayUnnestFunction.SIGNATURE)) {
-            candidates = fn.arguments().get(0);
+            candidates = fn.arguments().getFirst();
         }
         if (probe instanceof Literal<?> literal && candidates instanceof Reference ref) {
-            return literalMatchesAllArrayRef(function, (Literal<T>) literal, ref, context);
+            return literalMatchesAllArrayRef(function, literal, ref, context);
         } else if (probe instanceof Reference ref && candidates instanceof Literal<?> literal) {
             return refMatchesAllArrayLiteral(function, ref, literal, context);
         } else {
