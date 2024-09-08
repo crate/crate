@@ -75,3 +75,6 @@ Fixes
 - Fixed an issue that caused failure of ``ALTER ROLE`` statements updating or
   resetting password of a user with specified :ref:`JWT <create-user-jwt>`
   properties.
+
+- Fixed an issue that caused filtering by ``LIKE ALL`` on arrays to behave like
+  ``LIKE ANY``.

@@ -61,6 +61,7 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ConversionException;
 import io.crate.execution.engine.aggregation.impl.CollectSetAggregation;
 import io.crate.expression.eval.EvaluatingNormalizer;
+import io.crate.expression.operator.all.AllOperator;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.ExistsOperator;
@@ -69,7 +70,6 @@ import io.crate.expression.operator.Operator;
 import io.crate.expression.operator.OrOperator;
 import io.crate.expression.operator.RegexpMatchCaseInsensitiveOperator;
 import io.crate.expression.operator.RegexpMatchOperator;
-import io.crate.expression.operator.all.AllOperator;
 import io.crate.expression.operator.any.AnyOperator;
 import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.scalar.ArraySliceFunction;
@@ -844,7 +844,7 @@ public class ExpressionAnalyzer {
             Symbol arraySymbol = node.getValue().accept(this, context);
             Symbol leftSymbol = node.getPattern().accept(this, context);
             return allocateFunction(
-                LikeOperators.arrayOperatorName(node.inverse(), node.ignoreCase()),
+                LikeOperators.arrayOperatorName(node.quantifier(), node.inverse(), node.ignoreCase()),
                 List.of(leftSymbol, arraySymbol),
                 context);
         }
