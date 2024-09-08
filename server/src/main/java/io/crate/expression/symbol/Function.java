@@ -39,6 +39,7 @@ import io.crate.exceptions.ConversionException;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.expression.operator.ExistsOperator;
 import io.crate.expression.operator.Operator;
+import io.crate.expression.operator.all.AllOperator;
 import io.crate.expression.operator.any.AnyOperator;
 import io.crate.expression.predicate.IsNullPredicate;
 import io.crate.expression.predicate.MatchPredicate;
@@ -378,6 +379,8 @@ public class Function implements Symbol, Cloneable {
             default:
                 if (AnyOperator.OPERATOR_NAMES.contains(name)) {
                     printAnyOperator(builder, style);
+                } else if (AllOperator.OPERATOR_NAMES.contains(name)) {
+                    printAllOperator(builder, style);
                 } else if (isCast()) {
                     printCastFunction(builder, style);
                 } else if (name.startsWith(Operator.PREFIX)) {
@@ -412,7 +415,7 @@ public class Function implements Symbol, Cloneable {
         String name = signature.getName().name();
         assert name.startsWith(AnyOperator.OPERATOR_PREFIX) : "function for printAnyOperator must start with any prefix";
         assert arguments.size() == 2 : "function's number of arguments must be 2";
-        String operatorName = name.substring(4).replace('_', ' ').toUpperCase(Locale.ENGLISH);
+        String operatorName = name.substring(AnyOperator.OPERATOR_PREFIX.length()).replace('_', ' ').toUpperCase(Locale.ENGLISH);
         builder
             .append("(") // wrap operator in parens to ensure precedence
             .append(arguments.get(0).toString(style))
@@ -420,6 +423,22 @@ public class Function implements Symbol, Cloneable {
             .append(operatorName)
             .append(" ")
             .append("ANY(")
+            .append(arguments.get(1).toString(style))
+            .append("))");
+    }
+
+    private void printAllOperator(StringBuilder builder, Style style) {
+        String name = signature.getName().name();
+        assert name.startsWith(AllOperator.OPERATOR_PREFIX) : "function for printAllOperator must start with all prefix";
+        assert arguments.size() == 2 : "function's number of arguments must be 2";
+        String operatorName = name.substring(AllOperator.OPERATOR_PREFIX.length()).replace('_', ' ').toUpperCase(Locale.ENGLISH);
+        builder
+            .append("(") // wrap operator in parens to ensure precedence
+            .append(arguments.get(0).toString(style))
+            .append(" ")
+            .append(operatorName)
+            .append(" ")
+            .append("ALL(")
             .append(arguments.get(1).toString(style))
             .append("))");
     }
