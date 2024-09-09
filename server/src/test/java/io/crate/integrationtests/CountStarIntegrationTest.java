@@ -45,7 +45,7 @@ public class CountStarIntegrationTest extends IntegTestCase {
         execute("insert into t (name, p) values ('Arthur', 'foo')");
         execute("insert into t (name, p) values ('Trillian', 'foobar')");
         ensureYellow();
-        refresh();
+        execute("refresh table t");
 
         execute("select count(*) from t where p = 'foobar'");
         assertThat(response.rowCount()).isEqualTo(1L);

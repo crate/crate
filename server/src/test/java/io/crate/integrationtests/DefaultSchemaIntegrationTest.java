@@ -70,9 +70,8 @@ public class DefaultSchemaIntegrationTest extends IntegTestCase {
         File foobarExport = tmpFolder.newFolder("foobar_export");
         String uriTemplate = Paths.get(foobarExport.toURI()).toUri().toString();
         execute("copy foobar to directory ?", new Object[]{uriTemplate}, "foo");
-        refresh();
         execute("delete from foobar", "foo");
-        refresh();
+        execute("refresh table foobar", "foo");
 
         execute("select * from foobar", "foo");
         assertThat(response.rowCount()).isEqualTo(0L);

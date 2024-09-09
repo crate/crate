@@ -33,6 +33,9 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.testing.T3;
+import io.crate.testing.UseRandomizedOptimizerRules;
+
 @IntegTestCase.ClusterScope(numDataNodes = 2)
 public class ExplainAnalyzeIntegrationTest extends IntegTestCase {
 
@@ -87,5 +90,62 @@ public class ExplainAnalyzeIntegrationTest extends IntegTestCase {
         assertThat(executeAnalysis)
             .containsKeys("Total")
             .satisfies(m -> assertThat(m.keySet()).containsAnyOf(nodeIds.toArray(new String[] {})));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void test_explain_analyze_on_statement_with_subquery() {
+        execute("explain analyze select * from locations where id = (select id from locations where name = 'foo')");
+        Map<String, Object> analysis = (Map<String, Object>) response.rows()[0][0];
+        Map<String, Object> executeAnalysis = (Map<String, Object>) analysis.get("Execute");
+        List<Object> subPlans = (List<Object>) executeAnalysis.get("Sub-Queries");
+        assertThat(subPlans).hasSize(1);
+        Map<String, Object> subPlanAnalysis = (Map<String, Object>) subPlans.getFirst();
+        assertThat(subPlanAnalysis).containsKeys("Phases", "Total");
+        Map<String, Map<String, Object>> phasesAnalysis = (Map<String, Map<String, Object>>) subPlanAnalysis.get("Phases");
+        assertThat(phasesAnalysis).isNotNull();
+        assertThat(phasesAnalysis.keySet()).containsExactly("0-collect", "1-mergeOnHandler");
+
+        DiscoveryNodes nodes = clusterService().state().nodes();
+        for (DiscoveryNode discoveryNode : nodes) {
+            if (discoveryNode.isDataNode()) {
+                Object actual = subPlanAnalysis.get(discoveryNode.getId());
+                assertThat(actual).isInstanceOf(Map.class);
+
+                Map<String, Object> timings = (Map<String, Object>) actual;
+                assertThat(timings).containsOnlyKeys("QueryBreakdown");
+
+                Map<String, String> queryBreakdown = ((List<Map<String, String>>) timings.get("QueryBreakdown")).getFirst();
+                assertThat(queryBreakdown).containsEntry("QueryName", "TermQuery");
+            }
+        }
+    }
+
+    @UseRandomizedOptimizerRules(0)
+    @SuppressWarnings("unchecked")
+    @Test
+    public void test_explain_analyze_with_nested_subquery() {
+        execute(T3.T1_DEFINITION);
+        execute(T3.T2_DEFINITION);
+        execute("EXPLAIN ANALYZE " +
+            "SELECT * FROM doc.t1 WHERE x > (SELECT 1 FROM doc.t1 WHERE x > (SELECT count(*) FROM doc.t2 LIMIT 1)::integer)");
+        Map<String, Object> analysis = (Map<String, Object>) response.rows()[0][0];
+        Map<String, Object> executeAnalysis = (Map<String, Object>) analysis.get("Execute");
+
+        List<Object> subPlans = (List<Object>) executeAnalysis.get("Sub-Queries");
+        assertThat(subPlans).hasSize(1);
+        Map<String, Object> subPlanAnalysis = (Map<String, Object>) subPlans.getFirst();
+        assertThat(subPlanAnalysis).containsKeys("Phases", "Total");
+        Map<String, Map<String, Object>> phasesAnalysis = (Map<String, Map<String, Object>>) subPlanAnalysis.get("Phases");
+        assertThat(phasesAnalysis).isNotNull();
+        assertThat(phasesAnalysis.keySet()).contains("0-collect");
+
+        List<Object> subSubPlans = (List<Object>) subPlanAnalysis.get("Sub-Queries");
+        assertThat(subSubPlans).hasSize(1);
+        Map<String, Object> subSubPlanAnalysis = (Map<String, Object>) subSubPlans.getFirst();
+        assertThat(subSubPlanAnalysis).containsKeys("Phases", "Total");
+        Map<String, Map<String, Object>> subPhasesAnalysis = (Map<String, Map<String, Object>>) subSubPlanAnalysis.get("Phases");
+        assertThat(subPhasesAnalysis).isNotNull();
+        assertThat(subPhasesAnalysis.keySet()).contains("0-count");
     }
 }

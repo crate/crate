@@ -101,7 +101,7 @@ public class DocLevelCollectTest extends IntegTestCase {
                                               "  id integer," +
                                               "  name string," +
                                               "  date timestamp with time zone" +
-                                              ") clustered into 2 shards partitioned by (date, name) with(number_of_replicas=0)", PARTITIONED_TABLE_NAME));
+                                              ") clustered into 2 shards partitioned by (date) with(number_of_replicas=0)", PARTITIONED_TABLE_NAME));
         ensureGreen();
         execute(String.format(Locale.ENGLISH, "insert into %s (id, name, date) values (?, ?, ?)",
             PARTITIONED_TABLE_NAME),
@@ -110,7 +110,7 @@ public class DocLevelCollectTest extends IntegTestCase {
             PARTITIONED_TABLE_NAME),
             new Object[]{2, "Trillian", 1L});
         ensureGreen();
-        refresh();
+        execute(String.format(Locale.ENGLISH, "refresh table %s", PARTITIONED_TABLE_NAME));
 
         execute(String.format(Locale.ENGLISH, "create table %s (" +
                                               " id integer primary key," +
@@ -119,7 +119,7 @@ public class DocLevelCollectTest extends IntegTestCase {
         ensureGreen();
         execute(String.format(Locale.ENGLISH, "insert into %s (id, doc) values (?, ?)", TEST_TABLE_NAME), new Object[]{1, 2});
         execute(String.format(Locale.ENGLISH, "insert into %s (id, doc) values (?, ?)", TEST_TABLE_NAME), new Object[]{3, 4});
-        refresh();
+        execute(String.format(Locale.ENGLISH, "refresh table %s", TEST_TABLE_NAME));
 
         var table = schemas.getTableInfo(RelationName.fromIndexName(TEST_TABLE_NAME));
         testDocLevelReference = table.getReference(ColumnIdent.fromPath("doc"));

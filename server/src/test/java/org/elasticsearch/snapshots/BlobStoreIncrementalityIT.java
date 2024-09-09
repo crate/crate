@@ -90,7 +90,7 @@ public class BlobStoreIncrementalityIT extends AbstractSnapshotIntegTestCase {
         }
         int documentCountOriginal = data.size();
         execute("INSERT INTO " + indexName + "(a) VALUES(?)", data.toArray(new Object[][]{}));
-        refresh();
+        execute("refresh table " + indexName);
 
         final String snapshot1 = "snap_1";
         final String repo = "test_repo";
@@ -137,7 +137,7 @@ public class BlobStoreIncrementalityIT extends AbstractSnapshotIntegTestCase {
         }
         execute("INSERT INTO " + indexName + "(a) VALUES(?)", data.toArray(new Object[][]{}));
         int countAfterRecreation = data.size();
-        refresh();
+        execute("refresh table " + indexName);
 
         final String snapshot3 = "snap_3";
         logger.info("--> creating snapshot 3");
@@ -177,7 +177,7 @@ public class BlobStoreIncrementalityIT extends AbstractSnapshotIntegTestCase {
                 data.add(new Object[]{"foo" + j + "_bar" + i});
             }
             execute("INSERT INTO " + indexName + "(a) VALUES(?)", data.toArray(new Object[][]{}));
-            refresh();
+            execute("refresh table " + indexName);
         }
         execute("SELECT count(*) FROM sys.segments WHERE primary=true AND table_name=?", new Object[]{indexName});
         assertThat((long) response.rows()[0][0]).isGreaterThan(1);
@@ -193,7 +193,7 @@ public class BlobStoreIncrementalityIT extends AbstractSnapshotIntegTestCase {
 
         logger.info("--> force merging down to a single segment");
         execute("OPTIMIZE TABLE " + indexName + " WITH(max_num_segments=1)");
-        refresh();
+        execute("refresh table " + indexName);
         execute("SELECT count(*) FROM sys.segments WHERE primary=true AND table_name=?", new Object[]{indexName});
         assertThat((long) response.rows()[0][0]).isEqualTo(1);
 
