@@ -326,7 +326,7 @@ public class ExplainPlan implements Plan {
                                                                              List<Map<String, Object>> explainResults) {
         RowConsumer rowConsumer = MultiPhaseExecutor.getConsumer(selectSymbol, ramAccounting);
 
-        var subPlanContext = new ProfilingContext(List.of());
+        var subPlanContext = new ProfilingContext(Map.of());
         Timer subPlanTimer = subPlanContext.createTimer(Phase.Execute.name());
         subPlanTimer.start();
 
