@@ -85,7 +85,7 @@ public abstract sealed class AnyOperator<T> extends Operator<T>
     protected final DataType<T> leftType;
 
     public static void register(Functions.Builder builder) {
-        reg(builder, AnyEqOperator.NAME, AnyEqOperator::new);
+        builder.add(AnyEqOperator.SIGNATURE, AnyEqOperator::new);
         reg(builder, AnyNeqOperator.NAME, AnyNeqOperator::new);
         regRange(builder, AnyRangeOperator.Comparison.GT);
         regRange(builder, AnyRangeOperator.Comparison.GTE);

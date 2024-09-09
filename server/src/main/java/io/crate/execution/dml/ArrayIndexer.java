@@ -56,6 +56,10 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
         return new FieldExistsQuery(toArrayLengthFieldName(arrayRef, getRef));
     }
 
+    public static Query arraysWithAtLeastOneNonNullElementQuery(Reference arrayRef) {
+        return new FieldExistsQuery(arrayRef.storageIdent());
+    }
+
     static String toArrayLengthFieldName(Reference arrayRef, Function<ColumnIdent, Reference> getRef) {
         // If the arrayRef is a descendant of an object array its type can be a readType. i.e. the type of
         // obj_array['int_col'] is 'int' BUT its readType is 'array(int)'. If so, there is no '_array_length_' indexed

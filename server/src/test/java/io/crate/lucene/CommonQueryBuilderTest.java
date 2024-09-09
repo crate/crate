@@ -25,6 +25,7 @@ import static io.crate.testing.TestingHelpers.createReference;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -810,5 +811,82 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     public void test_neq_on_object_literal() {
         Query query = convert("(obj_no_sub_columns != {})");
         assertThat(query).hasToString("+(+*:* -(obj_no_sub_columns = {})) #(NOT (obj_no_sub_columns = {}))");
+    }
+
+    @Test
+    public void test_all_neq_on_array_literal_is_equivalent_to_not_any_eq() throws Exception {
+        Query allNeq = convert("(y != all([1, 2, 3]))");
+        Query notAnyEq = convert("not y = any([1,2,3])");
+        assertThat(allNeq).isEqualTo(notAnyEq);
+    }
+
+    @Test
+    public void test_all_neq_on_array_ref() throws Exception {
+        var listOfNulls = new ArrayList<Integer>();
+        listOfNulls.add(null);
+        var listOfOneAndNull = new ArrayList<Integer>();
+        listOfOneAndNull.add(1);
+        listOfOneAndNull.add(null);
+        var listOfTwoAndNull = new ArrayList<Integer>();
+        listOfTwoAndNull.add(2);
+        listOfTwoAndNull.add(null);
+
+        QueryTester.Builder builder = new QueryTester.Builder(
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            "create table tbl (a int[])");
+        builder.indexValue("a", List.of(1));
+        builder.indexValue("a", List.of(1, 1));
+        builder.indexValue("a", List.of());
+        builder.indexValue("a", listOfNulls);
+        builder.indexValue("a", null);
+        builder.indexValue("a", listOfOneAndNull);
+        builder.indexValue("a", listOfTwoAndNull);
+        try (QueryTester tester = builder.build()) {
+            assertThat(tester.toQuery("2 != all(a)"))
+                .hasToString("((+FieldExistsQuery [field=a] -a:[2 TO 2]) _array_length_a:[0 TO 0])~1");
+            assertThat(tester.runQuery("a", "2 != all(a)"))
+                .containsExactly(List.of(1), List.of(1, 1), List.of(), listOfOneAndNull);
+        }
+    }
+
+    @Test
+    public void test_all_neq_on_nested_array_ref_with_automatic_dimension_leveling() throws Exception {
+        var listOfNulls = new ArrayList<Integer>();
+        listOfNulls.add(null);
+        var listOfOneAndNull = new ArrayList<Integer>();
+        listOfOneAndNull.add(1);
+        listOfOneAndNull.add(null);
+        var listOfTwoAndNull = new ArrayList<Integer>();
+        listOfTwoAndNull.add(2);
+        listOfTwoAndNull.add(null);
+
+        QueryTester.Builder builder = new QueryTester.Builder(
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            "create table tbl (a int[][])");
+        builder.indexValue("a", List.of(List.of(1)));
+        builder.indexValue("a", List.of(List.of(1, 1)));
+        builder.indexValue("a", List.of(List.of()));
+        builder.indexValue("a", List.of(listOfNulls));
+        builder.indexValue("a", null);
+        builder.indexValue("a", List.of());
+        builder.indexValue("a", List.of(listOfOneAndNull));
+        builder.indexValue("a", List.of(listOfTwoAndNull));
+
+        try (QueryTester tester = builder.build()) {
+            assertThat(tester.toQuery("2 != all(a)"))
+                .hasToString("((+FieldExistsQuery [field=a] -a:[2 TO 2]) _array_length_a:[0 TO 0])~1");
+            assertThat(tester.runQuery("a", "2 != all(a)"))
+                .containsExactly(
+                    List.of(List.of(1)),
+                    List.of(List.of(1, 1)),
+                    List.of(List.of()),
+                    List.of(),
+                    List.of(listOfOneAndNull)
+                );
+        }
     }
 }

@@ -37,13 +37,12 @@ import io.crate.sql.tree.ComparisonExpression;
 import io.crate.types.DataType;
 import io.crate.types.TypeSignature;
 
-public final class AllOperator extends Operator<Object> {
+public class AllOperator extends Operator<Object> {
 
     public static final String OPERATOR_PREFIX = "_all_";
 
     private enum Type {
         EQ(ComparisonExpression.Type.EQUAL, result -> result == 0),
-        NEQ(ComparisonExpression.Type.NOT_EQUAL, result -> result != 0),
         GTE(ComparisonExpression.Type.GREATER_THAN_OR_EQUAL, result -> result >= 0),
         GT(ComparisonExpression.Type.GREATER_THAN, result -> result > 0),
         LTE(ComparisonExpression.Type.LESS_THAN_OR_EQUAL, result -> result <= 0),
@@ -76,6 +75,7 @@ public final class AllOperator extends Operator<Object> {
                     )
             );
         }
+        builder.add(AllNeqOperator.SIGNATURE, AllNeqOperator::new);
     }
 
     private final IntPredicate cmp;
