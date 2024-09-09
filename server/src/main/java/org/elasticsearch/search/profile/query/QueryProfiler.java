@@ -19,8 +19,10 @@
 
 package org.elasticsearch.search.profile.query;
 
+import java.util.List;
+
 import org.apache.lucene.search.Query;
-import org.elasticsearch.search.profile.AbstractProfiler;
+import org.elasticsearch.search.profile.ProfileResult;
 
 /**
  * This class acts as a thread-local storage for profiling a query.  It also
@@ -33,9 +35,33 @@ import org.elasticsearch.search.profile.AbstractProfiler;
  * request may execute two searches (query + global agg).  A Profiler just
  * represents one of those
  */
-public final class QueryProfiler extends AbstractProfiler<QueryProfileBreakdown, Query> {
+public final class QueryProfiler {
+
+    private final QueryProfileTree profileTree;
 
     public QueryProfiler() {
-        super(new InternalQueryProfileTree());
+        this.profileTree = new QueryProfileTree();
+    }
+
+    /**
+     * Get the {@link AbstractProfileBreakdown} for the given element in the
+     * tree, potentially creating it if it did not exist.
+     */
+    public QueryProfileBreakdown getQueryBreakdown(Query query) {
+        return profileTree.getProfileBreakdown(query);
+    }
+
+    /**
+     * Removes the last (e.g. most recent) element on the stack.
+     */
+    public void pollLastElement() {
+        profileTree.pollLast();
+    }
+
+    /**
+     * @return a hierarchical representation of the profiled tree
+     */
+    public List<ProfileResult> getTree() {
+        return profileTree.getTree();
     }
 }

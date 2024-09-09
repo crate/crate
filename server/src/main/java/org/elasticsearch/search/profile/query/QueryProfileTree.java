@@ -17,9 +17,7 @@
  * under the License.
  */
 
-package org.elasticsearch.search.profile;
-
-import org.elasticsearch.search.profile.query.QueryProfileBreakdown;
+package org.elasticsearch.search.profile.query;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -28,20 +26,28 @@ import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 
-public abstract class AbstractInternalProfileTree<PB extends AbstractProfileBreakdown<?>, E> {
+import org.apache.lucene.search.Query;
+import org.elasticsearch.search.profile.ProfileResult;
 
-    protected ArrayList<PB> timings;
+/**
+ * This class tracks the dependency tree for queries (scoring and rewriting) and
+ * generates {@link QueryProfileBreakdown} for each node in the tree.  It also finalizes the tree
+ * and returns a list of {@link ProfileResult} that can be serialized back to the client
+ */
+final class QueryProfileTree {
+
+    private final ArrayList<QueryProfileBreakdown> timings;
     /** Maps the Query to it's list of children.  This is basically the dependency tree */
-    protected ArrayList<ArrayList<Integer>> tree;
+    private final ArrayList<ArrayList<Integer>> tree;
     /** A list of the original queries, keyed by index position */
-    protected ArrayList<E> elements;
+    private final ArrayList<Query> elements;
     /** A list of top-level "roots".  Each root can have its own tree of profiles */
-    protected ArrayList<Integer> roots;
+    private final ArrayList<Integer> roots;
     /** A temporary stack used to record where we are in the dependency tree. */
-    protected Deque<Integer> stack;
+    private final Deque<Integer> stack;
     private int currentToken = 0;
 
-    public AbstractInternalProfileTree() {
+    public QueryProfileTree() {
         timings = new ArrayList<>(10);
         stack = new ArrayDeque<>(10);
         tree = new ArrayList<>(10);
@@ -60,7 +66,7 @@ public abstract class AbstractInternalProfileTree<PB extends AbstractProfileBrea
      * @param query The scoring query we wish to profile
      * @return      A ProfileBreakdown for this query
      */
-    public PB getProfileBreakdown(E query) {
+    public QueryProfileBreakdown getProfileBreakdown(Query query) {
         int token = currentToken;
 
         boolean stackEmpty = stack.isEmpty();
@@ -103,7 +109,7 @@ public abstract class AbstractInternalProfileTree<PB extends AbstractProfileBrea
      *            The assigned token for this element
      * @return A ProfileBreakdown to profile this element
      */
-    private PB addDependencyNode(E element, int token) {
+    private QueryProfileBreakdown addDependencyNode(Query element, int token) {
 
         // Add a new slot in the dependency tree
         tree.add(new ArrayList<>(5));
@@ -111,12 +117,14 @@ public abstract class AbstractInternalProfileTree<PB extends AbstractProfileBrea
         // Save our query for lookup later
         elements.add(element);
 
-        PB queryTimings = createProfileBreakdown();
+        QueryProfileBreakdown queryTimings = createProfileBreakdown();
         timings.add(token, queryTimings);
         return queryTimings;
     }
 
-    protected abstract PB createProfileBreakdown();
+    protected QueryProfileBreakdown createProfileBreakdown() {
+        return new QueryProfileBreakdown();
+    }
 
     /**
      * Removes the last (e.g. most recent) value on the stack
@@ -133,7 +141,7 @@ public abstract class AbstractInternalProfileTree<PB extends AbstractProfileBrea
      * @return a hierarchical representation of the profiled query tree
      */
     public List<ProfileResult> getTree() {
-        ArrayList<ProfileResult> results = new ArrayList<>(5);
+        ArrayList<ProfileResult> results = new ArrayList<>(roots.size());
         for (Integer root : roots) {
             results.add(doGetTree(root));
         }
@@ -146,8 +154,8 @@ public abstract class AbstractInternalProfileTree<PB extends AbstractProfileBrea
      * @return       A hierarchical representation of the tree inclusive of children at this level
      */
     private ProfileResult doGetTree(int token) {
-        E element = elements.get(token);
-        PB breakdown = timings.get(token);
+        Query element = elements.get(token);
+        QueryProfileBreakdown breakdown = timings.get(token);
         Map<String, Long> timings = breakdown.toTimingMap();
         List<Integer> children = tree.get(token);
         List<ProfileResult> childrenProfileResults = Collections.emptyList();
@@ -167,9 +175,18 @@ public abstract class AbstractInternalProfileTree<PB extends AbstractProfileBrea
         return new ProfileResult(type, description, timings, childrenProfileResults);
     }
 
-    protected abstract String getTypeFromElement(E element);
+    protected String getTypeFromElement(Query query) {
+        // Anonymous classes won't have a name,
+        // we need to get the super class
+        if (query.getClass().getSimpleName().isEmpty()) {
+            return query.getClass().getSuperclass().getSimpleName();
+        }
+        return query.getClass().getSimpleName();
+    }
 
-    protected abstract String getDescriptionFromElement(E element);
+    protected String getDescriptionFromElement(Query query) {
+        return query.toString();
+    }
 
     /**
      * Internal helper to add a child to the current parent node
@@ -182,5 +199,4 @@ public abstract class AbstractInternalProfileTree<PB extends AbstractProfileBrea
         parentNode.add(childToken);
         tree.set(parent, parentNode);
     }
-
 }
