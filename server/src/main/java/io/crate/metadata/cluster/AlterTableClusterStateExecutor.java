@@ -43,7 +43,7 @@ import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
+import org.elasticsearch.cluster.metadata.MetadataIndexService;
 import org.elasticsearch.cluster.metadata.MetadataUpdateSettingsService;
 import org.elasticsearch.common.ValidationException;
 import org.elasticsearch.common.regex.Regex;
@@ -70,13 +70,13 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
 
     private final IndicesService indicesService;
     private final IndexScopedSettings indexScopedSettings;
-    private final MetadataCreateIndexService metadataCreateIndexService;
+    private final MetadataIndexService metadataCreateIndexService;
     private final NodeContext nodeContext;
     private final MetadataUpdateSettingsService updateSettingsService;
 
     public AlterTableClusterStateExecutor(IndicesService indicesService,
                                           IndexScopedSettings indexScopedSettings,
-                                          MetadataCreateIndexService metadataCreateIndexService,
+                                          MetadataIndexService metadataCreateIndexService,
                                           MetadataUpdateSettingsService updateSettingsService,
                                           NodeContext nodeContext) {
         this.indicesService = indicesService;
@@ -233,7 +233,7 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
     private static void validateSettings(String name,
                                          Settings settings,
                                          IndexScopedSettings indexScopedSettings,
-                                         MetadataCreateIndexService metadataCreateIndexService) {
+                                         MetadataIndexService metadataCreateIndexService) {
         List<String> validationErrors = new ArrayList<>();
         try {
             indexScopedSettings.validate(settings, true); // templates must be consistent with regards to dependencies

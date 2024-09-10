@@ -36,7 +36,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
+import org.elasticsearch.cluster.metadata.MetadataIndexService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -48,45 +48,22 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import io.crate.metadata.NodeContext;
-
 /**
  * Main class to initiate resizing (shrink / split) an index into a new index
  */
 public class TransportResizeAction extends TransportMasterNodeAction<ResizeRequest, ResizeResponse> {
-    private final MetadataCreateIndexService createIndexService;
+    private final MetadataIndexService createIndexService;
     private final Client client;
-    private final NodeContext nodeContext;
 
     @Inject
     public TransportResizeAction(TransportService transportService,
                                  ClusterService clusterService,
                                  ThreadPool threadPool,
-                                 MetadataCreateIndexService createIndexService,
-                                 NodeContext nodeContext,
+                                 MetadataIndexService createIndexService,
                                  Client client) {
-        this(
-            ResizeAction.NAME,
-            transportService,
-            clusterService,
-            threadPool,
-            createIndexService,
-            nodeContext,
-            client
-        );
-    }
-
-    protected TransportResizeAction(String actionName,
-                                    TransportService transportService,
-                                    ClusterService clusterService,
-                                    ThreadPool threadPool,
-                                    MetadataCreateIndexService createIndexService,
-                                    NodeContext nodeContext,
-                                    Client client) {
-        super(actionName, transportService, clusterService, threadPool, ResizeRequest::new);
+        super(ResizeAction.NAME, transportService, clusterService, threadPool, ResizeRequest::new);
         this.createIndexService = createIndexService;
         this.client = client;
-        this.nodeContext = nodeContext;
     }
 
 
@@ -130,8 +107,7 @@ public class TransportResizeAction extends TransportMasterNodeAction<ResizeReque
                         sourceIndex,
                         targetIndex
                     );
-                    createIndexService.createIndex(
-                        nodeContext,
+                    createIndexService.create(
                         updateRequest,
                         null,
                         delegate.map(

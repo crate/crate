@@ -64,13 +64,13 @@ public class MetadataIndexTemplateService {
 
     private final ClusterService clusterService;
     private final IndicesService indicesService;
-    private final MetadataCreateIndexService metadataCreateIndexService;
+    private final MetadataIndexService metadataCreateIndexService;
     private final IndexScopedSettings indexScopedSettings;
     private final NamedXContentRegistry xContentRegistry;
 
     @Inject
     public MetadataIndexTemplateService(ClusterService clusterService,
-                                        MetadataCreateIndexService metadataCreateIndexService,
+                                        MetadataIndexService metadataCreateIndexService,
                                         IndicesService indicesService,
                                         IndexScopedSettings indexScopedSettings,
                                         NamedXContentRegistry xContentRegistry) {

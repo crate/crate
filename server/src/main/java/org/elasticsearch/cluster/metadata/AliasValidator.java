@@ -84,6 +84,6 @@ public final class AliasValidator {
         if (!Strings.hasText(alias)) {
             throw new IllegalArgumentException("alias name is required");
         }
-        MetadataCreateIndexService.validateIndexOrAliasName(alias, InvalidAliasNameException::new);
+        MetadataIndexService.validateIndexOrAliasName(alias, InvalidAliasNameException::new);
     }
 }

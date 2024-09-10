@@ -22,8 +22,8 @@
 package io.crate.execution.ddl.tables;
 
 import static org.elasticsearch.action.support.master.AcknowledgedRequest.DEFAULT_ACK_TIMEOUT;
-import static org.elasticsearch.cluster.metadata.MetadataCreateIndexService.setIndexVersionCreatedSetting;
-import static org.elasticsearch.cluster.metadata.MetadataCreateIndexService.validateSoftDeletesSetting;
+import static org.elasticsearch.cluster.metadata.MetadataIndexService.setIndexVersionCreatedSetting;
+import static org.elasticsearch.cluster.metadata.MetadataIndexService.validateSoftDeletesSetting;
 
 import java.io.IOException;
 import java.util.HashSet;
@@ -38,7 +38,7 @@ import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
+import org.elasticsearch.cluster.metadata.MetadataIndexService;
 import org.elasticsearch.cluster.metadata.MetadataIndexTemplateService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -49,7 +49,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import io.crate.exceptions.RelationAlreadyExists;
-import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 
 /**
@@ -77,17 +76,15 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
         }
     }
 
-    private final MetadataCreateIndexService createIndexService;
+    private final MetadataIndexService createIndexService;
     private final MetadataIndexTemplateService indexTemplateService;
-    private final NodeContext nodeContext;
 
     @Inject
     public TransportCreateTableAction(TransportService transportService,
                                       ClusterService clusterService,
                                       ThreadPool threadPool,
-                                      MetadataCreateIndexService createIndexService,
-                                      MetadataIndexTemplateService indexTemplateService,
-                                      NodeContext nodeContext) {
+                                      MetadataIndexService createIndexService,
+                                      MetadataIndexTemplateService indexTemplateService) {
         super(
             ACTION.name(),
             transportService,
@@ -96,7 +93,6 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
         );
         this.createIndexService = createIndexService;
         this.indexTemplateService = indexTemplateService;
-        this.nodeContext = nodeContext;
     }
 
     @Override
@@ -167,8 +163,7 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
             .aliases(new HashSet<>()) // Before we used CreateIndexRequest with an empty set, it's changed only on resizing indices.
             .waitForActiveShards(ActiveShardCount.DEFAULT); // Before we used CreateIndexRequest with default active shards count, it's changed only on resizing indices.
 
-        createIndexService.createIndex(
-            nodeContext,
+        createIndexService.create(
             updateRequest,
             createTableRequest,
             wrappedListener.map(response ->

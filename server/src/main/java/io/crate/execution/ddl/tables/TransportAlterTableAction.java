@@ -26,7 +26,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
+import org.elasticsearch.cluster.metadata.MetadataIndexService;
 import org.elasticsearch.cluster.metadata.MetadataUpdateSettingsService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -53,7 +53,7 @@ public class TransportAlterTableAction extends AbstractDDLTransportAction<AlterT
                                      ThreadPool threadPool,
                                      IndicesService indicesService,
                                      IndexScopedSettings indexScopedSettings,
-                                     MetadataCreateIndexService metadataCreateIndexService,
+                                     MetadataIndexService metadataCreateIndexService,
                                      MetadataUpdateSettingsService updateSettingsService,
                                      NodeContext nodeContext) {
         super(ACTION_NAME,

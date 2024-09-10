@@ -73,7 +73,7 @@ import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
+import org.elasticsearch.cluster.metadata.MetadataIndexService;
 import org.elasticsearch.cluster.metadata.MetadataIndexUpgradeService;
 import org.elasticsearch.cluster.metadata.RepositoriesMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -170,7 +170,7 @@ public class RestoreService implements ClusterStateApplier {
 
     private final AllocationService allocationService;
 
-    private final MetadataCreateIndexService createIndexService;
+    private final MetadataIndexService createIndexService;
 
     private final MetadataIndexUpgradeService metadataIndexUpgradeService;
 
@@ -185,7 +185,7 @@ public class RestoreService implements ClusterStateApplier {
     public RestoreService(ClusterService clusterService,
                           RepositoriesService repositoriesService,
                           AllocationService allocationService,
-                          MetadataCreateIndexService createIndexService,
+                          MetadataIndexService createIndexService,
                           MetadataIndexUpgradeService metadataIndexUpgradeService,
                           MetadataUpgrader metadataUpgrader,
                           ClusterSettings clusterSettings,
@@ -517,7 +517,7 @@ public class RestoreService implements ClusterStateApplier {
                     if (currentIndexMetadata == null) {
                         // Index doesn't exist - create it and start recovery
                         // Make sure that the index we are about to create has a validate name
-                        MetadataCreateIndexService.validateIndexName(renamedIndexName, currentState);
+                        MetadataIndexService.validateIndexName(renamedIndexName, currentState);
                         createIndexService.validateIndexSettings(renamedIndexName, snapshotIndexMetadata.getSettings(), false);
                         IndexMetadata.Builder indexMdBuilder = IndexMetadata.builder(snapshotIndexMetadata)
                             .state(IndexMetadata.State.OPEN)

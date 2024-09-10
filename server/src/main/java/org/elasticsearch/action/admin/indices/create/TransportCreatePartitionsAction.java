@@ -23,8 +23,8 @@ package org.elasticsearch.action.admin.indices.create;
 
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_WAIT_FOR_ACTIVE_SHARDS;
-import static org.elasticsearch.cluster.metadata.MetadataCreateIndexService.setIndexVersionCreatedSetting;
-import static org.elasticsearch.cluster.metadata.MetadataCreateIndexService.validateSoftDeletesSetting;
+import static org.elasticsearch.cluster.metadata.MetadataIndexService.setIndexVersionCreatedSetting;
+import static org.elasticsearch.cluster.metadata.MetadataIndexService.validateSoftDeletesSetting;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -51,7 +51,7 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
+import org.elasticsearch.cluster.metadata.MetadataIndexService;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -80,7 +80,7 @@ import io.crate.metadata.PartitionName;
 /**
  * Creates one or more partitions within one cluster-state-update-task
  * <p>
- * This is more or less a more optimized version of {@link MetadataCreateIndexService}
+ * This is more or less a more optimized version of {@link MetadataIndexService}
  * <p>
  * It also has some limitations:
  * <p>
@@ -168,7 +168,7 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
     }
 
     /**
-     * This code is more or less the same as the stuff in {@link MetadataCreateIndexService}
+     * This code is more or less the same as the stuff in {@link MetadataIndexService}
      * but optimized for bulk operation without separate mapping/alias/index settings.
      */
     private ClusterState executeCreateIndices(ClusterState currentState, CreatePartitionsRequest request) throws Exception {
@@ -216,7 +216,7 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
             if (IndexMetadata.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING.exists(commonIndexSettings)) {
                 routingNumShards = numTargetShards;
             } else {
-                routingNumShards = MetadataCreateIndexService.calculateNumRoutingShards(
+                routingNumShards = MetadataIndexService.calculateNumRoutingShards(
                     numTargetShards, indexVersionCreated);
             }
 
@@ -318,7 +318,7 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
                                                   CreatePartitionsRequest request) {
         for (String index : request.indices()) {
             try {
-                MetadataCreateIndexService.validateIndexName(index, currentState);
+                MetadataIndexService.validateIndexName(index, currentState);
                 indicesToCreate.add(index);
             } catch (ResourceAlreadyExistsException e) {
                 // ignore

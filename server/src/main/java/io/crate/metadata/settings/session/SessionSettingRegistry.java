@@ -29,7 +29,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
+import org.elasticsearch.cluster.metadata.MetadataIndexService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.joda.time.Period;
@@ -165,8 +165,8 @@ public class SessionSettingRegistry {
                          throw new UnsupportedOperationException("\"" + MAX_IDENTIFIER_LENGTH + "\" cannot be changed.");
                      },
                      (s, v) -> {},
-                     s -> String.valueOf(MetadataCreateIndexService.MAX_INDEX_NAME_BYTES),
-                     () -> String.valueOf(MetadataCreateIndexService.MAX_INDEX_NAME_BYTES),
+                     s -> String.valueOf(MetadataIndexService.MAX_INDEX_NAME_BYTES),
+                     () -> String.valueOf(MetadataIndexService.MAX_INDEX_NAME_BYTES),
                      "Shows the maximum length of identifiers in bytes.",
                      DataTypes.INTEGER))
             .put(SERVER_VERSION_NUM,

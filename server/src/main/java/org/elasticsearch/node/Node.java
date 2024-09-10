@@ -75,7 +75,7 @@ import org.elasticsearch.cluster.coordination.Coordinator;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
+import org.elasticsearch.cluster.metadata.MetadataIndexService;
 import org.elasticsearch.cluster.metadata.MetadataIndexUpgradeService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodeRole;
@@ -525,7 +525,8 @@ public class Node implements Closeable {
                 indexStoreFactories);
 
             final ShardLimitValidator shardLimitValidator = new ShardLimitValidator(settings, clusterService);
-            final MetadataCreateIndexService metadataCreateIndexService = new MetadataCreateIndexService(
+            final MetadataIndexService metadataCreateIndexService = new MetadataIndexService(
+                nodeContext,
                 settings,
                 clusterService,
                 indicesService,
@@ -816,7 +817,7 @@ public class Node implements Closeable {
                     b.bind(MetaStateService.class).toInstance(metaStateService);
                     b.bind(PersistedClusterStateService.class).toInstance(persistedClusterStateService);
                     b.bind(IndicesService.class).toInstance(indicesService);
-                    b.bind(MetadataCreateIndexService.class).toInstance(metadataCreateIndexService);
+                    b.bind(MetadataIndexService.class).toInstance(metadataCreateIndexService);
                     b.bind(Transport.class).toInstance(transport);
                     b.bind(Netty4Transport.class).toInstance(transport);
                     b.bind(TransportService.class).toInstance(transportService);

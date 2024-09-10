@@ -99,11 +99,11 @@ import io.crate.metadata.doc.DocTableInfoFactory;
 /**
  * Service responsible for submitting create index requests
  */
-public class MetadataCreateIndexService {
+public class MetadataIndexService {
 
-    private static final Logger LOGGER = LogManager.getLogger(MetadataCreateIndexService.class);
+    private static final Logger LOGGER = LogManager.getLogger(MetadataIndexService.class);
     private static final DeprecationLogger DEPRECATION_LOGGER = new DeprecationLogger(LogManager.getLogger(
-        MetadataCreateIndexService.class));
+        MetadataIndexService.class));
 
     public static final int MAX_INDEX_NAME_BYTES = 255;
 
@@ -116,17 +116,19 @@ public class MetadataCreateIndexService {
     private final boolean forbidPrivateIndexSettings;
     private final Settings settings;
     private final ShardLimitValidator shardLimitValidator;
+    private final NodeContext nodeContext;
 
-    public MetadataCreateIndexService(
-            final Settings settings,
-            final ClusterService clusterService,
-            final IndicesService indicesService,
-            final AllocationService allocationService,
-            final ShardLimitValidator shardLimitValidator,
-            final Environment env,
-            final IndexScopedSettings indexScopedSettings,
-            final ThreadPool threadPool,
-            final boolean forbidPrivateIndexSettings) {
+    public MetadataIndexService(NodeContext nodeContext,
+                                Settings settings,
+                                ClusterService clusterService,
+                                IndicesService indicesService,
+                                AllocationService allocationService,
+                                ShardLimitValidator shardLimitValidator,
+                                Environment env,
+                                IndexScopedSettings indexScopedSettings,
+                                ThreadPool threadPool,
+                                boolean forbidPrivateIndexSettings) {
+        this.nodeContext = nodeContext;
         this.settings = settings;
         this.clusterService = clusterService;
         this.indicesService = indicesService;
@@ -202,57 +204,61 @@ public class MetadataCreateIndexService {
      * @param createTableRequest carries CrateDB specific objects to create mapping if request param above has NULL mapping. Null if used in resize.
      * @param listener the listener on which to send the index creation cluster state update response
      */
-    public void createIndex(final NodeContext nodeContext,
-                            @Deprecated final CreateIndexClusterStateUpdateRequest request, // TODO: remove in 5.5 and use only CreateTableRequest
-                            @Nullable final CreateTableRequest createTableRequest,
-                            final ActionListener<CreateIndexClusterStateUpdateResponse> listener) {
-        onlyCreateIndex(nodeContext, request, createTableRequest, ActionListener.wrap(response -> {
-            if (response.isAcknowledged()) {
-                activeShardsObserver.waitForActiveShards(new String[]{request.index()}, request.waitForActiveShards(), request.ackTimeout(),
-                    shardsAcknowledged -> {
-                        if (shardsAcknowledged == false) {
-                            LOGGER.debug("[{}] index created, but the operation timed out while waiting for " +
-                                             "enough shards to be started.", request.index());
-                            // onlyCreateIndex is acknowledged, so global OID is already advanced.
-                            // CREATE TABLE is not successful because of timeout which means that we can have holes in OID sequence.
-                            // However, there won't be any duplicates so it's still safe to use OIDs as source column names.
-                        }
-                        listener.onResponse(new CreateIndexClusterStateUpdateResponse(response.isAcknowledged(), shardsAcknowledged));
-                    }, listener::onFailure);
-            } else {
-                listener.onResponse(new CreateIndexClusterStateUpdateResponse(false, false));
-            }
-        }, listener::onFailure));
-    }
+    public void create(@Deprecated final CreateIndexClusterStateUpdateRequest request, // TODO: remove in 5.5 and use only CreateTableRequest
+                       @Nullable final CreateTableRequest createTableRequest,
+                       final ActionListener<CreateIndexClusterStateUpdateResponse> listener) {
 
-    private void onlyCreateIndex(final NodeContext nodeContext,
-                                 @Deprecated final CreateIndexClusterStateUpdateRequest request,
-                                 @Nullable final CreateTableRequest createTableRequest,
-                                 final ActionListener<ClusterStateUpdateResponse> listener) {
         Settings.Builder updatedSettingsBuilder = Settings.builder();
         Settings build = updatedSettingsBuilder.put(request.settings()).normalizePrefix(IndexMetadata.INDEX_SETTING_PREFIX).build();
         indexScopedSettings.validate(build, true); // we do validate here - index setting must be consistent
         request.settings(build);
-        clusterService.submitStateUpdateTask(
-            "create-index [" + request.index() + "], cause [" + request.cause() + "]",
-            new IndexCreationTask(
-                    LOGGER,
-                    allocationService,
-                    request,
-                    createTableRequest,
-                    listener,
-                    indicesService,
-                    settings,
-                    this::validate,
-                    indexScopedSettings,
-                    nodeContext));
+        ActionListener<ClusterStateUpdateResponse> updateResponseListener = ActionListener.wrap(
+            response -> {
+                if (response.isAcknowledged()) {
+                    String[] indexNames = new String[] { request.index() };
+                    activeShardsObserver.waitForActiveShards(
+                        indexNames,
+                        request.waitForActiveShards(),
+                        request.ackTimeout(),
+                        shardsAcknowledged -> {
+                            if (shardsAcknowledged == false) {
+                                LOGGER.debug("[{}] index created, but the operation timed out while waiting for " +
+                                                "enough shards to be started.", request.index());
+                                // onlyCreateIndex is acknowledged, so global OID is already advanced.
+                                // CREATE TABLE is not successful because of timeout which means that we can have holes in OID sequence.
+                                // However, there won't be any duplicates so it's still safe to use OIDs as source column names.
+                            }
+                            listener.onResponse(new CreateIndexClusterStateUpdateResponse(response.isAcknowledged(), shardsAcknowledged));
+                        },
+                        listener::onFailure
+                    );
+                } else {
+                    listener.onResponse(new CreateIndexClusterStateUpdateResponse(false, false));
+                }
+            },
+            listener::onFailure
+        );
+        CreateIndexTask createIndexTask = new CreateIndexTask(
+            LOGGER,
+            allocationService,
+            request,
+            createTableRequest,
+            updateResponseListener,
+            indicesService,
+            settings,
+            this::validate,
+            indexScopedSettings,
+            nodeContext
+        );
+        String source = "create-index [" + request.index() + "], cause [" + request.cause() + "]";
+        clusterService.submitStateUpdateTask(source, createIndexTask);
     }
 
     interface IndexValidator {
         void validate(CreateIndexClusterStateUpdateRequest request, ClusterState state);
     }
 
-    static class IndexCreationTask extends AckedClusterStateUpdateTask<ClusterStateUpdateResponse> {
+    static class CreateIndexTask extends AckedClusterStateUpdateTask<ClusterStateUpdateResponse> {
 
         private final IndicesService indicesService;
         private final CreateIndexClusterStateUpdateRequest request;
@@ -264,7 +270,7 @@ public class MetadataCreateIndexService {
         private final IndexScopedSettings indexScopedSettings;
         private final NodeContext nodeContext;
 
-        IndexCreationTask(Logger logger,
+        CreateIndexTask(Logger logger,
                           AllocationService allocationService,
                           CreateIndexClusterStateUpdateRequest request,
                           @Nullable CreateTableRequest createTableRequest,
