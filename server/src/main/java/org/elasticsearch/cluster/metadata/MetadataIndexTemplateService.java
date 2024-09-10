@@ -240,7 +240,7 @@ public class MetadataIndexTemplateService {
         }
 
         //we validate the alias only partially, as we don't know yet to which index it'll get applied to
-        AliasValidator.validateAliasStandalone(alias);
+        AliasValidator.validateAliasName(alias.name());
         if (templatePrefix.equals(alias.name())) {
             throw new IllegalArgumentException("Alias [" + alias.name() +
                 "] cannot be the same as template prefix [" + templatePrefix + "]");
