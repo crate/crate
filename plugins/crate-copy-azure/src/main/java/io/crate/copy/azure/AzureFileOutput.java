@@ -40,46 +40,26 @@ import io.crate.execution.engine.export.FileOutput;
 public class AzureFileOutput implements FileOutput {
 
     private final Map<String, String> config;
-    private final SharedAsyncExecutor sharedAsyncExecutor;
+    private final Operator operator;
 
     public AzureFileOutput(SharedAsyncExecutor sharedAsyncExecutor, Settings settings) {
-        this.sharedAsyncExecutor = sharedAsyncExecutor;
         config = AzureBlobStorageSettings.openDALConfig(settings);
+        this.operator = AsyncOperator.of(NAME, config, sharedAsyncExecutor.asyncExecutor()).blocking();
     }
 
-    /**
-     * @return WrapperOutputStream which takes care of closing Operator.
-     */
     @Override
     public OutputStream acquireOutputStream(Executor executor, URI uri, WriterProjection.CompressionType compressionType) throws IOException {
-        Operator operator = AsyncOperator.of(NAME, config, sharedAsyncExecutor.asyncExecutor()).blocking();
         OutputStream outputStream = operator.createOutputStream(resourcePath(uri));
         if (compressionType != null) {
             outputStream = new GZIPOutputStream(outputStream);
         }
-        return new WrapperOutputStream(outputStream, operator);
+        return outputStream;
     }
 
-    static class WrapperOutputStream extends OutputStream {
-
-        private final OutputStream delegate;
-        private final Operator operator;
-
-        public WrapperOutputStream(OutputStream delegate, Operator operator) {
-            this.delegate = delegate;
-            this.operator = operator;
-        }
-
-        @Override
-        public void write(int b) throws IOException {
-            delegate.write(b);
-        }
-
-        @Override
-        public void close() throws IOException {
-            delegate.close();
-            operator.close();
-        }
+    @Override
+    public void close() {
+        assert operator != null : "Operator must be created before FileOutput is closed";
+        operator.close();
     }
 
     /**
