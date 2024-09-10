@@ -21,7 +21,6 @@
 
 package io.crate.copy.azure;
 
-import static io.crate.copy.azure.AzureCopyPlugin.ASYNC_EXECUTOR;
 import static io.crate.copy.azure.AzureCopyPlugin.NAME;
 
 import java.io.IOException;
@@ -41,14 +40,16 @@ import io.crate.execution.engine.export.FileOutput;
 public class AzureFileOutput implements FileOutput {
 
     private final Map<String, String> config;
+    private final SharedAsyncExecutor sharedAsyncExecutor;
 
-    public AzureFileOutput(Settings settings) {
+    public AzureFileOutput(SharedAsyncExecutor sharedAsyncExecutor, Settings settings) {
+        this.sharedAsyncExecutor = sharedAsyncExecutor;
         config = AzureBlobStorageSettings.openDALConfig(settings);
     }
 
     @Override
     public OutputStream acquireOutputStream(Executor executor, URI uri, WriterProjection.CompressionType compressionType) throws IOException {
-        Operator operator = AsyncOperator.of(NAME, config, ASYNC_EXECUTOR).blocking();
+        Operator operator = AsyncOperator.of(NAME, config, sharedAsyncExecutor.asyncExecutor()).blocking();
         OutputStream outputStream = operator.createOutputStream(resourcePath(uri));
         if (compressionType != null) {
             outputStream = new GZIPOutputStream(outputStream);

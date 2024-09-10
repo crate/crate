@@ -62,12 +62,14 @@ public class AzureCopyIntegrationTest extends IntegTestCase {
     private AzureHttpHandler handler;
 
     /**
-     * Ignores threads created by OpenDAL.
+     * OpenDAL uses shared singleton async tokio executor with configured number of threads.
+     * They are re-used throughout the app lifetime and cleaned up on executor disposal on node shutdown.
      **/
      public static class OpenDALFilter implements ThreadFilter {
 
         @Override
         public boolean reject(Thread t) {
+            // TODO: Used more reliable/less common pattern once https://github.com/apache/opendal/issues/5088 is implemented.
             return t.getName().startsWith("Thread-");
         }
     }
@@ -84,7 +86,7 @@ public class AzureCopyIntegrationTest extends IntegTestCase {
     public void setUp() throws Exception {
         super.setUp();
         handler = new AzureHttpHandler(AZURITE_ACCOUNT + "/" + CONTAINER_NAME);
-        httpServer = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 10000), 0);
+        httpServer = HttpServer.create(new InetSocketAddress(InetAddress.getLoopbackAddress(), 0), 0);
         httpServer.createContext("/" + AZURITE_ACCOUNT + "/" + CONTAINER_NAME, handler);
         httpServer.start();
 
@@ -102,7 +104,6 @@ public class AzureCopyIntegrationTest extends IntegTestCase {
     public void tearDown() throws Exception {
         super.tearDown();
         httpServer.stop(1);
-
     }
 
     @Test

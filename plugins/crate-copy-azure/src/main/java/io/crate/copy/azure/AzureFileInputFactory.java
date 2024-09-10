@@ -30,8 +30,14 @@ import java.net.URI;
 
 public class AzureFileInputFactory implements FileInputFactory {
 
+    private final SharedAsyncExecutor sharedAsyncExecutor;
+
+    public AzureFileInputFactory(SharedAsyncExecutor sharedAsyncExecutor) {
+        this.sharedAsyncExecutor = sharedAsyncExecutor;
+    }
+
     @Override
     public FileInput create(URI uri, Settings withClauseOptions) {
-        return new AzureFileInput(uri, withClauseOptions);
+        return new AzureFileInput(sharedAsyncExecutor, uri, withClauseOptions);
     }
 }

@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.opendal.AsyncOperator;
 import org.apache.opendal.Entry;
 import org.apache.opendal.Operator;
 import org.elasticsearch.common.settings.Settings;
@@ -56,6 +57,7 @@ public class AzureFileInput implements FileInput {
     private final URI uri;
     private final GlobPredicate uriPredicate;
     private final String preGlobPath;
+    private final SharedAsyncExecutor sharedAsyncExecutor;
 
     static class WrapperInputStream extends InputStream {
 
@@ -82,7 +84,8 @@ public class AzureFileInput implements FileInput {
     /**
      * @param uri is in user provided format (azblob://path/to/dir)
      */
-    public AzureFileInput(URI uri, Settings settings) {
+    public AzureFileInput(SharedAsyncExecutor sharedAsyncExecutor, URI uri, Settings settings) {
+        this.sharedAsyncExecutor = sharedAsyncExecutor;
         config = AzureBlobStorageSettings.openDALConfig(settings);
         // Pre-glob path operates with user-provided URI as GLOB pattern reflects user facing COPY FROM uri format.
         this.preGlobPath = toPreGlobPath(uri);
@@ -99,7 +102,7 @@ public class AzureFileInput implements FileInput {
      */
     @Override
     public List<URI> expandUri() throws IOException {
-        Operator operator = Operator.of(NAME, config);
+        Operator operator = AsyncOperator.of(NAME, config, sharedAsyncExecutor.asyncExecutor()).blocking();
         if (isGlobbed() == false) {
             return List.of(uri);
         }
@@ -119,7 +122,7 @@ public class AzureFileInput implements FileInput {
      */
     @Override
     public InputStream getStream(URI uri) throws IOException {
-        Operator operator = Operator.of(NAME, config);
+        Operator operator = AsyncOperator.of(NAME, config, sharedAsyncExecutor.asyncExecutor()).blocking();
         InputStream inputStream = operator.createInputStream(uri.toString());
         return new WrapperInputStream(inputStream, operator);
     }

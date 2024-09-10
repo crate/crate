@@ -25,7 +25,10 @@ import io.crate.execution.engine.collect.files.FileInputFactory;
 import io.crate.execution.engine.export.FileOutputFactory;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
+
+import org.elasticsearch.common.component.LifecycleComponent;
 
 public interface CopyPlugin {
 
@@ -35,5 +38,9 @@ public interface CopyPlugin {
 
     default Map<String, FileOutputFactory> getFileOutputFactories() {
         return Collections.emptyMap();
+    }
+
+    default List<LifecycleComponent> lifecycleComponents() {
+        return Collections.emptyList();
     }
 }

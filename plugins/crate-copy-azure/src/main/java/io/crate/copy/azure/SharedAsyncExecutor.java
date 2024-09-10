@@ -21,21 +21,42 @@
 
 package io.crate.copy.azure;
 
+import java.io.IOException;
+
+import org.apache.opendal.AsyncExecutor;
+import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.util.concurrent.EsExecutors;
 
-import io.crate.execution.engine.export.FileOutput;
-import io.crate.execution.engine.export.FileOutputFactory;
+/**
+ * Wrapper around OpenDAL AsyncExecutor.
+ * Holds a singleton instance and manages its lifecycle.
+ */
+public class SharedAsyncExecutor extends AbstractLifecycleComponent {
 
-public class AzureFileOutputFactory implements FileOutputFactory {
+    private final AsyncExecutor asyncExecutor;
 
-    private final SharedAsyncExecutor sharedAsyncExecutor;
+    public SharedAsyncExecutor(Settings settings) {
+        int numOfProcessors = EsExecutors.numberOfProcessors(settings);
+        this.asyncExecutor = AsyncExecutor.createTokioExecutor(numOfProcessors);
+    }
 
-    public AzureFileOutputFactory(SharedAsyncExecutor sharedAsyncExecutor) {
-        this.sharedAsyncExecutor = sharedAsyncExecutor;
+    public AsyncExecutor asyncExecutor() {
+        return asyncExecutor;
     }
 
     @Override
-    public FileOutput create(Settings withClauseOptions) {
-        return new AzureFileOutput(sharedAsyncExecutor, withClauseOptions);
+    protected void doStart() {
+        // No-op.
+    }
+
+    @Override
+    protected void doStop() {
+        // No-op.
+    }
+
+    @Override
+    protected void doClose() throws IOException {
+        asyncExecutor.close();
     }
 }
