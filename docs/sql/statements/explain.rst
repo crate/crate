@@ -140,41 +140,41 @@ how often an operation was invoked.
 If the query is executed on a partitioned table, each query breakdown will also
 contain the related ``PartitionIdent`` entry.
 
-+-----------------------------------+-----------------------------------+
-| field                             | description                       |
-+===================================+===================================+
-| ``create_weight``                 | A ``Weight`` object is created    |
-|                                   | for a query and acts as a         |
-|                                   | temporary object containing       |
-|                                   | state. This metric shows how long |
-|                                   | this process took.                |
-+-----------------------------------+-----------------------------------+
-| ``build_scorer``                  | A ``Scorer`` object is used to    |
-|                                   | iterate over documents matching   |
-|                                   | the query and generate scores for |
-|                                   | them. Note that this includes     |
-|                                   | only the time to create the       |
-|                                   | scorer, not that actual time      |
-|                                   | spent on the iteration.           |
-+-----------------------------------+-----------------------------------+
-| ``score``                         | Shows the time it takes to score  |
-|                                   | a particular document via its     |
-|                                   | ``Scorer``.                       |
-+-----------------------------------+-----------------------------------+
-| ``next_doc``                      | Shows the time it takes to        |
-|                                   | determine which document is the   |
-|                                   | next match.                       |
-+-----------------------------------+-----------------------------------+
-| ``advance``                       | A lower level version of          |
-|                                   | ``next_doc``.                     |
-+-----------------------------------+-----------------------------------+
-| ``match``                         | Some queries use a two-phase      |
-|                                   | execution, doing an               |
-|                                   | ``approximation`` first, and then |
-|                                   | a second more expensive phase.    |
-|                                   | This metric measures the second   |
-|                                   | phase.                            |
-+-----------------------------------+-----------------------------------+
+.. list-table::
+    :header-rows: 1
+    :widths: auto
+    :align: left
+
+    * - Field
+      - Description
+    * - ``create_weight``
+      - A ``Weight`` object is created for a query and acts as a temporary
+        object containing state. This metric shows how long this process took.
+    * - ``build_scorer``
+      - A ``Scorer`` object is used to iterate over documents matching the
+        query and generate scores for them. Note that this includes only the
+        time to create the scorer, not that actual time spent on the iteration.
+    * - ``score``
+      - Shows the time it takes to score a particular document via its
+        ``Scorer``.
+    * - ``next_doc``
+      - Shows the time it takes to determine which document is the next match.
+    * - ``advance``
+      - A lower level version of ``next_doc``. It also finds the next matching
+        document but necessitates that the calling query perform additional
+        tasks, such as identifying skips. Some queries, such as conjunctions
+        (``must`` clauses in Boolean queries), cannot use ``next_doc``. For
+        those queries, ``advance`` is timed.
+    * - ``match``
+      - Some queries use a two-phase execution, doing an ``approximation``
+        first, and then a second more expensive phase. This metric measures
+        the second phase.
+    * - ``*_count``
+      - Records the number of invocations of the particular method. For
+        example, ``"next_doc_count": 2``, means the ``nextDoc()`` method was
+        called on two different documents. This can be used to help judge how
+        selective queries are, by comparing counts between different query
+        components.
 
 .. NOTE::
 
