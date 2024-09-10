@@ -40,7 +40,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.UnaryOperator;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -76,7 +75,7 @@ public class FetchTaskTest extends CrateDummyClusterServiceUnitTest {
                 List.of()),
             0,
             "dummy",
-            new SharedShardContexts(mock(IndicesService.class), UnaryOperator.identity()),
+            new SharedShardContexts(mock(IndicesService.class), (ignored, searcher) -> searcher),
             clusterService.state().metadata(),
             relationName -> null,
             Collections.emptyList());
@@ -106,7 +105,7 @@ public class FetchTaskTest extends CrateDummyClusterServiceUnitTest {
             .build();
         IndicesService indicesService = mock(IndicesService.class, RETURNS_MOCKS);
         AtomicBoolean calledRefreshReaders = new AtomicBoolean(false);
-        SharedShardContexts sharedShardContexts = new SharedShardContexts(indicesService, UnaryOperator.identity()) {
+        SharedShardContexts sharedShardContexts = new SharedShardContexts(indicesService, (ignored, searcher) -> searcher) {
             @Override
             public CompletableFuture<Void> maybeRefreshReaders(Metadata metadata,
                                                                Map<String, IntIndexedContainer> shardsByIndex,

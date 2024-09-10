@@ -173,3 +173,6 @@ Administration and Operations
   contain sub-queries, e.g.::
 
     EXPLAIN ANALYZE SELECT * FROM t1 WHERE c = (SELECT count(*) FROM t2);
+
+- Added schema, table, partition and shard information to ``QueryBreakdown``
+  entries of the ``EXPLAIN ANALYZE`` statement.

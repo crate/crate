@@ -113,6 +113,9 @@ A short excerpt of a query breakdown looks like this::
     {
       "QueryName": "PointRangeQuery",
       "QueryDescription": "x:[1 TO 1]",
+      "SchemaName": "doc",
+      "TableName": "employees",
+      "ShardId": 0,
       "Time": 0.004096,
       "BreakDown": {
         "score": 0,
@@ -132,6 +135,8 @@ A short excerpt of a query breakdown looks like this::
 
 The time values are in milliseconds. Fields suffixed with ``_count`` indicate
 how often an operation was invoked.
+If the query is executed on a partitioned table, each query breakdown will also
+contain the related ``PartitionIdent`` entry.
 
 +-----------------------------------+-----------------------------------+
 | field                             | description                       |

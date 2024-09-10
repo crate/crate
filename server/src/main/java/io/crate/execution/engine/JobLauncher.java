@@ -26,16 +26,17 @@ import static io.crate.data.SentinelRow.SENTINEL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
-import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.search.profile.query.QueryProfiler;
 
@@ -288,19 +289,19 @@ public class JobLauncher {
 
     private SharedShardContexts maybeInstrumentProfiler(RootTask.Builder builder) {
         if (enableProfiling) {
-            var profilers = new ArrayList<QueryProfiler>();
+            var profilers = new HashMap<ShardId, QueryProfiler>();
             ProfilingContext profilingContext = new ProfilingContext(profilers);
             builder.profilingContext(profilingContext);
             return new SharedShardContexts(
                 indicesService,
-                indexSearcher -> {
+                (shardId, indexSearcher) -> {
                     var queryProfiler = new QueryProfiler();
-                    profilers.add(queryProfiler);
+                    profilers.put(shardId, queryProfiler);
                     return new InstrumentedIndexSearcher(indexSearcher, queryProfiler);
                 }
             );
         } else {
-            return new SharedShardContexts(indicesService, UnaryOperator.identity());
+            return new SharedShardContexts(indicesService, (ignored, indexSearcher) -> indexSearcher);
         }
     }
 
