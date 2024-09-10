@@ -38,6 +38,7 @@ import org.apache.opendal.Entry;
 import org.apache.opendal.Operator;
 import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.execution.engine.collect.files.FileInput;
 import io.crate.execution.engine.collect.files.Globs.GlobPredicate;
@@ -102,27 +103,34 @@ public class AzureFileInput implements FileInput {
      */
     @Override
     public List<URI> expandUri() throws IOException {
-        Operator operator = AsyncOperator.of(NAME, config, sharedAsyncExecutor.asyncExecutor()).blocking();
-        if (isGlobbed() == false) {
-            return List.of(uri);
-        }
-        List<URI> uris = new ArrayList<>();
-        List<Entry> entries = operator.list(preGlobPath);
-        for (Entry entry: entries) {
-            var path = entry.getPath();
-            if (uriPredicate.test(path)) {
-                uris.add(URI.create(path));
+        try (Operator operator = operator()) {
+            if (isGlobbed() == false) {
+                return List.of(uri);
             }
+            List<URI> uris = new ArrayList<>();
+            List<Entry> entries = operator.list(preGlobPath);
+            for (Entry entry : entries) {
+                var path = entry.getPath();
+                if (uriPredicate.test(path)) {
+                    uris.add(URI.create(path));
+                }
+            }
+            return uris;
         }
-        return uris;
+    }
+
+    @VisibleForTesting
+    Operator operator() {
+        return AsyncOperator.of(NAME, config, sharedAsyncExecutor.asyncExecutor()).blocking();
     }
 
     /**
-     * @param uri is in Azure compatible format.
+     * @param uri is resource path without "azblob" schema.
+     * @return WrapperInputStream which takes care of closing Operator.
      */
     @Override
     public InputStream getStream(URI uri) throws IOException {
-        Operator operator = AsyncOperator.of(NAME, config, sharedAsyncExecutor.asyncExecutor()).blocking();
+        Operator operator = operator();
         InputStream inputStream = operator.createInputStream(uri.toString());
         return new WrapperInputStream(inputStream, operator);
     }

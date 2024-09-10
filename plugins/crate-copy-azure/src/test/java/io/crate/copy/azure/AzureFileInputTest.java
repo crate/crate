@@ -23,10 +23,16 @@ package io.crate.copy.azure;
 
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 import java.net.URI;
 import java.util.List;
 
+import org.apache.opendal.Entry;
+import org.apache.opendal.Operator;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 public class AzureFileInputTest {
@@ -50,5 +56,34 @@ public class AzureFileInputTest {
             "/dir1/prefix/",
             "/dir1.1/prefix/"
         ));
+    }
+
+    @Test
+    public void test_expand_uri() throws Exception {
+        // Dummy settings to pass validation, client response is mocked.
+        Settings settings = Settings.builder()
+            .put(AzureBlobStorageSettings.CONTAINER_SETTING.getKey(), "dummy")
+            .put(AzureBlobStorageSettings.ACCOUNT_KEY_SETTING.getKey(), "dummy")
+            .put(AzureBlobStorageSettings.ACCOUNT_NAME_SETTING.getKey(), "dummy")
+            .put(AzureBlobStorageSettings.ENDPOINT_SETTING.getKey(), "dummy")
+            .build();
+        AzureFileInput azureFileInput = spy(
+            new AzureFileInput(mock(SharedAsyncExecutor.class), URI.create("azblob://dir1/dir2/*"), settings)
+        );
+        Operator operator = mock(Operator.class);
+        when(operator.list("/dir1/dir2/")).thenReturn(
+            List.of(
+                new Entry("dir1/dir2/match1.json", null),
+                // Too many subdirectories, see https://cratedb.com/docs/crate/reference/en/latest/sql/statements/copy-from.html#uri-globbing
+                new Entry("dir1/dir2/dir3/no_match.json", null),
+                new Entry("dir2/dir1/no_match.json", null),
+                new Entry("dir1/dir0/dir2/no_match.json", null)
+            )
+        );
+        when(azureFileInput.operator()).thenReturn(operator);
+
+        assertThat(azureFileInput.isGlobbed()).isTrue();
+        assertThat(azureFileInput.expandUri())
+            .containsExactly(URI.create("dir1/dir2/match1.json"));
     }
 }

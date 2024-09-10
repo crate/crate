@@ -65,7 +65,7 @@ public class AzureCopyIntegrationTest extends IntegTestCase {
      * OpenDAL uses shared singleton async tokio executor with configured number of threads.
      * They are re-used throughout the app lifetime and cleaned up on executor disposal on node shutdown.
      **/
-     public static class OpenDALFilter implements ThreadFilter {
+    public static class OpenDALFilter implements ThreadFilter {
 
         @Override
         public boolean reject(Thread t) {

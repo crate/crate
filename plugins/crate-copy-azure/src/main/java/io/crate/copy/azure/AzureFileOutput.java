@@ -47,6 +47,9 @@ public class AzureFileOutput implements FileOutput {
         config = AzureBlobStorageSettings.openDALConfig(settings);
     }
 
+    /**
+     * @return WrapperOutputStream which takes care of closing Operator.
+     */
     @Override
     public OutputStream acquireOutputStream(Executor executor, URI uri, WriterProjection.CompressionType compressionType) throws IOException {
         Operator operator = AsyncOperator.of(NAME, config, sharedAsyncExecutor.asyncExecutor()).blocking();
