@@ -148,4 +148,50 @@ public class ExplainAnalyzeIntegrationTest extends IntegTestCase {
         assertThat(subPhasesAnalysis).isNotNull();
         assertThat(subPhasesAnalysis.keySet()).contains("0-count");
     }
+
+    @Test
+    public void test_explain_analyze_query_execution_contains_shard_information() {
+        execute("EXPLAIN ANALYZE SELECT * FROM locations");
+        Map<String, Object> analysis = (Map<String, Object>) response.rows()[0][0];
+        Map<String, Object> executeAnalysis = (Map<String, Object>) analysis.get("Execute");
+
+        DiscoveryNodes nodes = clusterService().state().nodes();
+        for (DiscoveryNode discoveryNode : nodes) {
+            if (discoveryNode.isDataNode()) {
+                Object actual = executeAnalysis.get(discoveryNode.getId());
+                assertThat(actual).isInstanceOf(Map.class);
+
+                Map<String, Object> timings = (Map<String, Object>) actual;
+                Map<String, Object> queryBreakdown = ((List<Map<String, Object>>) timings.get("QueryBreakdown")).getFirst();
+                assertThat(queryBreakdown.get("SchemaName")).isNotNull();
+                assertThat(queryBreakdown.get("TableName")).isEqualTo("locations");
+                assertThat((int) queryBreakdown.get("ShardId")).isGreaterThanOrEqualTo(0);
+                assertThat(queryBreakdown).doesNotContainKey("PartitionIdent");
+            }
+        }
+    }
+
+    @Test
+    public void test_explain_analyze_query_execution_contains_shard_and_partition_information() {
+        execute("CREATE TABLE my_schema.parted (id int, p int) PARTITIONED BY (p)");
+        execute("INSERT INTO my_schema.parted (id, p) VALUES (1, 0)");
+        execute("EXPLAIN ANALYZE SELECT * FROM my_schema.parted");
+        Map<String, Object> analysis = (Map<String, Object>) response.rows()[0][0];
+        Map<String, Object> executeAnalysis = (Map<String, Object>) analysis.get("Execute");
+
+        DiscoveryNodes nodes = clusterService().state().nodes();
+        for (DiscoveryNode discoveryNode : nodes) {
+            if (discoveryNode.isDataNode()) {
+                Object actual = executeAnalysis.get(discoveryNode.getId());
+                assertThat(actual).isInstanceOf(Map.class);
+
+                Map<String, Object> timings = (Map<String, Object>) actual;
+                Map<String, Object> queryBreakdown = ((List<Map<String, Object>>) timings.get("QueryBreakdown")).getFirst();
+                assertThat(queryBreakdown.get("SchemaName")).isEqualTo("my_schema");
+                assertThat(queryBreakdown.get("TableName")).isEqualTo("parted");
+                assertThat((int) queryBreakdown.get("ShardId")).isGreaterThanOrEqualTo(0);
+                assertThat(queryBreakdown.get("PartitionIdent")).isEqualTo("04130");
+            }
+        }
+    }
 }

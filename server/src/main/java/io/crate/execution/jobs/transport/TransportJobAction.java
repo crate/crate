@@ -21,17 +21,17 @@
 
 package io.crate.execution.jobs.transport;
 
-import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.UnaryOperator;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.search.profile.query.QueryProfiler;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -120,20 +120,20 @@ public class TransportJobAction extends TransportAction<NodeRequest<JobRequest>,
 
     private SharedShardContexts maybeInstrumentProfiler(boolean enableProfiling, RootTask.Builder contextBuilder) {
         if (enableProfiling) {
-            var profilers = new ArrayList<QueryProfiler>();
+            var profilers = new HashMap<ShardId, QueryProfiler>();
             ProfilingContext profilingContext = new ProfilingContext(profilers);
             contextBuilder.profilingContext(profilingContext);
 
             return new SharedShardContexts(
                 indicesService,
-                indexSearcher -> {
+                (shardId, indexSearcher) -> {
                     var queryProfiler = new QueryProfiler();
-                    profilers.add(queryProfiler);
+                    profilers.put(shardId, queryProfiler);
                     return new InstrumentedIndexSearcher(indexSearcher, queryProfiler);
                 }
             );
         } else {
-            return new SharedShardContexts(indicesService, UnaryOperator.identity());
+            return new SharedShardContexts(indicesService, (ignored, indexSearcher) -> indexSearcher);
         }
     }
 }

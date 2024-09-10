@@ -33,7 +33,6 @@ import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.function.UnaryOperator;
 import java.util.stream.StreamSupport;
 
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -227,7 +226,7 @@ public class DocLevelCollectTest extends IntegTestCase {
         JobSetup jobSetup = cluster().getDataNodeInstance(JobSetup.class);
         TasksService tasksService = cluster().getDataNodeInstance(TasksService.class);
         SharedShardContexts sharedShardContexts = new SharedShardContexts(
-            cluster().getDataNodeInstance(IndicesService.class), UnaryOperator.identity());
+            cluster().getDataNodeInstance(IndicesService.class), (ignored, searcher) -> searcher);
         RootTask.Builder builder = tasksService.newBuilder(collectNode.jobId());
         NodeOperation nodeOperation = NodeOperation.withDirectResponse(collectNode, mock(ExecutionPhase.class), (byte) 0,
             "remoteNode");
