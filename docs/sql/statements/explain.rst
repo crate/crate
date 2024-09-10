@@ -111,26 +111,28 @@ expression.  Some familiarity with Lucene helps in interpreting the output.
 A short excerpt of a query breakdown looks like this::
 
     {
-      "QueryName": "PointRangeQuery",
-      "QueryDescription": "x:[1 TO 1]",
-      "SchemaName": "doc",
-      "TableName": "employees",
-      "ShardId": 0,
-      "Time": 0.004096,
       "BreakDown": {
-        "score": 0,
-        "match_count": 0,
-        "build_scorer_count": 0,
-        "create_weight": 0.004095,
-        "next_doc": 0,
-        "match": 0,
-        "score_count": 0,
-        "next_doc_count": 0,
-        "create_weight_count": 1,
-        "build_scorer": 0,
+        "advance": 0,
         "advance_count": 0,
-        "advance": 0
-      }
+        "build_scorer": 0,
+        "build_scorer_count": 0,
+        "compute_max_score": 0,
+        "compute_max_score_count": 0,
+        "create_weight": 0.004095,
+        "create_weight_count": 1,
+        "match": 0,
+        "match_count": 0,
+        "next_doc": 0,
+        "next_doc_count": 0,
+        "score": 0,
+        "score_count": 0
+      },
+      "QueryDescription": "x:[1 TO 1]",
+      "QueryName": "PointRangeQuery",
+      "SchemaName": "doc",
+      "ShardId": 0,
+      "TableName": "employees",
+      "Time": 0.004096
     }
 
 The time values are in milliseconds. Fields suffixed with ``_count`` indicate
