@@ -26,6 +26,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.index.shard.ShardId;
@@ -68,7 +69,7 @@ public class ProfilingContext {
     }
 
     private static Map<String, Object> resultAsMap(ShardId shardId, ProfileResult profileResult) {
-        HashMap<String, Object> queryTimingsBuilder = new HashMap<>();
+        TreeMap<String, Object> queryTimingsBuilder = new TreeMap<>();
         var indexParts = new IndexParts(shardId.getIndexName());
         queryTimingsBuilder.put("SchemaName", indexParts.getSchema());
         queryTimingsBuilder.put("TableName", indexParts.getTable());
@@ -82,7 +83,10 @@ public class ProfilingContext {
         queryTimingsBuilder.put("BreakDown", profileResult.getTimeBreakdown().entrySet().stream()
             .collect(Collectors.toMap(
                 Map.Entry::getKey,
-                e -> e.getKey().endsWith("_count") ? e.getValue() : e.getValue() / NS_TO_MS_FACTOR))
+                e -> e.getKey().endsWith("_count") ? e.getValue() : e.getValue() / NS_TO_MS_FACTOR,
+                (v1, ignored) -> v1,    // ignore duplicate keys, use the existing first one
+                TreeMap::new
+            ))
         );
         List<Map<String, Object>> children = profileResult.getProfiledChildren().stream()
             .map((ProfileResult pr) -> resultAsMap(shardId, pr))
