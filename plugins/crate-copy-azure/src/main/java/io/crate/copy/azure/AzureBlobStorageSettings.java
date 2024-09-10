@@ -43,7 +43,7 @@ public class AzureBlobStorageSettings {
     static final Setting<String> CONTAINER_SETTING = Setting.simpleString("container", Property.NodeScope);
     static final Setting<String> ENDPOINT_SETTING = Setting.simpleString("endpoint", Property.NodeScope);
 
-    public static Map<Setting<String>, Boolean> settings() {
+    private static Map<Setting<String>, Boolean> settings() {
         return Map.of(
             CONTAINER_SETTING, true,
             ENDPOINT_SETTING, true,
