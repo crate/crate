@@ -67,6 +67,7 @@ public class AzureFileInputTest {
             .put(AzureBlobStorageSettings.ACCOUNT_NAME_SETTING.getKey(), "dummy")
             .put(AzureBlobStorageSettings.ENDPOINT_SETTING.getKey(), "dummy")
             .build();
+
         AzureFileInput azureFileInput = spy(
             new AzureFileInput(mock(SharedAsyncExecutor.class), URI.create("azblob://dir1/dir2/*"), settings)
         );

@@ -384,6 +384,7 @@
     <versions.plugin.jar>3.4.2</versions.plugin.jar>
     <versions.plugin.build-helper>3.6.0</versions.plugin.build-helper>
     <versions.plugin.antlr>4.13.2</versions.plugin.antlr>
+    <versions.plugin.os>1.7.0</versions.plugin.os>
   </properties>
 
   <modules>

@@ -58,36 +58,16 @@ public class AzureFileInput implements FileInput {
     private final URI uri;
     private final GlobPredicate uriPredicate;
     private final String preGlobPath;
+    private final Operator operator;
     private final SharedAsyncExecutor sharedAsyncExecutor;
-
-    static class WrapperInputStream extends InputStream {
-
-        private final InputStream delegate;
-        private final Operator operator;
-
-        public WrapperInputStream(InputStream delegate, Operator operator) {
-            this.delegate = delegate;
-            this.operator = operator;
-        }
-
-        @Override
-        public int read() throws IOException {
-            return delegate.read();
-        }
-
-        @Override
-        public void close() throws IOException {
-            delegate.close();
-            operator.close();
-        }
-    }
 
     /**
      * @param uri is in user provided format (azblob://path/to/dir)
      */
     public AzureFileInput(SharedAsyncExecutor sharedAsyncExecutor, URI uri, Settings settings) {
+        this.config = AzureBlobStorageSettings.openDALConfig(settings);
         this.sharedAsyncExecutor = sharedAsyncExecutor;
-        config = AzureBlobStorageSettings.openDALConfig(settings);
+        this.operator = AsyncOperator.of(NAME, config, sharedAsyncExecutor.asyncExecutor()).blocking();
         // Pre-glob path operates with user-provided URI as GLOB pattern reflects user facing COPY FROM uri format.
         this.preGlobPath = toPreGlobPath(uri);
 
@@ -103,20 +83,19 @@ public class AzureFileInput implements FileInput {
      */
     @Override
     public List<URI> expandUri() throws IOException {
-        try (Operator operator = operator()) {
-            if (isGlobbed() == false) {
-                return List.of(uri);
-            }
-            List<URI> uris = new ArrayList<>();
-            List<Entry> entries = operator.list(preGlobPath);
-            for (Entry entry : entries) {
-                var path = entry.getPath();
-                if (uriPredicate.test(path)) {
-                    uris.add(URI.create(path));
-                }
-            }
-            return uris;
+        var operator = operator(); // Only for tests, otherwise could use this.operator
+        if (isGlobbed() == false) {
+            return List.of(uri);
         }
+        List<URI> uris = new ArrayList<>();
+        List<Entry> entries = operator.list(preGlobPath);
+        for (Entry entry : entries) {
+            var path = entry.getPath();
+            if (uriPredicate.test(path)) {
+                uris.add(URI.create(path));
+            }
+        }
+        return uris;
     }
 
     @VisibleForTesting
@@ -126,13 +105,10 @@ public class AzureFileInput implements FileInput {
 
     /**
      * @param uri is resource path without "azblob" schema.
-     * @return WrapperInputStream which takes care of closing Operator.
      */
     @Override
     public InputStream getStream(URI uri) throws IOException {
-        Operator operator = operator();
-        InputStream inputStream = operator.createInputStream(uri.toString());
-        return new WrapperInputStream(inputStream, operator);
+        return operator.createInputStream(uri.toString());
     }
 
     @Override
@@ -148,6 +124,12 @@ public class AzureFileInput implements FileInput {
     @Override
     public boolean sharedStorageDefault() {
         return true;
+    }
+
+    @Override
+    public void close() {
+        assert operator != null : "Operator must be created before FileInput is closed";
+        operator.close();
     }
 
     /**
