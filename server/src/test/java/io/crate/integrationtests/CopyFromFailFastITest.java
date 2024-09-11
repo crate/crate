@@ -44,9 +44,7 @@ import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.MockLogAppender;
 import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.After;
-import org.junit.Rule;
 import org.junit.Test;
-import org.junit.rules.TemporaryFolder;
 
 import com.carrotsearch.randomizedtesting.LifecycleScope;
 
@@ -58,9 +56,6 @@ import io.crate.testing.UseRandomizedOptimizerRules;
 
 @IntegTestCase.ClusterScope(numDataNodes = 0, numClientNodes = 0, supportsDedicatedMasters = false)
 public class CopyFromFailFastITest extends IntegTestCase {
-
-    @Rule
-    public TemporaryFolder folder = new TemporaryFolder();
 
     @After
     public void resetSettings() {
@@ -262,7 +257,7 @@ public class CopyFromFailFastITest extends IntegTestCase {
         execute("CREATE TABLE t (a int)");
 
         execute("COPY t FROM ? WITH (fail_fast = true, shared = false)", new Object[]{target.toUri().toString() + "*"});
-        refresh();
+        execute("refresh table t");
         execute("select * from t");
         assertThat(response.rowCount()).isEqualTo(cluster().numDataNodes());
     }

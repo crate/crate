@@ -51,7 +51,7 @@ public class EmptyStringRoutingIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("insert into t (i, c) values (1, '')");
         execute("insert into t (i, c) values (2, '')");
-        refresh();
+        execute("refresh table t");
         execute("select c, count(*) from t group by c");
         assertThat(response.rowCount()).isEqualTo(1L);
         assertThat((long) response.rows()[0][1]).isEqualTo(2L);
@@ -62,7 +62,7 @@ public class EmptyStringRoutingIntegrationTest extends IntegTestCase {
         execute("create table t (i int primary key, c string primary key) clustered by (c)");
         ensureYellow();
         execute("insert into t (i, c) values (1, ''), (2, '')");
-        refresh();
+        execute("refresh table t");
         execute("select c, count(*) from t group by c");
         assertThat(response.rowCount()).isEqualTo(1L);
         assertThat((long) response.rows()[0][1]).isEqualTo(2L);
@@ -74,8 +74,7 @@ public class EmptyStringRoutingIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("insert into t (i, c) values (?, ?)", new Object[]{1, ""});
         execute("insert into t (i, c) values (?, ?)", new Object[]{2, ""});
-        ;
-        refresh();
+        execute("refresh table t");
         execute("select c, count(*) from t group by c");
         assertThat(response.rowCount()).isEqualTo(1L);
         assertThat((long) response.rows()[0][1]).isEqualTo(2L);
@@ -86,7 +85,7 @@ public class EmptyStringRoutingIntegrationTest extends IntegTestCase {
         execute("create table t (i int primary key, c string primary key) clustered by (c)");
         ensureYellow();
         execute("insert into t (i, c) values (?, ?)", new Object[][]{{1, ""}, {2, ""}});
-        refresh();
+        execute("refresh table t");
         execute("select c, count(*) from t group by c");
         assertThat(response.rowCount()).isEqualTo(1L);
         assertThat((long) response.rows()[0][1]).isEqualTo(2L);
@@ -114,17 +113,17 @@ public class EmptyStringRoutingIntegrationTest extends IntegTestCase {
         execute("create table t (i int primary key, c string primary key, a int) clustered by (c)");
         ensureYellow();
         execute("insert into t (i, c) values (1, ''), (2, '')");
-        refresh();
+        execute("refresh table t");
 
         String uri = Paths.get(folder.getRoot().toURI()).toUri().toString();
         SQLResponse response = execute("copy t to directory ?", new Object[]{uri});
         assertThat(response.rowCount()).isEqualTo(2L);
 
         execute("delete from t");
-        refresh();
+        execute("refresh table t");
 
         execute("copy t from ? with (shared=true)", new Object[]{uri + "t_*"});
-        refresh();
+        execute("refresh table t");
         response = execute("select c, count(*) from t group by c");
         assertThat(response.rowCount()).isEqualTo(1L);
         assertThat((long) response.rows()[0][1]).isEqualTo(2L);

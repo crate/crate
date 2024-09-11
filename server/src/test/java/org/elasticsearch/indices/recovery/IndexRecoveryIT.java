@@ -24,7 +24,6 @@ package org.elasticsearch.indices.recovery;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.biasedDoubleBetween;
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonMap;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.node.RecoverySettingsChunkSizePlugin.CHUNK_SIZE_SETTING;
 
 import java.io.IOException;
@@ -326,7 +325,7 @@ public class IndexRecoveryIT extends IntegTestCase {
             waitForDocs(numOfDocs, indexer, sqlExecutor);
         }
 
-        refresh();
+        execute("refresh table " + INDEX_NAME);
         execute("SELECT COUNT(*) FROM " + INDEX_NAME);
         assertThat(response).hasRows(new Object[] { (long) numOfDocs });
 
@@ -730,7 +729,7 @@ public class IndexRecoveryIT extends IntegTestCase {
 
         assertThat(stateResponse.getState().getRoutingNodes().node(blueNodeId).isEmpty()).isFalse();
 
-        refresh();
+        execute("refresh table doc." + indexName);
         var searchResponse = execute("SELECT COUNT(*) FROM doc." + indexName);
         assertThat(searchResponse).hasRows(new Object[] { (long) numDocs });
 
@@ -855,7 +854,7 @@ public class IndexRecoveryIT extends IntegTestCase {
 
         assertThat(stateResponse.getState().getRoutingNodes().node(blueNodeId).isEmpty()).isFalse();
 
-        refresh();
+        execute("refresh table doc." + indexName);
         var searchResponse = execute("SELECT COUNT(*) FROM doc." + indexName);
         assertThat(searchResponse).hasRows(new Object[] { (long) numDocs });
 
@@ -983,7 +982,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         execute("INSERT INTO test (id) VALUES (?)", args);
         ensureGreen();
 
-        refresh();
+        execute("refresh table test");
         var searchResponse = execute("SELECT COUNT(*) FROM test");
         assertThat(searchResponse).hasRows(new Object[] { (long) numDocs });
 
@@ -1063,7 +1062,7 @@ public class IndexRecoveryIT extends IntegTestCase {
             // shard is marked as started again (and ensureGreen returns), but while applying the cluster state the primary is failed and
             // will be reallocated. The cluster will thus become green, then red, then green again. Triggering a refresh here before
             // searching helps, as in contrast to search actions, refresh waits for the closed shard to be reallocated.
-            refresh();
+            execute("refresh table test");
         } else {
             logger.info("--> starting replica recovery from blue to red");
             execute("ALTER TABLE test SET (" +
@@ -1123,7 +1122,7 @@ public class IndexRecoveryIT extends IntegTestCase {
             args[i] = new Object[]{i};
         }
         execute("INSERT INTO test (id) VALUES (?)", args);
-        refresh();
+        execute("refresh table test");
         // Flush twice to update the safe commit's local checkpoint
         execute("OPTIMIZE TABLE test");
         execute("OPTIMIZE TABLE test");
@@ -1176,7 +1175,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         }
         execute("ALTER TABLE test SET (number_of_replicas = 1)");
         ensureGreen();
-        refresh();
+        execute("refresh table test");
         var searchResponse = execute("SELECT COUNT(*) FROM test");
         assertThat(searchResponse).hasRows(new Object[] { (long) numDocs });
     }

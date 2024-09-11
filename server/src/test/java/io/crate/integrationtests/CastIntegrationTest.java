@@ -57,7 +57,7 @@ public class CastIntegrationTest extends IntegTestCase {
         execute("create table types (i integer, str string, arr array(long))");
         execute("insert into types (i, str, arr) values (?, ?, ?)", new Object[]{1, null, new Object[]{1, 2}});
         execute("insert into types (i, str, arr) values (?, ?, ?)", new Object[]{2, "3d", new Object[]{1, 128}});
-        refresh();
+        execute("refresh table types");
         execute("select try_cast(i as integer), try_cast(str as integer), try_cast(arr as array(byte))" +
                 " from types order by i asc");
         assertThat(response).hasRowCount(2L);

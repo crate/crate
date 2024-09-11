@@ -60,7 +60,7 @@ public final class AnalyzedView implements AnalyzedRelation, FieldResolver {
         for (int i = 0; i < childOutputs.size(); i++) {
             var output = childOutputs.get(i);
             var column = output.toColumn();
-            outputs.add(new ScopedSymbol(name, column, output.valueType()));
+            outputs.add(new ScopedSymbol(name, column, output));
         }
         this.outputSymbols = List.copyOf(outputs);
     }
@@ -94,7 +94,7 @@ public final class AnalyzedView implements AnalyzedRelation, FieldResolver {
         if (field == null || field instanceof VoidReference) {
             return field;
         }
-        ScopedSymbol scopedSymbol = new ScopedSymbol(name, column, field.valueType());
+        ScopedSymbol scopedSymbol = new ScopedSymbol(name, column, field);
         int i = outputSymbols.indexOf(scopedSymbol);
         if (i >= 0) {
             return outputSymbols.get(i);

@@ -24,9 +24,7 @@ package io.crate.expression.operator;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
-import org.apache.lucene.search.TermQuery;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
@@ -43,6 +41,8 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.role.Roles;
+import io.crate.types.EqQuery;
+import io.crate.types.StorageSupport;
 
 public class LikeOperator extends Operator<String> {
 
@@ -71,8 +71,8 @@ public class LikeOperator extends Operator<String> {
             };
         } else {
             // BWC branch for pre-5.6 signature without ESCAPE.
-            escapeFromInputs = (ignored) -> LikeOperators.DEFAULT_ESCAPE;
-            escapeFromSymbols = (ignored) -> LikeOperators.DEFAULT_ESCAPE;
+            escapeFromInputs = ignored -> LikeOperators.DEFAULT_ESCAPE;
+            escapeFromSymbols = ignored -> LikeOperators.DEFAULT_ESCAPE;
         }
     }
 
@@ -132,7 +132,13 @@ public class LikeOperator extends Operator<String> {
             assert value instanceof String
                 : "LikeOperator is registered for string types. Value must be a string";
             if (((String) value).isEmpty()) {
-                return new TermQuery(new Term(ref.storageIdent(), ""));
+                StorageSupport<?> storageSupport = ref.valueType().storageSupport();
+                EqQuery<?> eqQuery = storageSupport == null ? null : storageSupport.eqQuery();
+                if (eqQuery == null) {
+                    return null;
+                }
+                return ((EqQuery<Object>) eqQuery).termQuery(
+                    ref.storageIdent(), value, ref.hasDocValues(), ref.indexType() != IndexType.NONE);
             }
             Character escapeChar = escapeFromSymbols.apply(args);
             return caseSensitivity.likeQuery(ref.storageIdent(),

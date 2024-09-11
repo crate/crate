@@ -123,49 +123,68 @@ public class LikeQueryBuilderTest extends LuceneQueryBuilderTest {
     @Test
     public void test_like_on_varchar_column_uses_wildcard_query() throws Exception {
         Query query = convert("vchar_name LIKE 'Trillian%'");
-        assertThat(query).hasToString("vchar_name:Trillian*");
-        assertThat(query).isExactlyInstanceOf(WildcardQuery.class);
+        assertThat(query)
+            .hasToString("vchar_name:Trillian*")
+            .isExactlyInstanceOf(WildcardQuery.class);
 
         // Verify that version with ESCAPE doesn't lose it on rewriting function.
         query = convert("vchar_name LIKE 'Trillian%' ESCAPE '\\'");
-        assertThat(query).hasToString("vchar_name:Trillian*");
-        assertThat(query).isExactlyInstanceOf(WildcardQuery.class);
+        assertThat(query)
+            .hasToString("vchar_name:Trillian*")
+            .isExactlyInstanceOf(WildcardQuery.class);
     }
 
     @Test
     public void test_like_on_index_off_column_falls_back_to_generic_query() {
         Query query = convert("text_no_index LIKE '%abc%'");
-        assertThat(query).hasToString("(text_no_index LIKE '%abc%')");
-        assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
+        assertThat(query)
+            .hasToString("(text_no_index LIKE '%abc%')")
+            .isExactlyInstanceOf(GenericFunctionQuery.class);
+
+        // When pattern is empty string, if follows a different code path
+        query = convert("text_no_index LIKE ''");
+        assertThat(query)
+            .hasToString("(text_no_index LIKE '')")
+            .isExactlyInstanceOf(GenericFunctionQuery.class);
     }
 
     @Test
     public void test_ilike_on_index_off_column_falls_back_to_generic_query() {
         Query query = convert("text_no_index ILIKE '%abc%'");
-        assertThat(query).hasToString("(text_no_index ILIKE '%abc%')");
-        assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
+        assertThat(query)
+            .hasToString("(text_no_index ILIKE '%abc%')")
+            .isExactlyInstanceOf(GenericFunctionQuery.class);
+
+        // When pattern is empty string, if follows a different code path
+        query = convert("text_no_index ILIKE ''");
+        assertThat(query)
+            .hasToString("(text_no_index ILIKE '')")
+            .isExactlyInstanceOf(GenericFunctionQuery.class);
     }
 
     @Test
     public void test_not_like_any_on_index_off_column_falls_back_to_generic_query() {
         Query query = convert("text_no_index not LIKE any(['%abc%'])");
-        assertThat(query).hasToString("(text_no_index NOT LIKE ANY(['%abc%']))");
-        assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
+        assertThat(query)
+            .hasToString("(text_no_index NOT LIKE ANY(['%abc%']))")
+            .isExactlyInstanceOf(GenericFunctionQuery.class);
     }
 
     @Test
     public void test_ilike_any_on_index_off_column_falls_back_to_generic_query() {
         Query query = convert("text_no_index ILIKE any(['%abc%'])");
-        assertThat(query).hasToString("(text_no_index ILIKE ANY(['%abc%']))");
-        assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
+        assertThat(query)
+            .hasToString("(text_no_index ILIKE ANY(['%abc%']))")
+            .isExactlyInstanceOf(GenericFunctionQuery.class);
     }
 
     // tracks a bug https://github.com/crate/crate/issues/15743
     @Test
     public void test_like_empty_string_results_in_term_query() {
         Query query = convert("name like ''");
-        assertThat(query).hasToString("name:");
-        assertThat(query).isExactlyInstanceOf(TermQuery.class);
+        assertThat(query)
+            .hasToString("name:")
+            .isExactlyInstanceOf(TermQuery.class);
     }
 
     @Test

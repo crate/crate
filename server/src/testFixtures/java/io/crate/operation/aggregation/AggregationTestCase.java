@@ -39,7 +39,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 import org.apache.lucene.index.Term;
@@ -655,7 +654,7 @@ public abstract class AggregationTestCase extends ESTestCase {
             RAM_ACCOUNTING,
             ramAccounting -> new OnHeapMemoryManager(ramAccounting::addBytes),
             new TestingRowConsumer(),
-            new SharedShardContexts(indexServices, UnaryOperator.identity()),
+            new SharedShardContexts(indexServices, (ignored, searcher) -> searcher),
             minNodeVersion,
             4096
         );

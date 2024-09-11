@@ -352,11 +352,15 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
     @Test
     public void testNullOperators() throws Exception {
         DataType<?> type = randomType();
-        String typeDefinition = SqlFormatter.formatSql(type.toColumnType(ColumnPolicy.DYNAMIC, null));
-        execute("create table t1 (c " + typeDefinition + ") with (number_of_replicas = 0)");
         Supplier<?> dataGenerator = DataTypeTesting.getDataGenerator(type);
+        Object val1 = dataGenerator.get();
+        var extendedType = DataTypeTesting.extendedType(type, val1);
+        Object val2 = DataTypeTesting.getDataGenerator(extendedType).get();
 
-        Object[][] bulkArgs = $$($(dataGenerator.get()), $(dataGenerator.get()), new Object[]{null});
+        String typeDefinition = SqlFormatter.formatSql(extendedType.toColumnType(ColumnPolicy.DYNAMIC, null));
+        execute("create table t1 (c " + typeDefinition + ") with (number_of_replicas = 0)");
+
+        Object[][] bulkArgs = $$($(val1), $(val2), new Object[]{null});
         long[] rowCounts = execute("insert into t1 (c) values (?)", bulkArgs);
         assertThat(rowCounts).containsExactly(1, 1, 1);
         execute("refresh table t1");

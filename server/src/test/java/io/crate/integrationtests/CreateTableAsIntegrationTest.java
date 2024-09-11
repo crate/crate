@@ -62,9 +62,9 @@ public class CreateTableAsIntegrationTest extends IntegTestCase {
             ")";
         execute(createTableStmt);
         execute("insert into tbl values({col_nested_integer=null,col_nested_object={col_text=null}})");
-        refresh();
+        execute("refresh table tbl");
         execute("create table cpy as select * from tbl");
-        refresh();
+        execute("refresh table cpy");
         execute("select * from cpy");
 
         assertThat(response).hasRowCount(1);
@@ -87,9 +87,9 @@ public class CreateTableAsIntegrationTest extends IntegTestCase {
             ")";
         execute(createTableStmt);
         execute("insert into tbl values({col_nested_integer=1,col_nested_object={col_text='test'}})");
-        refresh();
+        execute("refresh table tbl");
         execute("create table cpy as (select * from tbl)");
-        refresh();
+        execute("refresh table cpy");
         execute("select * from cpy");
 
         assertThat(response).hasRowCount(1);

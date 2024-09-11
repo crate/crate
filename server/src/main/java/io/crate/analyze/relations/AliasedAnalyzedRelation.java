@@ -72,7 +72,7 @@ public class AliasedAnalyzedRelation implements AnalyzedRelation, FieldResolver 
                 columnAlias = ColumnIdent.of(columnAliases.get(i));
             }
             aliasToColumnMapping.put(columnAlias, childColumn);
-            var scopedSymbol = new ScopedSymbol(alias, columnAlias, childOutput.valueType());
+            var scopedSymbol = new ScopedSymbol(alias, columnAlias, childOutput);
             outputs.add(scopedSymbol);
             scopedSymbols.add(scopedSymbol);
         }
@@ -121,7 +121,7 @@ public class AliasedAnalyzedRelation implements AnalyzedRelation, FieldResolver 
                 new ReferenceIdent(alias, voidReference.column()),
                 voidReference.position());
         }
-        ScopedSymbol scopedSymbol = new ScopedSymbol(alias, column, field.valueType());
+        ScopedSymbol scopedSymbol = new ScopedSymbol(alias, column, field);
 
         // If the scopedSymbol exists already, return that instance.
         // Otherwise (e.g. lazy-loaded subscript expression) it must be stored to comply with

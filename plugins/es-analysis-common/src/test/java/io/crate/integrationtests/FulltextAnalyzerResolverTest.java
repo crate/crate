@@ -449,7 +449,7 @@ public class FulltextAnalyzerResolverTest extends IntegTestCase {
         execute("insert into test (id, name, content) values (?, ?, ?)", new Object[]{
             2, "another phrase", "Don't panic!"
         });
-        refresh();
+        execute("refresh table test");
         SQLResponse response = execute("select id from test where match(content, 'brown jump')");
         assertThat(response.rowCount()).isEqualTo(1L);
         assertThat(response.rows()[0][0]).isEqualTo(1);

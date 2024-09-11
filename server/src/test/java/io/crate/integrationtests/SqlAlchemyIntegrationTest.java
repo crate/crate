@@ -37,7 +37,7 @@ public class SqlAlchemyIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("insert into test values (?, ?)", new Object[]{1, "foo"});
         execute("insert into test values (?, ?)", new Object[]{2, "bar"});
-        refresh();
+        execute("refresh table test");
 
         execute(
             "SELECT count(?) AS count_1 FROM test WHERE test.col2 = ?",
@@ -55,7 +55,7 @@ public class SqlAlchemyIntegrationTest extends IntegTestCase {
         ensureYellow();
         execute("insert into test values (?, ?)", new Object[]{1, "foo"});
         execute("insert into test values (?, ?)", new Object[]{2, "bar"});
-        refresh();
+        execute("refresh table test");
 
         execute(
             "SELECT count(test.col1) AS count_1 FROM test WHERE test.col2 = ?",
@@ -74,7 +74,7 @@ public class SqlAlchemyIntegrationTest extends IntegTestCase {
         execute("insert into test values (?, ?)", new Object[]{1, "foo"});
         execute("insert into test values (?, ?)", new Object[]{2, "bar"});
         execute("insert into test values (?, ?)", new Object[]{3, "foo"});
-        refresh();
+        execute("refresh table test");
 
         execute(
             "SELECT count(?) AS count_1, test.col2 AS test_col2 FROM test " +
@@ -96,7 +96,7 @@ public class SqlAlchemyIntegrationTest extends IntegTestCase {
         execute("insert into test values (?, ?)", new Object[]{1, "foo"});
         execute("insert into test values (?, ?)", new Object[]{2, "bar"});
         execute("insert into test values (?, ?)", new Object[]{3, "foo"});
-        refresh();
+        execute("refresh table test");
 
         execute(
             "SELECT count(test.col1) AS count_1, test.col2 AS test_col2 FROM test " +

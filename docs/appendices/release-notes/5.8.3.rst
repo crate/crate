@@ -47,9 +47,30 @@ See the :ref:`version_5.8.0` release notes for a full list of changes in the
 Fixes
 =====
 
-- Fixed issue which caused :ref:`User Defined Functions<user-defined-functions>`
-  with mixed case function names (e.g. ``mYfUncTIOn``) to throw errors when used
-  in :ref:`generated columns<ddl-generated-columns>`.
+- Fixed a race condition that could allow ``INSERT INTO`` statements to write
+  values with conflicting types into a table within an ``OBJECT (DYNAMIC)``
+  column if the insert needed to create a new sub-column dynamically.
+
+- Fixed an issue that caused ``WHERE`` clause to filter out all rows when the
+  clause contained a :ref:`LIKE or ILIKE<sql_dql_like>` operator on a column
+  declared with :ref:`INDEX OFF<sql_ddl_index_off>` and the pattern was an empty
+  string (``''``).
+
+- Fixed an issue that caused ``WHERE`` clause to fail to filter rows when
+  the clause contained casts on null object columns under ``NOT`` operator.
+  e.g.::
+
+    CREATE  TABLE  t1(c0 OBJECT NULL);
+    INSERT INTO t1(c0) VALUES (NULL);
+    SELECT * FROM t1 WHERE NOT (CAST(t1.c0 AS STRING) ='');
+
+- Fixed an issue that could cause errors like ``ClassCastException`` if using
+  column aliases in a Subquery that lead to ambiguous column names.
+
+- Fixed an issue which caused
+  :ref:`User Defined Functions<user-defined-functions>` with mixed case function
+  names (e.g. ``mYfUncTIOn``) to throw errors when used in
+  :ref:`generated columns<ddl-generated-columns>`.
 
 - Fixed an issue that caused failure of ``ALTER ROLE`` statements updating or
   resetting password of a user with specified :ref:`JWT <create-user-jwt>`

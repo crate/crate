@@ -21,7 +21,7 @@
 
 package io.crate.execution.jobs;
 
-import java.util.function.UnaryOperator;
+import java.util.function.BiFunction;
 
 import org.apache.lucene.search.IndexSearcher;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -44,12 +44,12 @@ public class SharedShardContext {
     SharedShardContext(IndexService indexService,
                        ShardId shardId,
                        int readerId,
-                       UnaryOperator<Engine.Searcher> wrapSearcher) {
+                       BiFunction<ShardId, Engine.Searcher, Engine.Searcher> wrapSearcher) {
         this.indexService = indexService;
         IndexShard indexShard = indexService.getShard(shardId.id());
         this.readerId = readerId;
         this.searcher = new RefCountedItem<Engine.Searcher>(
-            source -> wrapSearcher.apply(indexShard.acquireSearcher(source)),
+            source -> wrapSearcher.apply(shardId, indexShard.acquireSearcher(source)),
             Engine.Searcher::close
         );
     }

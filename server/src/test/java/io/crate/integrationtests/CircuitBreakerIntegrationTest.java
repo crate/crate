@@ -46,7 +46,7 @@ public class CircuitBreakerIntegrationTest extends IntegTestCase {
     public void testQueryBreakerIsDecrementedWhenQueryCompletes() throws Exception {
         execute("create table t1 (text string)");
         execute("insert into t1 values ('this is some text'), ('other text')");
-        refresh();
+        execute("refresh table t1");
 
         CircuitBreakerService circuitBreakerService = cluster().getInstance(CircuitBreakerService.class);
         CircuitBreaker queryBreaker = circuitBreakerService.getBreaker(HierarchyCircuitBreakerService.QUERY);
@@ -63,7 +63,7 @@ public class CircuitBreakerIntegrationTest extends IntegTestCase {
     public void testQueryBreakerIsUpdatedWhenSettingIsChanged() {
         execute("create table t1 (text string) clustered into 1 shards");
         execute("insert into t1 values ('this is some text'), ('other text')");
-        refresh();
+        execute("refresh table t1");
 
         execute("select text from t1 group by text");
 

@@ -37,7 +37,7 @@ public class StorageOptionsITest extends IntegTestCase {
 
         String bigString = RandomStrings.randomRealisticUnicodeOfLength(random(), MAX_TERM_LENGTH + 2);
         execute("insert into t1 (s) values (?)", new Object[]{bigString});
-        refresh();
+        execute("refresh table t1");
 
         execute("select s from t1 limit 1");
         assertThat(response.rows()[0][0]).isEqualTo(bigString);
@@ -54,7 +54,7 @@ public class StorageOptionsITest extends IntegTestCase {
 
         execute("insert into t1 (i, s) values (?, ?), (?, ?)",
                 new Object[][]{{1, "hello", 2, "foo"}});
-        refresh();
+        execute("refresh table t1");
 
         execute("select max(i), max(s) from t1");
         assertThat(response).hasRows("2| hello");
@@ -71,7 +71,7 @@ public class StorageOptionsITest extends IntegTestCase {
 
         execute("insert into t1 (i, s) values (?, ?), (?, ?)",
                 new Object[][]{{1, "hello", 2, "foo"}});
-        refresh();
+        execute("refresh table t1");
 
         execute("select count(s), count(i), i, s from t1 group by s, i order by i, s");
         assertThat(response).hasRows(
@@ -90,7 +90,7 @@ public class StorageOptionsITest extends IntegTestCase {
 
         execute("insert into t1 (i, s) values (?, ?), (?, ?)",
                 new Object[][]{{1, "foo", 2, "bar"}});
-        refresh();
+        execute("refresh table t1");
 
         execute("select s from t1 order by s");
         assertThat(response).hasRows(

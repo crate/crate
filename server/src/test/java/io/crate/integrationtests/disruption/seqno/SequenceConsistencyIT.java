@@ -66,7 +66,7 @@ public class SequenceConsistencyIT extends AbstractDisruptionTestCase {
                     )
                 """);
         execute("insert into registers values (1, 'initial value')");
-        refresh();
+        execute("refresh table registers");
 
         // not setting this when creating the table because we want the replica to be initialized before we start disrupting
         // otherwise the replica might not be ready to be promoted to primary due to "primary failed while replica initializing"

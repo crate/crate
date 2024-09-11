@@ -197,7 +197,7 @@ public class AlterTableIntegrationTest extends IntegTestCase {
     public void test_drop_sub_column_readd_and_update() {
         execute("CREATE TABLE t1 (id int, obj object as (x int, y int))");
         execute("INSERT INTO t1 (id, obj) VALUES (1, {x=11, y=21})");
-        execute("REFRESH TABLE t1");
+        execute("refresh table t1");
         execute("SELECT id, obj FROM t1");
         assertThat(response).hasRows("1| {x=11, y=21}");
 
@@ -208,7 +208,7 @@ public class AlterTableIntegrationTest extends IntegTestCase {
         execute("ALTER TABLE t1 ADD COLUMN obj['y'] TEXT");
         execute("UPDATE t1 SET obj['y'] = 'foo'");
         assertThat(response.rowCount()).isEqualTo(1L);
-        execute("REFRESH TABLE t1");
+        execute("refresh table t1");
         execute("SELECT id, obj FROM t1");
         assertThat(response).hasRows("1| {x=11, y=foo}");
     }
@@ -308,7 +308,7 @@ public class AlterTableIntegrationTest extends IntegTestCase {
             """);
         execute("insert into doc.t(a, o) values (1, {a=2})");
         execute("insert into doc.t(a, o) values (4, {a=5})");
-        execute("REFRESH TABLE doc.t");
+        execute("refresh table doc.t");
 
         execute("alter table doc.t rename column a to a2");
         execute("alter table doc.t rename column o to o2");
