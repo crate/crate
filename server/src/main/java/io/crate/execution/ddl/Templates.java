@@ -59,7 +59,7 @@ public final class Templates {
 
     private static final Logger LOGGER = LogManager.getLogger(Templates.class);
 
-    public static IndexTemplateMetadata.Builder copyWithNewName(IndexTemplateMetadata source, RelationName newName) {
+    public static IndexTemplateMetadata.Builder withName(IndexTemplateMetadata source, RelationName newName) {
         String targetTemplateName = PartitionName.templateName(newName.schema(), newName.name());
         String targetAlias = newName.indexNameOrAlias();
         IndexTemplateMetadata.Builder templateBuilder = IndexTemplateMetadata
