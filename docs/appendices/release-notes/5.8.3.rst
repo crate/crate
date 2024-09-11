@@ -84,3 +84,6 @@ Fixes
 
 - Fixed an issue that caused filtering by ``LIKE ALL`` on arrays to behave like
   ``LIKE ANY``.
+
+- Fixed an issue that prevented filtering by ``LIKE ANY`` on array columns
+  containing patterns.

@@ -295,6 +295,33 @@ public class LikeOperators {
         return makePattern(pattern, caseSensitivity, escape).matcher(expression).matches();
     }
 
+    public static boolean containsWildCards(String string, @Nullable Character escapeChar) {
+        boolean escaped = false;
+        for (char c : string.toCharArray()) {
+            if (escapeChar != null && !escaped && c == escapeChar) {
+                escaped = true;
+            } else {
+                switch (c) {
+                    case '%':
+                        if (!escaped) {
+                            return true;
+                        }
+                        escaped = false;
+                        break;
+                    case '_':
+                        if (!escaped) {
+                            return true;
+                        }
+                        escaped = false;
+                        break;
+                    default:
+                        escaped = false;
+                }
+            }
+        }
+        return false;
+    }
+
     public static String patternToRegex(String patternString, @Nullable Character escapeChar) {
         StringBuilder regex = new StringBuilder(patternString.length() * 2);
         regex.append('^');

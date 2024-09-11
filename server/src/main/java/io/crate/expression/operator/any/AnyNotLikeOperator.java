@@ -21,6 +21,9 @@
 
 package io.crate.expression.operator.any;
 
+import static io.crate.expression.operator.LikeOperators.DEFAULT_ESCAPE;
+import static io.crate.expression.operator.LikeOperators.containsWildCards;
+
 import java.util.List;
 
 import org.apache.lucene.index.Term;
@@ -66,6 +69,9 @@ public final class AnyNotLikeOperator extends AnyOperator<String> {
 
     @Override
     protected Query refMatchesAnyArrayLiteral(Function any, Reference probe, @NotNull List<?> nonNullValues, Context context) {
+        if (nonNullValues.stream().noneMatch(pattern -> containsWildCards((String) pattern, LikeOperators.DEFAULT_ESCAPE))) {
+            return null;
+        }
         // col not like ANY (['a', 'b']) --> not(and(like(col, 'a'), like(col, 'b')))
         String columnName = probe.storageIdent();
         BooleanQuery.Builder andLikeQueries = new BooleanQuery.Builder();
@@ -86,6 +92,9 @@ public final class AnyNotLikeOperator extends AnyOperator<String> {
     @Override
     protected Query literalMatchesAnyArrayRef(Function any, Literal<?> probe, Reference candidates, Context context) {
         String pattern = (String) probe.value();
+        if (!containsWildCards(pattern, DEFAULT_ESCAPE)) {
+            return null;
+        }
         String regexString = LikeOperators.patternToRegex(pattern, LikeOperators.DEFAULT_ESCAPE);
         regexString = regexString.substring(1, regexString.length() - 1);
         String notLike = negateWildcard(regexString);

@@ -22,6 +22,9 @@
 package io.crate.expression.operator.any;
 
 
+import static io.crate.expression.operator.LikeOperators.DEFAULT_ESCAPE;
+import static io.crate.expression.operator.LikeOperators.containsWildCards;
+
 import java.util.List;
 
 import org.apache.lucene.search.BooleanClause;
@@ -67,6 +70,9 @@ public final class AnyLikeOperator extends AnyOperator<String> {
 
     @Override
     protected Query refMatchesAnyArrayLiteral(Function any, Reference probe, @NotNull List<?> nonNullValues, Context context) {
+        if (nonNullValues.stream().noneMatch(pattern -> containsWildCards((String) pattern, LikeOperators.DEFAULT_ESCAPE))) {
+            return null;
+        }
         // col like ANY (['a', 'b']) --> or(like(col, 'a'), like(col, 'b'))
         String fqn = probe.storageIdent();
         BooleanQuery.Builder booleanQuery = new BooleanQuery.Builder();
@@ -83,6 +89,10 @@ public final class AnyLikeOperator extends AnyOperator<String> {
 
     @Override
     protected Query literalMatchesAnyArrayRef(Function any, Literal<?> probe, Reference candidates, Context context) {
+        String pattern = (String) probe.value();
+        if (!containsWildCards(pattern, DEFAULT_ESCAPE)) {
+            return null;
+        }
         return caseSensitivity.likeQuery(candidates.storageIdent(), (String) probe.value(), LikeOperators.DEFAULT_ESCAPE, candidates.indexType() != IndexType.NONE);
     }
 

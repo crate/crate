@@ -60,6 +60,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.role.Role;
+import io.crate.testing.Asserts;
 import io.crate.testing.IndexVersionCreated;
 import io.crate.testing.QueryTester;
 import io.crate.testing.SQLExecutor;
@@ -666,11 +667,11 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         query = convert("x < any([1, null, 2])");
         assertThat(query).hasToString("(x:[-2147483648 TO 0] x:[-2147483648 TO 1])~1");
 
-        query = convert("name like any(['bar', null, 'foo'])");
-        assertThat(query).hasToString("(name:bar name:foo)~1");
+        query = convert("name like any(['bar_', null, 'foo'])");
+        assertThat(query).hasToString("(name:bar? name:foo)~1");
 
-        query = convert("name not ilike any(['bar', null, 'foo'])");
-        assertThat(query).hasToString("+*:* -(+name:^bar$,flags:66 +name:^foo$,flags:66)");
+        query = convert("name not ilike any(['bar_', null, 'foo'])");
+        assertThat(query).hasToString("+*:* -(+name:^bar.$,flags:66 +name:^foo$,flags:66)");
     }
 
     @Test
@@ -810,5 +811,36 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     public void test_neq_on_object_literal() {
         Query query = convert("(obj_no_sub_columns != {})");
         assertThat(query).hasToString("+(+*:* -(obj_no_sub_columns = {})) #(NOT (obj_no_sub_columns = {}))");
+    }
+
+    @Test
+    public void test_any_like_with_non_pattern_literal() {
+        Query query = convert("'abc' like any(text_array)");
+        assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
+        assertThat(query).hasToString("('abc' LIKE ANY(text_array))");
+
+        query = convert("name ilike any(['fo'])");
+        assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
+        assertThat(query).hasToString("(name ILIKE ANY(['fo']))");
+
+        query = convert("'abc' not ilike any(text_array)");
+        assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
+        assertThat(query).hasToString("('abc' NOT ILIKE ANY(text_array))");
+    }
+
+    @Test
+    public void test_any_like_with_array_reference_containing_patterns() throws Exception {
+        try (QueryTester tester = new QueryTester.Builder(
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            "create table t (c array(text))"
+        ).indexValues("c", List.of("a_", "bb")).build()) {
+            List<Object> result = tester.runQuery("c", "'aa' like any(c)");
+            Asserts.assertThat(result).containsExactly(List.of("a_", "bb"));
+
+            result = tester.runQuery("c", "'bb' like any(c)");
+            Asserts.assertThat(result).containsExactly(List.of("a_", "bb"));
+        }
     }
 }

@@ -45,7 +45,7 @@ public class LikeQueryBuilderTest extends LuceneQueryBuilderTest {
 
     @Test
     public void testLikeAnyOnArrayLiteral() throws Exception {
-        Query likeQuery = convert("name like any (['a', 'b', 'c'])");
+        Query likeQuery = convert("name like any (['a_', 'b_', 'c'])");
         assertThat(likeQuery).isExactlyInstanceOf(BooleanQuery.class);
         BooleanQuery likeBQuery = (BooleanQuery) likeQuery;
         assertThat(likeBQuery.clauses()).hasSize(3);
@@ -58,7 +58,7 @@ public class LikeQueryBuilderTest extends LuceneQueryBuilderTest {
 
     @Test
     public void testILikeAnyOnArrayLiteral() throws Exception {
-        Query likeQuery = convert("name ilike any (['A', 'B', 'B'])");
+        Query likeQuery = convert("name ilike any (['A_', 'B', 'B'])");
         assertThat(likeQuery).isExactlyInstanceOf(BooleanQuery.class);
         BooleanQuery likeBQuery = (BooleanQuery) likeQuery;
         assertThat(likeBQuery.clauses()).hasSize(3);
@@ -70,7 +70,7 @@ public class LikeQueryBuilderTest extends LuceneQueryBuilderTest {
 
     @Test
     public void testNotLikeAnyOnArrayLiteral() throws Exception {
-        Query notLikeQuery = convert("name not like any (['a', 'b', 'c'])");
+        Query notLikeQuery = convert("name not like any (['a%', 'b', 'c'])");
         assertThat(notLikeQuery).isExactlyInstanceOf(BooleanQuery.class);
         BooleanQuery notLikeBQuery = (BooleanQuery) notLikeQuery;
         assertThat(notLikeBQuery.clauses()).hasSize(2);
@@ -85,7 +85,7 @@ public class LikeQueryBuilderTest extends LuceneQueryBuilderTest {
 
     @Test
     public void testNotILikeAnyOnArrayLiteral() throws Exception {
-        Query notLikeQuery = convert("name not ilike any (['A', 'B', 'C'])");
+        Query notLikeQuery = convert("name not ilike any (['A_', 'B', 'C'])");
         assertThat(notLikeQuery).isExactlyInstanceOf(BooleanQuery.class);
         BooleanQuery notLikeBQuery = (BooleanQuery) notLikeQuery;
         assertThat(notLikeBQuery.clauses()).hasSize(2);
@@ -215,7 +215,7 @@ public class LikeQueryBuilderTest extends LuceneQueryBuilderTest {
     public void test_like_ilike_any_with_trailing_escape_char() {
         for (var op : List.of("like", "ilike")) {
             for (var not : List.of("", "not")) {
-                assertThatThrownBy(() -> convert("name " + not + " " + op + " any(['a', 'b', 'ab\\'])"))
+                assertThatThrownBy(() -> convert("name " + not + " " + op + " any(['a_', 'b%', 'ab\\'])"))
                     .isExactlyInstanceOf(IllegalArgumentException.class)
                     .hasMessage("pattern 'ab\\' must not end with escape character '\\'");
             }
