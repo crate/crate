@@ -33,7 +33,6 @@ import java.util.List;
 import java.util.Locale;
 
 import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.ResourceAlreadyExistsException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.ActiveShardCount;
@@ -74,6 +73,7 @@ import org.jetbrains.annotations.VisibleForTesting;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
+import io.crate.metadata.IndexName;
 import io.crate.metadata.PartitionName;
 
 
@@ -172,11 +172,10 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
      * but optimized for bulk operation without separate mapping/alias/index settings.
      */
     private ClusterState executeCreateIndices(ClusterState currentState, CreatePartitionsRequest request) throws Exception {
-        List<String> indicesToCreate = new ArrayList<>(request.indices().size());
         String removalReason = null;
         Index testIndex = null;
         try {
-            validateAndFilterExistingIndices(currentState, indicesToCreate, request);
+            List<String> indicesToCreate = getValidatedIndicesToCreate(currentState, request);
             if (indicesToCreate.isEmpty()) {
                 return currentState;
             }
@@ -313,17 +312,19 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
         );
     }
 
-    private void validateAndFilterExistingIndices(ClusterState currentState,
-                                                  List<String> indicesToCreate,
-                                                  CreatePartitionsRequest request) {
+    private List<String> getValidatedIndicesToCreate(ClusterState state, CreatePartitionsRequest request) {
+        ArrayList<String> indicesToCreate = new ArrayList<>(request.indices().size());
         for (String index : request.indices()) {
-            try {
-                MetadataCreateIndexService.validateIndexName(index, currentState);
-                indicesToCreate.add(index);
-            } catch (ResourceAlreadyExistsException e) {
-                // ignore
+            if (state.metadata().hasIndex(index)) {
+                continue;
             }
+            if (state.routingTable().hasIndex(index)) {
+                continue;
+            }
+            IndexName.validate(index);
+            indicesToCreate.add(index);
         }
+        return indicesToCreate;
     }
 
     private Settings createCommonIndexSettings(ClusterState currentState, @Nullable IndexTemplateMetadata template) {

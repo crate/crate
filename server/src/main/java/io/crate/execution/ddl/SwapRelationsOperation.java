@@ -38,7 +38,7 @@ import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.index.Index;
 
-import io.crate.metadata.IndexParts;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.cluster.DDLClusterStateService;
@@ -200,7 +200,7 @@ public class SwapRelationsOperation {
                 onProcessedIndex.accept(target.indexNameOrAlias());
             } else {
                 PartitionName partitionName = PartitionName.fromIndexOrTemplate(sourceIndexName);
-                String targetIndexName = IndexParts.toIndexName(target, partitionName.ident());
+                String targetIndexName = IndexName.encode(target, partitionName.ident());
                 targetMd = IndexMetadata.builder(sourceMd)
                     .removeAllAliases()
                     .putAlias(new AliasMetadata(target.indexNameOrAlias()))

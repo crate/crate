@@ -50,7 +50,7 @@ import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.NestableInput;
 import io.crate.expression.reference.sys.shard.ShardRowContext;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.IndexParts;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
@@ -127,8 +127,8 @@ public class SysShardsTableInfo {
 
     public static SystemTable<ShardRowContext> create(Roles roles) {
         return SystemTable.<ShardRowContext>builder(IDENT, RowGranularity.SHARD)
-            .add("schema_name", STRING, r -> r.indexParts().getSchema())
-            .add("table_name", STRING, r -> r.indexParts().getTable())
+            .add("schema_name", STRING, r -> r.indexParts().schema())
+            .add("table_name", STRING, r -> r.indexParts().table())
             .add("id", INTEGER, ShardRowContext::id)
             .add("partition_ident", STRING, ShardRowContext::partitionIdent)
             .add("num_docs", LONG, ShardRowContext::numDocs)
@@ -240,7 +240,7 @@ public class SysShardsTableInfo {
                                      CoordinatorSessionSettings sessionSettings,
                                      Roles roles) {
         String[] concreteIndices = Arrays.stream(clusterState.metadata().getConcreteAllIndices())
-            .filter(index -> !IndexParts.isDangling(index))
+            .filter(index -> !IndexName.isDangling(index))
             .toArray(String[]::new);
         Role user = sessionSettings != null ? sessionSettings.sessionUser() : null;
         if (user != null) {

@@ -40,6 +40,7 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.blob.v2.BlobShard;
 import io.crate.common.Suppliers;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
@@ -88,9 +89,9 @@ public class ShardRowContext {
         ShardId shardId = indexShard.shardId();
         String indexName = shardId.getIndexName();
         this.id = shardId.id();
-        this.indexParts = new IndexParts(indexName);
+        this.indexParts = IndexName.decode(indexName);
         if (indexParts.isPartitioned()) {
-            partitionIdent = indexParts.getPartitionIdent();
+            partitionIdent = indexParts.partitionIdent();
             RelationName relationName = indexParts.toRelationName();
             aliasName = relationName.indexNameOrAlias();
             templateName = PartitionName.templateName(relationName.schema(), relationName.name());
