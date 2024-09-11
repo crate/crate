@@ -806,7 +806,7 @@ public class RestoreService implements ClusterStateApplier {
                             schema.replaceAll(request.schemaRenamePattern(), request.schemaRenameReplacement()),
                             table.replaceAll(request.tableRenamePattern(), request.tableRenameReplacement())
                         );
-                        IndexTemplateMetadata renamedIndexTemplateMetadata = Templates.copyWithNewName(indexTemplateMetadata, newName).build();
+                        IndexTemplateMetadata renamedIndexTemplateMetadata = Templates.withName(indexTemplateMetadata, newName).build();
                         previous = includedTemplates.put(newName.indexNameOrAlias(), renamedIndexTemplateMetadata);
                     } else {
                         previous = includedTemplates.put(templateName, indexTemplateMetadata);
