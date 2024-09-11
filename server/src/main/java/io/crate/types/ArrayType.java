@@ -242,8 +242,8 @@ public class ArrayType<T> extends DataType<List<T>> {
         if (value instanceof Collection<?> values) {
             return Lists.map(values, convertInner);
         } else if (value instanceof byte[] b) {
-            try {
-                return streamer().readValueFrom(new ByteBufferStreamInput(ByteBuffer.wrap(b)));
+            try (StreamInput in = new ByteBufferStreamInput(ByteBuffer.wrap(b))) {
+                return in.readList(input -> (T) input.readGenericValue());
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }

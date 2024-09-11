@@ -24,6 +24,8 @@ package io.crate.expression.reference.doc.lucene;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.StoredFieldVisitor;
@@ -38,13 +40,21 @@ import io.crate.types.DataType;
 
 public class ColumnFieldVisitor extends StoredFieldVisitor {
 
+    public ColumnFieldVisitor(Set<Reference> droppedColumns) {
+        this.droppedColumns = droppedColumns.stream().map(Reference::column).collect(Collectors.toUnmodifiableSet());
+    }
+
     private record Field(DataType<?> dataType, ColumnIdent column) {}
 
     private final Map<String, Field> fields = new HashMap<>();
+    private final Set<ColumnIdent> droppedColumns;
 
     private Map<String, Object> doc = new HashMap<>();
 
     public void registerRef(Reference ref) {
+        if (droppedColumns.contains(ref.column())) {
+            return;
+        }
         var column = ref.column();
         if (column.name().equals(DocSysColumns.Names.DOC)) {
             column = column.shiftRight();

@@ -33,6 +33,7 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.document.IntField;
 import org.apache.lucene.document.StoredField;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.junit.Test;
 
@@ -126,17 +127,7 @@ public class NestedArrayTypeTest extends DataTypeTestCase<List<List<Object>>> {
         expected.add(new IntField(resolvedField, 4, Field.Store.NO));
 
         BytesStreamOutput bytes = new BytesStreamOutput();
-        bytes.writeVInt(3);
-        bytes.writeVInt(3);
-        bytes.writeBoolean(false);
-        bytes.writeInt(1);
-        bytes.writeBoolean(false);
-        bytes.writeInt(2);
-        bytes.writeVInt(3);
-        bytes.writeBoolean(false);
-        bytes.writeInt(3);
-        bytes.writeBoolean(false);
-        bytes.writeInt(4);
+        bytes.writeCollection(List.of(1, 2, 3, 4), StreamOutput::writeGenericValue);
         expected.add(new StoredField(arrayValuesField, bytes.bytes().toBytesRef()));
 
         assertThat(doc).hasSameResolvedFields(expected, resolvedField);

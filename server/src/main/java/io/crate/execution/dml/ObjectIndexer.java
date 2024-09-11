@@ -35,10 +35,10 @@ import java.util.function.Function;
 import org.apache.lucene.document.StoredField;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.Streamer;
 import io.crate.data.Input;
 import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.expression.symbol.Symbol;
@@ -54,7 +54,6 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.ObjectType;
 import io.crate.types.StorageSupport;
-import io.crate.types.UndefinedType;
 
 public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
 
@@ -120,24 +119,26 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
             var valueIndexer = child.indexer;
             // valueIndexer is null for partitioned columns
             if (valueIndexer != null) {
+                innerValue = child.reference.valueType().sanitizeValue(innerValue);
                 docBuilder.translogWriter().writeFieldName(child.reference.storageIdentLeafName());
-                valueIndexer.indexValue(
-                    child.reference.valueType().sanitizeValue(innerValue),
-                    docBuilder
-                );
+                valueIndexer.indexValue(innerValue, docBuilder);
+                value.put(innerName, innerValue);
             }
         }
-        Map<String, Object> ignoredColumns = new HashMap<>();
+        Map<String, Object> columnsToStore = new HashMap<>();
         value.forEach((k, v) -> {
             if (children.containsKey(k) == false) {
                 translogWriter.writeFieldName(this.unknownColumnPrefix + k);
                 translogWriter.writeValue(v);
-                ignoredColumns.put(k, v);
+                columnsToStore.put(k, v);
+            }
+            if (v == null) {
+                columnsToStore.put(k, null);
             }
         });
         if (docBuilder.maybeAddStoredField()) {
-            if (ignoredColumns.isEmpty() == false) {
-                docBuilder.addField(new StoredField(ref.storageIdentLeafName(), toBytes(ignoredColumns).toBytesRef()));
+            if (columnsToStore.isEmpty() == false) {
+                docBuilder.addField(new StoredField(ref.storageIdentLeafName(), toBytes(columnsToStore).toBytesRef()));
             } else if (value.isEmpty()) {
                 docBuilder.addField(new StoredField(ref.storageIdentLeafName(), toBytes(value).toBytesRef()));
             }
@@ -147,25 +148,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
 
     private BytesReference toBytes(Map<String, Object> v) {
         try (BytesStreamOutput out = new BytesStreamOutput()) {
-            if (v == null) {
-                out.writeBoolean(false);
-            } else {
-                out.writeBoolean(true);
-                out.writeInt(v.size());
-                for (Map.Entry<String, Object> entry : v.entrySet()) {
-                    String key = entry.getKey();
-                    out.writeString(key);
-                    Child child = children.get(key);
-                    if (child == null) {
-                        UndefinedType.INSTANCE.streamer().writeValueTo(out, entry.getValue());
-                    } else {
-                        DataType<?> innerType = child.reference.valueType();
-                        Streamer<Object> streamer = (Streamer<Object>) innerType.streamer();
-                        var sv = innerType.implicitCast(entry.getValue());
-                        streamer.writeValueTo(out, sv);
-                    }
-                }
-            }
+            out.writeMap(v, StreamOutput::writeString, StreamOutput::writeGenericValue);
             return out.bytes();
         } catch (IOException e) {
             throw new UncheckedIOException(e);

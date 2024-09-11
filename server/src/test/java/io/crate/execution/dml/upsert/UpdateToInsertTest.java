@@ -49,7 +49,17 @@ import io.crate.testing.SQLExecutor;
 public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
 
     private static Doc doc(String id, String index, Map<String, Object> source) {
-        return new Doc(1, index, id, 1, 1, 1, StoredRow.wrap(source));
+        return new Doc(1, index, id, 1, 1, 1, new StoredRow() {
+            @Override
+            public Map<String, Object> asMap() {
+                return source;
+            }
+
+            @Override
+            public String asRaw() {
+                throw new UnsupportedOperationException();
+            }
+        });
     }
 
     @Test

@@ -72,7 +72,7 @@ public final class Doc {
     }
 
     public String getRaw() {
-        return storedRow.asString();
+        return storedRow.asRaw();
     }
 
     public Map<String, Object> getSource() {

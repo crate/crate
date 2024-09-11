@@ -157,7 +157,7 @@ public abstract class StoredRowLookup implements StoredRow {
         }
 
         @Override
-        public String asString() {
+        public String asRaw() {
             if (docVisited == false) {
                 loadStoredFields();
             }
@@ -166,6 +166,7 @@ public abstract class StoredRowLookup implements StoredRow {
             } catch (IOException e) {
                 throw new UncheckedIOException("Failed to decompress source", e);
             }
+
         }
 
         private BytesReference loadStoredFields() {
@@ -181,13 +182,14 @@ public abstract class StoredRowLookup implements StoredRow {
 
     private static class ColumnAndStoredRowLookup extends StoredRowLookup {
 
-        private record ColumnExpression(LuceneCollectorExpression<?> expression, ColumnIdent ident) {}
+        private record ColumnExpression(LuceneCollectorExpression<?> expression, ColumnIdent ident, String storageName) {}
 
         private final List<ColumnExpression> expressions = new ArrayList<>();
-        private final ColumnFieldVisitor fieldsVisitor = new ColumnFieldVisitor();
+        private final ColumnFieldVisitor fieldsVisitor;
 
         private ColumnAndStoredRowLookup(DocTableInfo table, String indexName, List<Symbol> columns) {
             super(table, indexName);
+            this.fieldsVisitor = new ColumnFieldVisitor(table.droppedColumns());
             register(columns);
         }
 
@@ -230,7 +232,7 @@ public abstract class StoredRowLookup implements StoredRow {
                     if (column.isRoot() == false && column.name().equals(DocSysColumns.Names.DOC)) {
                         column = column.shiftRight();
                     }
-                    expressions.add(new ColumnExpression(expr, column));
+                    expressions.add(new ColumnExpression(expr, column, ref.storageIdent()));
                 }
             }
         }
@@ -260,10 +262,21 @@ public abstract class StoredRowLookup implements StoredRow {
         }
 
         @Override
-        public String asString() {
+        public String asRaw() {
             ByteArrayOutputStream output = new ByteArrayOutputStream();
             try (XContentBuilder builder = XContentFactory.json(output)) {
-                builder.map(asMap());
+                RawFieldVisitor visitor = new RawFieldVisitor();
+                readerContext.visitDocument(doc, visitor);
+                Map<String, Object> docMap = visitor.getStoredValues();
+                for (var expr : expressions) {
+                    expr.expression.setNextReader(readerContext);
+                    expr.expression.setNextDocId(doc);
+                    var value = expr.expression.value();
+                    if (value != null) {
+                        Maps.mergeInto(docMap, expr.storageName, List.of(), value);
+                    }
+                }
+                builder.map(docMap);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
@@ -286,10 +299,21 @@ public abstract class StoredRowLookup implements StoredRow {
         private Map<String, Object> storedMap() throws IOException {
             if (fieldsVisitor.shouldLoadStoredFields()) {
                 readerContext.visitDocument(doc, fieldsVisitor);
-                return fieldsVisitor.getDocMap();
+                return stripDroppedFields(fieldsVisitor.getDocMap());
             } else {
                 return new HashMap<>();
             }
+        }
+
+        @SuppressWarnings("unchecked")
+        private Map<String, Object> stripDroppedFields(Map<String, Object> doc) {
+            for (var ref : table.droppedColumns()) {
+                var m = doc.get(ref.column().name());
+                if (m instanceof Map) {
+                    Maps.removeByPath((Map<String, ?>) m, ref.column().path());
+                }
+            }
+            return doc;
         }
 
     }

@@ -48,6 +48,6 @@ public class RawCollectorExpression extends LuceneCollectorExpression<String> {
 
     @Override
     public String value() {
-        return storedRow.asString();
+        return storedRow.asRaw();
     }
 }

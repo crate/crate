@@ -38,11 +38,11 @@ import org.apache.lucene.search.Query;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
-import io.crate.Streamer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.table.TableInfo;
@@ -130,9 +130,8 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
     }
 
     private BytesReference arrayToBytes(List<T> values) {
-        Streamer<List<T>> streamer = (Streamer<List<T>>) reference.valueType().streamer();
         try (BytesStreamOutput output = new BytesStreamOutput()) {
-            streamer.writeValueTo(output, values);
+            output.writeCollection(values, StreamOutput::writeGenericValue);
             return output.bytes();
         } catch (IOException e) {
             throw new UncheckedIOException(e);

@@ -171,8 +171,8 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
             value = mapFromJSONString(str);
         }
         if (value instanceof byte[] bytes) {
-            try {
-                value = streamer().readValueFrom(new ByteBufferStreamInput(ByteBuffer.wrap(bytes)));
+            try (StreamInput in = new ByteBufferStreamInput(ByteBuffer.wrap(bytes))) {
+                value = in.readMap(StreamInput::readString, StreamInput::readGenericValue);
             } catch (IOException e) {
                 throw new UncheckedIOException(e);
             }
