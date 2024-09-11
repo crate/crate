@@ -22,8 +22,11 @@
 package io.crate.copy.azure;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
@@ -46,7 +49,7 @@ public class AzureBlobStorageSettings {
     /**
      * Registry of all settings also containing information whether setting is required or not.
      */
-    private static Map<Setting<String>, Boolean> settings() {
+    private static Map<Setting<String>, Boolean> supportedSettings() {
         return Map.of(
             CONTAINER_SETTING, true,
             ENDPOINT_SETTING, true,
@@ -58,10 +61,14 @@ public class AzureBlobStorageSettings {
 
     /**
      * Creates OpenDAL config from user provided settings.
+     * Rejects unknown settings.
+     * @param commonCopySettings is either common COPY TO or common COPY FROM settings.
      */
-    public static Map<String, String> openDALConfig(Settings settings) {
+    public static Map<String, String> openDALConfig(Settings settings, List<String> commonCopySettings) {
+        rejectUnknownSettings(settings, commonCopySettings);
+
         Map<String, String> config = new HashMap<>();
-        for (Map.Entry<Setting<String>, Boolean> entry: AzureBlobStorageSettings.settings().entrySet()) {
+        for (Map.Entry<Setting<String>, Boolean> entry: AzureBlobStorageSettings.supportedSettings().entrySet()) {
             var setting = entry.getKey();
             var required = entry.getValue();
             var value = setting.get(settings);
@@ -74,5 +81,14 @@ public class AzureBlobStorageSettings {
             }
         }
         return config;
+    }
+
+    private static void rejectUnknownSettings(Settings settings, List<String> commonCopySettings) {
+        Set<String> azureCopySettings = supportedSettings().keySet().stream().map(Setting::getKey).collect(Collectors.toSet());
+        for (String key : settings.keySet()) {
+            if (commonCopySettings.contains(key) == false && azureCopySettings.contains(key) == false) {
+                throw new IllegalArgumentException("Setting '" + key + "' is not supported");
+            }
+        }
     }
 }

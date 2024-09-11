@@ -40,6 +40,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
+import io.crate.analyze.CopyStatementSettings;
 import io.crate.execution.engine.collect.files.FileInput;
 import io.crate.execution.engine.collect.files.Globs.GlobPredicate;
 
@@ -65,7 +66,7 @@ public class AzureFileInput implements FileInput {
      * @param uri is in user provided format (azblob://path/to/dir)
      */
     public AzureFileInput(SharedAsyncExecutor sharedAsyncExecutor, URI uri, Settings settings) {
-        this.config = AzureBlobStorageSettings.openDALConfig(settings);
+        this.config = AzureBlobStorageSettings.openDALConfig(settings, CopyStatementSettings.commonCopyFromSettings);
         this.sharedAsyncExecutor = sharedAsyncExecutor;
         this.operator = AsyncOperator.of(NAME, config, sharedAsyncExecutor.asyncExecutor()).blocking();
         // Pre-glob path operates with user-provided URI as GLOB pattern reflects user facing COPY FROM uri format.

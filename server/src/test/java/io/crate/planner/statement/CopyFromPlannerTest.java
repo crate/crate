@@ -187,7 +187,7 @@ public class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void copy_from_unknown_property_in_with_clause_is_rejected() {
+    public void copy_from_file_scheme_unknown_property_in_with_clause_is_rejected() {
         assertThatThrownBy(() -> plan("COPY users FROM '/some/distant/file.ext' WITH (dummy='dummy')"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Setting 'dummy' is not supported");

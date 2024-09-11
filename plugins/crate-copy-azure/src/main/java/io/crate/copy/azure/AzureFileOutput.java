@@ -34,6 +34,7 @@ import org.apache.opendal.AsyncOperator;
 import org.apache.opendal.Operator;
 import org.elasticsearch.common.settings.Settings;
 
+import io.crate.analyze.CopyStatementSettings;
 import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.execution.engine.export.FileOutput;
 
@@ -43,7 +44,7 @@ public class AzureFileOutput implements FileOutput {
     private final Operator operator;
 
     public AzureFileOutput(SharedAsyncExecutor sharedAsyncExecutor, Settings settings) {
-        config = AzureBlobStorageSettings.openDALConfig(settings);
+        config = AzureBlobStorageSettings.openDALConfig(settings, CopyStatementSettings.commonCopyToSettings);
         this.operator = AsyncOperator.of(NAME, config, sharedAsyncExecutor.asyncExecutor()).blocking();
     }
 
