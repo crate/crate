@@ -115,11 +115,12 @@ public class AzureHttpHandler implements HttpHandler {
                     return;
                 }
                 exchange.getResponseHeaders().add("x-ms-blob-content-length", String.valueOf(blob.length()));
+                exchange.getResponseHeaders().add("Content-Length", String.valueOf(blob.length()));
                 exchange.getResponseHeaders().add("x-ms-blob-type", "blockblob");
                 exchange.sendResponseHeaders(RestStatus.OK.getStatus(), -1);
 
             } else if (Regex.simpleMatch("GET /" + container + "/*", request)) {
-                // GET Object (https://docs.aws.amazon.com/AmazonS3/latest/API/RESTObjectGET.html)
+                // GET Blob https://learn.microsoft.com/en-us/rest/api/storageservices/get-blob?tabs=microsoft-entra-id
                 final BytesReference blob = blobs.get(exchange.getRequestURI().getPath());
                 if (blob == null) {
                     sendError(exchange, RestStatus.NOT_FOUND);
@@ -128,13 +129,22 @@ public class AzureHttpHandler implements HttpHandler {
 
                 // see Constants.HeaderConstants.STORAGE_RANGE_HEADER
                 final String range = exchange.getRequestHeaders().getFirst("x-ms-range");
-                final Matcher matcher = Pattern.compile("^bytes=([0-9]+)-([0-9]+)$").matcher(range);
-                if (matcher.matches() == false) {
-                    throw new AssertionError("Range header does not match expected format: " + range);
-                }
+                final int start;
+                final int length;
+                if (range != null) {
+                    final Matcher matcher = Pattern.compile("^bytes=([0-9]+)-([0-9]+)$").matcher(range);
+                    if (matcher.matches() == false) {
+                        throw new AssertionError("Range header does not match expected format: " + range);
+                    }
 
-                final int start = Integer.parseInt(matcher.group(1));
-                final int length = Integer.parseInt(matcher.group(2)) - start + 1;
+                    start = Integer.parseInt(matcher.group(1));
+                    length = Integer.parseInt(matcher.group(2)) - start + 1;
+                } else {
+                    // From the docs (see link above):
+                    // If neither range is specified, the entire blob contents are returned.
+                    start = 0;
+                    length = blob.length();
+                }
 
                 exchange.getResponseHeaders().add("Content-Type", "application/octet-stream");
                 exchange.getResponseHeaders().add("x-ms-blob-content-length", String.valueOf(length));
@@ -177,6 +187,14 @@ public class AzureHttpHandler implements HttpHandler {
                     list.append("<Blob><Name>").append(blobPath).append("</Name>");
                     list.append("<Properties><Content-Length>").append(blob.getValue().length()).append(
                         "</Content-Length>");
+                    List<String> dateHeader = exchange.getRequestHeaders().get("X-ms-date");
+                    if (dateHeader != null) {
+                        // COPY/OpenDAL requires this header.
+                        // CREATE REPOSITORY/dedicated client fails on encountering header in such format.
+                        // TODO: Migrate CREATE REPOSITORY on Azure to use OpenDAL.
+                        list.append("<Last-Modified>").append(dateHeader.get(0)).append("</Last-Modified>");
+                    }
+
                     list.append("<BlobType>BlockBlob</BlobType></Properties></Blob>");
                 }
                 if (blobPrefixes.isEmpty() == false) {
@@ -184,6 +202,7 @@ public class AzureHttpHandler implements HttpHandler {
 
                 }
                 list.append("</Blobs>");
+                list.append("<NextMarker/>");
                 list.append("</EnumerationResults>");
 
                 byte[] response = list.toString().getBytes(StandardCharsets.UTF_8);

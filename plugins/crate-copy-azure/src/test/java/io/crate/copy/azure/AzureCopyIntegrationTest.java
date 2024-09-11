@@ -32,7 +32,6 @@ import java.util.Locale;
 
 import org.apache.lucene.tests.util.QuickPatchThreadsFilter;
 import org.elasticsearch.plugins.Plugin;
-import org.elasticsearch.repositories.azure.AzureHttpHandler;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
 import org.junit.Before;
@@ -41,6 +40,7 @@ import com.carrotsearch.randomizedtesting.ThreadFilter;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
 import com.sun.net.httpserver.HttpServer;
 
+import io.crate.azure.testing.AzureHttpHandler;
 import io.crate.lucene.CrateLuceneTestCase;
 
 @ThreadLeakFilters(
