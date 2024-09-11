@@ -38,6 +38,7 @@ import org.junit.Test;
 
 import com.sun.net.httpserver.HttpServer;
 
+import io.crate.azure.testing.AzureHttpHandler;
 import io.crate.testing.Asserts;
 
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST)

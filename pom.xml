@@ -393,6 +393,7 @@
     <module>libs/guice</module>
     <module>libs/sql-parser</module>
     <module>libs/pgwire</module>
+    <module>libs/azure-testing</module>
     <module>server</module>
     <module>plugins/es-analysis-common</module>
     <module>plugins/es-analysis-phonetic</module>
